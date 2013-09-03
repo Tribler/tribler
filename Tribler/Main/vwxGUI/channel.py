@@ -258,11 +258,7 @@ class SelectedChannelList(GenericSearchList):
 
         GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, borders=False, showChange=True, parent=parent)
 
-        newId = wx.NewId()
-        self.accelerators = [(wx.ACCEL_NORMAL, wx.WXK_BACK, newId)]
-        self.list.Bind(wx.EVT_MENU, self.OnBack, id=newId)
-        self.list.SetAcceleratorTable(wx.AcceleratorTable(self.accelerators))
-
+        self.list.OnBack = self.OnBack
         self.list.Bind(wx.EVT_SHOW, lambda evt: self.notebook.SetSelection(0))
 
     @warnWxThread
@@ -283,7 +279,7 @@ class SelectedChannelList(GenericSearchList):
         vSizer.Add(self.list, 1, wx.EXPAND)
         contentList.SetSizer(vSizer)
 
-        self.notebook.AddPage(contentList, "Contents", tab_colour = wx.WHITE)
+        self.notebook.AddPage(contentList, "Contents", tab_colour=wx.WHITE)
 
         self.commentList = NotebookPanel(self.notebook)
         self.commentList.SetList(CommentList(self.commentList, self, canReply=True))
@@ -382,12 +378,12 @@ class SelectedChannelList(GenericSearchList):
                 self.commentList.Show(True)
                 self.activityList.Show(True)
 
-                self.notebook.AddPage(self.commentList, "Comments", tab_colour = wx.WHITE)
-                self.notebook.AddPage(self.activityList, "Activity", tab_colour = wx.WHITE)
+                self.notebook.AddPage(self.commentList, "Comments", tab_colour=wx.WHITE)
+                self.notebook.AddPage(self.activityList, "Activity", tab_colour=wx.WHITE)
 
             if state >= ChannelCommunity.CHANNEL_OPEN and self.notebook.GetPageCount() == 3:
                 self.moderationList.Show(True)
-                self.notebook.AddPage(self.moderationList, "Moderations", tab_colour = wx.WHITE)
+                self.notebook.AddPage(self.moderationList, "Moderations", tab_colour=wx.WHITE)
         else:
             for i in range(self.notebook.GetPageCount(), 1, -1):
                 page = self.notebook.GetPage(i - 1)
@@ -521,7 +517,7 @@ class SelectedChannelList(GenericSearchList):
         wx.CallAfter(gui_call)
 
     @warnWxThread
-    def OnRemoveVote(self, event):
+    def OnRemoveFavorite(self, event):
         self.guiutility.RemoveFavorite(event, self.channel)
 
     @warnWxThread
@@ -529,31 +525,12 @@ class SelectedChannelList(GenericSearchList):
         self.guiutility.MarkAsFavorite(event, self.channel)
 
     @warnWxThread
+    def OnRemoveSpam(self, event):
+        self.guiutility.RemoveSpam(event, self.channel)
+
+    @warnWxThread
     def OnSpam(self, event):
-        channel = self.channel
-        if channel:
-            dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
-            if dialog.ShowModal() == wx.ID_YES:
-                self._DoSpam(channel)
-
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-
-            dialog.Destroy()
-
-    @forcePrioDBThread
-    def _DoSpam(self, channel):
-        # Set self.channel to None to prevent updating twice
-        id = channel.id
-        self.channel = None
-        self.channelsearch_manager.spam(id)
-
-        self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type=2)
-
-        manager = self.GetManager()
-        wx.CallAfter(manager.reload, id)
+        self.guiutility.MarkAsSpam(event, self.channel)
 
     @warnWxThread
     def OnManage(self, event):
@@ -949,7 +926,7 @@ class ManageChannelFilesManager(BaseManager):
 
     def startDownloadFromMagnet(self, url, *args, **kwargs):
         try:
-            return TorrentDef.retrieve_from_magnet(url, self.AddTDef)
+            return TorrentDef.retrieve_from_magnet(url, self.AddTDef, timeout=300)
         except:
             return False
 

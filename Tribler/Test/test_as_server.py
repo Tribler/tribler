@@ -94,6 +94,8 @@ class TestAsServer(AbstractServer):
         self.setUpCleanup()
         self.setUpPreSession()
 
+        self.quitting = False
+
         self.session = Session(self.config)
         self.session.start()
 
@@ -155,6 +157,39 @@ class TestAsServer(AbstractServer):
 
         print >> sys.stderr, "test_as_server: Session is shutdown"
 
+    def assert_(self, boolean, reason=None, do_assert = True):
+        if not boolean:
+            self.quit()
+            assert boolean, reason
+
+    def startTest(self, callback):
+        self.quitting = False
+        callback()
+
+    def Call(self, seconds, callback):
+        if not self.quitting:
+            if seconds:
+                time.sleep(seconds)
+            callback()
+
+    def CallConditional(self, timeout, condition, callback, assertMsg=None):
+        t = time.time()
+
+        def DoCheck():
+            if not self.quitting:
+                if time.time() - t < timeout:
+                    if condition():
+                        print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t)
+                        callback()
+                    else:
+                        self.Call(0.5, DoCheck)
+                else:
+                    print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
+                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
+        self.Call(0, DoCheck)
+
+    def quit(self):
+        self.quitting = True
 
 class TestGuiAsServer(TestAsServer):
 
@@ -174,41 +209,46 @@ class TestGuiAsServer(TestAsServer):
         self.lm = None
         self.session = None
 
-        self.quitting = False
         self.hadSession = False
+        self.quitting = False
 
         self.asserts = []
-
         self.annotate(self._testMethodName, start=True)
 
-    def assert_(self, boolean, reason, doassert=True):
+    def assert_(self, boolean, reason, do_assert = True):
         if not boolean:
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
 
             self.asserts.append((boolean, reason))
-
-            if doassert:
+            
+            if do_assert:
                 assert boolean, reason
 
-    def startTest(self, callback):
+    def startTest(self, callback, min_timeout=5):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main.tribler import run
 
-        self.quitting = False
         self.hadSession = False
+        starttime = time.time()
+
+        def call_callback():
+            took = time.time() - starttime
+            if took > min_timeout:
+                callback()
+            else:
+                self.Call(min_timeout - took, callback)
 
         def wait_for_frame():
-            print >> sys.stderr, "tgs: lm initcomplete, staring to wait for frame to be ready"
+            print >> sys.stderr, "tgs: GUIUtility ready, staring to wait for frame to be ready"
             self.frame = self.guiUtility.frame
-            self.CallConditional(30, lambda: self.frame.ready, callback)
+            self.frame.Maximize()
+            self.CallConditional(30, lambda: self.frame.ready, call_callback)
 
         def wait_for_init():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
-
             self.guiUtility = GUIUtility.getInstance()
-
-            self.CallConditional(30, lambda: self.guiUtility.frame, wait_for_frame)
+            self.CallConditional(30, lambda: self.guiUtility.registered, wait_for_frame)
 
         def wait_for_guiutility():
             print >> sys.stderr, "tgs: waiting for guiutility instance"
@@ -226,7 +266,7 @@ class TestGuiAsServer(TestAsServer):
             print >> sys.stderr, "tgs: waiting for session instance"
             self.CallConditional(30, lambda: Session.has_instance(), wait_for_instance)
 
-        self.CallConditional(30, Session.has_instance, wait_for_session)
+        self.CallConditional(30, lambda: Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_session))
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
@@ -243,28 +283,12 @@ class TestGuiAsServer(TestAsServer):
             else:
                 callback()
 
-    def CallConditional(self, timeout, condition, callback, assertMsg=None):
-        t = time.time()
-
-        def DoCheck():
-            if not self.quitting:
-                if time.time() - t < timeout:
-                    if condition():
-                        print >> sys.stderr, "tgs: condition satisfied after %d seconds, calling callback" % (time.time() - t)
-                        callback()
-                    else:
-                        self.Call(0.5, DoCheck)
-                else:
-                    print >> sys.stderr, "tgs: quitting, condition was not satisfied in %d seconds" % timeout
-                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
-        self.Call(0, DoCheck)
-
     def quit(self):
         if self.frame:
             self.frame.OnCloseWindow()
         else:
             def do_quit():
-                self.app.ExitMainLoop
+                self.app.ExitMainLoop()
                 wx.WakeUpMainThread()
 
             self.Call(1, do_quit)
@@ -281,7 +305,7 @@ class TestGuiAsServer(TestAsServer):
         del self.lm
         del self.session
 
-        time.sleep(10)
+        time.sleep(1)
         gc.collect()
 
         ts = enumerate_threads()
@@ -305,10 +329,14 @@ class TestGuiAsServer(TestAsServer):
         for boolean, reason in self.asserts:
             assert boolean, reason
 
-    def screenshot(self, title=None, destdir="output"):
-        app = wx.GetApp()
-        window = app.GetTopWindow()
-        rect = window.GetRect()
+    def screenshot(self, title=None, destdir="output", window=None):
+        if window == None:
+            app = wx.GetApp()
+            window = app.GetTopWindow()
+
+        rect = window.GetClientRect()
+        size = window.GetSize()
+        rect = wx.Rect(rect.x, rect.y, size.x, size.y)
 
         screen = wx.WindowDC(window)
         bmp = wx.EmptyBitmap(rect.GetWidth(), rect.GetHeight() + 30)

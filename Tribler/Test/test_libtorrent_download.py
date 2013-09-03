@@ -26,13 +26,13 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def download_object_ready():
             self.CallConditional(10, lambda: infohash in self.frame.librarylist.list.items, item_shown_in_list, 'no download in librarylist')
 
-        def do_downloadfromurl():
+        def do_downloadfromfile():
             self.guiUtility.showLibrary()
             self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
 
-        self.startTest(do_downloadfromurl)
+        self.startTest(do_downloadfromfile)
 
     def test_downloadfromurl(self):
         infohash = binascii.unhexlify('24ad1d85206db5f85491a690e6723e27f4551e01')
@@ -127,7 +127,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
     def test_playdownload(self):
         t = time()
 
-        def do_assert():
+        def take_screenshot():
             self.screenshot("After streaming a libtorrent download (buffering took %.2f s)" % (time() - t))
             self.quit()
 
@@ -137,7 +137,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.assert_(bool(d), "No VOD download found")
 
             self.screenshot('After starting a VOD download')
-            self.CallConditional(60, lambda: d.network_calc_prebuf_frac() == 1.0, do_assert)
+            self.CallConditional(60, lambda: d.network_get_vod_stats()['status'] == "started", take_screenshot, "streaming did not start")
 
         def do_vod():
             self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/8-blue---a-short-film.torrent', self.getDestDir(), selectedFiles=[os.path.join('Content', 'blue-a-short-film-divx.avi')], vodmode=True)
@@ -146,15 +146,6 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         self.startTest(do_vod)
 
-    def startTest(self, callback, waitforpeers=False):
-        if waitforpeers:
-            def wait_for_libtorrent():
-                ltmgr = LibtorrentMgr.getInstance()
-                self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
-
-            TestGuiAsServer.startTest(self, wait_for_libtorrent)
-        else:
-            TestGuiAsServer.startTest(self, callback)
 
 if __name__ == "__main__":
     unittest.main()

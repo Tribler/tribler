@@ -33,9 +33,7 @@ from widgets import _set_font, ChannelPopularity, SwarmHealth
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
-from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Category.Category import Category
-from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 
 DEBUG = False
 DEBUG_RELEVANCE = False
@@ -137,7 +135,7 @@ class RemoteSearchManager(BaseManager):
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
         workerType = "guiTaskQueue" if remote else "dbThread"
-        startWorker(self._on_refresh, db_callback, delay=delay, uId= u"RemoteSearchManager_refresh_%s" % self.oldkeywords, retryOnBusy=True, workerType = workerType, priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_refresh, db_callback, delay=delay, uId=u"RemoteSearchManager_refresh_%s" % self.oldkeywords, retryOnBusy=True, workerType=workerType, priority=GUI_PRI_DISPERSY)
 
     def _on_refresh(self, delayedResult):
         keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits = delayedResult.get()
@@ -161,12 +159,12 @@ class RemoteSearchManager(BaseManager):
             [total_channels, new_hits, self.data_channels] = self.channelsearch_manager.getChannelHits()
             return total_channels
 
-        startWorker(self._on_refresh_channel, db_callback, uId= u"RemoteSearchManager_refresh_channel_%s" % self.oldkeywords, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_refresh_channel, db_callback, uId=u"RemoteSearchManager_refresh_channel_%s" % self.oldkeywords, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def _on_refresh_channel(self, delayedResult):
         self.list.SetNrChannels(delayedResult.get())
 
-    def refresh_partial(self, infohashes=[], channelids= []):
+    def refresh_partial(self, infohashes=[], channelids=[]):
         for infohash in infohashes:
             curTorrent = self.list.GetItem(infohash).original_data
             if isinstance(curTorrent, ChannelTorrent):
@@ -193,7 +191,7 @@ class RemoteSearchManager(BaseManager):
             startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def showSearchSuggestions(self, keywords):
-        startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, cargs=(keywords, ), wargs=(keywords, 3), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, cargs=(keywords,), wargs=(keywords, 3), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -252,7 +250,7 @@ class LocalSearchManager(BaseManager):
                 delayedResult.get()
                 self.refresh_or_expand(infohash)
 
-            startWorker(select, self.refresh_partial, wargs=([infohash], ), priority=GUI_PRI_DISPERSY)
+            startWorker(select, self.refresh_partial, wargs=([infohash],), priority=GUI_PRI_DISPERSY)
         else:
             self.list.Select(infohash)
 
@@ -342,7 +340,7 @@ class ChannelSearchManager(BaseManager):
                     total_items, data = self.channelsearch_manager.getMyChannels()
                 return data, category
 
-            startWorker(self._on_data_delayed, db_callback, uId= u"ChannelSearchManager_refresh_%s" % category, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(self._on_data_delayed, db_callback, uId=u"ChannelSearchManager_refresh_%s" % category, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
         else:
             if search_results:
@@ -397,7 +395,7 @@ class ChannelSearchManager(BaseManager):
         else:
             self.list.DeselectAll()
 
-    def channelUpdated(self, id, votecast=False, myvote= False):
+    def channelUpdated(self, id, votecast=False, myvote=False):
         if self.list.isReady:
             # only update when shown
             if self.list.InList(id):
@@ -415,6 +413,8 @@ class ChannelSearchManager(BaseManager):
                 self.do_or_schedule_refresh()
 
             else:
+                update = False
+
                 if not votecast:
                     if self.category == 'All':
                         update = True
@@ -472,7 +472,7 @@ class XRCPanel(wx.Panel):
 
 class List(wx.BoxSizer):
 
-    def __init__(self, columns, background, spacers=[0, 0], singleSelect = False, showChange = False, borders = True, parent = None):
+    def __init__(self, columns, background, spacers=[0, 0], singleSelect=False, showChange=False, borders=True, parent=None):
         """
         Column alignment:
 
@@ -559,7 +559,7 @@ class List(wx.BoxSizer):
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns)
 
-    def CreateList(self, parent=None, listRateLimit= 1):
+    def CreateList(self, parent=None, listRateLimit=1):
         if not parent:
             parent = self
         return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=listRateLimit)
@@ -765,7 +765,7 @@ class List(wx.BoxSizer):
         if self.isReady:
             self.list.ShowLoading()
 
-    def ShowMessage(self, message, header=None, altControl= None):
+    def ShowMessage(self, message, header=None, altControl=None):
         if self.isReady:
             self.list.ShowMessage(message, header, altControl)
 
@@ -782,7 +782,7 @@ class List(wx.BoxSizer):
     def Thaw(self):
         self.parent.Thaw()
 
-    def Show(self, show=True, isShown= False):
+    def Show(self, show=True, isShown=False):
         self.ShowItems(show)
 
         if show and (isShown or self.IsShownOnScreen()):
@@ -889,7 +889,7 @@ class List(wx.BoxSizer):
 
 class SizeList(List):
 
-    def __init__(self, columns, background, spacers=[0, 0], singleSelect= False, showChange = False, borders = True, parent = None):
+    def __init__(self, columns, background, spacers=[0, 0], singleSelect=False, showChange=False, borders=True, parent=None):
         List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
         self.prevStates = {}
         self.library_manager = self.guiutility.library_manager
@@ -1037,7 +1037,7 @@ class SizeList(List):
 
         return didStateChange, old_dsdict, dsdict
 
-    def Show(self, show=True, isShown= False):
+    def Show(self, show=True, isShown=False):
         List.Show(self, show, isShown)
         if show:
             self.library_manager.add_download_state_callback(self.RefreshItems)
@@ -1047,7 +1047,7 @@ class SizeList(List):
 
 class GenericSearchList(SizeList):
 
-    def __init__(self, columns, background, spacers=[0, 0], singleSelect = False, showChange = False, borders = True, parent = None):
+    def __init__(self, columns, background, spacers=[0, 0], singleSelect=False, showChange=False, borders=True, parent=None):
         SizeList.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
 
         self.infohash2key = {}  # bundled infohashes
@@ -1521,7 +1521,7 @@ class SearchList(GenericSearchList):
         associated.sort(reverse=True)
         associated = [a[-1] for a in associated]
         results = results.values()
-        results.sort(reverse=True, key= lambda x: x.nr_torrents)
+        results.sort(reverse=True, key=lambda x: x.nr_torrents)
 
         # We need to filter here, as otherwise our top-3 associated channels could only consist of
         # xxx channels, which will be filtered afterwards. Resulting in no channels being shown.
@@ -1538,9 +1538,9 @@ class SearchList(GenericSearchList):
         channels = results + associated
         for index, channel in enumerate(channels):
             if channel in associated:
-                channels[index] = (channel, (index + 1) *5, True, associated_torrents[channel])
+                channels[index] = (channel, (index + 1) * 5, True, associated_torrents[channel])
             else:
-                channels[index] = (channel, (index + 1) *5, False)
+                channels[index] = (channel, (index + 1) * 5, False)
 
         self.SetNrChannels(len(channels))
         GenericSearchList.SetData(self, channels + torrents)
@@ -1618,7 +1618,7 @@ class SearchList(GenericSearchList):
             self.Thaw()
 
             def db_callback(keywords):
-                self.uelog.addEvent(message="Search: nothing found for query: " + " ".join(keywords), type= 2)
+                self.uelog.addEvent(message="Search: nothing found for query: " + " ".join(keywords), type=2)
                 self.GetManager().showSearchSuggestions(keywords)
 
             if self.nr_results == 0 and self.nr_filtered == 0:
@@ -1684,6 +1684,7 @@ class LibraryList(SizeList):
         self.statefilter = None
         self.newfilter = False
         self.prevStates = {}
+        self.oldDS = {}
 
         self.bw_history = {}
         self.bw_history_counter = 0
@@ -1839,7 +1840,7 @@ class LibraryList(SizeList):
 
     @warnWxThread
     def RefreshItems(self, dslist, magnetlist):
-        didStateChange, oldDS, newDS = SizeList.RefreshItems(self, dslist, magnetlist, rawdata=True)
+        didStateChange, _, newDS = SizeList.RefreshItems(self, dslist, magnetlist, rawdata=True)
 
         newFilter = self.newfilter
         show_seeding_colours = False
@@ -1848,10 +1849,10 @@ class LibraryList(SizeList):
             t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
 
             orange = LIST_ORANGE
-            orange = rgb_to_hsv(orange.Red() / 255.0, orange.Green() /255.0, orange.Blue()/255.0)
+            orange = rgb_to_hsv(orange.Red() / 255.0, orange.Green() / 255.0, orange.Blue() / 255.0)
 
             green = LIST_GREEN
-            green = rgb_to_hsv(green.Red() / 255.0, green.Green() /255.0, green.Blue()/255.0)
+            green = rgb_to_hsv(green.Red() / 255.0, green.Green() / 255.0, green.Blue() / 255.0)
 
             colourstep = (green[0] - orange[0], green[1] - orange[1], green[2] - orange[2])
 
@@ -1865,9 +1866,9 @@ class LibraryList(SizeList):
 
         for item in self.list.items.itervalues():
             ds = item.original_data.ds
-            id = ds.get_download().get_def().get_id()
-            if newFilter or not self.__ds__eq__(ds, oldDS.get(id, None)):
-                if hasattr(item, 'progressPanel'):
+            id = ds.get_download().get_def().get_id() if ds else None
+            if newFilter or not self.__ds__eq__(ds, self.oldDS.get(id, None)):
+                if ds and hasattr(item, 'progressPanel'):
                     progress = item.progressPanel.Update(item.original_data)
                     item.data[1] = progress
                 else:
@@ -1889,7 +1890,7 @@ class LibraryList(SizeList):
                             else:
                                 ratio = 0
                         else:
-                            ratio = 1.0 * ul /dl
+                            ratio = 1.0 * ul / dl
 
                         item.RefreshColumn(9, ratio)
                         item.RefreshColumn(10, seeding_stats['time_seeding'])
@@ -1910,7 +1911,7 @@ class LibraryList(SizeList):
                             else:
                                 ratio = 0
                         else:
-                            ratio = 1.0 * ul /dl
+                            ratio = 1.0 * ul / dl
 
                         tooltip = "Total transferred: %s down, %s up." % (self.utility.size_format(dl), self.utility.size_format(ul))
 
@@ -1922,13 +1923,13 @@ class LibraryList(SizeList):
                             step = ratio / t4t_ratio
                             step = int(min(1, step) * 5) / 5.0  # rounding to 5 different colours
 
-                            rgbTuple = (c * 255.0 for c in hsv_to_rgb(orange[0] +step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
+                            rgbTuple = (c * 255.0 for c in hsv_to_rgb(orange[0] + step * colourstep[0], orange[1] + step * colourstep[1], orange[2] + step * colourstep[2]))
                             bgcolour = wx.Colour(*rgbTuple)
                             item.SetDeselectedColour(bgcolour)
                         else:
                             item.SetDeselectedColour(LIST_DESELECTED)
 
-                item.RefreshColumn(3, ds.get_eta() if ds else '-')
+                item.RefreshColumn(3, ds.get_eta() if ds else None)
 
                 item.RefreshColumn(4, ds.get_current_speed('down') * 1024 if ds else 0)
                 item.SetToolTipColumn(4, tooltip)
@@ -1952,12 +1953,14 @@ class LibraryList(SizeList):
         if newFilter:
             self.newfilter = False
 
+        self.oldDS = dict([(infohash, item.original_data.ds) for infohash, item in self.list.items.iteritems()])
+
     @warnWxThread
     def RefreshBandwidthHistory(self, dslist, magnetlist):
         for item in self.list.items.itervalues():
             # Store bandwidth history in self.bw_history
             self.bw_history_counter += 1
-            if self.bw_history_counter % 5 == 0:                
+            if self.bw_history_counter % 5 == 0:
                 ds = item.original_data.ds
                 self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
                 self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') if ds else 0, ds.get_current_speed('down') if ds else 0))
@@ -2117,7 +2120,7 @@ class ChannelList(List):
     def CreatePopularity(self, parent, item):
         pop = item.original_data.nr_favorites
         if pop <= 0:
-            ratio = wx.StaticText(parent, -1, "New", )
+            ratio = wx.StaticText(parent, -1, "New",)
             return ratio
 
         max = log(self.max_votes)
@@ -2224,13 +2227,13 @@ class ActivitiesList(List):
         listSizer.Add(self.list, 1, wx.EXPAND)
         self.Add(listSizer, 0, wx.EXPAND)
 
-        self.notifyPanel = FancyPanel(self.parent, radius=5, border= wx.ALL)
+        self.notifyPanel = FancyPanel(self.parent, radius=5, border=wx.ALL)
         self.notifyPanel.SetBorderColour(SEPARATOR_GREY)
         self.notifyPanel.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.notifyPanel.SetForegroundColour(wx.Colour(80, 80, 80))
         self.notifyIcon = TransparentStaticBitmap(self.notifyPanel, -1)
         self.notify = TransparentText(self.notifyPanel)
-        _set_font(self.notify, fontweight=wx.FONTWEIGHT_NORMAL, size_increment= 0)
+        _set_font(self.notify, fontweight=wx.FONTWEIGHT_NORMAL, size_increment=0)
 
         notifySizer = wx.BoxSizer(wx.HORIZONTAL)
         notifySizer.Add(self.notifyIcon, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
@@ -2239,7 +2242,7 @@ class ActivitiesList(List):
         self.notifyPanel.Hide()
 
         self.AddStretchSpacer()
-        self.Add(self.notifyPanel, 0, wx.EXPAND | wx.ALIGN_BOTTOM |wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+        self.Add(self.notifyPanel, 0, wx.EXPAND | wx.ALIGN_BOTTOM | wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
 
         self.SetBackgroundColour(self.background)
         self.Layout()
@@ -2279,7 +2282,7 @@ class ActivitiesList(List):
             item.hSizer.Layout()
         for child in item.GetChildren():
             if not isinstance(child, TagText):
-                _set_font(child, fontweight=wx.FONTWEIGHT_NORMAL, fontcolour= wx.Colour(160, 160, 160))
+                _set_font(child, fontweight=wx.FONTWEIGHT_NORMAL, fontcolour=wx.Colour(160, 160, 160))
         self.settings[index] = (item.list_deselected, item.list_selected, item.OnClick)
         item.list_deselected = wx.WHITE
         item.list_selected = wx.WHITE
@@ -2306,12 +2309,12 @@ class ActivitiesList(List):
     def ResizeListItems(self):
         for item in self.list.items.values():
             item.vSizer.Detach(item.hSizer)
-            item.vSizer.Add(item.hSizer, 0, wx.EXPAND | wx.TOP |wx.BOTTOM, 5)
+            item.vSizer.Add(item.hSizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
     def OnExpand(self, item):
         for child in item.GetChildren():
             if not isinstance(child, TagText):
-                _set_font(child, fontweight=wx.FONTWEIGHT_NORMAL, fontcolour= TRIBLER_RED)
+                _set_font(child, fontweight=wx.FONTWEIGHT_NORMAL, fontcolour=TRIBLER_RED)
         wx.CallAfter(self.Layout)
         if item.data[0] == 'Home':
             self.guiutility.ShowPage('home')
@@ -2339,7 +2342,7 @@ class ActivitiesList(List):
     def OnCollapseInternal(self, item):
         for child in item.GetChildren():
             if not isinstance(child, TagText):
-                _set_font(child, fontweight=wx.FONTWEIGHT_NORMAL, fontcolour= item.GetForegroundColour())
+                _set_font(child, fontweight=wx.FONTWEIGHT_NORMAL, fontcolour=item.GetForegroundColour())
         List.OnCollapseInternal(self, item)
         self.list.OnChange()
         self.list.Refresh()
@@ -2359,7 +2362,7 @@ class ActivitiesList(List):
         self.notifyPanel.Layout()
         cdc = wx.ClientDC(self.notify)
         cdc.SetFont(self.notify.GetFont())
-        wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], cdc, breakLongWords=True, margin= 0)
+        wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], cdc, breakLongWords=True, margin=0)
         self.notify.SetLabel(wrapped_msg)
         self.notify.SetSize(self.notify.GetBestSize())
 

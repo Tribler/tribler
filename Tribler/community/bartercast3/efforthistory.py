@@ -3,8 +3,6 @@ logger = logging.getLogger(__name__)
 
 from binascii import hexlify, unhexlify
 
-from Tribler.dispersy.decorator import Constructor, constructor
-
 # a cycle is defined as a N second period
 CYCLE_SIZE = 60.0 * 30
 
@@ -13,46 +11,53 @@ BIT_COUNT = 64 * 8
 assert BIT_COUNT % 8 == 0
 
 
-class EffortHistory(Constructor):
+class EffortHistory(object):
 
-    @constructor(float)
-    def _init_bits_origin(self, origin):
-        """
-        Construct empty history.
+    """
+    The EffortHistory constructor takes parameters that are interpreted differently, depending on
+    their type.  The following type combination, and their interpretations, are possible:
 
-        ORIGIN: the current time.
-        ORIGIN: float timestamp.
-        """
-        assert isinstance(origin, float)
-        self._long = 0
-        self._origin = origin
+    - EffortHistory(float:origin)
 
-    @constructor(long, float)
-    def _init_long_bits_origin(self, long_, origin):
-        """
-        Construct using LONG_.
+      Will create an empty history.
 
-        LONG_: long containing the binary bits.
-        ORIGIN: float timestamp.
-        """
-        assert isinstance(long_, long)
-        assert isinstance(origin, float)
-        self._long = long_
-        self._origin = origin
+    - EffortHistory(long:bits, float:origin)
 
-    @constructor(str, float)
-    def _init_bytes_bits_origin(self, bytes_, origin):
-        """
-        Construct using BYTES.
+      Will create a history from existing bits.
 
-        BYTES: string containing the binary long_.
-        ORIGIN: float timestamp.
-        """
-        assert isinstance(bytes_, str)
-        assert 0 < len(bytes_)
-        assert isinstance(origin, float)
-        self._origin = origin
-        self._long = long(hexlify(bytes_[::-1]), 16)
+    - EffortHistory(str:bytes, float:origin)
+
+      Will create a history from existing bytes.
+    """
+
+    @classmethod
+    def _overload_constructor_arguments(cls, args):
+        # matches: EffortHistory(float:origin)
+        if len(args) == 1 and isinstance(args[0], float):
+            long_ = 0
+            origin = args[0]
+
+        # matches: EffortHistory(long:bits, float:origin)
+        elif len(args) == 2 and isinstance(args[0], long) and isinstance(args[1], float):
+            long_ = args[0]
+            origin = args[1]
+
+        # matches: EffortHistory(str:bytes, float:origin)
+        elif len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], float):
+            assert len(args[0]) > 0, len(args[0])
+            long_ = long(hexlify(args[0][::-1]), 16)
+            origin = args[1]
+
+        else:
+            raise RuntimeError("Unknown combination of argument types %s" % str([type(arg) for arg in args]))
+
+        return long_, origin
+
+    def __init__(self, *args):
+        # get constructor arguments
+        self._long, self._origin = self._overload_constructor_arguments(args)
+        assert isinstance(self._long, (int, long)), type(self._long)
+        assert isinstance(self._origin, float), type(self._origin)
 
     @property
     def bits(self):

@@ -14,7 +14,7 @@ from Tribler.__init__ import LIBRARYNAME
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.Search.SearchManager import split_into_keywords,\
+from Tribler.Core.Search.SearchManager import split_into_keywords, \
     fts3_preprocess
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
@@ -32,7 +32,7 @@ DEBUG = False
 class GUIUtility:
     __single = None
 
-    def __init__(self, utility=None, params= None, app = None):
+    def __init__(self, utility=None, params=None, app=None):
         if GUIUtility.__single:
             raise RuntimeError("GUIUtility is singleton")
         GUIUtility.__single = self
@@ -58,7 +58,7 @@ class GUIUtility:
         self.firewall_restart = False  # ie Tribler needs to restart for the port number to be updated
 
         # Recall improves by 20-25% by increasing the number of peers to query to 20 from 10 !
-        self.max_remote_queries = 20    # max number of remote peers to query
+        self.max_remote_queries = 20  # max number of remote peers to query
 
         self.current_search_query = ''
 
@@ -208,6 +208,7 @@ class GUIUtility:
                 else:
                     items = self.frame.librarylist.GetExpandedItems()
                     if items:
+                        items[0][1].expanded = False
                         self.frame.librarylist.Select(items[0][0])
                     else:
                         self.frame.librarylist.ResetBottomWindow()
@@ -281,7 +282,7 @@ class GUIUtility:
         if self.guiPage == 'my_files':
             return self.frame.librarylist
 
-    def SetTopSplitterWindow(self, window=None, show= True):
+    def SetTopSplitterWindow(self, window=None, show=True):
         while self.frame.splitter_top.GetChildren():
             self.frame.splitter_top.Detach(0)
 
@@ -293,10 +294,10 @@ class GUIUtility:
         self.frame.splitter_top.Layout()
         self.frame.splitter_top_window.Refresh()
 
-    def SetBottomSplitterWindow(self, window=None, show= True):
+    def SetBottomSplitterWindow(self, window=None, show=True):
         self.frame.splitter_bottom.Clear(True)
         if window:
-            self.frame.splitter_bottom.Add(window, 1, wx.EXPAND | wx.ALIGN_TOP |wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+            self.frame.splitter_bottom.Add(window, 1, wx.EXPAND | wx.ALIGN_TOP | wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
             self.frame.splitter_bottom_window.SetBackgroundColour(window.GetBackgroundColour())
         else:
             from __init__ import GRADIENT_LGREY
@@ -307,7 +308,7 @@ class GUIUtility:
         self.frame.splitter_bottom_window.Refresh()
 
     def SetColumnInfo(self, itemtype, columns, hide_defaults=[]):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename= os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
         # Load hidden column info
         hide_columns = fileconfig.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
@@ -328,8 +329,8 @@ class GUIUtility:
 
         return columns
 
-    def ReadGuiSetting(self, setting_name, default=None, do_json= True):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename= os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+    def ReadGuiSetting(self, setting_name, default=None, do_json=True):
+        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
         setting_value = fileconfig.Read(setting_name)
         if do_json and setting_value:
             setting_value = json.loads(setting_value)
@@ -338,12 +339,12 @@ class GUIUtility:
         return setting_value
 
     def WriteGuiSetting(self, setting_name, setting_value, do_json=True):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename= os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
         fileconfig.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
         fileconfig.Flush()
 
     @forceWxThread
-    def GoBack(self, scrollTo=None, topage= None):
+    def GoBack(self, scrollTo=None, topage=None):
         if topage:
             self.oldpage.pop()
         else:
@@ -407,7 +408,7 @@ class GUIUtility:
                 self.frame.top_bg.StartSearch()
                 self.current_search_query = keywords
                 if DEBUG:
-                    print >>sys.stderr, "GUIUtil: searchFiles:", keywords, time()
+                    print >> sys.stderr, "GUIUtil: searchFiles:", keywords, time()
 
                 self.frame.searchlist.Freeze()
 
@@ -540,7 +541,7 @@ class GUIUtility:
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
 
-    def Notify(self, title, msg='', icon= wx.ART_INFORMATION):
+    def Notify(self, title, msg='', icon=wx.ART_INFORMATION):
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
         else:
@@ -558,7 +559,7 @@ class GUIUtility:
         if l not in self.lists:
             self.lists.append(l)
 
-    def toggleFamilyFilter(self, newState=None, setCheck= False):
+    def toggleFamilyFilter(self, newState=None, setCheck=False):
         if newState == None:
             newState = not self.getFamilyFilter()
 
@@ -639,6 +640,60 @@ class GUIUtility:
                     wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon='favourite')
                     if event:
                         button.Enable(True)
+                    self.RefreshChannel(channel.id)
+                remove_vote()
+            elif event:
+                button.Enable(True)
+
+    @forceWxThread
+    def MarkAsSpam(self, event, channel):
+        if channel:
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                if hasattr(button, 'selected'): button.selected = False
+
+            dlgname = 'MSdialog'
+            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+                dlg = ConfirmationDialog(None, dlgname, "You are about to report channel \'%s\' as spam." % channel.name, "")
+                response = dlg.ShowModal()
+
+            if response == wx.ID_OK:
+                @forcePrioDBThread
+                def remove_vote():
+                    self.channelsearch_manager.spam(channel.id)
+                    wx.CallAfter(self.Notify, "Channel marked as spam", "Channel '%s' marked as spam" % channel.name)
+                    if event: button.Enable(True)
+                    self.RefreshChannel(channel.id)
+                remove_vote()
+            elif event:
+                button.Enable(True)
+
+    @forceWxThread
+    def RemoveSpam(self, event, channel):
+        if channel:
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                if hasattr(button, 'selected'): button.selected = False
+
+            dlgname = 'RSdialog'
+            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+                dlg = ConfirmationDialog(None, dlgname, "You are about unmark channel \'%s\' as spam." % channel.name, "")
+                response = dlg.ShowModal()
+
+            if response == wx.ID_OK:
+                @forcePrioDBThread
+                def remove_vote():
+                    self.channelsearch_manager.remove_vote(channel.id)
+                    wx.CallAfter(self.Notify, "Channel unmarked as spam", "Channel '%s' unmarked as spam" % channel.name)
+                    if event: button.Enable(True)
                     self.RefreshChannel(channel.id)
                 remove_vote()
             elif event:

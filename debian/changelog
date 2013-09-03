@@ -1,3 +1,9 @@
+tribler (6.2.0) unstable; urgency=low
+
+  * New release.
+
+ -- Elric Milon <e.milon@tudelft.nl>  Wed, 31 Jul 2013 12:31:24 +0200
+
 tribler (6.0.0+svn20121015.r28821-1) unstable; urgency=low
 
   * New upstream release.

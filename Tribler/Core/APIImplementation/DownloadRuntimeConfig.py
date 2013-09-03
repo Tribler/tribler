@@ -31,7 +31,7 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     """
     def set_max_speed(self, direct, speed):
         if DEBUG:
-            print >>sys.stderr, "Download: set_max_speed", repr(self.get_def().get_metainfo()['info']['name']), direct, speed
+            print >> sys.stderr, "Download: set_max_speed", repr(self.get_def().get_metainfo()['info']['name']), direct, speed
         # print_stack()
 
         self.dllock.acquire()
@@ -64,11 +64,11 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     def set_corrected_filename(self, path):
         raise OperationNotPossibleAtRuntimeException()
 
-    def set_video_event_callback(self, usercallback, dlmode=DLMODE_VOD):
+    def set_video_event_callback(self, usercallback):
         """ Note: this currently works only when the download is stopped. """
         self.dllock.acquire()
         try:
-            DownloadConfigInterface.set_video_event_callback(self, usercallback, dlmode=dlmode)
+            DownloadConfigInterface.set_video_event_callback(self, usercallback)
         finally:
             self.dllock.release()
 

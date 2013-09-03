@@ -1,12 +1,13 @@
 *.pyc
 *.pyo
 *~
-\#*\#
+.ropeproject
 /.Tribler
 /.noseids
 /output
 /swift
 /swift.exe
+
 .project
 .pydevproject
 Tribler/.idea/

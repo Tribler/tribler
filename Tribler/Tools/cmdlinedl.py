@@ -1,5 +1,4 @@
 # Written by Arno Bakker
-# Updated by George Milescu
 # see LICENSE.txt for license information
 #
 # Razvan Deaconescu, 2008:
@@ -50,7 +49,7 @@ def print_version():
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
-    print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
+    print >> sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
         (d.get_def().get_name(),
             dlstatus_strings[ds.get_status()],
             ds.get_progress() * 100,
@@ -65,7 +64,7 @@ def main():
     try:
         # opts = a list of (option, value) pairs
         # args = the list of program arguments left after the option list was stripped
-        opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir", "port"])
+        opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir=", "port="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -113,6 +112,7 @@ def main():
     sscfg.set_dispersy(False)
 
     s = Session(sscfg)
+    s.start()
 
     # setup and start download
     dscfg = DownloadStartupConfig()

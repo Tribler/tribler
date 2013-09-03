@@ -13,14 +13,12 @@ import atexit
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
-from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
-from Tribler.Main.Dialogs.MoveTorrents import MoveTorrents
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
@@ -35,7 +33,6 @@ class SettingsDialog(wx.Dialog):
                              'browse',
                              'firewallValue',
                              'firewallStatusText',
-                             'firewallStatus',
                              'uploadCtrl',
                              'downloadCtrl',
                              'zeroUp',
@@ -128,11 +125,12 @@ class SettingsDialog(wx.Dialog):
             self.mugshot = data2wxBitmap(mime, data)
 
         self.elements['myNameField'].SetValue(self.myname)
-        self.elements['thumb'].setBitmap(self.mugshot)
+        self.elements['thumb'].SetBitmap(self.mugshot)
 
         if self.guiUtility.frame.SRstatusbar.IsReachable():
-            self.elements['firewallStatus'].setSelected(2)
-            self.elements['firewallStatusText'].SetLabel('Port is working')
+            self.elements['firewallStatusText'].SetLabel('Your network connection is working properly.')
+        else:
+            self.elements['firewallStatusText'].SetLabel('Tribler has not yet received any incoming connections. \nThis could indicate a problem with your network connection.')
 
         self.currentPortValue = str(self.utility.session.get_listen_port())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
@@ -391,7 +389,7 @@ class SettingsDialog(wx.Dialog):
             self.utility.config.Flush()
 
             if restart:
-                dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?", "Restart required", wx.ICON_QUESTION | wx.YES_NO |wx.YES_DEFAULT)
+                dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?", "Restart required", wx.ICON_QUESTION | wx.YES_NO | wx.YES_DEFAULT)
                 if dlg.ShowModal() == wx.ID_YES:
                     self.guiUtility.frame.Restart()
                 dlg.Destroy()
@@ -445,7 +443,6 @@ class SettingsDialog(wx.Dialog):
         dlcfgfilename = get_default_dscfg_filename(state_dir)
         self.defaultDLConfig.save(dlcfgfilename)
 
-        # Arno, 2010-03-08: Apparently not copied correctly from abcoptions.py
         # Save SessionStartupConfig
         # Also change torrent collecting dir, which is by default in the default destdir
         cfgfilename = Session.get_default_config_filename(state_dir)
@@ -456,9 +453,10 @@ class SettingsDialog(wx.Dialog):
             except:
                 print_exc()
             try:
-                target.set_proxyservice_dir(os.path.join(defaultdestdir, PROXYSERVICE_DESTDIR))
+                target.set_swift_meta_dir(os.path.join(defaultdestdir, STATEDIR_SWIFTRESEED_DIR))
             except:
                 print_exc()
+
         scfg.save(cfgfilename)
 
     def moveCollectedTorrents(self, old_dir, new_dir):
@@ -488,15 +486,6 @@ class SettingsDialog(wx.Dialog):
             new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
             rename_or_merge(old_dirtf, new_dirtf, False)
 
-            old_dirsf = os.path.join(old_dir, 'collected_subtitles_files')
-            new_dirsf = os.path.join(new_dir, 'collected_subtitles_files')
-            rename_or_merge(old_dirsf, new_dirsf, False)
-
-            # ProxyService_
-            old_dirdh = os.path.join(old_dir, PROXYSERVICE_DESTDIR)
-            new_dirdh = os.path.join(new_dir, PROXYSERVICE_DESTDIR)
-            rename_or_merge(old_dirdh, new_dirdh, False)
-
         atexit.register(move, old_dir, new_dir)
 
         msg = "Please wait while we update your MegaCache..."
@@ -521,7 +510,7 @@ class SettingsDialog(wx.Dialog):
                 if sys.platform != 'darwin':
                     bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM, ICON_MAX_DIM), -1)
                     thumbpanel = self.elements['thumb']
-                    thumbpanel.setBitmap(bm)
+                    thumbpanel.SetBitmap(bm)
 
                 # Arno, 2008-10-21: scale image!
                 sim = im.Scale(ICON_MAX_DIM, ICON_MAX_DIM)

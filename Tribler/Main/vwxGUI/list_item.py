@@ -157,7 +157,12 @@ class DoubleLineListItem(ListItem):
             fileconfig.Write("column_sizes", json.dumps(column_sizes))
             fileconfig.Flush()
 
-            wx.CallAfter(self.parent_list.Rebuild)
+            def rebuild():
+                if hasattr(self.parent_list.parent_list, 'oldDS'):
+                    self.parent_list.parent_list.oldDS = {}
+                self.parent_list.Rebuild()
+
+            wx.CallAfter(rebuild)
 
         sline.Bind(wx.EVT_LEFT_DOWN, OnLeftDown)
         sline.Bind(wx.EVT_LEFT_UP, OnLeftUp)
@@ -201,7 +206,7 @@ class DoubleLineListItem(ListItem):
         mousepos = wx.GetMousePosition()
         if not self.expanded:
             self.OnClick(event)
-        
+
         def do_menu():
             menu = self.GetContextMenu()
             if menu:
@@ -672,7 +677,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
             status = torrent.dslist[0].get_status() if torrent.dslist[0] else None
-            if status not in [DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
+            if status not in [None, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
                 enable = True
                 break
         event.Enable(enable)
@@ -729,7 +734,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         enable = False
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         # Only support moving 1 download at a time
-        if len(torrents) == 1 and torrents[0].infohash:
+        if len(torrents) == 1 and torrents[0].infohash and 'active' in torrents[0].state:
             enable = True
         event.Enable(enable)
 
@@ -880,10 +885,11 @@ class LibraryListItem(TorrentListItem):
 
     def GetContextMenu(self):
         menu = TorrentListItem.GetContextMenu(self)
-
         menu.Enable(menu.FindItem('Show download button on hover'), False)
-
         return menu
+
+    def OnDClick(self, event):
+        pass
 
 
 class ActivityListItem(ListItem):

@@ -106,17 +106,28 @@ class SearchCommunity(Community):
 
     def fast_walker(self):
         for cycle in xrange(10):
-            if cycle < 2:
-                # poke bootstrap peers
-                for candidate in self._dispersy._bootstrap_candidates.itervalues():
-                    logger.debug("extra walk to %s", candidate)
-                    self.create_introduction_request(candidate, allow_sync=False)
+            now = time()
+
+            # count -everyone- that is active (i.e. walk or stumble)
+            active_canidates = list(self.dispersy_yield_verified_candidates())
+            if len(active_canidates) > 20:
+                logger.debug("there are %d active non-bootstrap candidates available, prematurely quitting fast walker", len(active_canidates))
+                break
 
             # request -everyone- that is eligible
-            candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once=True) if candidate]
-            for candidate in candidates:
+            eligible_candidates = [candidate
+                                   for candidate
+                                   in self._candidates.itervalues()
+                                   if candidate.is_eligible_for_walk(now)]
+            for candidate in eligible_candidates:
                 logger.debug("extra walk to %s", candidate)
-                self.create_introduction_request(candidate, allow_sync=False)
+                self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
+
+            # poke bootstrap peers
+            if cycle < 2:
+                for candidate in self._dispersy.bootstrap_candidates:
+                    logger.debug("extra walk to %s", candidate)
+                    self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
 
             # wait for NAT hole punching
             yield 1.0
@@ -150,9 +161,10 @@ class SearchCommunity(Community):
         return False
 
     @property
-    def dispersy_sync_bloom_filter_strategy(self):
-        # disable sync bloom filter
-        return lambda: None
+    def dispersy_enable_bloom_filter_sync(self):
+        # 1. disable bloom filter sync in walker
+        # 2. accept messages in any global time range
+        return False
 
     def add_taste_buddies(self, new_taste_buddies):
         for new_tb_tuple in new_taste_buddies[:]:
@@ -198,20 +210,17 @@ class SearchCommunity(Community):
 
         return [0, time(), candidate]
 
-    def create_introduction_request(self, destination, allow_sync):
+    def create_introduction_request(self, destination, allow_sync, is_fast_walker=False):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: sending introduction request to", destination
 
-        self._dispersy.statistics.walk_attempt += 1
-        if isinstance(destination, BootstrapCandidate):
-            self._dispersy.statistics.walk_bootstrap_attempt += 1
-
-        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
+        destination.walk(time(), IntroductionRequestCache.timeout_delay)
+        self.add_candidate(destination)
 
         advice = True
-        if not isinstance(destination, BootstrapCandidate) and allow_sync:
+        if not (isinstance(destination, BootstrapCandidate) or is_fast_walker):
             myPreferences = sorted(self._mypref_db.getMyPrefListInfohash(limit=500))
             num_preferences = len(myPreferences)
 
@@ -240,12 +249,20 @@ class SearchCommunity(Community):
                                 destination=(destination,),
                                 payload=payload)
 
+        logger.debug("%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
+
+        self._dispersy.statistics.walk_attempt += 1
+        if isinstance(destination, BootstrapCandidate):
+            self._dispersy.statistics.walk_bootstrap_attempt += 1
+        if request.payload.advice:
+            self._dispersy.statistics.walk_advice_outgoing_request += 1
+
         self._dispersy._forward([request])
         return request
 
     def on_taste_intro(self, messages):
         self._disp_intro_handler(messages)
-        messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
+        messages = [message for message in messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
 
         if any(message.payload.taste_bloom_filter for message in messages):
             myPreferences = self._mypref_db.getMyPrefListInfohash(limit=500)

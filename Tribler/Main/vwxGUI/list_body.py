@@ -9,7 +9,7 @@ from time import time
 import re
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText,\
+from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, \
     _set_font, ActionButton
 
 from __init__ import *
@@ -22,7 +22,7 @@ DEBUG = False
 class ListItem(wx.Panel):
 
     @warnWxThread
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer= 0, showChange = False, list_selected = LIST_SELECTED, list_expanded = LIST_EXPANDED, list_selected_and_expanded = LIST_DARKBLUE):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED, list_selected_and_expanded=LIST_DARKBLUE):
         wx.Panel.__init__(self, parent)
 
         self.parent_list = parent_list
@@ -85,12 +85,12 @@ class ListItem(wx.Panel):
                         prefix = self.columns[i]['name'] + ": " if addColumnname else ''
                         str_data = prefix + str_data
 
-                        control = StaticText(self, style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE |wx.ST_DOTS_END, size=size)
+                        control = StaticText(self, style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE | wx.ST_DOTS_END, size=size)
 
                         fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
                         fontSize = self.columns[i].get('fontSize', 0)
                         if fontWeight != wx.FONTWEIGHT_NORMAL or fontSize:
-                            _set_font(control, size_increment=fontSize, fontweight= fontWeight)
+                            _set_font(control, size_increment=fontSize, fontweight=fontWeight)
 
                         # niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
                         control.SetLabel(str_data.replace('&', "&&"))
@@ -99,7 +99,7 @@ class ListItem(wx.Panel):
                     method_control = self.columns[i]['method'](self, self) if type == 'method' else None
                     if method_control or self.columns[i].get('showEmpty', True):
                         if addColumnname:
-                            control = StaticText(self, -1, self.columns[i]['name'] + ": ", style = self.columns[i].get('style', 0) |wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+                            control = StaticText(self, -1, self.columns[i]['name'] + ": ", style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE | wx.ST_DOTS_END)
                             self._add_control(control, -1, 0, 0)
                             remaining_width -= control.GetSize()[0]
                     control = method_control or control
@@ -144,7 +144,7 @@ class ListItem(wx.Panel):
         if getattr(control, 'icon', None):
             self.hSizer.Add(control.icon, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 3)
 
-        self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN | wx.ALIGN_CENTER_VERTICAL |wx.TOP|wx.BOTTOM, 3+spacing)
+        self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN | wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.BOTTOM, 3 + spacing)
 
         if getattr(control, 'icon_right', None):
             self.hSizer.Add(control.icon_right, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
@@ -311,7 +311,7 @@ class ListItem(wx.Panel):
                 control.SetToolTipString(tooltip)
 
     @warnWxThread
-    def Highlight(self, timeout=3.0, revert= True, colour = LIST_HIGHTLIGHT):
+    def Highlight(self, timeout=3.0, revert=True, colour=LIST_HIGHTLIGHT):
         if self.IsShownOnScreen():
             self.BackgroundColor(colour)
 
@@ -423,6 +423,7 @@ class ListItem(wx.Panel):
         elif event.LeftDown():
             event.listitem = self
             self.parent_list.lastMouseLeftDownEvent = event
+            self.parent_list.SetFocusIgnoringChildren()
 
         elif event.LeftUp():
             if getattr(self.parent_list.lastMouseLeftDownEvent, 'listitem', None) == self:
@@ -472,7 +473,7 @@ class ListItem(wx.Panel):
 
         panel.Show()
         if not self.vSizer.GetItem(panel, recursive=True):
-            self.vSizer.Add(panel, 0, wx.EXPAND | wx.LEFT |wx.RIGHT|wx.BOTTOM, 3)
+            self.vSizer.Add(panel, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
         self.Layout()
 
     def GetExpandedPanel(self):
@@ -513,7 +514,7 @@ class ListItem(wx.Panel):
 class AbstractListBody():
 
     @warnWxThread
-    def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer= 0, singleExpanded = False, showChange = False, list_item_max = None, hasFilter = True, listRateLimit = LIST_RATE_LIMIT):
+    def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT):
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
@@ -599,7 +600,7 @@ class AbstractListBody():
         self.listpanel.SetBackgroundColour(colour)
 
     @warnWxThread
-    def SetStyle(self, font=None, foregroundcolour= None, list_selected = LIST_SELECTED, list_expanded = LIST_EXPANDED):
+    def SetStyle(self, font=None, foregroundcolour=None, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED):
         if font:
             self.SetFont(font)
         if foregroundcolour:
@@ -619,7 +620,7 @@ class AbstractListBody():
         self.sortcolumn = column
         self.sortreverse = reverse
 
-        self.SetData(highlight=False, force= True)
+        self.SetData(highlight=False, force=True)
 
     def DoSort(self):
         def sortby(b, a):
@@ -697,7 +698,7 @@ class AbstractListBody():
         return panel
 
     @warnWxThread
-    def OnCollapse(self, item=None, raise_events= True, from_expand = False):
+    def OnCollapse(self, item=None, raise_events=True, from_expand=False):
         self.Freeze()
 
         if not item:
@@ -751,7 +752,7 @@ class AbstractListBody():
                 if DEBUG:
                     print >> sys.stderr, "ListBody: setting scrollrate to", self.rate
 
-                self.SetupScrolling(scrollToTop=scrollToTop, rate_y= self.rate)
+                self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
             else:
                 if DEBUG:
                     print >> sys.stderr, "ListBody: setting scrollrate to default"
@@ -760,7 +761,7 @@ class AbstractListBody():
         else:
             if DEBUG:
                 print >> sys.stderr, "ListBody: using scrollrate", self.rate
-            self.SetupScrolling(scrollToTop=scrollToTop, rate_y= self.rate)
+            self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
 
         self.Thaw()
 
@@ -799,7 +800,7 @@ class AbstractListBody():
     def Rebuild(self):
         _rawdata = self.raw_data
         self.Reset()
-        self.SetData(_rawdata, highlight=False, force= True)
+        self.SetData(_rawdata, highlight=False, force=True)
 
     def IsEmpty(self):
         return len(self.items) == 0
@@ -835,7 +836,7 @@ class AbstractListBody():
             self.Scroll(-1, sy)
 
     @warnWxThread
-    def ShowMessage(self, message, header=None, altControl= None, clearitems = True):
+    def ShowMessage(self, message, header=None, altControl=None, clearitems=True):
         if DEBUG:
             print >> sys.stderr, "ListBody: ShowMessage", message, header
 
@@ -908,7 +909,7 @@ class AbstractListBody():
             self.CreateItem(key)
 
     @warnWxThread
-    def SetData(self, data=None, highlight= None, force = False):
+    def SetData(self, data=None, highlight=None, force=False):
         if data == None:
             data = self.raw_data
         else:
@@ -1049,7 +1050,7 @@ class AbstractListBody():
                     create_method = ListItem
 
                 if key == thiskey:
-                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange=self.showChange, list_selected=self.list_selected, list_expanded= self.list_expanded)
+                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange=self.showChange, list_selected=self.list_selected, list_expanded=self.list_expanded)
 
                     if self.messagePanel.IsShown():
                         before = len(self.vSizer.GetChildren()) - 1
@@ -1061,7 +1062,7 @@ class AbstractListBody():
                     break
 
     @warnWxThread
-    def CreateItems(self, nr_items_to_create=LIST_ITEM_BATCH_SIZE, nr_items_to_add= None):
+    def CreateItems(self, nr_items_to_create=LIST_ITEM_BATCH_SIZE, nr_items_to_add=None):
         if not nr_items_to_add:
             nr_items_to_add = self.list_cur_max
 
@@ -1100,7 +1101,7 @@ class AbstractListBody():
 
                     if key not in self.items:
                         try:
-                            self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange=self.showChange, list_selected=self.list_selected, list_expanded= self.list_expanded)
+                            self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange=self.showChange, list_selected=self.list_selected, list_expanded=self.list_expanded)
                             nr_items_to_create -= 1
                         except:
                             print_exc()
@@ -1266,7 +1267,7 @@ class AbstractListBody():
         if select:
             cur_scroll = self.CalcUnscrolledPosition(0, 0)[1] / self.GetScrollPixelsPerUnit()[1]
             if next:
-                tot_scroll = (self.items[select].GetPosition()[1] + self.items[select].GetSize()[1] +1) / self.GetScrollPixelsPerUnit()[1]
+                tot_scroll = (self.items[select].GetPosition()[1] + self.items[select].GetSize()[1] + 1) / self.GetScrollPixelsPerUnit()[1]
                 if tot_scroll - cur_scroll > self.GetScrollPageSize(1):
                     self.Scroll(-1, tot_scroll - self.GetScrollPageSize(1))
             else:
@@ -1306,7 +1307,7 @@ class AbstractListBody():
 
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
 
-    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE, listRateLimit = LIST_RATE_LIMIT):
+    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=LIST_ITEM_MAX_SIZE, listRateLimit=LIST_RATE_LIMIT):
         scrolled.ScrolledPanel.__init__(self, parent)
         AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max=list_item_max)
 
@@ -1317,6 +1318,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         aupId = wx.NewId()
         adownId = wx.NewId()
         deleteId = wx.NewId()
+        backId = wx.NewId()
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(False), id=homeId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(True), id=endId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(False), id=pupId)
@@ -1324,6 +1326,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(False), id=aupId)
         self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(True), id=adownId)
         self.Bind(wx.EVT_MENU, lambda event: self.parent_list.OnDeleteKey(event) if getattr(self.parent_list, 'OnDeleteKey', False) else None, id=deleteId)
+        self.Bind(wx.EVT_MENU, lambda event: self.OnBack(event), id=backId)
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnChildFocus)
         wx.GetTopLevelParent(self).Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
 
@@ -1334,6 +1337,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_UP, aupId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DOWN, adownId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DELETE, deleteId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_BACK, backId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         self.SetForegroundColour(parent.GetForegroundColour())
@@ -1345,6 +1349,9 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         self.processingMousewheel = False
 
     def OnChildFocus(self, event):
+        pass
+
+    def OnBack(self, event):
         pass
 
     def OnMouseWheel(self, event):
@@ -1382,9 +1389,9 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
 
 class FixedListBody(wx.Panel, AbstractListBody):
 
-    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):
+    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=LIST_ITEM_MAX_SIZE):
         wx.Panel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, list_item_max=list_item_max, hasFilter= False)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, list_item_max=list_item_max, hasFilter=False)
 
         self.SetForegroundColour(parent.GetForegroundColour())
 

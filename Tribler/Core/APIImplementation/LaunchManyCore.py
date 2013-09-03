@@ -129,7 +129,7 @@ class TriblerLaunchMany(Thread):
 
                 self.dispersy.start()
 
-                print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
+                print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "using", endpoint
                 self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
                 self.dispersy.callback.call(self.dispersy.define_auto_load, args=(HardKilledCommunity,), kargs={'load': True})
@@ -504,7 +504,8 @@ class TriblerLaunchMany(Thread):
             dlconfig = pstate['dlconfig']
             if isinstance(dlconfig['saveas'], tuple):
                 dlconfig['saveas'] = dlconfig['saveas'][-1]
-            if 'name' in dlconfig and isinstance(dlconfig['name'], basestring) and sdef:
+
+            if sdef and 'name' in dlconfig and isinstance(dlconfig['name'], basestring):
                 sdef.set_name(dlconfig['name'])
             if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
                 current_port = int(sdef.get_tracker().split(":")[1])
@@ -557,12 +558,15 @@ class TriblerLaunchMany(Thread):
         if (tdef or sdef) and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
                 try:
-                    if tdef:
-                        initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
-                        self.add(tdef, dscfg, pstate, initialdlstatus, commit=commit, setupDelay=setupDelay)
+                    if not self.download_exists((tdef or sdef).get_id()):
+                        if tdef:
+                            initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
+                            self.add(tdef, dscfg, pstate, initialdlstatus, commit=commit, setupDelay=setupDelay)
+                        else:
+                            initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
+                            self.swift_add(sdef, dscfg, pstate, initialdlstatus)
                     else:
-                        initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
-                        self.swift_add(sdef, dscfg, pstate, initialdlstatus)
+                        print >> sys.stderr, "tlm: not resuming checkpoint because download has already been added"
 
                 except Exception as e:
                     self.rawserver_nonfatalerrorfunc(e)
@@ -639,8 +643,14 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking.delInstance()
 
         if self.dispersy:
-            print >> sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
-            self.dispersy.stop(666.666)
+            print >> sys.stderr, "lmc: Shutting down Dispersy..."
+            now = timemod.time()
+            success = self.dispersy.stop(666.666)
+            if success:
+                diff = timemod.time() - now
+                print >> sys.stderr, "lmc: Dispersy successfully shutdown in %.2f seconds" % diff
+            else:
+                print >> sys.stderr, "lmc: Dispersy failed to shutdown in %.2f seconds" % diff
         else:
             self.database_thread.shutdown(True)
 

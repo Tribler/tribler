@@ -14,7 +14,6 @@ from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentRera
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, NULL, forceAndReturnDBThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
@@ -76,8 +75,6 @@ class TorrentManager:
 
         # For asking for a refresh when remote results came in
         self.gridmgr = None
-        self.guiserver = GUITaskQueue.getInstance()
-
         self.searchkeywords = []
         self.rerankingStrategy = DefaultTorrentReranker()
         self.oldsearchkeywords = None
@@ -354,10 +351,16 @@ class TorrentManager:
             for community in self.dispersy.get_communities():
                 if isinstance(community, SearchCommunity):
                     nr_requests_made = community.create_search(self.searchkeywords, self.gotDispersyRemoteHits)
+                    if not nr_requests_made:
+                        print >> sys.stderr, "Could not send search in SearchCommunity, no verified candidates found"
                     break
 
-        if not nr_requests_made:
-            print >> sys.stderr, "Could not send search, SearchCommunity not found?"
+            else:
+                print >> sys.stderr, "Could not send search in SearchCommunity, community not found"
+
+        else:
+            print >> sys.stderr, "Could not send search in SearchCommunity, Dispersy not found"
+
         return nr_requests_made
 
     def getHitsInCategory(self, categorykey='all', sort='fulltextmetric'):
@@ -404,7 +407,7 @@ class TorrentManager:
 
                 # boudewijn: now that we have sorted the search results we
                 # want to prefetch the top N torrents.
-                self.guiserver.add_task(self.prefetch_hits, t=1, id="PREFETCH_RESULTS")
+                startWorker(None, self.prefetch_hits, delay=1, uId=u"PREFETCH_RESULTS", workerType="guiTaskQueue")
 
             if DEBUG:
                 beginbundle = time()
@@ -784,7 +787,6 @@ class LibraryManager:
         if LibraryManager.__single:
             raise RuntimeError("LibraryManager is singleton")
         self.guiUtility = guiUtility
-        self.guiserver = GUITaskQueue.getInstance()
         self.connected = False
 
         # Contains all matches for keywords in DB, not filtered by category
@@ -805,6 +807,8 @@ class LibraryManager:
         self.user_download_choice = UserDownloadChoice.get_singleton()
         self.wantpeers = []
 
+        self.last_vod_torrent = None
+
     def getInstance(*args, **kw):
         if LibraryManager.__single is None:
             LibraryManager.__single = LibraryManager(*args, **kw)
@@ -815,29 +819,18 @@ class LibraryManager:
         LibraryManager.__single = None
     delInstance = staticmethod(delInstance)
 
-    def _get_videoplayer(self, exclude=None):
+    def _get_videoplayer(self):
         """
-        Returns the VideoPlayer instance and ensures that it knows if
-        there are other downloads running.
+        Returns the VideoPlayer instance.
         """
-        other_downloads = False
-        for ds in self.dslist:
-            if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
-                other_downloads = True
-                break
-
-        videoplayer = VideoPlayer.getInstance()
-        videoplayer.set_other_downloads(other_downloads)
-
-        self.guiUtility.ShowPlayer()
-        return videoplayer
+        return VideoPlayer.getInstance()
 
     def download_state_callback(self, dslist):
         """
         Called by any thread
         """
         self.dslist = dslist
-        self.guiserver.add_task(self._do_gui_callback, id="LibraryManager_refresh_callbacks")
+        startWorker(None, self._do_gui_callback, uId=u"LibraryManager_refresh_callbacks", workerType="guiTaskQueue")
 
         if time() - self.last_progress_update > 10:
             self.last_progress_update = time()
@@ -929,13 +922,27 @@ class LibraryManager:
         return torrentlist
 
     @forceWxThread
+    def startLastVODTorrent(self):
+        if self.last_vod_torrent:
+            self.playTorrent(*self.last_vod_torrent)
+
+    @forceWxThread
+    def stopLastVODTorrent(self):
+        if self.last_vod_torrent:
+            self.stopTorrent(self.last_vod_torrent[0])
+
+    @forceWxThread
     def playTorrent(self, torrent, selectedinfilename=None):
         print >> sys.stderr, "PLAY CLICKED", selectedinfilename
+
+        self.last_vod_torrent = [torrent, selectedinfilename]
 
         ds = torrent.get('ds')
 
         # videoplayer calls should be on gui thread, hence forceWxThread
-        videoplayer = self._get_videoplayer(ds)
+        self.guiUtility.ShowPlayer()
+
+        videoplayer = self._get_videoplayer()
         videoplayer.recreate_videopanel()
         videoplayer.stop_playback()
         videoplayer.show_loading()
@@ -999,6 +1006,9 @@ class LibraryManager:
         downloads = self._getDownloads(torrent)
         for download in downloads:
             if download:
+                if download == self._get_videoplayer().get_vod_download():
+                    self._get_videoplayer().stop_playback()
+
                 download.stop()
 
                 id = download.get_def().get_id()
@@ -1038,7 +1048,7 @@ class LibraryManager:
             playd = videoplayer.get_vod_download()
 
             if playd == ds.download:
-                self._get_videoplayer(ds).stop_playback()
+                self._get_videoplayer().stop_playback()
 
             self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
 
@@ -1885,15 +1895,22 @@ class ChannelManager:
 
     @forceDispersyThread
     def searchDispersy(self):
-        sendSearch = False
+        nr_requests_made = 0
         if self.dispersy:
             for community in self.dispersy.get_communities():
                 if isinstance(community, AllChannelCommunity):
-                    sendSearch = community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
+                    nr_requests_made = community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
+                    if not nr_requests_made:
+                        print >> sys.stderr, "Could not send search in AllChannelCommunity, no verified candidates found"
                     break
 
-        if not sendSearch:
-            print >> sys.stderr, "Could not send search, AllChannelCommunity not found?"
+            else:
+                print >> sys.stderr, "Could not send search in AllChannelCommunity, community not found"
+
+        else:
+            print >> sys.stderr, "Could not send search in AllChannelCommunity, Dispersy not found"
+
+        return nr_requests_made
 
     def searchLocalDatabase(self):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
@@ -1944,48 +1961,6 @@ class ChannelManager:
 
                 if refreshGrid:
                     self.refreshGrid()
-
-    def gotRemoteHits(self, permid, kws, answers):
-        """ Called by GUIUtil when hits come in. """
-        if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True, workerType="guiTaskQueue")
-
-    def _gotRemoteHits(self, permid, kws, answers):
-        # @param permid: the peer who returned the answer to the query
-        # @param kws: the keywords of the query that originated the answer
-        # @param answers: the filtered answers returned by the peer (channel_id, publisher_name, infohash, name, time_stamp)
-
-        t1 = time()
-        try:
-            self.remoteLock.acquire()
-
-            if DEBUG:
-                print >> sys.stderr, "ChannelManager: gotRemoteHist: got", len(answers), "for", kws
-
-            if self.searchkeywords == kws:
-                for hit in answers.itervalues():
-                    self.remoteHits.append((hit, permid))
-
-                    if DEBUG:
-                        print >> sys.stderr, 'ChannelManager: gotRemoteHits: Refresh grid after new remote channel hits came in', "Took", time() - t1
-
-            elif DEBUG:
-                print >> sys.stderr, "ChannelManager: gotRemoteHits: got hits for", kws, "but current search is for", self.searchkeywords
-
-        finally:
-            refreshGrid = len(self.remoteHits) > 0
-
-            if refreshGrid:
-                # if already scheduled, dont schedule another
-                if self.remoteRefresh:
-                    refreshGrid = False
-                else:
-                    self.remoteRefresh = True
-
-            self.remoteLock.release()
-
-            if refreshGrid:
-                self.refreshGrid()
 
     def refreshGrid(self):
         if self.gridmgr is not None:

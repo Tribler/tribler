@@ -94,6 +94,7 @@ class Session(SessionRuntimeConfig):
 
         set_and_create_dir(self.sessconfig, 'state_dir', Session.get_default_state_dir())
         set_and_create_dir(self.sessconfig, 'torrent_collecting_dir', os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR))
+        set_and_create_dir(self.sessconfig, 'swiftmetadir', os.path.join(self.sessconfig['state_dir'], STATEDIR_SWIFTRESEED_DIR))
         set_and_create_dir(self.sessconfig, 'peer_icon_path', os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR))
 
         create_dir(os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR))
@@ -458,7 +459,7 @@ class Session(SessionRuntimeConfig):
         self.lm.early_shutdown()
         self.checkpoint_shutdown(stop=True, checkpoint=checkpoint, gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
         # Arno, 2010-08-09: now shutdown after gracetime
-        # self.uch.shutdown()
+        self.uch.shutdown()
 
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal

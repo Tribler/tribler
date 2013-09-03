@@ -4,12 +4,8 @@
 # Meant to be called from mac/Makefile
 # ---------------
 
-import py2app
-from distutils.util import get_platform
 import sys
 import os
-import platform
-import shutil
 from setuptools import setup
 from Tribler.__init__ import LIBRARYNAME
 
@@ -19,7 +15,7 @@ includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1",
 # gui panels to include
 includePanels = [
     "list", "list_header", "list_body", "list_footer", "list_details",
-     "home", "settingsDialog", "TopSearchPanel", "SearchGridManager", "SRstatusbar", "bgPanel"]  # ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
+     "home", "settingsDialog", "TopSearchPanel", "SearchGridManager", "SRstatusbar"]  # ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
 
 
 includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
@@ -125,7 +121,6 @@ setup(
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
            ]
            # add images
-           + includedir(LIBRARYNAME + "/Video/Images")
            + includedir(LIBRARYNAME + "/Main/vwxGUI/images")
            + includedir(LIBRARYNAME + "/Main/webUI/static")
 

@@ -38,14 +38,12 @@ class SessionConfigInterface:
         to make this a copy constructor.
         """
 
-        if sessconfig is not None:  # copy constructor
-            self.sessconfig = sessconfig
-            return
-
         self.sessconfig = {}
-
-        # Define the built-in default here
         self.sessconfig.update(sessdefaults)
+
+        if sessconfig is not None:  # copy constructor
+            self.sessconfig.update(sessconfig)
+            return
 
         # Set video_analyser_path
         if sys.platform == 'win32':
@@ -341,6 +339,19 @@ class SessionConfigInterface:
         """
         return self.sessconfig['dispersy']
 
+    def set_dispersy_tunnel_over_swift(self, value):
+        """ Enable or disable Dispersy tunnelling over libswift.
+        @param value Boolean.
+        """
+        assert isinstance(value, bool)
+        self.sessconfig['dispersy-tunnel-over-swift'] = value
+
+    def get_dispersy_tunnel_over_swift(self):
+        """ Returns whether Dispersy is tunnelling over libswift.
+        @return Boolean.
+        """
+        return self.sessconfig['dispersy-tunnel-over-swift']
+
     def set_dispersy_port(self, value):
         """ Sets the port that Dispersy uses to receive and send UDP
         datagrams.
@@ -394,6 +405,18 @@ class SessionConfigInterface:
         """ Returns the working directory for the swift binary.
         @return A path name. """
         return self.sessconfig['swiftworkingdir']  # strings immutable
+
+    def set_swift_meta_dir(self, value):
+        """ Set the metadir for storing .m* files of downloads.
+        @param value An absolutepath.
+        """
+        self.sessconfig['swiftmetadir'] = value
+
+    def get_swift_meta_dir(self):
+        """ Return the metadir for storing .m* files of downloads.
+        @return An absolutepath.
+        """
+        return self.sessconfig['swiftmetadir']
 
     def set_swift_cmd_listen_port(self, port):
         """ Set the local TCP listen port for cmd socket communication to

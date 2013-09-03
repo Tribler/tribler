@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import binascii
+import tempfile
 import threading
 import libtorrent as lt
 
@@ -31,7 +32,8 @@ class LibtorrentMgr:
         self.trsession = trsession
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
-        fingerprint = ['TL'] + map(int, version_id.split('.')) + [0]
+        # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
+        fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
         # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
         self.ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
         self.ltsession.set_settings(settings)
@@ -39,7 +41,8 @@ class LibtorrentMgr:
                                       lt.alert.category_t.error_notification |
                                       lt.alert.category_t.status_notification |
                                       lt.alert.category_t.storage_notification |
-                                      lt.alert.category_t.performance_warning)
+                                      lt.alert.category_t.performance_warning |
+                                      lt.alert.category_t.debug_notification)
         self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
         self.set_upload_rate_limit(-1)
         self.set_download_rate_limit(-1)
@@ -48,6 +51,7 @@ class LibtorrentMgr:
         print >> sys.stderr, "LibtorrentMgr: listening on %d" % self.ltsession.listen_port()
 
         # Start DHT
+        self.dht_ready = False
         try:
             dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
             self.ltsession.start_dht(lt.bdecode(dht_state))
@@ -110,6 +114,9 @@ class LibtorrentMgr:
     def get_dht_nodes(self):
         return self.ltsession.status().dht_nodes
 
+    def is_dht_ready(self):
+        return self.dht_ready
+
     def queue_position_up(self, infohash):
         with self.torlock:
             download = self.torrents.get(hexlify(infohash), None)
@@ -151,8 +158,8 @@ class LibtorrentMgr:
             elif atp.has_key('url'):
                 infohash = binascii.hexlify(parse_magnetlink(atp['url'])[1])
             else:
-                infohash = str(atp["info_hash"]) 
-            
+                infohash = str(atp["info_hash"])
+
             if infohash in self.metainfo_requests:
                 print >> sys.stderr, "LibtorrentMgr: killing get_metainfo request for", infohash
                 handle, _ = self.metainfo_requests.pop(infohash)
@@ -225,29 +232,35 @@ class LibtorrentMgr:
 
     def reachability_check(self):
         if self.ltsession and self.ltsession.status().has_incoming_connections:
-            self.trsession.lm.dialback_reachable_callback()
+            self.trsession.lm.rawserver.add_task(self.trsession.lm.dialback_reachable_callback, 3)
         else:
             self.trsession.lm.rawserver.add_task(self.reachability_check, 10)
 
     def monitor_dht(self):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
         if self.ltsession:
-            if self.get_dht_nodes() <= 10:
+            if self.get_dht_nodes() <= 25:
                 print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d)" % self.ltsession.status().dht_nodes
                 self.ltsession.start_dht(None)
 
             else:
                 print >> sys.stderr, "LibtorrentMgr: dht is working enough nodes are found (%d)" % self.ltsession.status().dht_nodes
+                self.dht_ready = True
                 return
 
         self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
 
-    def get_peers(self, infohash, callback, timeout = 30):
-        def on_metainfo_retrieved(metainfo, infohash = infohash, callback = callback):
+    def get_peers(self, infohash, callback, timeout=30):
+        def on_metainfo_retrieved(metainfo, infohash=infohash, callback=callback):
             callback(infohash, metainfo.get('initial peers', []))
         self.get_metainfo(infohash, on_metainfo_retrieved, timeout)
 
-    def get_metainfo(self, infohash_or_magnet, callback, timeout = 30):
+    def get_metainfo(self, infohash_or_magnet, callback, timeout=30):
+        if not self.is_dht_ready() and timeout > 5:
+            print >> sys.stderr, "LibtorrentDownloadImpl: DHT not ready, rescheduling get_metainfo"
+            self.trsession.lm.rawserver.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5: self.get_metainfo(i, c, t), 5)
+            return
+
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = binascii.hexlify(infohash_bin)
@@ -257,26 +270,26 @@ class LibtorrentMgr:
                 return
 
         with self.metainfo_lock:
-    
+
             if DEBUG:
                 print >> sys.stderr, 'LibtorrentMgr: get_metainfo', infohash_or_magnet, callback, timeout
 
             cache_result = self._get_cached_metainfo(infohash)
             if cache_result:
-                self.trsession.uch.perform_usercallback(lambda cb = callback, mi = deepcopy(cache_result): cb(mi))
+                self.trsession.uch.perform_usercallback(lambda cb=callback, mi=deepcopy(cache_result): cb(mi))
 
             elif infohash not in self.metainfo_requests:
-                # Flags = 4 (upload mode), prevents libtorrent from creating files
-                atp = {'save_path': '', 'duplicate_is_error': True, 'paused': False, 'auto_managed': False, 'flags': 4}
+                # Flags = 4 (upload mode), should prevent libtorrent from creating files
+                atp = {'save_path': tempfile.gettempdir(), 'duplicate_is_error': True, 'paused': False, 'auto_managed': False, 'flags': 4}
                 if magnet:
                     atp['url'] = magnet
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
                 handle = self.ltsession.add_torrent(atp)
-        
+
                 self.metainfo_requests[infohash] = (handle, [callback])
                 self.trsession.lm.rawserver.add_task(lambda: self.got_metainfo(infohash, True), timeout)
-    
+
             else:
                 callbacks = self.metainfo_requests[infohash][1]
                 if callback not in callbacks:
@@ -284,15 +297,15 @@ class LibtorrentMgr:
                 elif DEBUG:
                     print >> sys.stderr, 'LibtorrentMgr: get_metainfo duplicate detected, ignoring'
 
-    def got_metainfo(self, infohash, timeout = False):
+    def got_metainfo(self, infohash, timeout=False):
         with self.metainfo_lock:
 
             if infohash in self.metainfo_requests:
                 handle, callbacks = self.metainfo_requests.pop(infohash)
-    
+
                 if DEBUG:
                     print >> sys.stderr, 'LibtorrentMgr: got_metainfo', infohash, handle, timeout
-    
+
                 if handle and callbacks and not timeout:
                     metainfo = {"info": lt.bdecode(handle.get_torrent_info().metadata())}
                     trackers = [tracker.url for tracker in handle.get_torrent_info().trackers()]
@@ -307,15 +320,15 @@ class LibtorrentMgr:
                         metainfo["initial peers"] = peers
 
                     self._add_cached_metainfo(infohash, metainfo)
-    
+
                     for callback in callbacks:
-                        self.trsession.uch.perform_usercallback(lambda cb = callback, mi = deepcopy(metainfo): cb(mi))
-    
+                        self.trsession.uch.perform_usercallback(lambda cb=callback, mi=deepcopy(metainfo): cb(mi))
+
                     if DEBUG:
                         print >> sys.stderr, 'LibtorrentMgr: got_metainfo result', metainfo
-    
+
                 if handle:
-                    self.ltsession.remove_torrent(handle, 0)
+                    self.ltsession.remove_torrent(handle, 1)
 
     def _clean_metainfo_cache(self):
         oldest_valid_ts = time.time() - METAINFO_CACHE_PERIOD

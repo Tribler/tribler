@@ -54,6 +54,7 @@ override_dh_auto_clean:
 	make -C $(CURDIR)/Tribler/SwiftEngine clean || echo "SwiftEngine cleaned"
 	dh_auto_clean
 
+#TODO: Fix this
 get-orig-source:
 	set -e; if echo $(DEB_VERSION) | grep -c "svn"; \
 	then \

@@ -14,10 +14,10 @@ from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
 class SaveAs(wx.Dialog):
 
     def __init__(self, parent, tdef, defaultdir, defaultname, configfile, selectedFiles=None):
-        wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450))
+        wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450), name="SaveAsDialog")
 
         self.filehistory = wx.FileHistory(25)
-        self.config = wx.FileConfig(appName="Tribler", localFilename= configfile)
+        self.config = wx.FileConfig(appName="Tribler", localFilename=configfile)
         self.filehistory.Load(self.config)
         self.defaultdir = defaultdir
         self.guiutility = GUIUtility.getInstance()
@@ -43,10 +43,10 @@ class SaveAs(wx.Dialog):
         if tdef:
             torrentName = wx.StaticText(self, -1, tdef.get_name_as_unicode())
             torrentName.SetMinSize((1, -1))
-            vSizer.Add(torrentName, 0, wx.EXPAND | wx.BOTTOM |wx.RIGHT, 3)
+            vSizer.Add(torrentName, 0, wx.EXPAND | wx.BOTTOM | wx.RIGHT, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticText(self, -1, 'Save as:'), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT |wx.BOTTOM, 3)
+        hSizer.Add(wx.StaticText(self, -1, 'Save as:'), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.BOTTOM, 3)
 
         choices = [self.filehistory.GetHistoryFile(i) for i in range(self.filehistory.GetCount())]
         if defaultdir not in choices:
@@ -54,12 +54,12 @@ class SaveAs(wx.Dialog):
 
         if defaultname:
             choices.insert(0, os.path.join(lastUsed, defaultname))
-            self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(lastUsed, defaultname), choices=choices, style= wx.CB_DROPDOWN)
+            self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(lastUsed, defaultname), choices=choices, style=wx.CB_DROPDOWN)
         else:
-            self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, choices=choices, style= wx.CB_DROPDOWN)
+            self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, choices=choices, style=wx.CB_DROPDOWN)
         self.dirTextCtrl.Select(0)
 
-        hSizer.Add(self.dirTextCtrl, 1, wx.EXPAND | wx.RIGHT |wx.BOTTOM, 3)
+        hSizer.Add(self.dirTextCtrl, 1, wx.EXPAND | wx.RIGHT | wx.BOTTOM, 3)
 
         browseButton = wx.Button(self, -1, 'Browse')
         browseButton.Bind(wx.EVT_BUTTON, self.OnBrowseDir)
@@ -84,8 +84,8 @@ class SaveAs(wx.Dialog):
 
             url = tdef.get_url()
             if url and url.startswith("magnet:"):
-                retrieve_from_magnet = lambda: TorrentDef.retrieve_from_magnet(url, lambda tdef: wx.CallAfter(self.SetCollected, tdef))
-                startWorker(None, retrieve_from_magnet, retryOnBusy=True, priority= GUI_PRI_DISPERSY)
+                retrieve_from_magnet = lambda: TorrentDef.retrieve_from_magnet(url, lambda tdef: wx.CallAfter(self.SetCollected, tdef), timeout=300)
+                startWorker(None, retrieve_from_magnet, retryOnBusy=True, workerType="guiTaskQueue")
             else:
                 torrentsearch_manager = self.guiutility.torrentsearch_manager
 
@@ -100,7 +100,7 @@ class SaveAs(wx.Dialog):
 
                 def do_db():
                     return torrentsearch_manager.getTorrentByInfohash(tdef.get_infohash())
-                startWorker(do_collect, do_db, retryOnBusy=True, priority= GUI_PRI_DISPERSY)
+                startWorker(do_collect, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)

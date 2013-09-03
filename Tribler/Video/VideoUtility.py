@@ -2,22 +2,30 @@ import os
 import wx
 import sys
 import tempfile
+import subprocess
 
 from re import search
 from math import sqrt
-from subprocess import Popen, PIPE
 import colorsys
 from Tribler.Main.vwxGUI import forceAndReturnWxThread
 
 
 def get_thumbnail(videofile, thumbfile, resolution, ffmpeg, timecode):
-    ffmpeg = Popen((ffmpeg, "-ss", str(int(timecode)), "-i", videofile, "-s", "%dx%d" % resolution, thumbfile), stderr=PIPE)
+    startupinfo = None
+    if sys.platform == "win32":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    ffmpeg = subprocess.Popen((ffmpeg, "-ss", str(int(timecode)), "-i", videofile, "-s", "%dx%d" % resolution, thumbfile), stderr=subprocess.PIPE, startupinfo=startupinfo)
     ffmpeg.communicate()
     ffmpeg.stderr.close()
 
 
 def get_videoinfo(videofile, ffmpeg):
-    ffmpeg = Popen((ffmpeg, "-i", videofile), stderr=PIPE)
+    startupinfo = None
+    if sys.platform == "win32":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    ffmpeg = subprocess.Popen((ffmpeg, "-i", videofile), stderr=subprocess.PIPE, startupinfo=startupinfo)
     out, err = ffmpeg.communicate()
     info = out or err
     ffmpeg.stderr.close()
@@ -70,9 +78,10 @@ def limit_resolution(cur_res, max_res):
     return tuple(new_res)
 
 
-def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20, k= 4):
+def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20, k=4):
     results = []
     dest_dir = tempfile.gettempdir()
+    num_samples = min(num_samples, duration)
 
     for timecode in range(0, duration, duration / num_samples):
         outputfile = os.path.join(dest_dir, 'tn%d.jpg' % timecode)

@@ -5,6 +5,7 @@ import wx
 
 from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText, EditText
 from Tribler.community.channel.community import ChannelCommunity
+from wx.lib.wordwrap import wordwrap
 
 
 class RemoveTorrent(wx.Dialog):
@@ -16,24 +17,23 @@ class RemoveTorrent(wx.Dialog):
             state = torrents[0].channel.getState()
             canEdit = state >= ChannelCommunity.CHANNEL_OPEN
 
-        height = 125
-        if canEdit:
-            height = 200
-
-        wx.Dialog.__init__(self, parent, -1, 'Are you sure you want to remove the selected torrent%s?' % ('' if single else 's'), size=(600, height))
+        wx.Dialog.__init__(self, parent, -1, 'Are you sure you want to remove the selected torrent%s?' % ('' if single else 's'), size=(600, -1), name="RemoveTorrent")
         bitmap = wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(wx.StaticBitmap(self, -1, bitmap), 0, wx.RIGHT, 10)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        if single:
-            firstLine = StaticText(self, -1, "Delete '%s' from disk, or just remove it from your downloads?" % torrents[0].name)
-        else:
-            firstLine = StaticText(self, -1, "Delete %s torrents from disk, or just remove them from your downloads?" % len(torrents))
+        firstLine = StaticText(self, -1, '')
         _set_font(firstLine, fontweight=wx.FONTWEIGHT_BOLD)
-        firstLine.Wrap(self.GetSize()[0] - bitmap.GetSize()[0] - 10)
+        if single:
+            firstLineMsg = "Delete '%s' from disk, or just remove it from your downloads?" % torrents[0].name
+        else:
+            firstLineMsg = "Delete %s torrents from disk, or just remove them from your downloads?" % len(torrents)
+        cdc = wx.ClientDC(firstLine)
+        cdc.SetFont(firstLine.GetFont())
+        firstLineMsg = wordwrap(firstLineMsg, self.GetSize()[0] - bitmap.GetSize()[0] - 30, cdc, breakLongWords=True, margin=0)
+        firstLine.SetLabel(firstLineMsg)
         firstLine.SetMinSize((1, -1))
-
         vSizer.Add(firstLine, 0, wx.EXPAND | wx.BOTTOM, 3)
         vSizer.Add(StaticText(self, -1, "Removing from disk will move the selected item%s to your trash." % ('' if single else 's')), 0, wx.EXPAND)
 
@@ -61,5 +61,6 @@ class RemoveTorrent(wx.Dialog):
 
         self.Bind(wx.EVT_BUTTON, lambda event: self.EndModal(event.GetId()))
         self.SetSizer(border)
+        self.SetSize((-1, self.GetBestSize()[1]))
         self.Layout()
         self.CenterOnParent()

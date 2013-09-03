@@ -27,8 +27,7 @@ ignore = []  # Arno: was ['core', 'CVS']
 
 DEBUG = False
 
-
-def make_torrent_file(input, userabortflag=None, userprogresscallback = lambda x: None):
+def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: None):
     """ Create a torrent file from the supplied input.
 
     Returns a (infohash,metainfo) pair, or (None,None) on userabort. """
@@ -162,7 +161,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
         outpath = file['outpath']
 
         if DEBUG:
-            print >>sys.stderr, "makeinfo: inpath", inpath, "outpath", outpath
+            print >> sys.stderr, "makeinfo: inpath", inpath, "outpath", outpath
 
         if os.path.isdir(inpath):
             dirsubs = subfiles(inpath)
@@ -383,7 +382,6 @@ def pathlist2filename(pathlist):
         fullpath = os.path.join(fullpath, elem)
     return fullpath
 
-
 def pathlist2savefilename(pathlist, encoding):
     fullpath = u''
     for elem in pathlist:
@@ -391,7 +389,6 @@ def pathlist2savefilename(pathlist, encoding):
         b = fix_filebasename(u)
         fullpath = os.path.join(fullpath, b)
     return fullpath
-
 
 def torrentfilerec2savefilename(filerec, length=None):
     if length is None:
@@ -404,7 +401,6 @@ def torrentfilerec2savefilename(filerec, length=None):
         encoding = None
 
     return pathlist2savefilename(filerec[key][:length], encoding)
-
 
 def savefilenames2finaldest(fn1, fn2):
     """ Returns the join of two savefilenames, possibly shortened
@@ -424,7 +420,6 @@ def num2num(num):
         return int(num)
     else:
         return num
-
 
 def get_torrentfilerec_from_metainfo(filename, metainfo):
     info = metainfo['info']
@@ -466,7 +461,7 @@ def get_bitrate_from_metainfo(file, metainfo):
             if playtime is not None:
                 bitrate = info['length'] / playtime
                 if DEBUG:
-                    print >>sys.stderr, "TorrentDef: get_bitrate: Found bitrate", bitrate
+                    print >> sys.stderr, "TorrentDef: get_bitrate: Found bitrate", bitrate
         except:
             print_exc()
 
@@ -543,7 +538,6 @@ def get_length_priority_from_metainfo(metainfo, selectedfiles):
                 priorities.append("-1")
         return (total, ",".join(priorities))
 
-
 def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
 
     if 'files' not in metainfo['info']:
@@ -563,7 +557,7 @@ def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
             filename = pathlist2filename(path)
 
             if length > 0 and (not selectedfiles or (selectedfiles and filename in selectedfiles)):
-                range = (offset2piece(offset, piecesize, False), offset2piece(offset + length, piecesize), filename)
+                range = (offset2piece(offset, piecesize, False), offset2piece(offset + length, piecesize), (offset - offset2piece(offset, piecesize, False) * piecesize), filename)
                 filepieceranges.append(range)
                 total += length
             offset += length
@@ -592,7 +586,7 @@ def copy_metainfo_to_input(metainfo, input):
         else:
             playtime = None
         length = metainfo['info']['length']
-        d = {'inpath': outpath, 'outpath': outpath,'playtime':playtime,'length':length}
+        d = {'inpath': outpath, 'outpath': outpath, 'playtime':playtime, 'length':length}
         input['files'].append(d)
     else:  # multi-file torrent
         files = metainfo['info']['files']
@@ -603,7 +597,7 @@ def copy_metainfo_to_input(metainfo, input):
             else:
                 playtime = None
             length = file['length']
-            d = {'inpath': outpath, 'outpath': outpath,'playtime':playtime,'length':length}
+            d = {'inpath': outpath, 'outpath': outpath, 'playtime':playtime, 'length':length}
             input['files'].append(d)
 
     if 'azureus_properties' in metainfo:

@@ -73,9 +73,9 @@ class TopSearchPanel(FancyPanel):
             self.searchField.SetDescriptiveText('Search Files or Channels')
             self.searchField.SetMinSize((400, 20))
         else:
-            self.searchFieldPanel = FancyPanel(self, radius=5, border = wx.ALL)
+            self.searchFieldPanel = FancyPanel(self, radius=5, border=wx.ALL)
             self.searchFieldPanel.SetBorderColour(SEPARATOR_GREY, highlight=TRIBLER_RED)
-            self.searchField = TextCtrlAutoComplete(self.searchFieldPanel, style=wx.NO_BORDER, entrycallback=self.complete, selectcallback= self.OnAutoComplete)
+            self.searchField = TextCtrlAutoComplete(self.searchFieldPanel, style=wx.NO_BORDER, entrycallback=self.complete, selectcallback=self.OnAutoComplete)
             # Since we have set the style to wx.NO_BORDER, the default height will be too large. Therefore, we need to set the correct height.
             _, height = self.GetTextExtent("Gg")
             self.searchField.SetMinSize((-1, height))
@@ -257,12 +257,13 @@ class TopSearchPanel(FancyPanel):
                 if torrent.state or inDownloads:
                     states[5] += 1
 
-                if torrent.infohash in self.collectedTorrents:
-                    coltorrent = self.collectedTorrents[torrent.infohash]
-                    if coltorrent.isPlayable():
-                        states[6] += 1
+                if "metadata" not in torrent.state:
+                    if torrent.infohash in self.collectedTorrents:
+                        coltorrent = self.collectedTorrents[torrent.infohash]
+                        if coltorrent.isPlayable():
+                            states[6] += 1
 
-                    usedCollectedTorrents.add(torrent.infohash)
+                        usedCollectedTorrents.add(torrent.infohash)
 
             enableDownload = states[1] + states[2]
             if enableDownload:
@@ -315,7 +316,7 @@ class TopSearchPanel(FancyPanel):
         else:
             self.ClearButtonHandlers()
 
-    def SetButtonHandler(self, button, handler=None, tooltip= None):
+    def SetButtonHandler(self, button, handler=None, tooltip=None):
         button.Enable(bool(handler))
         if handler:
             button.Bind(wx.EVT_LEFT_UP, handler)
@@ -333,7 +334,7 @@ class TopSearchPanel(FancyPanel):
         self.SetButtonHandler(self.stop_btn, None)
         self.SetButtonHandler(self.delete_btn, None)
 
-    def OnDownload(self, event=None, torrents= None):
+    def OnDownload(self, event=None, torrents=None):
         refresh_library = False
         torrents = torrents if torrents != None else self.GetSelectedTorrents()
         for torrent in torrents:

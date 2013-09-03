@@ -102,9 +102,6 @@ mkdir dist\installdir\Tribler\Core\Tag
 copy Tribler\Core\Tag\*.filter dist\installdir\Tribler\Core\Tag
 
 copy Tribler\Main\Build\Win32\heading.bmp dist\installdir
-mkdir dist\installdir\Tribler\Video
-mkdir dist\installdir\Tribler\Video\Images
-copy Tribler\Video\Images\*.* dist\installdir\Tribler\Video\Images
 mkdir dist\installdir\Tribler\Lang
 copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
 
@@ -115,6 +112,7 @@ mkdir dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.main dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.backup dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 
+copy logger.conf dist\installdir
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
 copy vlc.py dist\installdir\vlc.py
@@ -126,12 +124,14 @@ REM MainClient specific
 mkdir dist\installdir\Tribler\Main
 mkdir dist\installdir\Tribler\Main\vwxGUI
 mkdir dist\installdir\Tribler\Main\vwxGUI\images
+mkdir dist\installdir\Tribler\Main\vwxGUI\images\flags
 mkdir dist\installdir\Tribler\Main\webUI
 mkdir dist\installdir\Tribler\Main\webUI\static
 mkdir dist\installdir\Tribler\Main\webUI\static\images
 mkdir dist\installdir\Tribler\Main\webUI\static\lang
 copy Tribler\Main\vwxGUI\*.xrc dist\installdir\Tribler\Main\vwxGUI
 copy Tribler\Main\vwxGUI\images\*.* dist\installdir\Tribler\Main\vwxGUI\images
+copy Tribler\Main\vwxGUI\images\flags\*.* dist\installdir\Tribler\Main\vwxGUI\images\flags
 copy Tribler\Main\webUI\static\*.* dist\installdir\Tribler\Main\webUI\static
 copy Tribler\Main\webUI\static\images\*.* dist\installdir\Tribler\Main\webUI\static\images
 copy Tribler\Main\webUI\static\lang\*.* dist\installdir\Tribler\Main\webUI\static\lang
