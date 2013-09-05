@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from Tribler.dispersy.candidate import BootstrapCandidate, Candidate
 
-from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
@@ -21,11 +21,11 @@ import functools
 class ProxyCommunity(Community, Observable):
     def __init__(self, dispersy, master_member):
         Observable.__init__(self)
-        
+
         # original walker callbacks (will be set during super(...).__init__)
         self._original_on_introduction_request = None
         self._original_on_introduction_response = None
-        
+
         Community.__init__(self, dispersy, master_member)
 
     def initiate_conversions(self):
@@ -35,54 +35,54 @@ class ProxyCommunity(Community, Observable):
         def yield_all(messages):
             for msg in messages:
                 yield msg
-                
+
         def trigger_event(messages,event_name):
             for msg in messages:
                 self.fire(event_name, message=msg)
-            
+
         return [Message(self,
                         u"create",
-                        MemberAuthentication(encoding="sha1"),
+                        NoAuthentication(),
                         PublicResolution(),
                         DirectDistribution(),
                         CandidateDestination(),
                         CreatePayload(),
                         yield_all,
                         functools.partial(trigger_event, event_name="on_create")),
-                
+
                 Message(self,
                         u"created",
-                        MemberAuthentication(encoding="sha1"),
+                        NoAuthentication(),
                         PublicResolution(),
                         DirectDistribution(),
                         CandidateDestination(),
                         CreatePayload(),
                         yield_all,
                         functools.partial(trigger_event, event_name="on_created")),
-                
+
                 Message(self,
                         u"extend",
-                        MemberAuthentication(encoding="sha1"),
+                        NoAuthentication(),
                         PublicResolution(),
                         DirectDistribution(),
                         CandidateDestination(),
                         ExtendPayload(),
                         yield_all,
                         functools.partial(trigger_event, event_name="on_extend")),
-                
+
                 Message(self,
                         u"extended",
-                        MemberAuthentication(encoding="sha1"),
+                        NoAuthentication(),
                         PublicResolution(),
                         DirectDistribution(),
                         CandidateDestination(),
                         ExtendedPayload(),
                         yield_all,
                         functools.partial(trigger_event, event_name="on_extended")),
-                
+
                 Message(self,
                         u"data",
-                        MemberAuthentication(encoding="sha1"),
+                        NoAuthentication(),
                         PublicResolution(),
                         DirectDistribution(),
                         CandidateDestination(),
@@ -92,7 +92,7 @@ class ProxyCommunity(Community, Observable):
 
                 Message(self,
                         u"break",
-                        MemberAuthentication(encoding="sha1"),
+                        NoAuthentication(),
                         PublicResolution(),
                         DirectDistribution(),
                         CandidateDestination(),
@@ -100,7 +100,7 @@ class ProxyCommunity(Community, Observable):
                         yield_all,
                         functools.partial(trigger_event, event_name="on_break")),
                 ]
-        
+
     def _initialize_meta_messages(self):
         super(ProxyCommunity, self)._initialize_meta_messages()
 
@@ -128,8 +128,8 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
 
         meta = self.get_meta_message(u"break")
-        message = meta.impl(authentication=(self.my_member,),
-                              distribution=(self.claim_global_time(),),
+        message = meta.impl(
+                              distribution=(self.global_time,),
                               payload=(circuit_id,))
 
         self.dispersy.endpoint.send([candidate], [message.packet])
@@ -143,13 +143,12 @@ class ProxyCommunity(Community, Observable):
         :return: None
         """
         candidate = self.dispersy.get_candidate(destination)
-        
+
         meta = self.get_meta_message(u"create")
-        message = meta.impl(authentication=(self.my_member,),
-                              distribution=(self.claim_global_time(),),
+        message = meta.impl(  distribution=(self.global_time,),
                               payload=(circuit_id,))
         self.dispersy.endpoint.send([candidate], [message.packet])
-        
+
     def send_created(self, destination, circuit_id):
         """
         Send a CREATED message over a circuit
@@ -159,13 +158,13 @@ class ProxyCommunity(Community, Observable):
         :return:
         """
         candidate = self.dispersy.get_candidate(destination)
-            
+
         meta = self.get_meta_message(u"created")
-        message = meta.impl(authentication=(self.my_member,),
-                              distribution=(self.claim_global_time(),),
+        message = meta.impl(
+                              distribution=(self.global_time,),
                               payload=(circuit_id,))
         self.dispersy.endpoint.send([candidate], [message.packet])
-        
+
     def send_data(self, destination, circuit_id, ultimate_destination, data = None, origin = None):
         """
         Send a DATA message over a circuit
@@ -179,14 +178,14 @@ class ProxyCommunity(Community, Observable):
         :return: None
         """
         candidate = self.dispersy.get_candidate(destination)
-            
+
         meta = self.get_meta_message(u"data")
-        message = meta.impl(authentication=(self.my_member,),
-                              distribution=(self.claim_global_time(),),
+        message = meta.impl(
+                              distribution=(self.global_time,),
                               payload=(circuit_id, ultimate_destination, data,origin))
-        
+
         self.dispersy.endpoint.send([candidate], [message.packet])
-        
+
     def send_extend(self, destination, circuit_id, extend_with):
         """
         Send an EXTEND message over a circuit
@@ -197,18 +196,18 @@ class ProxyCommunity(Community, Observable):
         :return: None
         """
 
-        candidate = self.dispersy.get_candidate(destination) 
-        
+        candidate = self.dispersy.get_candidate(destination)
+
         if not isinstance(candidate, Candidate):
-            return     
-            
+            return
+
         meta = self.get_meta_message(u"extend")
-        message = meta.impl(authentication=(self.my_member,),
-                              distribution=(self.claim_global_time(),),
+        message = meta.impl(
+                              distribution=(self.global_time,),
                               payload=(circuit_id, extend_with,))
-        
+
         self.dispersy.endpoint.send([candidate], [message.packet])
-        
+
     def send_extended(self, destination, circuit_id, extended_with):
         """
         Send an EXTENDED message over a circuit
@@ -219,13 +218,13 @@ class ProxyCommunity(Community, Observable):
         :return: None
         """
 
-        candidate = self.dispersy.get_candidate(destination)      
-            
+        candidate = self.dispersy.get_candidate(destination)
+
         meta = self.get_meta_message(u"extended")
-        message = meta.impl(authentication=(self.my_member,),
-                              distribution=(self.claim_global_time(),),
+        message = meta.impl(
+                              distribution=(self.global_time,),
                               payload=(circuit_id, extended_with,))
-        
+
         self.dispersy.endpoint.send([candidate], [message.packet])
 
     def on_introduction_request(self, messages):

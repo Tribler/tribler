@@ -150,5 +150,7 @@ class Socks5AnonTunnel(Thread):
         destination_address = self.destination_address
 
         encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],source_address[1], packet.data)
-        self.udp_relay_socket.sendto(encapsulated, destination_address)
+        if self.udp_relay_socket.sendto(encapsulated, destination_address) < len(encapsulated):
+            logger.error("Not sending package!")
+
         logger.info("Returning UDP packets from %s to %s using proxy port %d",source_address, destination_address, self.udp_relay_socket.getsockname()[1])
