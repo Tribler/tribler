@@ -93,6 +93,8 @@ NTFY_MAGNET_STARTED = 'magnet_started'
 NTFY_MAGNET_GOT_PEERS = 'magnet_peers'
 NTFY_MAGNET_PROGRESS = 'magnet_progress'
 NTFY_MAGNET_CLOSE = 'magnet_close'
+NTFY_VIDEO_STARTED = 'video_started'
+NTFY_VIDEO_STOPPED = 'video_stopped'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0
