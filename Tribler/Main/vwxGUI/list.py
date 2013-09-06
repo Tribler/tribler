@@ -2216,7 +2216,8 @@ class ActivitiesList(List):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.settings = {}
-        self.expandedPanel = None
+        self.expandedPanel_channels = None
+        self.expandedPanel_videoplayer = None
         self.notifyTimer = None
         columns = [{'width': wx.LIST_AUTOSIZE}]
         List.__init__(self, columns, wx.WHITE, [10, 10], True, parent=parent)
@@ -2323,18 +2324,23 @@ class ActivitiesList(List):
         elif item.data[0] == 'Channels':
             if self.guiutility.guiPage not in ['channels', 'selectedchannel', 'mychannel']:
                 self.guiutility.ShowPage('channels')
-            if not self.expandedPanel:
-                self.expandedPanel = ChannelsExpandedPanel(item)
-                item.AddEvents(self.expandedPanel)
-            return self.expandedPanel
+            if not self.expandedPanel_channels:
+                self.expandedPanel_channels = ChannelsExpandedPanel(item)
+                item.AddEvents(self.expandedPanel_channels)
+            return self.expandedPanel_channels
         elif item.data[0] == 'Downloads':
             self.guiutility.ShowPage('my_files')
         elif item.data[0] == 'Videoplayer':
-            self.guiutility.ShowPlayer()
+            if self.guiutility.guiPage not in ['videoplayer']:
+                self.guiutility.ShowPage('videoplayer')
+            if not self.expandedPanel_videoplayer:
+                self.expandedPanel_videoplayer = VideoplayerExpandedPanel(item)
+                item.AddEvents(self.expandedPanel_videoplayer)
+            return self.expandedPanel_videoplayer
         return True
 
     def OnCollapse(self, item, panel):
-        if panel == self.expandedPanel:
+        if panel == self.expandedPanel_channels:
             panel = None
 
         List.OnCollapse(self, item, panel)

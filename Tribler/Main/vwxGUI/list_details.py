@@ -29,6 +29,7 @@ from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent, \
     LibraryTorrent, ChannelTorrent, CollectedTorrent, Channel, Playlist
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 DEBUG = False
@@ -2371,3 +2372,103 @@ class ChannelsExpandedPanel(wx.Panel):
             self.guiutility.showPlaylist(channel_or_playlist)
         self.channel_or_playlist = channel_or_playlist
         self.SetTextHighlight()
+
+
+class VideoplayerExpandedPanel(wx.Panel):
+
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
+        self.guiutility = GUIUtility.getInstance()
+        self.videoplayer = VideoPlayer.getInstance()
+        self.library_manager = self.guiutility.library_manager
+        self.close_icon = wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, "images", "close.png"), wx.BITMAP_TYPE_ANY)
+        self.AddComponents()
+        self.SetBackgroundColour(parent.GetBackgroundColour())
+        self.guiutility.utility.session.add_observer(self.OnVideoStarted, NTFY_TORRENTS, [NTFY_VIDEO_STARTED])
+        self.guiutility.utility.session.add_observer(self.OnVideoStopped, NTFY_TORRENTS, [NTFY_VIDEO_STOPPED])
+
+    def AddComponents(self):
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.hSizer.Add(self.vSizer, 1, wx.EXPAND | wx.LEFT, 20)
+
+        self.AddLinks()
+
+        self.SetSizer(self.hSizer)
+        self.Layout()
+
+    def AddLinks(self):
+        def DetermineText(linktext, text):
+            for i in xrange(len(text), 0, -1):
+                newText = text[0:i]
+                if i != len(text):
+                    newText += ".."
+                width, _ = linktext.GetTextExtent(newText)
+                if width <= 150:
+                    return newText
+            return ""
+
+        self.links = {}
+        for torrent, fileindex in self.videoplayer.get_playlist():
+            filename = torrent.files[fileindex][0]
+            link = LinkStaticText(self, filename, icon=None, font_colour=self.GetForegroundColour())
+            link.SetLabel(DetermineText(link.text, filename))
+            link.Bind(wx.EVT_LEFT_UP, lambda evt, t=torrent, f=filename: self.library_manager.playTorrent(t, f))
+            link.Bind(wx.EVT_MOUSE_EVENTS, self.OnLinkStaticTextMouseEvent)
+            link.SetToolTipString(filename)
+            link_close = wx.StaticBitmap(self, -1, self.close_icon)
+            link_close.Show(False)
+            link_close.Bind(wx.EVT_LEFT_UP, lambda evt, t=torrent, i=fileindex: self.RemoveFromPlaylist(t, i))
+            link.Add(link_close, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.RIGHT, 2)
+            link.kv_pair = (torrent, fileindex)
+            self.links[(torrent, fileindex)] = link
+            self.vSizer.Add(link, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+
+    def UpdateComponents(self):
+        self.Freeze()
+        self.vSizer.Clear(deleteWindows=True)
+        self.AddLinks()
+        self.Layout()
+        self.Thaw()
+
+    def RemoveFromPlaylist(self, torrent, fileindex):
+        self.videoplayer.remove_from_playlist(torrent, fileindex)
+        self.UpdateComponents()
+
+    def OnLinkStaticTextMouseEvent(self, event):
+        link = event.GetEventObject()
+        if event.LeftDown():
+            self.dragging = link
+        elif event.LeftUp():
+            source = self.dragging
+            destination = None
+            self.dragging = None
+            for l in self.links.values():
+                if l.text.GetScreenRect().Contains(wx.GetMousePosition()):
+                    destination = l
+
+            if source and destination:
+                index = self.videoplayer.get_playlist().index(destination.kv_pair)
+                self.videoplayer.remove_from_playlist(*source.kv_pair)
+                self.videoplayer.add_to_playlist(source.kv_pair[0], source.kv_pair[1], index)
+                self.UpdateComponents()
+                return
+
+        for link in self.links.values():
+            mousepos = wx.GetMousePosition()
+            show = link.GetItem(0).GetWindow().GetScreenRect().Contains(mousepos) or \
+                   link.GetItem(1).GetWindow().GetScreenRect().Contains(mousepos)
+            wx.BoxSizer.Show(link, 1, show)
+        event.Skip()
+
+    def OnVideoStarted(self, subject, changeType, torrent_tuple):
+        for key, control in self.links.iteritems():
+            torrent, fileindex = key
+            if torrent.infohash == torrent_tuple[0] and fileindex == torrent_tuple[1]:
+                control.SetForegroundColour(TRIBLER_RED)
+
+    def OnVideoStopped(self, subject, changeType, torrent_tuple):
+        for key, control in self.links.iteritems():
+            torrent, fileindex = key
+            if torrent.infohash == torrent_tuple[0] and fileindex == torrent_tuple[1]:
+                control.SetForegroundColour(self.GetForegroundColour())

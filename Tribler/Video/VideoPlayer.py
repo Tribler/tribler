@@ -9,6 +9,7 @@ import sys
 import urllib
 import urlparse
 import wx
+import copy
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoServer import VideoHTTPServer, VideoRawVLCServer
@@ -48,6 +49,8 @@ class VideoPlayer:
         self.videohttpserv = None
         # Must create the instance here, such that it won't get garbage collected
         self.videorawserv = VideoRawVLCServer.getInstance()
+
+        self.playlist = []
 
         self.resume_by_system = 0
         self.user_download_choice = None
@@ -109,6 +112,21 @@ class VideoPlayer:
 
     def set_videoframe(self, videoframe):
         self.videoframe = videoframe
+
+    def add_to_playlist(self, torrent, fileindex, queueindex= -1):
+        if queueindex < 0:
+            self.playlist.append((torrent, fileindex))
+        else:
+            self.playlist = self.playlist[:queueindex] + [(torrent, fileindex)] + self.playlist[queueindex:]
+
+    def remove_from_playlist(self, torrent, fileindex):
+        if (torrent, fileindex) in self.playlist:
+            self.playlist.remove((torrent, fileindex))
+            return True
+        return False
+
+    def get_playlist(self):
+        return copy.copy(self.playlist)
 
     def play_file(self, dest):
         """ Play video file from disk """
