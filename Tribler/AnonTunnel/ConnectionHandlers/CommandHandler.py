@@ -4,11 +4,13 @@ import pickle
 
 
 class ListCircuitsRequest:
-    pass
+    def __init__(self):
+        pass
 
 
 class IsOnlineRequest:
-    pass
+    def __init__(self):
+        pass
 
 
 class ListCircuitsResponse:
@@ -32,7 +34,8 @@ class CreateCircuitResponse:
 
 
 class StopRequest:
-    pass
+    def __init__(self):
+        pass
 
 
 class StopResponse:
@@ -41,7 +44,8 @@ class StopResponse:
 
 
 class StartRequest:
-    pass
+    def __init__(self):
+        pass
 
 
 class StartResponse:
@@ -55,8 +59,8 @@ class CommandHandler(object):
 
         :param socket: the socket we will use to sent responses over
         :param dispersy_tunnel: the dispersy tunnel we want to control
-        :type socket : socket
-        :type dispersy_tunnel : DispersyTunnelProxy
+        :type socket : socket.socket
+        :type dispersy_tunnel : Tribler.AnonTunnel.DispersyTunnelProxy.DispersyTunnelProxy
         :return:
         """
         self.dispersy_tunnel = dispersy_tunnel
@@ -98,9 +102,8 @@ class CommandHandler(object):
         self.socket.sendto(pickle.dumps(response), source_address)
 
     def on_start_request(self, source_address, request):
-        self.dispersy_tunnel.start()
+        pass
 
     def on_stop_request(self, source_address, request):
-        self.dispersy_tunnel.stop()
         # Ugly but it gets the job done
         exit(1)

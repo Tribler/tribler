@@ -18,7 +18,7 @@ class CircuitReturnHandler(object):
         :param destination_address: the first hop of the circuit
         :param socket: the socket that listens to UDP packets
 
-        :type proxy: DispersyTunnelProxy
+        :type proxy: Tribler.AnonTunnel.DispersyTunnelProxy.DispersyTunnelProxy
 
         """
         self.proxy = proxy

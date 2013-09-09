@@ -10,7 +10,6 @@ from Tribler.dispersy.endpoint import StandaloneEndpoint
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
 
-import time
 from DispersyTunnelProxy import DispersyTunnelProxy
 from Socks5AnonTunnel import Socks5AnonTunnel
 
@@ -20,20 +19,17 @@ import sys, getopt
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hsy", ["start", "yappi"])
+        opts, args = getopt.getopt(argv, "hy", ["yappi"])
     except getopt.GetoptError:
-        print 'Main.py [--start]'
+        print 'Main.py [--yappi]'
         sys.exit(2)
 
-    should_start = False
     profile = False
 
     for opt, arg in opts:
         if opt == '-h':
-            print 'Main.py [--start]'
+            print 'Main.py [--yappi]'
             sys.exit()
-        elif opt in ("-s", "--start"):
-            should_start = True
         elif opt in( "-y", "--yappi"):
             profile = True
 
@@ -53,10 +49,7 @@ def main(argv):
 
     community = dispersy.callback.call(join_overlay,(dispersy,))
 
-    tunnel = DispersyTunnelProxy()
-
-    if should_start:
-        tunnel.start(community)
+    tunnel = DispersyTunnelProxy(community)
 
     s5tunnel = Socks5AnonTunnel(tunnel, 1080)
     s5tunnel.start()
@@ -98,7 +91,7 @@ def main(argv):
                 print >> sys.stderr, "Profiling disabled!"
         elif line == 'q\n':
             stop()
-            break;
+            break
 
 
 

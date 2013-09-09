@@ -116,14 +116,14 @@ class Socks5AnonTunnel(Thread):
     def create_udp_socket(self):
         """
         Creates a UDP socket bound to a free port on all interfaces
-        :rtype : socket
+        :rtype : socket.socket
         """
         return self.raw_server.create_udpsocket(0, "0.0.0.0")
 
     def create_udp_relay(self):
         """
         Initializes an UDP relay by listening to a newly created socket and attaching a UdpRelayHandler
-        :rtype : socket
+        :rtype : socket.socket
         """
         if self.udp_relay_socket is None:
             self.udp_relay_socket = self.create_udp_socket()

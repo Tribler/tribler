@@ -92,10 +92,12 @@ class ProxyConversion(BinaryConversion):
             , self._decode_break
         )
 
-    def _encode_break(self, message):
+    @staticmethod
+    def _encode_break(message):
         return struct.pack("!L", message.payload.circuit_id)
 
-    def _decode_break(self, placeholder, offset, data):
+    @staticmethod
+    def _decode_break(placeholder, offset, data):
         if len(data) < offset + 4:
             raise DropPacket("Cannot unpack circuit_id, insufficient packet size")
 
@@ -104,10 +106,12 @@ class ProxyConversion(BinaryConversion):
 
         return offset, placeholder.meta.payload.implement(circuit_id)
 
-    def _encode_createOrCreated(self, message):
+    @staticmethod
+    def _encode_createOrCreated(message):
         return struct.pack("!L", message.payload.circuit_id),
 
-    def _decode_createOrCreated(self, placeholder, offset, data):
+    @staticmethod
+    def _decode_createOrCreated(placeholder, offset, data):
         if len(data) < offset + 4:
             raise DropPacket("Cannot unpack circuit_id, insufficient packet size")
         
@@ -116,7 +120,8 @@ class ProxyConversion(BinaryConversion):
     
         return offset, placeholder.meta.payload.implement(circuit_id)
     
-    def _encode_extended(self, message):
+    @staticmethod
+    def _encode_extended(message):
         (host, port) = message.payload.extended_with
         return (
                 struct.pack("!LL", message.payload.circuit_id, len(host))
@@ -124,7 +129,8 @@ class ProxyConversion(BinaryConversion):
                 , struct.pack("!L", port)
                 )
         
-    def _encode_extend(self, message):
+    @staticmethod
+    def _encode_extend(message):
         (host, port) = message.payload.extend_with
         return (
                 struct.pack("!LL", message.payload.circuit_id, len(host))
@@ -132,7 +138,8 @@ class ProxyConversion(BinaryConversion):
                 , struct.pack("!L", port)
                 )
         
-    def _encode_data(self, message):
+    @staticmethod
+    def _encode_data(message):
 
         if message.payload.destination is None:
             (host, port) = ("0.0.0.0", 0)
@@ -154,7 +161,8 @@ class ProxyConversion(BinaryConversion):
                 , message.payload.data
                 )
     
-    def _decode_extend(self, placeholder, offset, data):
+    @staticmethod
+    def _decode_extend(placeholder, offset, data):
         if len(data) < offset + 8:
             raise DropPacket("Cannot unpack circuit_id/HostLength, insufficient packet size")
         circuit_id , host_length = struct.unpack_from("!LL", data, offset)
@@ -174,7 +182,8 @@ class ProxyConversion(BinaryConversion):
         
         return offset, placeholder.meta.payload.implement(circuit_id, ExtendWith)
     
-    def _decode_extended(self, placeholder, offset, data):
+    @staticmethod
+    def _decode_extended(placeholder, offset, data):
         if len(data) < offset + 8:
             raise DropPacket("Cannot unpack circuit_id/HostLength, insufficient packet size")
         circuit_id , host_length = struct.unpack_from("!LL", data, offset)
@@ -194,7 +203,8 @@ class ProxyConversion(BinaryConversion):
         
         return offset, placeholder.meta.payload.implement(circuit_id, ExtendedWith)
     
-    def _decode_data(self, placeholder, offset, data):
+    @staticmethod
+    def _decode_data(placeholder, offset, data):
         if len(data) < offset + 8:
             raise DropPacket("Cannot unpack circuit_id/HostLength, insufficient packet size")
         circuit_id , host_length = struct.unpack_from("!LL", data, offset)

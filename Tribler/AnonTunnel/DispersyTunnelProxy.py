@@ -35,7 +35,7 @@ class RelayRoute(object):
         self.circuit_id = circuit_id
 
 class DispersyTunnelProxy(Observable):
-    def __init__(self):
+    def __init__(self, community):
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
         Observable.__init__(self)
@@ -55,8 +55,8 @@ class DispersyTunnelProxy(Observable):
 
         # Queue of EXTEND request, circuit id is key of the dictionary
         self.extension_queue = defaultdict(deque)
-
-    def start(self, community):
+        self.local_addresses = {}
+        self.community = None
 
         self.local_addresses = {community.dispersy.lan_address, community.dispersy.wan_address}
 

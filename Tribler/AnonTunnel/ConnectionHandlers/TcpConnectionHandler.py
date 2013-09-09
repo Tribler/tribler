@@ -21,7 +21,7 @@ class TcpConnectionHandler(object):
     def __init__(self):
         self.socket2connection = {}
         self.server = None
-        """ :type : Socks5AnonTunnel """
+        """ :type : Tribler.AnonTunnel.Socks5AnonTunnel.Socks5AnonTunnel """
 
     def external_connection_made(self, s):
         # Extra check in case bind() no work

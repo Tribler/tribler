@@ -19,8 +19,8 @@ class TunnelCommander(Observable):
 
         self.address = tunnel_address
         self.raw_server = raw_server
-        self.udp_socket = raw_server.create_udpsocket(0,"0.0.0.0");
-        raw_server.start_listening_udp(self.udp_socket, self);
+        self.udp_socket = raw_server.create_udpsocket(0,"0.0.0.0")
+        raw_server.start_listening_udp(self.udp_socket, self)
 
     def data_came_in(self, packets):
         for packet in packets:
