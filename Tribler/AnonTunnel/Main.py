@@ -4,6 +4,10 @@ import logging.config
 import pstats
 import threading
 import yappi
+from Tribler.AnonTunnel.ProxyCommunity import ProxyCommunity
+from Tribler.dispersy.callback import Callback
+from Tribler.dispersy.dispersy import Dispersy
+from Tribler.dispersy.endpoint import StandaloneEndpoint
 
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
@@ -38,20 +42,36 @@ def main(argv):
     if profile:
         yappi.start()
 
+    callback = Callback()
+    endpoint = StandaloneEndpoint(10000)
+    dispersy = Dispersy(callback, endpoint, u".", u":memory:")
+    dispersy.start()
+    logger.info("Dispersy is listening on port %d" % dispersy.lan_address[1])
+
+    def join_overlay(dispersy):
+        master_member = dispersy.get_temporary_member_from_id("-PROXY-OVERLAY-HASH-")
+        my_member = dispersy.get_new_member()
+        return ProxyCommunity.join_community(dispersy, master_member, my_member)
+
+    community = dispersy.callback.call(join_overlay,(dispersy,))
 
     tunnel = DispersyTunnelProxy()
 
     if should_start:
-        tunnel.start()
+        tunnel.start(community)
 
     s5tunnel = Socks5AnonTunnel(tunnel, 1080)
     s5tunnel.start()
+
+    def stop():
+        dispersy.stop()
+        s5tunnel.shutdown()
 
     while 1:
         try:
             line = sys.stdin.readline()
         except KeyboardInterrupt:
-            line = 'q\n'
+            stop()
 
         if not line:
             break
@@ -79,8 +99,7 @@ def main(argv):
             else:
                 print >> sys.stderr, "Profiling disabled!"
         elif line == 'q\n':
-            s5tunnel.shutdown()
-            tunnel.stop()
+            stop()
             break;
 
 

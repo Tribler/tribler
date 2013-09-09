@@ -45,18 +45,7 @@ class DispersyTunnelProxy(Observable):
         # Queue of EXTEND request, circuit id is key of the dictionary
         self.extension_queue = defaultdict(deque)
 
-        self.callback = Callback()
-        self.endpoint = StandaloneEndpoint(10000)
-        self.dispersy = None
-
-    def start(self):
-        self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
-        self.dispersy.start()
-        logger.info("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
-
-        # Create Community and bind events
-        community = self.callback.call(self.join_proxy_overlay, (self.dispersy,))
-        assert isinstance(community, ProxyCommunity)
+    def start(self, community):
         community.subscribe("on_create", self.on_create)
         community.subscribe("on_created", self.on_created)
         community.subscribe("on_extend", self.on_extend)
@@ -267,11 +256,6 @@ class DispersyTunnelProxy(Observable):
         if circuit.created:
             self._perform_extension(circuit)
 
-    def join_proxy_overlay(self, dispersy):
-        master_member = dispersy.get_temporary_member_from_id("-PROXY-OVERLAY-HASH-")
-        my_member = dispersy.get_new_member()
-        return ProxyCommunity.join_community(dispersy, master_member, my_member)
-
     def on_member_heartbeat(self, event):
         candidate = event.candidate
         if candidate.sock_addr not in self.circuit_membership:
@@ -281,10 +265,6 @@ class DispersyTunnelProxy(Observable):
 
         for circuit_id in circuits:
             self.extend_circuit(self.circuits[circuit_id], candidate.sock_addr)
-
-    def stop(self):
-        if self.dispersy is not None:
-            self.dispersy.stop()
 
     def send_data(self, payload, circuit_id=None, address=None, ultimate_destination=None, origin=None):
         if circuit_id is None:
