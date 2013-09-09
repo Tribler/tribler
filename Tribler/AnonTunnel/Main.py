@@ -1,7 +1,5 @@
-import glob
 import os
 import logging.config
-import pstats
 import threading
 import yappi
 from Tribler.AnonTunnel.ProxyCommunity import ProxyCommunity
