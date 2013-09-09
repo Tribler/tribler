@@ -1,7 +1,9 @@
-from Tribler.AnonTunnel.CommandHandler import StartRequest
+from threading import Event
+
+from Tribler.AnonTunnel.ConnectionHandlers.CommandHandler import StartRequest
 from Tribler.AnonTunnel.TunnelCommander import TunnelCommander
 from Tribler.Core.RawServer.RawServer import RawServer
-from threading import Event
+
 
 __author__ = 'Chris'
 

@@ -1,6 +1,6 @@
 import logging
 
-import Socks5.structs
+from Tribler.AnonTunnel.Socks5 import structs
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class UdpRelayTunnelHandler(object):
 
     def data_came_in(self, packets):
         for source_address, packet in packets:
-            request = Socks5.structs.decode_udp_packet(packet)
+            request = structs.decode_udp_packet(packet)
 
             self.server.destination_address = source_address
 

@@ -1,12 +1,11 @@
 import logging
 
-import Socks5.structs
-from UdpReturnHandler import UdpReturnHandler
-
 
 logger = logging.getLogger(__name__)
-
 __author__ = 'Chris'
+
+from Tribler.AnonTunnel.Socks5 import structs
+from UdpReturnHandler import UdpReturnHandler
 
 
 class UdpRelayHandler(object):
@@ -18,7 +17,7 @@ class UdpRelayHandler(object):
 
     def data_came_in(self, packets):
         for source_address, packet in packets:
-            request = Socks5.structs.decode_udp_packet(packet)
+            request = structs.decode_udp_packet(packet)
 
             destination = (request.destination_address, request.destination_port)
             logger.info("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],

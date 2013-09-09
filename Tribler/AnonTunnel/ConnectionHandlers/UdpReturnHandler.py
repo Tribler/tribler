@@ -1,6 +1,7 @@
+from Tribler.AnonTunnel.Socks5 import structs
+
 __author__ = 'Chris'
 
-import Socks5.structs
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class UdpReturnHandler(object):
             logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address,
                         self.destination_address, self.socket.getsockname()[1])
 
-            encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],
+            encapsulated = structs.encode_udp_packet(0, 0, structs.ADDRESS_TYPE_IPV4, source_address[0],
                                                             source_address[1], packet)
 
             self.socket.sendto(encapsulated, self.destination_address)

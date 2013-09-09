@@ -1,9 +1,8 @@
 import logging
-from Tribler.AnonTunnel.Socks5AnonTunnel import Socks5AnonTunnel
+from Tribler.AnonTunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler
 
 logger = logging.getLogger(__name__)
 
-from CircuitReturnHandler import CircuitReturnHandler
 from Observable import Observable
 
 from collections import defaultdict, deque
@@ -11,19 +10,16 @@ import random
 from Circuit import Circuit
 from ProxyCommunity import ProxyCommunity
 from ProxyConversion import DataPayload, ExtendPayload
-from RelayRoute import RelayRoute
-from Tribler.dispersy.callback import Callback
-from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import StandaloneEndpoint
 
 __author__ = 'Chris'
 
+class RelayRoute(object):
+    def __init__(self, circuit_id, from_address, to_address):
+        self.from_address = from_address
+        self.to_address = to_address
+        self.circuit_id = circuit_id
 
 class DispersyTunnelProxy(Observable):
-    @property
-    def local_addresses(self):
-        return {self.dispersy.lan_address, self.dispersy.wan_address}
-
     def __init__(self):
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
@@ -46,6 +42,9 @@ class DispersyTunnelProxy(Observable):
         self.extension_queue = defaultdict(deque)
 
     def start(self, community):
+
+        self.local_addresses = {community.dispersy.lan_address, community.dispersy.wan_address}
+
         community.subscribe("on_create", self.on_create)
         community.subscribe("on_created", self.on_created)
         community.subscribe("on_extend", self.on_extend)

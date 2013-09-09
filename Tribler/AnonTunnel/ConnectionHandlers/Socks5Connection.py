@@ -6,8 +6,7 @@ Created on 3 jun. 2013
 import logging
 logger = logging.getLogger(__name__)
 
-import Socks5
-from Socks5.structs import MethodRequest, Request
+from Tribler.AnonTunnel.Socks5 import structs
 
 DEBUG = True
 
@@ -56,7 +55,7 @@ class Socks5Connection(object):
     def _try_handshake(self):
 
         # Try to read a HANDSHAKE request
-        offset, request = Socks5.structs.decode_methods_request(0, self.buffer)
+        offset, request = structs.decode_methods_request(0, self.buffer)
 
         # No (complete) HANDSHAKE received, so dont do anything
         if request is None:
@@ -65,7 +64,7 @@ class Socks5Connection(object):
         # Consume the buffer
         self.buffer = self.buffer[offset:]
 
-        assert isinstance(request, MethodRequest)
+        assert isinstance(request, structs.MethodRequest)
 
         # Only accept NO AUTH
         if request.version != 0x05 or len({0x00, 0x01, 0x02}.difference(request.methods)) == 2:
@@ -77,7 +76,7 @@ class Socks5Connection(object):
         logger.info("Client has sent METHOD REQUEST")
 
         # Respond that we would like to use NO AUTHENTICATION (0x00)
-        response = Socks5.structs.encode_method_selection_message(Socks5.structs.SOCKS_VERSION, 0x00)
+        response = structs.encode_method_selection_message(structs.SOCKS_VERSION, 0x00)
         self.write(response)
 
         # We should be connected now, the next incoming message will be a REQUEST
@@ -103,19 +102,19 @@ class Socks5Connection(object):
 
         :return: None
         """
-        offset, request = Socks5.structs.decode_request(0, self.buffer)
+        offset, request = structs.decode_request(0, self.buffer)
 
         if request is None:
             return None
 
         self.buffer = self.buffer[offset:]
 
-        assert isinstance(request, Request)
+        assert isinstance(request, structs.Request)
         logger.debug("Client has sent PROXY REQUEST")
 
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
-        if request.cmd == Socks5.structs.REQ_CMD_CONNECT:
+        if request.cmd == structs.REQ_CMD_CONNECT:
             dns = (request.destination_address, request.destination_port)
             destination_socket = self.connection_handler.start_connection(dns)
 
@@ -125,10 +124,10 @@ class Socks5Connection(object):
             # Switch to TCP relay mode
             self.connection_handler.switch_to_tcp_relay(self.single_socket, destination_socket)
 
-            response = Socks5.structs.encode_reply(0x05, 0x00, 0x00, Socks5.structs.ADDRESS_TYPE_IPV4, self.single_socket.get_myip(),
+            response = structs.encode_reply(0x05, 0x00, 0x00, structs.ADDRESS_TYPE_IPV4, self.single_socket.get_myip(),
                                                    self.single_socket.get_myport())
             self.write(response)
-        elif request.cmd == Socks5.structs.REQ_CMD_UDP_ASSOCIATE:
+        elif request.cmd == structs.REQ_CMD_UDP_ASSOCIATE:
             socket = self.connection_handler.server.create_udp_relay()
 
             # We use same IP as the single socket, but the port number comes from the newly created UDP listening socket
@@ -136,11 +135,11 @@ class Socks5Connection(object):
 
             logger.info("Accepting UDP ASSOCIATE request, direct client to %s:%d", ip, port)
 
-            response = Socks5.structs.encode_reply(0x05, 0x00, 0x00, Socks5.structs.ADDRESS_TYPE_IPV4, ip, port)
+            response = structs.encode_reply(0x05, 0x00, 0x00, structs.ADDRESS_TYPE_IPV4, ip, port)
             self.write(response)
         else:
             # We will deny all other requests (BIND, and INVALID requests);
-            response = Socks5.structs.encode_reply(0x05, Socks5.structs.REP_COMMAND_NOT_SUPPORTED, 0x00, Socks5.structs.ADDRESS_TYPE_IPV4,"0.0.0.0",0)
+            response = structs.encode_reply(0x05, structs.REP_COMMAND_NOT_SUPPORTED, 0x00, structs.ADDRESS_TYPE_IPV4,"0.0.0.0",0)
             self.write(response)
 
         self.state = ConnectionState.PROXY_REQUEST_ACCEPTED

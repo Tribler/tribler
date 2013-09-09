@@ -1,5 +1,5 @@
 import pickle
-from Tribler.AnonTunnel.CommandHandler import CreateCircuitResponse, ListCircuitsResponse, IsOnlineResponse, IsOnlineRequest, ListCircuitsRequest, CreateCircuitRequest, StartRequest, StartResponse, StopRequest
+from Tribler.AnonTunnel.ConnectionHandlers.CommandHandler import CreateCircuitResponse, ListCircuitsResponse, IsOnlineResponse, IsOnlineRequest, ListCircuitsRequest, CreateCircuitRequest, StartRequest, StartResponse, StopRequest
 from Tribler.AnonTunnel.Observable import Observable
 
 __author__ = 'Chris'

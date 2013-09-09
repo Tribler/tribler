@@ -1,17 +1,13 @@
-"""
-Created on 3 jun. 2013
-
-@author: Chris
-"""
-from traceback import print_exc
 import logging
-
-from Socks5Connection import Socks5Connection
-from Tribler.Core.RawServer.SocketHandler import SingleSocket
-from TcpRelayConnection import TcpRelayConnection
-
+from Tribler.AnonTunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
+from Tribler.AnonTunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
 
 logger = logging.getLogger(__name__)
+
+from traceback import print_exc
+from Tribler.Core.RawServer.SocketHandler import SingleSocket
+
+__author__ = 'chris'
 
 
 class TcpConnectionHandler(object):
@@ -82,4 +78,3 @@ class TcpConnectionHandler(object):
     def start_connection(self, dns):
         s = self.server.start_connection(dns)
         return s
-

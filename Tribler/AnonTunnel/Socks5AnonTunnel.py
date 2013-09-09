@@ -6,16 +6,17 @@ Created on 3 jun. 2013
 
 import logging
 import socket
+from Tribler.AnonTunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 
 logger = logging.getLogger(__name__)
 
 from traceback import print_exc
 from threading import Thread, Event
-from Tribler.AnonTunnel.CommandHandler import CommandHandler
 
 from Tribler.Core.RawServer.RawServer import RawServer
-from TcpConnectionHandler import TcpConnectionHandler
-from UdpRelayTunnelHandler import UdpRelayTunnelHandler
+
+from ConnectionHandlers.CommandHandler import CommandHandler
+from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 
 import Socks5.structs
 
