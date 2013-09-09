@@ -4,6 +4,10 @@ from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.payload import Payload
 
+class PingPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, circuit_id):
+            pass
 
 class CreatePayload(Payload):
     class Implementation(Payload.Implementation):
@@ -91,6 +95,21 @@ class ProxyConversion(BinaryConversion):
             , self._encode_break
             , self._decode_break
         )
+
+        self.define_meta_message(
+            chr(7),
+            community.get_meta_message(u"ping")
+            , self._encode_ping
+            , self._decode_ping
+        )
+
+    @staticmethod
+    def _encode_ping(message):
+        return ''
+
+    @staticmethod
+    def _decode_ping(placeholder, offset, data):
+        return offset, placeholder.meta.payload.implement()
 
     @staticmethod
     def _encode_break(message):

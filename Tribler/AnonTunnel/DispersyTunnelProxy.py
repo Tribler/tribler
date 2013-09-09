@@ -1,3 +1,4 @@
+from datetime import date
 import logging
 from Tribler.AnonTunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler
 
@@ -47,6 +48,7 @@ class DispersyTunnelProxy(Observable):
         self.done = False
         self.circuits = {}
 
+        # Hashmap Candidate -> {circuits}
         self.circuit_membership = defaultdict(set)
 
         # Routing tables
@@ -132,11 +134,11 @@ class DispersyTunnelProxy(Observable):
     def on_data(self, event):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
 
-        address = event.message.candidate.sock_addr
+        direct_sender_address = event.message.candidate.sock_addr
         msg = event.message.payload
         assert isinstance(msg, DataPayload.Implementation)
 
-        relay_key = (address, msg.circuit_id)
+        relay_key = (direct_sender_address, msg.circuit_id)
         community = self.community
         assert isinstance(community, ProxyCommunity)
 
@@ -145,7 +147,7 @@ class DispersyTunnelProxy(Observable):
             relay = self.relay_from_to[relay_key]
 
             community.send_data(relay.to_address, msg.circuit_id, msg.destination, msg.data)
-            logger.info("Forwarding DATA packet from %s to %s", address, relay.to_address)
+            logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.to_address)
 
         # If message is meant for us, write it to output
         elif msg.destination in self.local_addresses or msg.destination == ("0.0.0.0", 0):
@@ -155,7 +157,7 @@ class DispersyTunnelProxy(Observable):
         else:
             logger.info("EXIT DATA packet to %s", msg.destination)
 
-            self.get_exit_socket(msg.circuit_id, address).sendto(msg.data, msg.destination)
+            self.get_exit_socket(msg.circuit_id, direct_sender_address).sendto(msg.data, msg.destination)
 
     def get_exit_socket(self, circuit_id, address):
         if not (circuit_id in self._exit_sockets):
