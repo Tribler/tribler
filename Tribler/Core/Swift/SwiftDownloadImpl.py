@@ -39,7 +39,7 @@ from Tribler.Core.DownloadState import *
 from Tribler.Core.Swift.SwiftDownloadRuntimeConfig import SwiftDownloadRuntimeConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
 import shutil
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Main.globals import DownloadStartupConfig
 
 # ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
 # Send PLAY after receiving 2^layer * 1024 bytes
