@@ -6,7 +6,7 @@ from Tribler.dispersy.payload import Payload
 
 class PingPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id):
+        def __init__(self, meta):
             pass
 
 class CreatePayload(Payload):
