@@ -13,24 +13,32 @@ import sys, getopt
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hy", ["yappi"])
+        opts, args = getopt.getopt(argv, "hy", ["yappi", "cmd=", "socks5="])
     except getopt.GetoptError:
         print 'Main.py [--yappi]'
         sys.exit(2)
 
     profile = False
 
+    cmd_port = 1081
+    socks5_port = 1080
+
     for opt, arg in opts:
         if opt == '-h':
-            print 'Main.py [--yappi]'
+            print 'Main.py [--yappi] [--socks5 <port>] [--cmd <port>]'
             sys.exit()
         elif opt in( "-y", "--yappi"):
             profile = True
+        elif opt == '--cmd':
+            cmd_port = int(arg)
+        elif opt == '--socks5':
+            socks5_port = int(arg)
 
     if profile:
         yappi.start()
 
-    anonTunnel = AnonTunnel()
+    anonTunnel = AnonTunnel(socks5_port, cmd_port)
+
     anonTunnel.start()
 
     while 1:

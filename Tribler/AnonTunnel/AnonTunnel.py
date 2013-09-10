@@ -1,3 +1,5 @@
+from Tribler.AnonTunnel.ConnectionHandlers.CommandHandler import CommandHandler
+
 __author__ = 'chris'
 
 import logging.config
@@ -12,11 +14,14 @@ from Tribler.dispersy.endpoint import StandaloneEndpoint
 
 
 class AnonTunnel:
-    def __init__(self):
+    def __init__(self, socks5_port, cmd_port):
         self.callback = Callback()
         self.endpoint = StandaloneEndpoint(10000)
         self.dispersy = Dispersy(self.callback, self. endpoint, u".", u":memory:")
-        self.socket_server = Socks5AnonTunnelServer(1080)
+        self.socket_server = Socks5AnonTunnelServer(socks5_port)
+
+        self.command_handler = CommandHandler(self)
+        self.command_handler.attach_to(self.socket_server, cmd_port)
 
         self.community = None
         self.tunnel = None

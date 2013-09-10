@@ -50,14 +50,14 @@ class Socks5AnonTunnelServer(Thread):
                                     timeout / 5.0,
                                     timeout,
                                     ipv6_enable=False,
-                                    failfunc=lambda: print_exc(),
-                                    errorfunc=lambda: print_exc())
+                                    failfunc=lambda (e): print_exc(),
+                                    errorfunc=lambda (e): print_exc())
 
         try:
             port = self.raw_server.find_and_bind(self.Socks5_port,self.Socks5_port,self.Socks5_port+10, ['0.0.0.0'], reuse=True)
             logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
         except socket.error:
-            logger.error("Cannot listen on SOCK5 port 1080, perhaps another instance is running?")
+            logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0", Socks5_port)
 
 
 

@@ -1,3 +1,4 @@
+import os
 
 __author__ = 'Chris'
 
@@ -107,14 +108,17 @@ class CommandHandler(object):
         self.socket.sendto(pickle.dumps(response), source_address)
 
     def on_start_request(self, source_address, request):
+        logger.error("Got START packet from %s:%d" % (source_address[0], source_address[1]))
         self.anon_tunnel.start()
 
     def on_stop_request(self, source_address, request):
+        logger.error("Got STOP packet from %s:%d" % (source_address[0], source_address[1]))
         self.anon_tunnel.stop()
+        os._exit(0) # TODO: very ugly but gets the job done for now
 
     def attach_to(self, server, port=1081):
         try:
-            self.socket = server.create_udpsocket(port, "127.0.0.1")
+            self.socket = server.raw_server.create_udpsocket(port, "127.0.0.1")
             server.start_listening_udp(self.socket, self)
 
             logger.info("Listening on CMD socket on port %d" % port)
