@@ -1544,7 +1544,7 @@ class ChannelManager:
         return self.channelcast_db.getSubscribersCount(channel.id)
 
     def _applyFF(self, hits):
-        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
+        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()] + ['other']
         enabled_category_ids = set()
         for key, id in self.torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:

@@ -37,6 +37,8 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY, forceAndReturnWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
+                                             TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 
 try:
     import wxversion
@@ -202,18 +204,6 @@ class MainFrame(wx.Frame):
             self.splitter_bottom_window.SetForegroundColour(self.GetForegroundColour())
             self.splitter_bottom_window.OnChange = lambda: self.splitter_bottom.Layout()
             self.splitter_bottom_window.parent_list = self.splitter_bottom_window
-            self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
-            self.splitter_bottom_window.SetSizer(self.splitter_bottom)
-            self.splitter.SetSashGravity(0.8)
-            self.splitter.SplitHorizontally(self.splitter_top_window, self.splitter_bottom_window, sashpos)
-            self.splitter.Show(False)
-            # Reset the sash position after the splitter has been made visible
-
-            def OnShowSplitter(event):
-                wx.CallAfter(self.splitter.SetSashPosition, sashpos)
-                self.splitter.Unbind(wx.EVT_SHOW)
-                event.Skip()
-            self.splitter.Bind(wx.EVT_SHOW, OnShowSplitter)
 
             self.searchlist = SearchList(self.splitter_top_window)
             self.searchlist.Show(False)
@@ -225,6 +215,49 @@ class MainFrame(wx.Frame):
             self.selectedchannellist.Show(False)
             self.playlist = Playlist(self.splitter_top_window)
             self.playlist.Show(False)
+
+            # Populate the bottom window
+            self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
+            self.torrentdetailspanel = TorrentDetails(self.splitter_bottom_window)
+            self.torrentdetailspanel.Show(False)
+            self.librarydetailspanel = LibraryDetails(self.splitter_bottom_window)
+            self.librarydetailspanel.Show(False)
+            self.channeldetailspanel = ChannelDetails(self.splitter_bottom_window)
+            self.channeldetailspanel.Show(False)
+            self.playlistdetailspanel = PlaylistDetails(self.splitter_bottom_window)
+            self.playlistdetailspanel.Show(False)
+            self.searchinfopanel = SearchInfoPanel(self.splitter_bottom_window)
+            self.searchinfopanel.Show(False)
+            self.channelinfopanel = ChannelInfoPanel(self.splitter_bottom_window)
+            self.channelinfopanel.Show(False)
+            self.libraryinfopanel = LibraryInfoPanel(self.splitter_bottom_window)
+            self.libraryinfopanel.Show(False)
+            self.playlistinfopanel = PlaylistInfoPanel(self.splitter_bottom_window)
+            self.playlistinfopanel.Show(False)
+            self.selectedchannelinfopanel = SelectedchannelInfoPanel(self.splitter_bottom_window)
+            self.selectedchannelinfopanel.Show(False)
+            self.splitter_bottom.Add(self.torrentdetailspanel, 1, wx.EXPAND)
+            self.splitter_bottom.Add(self.librarydetailspanel, 1, wx.EXPAND)
+            self.splitter_bottom.Add(self.channeldetailspanel, 1, wx.EXPAND)
+            self.splitter_bottom.Add(self.playlistdetailspanel, 1, wx.EXPAND)
+            self.splitter_bottom.Add(self.searchinfopanel, 1, wx.EXPAND)
+            self.splitter_bottom.Add(self.channelinfopanel, 1, wx.EXPAND)
+            self.splitter_bottom.Add(self.libraryinfopanel, 1, wx.EXPAND)
+            self.splitter_bottom.Add(self.playlistinfopanel, 1, wx.EXPAND)
+            self.splitter_bottom.Add(self.selectedchannelinfopanel, 1, wx.EXPAND)
+            self.splitter_bottom_window.SetSizer(self.splitter_bottom)
+
+            self.splitter.SetSashGravity(0.8)
+            self.splitter.SplitHorizontally(self.splitter_top_window, self.splitter_bottom_window, sashpos)
+            self.splitter.Show(False)
+
+            # Reset the sash position after the splitter has been made visible
+            def OnShowSplitter(event):
+                wx.CallAfter(self.splitter.SetSashPosition, sashpos)
+                self.splitter.Unbind(wx.EVT_SHOW)
+                event.Skip()
+            self.splitter.Bind(wx.EVT_SHOW, OnShowSplitter)
+
         else:
             self.actlist = None
             self.top_bg = None
@@ -1187,15 +1220,15 @@ class MainFrame(wx.Frame):
         else:
             print >> sys.stderr, "mainframe: got app from wx"
             app = wx.GetApp()
-            
+
         print >> sys.stderr, "mainframe: looping through toplevelwindows"
         for item in wx.GetTopLevelWindows():
-            if item != self: 
+            if item != self:
                 if isinstance(item, wx.Dialog):
-                    print >> sys.stderr, "mainframe: destroying", item 
-                    item.Destroy() 
+                    print >> sys.stderr, "mainframe: destroying", item
+                    item.Destroy()
                 item.Close()
-        print >> sys.stderr, "mainframe: destroying", self 
+        print >> sys.stderr, "mainframe: destroying", self
         self.Destroy()
 
         if app:

@@ -5,11 +5,11 @@ from datetime import date
 from time import time
 from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
-from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS,\
+from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS, \
     CHANNEL_REQ_COLUMNS
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
-    DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING,\
-    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,\
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, \
+    DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING, \
+    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
@@ -89,7 +89,7 @@ class Helper(object):
         return key in self.__slots__
 
     def __eq__(self, other):
-        if other:
+        if other and hasattr(self, 'id') and hasattr(other, 'id'):
             return self.id == other.id
         return False
 
@@ -139,7 +139,7 @@ class MergedDs:
     def get_num_seeds_peers(self):
         seeds, peers = self.dslist[0].get_num_seeds_peers()
         s_seeds, s_peers = self.dslist[1].get_num_seeds_peers()
-        return seeds + s_seeds, peers +s_peers
+        return seeds + s_seeds, peers + s_peers
 
     def get_peerlist(self):
         return self.dslist[0].get_peerlist() + self.dslist[1].get_peerlist()
@@ -343,7 +343,7 @@ class Torrent(Helper):
 class RemoteTorrent(Torrent):
     __slots__ = ()
 
-    def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, length=0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, query_candidates = set()):
+    def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, length=0, category_id=None, status_id=None, num_seeders=0, num_leechers=0, query_candidates=set()):
         Torrent.__init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, False, length, category_id, status_id, num_seeders, num_leechers, channel=False)
         self.query_candidates = query_candidates
 
@@ -504,7 +504,7 @@ class ChannelTorrent(Torrent):
 class RemoteChannelTorrent(ChannelTorrent):
     __slots__ = ()
 
-    def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, length=0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, channel = False, query_candidates = set()):
+    def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, length=0, category_id=None, status_id=None, num_seeders=0, num_leechers=0, channel=False, query_candidates=set()):
         ChannelTorrent.__init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, False, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', None, None, channel, None)
         self.query_candidates = query_candidates
 
@@ -595,7 +595,7 @@ class Channel(Helper):
         if not self.popular_torrents or force_refresh:
             from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
-            results = ChannelManager.getInstance().getMostPopularTorrentsFromChannel(self.id, ['Torrent.Name'], family_filter=GUIUtility.getInstance().getFamilyFilter(), limit= num_torrents)
+            results = ChannelManager.getInstance().getMostPopularTorrentsFromChannel(self.id, ['Torrent.Name'], family_filter=GUIUtility.getInstance().getFamilyFilter(), limit=num_torrents)
             self.popular_torrents = [result[0] for result in results]
 
     def __eq__(self, other):
@@ -704,7 +704,7 @@ class Playlist(Helper):
         _, _, torrents = searchManager.getTorrentsFromPlaylist(self, limit=3)
         names = [torrent.name for torrent in torrents]
         if len(names) > 0:
-            return "Contents: '" + "'    '".join(names) +"'"
+            return "Contents: '" + "'    '".join(names) + "'"
         elif self.channel.isOpen():
             return 'This playlist is currently empty, drag and drop any .torrent to add it to this playlist.'
         elif self.channel.isMyChannel():

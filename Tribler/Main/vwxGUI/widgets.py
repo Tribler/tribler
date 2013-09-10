@@ -168,6 +168,9 @@ class MaxBetterText(wx.BoxSizer):
         if sys.platform == 'win32':  # lets do manual word wrapping
             self.label.Bind(wx.EVT_SIZE, self.OnSize)
 
+    def Show(self, show):
+        self.ShowItems(show)
+
     def SetLabel(self, label):
         if self.fullLabel != label:
             self.fullLabel = label
@@ -187,6 +190,9 @@ class MaxBetterText(wx.BoxSizer):
                     self.expand.SetLabel("See more >>")
             else:
                 self.hasMore = False
+
+    def GetLabel(self):
+        return self.fullLabel
 
     def OnFull(self, event):
         if not self.IsExpanded():
@@ -381,6 +387,11 @@ class LinkStaticText(wx.BoxSizer):
             self.icon.Show(show)
         if self.text:
             self.text.Show(show)
+
+    def IsShown(self):
+        if self.text:
+            return self.text.IsShown()
+        return False
 
     def ShowIcon(self, show=True):
         if self.icon and self.icon.IsShown() != show:
@@ -1726,6 +1737,8 @@ class SimpleNotebook(wx.Panel):
         self.panels = []
         self.pshown = 0
         self.lspace = 10
+        self.messagePanel = None
+        self.message_on_pages = []
         self.hSizer_labels = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizer_panels = wx.BoxSizer(wx.HORIZONTAL)
         self.tab_colours = {}
@@ -1791,10 +1804,10 @@ class SimpleNotebook(wx.Panel):
         self.tab_panel.Refresh()
 
     def RemovePage(self, index):
-        page = self.labels.pop(index)
-        page.Show(False)
-        label = self.panels.pop(index)
+        label = self.labels.pop(index)
         label.Show(False)
+        page = self.panels.pop(index)
+        page.Show(False)
         self.hSizer_labels.Remove(index)
         self.hSizer_panels.Remove(index)
 
@@ -1806,6 +1819,20 @@ class SimpleNotebook(wx.Panel):
             self.tab_panel.SetMinSize((-1, 25 if show_tab_panel else 1))
             self.hSizer_labels.ShowItems(show_tab_panel)
         self.Layout()
+
+    def ShowPage(self, index, show):
+        is_selected = self.GetSelection() == index
+
+        label = self.labels[index]
+        label.Show(show)
+
+        if not show and is_selected:
+            self.SetSelection(index - 1 if index > 0 else 0)
+
+        self.hSizer_labels.Layout()
+        self.hSizer_panels.Layout()
+        self.Layout()
+        self.Refresh()
 
     def GetPageText(self, num_page):
         if num_page >= 0 and num_page < self.GetPageCount():
@@ -1823,23 +1850,38 @@ class SimpleNotebook(wx.Panel):
     def GetCurrentPage(self):
         return self.GetPage(self.GetSelection())
 
+    def GetIndexFromText(self, text):
+        result = None
+        for i in range(self.GetPageCount()):
+            if self.GetPageText(i) == text:
+                result = i
+                break
+        return result
+
     def SetSelection(self, num_page):
         if not (num_page >= 0 and num_page < self.GetPageCount()) or self.pshown == num_page:
             return
 
         old_page = self.GetCurrentPage()
         if old_page:
-            old_page.Show(False)
+            if self.GetSelection() in self.message_on_pages:
+                self.messagePanel.Show(False)
+            else:
+                old_page.Show(False)
             old_label = self.labels[self.pshown]
             old_label.SetForegroundColour(self.tab_panel.GetForegroundColour())
             old_label.SetBackgroundColour(self.tab_panel.GetBackgroundColour())
 
         new_page = self.panels[num_page]
-        new_page.Show(True)
+        if num_page in self.message_on_pages:
+            self.messagePanel.Show(True)
+        else:
+            new_page.Show(True)
         new_label = self.labels[num_page]
         new_label.SetForegroundColour(TRIBLER_RED)
         new_label.SetBackgroundColour(self.tab_colours.get(num_page, new_page.GetBackgroundColour()))
         self.Layout()
+        new_page.Layout()
 
         event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, self.GetSelection())
         event.SetEventObject(self)
@@ -1854,6 +1896,39 @@ class SimpleNotebook(wx.Panel):
 
     def CalcSizeFromPage(self, *args):
         return GUIUtility.getInstance().frame.splitter_bottom_window.GetSize()
+
+    def SetMessagePanel(self, panel):
+        if self.messagePanel:
+            self.messagePanel.Show(False)
+            self.hSizer_panels.Detach(self.messagePanel)
+        self.messagePanel = panel
+        self.hSizer_panels.Add(self.messagePanel, 100, wx.EXPAND)
+        self.messagePanel.Show(self.GetSelection() in self.message_on_pages)
+        self.hSizer_labels.Layout()
+        self.hSizer_panels.Layout()
+        self.Layout()
+        self.Refresh()
+
+    def ShowMessageOnPage(self, index, show_message):
+        is_selected = self.GetSelection() == index
+
+        panel = self.panels[index]
+        panel.Show(not show_message and is_selected)
+
+        if show_message and is_selected:
+            self.messagePanel.Show(True)
+        elif not show_message and is_selected:
+            self.messagePanel.Show(False)
+
+        if show_message and index not in self.message_on_pages:
+            self.message_on_pages.append(index)
+        elif not show_message and index in self.message_on_pages:
+            self.message_on_pages.remove(index)
+
+        self.hSizer_labels.Layout()
+        self.hSizer_panels.Layout()
+        self.Layout()
+        self.Refresh()
 
     def GetThemeBackgroundColour(self):
         return self.GetBackgroundColour()
@@ -1879,19 +1954,21 @@ class SimpleNotebook(wx.Panel):
 
         # Calculate separator positions
         separator_positions = []
-        for i in range(0, len(self.labels) - 1):
-            l1, l2 = self.labels[i:i + 2]
+        visible_labels = [label for label in self.labels if label.IsShown()]
+        for i in range(0, len(visible_labels) - 1):
+            l1, l2 = visible_labels[i:i + 2]
             x1, x2 = l1.GetPosition().x + l1.GetSize().x, l2.GetPosition().x
             x_avg = (x1 + x2) / 2
             separator_positions.append(x_avg)
-        if self.labels:
+        if visible_labels:
             l = self.labels[-1]
             separator_positions.append(l.GetPosition().x + l.GetSize().x + self.lspace)
 
         # Draw tab highlighting
         selected_tab = self.GetSelection()
-        x1 = separator_positions[selected_tab]
-        x2 = separator_positions[selected_tab - 1] if selected_tab > 0 else 0
+        selected_sep = selected_tab - sum([1 for index, label in enumerate(self.labels) if not label.IsShown() and index < selected_tab])
+        x1 = separator_positions[selected_sep]
+        x2 = separator_positions[selected_sep - 1] if selected_sep > 0 else 0
         tab_colour = self.tab_colours.get(selected_tab, self.panels[selected_tab].GetBackgroundColour())
         dc.SetBrush(wx.Brush(tab_colour))
         dc.SetPen(wx.TRANSPARENT_PEN)
@@ -1903,7 +1980,7 @@ class SimpleNotebook(wx.Panel):
 
         # Draw separators between labels
         for i, x in enumerate(separator_positions):
-            if i == selected_tab or i == selected_tab - 1:
+            if i == selected_sep or i == selected_sep - 1:
                 dc.DrawLine(x, 0, x, height)
             else:
                 dc.DrawLine(x, self.lspace / 2, x, height - self.lspace / 2)
@@ -2206,6 +2283,7 @@ class StaticBitmaps(wx.Panel):
 
     def __init__(self, *args, **kwargs):
         wx.Panel.__init__(self, *args, **kwargs)
+        self.bitmaps_index = 0
         self.SetPositions()
         self.Reset()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -2248,9 +2326,10 @@ class StaticBitmaps(wx.Panel):
 
     def SetBitmaps(self, bitmaps):
         if isinstance(bitmaps, list) and bitmaps:
-            self.bitmaps_index = 0
+            if self.bitmaps_index > len(self.bitmaps):
+                self.bitmaps_index = 0
             self.bitmaps = bitmaps
-            self.bitmap = bitmaps[0]
+            self.bitmap = bitmaps[self.bitmaps_index]
             self.SetSize(self.bitmap.GetSize())
             self.SetPositions()
         else:
