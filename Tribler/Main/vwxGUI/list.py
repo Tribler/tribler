@@ -2224,9 +2224,7 @@ class ActivitiesList(List):
 
     def _PostInit(self):
         self.list = self.CreateList(self.parent)
-        listSizer = wx.BoxSizer(wx.HORIZONTAL)
-        listSizer.Add(self.list, 1, wx.EXPAND)
-        self.Add(listSizer, 0, wx.EXPAND)
+        self.Add(self.list, 0, wx.EXPAND)
 
         self.notifyPanel = FancyPanel(self.parent, radius=5, border=wx.ALL)
         self.notifyPanel.SetBorderColour(SEPARATOR_GREY)
@@ -2243,11 +2241,11 @@ class ActivitiesList(List):
         self.notifyPanel.Hide()
 
         self.AddStretchSpacer()
-        self.Add(self.notifyPanel, 0, wx.EXPAND | wx.ALIGN_BOTTOM | wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+        self.Add(self.notifyPanel, 0, wx.EXPAND | wx.ALIGN_BOTTOM | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
         self.SetBackgroundColour(self.background)
         self.Layout()
-        self.list.Bind(wx.EVT_SIZE, self.OnSize)
+        self.guiutility.frame.Bind(wx.EVT_SIZE, self.OnSize)
         _set_font(self.list, size_increment=2)
         wx.CallAfter(self.__SetData)
 
@@ -2263,6 +2261,11 @@ class ActivitiesList(List):
 
     def do_or_schedule_refresh(self, force_refresh=False):
         pass
+
+    def OnSize(self, event):
+        if self.expandedPanel_videoplayer:
+            self.expandedPanel_videoplayer.OnChange()
+        event.Skip()
 
     def GotFilter(self, filter):
         pass
@@ -2365,17 +2368,17 @@ class ActivitiesList(List):
         else:
             self.notifyIcon.Hide()
 
+        self.notifyPanel.Show()
         self.notifyPanel.Layout()
+        self.Layout()
         cdc = wx.ClientDC(self.notify)
         cdc.SetFont(self.notify.GetFont())
         wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], cdc, breakLongWords=True, margin=0)
         self.notify.SetLabel(wrapped_msg)
         self.notify.SetSize(self.notify.GetBestSize())
-
-        self.Freeze()
-        self.notifyPanel.Show()
-        # NotifyLabel size changed, thus call Layout
+        # NotifyLabel size changed, thus call Layout again
         self.Layout()
+        self.Freeze()
         self.Thaw()
 
         self.notifyTimer = wx.CallLater(5000, self.HideNotify)
@@ -2384,8 +2387,11 @@ class ActivitiesList(List):
         if self.notifyPanel.GetScreenRect().Contains(wx.GetMousePosition()):
             self.notifyTimer = wx.CallLater(1000, self.HideNotify)
         else:
+            def DoHide():
+                self.notifyPanel.Hide()
+                self.Layout()
             self.notifyTimer = None
-            wx.CallLater(500, self.notifyPanel.Hide)
+            wx.CallLater(500, DoHide)
 
     def selectTab(self, tab):
         itemKey = 0

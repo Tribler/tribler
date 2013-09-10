@@ -2374,10 +2374,10 @@ class ChannelsExpandedPanel(wx.Panel):
         self.SetTextHighlight()
 
 
-class VideoplayerExpandedPanel(wx.Panel):
+class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     def __init__(self, parent):
-        wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, style=wx.NO_BORDER)
         self.guiutility = GUIUtility.getInstance()
         self.videoplayer = VideoPlayer.getInstance()
         self.library_manager = self.guiutility.library_manager
@@ -2404,11 +2404,12 @@ class VideoplayerExpandedPanel(wx.Panel):
                 if i != len(text):
                     newText += ".."
                 width, _ = linktext.GetTextExtent(newText)
-                if width <= 150:
+                if width <= 140:
                     return newText
             return ""
 
         self.links = {}
+        self.virtual_height = 0
         for torrent, fileindex in self.videoplayer.get_playlist():
             filename = torrent.files[fileindex][0]
             link = LinkStaticText(self, filename, icon=None, font_colour=self.GetForegroundColour())
@@ -2423,6 +2424,21 @@ class VideoplayerExpandedPanel(wx.Panel):
             link.kv_pair = (torrent, fileindex)
             self.links[(torrent, fileindex)] = link
             self.vSizer.Add(link, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+            self.virtual_height += link.text.GetSize()[1]
+
+        self.OnChange()
+        self.GetParent().parent_list.parent_list.Layout()
+
+    def OnChange(self):
+        self.Freeze()
+
+        max_height = self.guiutility.frame.actlist.GetSize().y - self.GetParent().GetPosition()[1] * 1.25 - 4
+        best_height = min(max_height, self.virtual_height)
+        self.SetMinSize((-1, best_height))
+        self.GetParent().parent_list.Layout()
+        self.SetupScrolling(scroll_x=False, scroll_y=True)
+
+        self.Thaw()
 
     def UpdateComponents(self):
         self.Freeze()
