@@ -1,20 +1,14 @@
-import os
 import logging.config
-import threading
-import yappi
-from Tribler.AnonTunnel.ProxyCommunity import ProxyCommunity
-from Tribler.dispersy.callback import Callback
-from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import StandaloneEndpoint
-
+import os
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
 
-from DispersyTunnelProxy import DispersyTunnelProxy
-from Socks5AnonTunnel import Socks5AnonTunnel
+import threading
+import yappi
+from Tribler.AnonTunnel.AnonTunnel import AnonTunnel
+
 
 import sys, getopt
-
 
 
 def main(argv):
@@ -36,33 +30,15 @@ def main(argv):
     if profile:
         yappi.start()
 
-    callback = Callback()
-    endpoint = StandaloneEndpoint(10000)
-    dispersy = Dispersy(callback, endpoint, u".", u":memory:")
-    dispersy.start()
-    logger.info("Dispersy is listening on port %d" % dispersy.lan_address[1])
-
-    def join_overlay(dispersy):
-        master_member = dispersy.get_temporary_member_from_id("-PROXY-OVERLAY-HASH-")
-        my_member = dispersy.get_new_member()
-        return ProxyCommunity.join_community(dispersy, master_member, my_member)
-
-    community = dispersy.callback.call(join_overlay,(dispersy,))
-
-    tunnel = DispersyTunnelProxy(community)
-
-    s5tunnel = Socks5AnonTunnel(tunnel, 1080)
-    s5tunnel.start()
-
-    def stop():
-        dispersy.stop()
-        s5tunnel.shutdown()
+    anonTunnel = AnonTunnel()
+    anonTunnel.start()
 
     while 1:
         try:
             line = sys.stdin.readline()
         except KeyboardInterrupt:
-            stop()
+            anonTunnel.stop()
+            break
 
         if not line:
             break
@@ -77,7 +53,7 @@ def main(argv):
                     print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
 
 
-                filename = 'callgrind.yappi'
+                filename = 'callgrind_%d.yappi' % anonTunnel.dispersy.lan_address[1]
                 yappi.get_func_stats().save(filename, type='callgrind')
 
             else:
@@ -90,7 +66,7 @@ def main(argv):
             else:
                 print >> sys.stderr, "Profiling disabled!"
         elif line == 'q\n':
-            stop()
+            anonTunnel.stop()
             break
 
 

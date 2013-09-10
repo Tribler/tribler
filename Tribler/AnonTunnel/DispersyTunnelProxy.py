@@ -1,4 +1,3 @@
-from datetime import date
 import logging
 from Tribler.AnonTunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler
 

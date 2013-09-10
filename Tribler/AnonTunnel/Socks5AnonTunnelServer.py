@@ -5,24 +5,32 @@ Created on 3 jun. 2013
 """
 
 import logging
-import socket
-from Tribler.AnonTunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
-
 logger = logging.getLogger(__name__)
 
+import socket
+from Tribler.AnonTunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 from traceback import print_exc
 from threading import Thread, Event
-
 from Tribler.Core.RawServer.RawServer import RawServer
-
-from ConnectionHandlers.CommandHandler import CommandHandler
 from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 
 import Socks5.structs
 
 
-class Socks5AnonTunnel(Thread):
-    def __init__(self, tunnel, Socks5_port=1080, timeout=10.0):
+class Socks5AnonTunnelServer(Thread):
+
+    @property
+    def tunnel(self):
+        return self._tunnel
+
+    @tunnel.setter
+    def tunnel(self, value):
+        self._tunnel = value
+        self._tunnel.subscribe("on_data", self.on_tunnel_data)
+        self._tunnel.socket_server = self
+
+
+    def __init__(self, Socks5_port=1080, timeout=10.0):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName('Socks5Server' + self.getName())
@@ -35,14 +43,15 @@ class Socks5AnonTunnel(Thread):
 
         self.destination_address = None
 
+        self._tunnel = None
 
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
                                     timeout / 5.0,
                                     timeout,
                                     ipv6_enable=False,
-                                    failfunc=self.raw_server_fatal_error_func,
-                                    errorfunc=self.raw_server_non_fatal_error_func)
+                                    failfunc=lambda: print_exc(),
+                                    errorfunc=lambda: print_exc())
 
         try:
             port = self.raw_server.find_and_bind(self.Socks5_port,self.Socks5_port,self.Socks5_port+10, ['0.0.0.0'], reuse=True)
@@ -50,32 +59,12 @@ class Socks5AnonTunnel(Thread):
         except socket.error:
             logger.error("Cannot listen on SOCK5 port 1080, perhaps another instance is running?")
 
-        self.tunnel = tunnel
-        self.tunnel.subscribe("on_data", self.on_tunnel_data)
-        tunnel.socket_server = self
 
-        try:
-            cmd_socket = self.raw_server.create_udpsocket(1081, "127.0.0.1")
-            self.start_listening_udp(cmd_socket, CommandHandler(cmd_socket, self.tunnel))
 
-            logger.info("Listening on CMD socket on port 1081")
-        except socket.error:
-            logger.error("Cannot listen on CMD socket on port 1081, perhaps another instance is running?")
 
     def shutdown(self):
         self.connection_handler.shutdown()
         self.server_done_flag.set()
-
-    #
-    # Following methods are called by Instance2Instance thread
-    #
-    # noinspection PyUnusedLocal
-    def raw_server_fatal_error_func(self, event):
-        """ Called by network thread """
-        print_exc()
-
-    def raw_server_non_fatal_error_func(self, event):
-        """ Called by network thread """
 
     def run(self):
         try:

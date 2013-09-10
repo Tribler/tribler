@@ -1,5 +1,10 @@
+
 __author__ = 'Chris'
 
+import logging.config
+logger = logging.getLogger(__name__)
+
+import socket
 import pickle
 
 
@@ -54,17 +59,17 @@ class StartResponse:
 
 
 class CommandHandler(object):
-    def __init__(self, socket, dispersy_tunnel):
+    def __init__(self, anon_tunnel):
         """
 
         :param socket: the socket we will use to sent responses over
-        :param dispersy_tunnel: the dispersy tunnel we want to control
+        :param anon_tunnel: the dispersy tunnel we want to control
         :type socket : socket.socket
-        :type dispersy_tunnel : Tribler.AnonTunnel.DispersyTunnelProxy.DispersyTunnelProxy
+        :type anon_tunnel : Tribler.AnonTunnel.AnonTunnel.AnonTunnel
         :return:
         """
-        self.dispersy_tunnel = dispersy_tunnel
-        self.socket = socket
+        self.anon_tunnel = anon_tunnel
+        self.socket = None
 
     def data_came_in(self, packets):
         for packet in packets:
@@ -85,25 +90,33 @@ class CommandHandler(object):
             self.on_create_circuit_request(source_address, request)
 
     def on_ready_request(self, source_address, request):
-        is_online = len(self.dispersy_tunnel.circuits) > 0
+        is_online = len(self.anon_tunnel.tunnel.circuits) > 0
         response = IsOnlineResponse(is_online)
 
         self.socket.sendto(pickle.dumps(response),source_address)
 
     def on_list_circuits_request(self, source_address, request):
-        response = ListCircuitsResponse(self.dispersy_tunnel.circuits)
+        response = ListCircuitsResponse(self.anon_tunnel.tunnel.circuits)
 
         self.socket.sendto(pickle.dumps(response), source_address)
 
     def on_create_circuit_request(self, source_address, request):
-        circuit_id = self.dispersy_tunnel.create_circuit(request.first_hop)
+        circuit_id = self.anon_tunnel.tunnel.create_circuit(request.first_hop)
         response = CreateCircuitResponse(circuit_id)
 
         self.socket.sendto(pickle.dumps(response), source_address)
 
     def on_start_request(self, source_address, request):
-        pass
+        self.anon_tunnel.start()
 
     def on_stop_request(self, source_address, request):
-        # Ugly but it gets the job done
-        exit(1)
+        self.anon_tunnel.stop()
+
+    def attach_to(self, server, port=1081):
+        try:
+            self.socket = server.create_udpsocket(port, "127.0.0.1")
+            server.start_listening_udp(self.socket, self)
+
+            logger.info("Listening on CMD socket on port %d" % port)
+        except socket.error:
+            logger.error("Cannot listen on CMD socket on port %d, perhaps another instance is running?" % port)
