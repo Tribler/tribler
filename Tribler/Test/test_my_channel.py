@@ -107,10 +107,16 @@ class TestMyChannel(TestGuiAsServer):
 
             # switch to playlist tab
             mp_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage playlists")
-            if mp_index:
-                self.managechannel.notebook.SetSelection(mp_index)
+            self.managechannel.notebook.SetSelection(mp_index)
 
             self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, lambda: do_download_torrent(torrentfilename), 'Channel did not have a playlist')
+
+        def do_switch_tab(torrentfilename):
+            # switch to files tab
+            mt_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage torrents")
+            self.managechannel.notebook.SetSelection(mt_index)
+
+            self.CallConditional(120, lambda: len(self.managechannel.fileslist.GetItems()) == 3, lambda: do_create_playlist(torrentfilename), 'Channel did not have 3 torrents')
 
         def do_add_torrent(torrentfilename):
             self.screenshot('Channel is created')
@@ -121,12 +127,7 @@ class TestMyChannel(TestGuiAsServer):
             manager.startDownloadFromUrl(r'http://www.clearbits.net/get/1678-zenith-part-1.torrent', fixtorrent=True)
             manager.startDownloadFromMagnet(r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', fixtorrent=True)
 
-            # switch to files tab
-            mt_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage torrents")
-            if mt_index:
-                self.managechannel.notebook.SetSelection(mt_index)
-
-            self.CallConditional(120, lambda: len(managefiles.GetItems()) == 3, lambda: do_create_playlist(torrentfilename), 'Channel did not have 3 torrents')
+            self.CallConditional(10, lambda: self.managechannel.notebook.GetPageCount() > 1, lambda: do_switch_tab(torrentfilename))
 
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()

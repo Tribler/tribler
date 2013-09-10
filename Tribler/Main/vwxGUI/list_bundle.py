@@ -27,7 +27,7 @@ BUNDLE_NUM_ROWS = 3
 
 class BundleListItem(ListItem):
 
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer= 0, showChange = False, list_selected = LIST_SELECTED):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED):
         # fetch bundle and descriptions
         self.bundle = original_data['bundle']
         self.general_description = original_data.get('bundle_general_description')
@@ -49,7 +49,7 @@ class BundleListItem(ListItem):
     def AddBundlePanel(self, bundled):
         self.bundlepanel = BundlePanel(self, self.parent_list, bundled,
                                        self.general_description, self.description,
-                                       -BUNDLE_FONT_SIZE_DECREMENT)
+                                       - BUNDLE_FONT_SIZE_DECREMENT)
         self.AddEvents(self.bundlepanel)
         self.vSizer.Add(self.bundlepanel, 1, wx.EXPAND)
 
@@ -69,7 +69,7 @@ class BundleListItem(ListItem):
             self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
 
             if DEBUG:
-                print >>sys.stderr, "*** BundleListItem.RefreshData: bundle changed: %s #1+%s" % (original_data['key'], len(bundled))
+                print >> sys.stderr, "*** BundleListItem.RefreshData: bundle changed: %s #1+%s" % (original_data['key'], len(bundled))
         else:
             if infohash == self.original_data.infohash:  # update top row
                 ListItem.RefreshData(self, data)
@@ -87,7 +87,7 @@ class BundleListItem(ListItem):
         ListItem.Expand(self, panel)
 
         self.vSizer.Detach(panel)
-        self.vSizer.Insert(1, panel, 0, wx.EXPAND | wx.LEFT |wx.RIGHT|wx.BOTTOM, 3)
+        self.vSizer.Insert(1, panel, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
 
         self.expanded_panel = panel
         self.expanded_panel_shown = True
@@ -182,7 +182,7 @@ class BundlePanel(wx.BoxSizer):
 
             icons['info'] = wx.Bitmap(os.path.join(base_path, "info.png"), wx.BITMAP_TYPE_ANY)
 
-    def __init__(self, parent, parent_list, hits, general_description=None, description= None, font_increment=0):
+    def __init__(self, parent, parent_list, hits, general_description=None, description=None, font_increment=0):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
 
         # preload icons
@@ -247,7 +247,7 @@ class BundlePanel(wx.BoxSizer):
 
         for j in xrange(self.num_cols):
             self.grid.AddGrowableCol(j, 1)
-        self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT |wx.RIGHT, 14 + self.indent)
+        self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 14 + self.indent)
 
     def RebuildGrid(self, new_cols):
         if self.num_cols != new_cols:
@@ -271,7 +271,7 @@ class BundlePanel(wx.BoxSizer):
             for j in xrange(self.num_cols):
                 self.grid.AddGrowableCol(j, 1)
 
-            self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT |wx.RIGHT, 14 + self.indent)
+            self.vsizer.Add(self.grid, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 14 + self.indent)
 
             self.Layout()
             self.parent_listitem.Layout()
@@ -304,7 +304,7 @@ class BundlePanel(wx.BoxSizer):
 
             if self.nrhits > N:
                 more_caption = '(%s more...)' % (self.nrhits - N + 1)
-                link_static_text = children[i + 1].GetWindow() or children[i +1].GetSizer()
+                link_static_text = children[i + 1].GetWindow() or children[i + 1].GetSizer()
                 if link_static_text and getattr(link_static_text, 'SetLabel', False):
                     link_static_text.SetLabel(more_caption)
                     link_static_text.Unbind(wx.EVT_LEFT_UP)
@@ -325,7 +325,7 @@ class BundlePanel(wx.BoxSizer):
             for i in range(items_to_add):
                 hit = hits[i]
 
-                new_text = LinkStaticText(self.parent, hit.name, icon=False, icon_align= wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+                new_text = LinkStaticText(self.parent, hit.name, icon=False, icon_align=wx.ALIGN_LEFT, font_increment=self.font_increment, font_colour=BUNDLE_FONT_COLOR)
                 new_text.Bind(wx.EVT_LEFT_UP, self.OnBundleLinkClick)
                 new_text.SetMinSize((1, -1))
                 new_text.action = hit
@@ -334,7 +334,7 @@ class BundlePanel(wx.BoxSizer):
             if self.nrhits > N:
                 caption = '(%s more...)' % (self.nrhits - N + 1)
 
-                more_label = LinkStaticText(self.parent, caption, icon=False, icon_align= wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+                more_label = LinkStaticText(self.parent, caption, icon=False, icon_align=wx.ALIGN_LEFT, font_increment=self.font_increment, font_colour=BUNDLE_FONT_COLOR)
                 more_label.Bind(wx.EVT_LEFT_UP, self.OnMoreClick)
                 self.grid.Add(more_label, 0, wx.EXPAND)
 
@@ -376,8 +376,8 @@ class BundlePanel(wx.BoxSizer):
             if len(self.hits) != BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS:
                 max_list -= 1
 
-            self.bundlelist = BundleListView(parent=self.parent, list_item_max= max_list)
-            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND | wx.BOTTOM, self.indent - 7) #a 7px spacer is already present
+            self.bundlelist = BundleListView(parent=self.parent, list_item_max=max_list)
+            self.vsizer.Add(self.bundlelist, 0, wx.EXPAND | wx.BOTTOM, self.indent - 7)  # a 7px spacer is already present
 
             # SetData does wx.Yield, which could cause a collapse event to be processed within the setdata
             # method. Thus we have to do this after the add to the sizer
@@ -436,7 +436,7 @@ class BundlePanel(wx.BoxSizer):
 
             if DEBUG:
                 statestr = lambda st: ['COLLAPSED', 'PARTIAL', 'FULL'][st]
-                print >>sys.stderr, '*** BundlePanel.ChangeState: %s --> %s' % (statestr(old_state), statestr(new_state))
+                print >> sys.stderr, '*** BundlePanel.ChangeState: %s --> %s' % (statestr(old_state), statestr(new_state))
 
     def ExpandHit(self, hit):
         id = hit.infohash
@@ -465,9 +465,9 @@ class BundlePanel(wx.BoxSizer):
             event.GetEventObject().SetBackgroundColour(LIST_HIGHTLIGHT)
             for item in self.parent_listitem.bundle:
                 if action.infohash == item.infohash:
-                    td = TorrentDetails(self.guiutility.frame.splitter_bottom_window, item)
-                    item.expandedPanel = td
-                    self.guiutility.SetBottomSplitterWindow(td)
+                    detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
+                    detailspanel.setTorrent(item.original_data)
+                    item.expandedPanel = detailspanel
 
         def db_callback():
             self.uelog.addEvent(message="Bundler GUI: BundleLink click; %s; %s;" %
@@ -516,7 +516,7 @@ class BundlePanel(wx.BoxSizer):
 
 class BundleListView(GenericSearchList):
 
-    def __init__(self, parent=None, list_item_max= None):
+    def __init__(self, parent=None, list_item_max=None):
         self.list_item_max = list_item_max
         columns = [{'name': 'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'},
                    {'name': 'Size', 'width': '9em', 'style': wx.ALIGN_RIGHT, 'fmt': format_size},
