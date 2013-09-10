@@ -2,18 +2,21 @@
 import wx
 import sys
 import json
+import shutil
+import urllib
+from datetime import timedelta
+
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, _set_font, TagText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
-from list_body import *
-from list_details import *
-from _abcoll import Iterable
-from datetime import timedelta
-import urllib
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
 from Tribler import LIBRARYNAME
+
+from Tribler.Main.vwxGUI.list_body import *
+from Tribler.Main.vwxGUI.list_details import *
 
 
 class ColumnsManager:
@@ -499,7 +502,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         magnetlinks = ''
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            magnetlink = "magnet:?xt=urn:btih:" + hexlify(torrent.infohash)
+            magnetlink = "magnet:?xt=urn:btih:" + binascii.hexlify(torrent.infohash)
             trackers = self.guiutility.channelsearch_manager.torrent_db.getTracker(torrent.infohash)
             if trackers:
                 for tracker, _ in trackers:
@@ -525,7 +528,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         if added:
             UserEventLogDBHandler.getInstance().addEvent(message="MyChannel: %d manual add(s) from library" % len(added), type=2)
 
-            #remote channel link to force reload
+            # remote channel link to force reload
             for torrent in added:
                 del torrent.channel
                 torrent.channel
@@ -755,9 +758,11 @@ class ChannelListItem(DoubleLineListItemWithButtons):
 
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows=True)
-        if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list_header.BaseFilter):
+        from Tribler.Main.vwxGUI.list import GenericSearchList
+        from Tribler.Main.vwxGUI.list_header import BaseFilter
+        if not isinstance(self.parent_list.parent_list, BaseFilter):
             self.AddButton("Visit channel", lambda evt: self.guiutility.showChannel(self.original_data))
-        if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
+        if not isinstance(self.parent_list.parent_list, GenericSearchList):
             if self.original_data.my_vote == 2:
                 self.AddButton("Remove Favorite", lambda evt, data=self.original_data: self.guiutility.RemoveFavorite(evt, data))
             elif not self.original_data.isMyChannel():
@@ -1116,7 +1121,7 @@ class ModificationActivityItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + hexlify(modification.torrent.infohash))
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
                 for single_thumb in os.listdir(thumb_dir)[:4]:
@@ -1166,7 +1171,7 @@ class ModificationItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + hexlify(modification.torrent.infohash))
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
                 for single_thumb in os.listdir(thumb_dir)[:4]:
