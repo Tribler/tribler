@@ -32,7 +32,7 @@ class Socks5AnonTunnelServer(Thread):
 
     def __init__(self, Socks5_port=1080, timeout=10.0):
         Thread.__init__(self)
-        self.setDaemon(True)
+        self.setDaemon(False)
         self.setName('Socks5Server' + self.getName())
         self.Socks5_port = Socks5_port
 
