@@ -2182,7 +2182,6 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             filename = torrent.files[fileindex][0]
             link = LinkStaticText(self, filename, icon=None, font_colour=self.GetForegroundColour())
             link.SetLabel(DetermineText(link.text, filename))
-            link.Bind(wx.EVT_LEFT_UP, lambda evt, t=torrent, f=filename: self.library_manager.playTorrent(t, f))
             link.Bind(wx.EVT_MOUSE_EVENTS, self.OnLinkStaticTextMouseEvent)
             link.SetToolTipString(filename)
             link_close = wx.StaticBitmap(self, -1, self.close_icon)
@@ -2224,19 +2223,22 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         if event.LeftDown():
             self.dragging = link
         elif event.LeftUp():
-            source = self.dragging
             destination = None
+            source = self.dragging
             self.dragging = None
             for l in self.links.values():
                 if l.text.GetScreenRect().Contains(wx.GetMousePosition()):
                     destination = l
 
-            if source and destination:
+            if source and destination and source != destination:
                 index = self.videoplayer.get_playlist().index(destination.kv_pair)
                 self.videoplayer.remove_from_playlist(*source.kv_pair)
                 self.videoplayer.add_to_playlist(source.kv_pair[0], source.kv_pair[1], index)
                 self.UpdateComponents()
                 return
+            else:
+                torrent, fileindex = link.kv_pair
+                self.library_manager.playTorrent(torrent, torrent.files[fileindex][0])
 
         for link in self.links.values():
             mousepos = wx.GetMousePosition()
