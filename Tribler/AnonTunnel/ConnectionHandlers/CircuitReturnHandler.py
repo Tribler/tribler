@@ -1,6 +1,3 @@
-from Tribler.AnonTunnel.Observable import Event
-from Tribler.AnonTunnel.ProxyConversion import DataPayload
-
 __author__ = 'Chris'
 
 import logging

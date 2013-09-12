@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import logging
 from traceback import print_exc
-from Tribler.AnonTunnel.ProxyConversion import BreakPayload, PingPayload
+from Tribler.AnonTunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload
 import sys
 
 logger = logging.getLogger(__name__)
@@ -36,20 +36,20 @@ class ProxyCommunity(Community, Observable):
         self.member_heartbeat = defaultdict(lambda: datetime.min)
         self.member_ping = defaultdict(lambda: datetime.min)
 
-        self.subscribe("on_ping", lambda (event): logger.info("Got ping from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
+        self.subscribe("on_pong", lambda (event): logger.info("Got PONG from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
 
         def ping_and_purge():
             try:
                 while True:
                     timeout = 2.0
 
-                    # Candidates we have sent a ping in the last timout seconds and havent returned a heat beat in another timeout seconds shall be purged
+                    # Candidates we have sent a ping in the last timout seconds and haven't returned a heat beat
+                    # in 2*timeout seconds shall be purged
                     candidates_to_be_purged = \
                         {
                             candidate
                             for candidate in self.member_ping.keys()
-                            if self.member_ping[candidate] < datetime.now() - timedelta(seconds=timeout)
-                            and self.member_heartbeat[candidate] < self.member_ping[candidate] - timedelta(seconds=timeout)
+                            if self.member_heartbeat[candidate] < datetime.now() - 2*timedelta(seconds=timeout)
                         }
 
                     for candidate in candidates_to_be_purged:
@@ -62,8 +62,8 @@ class ProxyCommunity(Community, Observable):
                         self.send_ping(candidate.sock_addr)
                         logger.info("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
-                    # rerun over 10 second
-                    yield 5.0
+                    # rerun over 3 seconds
+                    yield 3.0
             except Exception, e:
                 print_exc()
                 logger.error(e)
@@ -86,6 +86,7 @@ class ProxyCommunity(Community, Observable):
                     del self.member_ping[msg.candidate]
 
                 self.member_heartbeat[msg.candidate] = datetime.now()
+                self.fire("on_member_heartbeat", candidate=msg.candidate)
                 self.fire(event_name, message=msg)
 
         return [
@@ -97,7 +98,17 @@ class ProxyCommunity(Community, Observable):
                         CandidateDestination(),
                         PingPayload(),
                         yield_all,
-                        functools.partial(trigger_event, event_name="on_ping")),
+                        self.on_ping),
+
+                Message(self,
+                        u"pong",
+                        NoAuthentication(),
+                        PublicResolution(),
+                        DirectDistribution(),
+                        CandidateDestination(),
+                        PongPayload(),
+                        yield_all,
+                        functools.partial(trigger_event, event_name="on_pong")),
 
                 Message(self,
                         u"create",
@@ -174,6 +185,8 @@ class ProxyCommunity(Community, Observable):
         self._original_on_introduction_response = meta.handle_callback
         self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, self.on_introduction_response, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_response
+
+
 
     def send_break(self, destination, circuit_id):
         """
@@ -302,6 +315,17 @@ class ProxyCommunity(Community, Observable):
                               payload=(circuit_id, extended_with,))
 
         self.dispersy.endpoint.send([candidate], [message.packet])
+
+    def on_ping(self, messages):
+        for message in messages:
+            logger.info("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
+
+            meta = self.get_meta_message(u"pong")
+            response = meta.impl(
+                                  distribution=(self.global_time,),
+                                  payload=())
+
+            self.dispersy.endpoint.send([message.candidate], [response.packet])
 
     def on_introduction_request(self, messages):
         try:

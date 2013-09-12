@@ -307,6 +307,8 @@ class DispersyTunnelProxy(Observable):
     def break_circuit(self, circuit_id, address):
         # Give other members possibility to clean up
 
+        logger.error("Breaking circuit %d due to %s:%d" % (circuit_id, address[0], address[1]))
+
         # TODO: investigate if this is a good idea, since it may help malicious nodes determine which nodes are part of the downstream part of the circuit.
         self.community.send_break(self.circuits[circuit_id].address, circuit_id)
 
@@ -315,9 +317,7 @@ class DispersyTunnelProxy(Observable):
             del self.circuits[circuit_id]
 
         # Delete any memberships
-        for candidate in self.circuit_membership.iterkeys():
-            if circuit_id in self.circuit_membership[candidate]:
-                self.circuit_membership[candidate].remove(circuit_id)
+        del self.circuit_membership[address]
 
         # Delete rules from routing tables
         relayKey = (address, circuit_id)
@@ -332,6 +332,6 @@ class DispersyTunnelProxy(Observable):
         candidate = event.member
 
         # We must invalidate all circuits that have this candidate in its hop list
-        circuit_ids = self.circuit_membership[candidate.sock_addr]
+        circuit_ids = list(self.circuit_membership[candidate.sock_addr])
 
         [self.break_circuit(circuit_id, candidate.sock_addr) for circuit_id in circuit_ids]
