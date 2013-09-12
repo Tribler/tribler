@@ -326,4 +326,4 @@ class ProxyCommunity(Community, Observable):
         if candidate in self.member_heartbeat:
             del self.member_heartbeat[candidate]
 
-        self.fire("on_candidate_exit", candidate = candidate)
+        self.fire("on_member_exit", member=candidate)

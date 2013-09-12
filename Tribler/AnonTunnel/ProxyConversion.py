@@ -171,12 +171,9 @@ class ProxyConversion(BinaryConversion):
         else: origin = message.payload.origin
 
         return (
-                struct.pack("!LL", message.payload.circuit_id, len(host))
+                struct.pack("!LLLLLL", message.payload.circuit_id, len(host), port, len(origin[0]), origin[1], len(message.payload.data))
                 , host
-                , struct.pack("!LL", port, len(origin[0]))
                 , origin[0]
-                , struct.pack("!L", origin[1])
-                , struct.pack("!L",len(message.payload.data))
                 , message.payload.data
                 )
     
@@ -224,42 +221,27 @@ class ProxyConversion(BinaryConversion):
     
     @staticmethod
     def _decode_data(placeholder, offset, data):
-        if len(data) < offset + 8:
+        if len(data) < offset + 24:
             raise DropPacket("Cannot unpack circuit_id/HostLength, insufficient packet size")
-        circuit_id , host_length = struct.unpack_from("!LL", data, offset)
-        offset += 8
+        circuit_id, host_length, port, origin_host_length, origin_port, payload_length = struct.unpack_from("!LLLLLL", data, offset)
+        offset += 24
         
         if len(data) < offset + host_length:
             raise DropPacket("Cannot unpack Host, insufficient packet size")
         host = data[offset:offset + host_length]
         offset += host_length
-
-        if len(data) < offset + 4:
-            raise DropPacket("Cannot unpack Port, insufficient packet size")
-        port, origin_host_length= struct.unpack_from("!LL", data, offset)
-        offset += 8
         
         destination = (host, port)
 
         if len(data) < offset + origin_host_length:
-            raise DropPacket("Cannot unpack Origin Host Length, insufficient packet size")
+            raise DropPacket("Cannot unpack Origin Host, insufficient packet size")
         origin_host = data[offset:offset + origin_host_length]
         offset += origin_host_length
 
-        if len(data) < offset + 4:
-            raise DropPacket("Cannot unpack Origin Port, insufficient packet size")
-        origin_port ,= struct.unpack_from("!L", data, offset)
-        offset += 4
-
         origin = (origin_host, origin_port)
 
-        if origin == ("0.0.0.0",0):
+        if origin == ("0.0.0.0", 0):
             origin = None
-
-        if len(data) < offset + 4:
-            raise DropPacket("Cannot unpack Data Length, insufficient packet size")
-        payload_length ,= struct.unpack_from("!L", data, offset)
-        offset += 4
         
         if payload_length == 0:
             payload = None

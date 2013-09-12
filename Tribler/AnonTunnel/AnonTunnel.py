@@ -10,15 +10,16 @@ from Tribler.AnonTunnel.ProxyCommunity import ProxyCommunity
 from Tribler.AnonTunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import StandaloneEndpoint
+from Tribler.dispersy.endpoint import StandaloneEndpoint, RawserverEndpoint
 
 
 class AnonTunnel:
     def __init__(self, socks5_port, cmd_port):
         self.callback = Callback()
-        self.endpoint = StandaloneEndpoint(10000)
-        self.dispersy = Dispersy(self.callback, self. endpoint, u".", u":memory:")
         self.socket_server = Socks5AnonTunnelServer(socks5_port)
+
+        self.endpoint = RawserverEndpoint(self.socket_server.raw_server, port=10000)
+        self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
 
         self.command_handler = CommandHandler(self)
         self.command_handler.attach_to(self.socket_server, cmd_port)

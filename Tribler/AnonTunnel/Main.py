@@ -13,12 +13,12 @@ import sys, getopt
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hy", ["yappi", "cmd=", "socks5="])
+        opts, args = getopt.getopt(argv, "hy", ["yappi=", "cmd=", "socks5="])
     except getopt.GetoptError:
         print 'Main.py [--yappi]'
         sys.exit(2)
 
-    profile = False
+    profile = None
 
     cmd_port = 1081
     socks5_port = 1080
@@ -28,14 +28,20 @@ def main(argv):
             print 'Main.py [--yappi] [--socks5 <port>] [--cmd <port>]'
             sys.exit()
         elif opt in( "-y", "--yappi"):
-            profile = True
+            if arg == 'wall':
+                profile = "wall"
+            else:
+                profile = "cpu"
+
         elif opt == '--cmd':
             cmd_port = int(arg)
         elif opt == '--socks5':
             socks5_port = int(arg)
 
     if profile:
-        yappi.start()
+        yappi.set_clock_type(profile)
+        yappi.start(builtins=True)
+        print "Profiling using %s time" % yappi.get_clock_type()['type']
 
     anonTunnel = AnonTunnel(socks5_port, cmd_port)
 
@@ -58,12 +64,14 @@ def main(argv):
             if profile:
 
                 for func_stats in yappi.get_func_stats().sort("subtime")[:50]:
-                    print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
+                    print "YAPPI: %10dx  %10.3fs    %s:%d" % (func_stats.ncall, func_stats.tsub), func_stats.name
+            else:
+                print >> sys.stderr, "Profiling disabled!"
 
-
+        elif line == 'P\n':
+            if profile:
                 filename = 'callgrind_%d.yappi' % anonTunnel.dispersy.lan_address[1]
                 yappi.get_func_stats().save(filename, type='callgrind')
-
             else:
                 print >> sys.stderr, "Profiling disabled!"
 
