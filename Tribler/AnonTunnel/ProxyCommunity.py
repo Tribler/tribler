@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import logging
 from traceback import print_exc
 from Tribler.AnonTunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload
-import sys
 
 logger = logging.getLogger(__name__)
 
@@ -200,9 +199,9 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
 
         meta = self.get_meta_message(u"break")
-        message = meta.impl(
-                              distribution=(self.global_time,),
-                              payload=(circuit_id,))
+
+        message = meta.impl(distribution=(self.global_time,),
+                            payload=(circuit_id,))
 
         self.dispersy.endpoint.send([candidate], [message.packet])
 
@@ -234,8 +233,10 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
 
         meta = self.get_meta_message(u"create")
-        message = meta.impl(  distribution=(self.global_time,),
-                              payload=(circuit_id,))
+
+        message = meta.impl(distribution=(self.global_time,),
+                            payload=(circuit_id,))
+
         self.dispersy.endpoint.send([candidate], [message.packet])
 
     def send_created(self, destination, circuit_id):
@@ -249,9 +250,10 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
 
         meta = self.get_meta_message(u"created")
-        message = meta.impl(
-                              distribution=(self.global_time,),
-                              payload=(circuit_id,))
+
+        message = meta.impl(distribution=(self.global_time,),
+                            payload=(circuit_id,))
+
         self.dispersy.endpoint.send([candidate], [message.packet])
 
     def send_data(self, destination, circuit_id, ultimate_destination, data = None, origin = None):
@@ -269,9 +271,8 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
 
         meta = self.get_meta_message(u"data")
-        message = meta.impl(
-                              distribution=(self.global_time,),
-                              payload=(circuit_id, ultimate_destination, data,origin))
+        message = meta.impl(distribution=(self.global_time,),
+                            payload=(circuit_id, ultimate_destination, data,origin))
 
         self.dispersy.endpoint.send([candidate], [message.packet])
 
@@ -291,9 +292,9 @@ class ProxyCommunity(Community, Observable):
             return
 
         meta = self.get_meta_message(u"extend")
-        message = meta.impl(
-                              distribution=(self.global_time,),
-                              payload=(circuit_id, extend_with,))
+
+        message = meta.impl(distribution=(self.global_time,),
+                            payload=(circuit_id, extend_with,))
 
         self.dispersy.endpoint.send([candidate], [message.packet])
 
@@ -310,9 +311,9 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
 
         meta = self.get_meta_message(u"extended")
-        message = meta.impl(
-                              distribution=(self.global_time,),
-                              payload=(circuit_id, extended_with,))
+
+        message = meta.impl(distribution=(self.global_time,),
+                            payload=(circuit_id, extended_with,))
 
         self.dispersy.endpoint.send([candidate], [message.packet])
 
@@ -321,9 +322,9 @@ class ProxyCommunity(Community, Observable):
             logger.info("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
 
             meta = self.get_meta_message(u"pong")
-            response = meta.impl(
-                                  distribution=(self.global_time,),
-                                  payload=())
+
+            response = meta.impl(distribution=(self.global_time,),
+                                 payload=())
 
             self.dispersy.endpoint.send([message.candidate], [response.packet])
 
@@ -333,7 +334,7 @@ class ProxyCommunity(Community, Observable):
         finally:
             for message in messages:
                 if not isinstance(message.candidate, BootstrapCandidate):
-                    self.fire("on_member_heartbeat", candidate = message.candidate)
+                    self.fire("on_member_heartbeat", candidate=message.candidate)
 
     def on_introduction_response(self, messages):
         try:
@@ -341,7 +342,7 @@ class ProxyCommunity(Community, Observable):
         finally:
             for message in messages:
                 if not isinstance(message.candidate, BootstrapCandidate):
-                    self.fire("on_member_heartbeat", candidate = message.candidate)
+                    self.fire("on_member_heartbeat", candidate=message.candidate)
 
     def on_candidate_exit(self, candidate):
         if candidate in self.member_ping:

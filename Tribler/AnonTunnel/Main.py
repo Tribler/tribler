@@ -64,7 +64,7 @@ def main(argv):
             if profile:
 
                 for func_stats in yappi.get_func_stats().sort("subtime")[:50]:
-                    print "YAPPI: %10dx  %10.3fs    %s:%d" % (func_stats.ncall, func_stats.tsub), func_stats.name
+                    print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
             else:
                 print >> sys.stderr, "Profiling disabled!"
 

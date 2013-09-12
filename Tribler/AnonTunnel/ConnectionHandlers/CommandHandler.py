@@ -63,9 +63,7 @@ class CommandHandler(object):
     def __init__(self, anon_tunnel):
         """
 
-        :param socket: the socket we will use to sent responses over
         :param anon_tunnel: the dispersy tunnel we want to control
-        :type socket : socket.socket
         :type anon_tunnel : Tribler.AnonTunnel.AnonTunnel.AnonTunnel
         :return:
         """

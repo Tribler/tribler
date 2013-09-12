@@ -10,7 +10,7 @@ from Tribler.AnonTunnel.ProxyCommunity import ProxyCommunity
 from Tribler.AnonTunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import StandaloneEndpoint, RawserverEndpoint
+from Tribler.dispersy.endpoint import RawserverEndpoint
 
 
 class AnonTunnel:
