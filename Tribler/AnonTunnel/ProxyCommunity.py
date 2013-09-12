@@ -35,7 +35,8 @@ class ProxyCommunity(Community, Observable):
         self.member_heartbeat = defaultdict(lambda: datetime.min)
         self.member_ping = defaultdict(lambda: datetime.min)
 
-        self.subscribe("on_pong", lambda (event): logger.info("Got PONG from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
+        self.subscribe("on_pong", lambda (event): logger.info(
+            "Got PONG from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
 
         def ping_and_purge():
             try:
@@ -48,14 +49,16 @@ class ProxyCommunity(Community, Observable):
                         {
                             candidate
                             for candidate in self.member_ping.keys()
-                            if self.member_heartbeat[candidate] < datetime.now() - 2*timedelta(seconds=timeout)
+                            if self.member_heartbeat[candidate] < datetime.now() - 2 * timedelta(seconds=timeout)
                         }
 
                     for candidate in candidates_to_be_purged:
                         self.on_candidate_exit(candidate)
                         logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
-                    candidates_to_be_pinged = {candidate for candidate in self.member_heartbeat.keys() if self.member_heartbeat[candidate] < datetime.now() - timedelta(seconds=timeout)}.difference(candidates_to_be_purged)
+                    candidates_to_be_pinged = {candidate for candidate in self.member_heartbeat.keys() if
+                                               self.member_heartbeat[candidate] < datetime.now() - timedelta(
+                                                   seconds=timeout)}.difference(candidates_to_be_purged)
 
                     for candidate in candidates_to_be_pinged:
                         self.send_ping(candidate.sock_addr)
@@ -66,9 +69,8 @@ class ProxyCommunity(Community, Observable):
             except Exception, e:
                 print_exc()
                 logger.error(e)
-                
-        self.dispersy.callback.register(ping_and_purge, priority=-10)
 
+        self.dispersy.callback.register(ping_and_purge, priority=-10)
 
 
     def initiate_conversions(self):
@@ -79,7 +81,7 @@ class ProxyCommunity(Community, Observable):
             for msg in messages:
                 yield msg
 
-        def trigger_event(messages,event_name):
+        def trigger_event(messages, event_name):
             for msg in messages:
                 if msg.candidate in self.member_ping:
                     del self.member_ping[msg.candidate]
@@ -89,86 +91,86 @@ class ProxyCommunity(Community, Observable):
                 self.fire(event_name, message=msg)
 
         return [
-                Message(self,
-                        u"ping",
-                        NoAuthentication(),
-                        PublicResolution(),
-                        DirectDistribution(),
-                        CandidateDestination(),
-                        PingPayload(),
-                        yield_all,
-                        self.on_ping),
+            Message(self,
+                    u"ping",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    PingPayload(),
+                    yield_all,
+                    self.on_ping),
 
-                Message(self,
-                        u"pong",
-                        NoAuthentication(),
-                        PublicResolution(),
-                        DirectDistribution(),
-                        CandidateDestination(),
-                        PongPayload(),
-                        yield_all,
-                        functools.partial(trigger_event, event_name="on_pong")),
+            Message(self,
+                    u"pong",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    PongPayload(),
+                    yield_all,
+                    functools.partial(trigger_event, event_name="on_pong")),
 
-                Message(self,
-                        u"create",
-                        NoAuthentication(),
-                        PublicResolution(),
-                        DirectDistribution(),
-                        CandidateDestination(),
-                        CreatePayload(),
-                        yield_all,
-                        functools.partial(trigger_event, event_name="on_create")),
+            Message(self,
+                    u"create",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    CreatePayload(),
+                    yield_all,
+                    functools.partial(trigger_event, event_name="on_create")),
 
-                Message(self,
-                        u"created",
-                        NoAuthentication(),
-                        PublicResolution(),
-                        DirectDistribution(),
-                        CandidateDestination(),
-                        CreatePayload(),
-                        yield_all,
-                        functools.partial(trigger_event, event_name="on_created")),
+            Message(self,
+                    u"created",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    CreatePayload(),
+                    yield_all,
+                    functools.partial(trigger_event, event_name="on_created")),
 
-                Message(self,
-                        u"extend",
-                        NoAuthentication(),
-                        PublicResolution(),
-                        DirectDistribution(),
-                        CandidateDestination(),
-                        ExtendPayload(),
-                        yield_all,
-                        functools.partial(trigger_event, event_name="on_extend")),
+            Message(self,
+                    u"extend",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ExtendPayload(),
+                    yield_all,
+                    functools.partial(trigger_event, event_name="on_extend")),
 
-                Message(self,
-                        u"extended",
-                        NoAuthentication(),
-                        PublicResolution(),
-                        DirectDistribution(),
-                        CandidateDestination(),
-                        ExtendedPayload(),
-                        yield_all,
-                        functools.partial(trigger_event, event_name="on_extended")),
+            Message(self,
+                    u"extended",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ExtendedPayload(),
+                    yield_all,
+                    functools.partial(trigger_event, event_name="on_extended")),
 
-                Message(self,
-                        u"data",
-                        NoAuthentication(),
-                        PublicResolution(),
-                        DirectDistribution(),
-                        CandidateDestination(),
-                        DataPayload(),
-                        yield_all,
-                        functools.partial(trigger_event, event_name="on_data")),
+            Message(self,
+                    u"data",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    DataPayload(),
+                    yield_all,
+                    functools.partial(trigger_event, event_name="on_data")),
 
-                Message(self,
-                        u"break",
-                        NoAuthentication(),
-                        PublicResolution(),
-                        DirectDistribution(),
-                        CandidateDestination(),
-                        BreakPayload(),
-                        yield_all,
-                        functools.partial(trigger_event, event_name="on_break")),
-                ]
+            Message(self,
+                    u"break",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    BreakPayload(),
+                    yield_all,
+                    functools.partial(trigger_event, event_name="on_break")),
+        ]
 
     def _initialize_meta_messages(self):
         super(ProxyCommunity, self)._initialize_meta_messages()
@@ -177,14 +179,17 @@ class ProxyCommunity(Community, Observable):
         # dispersy-introduction-response messages
         meta = self._meta_messages[u"dispersy-introduction-request"]
         self._original_on_introduction_request = meta.handle_callback
-        self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, self.on_introduction_request, meta.undo_callback, meta.batch)
+        self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution,
+                                                 meta.distribution, meta.destination, meta.payload, meta.check_callback,
+                                                 self.on_introduction_request, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_request
 
         meta = self._meta_messages[u"dispersy-introduction-response"]
         self._original_on_introduction_response = meta.handle_callback
-        self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, self.on_introduction_response, meta.undo_callback, meta.batch)
+        self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution,
+                                                 meta.distribution, meta.destination, meta.payload, meta.check_callback,
+                                                 self.on_introduction_response, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_response
-
 
 
     def send_break(self, destination, circuit_id):
@@ -256,7 +261,7 @@ class ProxyCommunity(Community, Observable):
 
         self.dispersy.endpoint.send([candidate], [message.packet])
 
-    def send_data(self, destination, circuit_id, ultimate_destination, data = None, origin = None):
+    def send_data(self, destination, circuit_id, ultimate_destination, data=None, origin=None):
         """
         Send a DATA message over a circuit
 
@@ -272,7 +277,7 @@ class ProxyCommunity(Community, Observable):
 
         meta = self.get_meta_message(u"data")
         message = meta.impl(distribution=(self.global_time,),
-                            payload=(circuit_id, ultimate_destination, data,origin))
+                            payload=(circuit_id, ultimate_destination, data, origin))
 
         self.dispersy.endpoint.send([candidate], [message.packet])
 

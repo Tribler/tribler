@@ -4,6 +4,7 @@ Created on 3 jun. 2013
 @author: Chris
 """
 import logging
+
 logger = logging.getLogger(__name__)
 
 from Tribler.AnonTunnel.Socks5 import structs
@@ -22,6 +23,7 @@ class Socks5Connection(object):
 
     Supports a subset of the SOCKS5 protocol, no authentication and no support for TCP BIND requests
     """
+
     def __init__(self, single_socket, connection_handler):
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
 
@@ -125,7 +127,7 @@ class Socks5Connection(object):
             self.connection_handler.switch_to_tcp_relay(self.single_socket, destination_socket)
 
             response = structs.encode_reply(0x05, 0x00, 0x00, structs.ADDRESS_TYPE_IPV4, self.single_socket.get_myip(),
-                                                   self.single_socket.get_myport())
+                                            self.single_socket.get_myport())
             self.write(response)
         elif request.cmd == structs.REQ_CMD_UDP_ASSOCIATE:
             socket = self.connection_handler.server.create_udp_relay()
@@ -139,7 +141,8 @@ class Socks5Connection(object):
             self.write(response)
         else:
             # We will deny all other requests (BIND, and INVALID requests);
-            response = structs.encode_reply(0x05, structs.REP_COMMAND_NOT_SUPPORTED, 0x00, structs.ADDRESS_TYPE_IPV4,"0.0.0.0",0)
+            response = structs.encode_reply(0x05, structs.REP_COMMAND_NOT_SUPPORTED, 0x00, structs.ADDRESS_TYPE_IPV4,
+                                            "0.0.0.0", 0)
             self.write(response)
 
         self.state = ConnectionState.PROXY_REQUEST_ACCEPTED

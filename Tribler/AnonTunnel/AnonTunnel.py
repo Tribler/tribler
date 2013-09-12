@@ -3,6 +3,7 @@ from Tribler.AnonTunnel.ConnectionHandlers.CommandHandler import CommandHandler
 __author__ = 'chris'
 
 import logging.config
+
 logger = logging.getLogger(__name__)
 
 from Tribler.AnonTunnel.DispersyTunnelProxy import DispersyTunnelProxy
@@ -36,7 +37,7 @@ class AnonTunnel:
             my_member = dispersy.get_new_member()
             return ProxyCommunity.join_community(dispersy, master_member, my_member)
 
-        self.community = self.dispersy.callback.call(join_overlay,(self.dispersy,))
+        self.community = self.dispersy.callback.call(join_overlay, (self.dispersy,))
 
         self.tunnel = DispersyTunnelProxy(self.community)
 

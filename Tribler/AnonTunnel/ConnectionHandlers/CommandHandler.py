@@ -3,6 +3,7 @@ import os
 __author__ = 'Chris'
 
 import logging.config
+
 logger = logging.getLogger(__name__)
 
 import socket
@@ -92,7 +93,7 @@ class CommandHandler(object):
         is_online = len(self.anon_tunnel.tunnel.circuits) > 0
         response = IsOnlineResponse(is_online)
 
-        self.socket.sendto(pickle.dumps(response),source_address)
+        self.socket.sendto(pickle.dumps(response), source_address)
 
     def on_list_circuits_request(self, source_address, request):
         response = ListCircuitsResponse(self.anon_tunnel.tunnel.circuits)

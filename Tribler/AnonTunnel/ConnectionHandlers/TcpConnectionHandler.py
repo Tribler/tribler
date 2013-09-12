@@ -18,6 +18,7 @@ class TcpConnectionHandler(object):
     The first and default mode implements the SOCKS5 protocol where the latter just acts as a man in the middle PROXY for a
     TCP connection.
     """
+
     def __init__(self):
         self.socket2connection = {}
         self.server = None

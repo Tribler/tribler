@@ -12,6 +12,7 @@ from ProxyConversion import DataPayload, ExtendPayload
 
 __author__ = 'Chris'
 
+
 class Circuit(object):
     """ Circuit data structure storing the id, status, first hop and all hops """
 
@@ -28,11 +29,13 @@ class Circuit(object):
         self.address = address
         self.hops = [address]
 
+
 class RelayRoute(object):
     def __init__(self, circuit_id, from_address, to_address):
         self.from_address = from_address
         self.to_address = to_address
         self.circuit_id = circuit_id
+
 
 class DispersyTunnelProxy(Observable):
     def __init__(self, community):
@@ -171,7 +174,6 @@ class DispersyTunnelProxy(Observable):
                 return_handler = ShortCircuitReturnHandler(self._exit_sockets[circuit_id], self, address)
             else:
                 return_handler = CircuitReturnHandler(self._exit_sockets[circuit_id], self, circuit_id, address)
-
 
             self.socket_server.start_listening_udp(self._exit_sockets[circuit_id], return_handler)
 

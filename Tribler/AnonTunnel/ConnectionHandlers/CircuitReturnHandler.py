@@ -1,6 +1,7 @@
 __author__ = 'Chris'
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -9,7 +10,7 @@ class CircuitReturnHandler(object):
     Sends incoming UDP packets back over the DispersyTunnelProxy.
     """
 
-    def __init__(self, socket,proxy, circuit_id, destination_address):
+    def __init__(self, socket, proxy, circuit_id, destination_address):
         """
         Instantiate a new return handler
 
@@ -36,19 +37,20 @@ class CircuitReturnHandler(object):
         for source_address, packet in packets:
             logger.info("ENTER DATA packet FROM %s", source_address)
             self.proxy.send_data(
-                circuit_id = self.circuit_id,
-                address= self.destination_address,
+                circuit_id=self.circuit_id,
+                address=self.destination_address,
                 ultimate_destination=None,
-                payload = packet,
-                origin = source_address
+                payload=packet,
+                origin=source_address
             )
+
 
 class ShortCircuitReturnHandler(object):
     """
     Only used when there are no circuits, it will be a 0-hop tunnel. So there is no anonymity at all.
     """
 
-    def __init__(self, socket,proxy, destination_address):
+    def __init__(self, socket, proxy, destination_address):
         """
         Instantiate a new return handler
 
@@ -74,8 +76,8 @@ class ShortCircuitReturnHandler(object):
             logger.info("ENTER DATA packet FROM %s", source_address)
             meta = self.proxy.community.get_meta_message("data")
             message = meta.impl(
-                              distribution=(self.proxy.community.global_time,),
-                              payload=(0, self.destination_address, packet, source_address))
+                distribution=(self.proxy.community.global_time,),
+                payload=(0, self.destination_address, packet, source_address))
 
             self.proxy.fire("on_data", data=message.payload)
 

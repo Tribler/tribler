@@ -5,6 +5,7 @@ Created on 3 jun. 2013
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import socket
@@ -18,7 +19,6 @@ import Socks5.structs
 
 
 class Socks5AnonTunnelServer(Thread):
-
     @property
     def tunnel(self):
         return self._tunnel
@@ -54,12 +54,12 @@ class Socks5AnonTunnelServer(Thread):
                                     errorfunc=lambda (e): print_exc())
 
         try:
-            port = self.raw_server.find_and_bind(self.Socks5_port,self.Socks5_port,self.Socks5_port+10, ['0.0.0.0'], reuse=True)
+            port = self.raw_server.find_and_bind(self.Socks5_port, self.Socks5_port, self.Socks5_port + 10, ['0.0.0.0'],
+                                                 reuse=True)
             logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
         except socket.error:
-            logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0", Socks5_port)
-
-
+            logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
+                         Socks5_port)
 
 
     def shutdown(self):
@@ -139,8 +139,10 @@ class Socks5AnonTunnelServer(Thread):
 
         destination_address = self.destination_address
 
-        encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],source_address[1], packet.data)
+        encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],
+                                                        source_address[1], packet.data)
         if self.udp_relay_socket.sendto(encapsulated, destination_address) < len(encapsulated):
             logger.error("Not sending package!")
 
-        logger.info("Returning UDP packets from %s to %s using proxy port %d",source_address, destination_address, self.udp_relay_socket.getsockname()[1])
+        logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address, destination_address,
+                    self.udp_relay_socket.getsockname()[1])

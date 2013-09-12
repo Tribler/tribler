@@ -11,6 +11,7 @@ class Event(object):
     """
     Event object used in callbacks attached to an Observable
     """
+
     def __init__(self):
         self.source = None
 
@@ -20,6 +21,7 @@ class Observable(object):
     Observable object following the Observer pattern. Listeners can subscribe to events which can be fired by the
     observable
     """
+
     def __init__(self):
         self.callbacks = defaultdict(list)
 

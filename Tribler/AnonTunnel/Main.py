@@ -1,12 +1,12 @@
 import logging.config
 import os
+
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
 
 import threading
 import yappi
 from Tribler.AnonTunnel.AnonTunnel import AnonTunnel
-
 
 import sys, getopt
 
@@ -27,7 +27,7 @@ def main(argv):
         if opt == '-h':
             print 'Main.py [--yappi] [--socks5 <port>] [--cmd <port>]'
             sys.exit()
-        elif opt in( "-y", "--yappi"):
+        elif opt in ( "-y", "--yappi"):
             if arg == 'wall':
                 profile = "wall"
             else:
@@ -59,7 +59,7 @@ def main(argv):
 
         if line == 'threads\n':
             for thread in threading.enumerate():
-                print "%s \t %d" % (thread.name,  thread.ident)
+                print "%s \t %d" % (thread.name, thread.ident)
         elif line == 'p\n':
             if profile:
 
@@ -84,7 +84,6 @@ def main(argv):
         elif line == 'q\n':
             anonTunnel.stop()
             break
-
 
 
 if __name__ == "__main__":

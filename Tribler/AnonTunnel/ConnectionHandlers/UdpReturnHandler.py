@@ -11,6 +11,7 @@ class UdpReturnHandler(object):
     """
     Returns Dispersy Data Messages to the SOCKS5 client, wrapping the packet into a SOCKS5 packet
     """
+
     def __init__(self, server, socket, destination_address):
         self.socket = socket
         self.destination_address = destination_address
@@ -22,6 +23,6 @@ class UdpReturnHandler(object):
                         self.destination_address, self.socket.getsockname()[1])
 
             encapsulated = structs.encode_udp_packet(0, 0, structs.ADDRESS_TYPE_IPV4, source_address[0],
-                                                            source_address[1], packet)
+                                                     source_address[1], packet)
 
             self.socket.sendto(encapsulated, self.destination_address)
