@@ -133,6 +133,7 @@ class VideoPlayer:
     def get_playlist(self):
         return copy.copy(self.playlist)
 
+    @forceWxThread
     def video_ended(self, subject, changeType, torrent_tuple):
         infohash, fileindex = torrent_tuple
         playlist = self.get_playlist()
@@ -141,6 +142,9 @@ class VideoPlayer:
             if t.infohash == infohash and fileindex == fi:
                 if index + 1 < len(playlist):
                     next_torrent, next_fileindex = playlist[index + 1]
+                    self.recreate_videopanel()
+                    self.stop_playback()
+                    self.show_loading()
                     self.play(next_torrent.get('ds'), next_torrent.files[next_fileindex][0])
                     return
 
