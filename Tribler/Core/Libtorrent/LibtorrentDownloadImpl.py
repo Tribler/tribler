@@ -375,11 +375,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: going into VOD mode", self.videoinfo
                 self.set_state_callback(self.monitor_vod, delay=1.0)
-            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (self.get_def().get_id(), self.get_vod_fileindex()))
         else:
             self.handle.set_sequential_download(False)
             self.handle.set_priority(0)
-            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STOPPED, (self.get_def().get_id(), self.get_vod_fileindex()))
             if self.get_vod_fileindex() >= 0:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 

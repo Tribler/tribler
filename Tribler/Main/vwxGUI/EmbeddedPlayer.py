@@ -19,7 +19,8 @@ from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
-from Tribler.Core.simpledefs import DLMODE_VOD
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED
+from Tribler.Core.CacheDB.Notifier import Notifier
 
 DEBUG = False
 
@@ -114,6 +115,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ctrlpanel.SetSizer(self.ctrlsizer)
 
             vSizer.Add(self.ctrlpanel, 0, wx.ALIGN_BOTTOM | wx.EXPAND)
+
+            self.notifier = Notifier.getInstance()
 
         self.SetSizer(vSizer)
 
@@ -434,7 +437,12 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.timeposition.SetLabel('%s / %s' % (cur_str, length_str))
                 self.ctrlsizer.Layout()
             elif self.GetState() == MEDIASTATE_ENDED:
+                dl = VideoPlayer.getInstance().get_vod_download()
                 self.OnStop(None)
+                if dl:
+                    if dl.get_def().get_def_type() == 'torrent':
+                        fileindex = dl.get_def().get_index_of_file_in_files(dl.get_selected_files()[0]) if dl.get_def().is_multifile_torrent() else 0
+                        self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (dl.get_def().get_id(), fileindex))
 
     def FormatTime(self, s):
         longformat = time.strftime('%d:%H:%M:%S', time.gmtime(s))

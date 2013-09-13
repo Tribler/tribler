@@ -384,6 +384,9 @@ class TopSearchPanel(FancyPanel):
         for playable_file in playable_files:
             videoplayer.add_to_playlist(torrent, playable_file[2])
 
+        if playable_files:
+            self.guiutility.library_manager.playTorrent(torrent, playable_files[-1][1])
+
         if not self.guiutility.frame.searchlist.IsShownOnScreen():
             self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
         else:

@@ -21,6 +21,7 @@ from Tribler.Core.Utilities.unicode import unicode2str, bin2unicode
 from Tribler.Video.CachingStream import SmartCachingStream
 from Tribler.Video.Ogg import is_ogg, OggMagicLiveStream
 from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Core.CacheDB.Notifier import Notifier
 
 DEBUG = False
 
@@ -54,6 +55,8 @@ class VideoPlayer:
 
         self.resume_by_system = 0
         self.user_download_choice = None
+
+        self.notifier = Notifier.getInstance()
 
     def getInstance(*args, **kw):
         if VideoPlayer.__single is None:
@@ -99,6 +102,8 @@ class VideoPlayer:
         if closeextplayercallback is not None:
             self.closeextplayercallback = closeextplayercallback
 
+        self.utility.session.add_observer(self.video_ended, NTFY_TORRENTS, [NTFY_VIDEO_ENDED])
+
     def shutdown(self):
         if self.videohttpserv:
             self.videohttpserv.shutdown()
@@ -127,6 +132,17 @@ class VideoPlayer:
 
     def get_playlist(self):
         return copy.copy(self.playlist)
+
+    def video_ended(self, subject, changeType, torrent_tuple):
+        infohash, fileindex = torrent_tuple
+        playlist = self.get_playlist()
+        for index, tt in enumerate(playlist):
+            t, fi = tt
+            if t.infohash == infohash and fileindex == fi:
+                if index + 1 < len(playlist):
+                    next_torrent, next_fileindex = playlist[index + 1]
+                    self.play(next_torrent.get('ds'), next_torrent.files[next_fileindex][0])
+                    return
 
     def play_file(self, dest):
         """ Play video file from disk """
@@ -623,11 +639,24 @@ class VideoPlayer:
         dlg.Destroy()
 
     def set_vod_download(self, d):
+        old_download = self.vod_download
+        new_download = d
+
         if d != self.vod_download:
             if self.vod_download:
                 self.vod_download.set_mode(DLMODE_NORMAL)
-                self.vod_download.set_vod_mode(False)
+                if self.vod_download.get_def().get_def_type() == 'torrent':
+                    self.vod_download.set_vod_mode(False)
+
             self.vod_download = d
+
+        if old_download and old_download.get_def().get_def_type() == 'torrent':
+            fileindex = old_download.get_def().get_index_of_file_in_files(old_download.get_selected_files()[0]) if old_download.get_def().is_multifile_torrent() else 0
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STOPPED, (old_download.get_def().get_id(), fileindex))
+
+        if new_download and new_download.get_def().get_def_type() == 'torrent':
+            fileindex = new_download.get_def().get_index_of_file_in_files(new_download.get_selected_files()[0]) if new_download.get_def().is_multifile_torrent() else 0
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (new_download.get_def().get_id(), fileindex))
 
     def get_vod_download(self):
         return self.vod_download

@@ -2245,6 +2245,15 @@ class ActivitiesList(List):
         self.DisableCollapse()
         self.selectTab('home')
 
+        # Create expanded panels in advance
+        channels_item = self.list.GetItem(3)
+        self.expandedPanel_channels = ChannelsExpandedPanel(channels_item)
+        channels_item.AddEvents(self.expandedPanel_channels)
+
+        videoplayer_item = self.list.GetItem(5)
+        self.expandedPanel_videoplayer = VideoplayerExpandedPanel(videoplayer_item)
+        videoplayer_item.AddEvents(self.expandedPanel_videoplayer)
+
     def do_or_schedule_refresh(self, force_refresh=False):
         pass
 
@@ -2313,26 +2322,17 @@ class ActivitiesList(List):
         elif item.data[0] == 'Channels':
             if self.guiutility.guiPage not in ['channels', 'selectedchannel', 'mychannel']:
                 self.guiutility.ShowPage('channels')
-            if not self.expandedPanel_channels:
-                self.expandedPanel_channels = ChannelsExpandedPanel(item)
-                item.AddEvents(self.expandedPanel_channels)
             return self.expandedPanel_channels
         elif item.data[0] == 'Downloads':
             self.guiutility.ShowPage('my_files')
         elif item.data[0] == 'Videoplayer':
             if self.guiutility.guiPage not in ['videoplayer']:
                 self.guiutility.ShowPage('videoplayer')
-            if not self.expandedPanel_videoplayer:
-                self.expandedPanel_videoplayer = VideoplayerExpandedPanel(item)
-                item.AddEvents(self.expandedPanel_videoplayer)
+            self.expandedPanel_videoplayer.UpdateComponents()
             return self.expandedPanel_videoplayer
         return True
 
     def OnCollapse(self, item, panel, from_expand):
-        if panel:
-            panel.Destroy()
-            panel = None
-
         List.OnCollapse(self, item, panel, False)
 
     def OnCollapseInternal(self, item):
