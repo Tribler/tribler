@@ -61,7 +61,7 @@ class ProxyCommunity(Community, Observable):
                                                    seconds=timeout)}.difference(candidates_to_be_purged)
 
                     for candidate in candidates_to_be_pinged:
-                        self.send_ping(candidate.sock_addr)
+                        self.send(u"ping", candidate.sock_addr)
                         logger.info("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
                     # rerun over 3 seconds
@@ -191,147 +191,17 @@ class ProxyCommunity(Community, Observable):
                                                  self.on_introduction_response, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_response
 
-
-    def send_break(self, destination, circuit_id):
-        """
-        Send a BREAK message over a circuit
-
-        :param destination: Destination address (the first hop) tuple (host, port), must be a Dispersy Candidate!
-        :param circuit_id: The Circuit Id to use in communication
-        :return: None
-        """
-
+    def send(self, message_type, destination, *payload):
         candidate = self.dispersy.get_candidate(destination)
-
-        meta = self.get_meta_message(u"break")
-
-        message = meta.impl(distribution=(self.global_time,),
-                            payload=(circuit_id,))
-
-        self.dispersy.endpoint.send([candidate], [message.packet])
-
-    def send_ping(self, destination):
-        """
-        Send a BREAK message over a circuit
-
-        :param destination: Destination address (the first hop) tuple (host, port), must be a Dispersy Candidate!
-        :return: None
-        """
-
-        candidate = self.dispersy.get_candidate(destination)
-        self.member_ping[candidate] = datetime.now()
-
-        meta = self.get_meta_message(u"ping")
-        message = meta.impl(distribution=(self.global_time,))
-
-        self.dispersy.endpoint.send([candidate], [message.packet])
-
-
-    def send_create(self, destination, circuit_id):
-        """
-        Send a CREATE message over a circuit
-
-        :param destination: Destination address (the first hop) tuple (host, port), must be a Dispersy Candidate!
-        :param circuit_id: The Circuit Id to use in communication
-        :return: None
-        """
-        candidate = self.dispersy.get_candidate(destination)
-
-        meta = self.get_meta_message(u"create")
-
-        message = meta.impl(distribution=(self.global_time,),
-                            payload=(circuit_id,))
-
-        self.dispersy.endpoint.send([candidate], [message.packet])
-
-    def send_created(self, destination, circuit_id):
-        """
-        Send a CREATED message over a circuit
-
-        :param destination: Destination address (the first hop) tuple (host, port), must be a Dispersy Candidate!
-        :param circuit_id: The Circuit Id to use in communication
-        :return:
-        """
-        candidate = self.dispersy.get_candidate(destination)
-
-        meta = self.get_meta_message(u"created")
-
-        message = meta.impl(distribution=(self.global_time,),
-                            payload=(circuit_id,))
-
-        self.dispersy.endpoint.send([candidate], [message.packet])
-
-    def send_data(self, destination, circuit_id, ultimate_destination, data=None, origin=None):
-        """
-        Send a DATA message over a circuit
-
-        :param destination: Destination address (the first hop) tuple (host, ip), must be a Dispersy Candidate!
-        :param circuit_id: The Circuit Id to use in communication
-        :param ultimate_destination: The ultimate destination of the message. Ordinarily a (host, port) outside the Dispersy
-        community
-        :param data: The data payload
-        :param origin: The origin of the message, set only if from an external source.
-        :return: None
-        """
-        candidate = self.dispersy.get_candidate(destination)
-
-        meta = self.get_meta_message(u"data")
-        message = meta.impl(distribution=(self.global_time,),
-                            payload=(circuit_id, ultimate_destination, data, origin))
-
-        self.dispersy.endpoint.send([candidate], [message.packet])
-
-    def send_extend(self, destination, circuit_id, extend_with):
-        """
-        Send an EXTEND message over a circuit
-
-        :param destination: Destination address (the first hop) tuple (host, ip), must be a Dispersy Candidate!
-        :param circuit_id: The Circuit Id to use in communication
-        :param extend_with: The (host, port) to extend the circuit with
-        :return: None
-        """
-
-        candidate = self.dispersy.get_candidate(destination)
-
-        if not isinstance(candidate, Candidate):
-            return
-
-        meta = self.get_meta_message(u"extend")
-
-        message = meta.impl(distribution=(self.global_time,),
-                            payload=(circuit_id, extend_with,))
-
-        self.dispersy.endpoint.send([candidate], [message.packet])
-
-    def send_extended(self, destination, circuit_id, extended_with):
-        """
-        Send an EXTENDED message over a circuit
-
-        :param destination: Destination address (the first hop) tuple (host, ip), must be a Dispersy Candidate!
-        :param circuit_id: The Circuit Id to use in communication
-        :param extended_with: The new hop (host, port) that just joined the circuit
-        :return: None
-        """
-
-        candidate = self.dispersy.get_candidate(destination)
-
-        meta = self.get_meta_message(u"extended")
-
-        message = meta.impl(distribution=(self.global_time,),
-                            payload=(circuit_id, extended_with,))
+        meta = self.get_meta_message(message_type)
+        message = meta.impl(distribution=(self.global_time,), payload=payload)
 
         self.dispersy.endpoint.send([candidate], [message.packet])
 
     def on_ping(self, messages):
         for message in messages:
             logger.info("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
-
-            meta = self.get_meta_message(u"pong")
-
-            response = meta.impl(distribution=(self.global_time,),
-                                 payload=())
-
-            self.dispersy.endpoint.send([message.candidate], [response.packet])
+            self.send(u"pong", message.candidate.sock_addr)
 
     def on_introduction_request(self, messages):
         try:

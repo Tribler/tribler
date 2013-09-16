@@ -1,6 +1,8 @@
 import logging
 from Tribler.AnonTunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 
+MAX_CIRCUITS_TO_CREATE = 10
+
 logger = logging.getLogger(__name__)
 
 from Observable import Observable
@@ -88,7 +90,7 @@ class DispersyTunnelProxy(Observable):
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
 
-            community.send_data(relay.to_address, msg.circuit_id, msg.destination, msg.data)
+            community.send(u"data", relay.to_address, msg.circuit_id, msg.destination, msg.data)
             logger.info("Forwarding BREAK packet from %s to %s", address, relay.to_address)
 
             del self.relay_from_to[relay_key]
@@ -110,7 +112,7 @@ class DispersyTunnelProxy(Observable):
         community = self.community
         assert isinstance(community, ProxyCommunity)
 
-        community.send_created(address, msg.circuit_id)
+        community.send(u"created", address, msg.circuit_id)
 
     def on_created(self, event):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
@@ -129,7 +131,7 @@ class DispersyTunnelProxy(Observable):
 
             community = self.community
             assert isinstance(community, ProxyCommunity)
-            community.send_extended(created_for.from_address, msg.circuit_id, extended_with)
+            community.send(u"extended", created_for.from_address, msg.circuit_id, extended_with)
 
             logger.info('We have extended circuit %d for %s with %s', msg.circuit_id, created_for.from_address,
                         extended_with)
@@ -149,7 +151,7 @@ class DispersyTunnelProxy(Observable):
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
 
-            community.send_data(relay.to_address, msg.circuit_id, msg.destination, msg.data)
+            community.send(u"data", relay.to_address, msg.circuit_id, msg.destination, msg.data)
             logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.to_address)
 
         # If message is meant for us, write it to output
@@ -198,8 +200,7 @@ class DispersyTunnelProxy(Observable):
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
 
-            community.send_extend(relay.to_address, msg.circuit_id
-                , msg.extend_with)
+            community.send(u"extend", relay.to_address, msg.circuit_id, msg.extend_with)
             return
         else: # We are responsible for EXTENDING the circuit
 
@@ -212,7 +213,7 @@ class DispersyTunnelProxy(Observable):
             self.relay_from_to[(from_address, circuit_id)] = relay
             self.relay_to_from[(to_address, circuit_id)] = relay
 
-            community.send_create(to_address, circuit_id)
+            community.send(u"create", to_address, circuit_id)
 
     def on_extended(self, event):
         """ A circuit has been extended, forward the acknowledgment back
@@ -229,8 +230,7 @@ class DispersyTunnelProxy(Observable):
         # If we can forward it along the chain, do so!
         if self.relay_to_from.has_key(relay_key):
             relay = self.relay_to_from[relay_key]
-            community.send_extended(relay.from_address, msg.circuit_id
-                , msg.extended_with)
+            community.send(u"extended", relay.from_address, msg.circuit_id, msg.extended_with)
 
         # If it is ours, update our records
         elif self.circuits.has_key(msg.circuit_id):
@@ -259,7 +259,7 @@ class DispersyTunnelProxy(Observable):
 
         community = self.community
         assert isinstance(community, ProxyCommunity)
-        community.send_create(address, circuit_id)
+        community.send(u"create", address, circuit_id)
 
         return self.circuits[circuit_id]
 
@@ -273,7 +273,7 @@ class DispersyTunnelProxy(Observable):
 
             community = self.community
             assert isinstance(community, ProxyCommunity)
-            community.send_extend(circuit.address, circuit.id, address)
+            community.send(u"extend", circuit.address, circuit.id, address)
 
     def extend_circuit(self, circuit, address):
         self.extension_queue[circuit].append(address)
@@ -283,6 +283,14 @@ class DispersyTunnelProxy(Observable):
 
     def on_member_heartbeat(self, event):
         candidate = event.candidate
+
+        # At least store that we have seen this candidate
+        self.circuit_membership[candidate] = {}
+
+        # We dont want to create too many circuits
+        if len(self.circuits) > MAX_CIRCUITS_TO_CREATE:
+            return
+
         if candidate.sock_addr not in self.circuit_membership:
             self.create_circuit(candidate)
 
@@ -302,7 +310,7 @@ class DispersyTunnelProxy(Observable):
         if address is None:
             address = self.circuits[circuit_id].address
 
-        self.community.send_data(address, circuit_id, ultimate_destination, payload, origin)
+        self.community.send(u"data", address, circuit_id, ultimate_destination, payload, origin)
         logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s", origin, address,
                     circuit_id, ultimate_destination)
 
@@ -312,7 +320,7 @@ class DispersyTunnelProxy(Observable):
         logger.error("Breaking circuit %d due to %s:%d" % (circuit_id, address[0], address[1]))
 
         # TODO: investigate if this is a good idea, since it may help malicious nodes determine which nodes are part of the downstream part of the circuit.
-        self.community.send_break(self.circuits[circuit_id].address, circuit_id)
+        self.community.send(u"break", self.circuits[circuit_id].address, circuit_id)
 
         # Delete from data structures
         if circuit_id in self.circuits:

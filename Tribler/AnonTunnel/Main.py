@@ -43,15 +43,15 @@ def main(argv):
         yappi.start(builtins=True)
         print "Profiling using %s time" % yappi.get_clock_type()['type']
 
-    anonTunnel = AnonTunnel(socks5_port, cmd_port)
+    anon_tunnel = AnonTunnel(socks5_port, cmd_port)
 
-    anonTunnel.start()
+    anon_tunnel.start()
 
     while 1:
         try:
             line = sys.stdin.readline()
         except KeyboardInterrupt:
-            anonTunnel.stop()
+            anon_tunnel.stop()
             break
 
         if not line:
@@ -70,7 +70,7 @@ def main(argv):
 
         elif line == 'P\n':
             if profile:
-                filename = 'callgrind_%d.yappi' % anonTunnel.dispersy.lan_address[1]
+                filename = 'callgrind_%d.yappi' % anon_tunnel.dispersy.lan_address[1]
                 yappi.get_func_stats().save(filename, type='callgrind')
             else:
                 print >> sys.stderr, "Profiling disabled!"
@@ -81,8 +81,14 @@ def main(argv):
 
             else:
                 print >> sys.stderr, "Profiling disabled!"
+
+        elif line == 'c\n':
+            print "========\nCircuits\n========\nid\taddress\t\t\t\thops"
+            for circuit in anon_tunnel.tunnel.circuits.values():
+                print "%d\t%s\t%d\n" % (circuit.id, circuit.address, len(circuit.hops))
+
         elif line == 'q\n':
-            anonTunnel.stop()
+            anon_tunnel.stop()
             break
 
 
