@@ -927,6 +927,10 @@ class LibraryManager:
         if index < len(playlist):
             torrent, fileindex = playlist[index]
             self.playTorrent(torrent, torrent.files[fileindex][0])
+        elif playlist:
+            index = len(playlist) - 1
+            torrent, fileindex = playlist[index]
+            videoplayer.set_playlist_index(index)
 
     @forceWxThread
     def stopLastVODTorrent(self):
