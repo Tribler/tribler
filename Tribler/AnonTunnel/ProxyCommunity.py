@@ -193,6 +193,10 @@ class ProxyCommunity(Community, Observable):
 
     def send(self, message_type, destination, *payload):
         candidate = self.dispersy.get_candidate(destination)
+
+        if not isinstance(candidate, Candidate):
+            return
+
         meta = self.get_meta_message(message_type)
         message = meta.impl(distribution=(self.global_time,), payload=payload)
 

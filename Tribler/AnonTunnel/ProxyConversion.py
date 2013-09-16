@@ -119,7 +119,7 @@ class ProxyConversion(BinaryConversion):
 
     @staticmethod
     def _encode_ping_pong(message):
-        return ''
+        return '',
 
     @staticmethod
     def _decode_ping_pong(placeholder, offset, data):
