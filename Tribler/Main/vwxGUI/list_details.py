@@ -2147,7 +2147,6 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     def __init__(self, parent):
         wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, style=wx.NO_BORDER)
-        self.playing = None
         self.guiutility = GUIUtility.getInstance()
         self.videoplayer = VideoPlayer.getInstance()
         self.library_manager = self.guiutility.library_manager
@@ -2182,18 +2181,20 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.links = {}
         self.virtual_height = 0
-        for torrent, fileindex in self.videoplayer.get_playlist():
+        for index, torrent_tuple in enumerate(self.videoplayer.get_playlist()):
+            torrent, fileindex = torrent_tuple
             filename = torrent.files[fileindex][0]
-            link = LinkStaticText(self, filename, icon=None, font_colour=self.fg_colour if (torrent.infohash, fileindex) != self.playing else TRIBLER_RED)
+            link = LinkStaticText(self, filename, icon=None, font_colour=TRIBLER_RED if index == self.videoplayer.get_playlist_index() else self.fg_colour)
             link.SetBackgroundColour(self.bg_colour)
             link.SetLabel(DetermineText(link.text, filename))
             link.Bind(wx.EVT_MOUSE_EVENTS, self.OnLinkStaticTextMouseEvent)
             link.SetToolTipString(filename)
             link_close = wx.StaticBitmap(self, -1, self.close_icon)
             link_close.Show(False)
-            link_close.Bind(wx.EVT_LEFT_UP, lambda evt, t=torrent, i=fileindex: self.RemoveFromPlaylist(t, i))
+            link_close.Bind(wx.EVT_LEFT_UP, lambda evt, i=index: self.RemoveFromPlaylist(i))
             link.Add(link_close, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.RIGHT, 2)
             link.ti_pair = (torrent, fileindex)
+            link.index = index
             self.links[(torrent, fileindex)] = link
             self.vSizer.Add(link, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
             self.virtual_height += link.text.GetSize()[1]
@@ -2219,8 +2220,10 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Layout()
         self.Thaw()
 
-    def RemoveFromPlaylist(self, torrent, fileindex):
-        self.videoplayer.remove_from_playlist(torrent, fileindex)
+    def RemoveFromPlaylist(self, index):
+        if index == self.videoplayer.get_playlist_index():
+            self.library_manager.stopTorrent(self.videoplayer.get_playlist()[index][0])
+        self.videoplayer.remove_from_playlist(index)
         self.UpdateComponents()
 
     def OnLinkStaticTextMouseEvent(self, event):
@@ -2236,14 +2239,15 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                     destination = l
 
             if source and destination and source != destination:
-                index = self.videoplayer.get_playlist().index(destination.ti_pair)
-                self.videoplayer.remove_from_playlist(*source.ti_pair)
-                self.videoplayer.add_to_playlist(source.ti_pair[0], source.ti_pair[1], index)
+                move_current = self.videoplayer.get_playlist_index() == source.index
+                self.videoplayer.remove_from_playlist(source.index)
+                self.videoplayer.add_to_playlist(source.ti_pair[0], source.ti_pair[1], destination.index)
+                if move_current:
+                    self.videoplayer.set_playlist_index(destination.index, play=False)
                 self.UpdateComponents()
                 return
             else:
-                torrent, fileindex = link.ti_pair
-                self.library_manager.playTorrent(torrent, torrent.files[fileindex][0])
+                self.videoplayer.set_playlist_index(link.index)
 
         for link in self.links.values():
             mousepos = wx.GetMousePosition()
@@ -2254,18 +2258,16 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     @forceWxThread
     def OnVideoStarted(self, subject, changeType, torrent_tuple):
-        for key, control in self.links.iteritems():
-            torrent, fileindex = key
-            if torrent.infohash == torrent_tuple[0] and fileindex == torrent_tuple[1]:
+        index = self.videoplayer.get_playlist_index()
+        for control in self.links.values():
+            if control.index == index:
                 control.SetForegroundColour(TRIBLER_RED)
-                self.playing = torrent_tuple
             else:
                 control.SetForegroundColour(self.fg_colour)
 
     @forceWxThread
     def OnVideoStopped(self, subject, changeType, torrent_tuple):
-        for key, control in self.links.iteritems():
-            torrent, fileindex = key
-            if torrent.infohash == torrent_tuple[0] and fileindex == torrent_tuple[1]:
+        index = self.videoplayer.get_playlist_index()
+        for control in self.links.values():
+            if control.index == index:
                 control.SetForegroundColour(self.fg_colour)
-                self.playing = None if self.playing == torrent_tuple else self.playing
