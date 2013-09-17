@@ -807,6 +807,8 @@ class LibraryManager:
         self.user_download_choice = UserDownloadChoice.get_singleton()
         self.wantpeers = []
 
+        self.last_vod_torrent = None
+
     def getInstance(*args, **kw):
         if LibraryManager.__single is None:
             LibraryManager.__single = LibraryManager(*args, **kw)
@@ -921,28 +923,19 @@ class LibraryManager:
 
     @forceWxThread
     def startLastVODTorrent(self):
-        videoplayer = self._get_videoplayer()
-        playlist = videoplayer.get_playlist()
-        index = videoplayer.get_playlist_index()
-        if index < len(playlist):
-            torrent, fileindex = playlist[index]
-            self.playTorrent(torrent, torrent.files[fileindex][0])
-        elif playlist:
-            index = len(playlist) - 1
-            torrent, fileindex = playlist[index]
-            videoplayer.set_playlist_index(index)
+        if self.last_vod_torrent:
+            self.playTorrent(*self.last_vod_torrent)
 
     @forceWxThread
     def stopLastVODTorrent(self):
-        videoplayer = self._get_videoplayer()
-        playlist = videoplayer.get_playlist()
-        index = videoplayer.get_playlist_index()
-        if index < len(playlist):
-            self.stopTorrent(playlist[index][0])
+        if self.last_vod_torrent:
+            self.stopTorrent(self.last_vod_torrent[0])
 
     @forceWxThread
     def playTorrent(self, torrent, selectedinfilename=None):
         print >> sys.stderr, "PLAY CLICKED", selectedinfilename
+
+        self.last_vod_torrent = [torrent, selectedinfilename]
 
         ds = torrent.get('ds')
 

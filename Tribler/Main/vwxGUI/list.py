@@ -2328,7 +2328,6 @@ class ActivitiesList(List):
         elif item.data[0] == 'Videoplayer':
             if self.guiutility.guiPage not in ['videoplayer']:
                 self.guiutility.ShowPage('videoplayer')
-            self.expandedPanel_videoplayer.UpdateComponents()
             return self.expandedPanel_videoplayer
         return True
 

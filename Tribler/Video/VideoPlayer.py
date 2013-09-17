@@ -51,9 +51,6 @@ class VideoPlayer:
         # Must create the instance here, such that it won't get garbage collected
         self.videorawserv = VideoRawVLCServer.getInstance()
 
-        self.playlist = []
-        self.playlist_index = -1
-
         self.resume_by_system = 0
         self.user_download_choice = None
 
@@ -103,8 +100,6 @@ class VideoPlayer:
         if closeextplayercallback is not None:
             self.closeextplayercallback = closeextplayercallback
 
-        self.utility.session.add_observer(self.video_ended, NTFY_TORRENTS, [NTFY_VIDEO_ENDED])
-
     def shutdown(self):
         if self.videohttpserv:
             self.videohttpserv.shutdown()
@@ -118,44 +113,6 @@ class VideoPlayer:
 
     def set_videoframe(self, videoframe):
         self.videoframe = videoframe
-
-    def add_to_playlist(self, torrent, fileindex, queueindex= -1):
-        if queueindex < 0:
-            self.playlist.append((torrent, fileindex))
-        else:
-            self.playlist = self.playlist[:queueindex] + [(torrent, fileindex)] + self.playlist[queueindex:]
-            if queueindex <= self.playlist_index:
-                self.playlist_index += 1
-
-    def remove_from_playlist(self, index):
-        if index < len(self.playlist):
-            self.playlist.pop(index)
-            if index < self.playlist_index:
-                self.playlist_index -= 1
-            return True
-        return False
-
-    def get_playlist(self):
-        return copy.copy(self.playlist)
-
-    def set_playlist_index(self, index, play=True):
-        self.playlist_index = index
-        if play:
-            torrent, fileindex = self.get_playlist()[index]
-            self.recreate_videopanel()
-            self.stop_playback()
-            self.show_loading()
-            self.play(torrent.get('ds'), torrent.files[fileindex][0])
-
-    def get_playlist_index(self):
-        return self.playlist_index
-
-    @forceWxThread
-    def video_ended(self, subject, changeType, torrent_tuple):
-        playlist = self.get_playlist()
-        index = self.get_playlist_index()
-        if index + 1 < len(playlist):
-            self.set_playlist_index(index + 1)
 
     def play_file(self, dest):
         """ Play video file from disk """

@@ -7,7 +7,7 @@ from __init__ import *
 from Tribler.Core.osutils import startfile
 from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
     DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA, DLMODE_NORMAL, UPLOAD, DOWNLOAD, NTFY_TORRENTS, \
-    NTFY_VIDEO_STARTED, NTFY_VIDEO_STOPPED
+    NTFY_VIDEO_STARTED, NTFY_VIDEO_STOPPED, NTFY_VIDEO_ENDED
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
@@ -2147,24 +2147,29 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     def __init__(self, parent):
         wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, style=wx.NO_BORDER)
+
         self.guiutility = GUIUtility.getInstance()
-        self.videoplayer = VideoPlayer.getInstance()
         self.library_manager = self.guiutility.library_manager
+
+        self.torrent = None
+        self.fileindex = 0
+
         self.close_icon = wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, "images", "close.png"), wx.BITMAP_TYPE_ANY)
         self.fg_colour = self.GetForegroundColour()
         self.bg_colour = LIST_LIGHTBLUE
         self.SetBackgroundColour(self.bg_colour)
         self.AddComponents()
+        self.SetNrFiles(0)
+
         self.guiutility.utility.session.add_observer(self.OnVideoStarted, NTFY_TORRENTS, [NTFY_VIDEO_STARTED])
         self.guiutility.utility.session.add_observer(self.OnVideoStopped, NTFY_TORRENTS, [NTFY_VIDEO_STOPPED])
+        self.guiutility.utility.session.add_observer(self.OnVideoEnded, NTFY_TORRENTS, [NTFY_VIDEO_ENDED])
 
     def AddComponents(self):
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizer.Add(self.vSizer, 1, wx.EXPAND | wx.LEFT, 20)
-
-        self.AddLinks()
-
+        self.links = []
         self.SetSizer(self.hSizer)
         self.Layout()
 
@@ -2179,52 +2184,84 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                     return newText
             return ""
 
-        self.links = {}
-        self.virtual_height = 0
-        for index, torrent_tuple in enumerate(self.videoplayer.get_playlist()):
-            torrent, fileindex = torrent_tuple
-            filename = torrent.files[fileindex][0]
-            link = LinkStaticText(self, filename, icon=None, font_colour=TRIBLER_RED if index == self.videoplayer.get_playlist_index() else self.fg_colour)
-            link.SetBackgroundColour(self.bg_colour)
-            link.SetLabel(DetermineText(link.text, filename))
-            link.Bind(wx.EVT_MOUSE_EVENTS, self.OnLinkStaticTextMouseEvent)
-            link.SetToolTipString(filename)
-            link_close = wx.StaticBitmap(self, -1, self.close_icon)
-            link_close.Show(False)
-            link_close.Bind(wx.EVT_LEFT_UP, lambda evt, i=index: self.RemoveFromPlaylist(i))
-            link.Add(link_close, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.RIGHT, 2)
-            link.ti_pair = (torrent, fileindex)
-            link.index = index
-            self.links[(torrent, fileindex)] = link
-            self.vSizer.Add(link, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
-            self.virtual_height += link.text.GetSize()[1]
+        self.links = []
+        for file_tuple in sorted(self.torrent.files):
+            if file_tuple[0] in self.torrent.videofiles:
+                fileindex = self.torrent.files.index(file_tuple)
+                filename = file_tuple[0]
+                link = LinkStaticText(self, filename, icon=None, font_colour=TRIBLER_RED if fileindex == self.fileindex else self.fg_colour)
+                link.SetBackgroundColour(self.bg_colour)
+                link.SetLabel(DetermineText(link.text, filename))
+                link.Bind(wx.EVT_MOUSE_EVENTS, self.OnLinkStaticTextMouseEvent)
+                link.SetToolTipString(filename)
+                link_close = wx.StaticBitmap(self, -1, self.close_icon)
+                link_close.Show(False)
+                link_close.Bind(wx.EVT_LEFT_UP, lambda evt, i=fileindex: self.RemoveFileindex(i))
+                link.Add(link_close, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.RIGHT, 2)
+                link.fileindex = fileindex
+                self.links.append(link)
+                self.vSizer.Add(link, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
         self.OnChange()
         self.GetParent().parent_list.parent_list.Layout()
+
+    def UpdateComponents(self):
+        self.Freeze()
+        self.vSizer.Clear(deleteWindows=True)
+        if isinstance(self.torrent, CollectedTorrent):
+            self.AddLinks()
+            self.SetNrFiles(len(self.links))
+        else:
+            text = wx.StaticText(self, -1, "Fetching torrent...")
+            ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.vwxGUI_path, 'images', 'search_new.gif'))
+            ag.Play()
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(text, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+            sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
+            sizer.AddStretchSpacer()
+            self.vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
+            self.SetNrFiles(0)
+        self.Layout()
+        self.Thaw()
+
+    def SetTorrent(self, torrent):
+        self.torrent = torrent
+        self.fileindex = 0
+        self.UpdateComponents()
+        if isinstance(self.torrent, CollectedTorrent):
+            self.library_manager.playTorrent(self.torrent, self.torrent.files[self.links[0].fileindex][0])
+
+    def RemoveFileindex(self, fileindex):
+        for index, link in enumerate(self.links):
+            if link.fileindex == fileindex:
+                self.links.pop(index)
+                link.ShowItems(False)
+                link.Clear(deleteWindows=True)
+                self.vSizer.Remove(link)
+                self.OnChange()
+                self.SetNrFiles(len(self.links))
+                self.library_manager.stopTorrent(self.torrent)
+                self.library_manager.last_vod_torrent = None
+
+    def SetNrFiles(self, nr):
+        videoplayer_item = self.guiutility.frame.actlist.GetItem(5)
+        num_items = getattr(videoplayer_item, 'num_items', None)
+        if num_items:
+            num_items.SetValue(str(nr))
+            num_items.Show(bool(nr))
+            videoplayer_item.hSizer.Layout()
 
     def OnChange(self):
         self.Freeze()
 
         max_height = self.guiutility.frame.actlist.GetSize().y - self.GetParent().GetPosition()[1] * 1.25 - 4
-        best_height = min(max_height, self.virtual_height)
+        virtual_height = sum([link.text.GetSize()[1] for link in self.links]) if self.links else (30 if self.torrent and not isinstance(self.torrent, CollectedTorrent) else 0)
+        best_height = min(max_height, virtual_height)
         self.SetMinSize((-1, best_height))
         self.GetParent().parent_list.Layout()
         self.SetupScrolling(scroll_x=False, scroll_y=True)
 
         self.Thaw()
-
-    def UpdateComponents(self):
-        self.Freeze()
-        self.vSizer.Clear(deleteWindows=True)
-        self.AddLinks()
-        self.Layout()
-        self.Thaw()
-
-    def RemoveFromPlaylist(self, index):
-        if index == self.videoplayer.get_playlist_index():
-            self.library_manager.stopTorrent(self.videoplayer.get_playlist()[index][0])
-        self.videoplayer.remove_from_playlist(index)
-        self.UpdateComponents()
 
     def OnLinkStaticTextMouseEvent(self, event):
         link = event.GetEventObject()
@@ -2234,22 +2271,23 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             destination = None
             source = self.dragging
             self.dragging = None
-            for l in self.links.values():
+            for l in self.links:
                 if l.text.GetScreenRect().Contains(wx.GetMousePosition()):
                     destination = l
 
             if source and destination and source != destination:
-                move_current = self.videoplayer.get_playlist_index() == source.index
-                self.videoplayer.remove_from_playlist(source.index)
-                self.videoplayer.add_to_playlist(source.ti_pair[0], source.ti_pair[1], destination.index)
-                if move_current:
-                    self.videoplayer.set_playlist_index(destination.index, play=False)
-                self.UpdateComponents()
+                source_index = self.links.index(source)
+                destination_index = self.links.index(destination)
+                self.links.pop(source_index)
+                self.links.insert(destination_index, source)
+                self.vSizer.Detach(source)
+                self.vSizer.Insert(destination_index, source, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+                self.Layout()
                 return
             else:
-                self.videoplayer.set_playlist_index(link.index)
+                self.library_manager.playTorrent(self.torrent, self.torrent.files[link.fileindex][0])
 
-        for link in self.links.values():
+        for link in self.links:
             mousepos = wx.GetMousePosition()
             show = link.GetItem(0).GetWindow().GetScreenRect().Contains(mousepos) or \
                    link.GetItem(1).GetWindow().GetScreenRect().Contains(mousepos)
@@ -2258,16 +2296,28 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     @forceWxThread
     def OnVideoStarted(self, subject, changeType, torrent_tuple):
-        index = self.videoplayer.get_playlist_index()
-        for control in self.links.values():
-            if control.index == index:
+        _, fileindex = torrent_tuple
+        for control in self.links:
+            if control.fileindex == fileindex:
                 control.SetForegroundColour(TRIBLER_RED)
             else:
                 control.SetForegroundColour(self.fg_colour)
 
     @forceWxThread
     def OnVideoStopped(self, subject, changeType, torrent_tuple):
-        index = self.videoplayer.get_playlist_index()
-        for control in self.links.values():
-            if control.index == index:
+        _, fileindex = torrent_tuple
+        for control in self.links:
+            if control.fileindex == fileindex:
                 control.SetForegroundColour(self.fg_colour)
+
+    @forceWxThread
+    def OnVideoEnded(self, subject, changeType, torrent_tuple):
+        _, fileindex = torrent_tuple
+        for index, control in enumerate(self.links):
+            if control.fileindex == fileindex:
+                control.SetForegroundColour(self.fg_colour)
+                if index + 1 < len(self.links):
+                    control_next = self.links[index + 1]
+                    control_next.SetForegroundColour(TRIBLER_RED)
+                    self.fileindex = control_next.fileindex
+                    self.library_manager.playTorrent(self.torrent, self.torrent.files[self.fileindex][0])

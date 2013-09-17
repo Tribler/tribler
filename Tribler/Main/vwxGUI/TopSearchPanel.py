@@ -378,15 +378,9 @@ class TopSearchPanel(FancyPanel):
         if not torrent:
             return
 
-        playable_files = [(file_tuple[1], file_tuple[0], index) for index, file_tuple in enumerate(torrent.files) if file_tuple[0] in torrent.videofiles]
-        playable_files.sort()
-
-        if playable_files:
-            videoplayer = VideoPlayer.getInstance()
-            for playable_file in playable_files:
-                videoplayer.add_to_playlist(torrent, playable_file[2])
+        if torrent.isPlayable():
             self.guiutility.ShowPlayer()
-            videoplayer.set_playlist_index(len(videoplayer.get_playlist()) - 1)
+            self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
 
         if not self.guiutility.frame.searchlist.IsShownOnScreen():
             self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
