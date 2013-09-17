@@ -40,8 +40,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.parent = parent
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
 
-        self.volume = 0.48
-        self.oldvolume = 0.48
+        self.volume = vlcwrap.sound_get_volume() if vlcwrap else 0.48
+        self.oldvolume = vlcwrap.sound_get_volume() if vlcwrap else  0.48
         self.estduration = None
         self.fullscreenwindow = None
         self.download = None
