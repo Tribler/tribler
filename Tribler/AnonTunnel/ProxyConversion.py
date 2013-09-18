@@ -69,14 +69,14 @@ class ProxyConversion(BinaryConversion):
         self.define_meta_message(
             chr(1)
             , community.get_meta_message(u"create")
-            , self._encode_createOrCreated
-            , self._decode_createOrCreated)
+            , self._encode_create_created
+            , self._decode_create_or_created)
 
         self.define_meta_message(
             chr(2)
             , community.get_meta_message(u"created")
-            , self._encode_createOrCreated
-            , self._decode_createOrCreated)
+            , self._encode_create_created
+            , self._decode_create_or_created)
 
         self.define_meta_message(
             chr(3)
@@ -140,11 +140,11 @@ class ProxyConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(circuit_id)
 
     @staticmethod
-    def _encode_createOrCreated(message):
+    def _encode_create_created(message):
         return struct.pack("!L", message.payload.circuit_id),
 
     @staticmethod
-    def _decode_createOrCreated(placeholder, offset, data):
+    def _decode_create_or_created(placeholder, offset, data):
         if len(data) < offset + 4:
             raise DropPacket("Cannot unpack circuit_id, insufficient packet size")
 
@@ -209,9 +209,9 @@ class ProxyConversion(BinaryConversion):
         port, = struct.unpack_from("!L", data, offset)
         offset += 4
 
-        ExtendWith = (host, port)
+        extend_with = (host, port)
 
-        return offset, placeholder.meta.payload.implement(circuit_id, ExtendWith)
+        return offset, placeholder.meta.payload.implement(circuit_id, extend_with)
 
     @staticmethod
     def _decode_extended(placeholder, offset, data):
@@ -230,9 +230,9 @@ class ProxyConversion(BinaryConversion):
         port, = struct.unpack_from("!L", data, offset)
         offset += 4
 
-        ExtendedWith = (host, port)
+        extend_with = (host, port)
 
-        return offset, placeholder.meta.payload.implement(circuit_id, ExtendedWith)
+        return offset, placeholder.meta.payload.implement(circuit_id, extend_with)
 
     @staticmethod
     def _decode_data(placeholder, offset, data):

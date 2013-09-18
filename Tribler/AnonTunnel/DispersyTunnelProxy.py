@@ -330,12 +330,12 @@ class DispersyTunnelProxy(Observable):
         del self.circuit_membership[address]
 
         # Delete rules from routing tables
-        relayKey = (address, circuit_id)
-        if relayKey in self.relay_from_to:
-            del self.relay_from_to[relayKey]
+        relay_key = (address, circuit_id)
+        if relay_key in self.relay_from_to:
+            del self.relay_from_to[relay_key]
 
-        if relayKey in self.relay_to_from:
-            del self.relay_to_from[relayKey]
+        if relay_key in self.relay_to_from:
+            del self.relay_to_from[relay_key]
 
 
     def on_member_exit(self, event):

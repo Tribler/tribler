@@ -19,4 +19,4 @@ raw_server = RawServer(server_done_flag,
                        ipv6_enable=False)
 
 tc = TunnelCommander((UDP_IP, UDP_PORT), raw_server)
-tc.requestStop()
+tc.request_stop()

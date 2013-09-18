@@ -34,11 +34,11 @@ class Observable(object):
         """
         self.callbacks[event].append(callback)
 
-    def fire(self, event_name, **eventParameterDictionary):
+    def fire(self, event_name, **event_parameter_dictionary):
         """
         Fire an event by name
         :param event_name: the event to fire
-        :param eventParameterDictionary: a dictionary containing parameters for the Event object
+        :param event_parameter_dictionary: a dictionary containing parameters for the Event object
         :return: None
         """
         if not event_name in self.callbacks:
@@ -46,7 +46,7 @@ class Observable(object):
 
         event_parameter = Event()
         event_parameter.source = self
-        for attribute_key, attribute_value in eventParameterDictionary.iteritems():
+        for attribute_key, attribute_value in event_parameter_dictionary.iteritems():
             setattr(event_parameter, attribute_key, attribute_value)
 
         for handler in self.callbacks[event_name]:

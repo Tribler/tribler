@@ -28,23 +28,23 @@ class TunnelCommander(Observable):
             response = pickle.loads(payload)
             self.dispatch_response(source_address, response)
 
-    def requestIsOnline(self):
+    def request_is_online(self):
         request = IsOnlineRequest()
         self.udp_socket.sendto(pickle.dumps(request), self.address)
 
-    def requestListCircuits(self):
+    def request_list_circuits(self):
         request = ListCircuitsRequest()
         self.udp_socket.sendto(pickle.dumps(request), self.address)
 
-    def requestCircuitCreate(self, first_hop):
+    def request_circuit_create(self, first_hop):
         request = CreateCircuitRequest(first_hop)
         self.udp_socket.sendto(pickle.dumps(request), self.address)
 
-    def requestStart(self):
+    def request_start(self):
         request = StartRequest()
         self.udp_socket.sendto(pickle.dumps(request), self.address)
 
-    def requestStop(self):
+    def request_stop(self):
         request = StopRequest()
         self.udp_socket.sendto(pickle.dumps(request), self.address)
 

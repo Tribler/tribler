@@ -30,11 +30,11 @@ class Socks5AnonTunnelServer(Thread):
         self._tunnel.socket_server = self
 
 
-    def __init__(self, Socks5_port=1080, timeout=10.0):
+    def __init__(self, socks5_port=1080, timeout=10.0):
         Thread.__init__(self)
         self.setDaemon(False)
         self.setName('Socks5Server' + self.getName())
-        self.Socks5_port = Socks5_port
+        self.socks5_port = socks5_port
 
         self.udp_relay_socket = None
 
@@ -54,12 +54,12 @@ class Socks5AnonTunnelServer(Thread):
                                     errorfunc=lambda (e): print_exc())
 
         try:
-            port = self.raw_server.find_and_bind(self.Socks5_port, self.Socks5_port, self.Socks5_port + 10, ['0.0.0.0'],
+            port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
                                                  reuse=True)
             logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
         except socket.error:
             logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
-                         Socks5_port)
+                         socks5_port)
 
 
     def shutdown(self):
