@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import socket
-from Tribler.AnonTunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
+from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 from traceback import print_exc
 from threading import Thread, Event
 from Tribler.Core.RawServer.RawServer import RawServer
@@ -30,7 +30,7 @@ class Socks5AnonTunnelServer(Thread):
         self._tunnel.socket_server = self
 
 
-    def __init__(self, socks5_port=1080, timeout=10.0):
+    def __init__(self, raw_server, socks5_port=1080, timeout=10.0):
         Thread.__init__(self)
         self.setDaemon(False)
         self.setName('Socks5Server' + self.getName())
@@ -46,12 +46,7 @@ class Socks5AnonTunnelServer(Thread):
         self._tunnel = None
 
         self.server_done_flag = Event()
-        self.raw_server = RawServer(self.server_done_flag,
-                                    timeout / 5.0,
-                                    timeout,
-                                    ipv6_enable=False,
-                                    failfunc=lambda (e): print_exc(),
-                                    errorfunc=lambda (e): print_exc())
+        self.raw_server = raw_server
 
         try:
             port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],

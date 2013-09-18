@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 __author__ = 'Chris'
 
-from Tribler.AnonTunnel.Socks5 import structs
+from Tribler.community.anontunnel.Socks5 import structs
 from UdpReturnHandler import UdpReturnHandler
 
 

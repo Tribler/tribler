@@ -1,6 +1,6 @@
 import logging
-from Tribler.AnonTunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
-from Tribler.AnonTunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
+from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
+from Tribler.community.anontunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class TcpConnectionHandler(object):
     def __init__(self):
         self.socket2connection = {}
         self.server = None
-        """ :type : Tribler.AnonTunnel.Socks5AnonTunnel.Socks5AnonTunnel """
+        """ :type : Tribler.community.anontunnel.Socks5AnonTunnel.Socks5AnonTunnel """
 
     def external_connection_made(self, s):
         # Extra check in case bind() no work

@@ -1,7 +1,7 @@
 from threading import Event
 
-from Tribler.AnonTunnel.ConnectionHandlers.CommandHandler import StartRequest
-from Tribler.AnonTunnel.TunnelCommander import TunnelCommander
+from Tribler.community.anontunnel.ConnectionHandlers.CommandHandler import StartRequest
+from Tribler.community.anontunnel.TunnelCommander import TunnelCommander
 from Tribler.Core.RawServer.RawServer import RawServer
 
 

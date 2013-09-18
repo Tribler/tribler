@@ -1,4 +1,4 @@
-from Tribler.AnonTunnel.ConnectionHandlers.CommandHandler import CommandHandler
+from Tribler.community.anontunnel.ConnectionHandlers.CommandHandler import CommandHandler
 
 __author__ = 'chris'
 
@@ -6,9 +6,9 @@ import logging.config
 
 logger = logging.getLogger(__name__)
 
-from Tribler.AnonTunnel.DispersyTunnelProxy import DispersyTunnelProxy
-from Tribler.AnonTunnel.ProxyCommunity import ProxyCommunity
-from Tribler.AnonTunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
+from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
+from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
+from Tribler.community.anontunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import RawserverEndpoint

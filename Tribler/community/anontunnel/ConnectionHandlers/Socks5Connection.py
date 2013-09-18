@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from Tribler.AnonTunnel.Socks5 import structs
+from Tribler.community.anontunnel.Socks5 import structs
 
 DEBUG = True
 
@@ -157,12 +157,12 @@ class Socks5Connection(object):
             # We are at the initial state, so we expect a handshake request.
             if self.state == ConnectionState.BEFORE_METHOD_REQUEST:
                 if not self._try_handshake():
-                    break   # Not enough bytes so wait till we got more
+                    break  # Not enough bytes so wait till we got more
 
             # We are connected so the
             elif self.state == ConnectionState.CONNECTED:
                 if not self._try_request():
-                    break   # Not enough bytes so wait till we got more
+                    break  # Not enough bytes so wait till we got more
 
 
     def write(self, data):

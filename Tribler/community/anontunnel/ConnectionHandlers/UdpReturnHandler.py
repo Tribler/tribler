@@ -1,4 +1,4 @@
-from Tribler.AnonTunnel.Socks5 import structs
+from Tribler.community.anontunnel.Socks5 import structs
 
 __author__ = 'Chris'
 

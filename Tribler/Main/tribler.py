@@ -14,6 +14,7 @@
 
 import sys
 import logging.config
+from Tribler.community.anontunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
 try:
     logging.config.fileConfig("logger.conf")
 except:
@@ -454,6 +455,7 @@ class ABCApp():
             from Tribler.community.bartercast3.community import BarterCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
+            from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
@@ -474,6 +476,12 @@ class ABCApp():
 
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
+
+            socks_server = Socks5AnonTunnelServer(s.lm.rawserver, 1080)
+            socks_server.start()
+            dispersy.define_auto_load(ProxyCommunity,
+                                     (s.dispersy_member, socks_server),
+                                     load=True)
 
             print >> sys.stderr, "tribler: Dispersy communities are ready"
 

@@ -1,5 +1,5 @@
 import logging
-from Tribler.AnonTunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
+from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 
 MAX_CIRCUITS_TO_CREATE = 10
 
@@ -9,7 +9,7 @@ from Observable import Observable
 
 from collections import defaultdict, deque
 import random
-from ProxyCommunity import ProxyCommunity
+# from ProxyCommunity import ProxyCommunity
 from ProxyConversion import DataPayload, ExtendPayload
 
 __author__ = 'Chris'
@@ -202,7 +202,7 @@ class DispersyTunnelProxy(Observable):
 
             community.send(u"extend", relay.to_address, msg.circuit_id, msg.extend_with)
             return
-        else: # We are responsible for EXTENDING the circuit
+        else:  # We are responsible for EXTENDING the circuit
 
             circuit_id = msg.circuit_id
 

@@ -19,7 +19,7 @@ class CircuitReturnHandler(object):
         :param destination_address: the first hop of the circuit
         :param socket: the socket that listens to UDP packets
 
-        :type proxy: Tribler.AnonTunnel.DispersyTunnelProxy.DispersyTunnelProxy
+        :type proxy: Tribler.community.anontunnel.DispersyTunnelProxy.DispersyTunnelProxy
 
         """
         self.proxy = proxy
@@ -58,7 +58,7 @@ class ShortCircuitReturnHandler(object):
         :param destination_address: the first hop of the circuit
         :param socket: the socket that listens to UDP packets
 
-        :type proxy: Tribler.AnonTunnel.DispersyTunnelProxy.DispersyTunnelProxy
+        :type proxy: Tribler.community.anontunnel.DispersyTunnelProxy.DispersyTunnelProxy
 
         """
         self.proxy = proxy

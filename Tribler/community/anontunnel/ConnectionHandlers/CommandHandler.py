@@ -65,7 +65,7 @@ class CommandHandler(object):
         """
 
         :param anon_tunnel: the dispersy tunnel we want to control
-        :type anon_tunnel : Tribler.AnonTunnel.AnonTunnel.AnonTunnel
+        :type anon_tunnel : Tribler.community.anontunnel.AnonTunnel.AnonTunnel
         :return:
         """
         self.anon_tunnel = anon_tunnel

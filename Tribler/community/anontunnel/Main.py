@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 import threading
 import yappi
-from Tribler.AnonTunnel.AnonTunnel import AnonTunnel
+from Tribler.community.anontunnel.AnonTunnel import AnonTunnel
 
 import sys, getopt
 

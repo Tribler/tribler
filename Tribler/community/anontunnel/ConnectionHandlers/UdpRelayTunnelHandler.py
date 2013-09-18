@@ -1,6 +1,6 @@
 import logging
 
-from Tribler.AnonTunnel.Socks5 import structs
+from Tribler.community.anontunnel.Socks5 import structs
 
 
 logger = logging.getLogger(__name__)

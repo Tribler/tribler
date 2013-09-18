@@ -2,7 +2,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import logging
 from traceback import print_exc
-from Tribler.AnonTunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload
+from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload
+from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,34 @@ import functools
 
 
 class ProxyCommunity(Community, Observable):
-    def __init__(self, dispersy, master_member):
+
+    @classmethod
+    def get_master_members(cls, dispersy):
+# generated: Wed Sep 18 22:47:22 2013
+# curve: high <<< NID_sect571r1 >>>
+# len: 571 bits ~ 144 bytes signature
+# pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de57bb1ac5dec351d172fe692555898ac944b68c730590f850ab931c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696f57eec3b8f2f77e7ab56fd8d6d63
+# pub-sha1 089515d307ed31a25eec2c54667ddcd2d402c041
+#-----BEGIN PUBLIC KEY-----
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQEYIKfm7cvDLCUkEqm+IX/cOHphlHo
+# ERmx57QkAvPFz6GD2NlnOMQP/ZCacAIEiOO1m2feV7saxd7DUdFy/mklVYmKyUS2
+# jHMFkPhQq5McVzLVqdVzp/4fncipIBvDy2OrGCyeSF0I/0rClPCeFtOSWTCUb4fp
+# HvnEC7tBifnFr2aW9X7sO48vd+erVv2NbWM=
+#-----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de57bb1ac5dec351d172fe692555898ac944b68c730590f850ab931c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696f57eec3b8f2f77e7ab56fd8d6d63".decode("HEX")
+        master = dispersy.get_member(master_key)
+        return [master]
+
+    @classmethod
+    def load_community(cls, dispersy, master, my_member, socks_server):
+        try:
+            dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
+        except StopIteration:
+            return cls.join_community(dispersy, master, my_member, my_member, socks_server)
+        else:
+            return super(ProxyCommunity, cls).load_community(dispersy, master, socks_server)
+
+    def __init__(self, dispersy, master_member, socks_server):
         Observable.__init__(self)
 
         # original walker callbacks (will be set during super(...).__init__)
@@ -30,6 +58,9 @@ class ProxyCommunity(Community, Observable):
         self._original_on_introduction_response = None
 
         Community.__init__(self, dispersy, master_member)
+
+        self.socks_server = socks_server
+        self.socks_server.tunnel = DispersyTunnelProxy(self)
 
         # Heartbeat hashmap Candidate -> last heart beat timestamp, assume we never heard any
         self.member_heartbeat = defaultdict(lambda: datetime.min)
@@ -70,7 +101,7 @@ class ProxyCommunity(Community, Observable):
                 print_exc()
                 logger.error(e)
 
-        self.dispersy.callback.register(ping_and_purge, priority=-10)
+        self.dispersy.callback.register(ping_and_purge, priority= -10)
 
 
     def initiate_conversions(self):
