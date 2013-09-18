@@ -17,6 +17,7 @@ from Tribler import LIBRARYNAME
 
 from Tribler.Main.vwxGUI.list_body import *
 from Tribler.Main.vwxGUI.list_details import *
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 
 class ColumnsManager:
