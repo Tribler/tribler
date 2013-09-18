@@ -11,7 +11,7 @@ from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAIT
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist, NotCollectedTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
@@ -2150,6 +2150,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.guiutility = GUIUtility.getInstance()
         self.library_manager = self.guiutility.library_manager
+        self.torrentsearch_manager = self.guiutility.torrentsearch_manager
 
         self.torrent = None
         self.fileindex = 0
@@ -2208,7 +2209,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def UpdateComponents(self):
         self.Freeze()
         self.vSizer.Clear(deleteWindows=True)
-        if isinstance(self.torrent, CollectedTorrent):
+        if not isinstance(self.torrent, NotCollectedTorrent):
             self.AddLinks()
             self.SetNrFiles(len(self.links))
         else:
@@ -2221,15 +2222,32 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             sizer.AddStretchSpacer()
             self.vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
             self.SetNrFiles(0)
+            self.OnChange()
         self.Layout()
         self.Thaw()
 
+    @forceWxThread
     def SetTorrent(self, torrent):
         self.torrent = torrent
         self.fileindex = 0
         self.UpdateComponents()
-        if isinstance(self.torrent, CollectedTorrent):
+        if not isinstance(self.torrent, NotCollectedTorrent):
             self.library_manager.playTorrent(self.torrent, self.torrent.files[self.links[0].fileindex][0])
+        else:
+            filename = self.torrentsearch_manager.getCollectedFilename(self.torrent, retried=True)
+            if filename:
+                self.torrentsearch_manager.loadTorrent(self.torrent, callback=self.SetTorrent)
+            else:
+                def do_collect():
+                    torrent = self.torrent.torrent
+                    if torrent:
+                        def callback():
+                            from Tribler.Core.TorrentDef import TorrentDef
+                            torrent_filename = self.torrentsearch_manager.getCollectedFilename(torrent)
+                            tdef = TorrentDef.load(torrent_filename)
+                            self.SetTorrent(CollectedTorrent(torrent, tdef))
+                        self.torrentsearch_manager.getTorrent(torrent, callback)
+                startWorker(None, do_collect, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def RemoveFileindex(self, fileindex):
         for index, link in enumerate(self.links):
@@ -2255,7 +2273,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Freeze()
 
         max_height = self.guiutility.frame.actlist.GetSize().y - self.GetParent().GetPosition()[1] * 1.25 - 4
-        virtual_height = sum([link.text.GetSize()[1] for link in self.links]) if self.links else (30 if self.torrent and not isinstance(self.torrent, CollectedTorrent) else 0)
+        virtual_height = sum([link.text.GetSize()[1] for link in self.links]) if self.links else (30 if self.torrent and isinstance(self.torrent, NotCollectedTorrent) else 0)
         best_height = min(max_height, virtual_height)
         self.SetMinSize((-1, best_height))
         self.GetParent().parent_list.Layout()
