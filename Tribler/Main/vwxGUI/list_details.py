@@ -2209,6 +2209,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def UpdateComponents(self):
         self.Freeze()
         self.vSizer.Clear(deleteWindows=True)
+        self.links = []
         if not isinstance(self.torrent, NotCollectedTorrent):
             self.AddLinks()
             self.SetNrFiles(len(self.links))
@@ -2222,17 +2223,22 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             sizer.AddStretchSpacer()
             self.vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
             self.SetNrFiles(0)
-            self.OnChange()
         self.Layout()
+        self.OnChange()
         self.Thaw()
 
     @forceWxThread
     def SetTorrent(self, torrent):
+        if self.torrent:
+            self.library_manager.stopTorrent(self.torrent)
+
         self.torrent = torrent
         self.fileindex = 0
         self.UpdateComponents()
+
         if not isinstance(self.torrent, NotCollectedTorrent):
             self.library_manager.playTorrent(self.torrent, self.torrent.files[self.links[0].fileindex][0])
+
         else:
             filename = self.torrentsearch_manager.getCollectedFilename(self.torrent, retried=True)
             if filename:
