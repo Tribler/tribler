@@ -129,6 +129,12 @@ class Socks5AnonTunnelServer(Thread):
         self.raw_server.start_listening_udp(udp_socket, handler)
 
     def on_tunnel_data(self, event):
+        # We are not an endpoint of the tunnel so bail out
+        if self.udp_relay_socket is None:
+            msg = event.data
+            logger.error("NOT ROUTABLE: Got an UDP packet from %s to %s", event.sender, msg.destination)
+            return
+
         packet = event.data
 
         source_address = packet.origin

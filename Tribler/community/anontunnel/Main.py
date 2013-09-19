@@ -103,6 +103,14 @@ def main(argv):
             anon_tunnel.stop()
             break
 
+        elif line == 'rt\n':
+            print "circuit\tdirection\tcircuit"
+
+            from_to = anon_tunnel.tunnel.relay_from_to
+
+            for key in from_to.keys():
+                print "%s-->\t%s" % (key, (from_to[key].address, from_to[key].circuit_id))
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
