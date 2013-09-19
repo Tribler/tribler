@@ -66,7 +66,7 @@ class ProxyCommunity(Community, Observable):
         self.member_heartbeat = defaultdict(lambda: datetime.min)
         self.member_ping = defaultdict(lambda: datetime.min)
 
-        self.subscribe("on_pong", lambda (event): logger.info(
+        self.subscribe("on_pong", lambda (event): logger.debug(
             "Got PONG from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
 
         def ping_and_purge():
@@ -93,7 +93,7 @@ class ProxyCommunity(Community, Observable):
 
                     for candidate in candidates_to_be_pinged:
                         self.send(u"ping", candidate.sock_addr)
-                        logger.info("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+                        logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
                     # rerun over 3 seconds
                     yield 3.0
@@ -223,7 +223,10 @@ class ProxyCommunity(Community, Observable):
         assert self._original_on_introduction_response
 
     def send(self, message_type, destination, *payload):
-        candidate = self.dispersy.get_candidate(destination)
+        if not isinstance(destination, Candidate):
+            candidate = self.dispersy.get_candidate(destination)
+        else:
+            candidate = destination
 
         if not isinstance(candidate, Candidate):
             return
@@ -235,7 +238,7 @@ class ProxyCommunity(Community, Observable):
 
     def on_ping(self, messages):
         for message in messages:
-            logger.info("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
+            logger.debug("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
             self.send(u"pong", message.candidate.sock_addr)
 
     def on_introduction_request(self, messages):

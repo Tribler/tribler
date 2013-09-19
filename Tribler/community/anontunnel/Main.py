@@ -1,5 +1,6 @@
 import logging.config
 import os
+import re
 
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
@@ -47,6 +48,8 @@ def main(argv):
 
     anon_tunnel.start()
 
+    regex_cmd_extend_circuit = re.compile("e ([0-9]+)\n")
+
     while 1:
         try:
             line = sys.stdin.readline()
@@ -56,6 +59,8 @@ def main(argv):
 
         if not line:
             break
+
+        cmd_extend_match = regex_cmd_extend_circuit.match(line)
 
         if line == 'threads\n':
             for thread in threading.enumerate():
@@ -86,6 +91,13 @@ def main(argv):
             print "========\nCircuits\n========\nid\taddress\t\t\t\thops"
             for circuit in anon_tunnel.tunnel.circuits.values():
                 print "%d\t%s\t%d\n" % (circuit.id, circuit.address, len(circuit.hops))
+
+        elif cmd_extend_match:
+            circuit_id = int(cmd_extend_match.group(1))
+
+            if circuit_id in anon_tunnel.tunnel.circuits:
+                circuit = anon_tunnel.tunnel.circuits[circuit_id]
+                anon_tunnel.tunnel.extend_circuit(circuit)
 
         elif line == 'q\n':
             anon_tunnel.stop()

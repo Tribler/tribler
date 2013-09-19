@@ -35,11 +35,11 @@ class BreakPayload(Payload):
 
 class ExtendPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, extend_with):
+        def __init__(self, meta, circuit_id):
             super(ExtendPayload.Implementation, self).__init__(meta)
 
             self.circuit_id = circuit_id
-            self.extend_with = extend_with
+            #self.extend_with = extend_with
 
 
 class ExtendedPayload(Payload):
@@ -164,12 +164,7 @@ class ProxyConversion(BinaryConversion):
 
     @staticmethod
     def _encode_extend(message):
-        (host, port) = message.payload.extend_with
-        return (
-            struct.pack("!LL", message.payload.circuit_id, len(host))
-            , host
-            , struct.pack("!L", port)
-        )
+        return struct.pack("!L", message.payload.circuit_id),
 
     @staticmethod
     def _encode_data(message):
@@ -194,24 +189,12 @@ class ProxyConversion(BinaryConversion):
 
     @staticmethod
     def _decode_extend(placeholder, offset, data):
-        if len(data) < offset + 8:
-            raise DropPacket("Cannot unpack circuit_id/HostLength, insufficient packet size")
-        circuit_id, host_length = struct.unpack_from("!LL", data, offset)
-        offset += 8
-
-        if len(data) < offset + host_length:
-            raise DropPacket("Cannot unpack Host, insufficient packet size")
-        host = data[offset:offset + host_length]
-        offset += host_length
-
         if len(data) < offset + 4:
-            raise DropPacket("Cannot unpack Port, insufficient packet size")
-        port, = struct.unpack_from("!L", data, offset)
+            raise DropPacket("Cannot unpack circuit_id, insufficient packet size")
+        circuit_id, = struct.unpack_from("!L", data, offset)
         offset += 4
 
-        extend_with = (host, port)
-
-        return offset, placeholder.meta.payload.implement(circuit_id, extend_with)
+        return offset, placeholder.meta.payload.implement(circuit_id)
 
     @staticmethod
     def _decode_extended(placeholder, offset, data):

@@ -21,6 +21,12 @@ class AnonTunnel:
 
     @property
     def tunnel(self):
+        """
+
+
+        :return:
+        :rtype: DispersyTunnelProxy
+        """
         return [c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)][0].socks_server.tunnel;
 
     def __init__(self, socks5_port, cmd_port):
