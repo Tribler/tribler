@@ -14,4 +14,4 @@ then
 	exit 1
 fi
 
-python -OO Tribler/AnonTunnel/Main.py $1
+python -OO Tribler/community/anontunnel/Main.py $1

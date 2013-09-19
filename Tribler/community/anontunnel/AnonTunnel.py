@@ -1,3 +1,5 @@
+from traceback import print_exc
+from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.community.anontunnel.ConnectionHandlers.CommandHandler import CommandHandler
 
 __author__ = 'chris'
@@ -12,12 +14,26 @@ from Tribler.community.anontunnel.Socks5AnonTunnelServer import Socks5AnonTunnel
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import RawserverEndpoint
+from threading import Event
 
 
 class AnonTunnel:
+
+    @property
+    def tunnel(self):
+        return self.community.socks_server.tunnel;
+
     def __init__(self, socks5_port, cmd_port):
+        self.server_done_flag = Event()
+        self.raw_server = RawServer(self.server_done_flag,
+                                    10.0 / 5.0,
+                                    10.0,
+                                    ipv6_enable=False,
+                                    failfunc=lambda (e): print_exc(),
+                                    errorfunc=lambda (e): print_exc())
+
         self.callback = Callback()
-        self.socket_server = Socks5AnonTunnelServer(socks5_port)
+        self.socket_server = Socks5AnonTunnelServer(self.raw_server, socks5_port)
 
         self.endpoint = RawserverEndpoint(self.socket_server.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
@@ -26,22 +42,17 @@ class AnonTunnel:
         self.command_handler.attach_to(self.socket_server, cmd_port)
 
         self.community = None
-        self.tunnel = None
 
     def start(self):
         self.dispersy.start()
         logger.info("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
         def join_overlay(dispersy):
-            master_member = dispersy.get_temporary_member_from_id("-PROXY-OVERLAY-HASH-")
-            my_member = dispersy.get_new_member()
-            return ProxyCommunity.join_community(dispersy, master_member, my_member)
+            dispersy.define_auto_load(ProxyCommunity,
+                                     (self.dispersy.get_new_member(), self.socket_server),
+                                     load=True)
 
         self.community = self.dispersy.callback.call(join_overlay, (self.dispersy,))
-
-        self.tunnel = DispersyTunnelProxy(self.community)
-
-        self.socket_server.tunnel = self.tunnel
         self.socket_server.start()
 
     def stop(self):

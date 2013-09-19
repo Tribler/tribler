@@ -40,7 +40,7 @@ class RelayRoute(object):
 
 
 class DispersyTunnelProxy(Observable):
-    def __init__(self, community):
+    def __init__(self, dispersy, community):
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
         Observable.__init__(self)
@@ -64,7 +64,7 @@ class DispersyTunnelProxy(Observable):
         self.local_addresses = {}
         self.community = None
 
-        self.local_addresses = {community.dispersy.lan_address, community.dispersy.wan_address}
+        self.local_addresses = {dispersy.lan_address, dispersy.wan_address}
 
         community.subscribe("on_create", self.on_create)
         community.subscribe("on_created", self.on_created)

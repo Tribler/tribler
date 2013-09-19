@@ -74,7 +74,7 @@ class ShortCircuitReturnHandler(object):
 
         for source_address, packet in packets:
             logger.info("ENTER DATA packet FROM %s", source_address)
-            meta = self.proxy.community.get_meta_message("data")
+            meta = self.proxy.community.get_meta_message(u"data")
             message = meta.impl(
                 distribution=(self.proxy.community.global_time,),
                 payload=(0, self.destination_address, packet, source_address))
