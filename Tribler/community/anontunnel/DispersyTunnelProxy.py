@@ -237,6 +237,7 @@ class DispersyTunnelProxy(Observable):
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
             community.send(u"extended", relay.address, relay.circuit_id, msg.extended_with)
+            self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, relay.circuit_id, msg.extended_with, False)
 
         # If it is ours, update our records
         elif self.circuits.has_key(msg.circuit_id):
@@ -248,8 +249,7 @@ class DispersyTunnelProxy(Observable):
             logger.info('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
                         extended_with, len(self.circuits[circuit_id].hops))
             self._process_extension_queue()
-
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, msg.circuit_id, msg.extended_with)
+            self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit_id, extended_with, True)
 
     def create_circuit(self, first_hop, circuit_id=None):
         """ Create a new circuit, with one initial hop """
