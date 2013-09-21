@@ -14,7 +14,6 @@
 
 import sys
 import logging.config
-from Tribler.community.anontunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
 try:
     logging.config.fileConfig("logger.conf")
 except:
@@ -456,6 +455,7 @@ class ABCApp():
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
+            from Tribler.community.anontunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
