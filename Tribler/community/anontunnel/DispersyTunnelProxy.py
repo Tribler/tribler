@@ -1,5 +1,7 @@
 import logging
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
+from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED
 
 MAX_CIRCUITS_TO_CREATE = 10
 
@@ -50,6 +52,8 @@ class DispersyTunnelProxy(Observable):
 
         self.done = False
         self.circuits = {}
+
+        self.notifier = Notifier.getInstance()
 
         # Hashmap Candidate -> {circuits}
         self.circuit_membership = defaultdict(set)
@@ -244,6 +248,8 @@ class DispersyTunnelProxy(Observable):
             logger.info('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
                         extended_with, len(self.circuits[circuit_id].hops))
             self._process_extension_queue()
+
+        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, msg.circuit_id, msg.extended_with)
 
     def create_circuit(self, first_hop, circuit_id=None):
         """ Create a new circuit, with one initial hop """

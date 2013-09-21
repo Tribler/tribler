@@ -67,6 +67,7 @@ NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
 NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
+NTFY_ANONTUNNEL = 'anontunnel'
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
@@ -93,6 +94,7 @@ NTFY_MAGNET_STARTED = 'magnet_started'
 NTFY_MAGNET_GOT_PEERS = 'magnet_peers'
 NTFY_MAGNET_PROGRESS = 'magnet_progress'
 NTFY_MAGNET_CLOSE = 'magnet_close'
+NTFY_EXTENDED = 'extended'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0
