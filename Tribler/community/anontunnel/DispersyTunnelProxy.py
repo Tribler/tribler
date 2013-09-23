@@ -250,7 +250,8 @@ class DispersyTunnelProxy(Observable):
 
         address = first_hop.sock_addr
 
-        if circuit_id is None:
+        # Generate a random circuit id that hasnt been used yet by us
+        while circuit_id is None or circuit_id in self.circuits:
             circuit_id = random.randint(1, 255)
 
         logger.info('Circuit %d is to be created', circuit_id)
