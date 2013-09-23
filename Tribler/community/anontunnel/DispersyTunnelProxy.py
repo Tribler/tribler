@@ -120,6 +120,8 @@ class DispersyTunnelProxy(Observable):
             circuit = self.circuits[msg.circuit_id]
             circuit.created = True
             logger.info('Circuit %d has been created', msg.circuit_id)
+
+            self.fire("circuit_created", circuit=circuit)
             self._process_extension_queue()
         else:
             created_for = self.relay_from_to[(address, msg.circuit_id)]
@@ -134,6 +136,9 @@ class DispersyTunnelProxy(Observable):
                         extended_with,
                         msg.circuit_id
             )
+
+            self.fire("circuit_extended_for", extended_for=(created_for.address, created_for.circuit_id),
+                      extended_with=(extended_with, msg.circuit_id))
 
     def on_data(self, event):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
@@ -229,6 +234,8 @@ class DispersyTunnelProxy(Observable):
 
                 community.send(u"create", to_address, new_circuit_id)
 
+                self.fire("circuit_extend", extend_for=(from_address, circuit_id), extend_with=(to_address, new_circuit_id))
+
     def on_extended(self, event):
         """ A circuit has been extended, forward the acknowledgment back
             to the origin of the EXTEND. If we are the origin update
@@ -260,6 +267,9 @@ class DispersyTunnelProxy(Observable):
             self.circuit_membership[extended_with].add(circuit_id)
             logger.info('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
                         extended_with, len(self.circuits[circuit_id].hops))
+
+            self.fire("circuit_extended", extended_with=extended_with)
+
             self._process_extension_queue()
 
     def create_circuit(self, first_hop, circuit_id=None):
