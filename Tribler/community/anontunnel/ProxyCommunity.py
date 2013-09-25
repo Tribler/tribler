@@ -4,6 +4,7 @@ import logging
 from traceback import print_exc
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
+from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,8 @@ class ProxyCommunity(Community, Observable):
         self._original_on_introduction_response = None
 
         Community.__init__(self, dispersy, master_member)
+
+        self.tribler_notifier = TriblerNotifier(self)
 
         self.socks_server = socks_server
         self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy, self)
