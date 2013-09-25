@@ -1,7 +1,6 @@
 import logging
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
-from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED
+from Tribler.dispersy.candidate import Candidate
 
 MAX_CIRCUITS_TO_CREATE = 10
 
@@ -52,8 +51,6 @@ class DispersyTunnelProxy(Observable):
 
         self.done = False
         self.circuits = {}
-
-        self.notifier = Notifier.getInstance()
 
         # Hashmap Candidate -> {circuits}
         self.circuit_membership = defaultdict(set)
@@ -123,6 +120,8 @@ class DispersyTunnelProxy(Observable):
             circuit = self.circuits[msg.circuit_id]
             circuit.created = True
             logger.info('Circuit %d has been created', msg.circuit_id)
+
+            self.fire("circuit_created", circuit=circuit)
             self._process_extension_queue()
         else:
             created_for = self.relay_from_to[(address, msg.circuit_id)]
@@ -137,6 +136,9 @@ class DispersyTunnelProxy(Observable):
                         extended_with,
                         msg.circuit_id
             )
+
+            self.fire("circuit_extended_for", extended_for=(created_for.address, created_for.circuit_id),
+                      extended_with=(extended_with, msg.circuit_id))
 
     def on_data(self, event):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
@@ -153,7 +155,9 @@ class DispersyTunnelProxy(Observable):
             relay = self.relay_from_to[relay_key]
 
             community.send(u"data", relay.address, relay.circuit_id, msg.destination, msg.data, msg.origin)
-            logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.address)
+
+            if __debug__:
+                logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.address)
 
         # If message is meant for us, write it to output
         elif msg.destination in self.local_addresses or msg.destination == ("0.0.0.0", 0):
@@ -164,18 +168,26 @@ class DispersyTunnelProxy(Observable):
             self.exit_data(msg.circuit_id, direct_sender_address, msg.destination, msg.data)
 
     def exit_data(self, circuit_id, direct_sender_address, destination, data):
-        logger.info("EXIT DATA packet to %s", destination)
+        if __debug__:
+            logger.info("EXIT DATA packet to %s", destination)
+
         self.get_exit_socket(circuit_id, direct_sender_address).sendto(data, destination)
 
     def get_exit_socket(self, circuit_id, address):
 
+        # If we don't have an exit socket yet for this socket, create one
+
         if not (circuit_id in self._exit_sockets):
-            # assert isinstance(self.socket_server, Socks5AnonTunnel.Soc)
             self._exit_sockets[circuit_id] = self.socket_server.create_udp_socket()
 
+            # There is a special case where the ciruit_id is None, then we act as EXIT node ourselves. In this case we
+            # create a ShortCircuitHandler that bypasses dispersy by patching ENTER packets directly into the Proxy's
+            # on_data event.
             if circuit_id is None:
                 return_handler = ShortCircuitReturnHandler(self._exit_sockets[circuit_id], self, address)
             else:
+                # Otherwise incoming ENTER packets should propagate back over the Dispersy tunnel, we use the
+                # CircuitReturnHandler. It will use the DispersyTunnelProxy.send_data method to forward the data packet
                 return_handler = CircuitReturnHandler(self._exit_sockets[circuit_id], self, circuit_id, address)
 
             self.socket_server.start_listening_udp(self._exit_sockets[circuit_id], return_handler)
@@ -222,6 +234,8 @@ class DispersyTunnelProxy(Observable):
 
                 community.send(u"create", to_address, new_circuit_id)
 
+                self.fire("circuit_extend", extend_for=(from_address, circuit_id), extend_with=(to_address, new_circuit_id))
+
     def on_extended(self, event):
         """ A circuit has been extended, forward the acknowledgment back
             to the origin of the EXTEND. If we are the origin update
@@ -237,26 +251,34 @@ class DispersyTunnelProxy(Observable):
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
             community.send(u"extended", relay.address, relay.circuit_id, msg.extended_with)
-            self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, relay.circuit_id, msg.extended_with, False)
 
         # If it is ours, update our records
         elif self.circuits.has_key(msg.circuit_id):
             circuit_id = msg.circuit_id
             extended_with = msg.extended_with
 
-            self.circuits[circuit_id].hops.append(extended_with)
+            circuit = self.circuits[circuit_id];
+
+            # Decrease the EXTEND queue of this circuit if there is any
+            if circuit in self.extension_queue and self.extension_queue[circuit] > 0:
+                self.extension_queue[circuit] -= 1
+
+            circuit.hops.append(extended_with)
             self.circuit_membership[extended_with].add(circuit_id)
             logger.info('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
                         extended_with, len(self.circuits[circuit_id].hops))
+
+            self.fire("circuit_extended", extended_with=extended_with)
+
             self._process_extension_queue()
-            self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit_id, extended_with, True)
 
     def create_circuit(self, first_hop, circuit_id=None):
         """ Create a new circuit, with one initial hop """
 
         address = first_hop.sock_addr
 
-        if circuit_id is None:
+        # Generate a random circuit id that hasn't been used yet by us
+        while circuit_id is None or circuit_id in self.circuits:
             circuit_id = random.randint(1, 255)
 
         logger.info('Circuit %d is to be created', circuit_id)
@@ -275,7 +297,6 @@ class DispersyTunnelProxy(Observable):
             queue = self.extension_queue[circuit]
 
             if circuit.created and queue > 0:
-                self.extension_queue[circuit] -= 1
                 logger.info('Circuit %d is to be extended', circuit.id)
 
                 community = self.community
@@ -302,25 +323,31 @@ class DispersyTunnelProxy(Observable):
 
         self._process_extension_queue()
 
-        # circuits = set(self.circuits).difference(self.circuit_membership[candidate.sock_addr])
-
-        # for circuit_id in circuits:
-        #    self.extend_circuit(self.circuits[circuit_id], candidate.sock_addr)
 
     def send_data(self, payload, circuit_id=None, address=None, ultimate_destination=None, origin=None):
+
+        # If there are no circuits and no circuit has been requested act as EXIT node ourselves
         if circuit_id is None and len(self.circuits) == 0:
             self.exit_data(None, ultimate_destination, ultimate_destination, payload)
             return
 
+        # If there are circuits, but no specific one is requested just pick the first.
         if circuit_id is None and len(self.circuits) > 0:
             circuit_id = self.circuits.values()[0].id
 
+        if circuit_id is None:
+            raise IOError("No circuit to send packet over!")
+
+        # If no address has been given, pick the first hop
+        # Note: for packet forwarding address MUST be given
         if address is None:
             address = self.circuits[circuit_id].address
 
         self.community.send(u"data", address, circuit_id, ultimate_destination, payload, origin)
-        logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s", origin, address,
-                    circuit_id, ultimate_destination)
+
+        if __debug__:
+            logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s",
+                        origin, address, circuit_id, ultimate_destination)
 
     def break_circuit(self, circuit_id, address):
         # Give other members possibility to clean up
@@ -344,9 +371,15 @@ class DispersyTunnelProxy(Observable):
 
 
     def on_member_exit(self, event):
+        '''
+        When a candidate is leaving the community we must break any associated circuits.
+        '''
         candidate = event.member
+
+        assert isinstance(candidate, Candidate)
 
         # We must invalidate all circuits that have this candidate in its hop list
         circuit_ids = list(self.circuit_membership[candidate.sock_addr])
 
-        [self.break_circuit(circuit_id, candidate.sock_addr) for circuit_id in circuit_ids]
+        for circuit_id in circuit_ids:
+            self.break_circuit(circuit_id, candidate.sock_addr)
