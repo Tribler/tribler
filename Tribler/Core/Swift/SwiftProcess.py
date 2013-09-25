@@ -73,6 +73,7 @@ class SwiftProcess:
         args.append("127.0.0.1:" + str(self.cmdport))
         args.append("-g")  # HTTP gateway port
         args.append("127.0.0.1:" + str(self.httpport))
+        args.append("--proxy 127.0.0.1:1080")
         args.append("-w")
         if zerostatedir is not None:
             if sys.platform == "win32":
