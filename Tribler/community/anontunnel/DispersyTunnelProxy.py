@@ -220,7 +220,7 @@ class DispersyTunnelProxy(Observable):
 
             # Payload contains the address we want to invite to the circuit
             to_candidate = next(
-                (x for x in self.community.dispersy_yield_random_candidates()
+                (x for x in self.community.dispersy_yield_verified_candidates()
                  if x != event.message.candidate),
                 None
             )

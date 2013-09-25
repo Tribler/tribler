@@ -227,7 +227,7 @@ class ProxyCommunity(Community, Observable):
 
     def send(self, message_type, destination, *payload):
         if not isinstance(destination, Candidate):
-            candidate = self.dispersy.get_candidate(destination)
+            candidate = self.get_candidate(destination)
         else:
             candidate = destination
 
