@@ -60,10 +60,10 @@ class ProxyCommunity(Community, Observable):
 
         Community.__init__(self, dispersy, master_member)
 
-        self.tribler_notifier = TriblerNotifier(self)
-
         self.socks_server = socks_server
         self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy, self)
+
+        self.tribler_notifier = TriblerNotifier(self.socks_server.tunnel)
 
         # Heartbeat hashmap Candidate -> last heart beat timestamp, assume we never heard any
         self.member_heartbeat = defaultdict(lambda: datetime.min)
