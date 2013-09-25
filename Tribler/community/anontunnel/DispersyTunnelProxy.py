@@ -60,6 +60,10 @@ class DispersyTunnelProxy(Observable):
 
         # Queue of EXTEND request, circuit id is key of the dictionary
         self.extension_queue = defaultdict(int)
+
+        # Queue of EXTENDING 'FOR' requests
+        self.extending_for = defaultdict(int)
+
         self.local_addresses = {}
         self.community = None
 
@@ -140,6 +144,8 @@ class DispersyTunnelProxy(Observable):
             self.fire("circuit_extended_for", extended_for=(created_for.address, created_for.circuit_id),
                       extended_with=(extended_with, msg.circuit_id))
 
+            self._process_extending_for_queue()
+
     def on_data(self, event):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
 
@@ -215,26 +221,37 @@ class DispersyTunnelProxy(Observable):
             community.send(u"extend", relay.address, relay.circuit_id)
             return
         else:  # We are responsible for EXTENDING the circuit
+            self.extend_for(from_address, msg.circuit_id)
 
-            circuit_id = msg.circuit_id
 
-            # Payload contains the address we want to invite to the circuit
-            to_candidate = next(
-                (x for x in self.community.dispersy_yield_verified_candidates()
-                 if x != event.message.candidate),
-                None
-            )
+    def extend_for(self, from_address, from_circuit_id):
+        # Payload contains the address we want to invite to the circuit
+        to_candidate = next(
+            (x for x in self.community.dispersy_yield_verified_candidates()
+             if x.sock_addr != from_address),
+            None
+        )
 
-            if to_candidate:
-                new_circuit_id = random.randint(1, 255)
-                to_address = to_candidate.sock_addr
+        if to_candidate:
+            new_circuit_id = random.randint(1, 255)
+            to_address = to_candidate.sock_addr
 
-                self.relay_from_to[(to_address, new_circuit_id)] = RelayRoute(circuit_id, from_address)
-                self.relay_from_to[(from_address, circuit_id)] = RelayRoute(new_circuit_id, to_address)
+            self.relay_from_to[(to_address, new_circuit_id)] = RelayRoute(from_circuit_id, from_address)
+            self.relay_from_to[(from_address, from_circuit_id)] = RelayRoute(new_circuit_id, to_address)
 
-                community.send(u"create", to_address, new_circuit_id)
+            self.community.send(u"create", to_address, new_circuit_id)
 
-                self.fire("circuit_extend", extend_for=(from_address, circuit_id), extend_with=(to_address, new_circuit_id))
+            self.fire("circuit_extend", extend_for=(from_address, from_circuit_id),
+                      extend_with=(to_address, new_circuit_id))
+        else:
+            self.extending_for[(from_address, from_circuit_id)] += 1
+
+
+    def _process_extending_for_queue(self):
+        for key in self.extending_for.keys():
+            if self.extending_for[key] > 0:
+                self.extending_for[key] -= 1
+                self.extend_for(*key)
 
     def on_extended(self, event):
         """ A circuit has been extended, forward the acknowledgment back
@@ -320,6 +337,8 @@ class DispersyTunnelProxy(Observable):
 
         if candidate.sock_addr not in self.circuit_membership:
             self.create_circuit(candidate)
+
+        self._process_extending_for_queue()
 
     def send_data(self, payload, circuit_id=None, address=None, ultimate_destination=None, origin=None):
 
