@@ -50,7 +50,12 @@ class SettingsDialog(wx.Dialog):
                              't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',
                              'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',
                              'use_webui',
-                             'webui_port']
+                             'webui_port',
+                             'lt_proxytype',
+                             'lt_proxyserver',
+                             'lt_proxyport',
+                             'lt_proxyusername',
+                             'lt_proxypassword']
 
         self.myname = None
         self.elements = {}
@@ -112,6 +117,8 @@ class SettingsDialog(wx.Dialog):
         self.elements['edit'].Bind(wx.EVT_BUTTON, self.EditClicked)
         self.elements['browse'].Bind(wx.EVT_BUTTON, self.BrowseClicked)
 
+        self.elements['lt_proxytype'].Bind(wx.EVT_CHOICE, self.ProxyTypeChanged)
+
         self.Bind(wx.EVT_BUTTON, self.saveAll, id=xrc.XRCID("wxID_OK"))
         self.Bind(wx.EVT_BUTTON, self.cancelAll, id=xrc.XRCID("wxID_CANCEL"))
 
@@ -130,7 +137,7 @@ class SettingsDialog(wx.Dialog):
         if self.guiUtility.frame.SRstatusbar.IsReachable():
             self.elements['firewallStatusText'].SetLabel('Your network connection is working properly.')
         else:
-            self.elements['firewallStatusText'].SetLabel('Tribler has not yet received any incoming connections. \nThis could indicate a problem with your network connection.')
+            self.elements['firewallStatusText'].SetLabel('Tribler has not yet received any incoming connections. \nUnless you\'re using a proxy, this could indicate a problem\nwith your network connection.')
 
         self.currentPortValue = str(self.utility.session.get_listen_port())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
@@ -183,6 +190,16 @@ class SettingsDialog(wx.Dialog):
 
         self.elements['use_webui'].SetValue(self.utility.config.Read('use_webui', "boolean"))
         self.elements['webui_port'].SetValue(str(self.utility.config.Read('webui_port', "int")))
+
+        ptype, server, auth = self.utility.session.get_libtorrent_proxy_settings()
+        self.elements['lt_proxytype'].SetSelection(ptype)
+        if server:
+            self.elements['lt_proxyserver'].SetValue(server[0])
+            self.elements['lt_proxyport'].SetValue(str(server[1]))
+        if auth:
+            self.elements['lt_proxyusername'].SetValue(auth[0])
+            self.elements['lt_proxypassword'].SetValue(auth[1])
+        self.ProxyTypeChanged()
 
         wx.CallAfter(self.Refresh)
 
@@ -285,6 +302,10 @@ class SettingsDialog(wx.Dialog):
         if not valwebuiport.isdigit():
             errors['webui_port'] = 'Value must be a digit'
 
+        valltproxyport = self.elements['lt_proxyport'].GetValue().strip()
+        if not valltproxyport.isdigit() and (self.elements['lt_proxytype'].GetSelection() or valltproxyport != ''):
+            errors['lt_proxyport'] = 'Value must be a digit'
+
         if len(errors) == 0:  # No errors found, continue saving
             restart = False
 
@@ -339,8 +360,6 @@ class SettingsDialog(wx.Dialog):
                 except:
                     print_exc()
 
-            scfg.save(cfgfilename)
-
             # tit-4-tat
             t4t_option = self.utility.config.Read('t4t_option', 'int')
             for i in range(4):
@@ -386,6 +405,17 @@ class SettingsDialog(wx.Dialog):
                     self.utility.config.Write("g2g_hours", hours_min[0])
                     self.utility.config.Write("g2g_mins", 0)
 
+            # Proxy settings
+            old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
+            new_ptype = self.elements['lt_proxytype'].GetSelection()
+            new_server = (self.elements['lt_proxyserver'].GetValue(), int(self.elements['lt_proxyport'].GetValue())) if self.elements['lt_proxyserver'].GetValue() and self.elements['lt_proxyport'].GetValue() else None
+            new_auth = (self.elements['lt_proxyusername'].GetValue(), self.elements['lt_proxypassword'].GetValue()) if self.elements['lt_proxyusername'].GetValue() and self.elements['lt_proxypassword'].GetValue() else None
+            if old_ptype != new_ptype or old_server != new_server or old_auth != new_auth:
+                self.utility.session.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
+                scfg.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
+
+            scfg.save(cfgfilename)
+
             self.utility.config.Flush()
 
             if restart:
@@ -425,6 +455,13 @@ class SettingsDialog(wx.Dialog):
             self.elements['diskLocationCtrl'].SetValue(dlg.GetPath())
         else:
             pass
+
+    def ProxyTypeChanged(self, event=None):
+        selection = self.elements['lt_proxytype'].GetStringSelection()
+        self.elements['lt_proxyusername'].Enable(selection.endswith('with authentication'))
+        self.elements['lt_proxypassword'].Enable(selection.endswith('with authentication'))
+        self.elements['lt_proxyserver'].Enable(selection != 'None')
+        self.elements['lt_proxyport'].Enable(selection != 'None')
 
     def _SelectAll(self, dlg, event, nrchoices):
         if event.ControlDown():
