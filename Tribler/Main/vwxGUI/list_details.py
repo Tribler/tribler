@@ -2320,7 +2320,15 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     @forceWxThread
     def OnVideoStarted(self, subject, changeType, torrent_tuple):
-        _, fileindex = torrent_tuple
+        infohash, fileindex = torrent_tuple
+        if not self.torrent or self.torrent.infohash != infohash:
+            from Tribler.Core.DownloadState import DownloadState
+            d = self.guiutility.utility.session.get_download(infohash)
+            t = Torrent(0, infohash, 0, 0, '', '', 0, 0, 0, 0, 0, None)
+            t.addDs(DownloadState(d, d.get_status(), None, d.get_progress()))
+            self.SetTorrent(NotCollectedTorrent(t, d.get_def().get_files(), []))
+            return
+
         for control in self.links:
             if control.fileindex == fileindex:
                 control.SetForegroundColour(TRIBLER_RED)
