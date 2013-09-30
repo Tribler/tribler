@@ -57,7 +57,7 @@ class InterruptSocket:
         for self.port in xrange(10000, 12345):
             try:
                 if DEBUG:
-                    print >>sys.stderr, "InterruptSocket: Trying to start InterruptSocket on port", self.port
+                    print >> sys.stderr, "InterruptSocket: Trying to start InterruptSocket on port", self.port
                 self.socket.bind((self.ip, self.port))
                 break
             except:
@@ -174,7 +174,7 @@ class SingleSocket:
         try:
             self.socket_handler.poll.unregister(sock)
         except Exception as e:
-            print >>sys.stderr, "SocketHandler: close: sock is", sock
+            print >> sys.stderr, "SocketHandler: close: sock is", sock
             print_exc()
         sock.close()
 
@@ -247,6 +247,7 @@ class SocketHandler:
         self.dead_from_write = []
         self.max_connects = 1000
         self.servers = {}
+        self.interfaces = []
         self.btengine_said_reachable = False
         self.interrupt_socket = None
         self.udp_sockets = {}
@@ -264,11 +265,9 @@ class SocketHandler:
                     print >> sys.stderr, "SocketHandler: scan_timeout closing connection", k.get_ip()
                 self._close_socket(k)
 
-    def bind(self, port, bind=[], reuse= False, ipv6_socket_style = 1):
+    def bind(self, port, bind=[], reuse=False, ipv6_socket_style=1, handler=None):
         port = int(port)
         addrinfos = []
-        self.servers = {}
-        self.interfaces = []
         # if bind != [] bind to all specified addresses (can be IPs or hostnames)
         # else bind to default ipv6 and ipv4 address
         if bind:
@@ -296,7 +295,7 @@ class SocketHandler:
                 if DEBUG:
                     print >> sys.stderr, "SocketHandler: Try to bind socket on", addrinfo[4], "..."
                 server.bind(addrinfo[4])
-                self.servers[server.fileno()] = server
+                self.servers[server.fileno()] = (server, handler)
                 if bind:
                     self.interfaces.append(server.getsockname()[0])
                 if DEBUG:
@@ -304,7 +303,7 @@ class SocketHandler:
                 server.listen(64)
                 self.poll.register(server, POLLIN)
             except socket.error as e:
-                for server in self.servers.values():
+                for server, _ in self.servers.values():
                     try:
                         server.close()
                     except:
@@ -316,8 +315,8 @@ class SocketHandler:
             raise socket.error('unable to open server port')
         self.port = port
 
-    def find_and_bind(self, first_try, minport, maxport, bind='', reuse= False,
-                      ipv6_socket_style=1, randomizer= False):
+    def find_and_bind(self, first_try, minport, maxport, bind='', reuse=False,
+                      ipv6_socket_style=1, randomizer=False, handler=None):
         e = 'maxport less than minport - no ports to check'
         if maxport - minport < 50 or not randomizer:
             portrange = range(minport, maxport + 1)
@@ -341,7 +340,7 @@ class SocketHandler:
             try:
                 # print >> sys.stderr, listen_port, bind, reuse
                 self.bind(listen_port, bind, reuse=reuse,
-                               ipv6_socket_style=ipv6_socket_style)
+                               ipv6_socket_style=ipv6_socket_style, handler=handler)
                 return listen_port
             except socket.error as e:
                 raise
@@ -350,7 +349,7 @@ class SocketHandler:
     def set_handler(self, handler):
         self.handler = handler
 
-    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler= None):
+    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler=None):
         # handler = Encoder, self.handler = Multihandler
         if handler is None:
             handler = self.handler
@@ -358,7 +357,7 @@ class SocketHandler:
         sock.setblocking(0)
         try:
             if DEBUG:
-                print >>sys.stderr, "SocketHandler: Initiate connection to", dns, "with socket #", sock.fileno()
+                print >> sys.stderr, "SocketHandler: Initiate connection to", dns, "with socket #", sock.fileno()
             # Arno,2007-01-23: http://docs.python.org/lib/socket-objects.html
             # says that connect_ex returns an error code (and can still throw
             # exceptions). The original code never checked the return code.
@@ -369,7 +368,7 @@ class SocketHandler:
                     msg = 'No error'
                 else:
                     msg = errno.errorcode[err]
-                print >>sys.stderr, "SocketHandler: connect_ex on socket #", sock.fileno(), "returned", err, msg
+                print >> sys.stderr, "SocketHandler: connect_ex on socket #", sock.fileno(), "returned", err, msg
             if err != 0:
                 if sys.platform == 'win32' and err == 10035:
                     # Arno, 2007-02-23: win32 always returns WSAEWOULDBLOCK, whether
@@ -398,7 +397,7 @@ class SocketHandler:
         #    print >> sys.stderr,"SocketHandler: Created Socket"
         return s
 
-    def start_connection(self, dns, handler=None, randomize= False):
+    def start_connection(self, dns, handler=None, randomize=False):
         if handler is None:
             handler = self.handler
         if sys.version_info < (2, 2):
@@ -463,7 +462,7 @@ class SocketHandler:
     def handle_events(self, events):
         for sock, event in events:
             # print >>sys.stderr,"SocketHandler: event on sock#",sock
-            s = self.servers.get(sock)    # socket.socket
+            s, h = self.servers.get(sock, (None, None))    # socket.socket
             if s:
                 if event & (POLLHUP | POLLERR) != 0:
                     if DEBUG:
@@ -491,10 +490,10 @@ class SocketHandler:
                         # the connection.
                         if len(self.single_sockets) < self.max_connects:
                             newsock.setblocking(0)
-                            nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
+                            nss = SingleSocket(self, newsock, (h or self.handler))    # create socket for incoming peers and tracker
                             self.single_sockets[newsock.fileno()] = nss
                             self.poll.register(newsock, POLLIN)
-                            self.handler.external_connection_made(nss)
+                            (h or self.handler).external_connection_made(nss)
                         else:
                             print >> sys.stderr, "SocketHandler: too many connects"
                             newsock.close()
@@ -568,7 +567,7 @@ class SocketHandler:
                         s.handler.connection_flushed(s)
             else:
                 # Arno, 2012-08-1: Extra protection.
-                print >>sys.stderr, "SocketHandler: got event on unregistered sock", sock
+                print >> sys.stderr, "SocketHandler: got event on unregistered sock", sock
                 try:
                     self.poll.unregister(sock)
                 except:
@@ -594,7 +593,7 @@ class SocketHandler:
         r = self.poll.poll(t * timemult)
         if r is None:
             connects = len(self.single_sockets)
-            to_close = int(connects * 0.05) +1 # close 5% of sockets
+            to_close = int(connects * 0.05) + 1 # close 5% of sockets
             self.max_connects = connects - to_close
             closelist = [sock for sock in self.single_sockets.values() if not isinstance(sock, InterruptSocket)]
             shuffle(closelist)
@@ -616,7 +615,7 @@ class SocketHandler:
                 ss.close()
             except:
                 pass
-        for server in self.servers.values():
+        for server, _ in self.servers.values():
             try:
                 server.close()
             except:

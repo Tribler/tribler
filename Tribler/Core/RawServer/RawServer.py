@@ -54,8 +54,8 @@ READSIZE = 100000
 class RawServer:
 
     def __init__(self, doneflag, timeout_check_interval, timeout, noisy=True,
-                 ipv6_enable=True, failfunc= lambda x: None, errorfunc = None,
-                 sockethandler=None, excflag= Event()):
+                 ipv6_enable=True, failfunc=lambda x: None, errorfunc=None,
+                 sockethandler=None, excflag=Event()):
         self.timeout_check_interval = timeout_check_interval
         self.timeout = timeout
         self.servers = {}
@@ -90,7 +90,7 @@ class RawServer:
             delay = 0
         insort(self.funcs, (clock() + delay, func, id))
 
-    def add_task(self, func, delay=0, id= None):
+    def add_task(self, func, delay=0, id=None):
         # if DEBUG:
         #    print >>sys.stderr,"rawserver: add_task(",func,delay,")"
         if delay < 0:
@@ -107,22 +107,22 @@ class RawServer:
         self.add_task(self.scan_for_timeouts, self.timeout_check_interval)
         self.sockethandler.scan_for_timeouts()
 
-    def bind(self, port, bind='', reuse= False,
+    def bind(self, port, bind='', reuse=False,
             ipv6_socket_style=1):
         self.sockethandler.bind(port, bind, reuse, ipv6_socket_style)
 
-    def find_and_bind(self, first_try, minport, maxport, bind='', reuse = False,
-                      ipv6_socket_style=1, randomizer= False):
+    def find_and_bind(self, first_try, minport, maxport, bind='', reuse=False,
+                      ipv6_socket_style=1, randomizer=False, handler=None):
 # 2fastbt_
         result = self.sockethandler.find_and_bind(first_try, minport, maxport, bind, reuse,
-                                 ipv6_socket_style, randomizer)
+                                 ipv6_socket_style, randomizer, handler)
 # _2fastbt
         return result
 
-    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler= None):
+    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler=None):
         return self.sockethandler.start_connection_raw(dns, socktype, handler)
 
-    def start_connection(self, dns, handler=None, randomize= False):
+    def start_connection(self, dns, handler=None, randomize=False):
         return self.sockethandler.start_connection(dns, handler, randomize)
 
     def get_stats(self):
@@ -138,7 +138,7 @@ class RawServer:
     @attach_profiler
     def listen_forever(self, handler):
         if DEBUG:
-            print >>sys.stderr, "rawserver: listen forever()"
+            print >> sys.stderr, "rawserver: listen forever()"
         # handler=btlanuchmany: MultiHandler, btdownloadheadless: Encoder
         self.thread_ident = get_ident()
         self.sockethandler.set_handler(handler)
@@ -276,15 +276,15 @@ class RawServer:
     #
     def create_udpsocket(self, port, host):
         if DEBUG:
-            print >>sys.stderr, "rawudp: create_udp_socket", host, port
+            print >> sys.stderr, "rawudp: create_udp_socket", host, port
         return self.sockethandler.create_udpsocket(port, host)
 
     def start_listening_udp(self, serversocket, handler):
         if DEBUG:
-            print >>sys.stderr, "rawudp: start_listen:", serversocket, handler
+            print >> sys.stderr, "rawudp: start_listen:", serversocket, handler
         self.sockethandler.start_listening_udp(serversocket, handler)
 
     def stop_listening_udp(self, serversocket):
         if DEBUG:
-            print >>sys.stderr, "rawudp: stop_listen:", serversocket
+            print >> sys.stderr, "rawudp: stop_listen:", serversocket
         self.sockethandler.stop_listening_udp(serversocket)
