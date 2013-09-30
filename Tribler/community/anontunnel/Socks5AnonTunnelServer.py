@@ -51,7 +51,7 @@ class Socks5AnonTunnelServer(Thread):
 
         try:
             port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
-                                                 reuse=True)
+                                                 reuse=True, handler=self)
             logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
         except socket.error:
             logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
