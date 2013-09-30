@@ -237,18 +237,4 @@ class MultiHandler:
     # be wary of name collisions
 
     def external_connection_made(self, ss):
-        """
-        :param ss: SingleSocket
-        @type ss: Tribler.Core.RawServer.SocketHandler.SingleSocket
-        """
-
-        # If we are on the SOCKS port patch into the AnonTunnel's code
-        if ss.myport == 1080:
-            if not hasattr(self,'_anon_tunnel_tcp_handler'):
-                self._anon_tunnel_tcp_handler = TcpConnectionHandler()
-
-                ss.set_handler(self._anon_tunnel_tcp_handler)
-
-            self._anon_tunnel_tcp_handler.external_connection_made(ss)
-        else:
-            NewSocketHandler(self, ss)
+        NewSocketHandler(self, ss)

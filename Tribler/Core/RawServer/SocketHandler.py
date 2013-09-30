@@ -332,7 +332,7 @@ class SocketHandler:
         if first_try != 0:    # try 22 first, because TU only opens port 22 for SSH...
             try:
                 self.bind(first_try, bind, reuse=reuse,
-                         ipv6_socket_style=ipv6_socket_style)
+                         ipv6_socket_style=ipv6_socket_style, handler=handler)
                 return first_try
             except socket.error as e:
                 pass

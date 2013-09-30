@@ -31,9 +31,6 @@ class Socks5AnonTunnelServer(object):
 
 
     def __init__(self, raw_server, socks5_port=1080, timeout=10.0):
-        #Thread.__init__(self)
-        #self.setDaemon(False)
-        #self.setName('Socks5Server' + self.getName())
         self.socks5_port = socks5_port
 
         self.udp_relay_socket = None
@@ -47,9 +44,6 @@ class Socks5AnonTunnelServer(object):
 
         self.server_done_flag = Event()
         self.raw_server = raw_server
-
-
-
 
         try:
             port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
@@ -148,6 +142,10 @@ class Socks5AnonTunnelServer(object):
 
         encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],
                                                         source_address[1], packet.data)
+
+        if destination_address is None:
+            logger.error("No Destination Address specified!")
+
         if self.udp_relay_socket.sendto(encapsulated, destination_address) < len(encapsulated):
             logger.error("Not sending package!")
 

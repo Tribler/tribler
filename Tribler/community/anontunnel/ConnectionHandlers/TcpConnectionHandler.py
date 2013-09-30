@@ -11,7 +11,6 @@ __author__ = 'chris'
 
 
 class TcpConnectionHandler(object):
-    server = None
     """
     The TCP Connection handler which responds on events fired by the server.
 
@@ -19,14 +18,9 @@ class TcpConnectionHandler(object):
     The first and default mode implements the SOCKS5 protocol where the latter just acts as a man in the middle PROXY for a
     TCP connection.
     """
-
-    @classmethod
-    def set_server(cls, server):
-        """ :type : Tribler.community.anontunnel.Socks5AnonTunnel.Socks5AnonTunnel """
-        cls.server = server
-
     def __init__(self):
         self.socket2connection = {}
+        self.server = None
         """ :type : Tribler.community.anontunnel.Socks5AnonTunnel.Socks5AnonTunnel """
 
     def external_connection_made(self, s):
