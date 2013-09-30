@@ -23,12 +23,13 @@ class UdpRelayTunnelHandler(object):
         for source_address, packet in packets:
             request = structs.decode_udp_packet(packet)
 
-            self.server.destination_address = source_address
+            self.server.udp_relays[source_address] = self.single_socket
 
             if __debug__:
                 logger.info("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
                             request.destination_address, request.destination_port)
 
+            self.server.routes[(request.destination_address, request.destination_port)] = source_address
             self.server.tunnel.send_data(
                 ultimate_destination=(request.destination_address, request.destination_port),
                 payload=request.payload

@@ -45,6 +45,9 @@ class Socks5AnonTunnelServer(object):
         self.server_done_flag = Event()
         self.raw_server = raw_server
 
+        self.routes = {}
+        self.udp_relays = {}
+
         try:
             port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
                                                  reuse=True, handler=self)
@@ -109,12 +112,12 @@ class Socks5AnonTunnelServer(object):
         Initializes an UDP relay by listening to a newly created socket and attaching a UdpRelayHandler
         :rtype : socket.socket
         """
-        if self.udp_relay_socket is None:
-            self.udp_relay_socket = self.create_udp_socket()
-            handler = UdpRelayTunnelHandler(self.udp_relay_socket, self)
-            self.start_listening_udp(self.udp_relay_socket, handler)
 
-        return self.udp_relay_socket
+        udp_relay_socket = self.create_udp_socket()
+        handler = UdpRelayTunnelHandler(udp_relay_socket, self)
+        self.start_listening_udp(udp_relay_socket, handler)
+
+        return udp_relay_socket
 
     def start_listening_udp(self, udp_socket, handler):
         """
@@ -128,26 +131,38 @@ class Socks5AnonTunnelServer(object):
         self.raw_server.start_listening_udp(udp_socket, handler)
 
     def on_tunnel_data(self, event):
-        # We are not an endpoint of the tunnel so bail out
-        if self.udp_relay_socket is None:
-            msg = event.data
-            logger.error("NOT ROUTABLE: Got an UDP packet from %s to %s", event.sender, msg.destination)
-            return
+        # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
+
+        # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP
+            # All will break if clients send data to the same peer, since we cant distinguish where the return packets
+            # must go....
+
+        # Now that we have the SOCKS5 client's address we can find the corresponding UDP socks5 relay used. This is
+        # relay is created in response to UDP_ASSOCIATE request during the SOCKS5 initiation
+
+        # The socket together with the destination address is enough to return the data
 
         packet = event.data
 
         source_address = packet.origin
 
-        destination_address = self.destination_address
-
-        encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],
-                                                        source_address[1], packet.data)
+        destination_address = self.routes.get(source_address, None)
 
         if destination_address is None:
-            logger.error("No Destination Address specified!")
+            logger.error("Unknown peer, dont know what to do with it!")
+            return
 
-        if self.udp_relay_socket.sendto(encapsulated, destination_address) < len(encapsulated):
+        socks5_socket = self.udp_relays.get(destination_address, None)
+
+        if socks5_socket is None:
+            logger.error("Dont know over which socket to return the data!")
+            return
+
+        encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],
+                                                    source_address[1], packet.data)
+
+        if socks5_socket.sendto(encapsulated, destination_address) < len(encapsulated):
             logger.error("Not sending package!")
 
         logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address, destination_address,
-                    self.udp_relay_socket.getsockname()[1])
+                    socks5_socket.getsockname()[1])

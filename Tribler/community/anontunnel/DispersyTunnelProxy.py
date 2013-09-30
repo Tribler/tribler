@@ -64,6 +64,8 @@ class DispersyTunnelProxy(Observable):
         # Queue of EXTENDING 'FOR' requests
         self.extending_for = defaultdict(int)
 
+        self.circuit_tag = {}
+
         self.local_addresses = {}
         self.community = None
 
