@@ -1,4 +1,8 @@
 # Written by Niels Zeilemaker
+
+import logging
+logger = logging.getLogger(__name__)
+
 import sys
 from os import path
 from time import time
@@ -13,10 +17,8 @@ from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination, \
     CommunityDestination
-from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import DirectDistribution, \
     FullSyncDistribution
-from Tribler.dispersy.member import DummyMember, Member
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 
@@ -35,9 +37,6 @@ from Tribler.dispersy.script import assert_
 from Tribler.community.privatesemantic.community import PForwardCommunity, \
     HForwardCommunity, PoliForwardCommunity
 
-if __debug__:
-    from Tribler.dispersy.dprint import dprint
-
 DEBUG = False
 DEBUG_VERBOSE = False
 TTL = 4
@@ -52,13 +51,13 @@ class TTLSearchCommunity(Community):
     A single community that all Tribler members join and use to disseminate .torrent files.
     """
     @classmethod
-    def get_master_members(cls):
+    def get_master_members(cls, dispersy):
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404a041c3a8415021f193ef0614360b4d99ac8f985eff2259f88f1f64070ae2bcc21c473c9c0b958b39da9ae58d6d0aec316341f65bd7daa42ffd73f5eeee53aa6199793f98afc47f008a601cd659479f801157e7dd69525649d8eec7885bd0d832746c46d067c60341a6d84b12a6e5d3ce25e20352ed8e0ff311e74b801c06286a852976bdba67dfe62dfb75a5b9c0d2".decode("HEX")
-        master = Member(master_key)
+        master = dispersy.get_member(master_key)
         return [master]
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True):
-        Community.__init__(self, master)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True):
+        Community.__init__(self, dispersy, master)
 
         self.integrate_with_tribler = integrate_with_tribler
         self.ttl = ttl
@@ -99,19 +98,19 @@ class TTLSearchCommunity(Community):
             if cycle < 2:
                 # poke bootstrap peers
                 for candidate in self._dispersy._bootstrap_candidates.itervalues():
-                    if __debug__: dprint("extra walk to ", candidate)
+                    logger.debug("extra walk to %s", candidate)
                     self.create_introduction_request(candidate, allow_sync=False)
 
             # request -everyone- that is eligible
             candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once=True) if candidate]
             for candidate in candidates:
-                if __debug__: dprint("extra walk to ", candidate)
+                logger.debug("extra walk to %s", candidate)
                 self.create_introduction_request(candidate, allow_sync=False)
 
             # wait for NAT hole punching
             yield 1.0
 
-        if __debug__: dprint("finished")
+        logger.debug("finished")
 
     def initiate_meta_messages(self):
         return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self._dispersy._generic_timeline_check, self.on_search),
@@ -518,7 +517,7 @@ class TTLSearchCommunity(Community):
 
     def on_torrent(self, messages):
         for message in messages:
-            self._torrent_db.addExternalTorrentNoDef(message.payload.infohash, message.payload.name, message.payload.files, message.payload.trackers, message.payload.timestamp, "DISP_SC", {'dispersy_id':message.packet_id})
+            self._torrent_db.addExternalTorrentNoDef(message.payload.infohash, message.payload.name, message.payload.files, message.payload.trackers, message.payload.timestamp, "DISP_SC", {'dispersy_id': message.packet_id})
 
     def get_nr_connections(self):
         return len(self.get_connections())
@@ -602,8 +601,8 @@ class TTLSearchCommunity(Community):
         try:
             return self._dispersy.get_community(cid, True)
         except KeyError:
-            if __debug__: dprint("join preview community ", cid.encode("HEX"))
-            return PreviewChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler)
+            logger.debug("join preview community %s", cid.encode("HEX"))
+            return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []
@@ -653,18 +652,18 @@ class TTLSearchCommunity(Community):
 class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        dispersy_database = DispersyDatabase.get_instance()
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(SearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
-        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        TTLSearchCommunity.__init__(self, dispersy, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
+        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
@@ -675,18 +674,18 @@ class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
 class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        dispersy_database = DispersyDatabase.get_instance()
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(PSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(PSearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
-        PForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        TTLSearchCommunity.__init__(self, dispersy, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
+        PForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return PForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
@@ -697,18 +696,18 @@ class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
 class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        dispersy_database = DispersyDatabase.get_instance()
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(HSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(HSearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
-        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        TTLSearchCommunity.__init__(self, dispersy, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
+        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
@@ -719,21 +718,21 @@ class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
 class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
         import sys
         print >> sys.stderr, type(cls), cls
 
-        dispersy_database = DispersyDatabase.get_instance()
+        dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(PoliSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(PoliSearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
-        PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        TTLSearchCommunity.__init__(self, dispersy, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
+        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
@@ -741,7 +740,9 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
     def initiate_meta_messages(self):
         return PoliForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
 
+
 class Das4DBStub():
+
     def __init__(self, dispersy):
         self._dispersy = dispersy
 

@@ -1,4 +1,4 @@
-# Tribler
+# Tribler           [![Build Status](http://jenkins.tribler.org/job/Test_tribler_devel/badge/icon)](http://jenkins.tribler.org/job/Test_tribler_devel/)
 
 We make use of submodules, so remember using the --recursive argument when cloning this repo.
 
@@ -19,6 +19,12 @@ First clone the repository:
 
 ```bash
 git clone --recursive  git@github.com:Tribler/tribler.git
+```
+
+or, if you don't have added your ssh key to your github account:
+
+```bash
+git clone --recursive  https://github.com/Tribler/tribler.git
 ```
 Then build swift and copy the binary where Tribler expects it to be:
 

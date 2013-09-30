@@ -15,49 +15,51 @@ from time import time
 from traceback import print_exc
 from binascii import unhexlify
 
-HTTP_TIMEOUT = 30 # seconds
+HTTP_TIMEOUT = 30  # seconds
 
 DEBUG = False
 ioErrors = {}
 
+
 def trackerChecking(torrent):
     single_no_thread(torrent)
+
 
 def multiTrackerChecking(torrent, multiscrapeCallback):
     return single_no_thread(torrent, multiscrapeCallback)
 
-def single_no_thread(torrent, multiscrapeCallback = None):
+
+def single_no_thread(torrent, multiscrapeCallback=None):
     multi_announce_dict = {}
     multi_announce_dict[torrent['infohash']] = (-2, -2)
 
-    #determine trackers
+    # determine trackers
     trackers = []
-    if (torrent["info"].get("announce-list", "")==""):  # no announce-list
+    if (torrent["info"].get("announce-list", "") == ""):  # no announce-list
         trackers.append(torrent["info"]["announce"])
-    else:                                               # have announce-list
+    else:  # have announce-list
         for announces in torrent["info"]["announce-list"]:
             a_len = len(announces)
-            if (a_len == 0):                            # length = 0
+            if (a_len == 0):  # length = 0
                 continue
 
-            if (a_len == 1):                            # length = 1
+            if (a_len == 1):  # length = 1
                 trackers.append(announces[0])
 
-            else:                                       # length > 1
+            else:  # length > 1
                 aindex = torrent["info"]["announce-list"].index(announces)
                 shuffle(announces)
 
                 # Arno: protect against DoS torrents with many trackers in announce list.
                 trackers.extend(announces[:10])
 
-
     trackers = [(-ioErrors.get(tracker, 0), tracker) for tracker in trackers if tracker.startswith('http') or tracker.startswith('udp')]
-    trackers.sort(reverse = True) #sorting reverse will prefer udp over http trackers
+    trackers.sort(reverse=True)  # sorting reverse will prefer udp over http trackers
     for _, announce in trackers:
         announce_dict = singleTrackerStatus(torrent, announce, multiscrapeCallback)
 
         for key, values in announce_dict.iteritems():
-            #merge results
+            # merge results
             if key in multi_announce_dict:
                 cur_values = list(multi_announce_dict[key])
                 cur_values[0] = max(values[0], cur_values[0])
@@ -72,6 +74,7 @@ def single_no_thread(torrent, multiscrapeCallback = None):
 
     return multi_announce_dict
 
+
 def singleTrackerStatus(torrent, announce, multiscrapeCallback):
     # return (-1, -1) means the status of torrent is unknown
     # return (-2. -2) means the status of torrent is dead
@@ -82,22 +85,22 @@ def singleTrackerStatus(torrent, announce, multiscrapeCallback):
 
     defaultdict = {torrent["infohash"]: (-2, -2)}
 
-    url = getUrl(announce, info_hashes)            # whether scrape support
+    url = getUrl(announce, info_hashes)  # whether scrape support
     if url:
         if DEBUG:
-            print >>sys.stderr,"TrackerChecking: Checking", url
+            print >> sys.stderr, "TrackerChecking: Checking", url
 
         try:
             dict = None
             if announce.startswith('http'):
-                #print 'Checking url: %s' % url
+                # print 'Checking url: %s' % url
                 dict = getStatus(announce, url, torrent["infohash"], info_hashes)
             elif announce.startswith('udp'):
                 dict = getStatusUDP(announce, url, torrent["infohash"], info_hashes)
 
             if dict:
                 if DEBUG:
-                    print >>sys.stderr,"TrackerChecking: Result", announce, dict
+                    print >> sys.stderr, "TrackerChecking: Result", announce, dict
                 return dict
         except:
             if DEBUG:
@@ -106,15 +109,17 @@ def singleTrackerStatus(torrent, announce, multiscrapeCallback):
     return defaultdict
 
 # generate the query URL
+
+
 def getUrl(announce, info_hashes):
     if announce.startswith('http'):
         announce_index = announce.rfind("announce")
         last_index = announce.rfind("/")
 
         url = announce
-        if (last_index +1 == announce_index):        # srape support
-            url = url.replace("announce","scrape")
-        url +="?"
+        if (last_index + 1 == announce_index):  # srape support
+            url = url.replace("announce", "scrape")
+        url += "?"
         for info_hash in info_hashes:
             url += "info_hash=" + urllib.quote(info_hash) + "&"
         return url[:-1]
@@ -130,19 +135,20 @@ def getUrl(announce, info_hashes):
 
         if host.find(':') > 0:
             try:
-                port = int(host[host.find(':')+1:])
+                port = int(host[host.find(':') + 1:])
             except:
                 port = 80
             host = host[:host.find(':')]
 
         return (host, port)
 
-    return None                                             # return None
+    return None  # return None
+
 
 def getStatus(announce, url, info_hash, info_hashes):
-    returndict = {}
+    returndict = {info_hash: (0, 0)}
     try:
-        resp = timeouturlopen.urlOpenTimeout(url,timeout=HTTP_TIMEOUT)
+        resp = timeouturlopen.urlOpenTimeout(url, timeout=HTTP_TIMEOUT)
         response = resp.read()
 
         response_dict = bdecode(response)
@@ -161,17 +167,18 @@ def getStatus(announce, url, info_hash, info_hashes):
 
     except KeyError:
         try:
-            if response_dict.has_key("flags"): # may be interval problem
-                if response_dict["flags"].has_key("min_request_interval"):
-                    return {info_hash: (-3 ,-3)}
+            if "flags" in response_dict:  # may be interval problem
+                if "min_request_interval" in response_dict["flags"]:
+                    return {info_hash: (-3, -3)}
         except:
             pass
     except:
         pass
     return None
 
+
 def getStatusUDP(announce, url, info_hash, info_hashes):
-    #restrict to 74 max
+    # restrict to 74 max
     info_hashes = [info_hash] + info_hashes[:73]
     assert all(len(infohash) == 20 for infohash in info_hashes)
 
@@ -182,19 +189,19 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
         # step 1: Get a connection-id
         connection_id = 0x41727101980
         action = 0
-        transaction_id = randint(0, sys.maxint)
+        transaction_id = randint(0, sys.maxsize)
         msg = pack('!qii', connection_id, action, transaction_id)
         udpSocket.sendto(msg, url)
 
         result = udpSocket.recv(1024)
         if len(result) >= 16:
-            raction, rtransaction_id, rconnection_id  = unpack('!iiq', result)
+            raction, rtransaction_id, rconnection_id = unpack('!iiq', result)
             if raction == action and rtransaction_id == transaction_id:
                 # step 2: Send scrape
                 action = 2
-                transaction_id = randint(0, sys.maxint)
+                transaction_id = randint(0, sys.maxsize)
 
-                format = "!qii" + "20s"*len(info_hashes)
+                format = "!qii" + "20s" * len(info_hashes)
                 data = [rconnection_id, action, transaction_id]
                 data.extend(info_hashes)
                 msg = pack(format, *data)
@@ -231,14 +238,16 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
 
     return {info_hash: (-1, -1)}
 
+
 def registerIOError(announce):
     if DEBUG:
-        print >>sys.stderr,"TrackerChecking: No repsonse for", announce
+        print >> sys.stderr, "TrackerChecking: No repsonse for", announce
 
     ioErrors[announce] = ioErrors.get(announce, 0) + 1
     if len(ioErrors) > 100:
         key = choice(ioErrors.keys())
         del ioErrors[key]
+
 
 def registerSuccess(announce):
     if announce in ioErrors:

@@ -4,8 +4,6 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-export DH_ALWAYS_EXCLUDE=CVS:.svn
-
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 DPKG_EXPORT_BUILDFLAGS = 1
@@ -14,7 +12,7 @@ include /usr/share/dpkg/buildflags.mk
 DEB_SOURCE := $(shell dpkg-parsechangelog | grep Source: | sed -e 's/Source: //')
 DEB_VERSION := $(shell dpkg-parsechangelog | grep Version: | sed -e 's/Version: //')
 DEB_UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -e 's/-[^-]*$$//')
-SVN_URL = http://svn.tribler.org/abc/branches/mainbranch/
+GIT_URL = https://github.com/Tribler/tribler.git
 
 %:
 	dh $@ --with python2 
@@ -28,6 +26,8 @@ override_dh_auto_configure:
 	chmod a-x Tribler/Tools/pipe-arnocam-jip.sh
 	chmod a-x Tribler/Tools/pipe-babscam-h264-mp3.sh
 	chmod a-x Tribler/Tools/pipe-babscam-mpeg4-mp3-sync.sh
+	chmod a+x Tribler/community/demers/das4/demers.conf
+	chmod a+x Tribler/community/privatesearch/das4/search.conf
 	dh_auto_configure
 
 override_dh_auto_build:
@@ -48,6 +48,8 @@ override_dh_install:
 	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/SwiftEngine
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/Utility/Feeds/feedparser.py
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/webUI/static/mootools.js
+	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Core/DecentralizedTracking/pymdht/LGPL-2.1.txt
+
 	dh_link -ptribler usr/share/javascript/mootools/mootools.js usr/share/tribler/Tribler/Main/webUI/static/mootools.js
 
 override_dh_auto_clean:
@@ -55,19 +57,18 @@ override_dh_auto_clean:
 	dh_auto_clean
 
 get-orig-source:
-	set -e; if echo $(DEB_VERSION) | grep -c "svn"; \
+	set -e; if echo $(DEB_VERSION) | grep -c "git"; \
 	then \
-		svn_version=`echo $(DEB_VERSION) | sed -e 's/^.*svn\([0-9]*\)*\.\(.*\)-.*$$/\2/g'`; \
+		git_version=`echo $(DEB_VERSION) | sed -e 's/^.*git\([0-9]*\)*\.\(.*\)-.*$$/\2/g'`; \
 	else \
-		svn_version=$(DEB_UPSTREAM_VERSION); \
+		git_version=$(DEB_UPSTREAM_VERSION); \
 	fi; \
 	tmpdir=`mktemp -d -t`; \
 	cd $$tmpdir; \
 	echo "checkout upstream repository ..."; \
-	svn checkout --no-auth-cache --non-interactive --trust-server-cert --ignore-externals -r $$svn_version $(SVN_URL) tribler; echo "getting specific upstream revision/tag: $$svn_version"; \
-	svn checkout --no-auth-cache --non-interactive --trust-server-cert -r $$svn_version http://svn.tribler.org/libswift/branches/arno/swift-like-ftp tribler/Tribler/SwiftEngine; echo "getting specific upstream revision/tag: $$svn_version"; \
-	svn checkout --no-auth-cache --non-interactive --trust-server-cert -r $$svn_version http://svn.tribler.org/dispersy/trunk tribler/Tribler/dispersy; echo "getting specific upstream revision/tag: $$svn_version"; \
-	tar --exclude=.svn --exclude='*.exe' --exclude='draft-ietf-ppsp-*' \
+	git clone --recursive $(GIT_URL); echo "getting specific upstream revision/tag: $$git_version"; \
+	cd `ls | head -n 1`; git checkout -b orig $$git_version; cd ..; \
+	tar --exclude=.git --exclude=.gitignore --exclude='*.exe' --exclude='draft-ietf-ppsp-*' \
 	-cJvf $(CURDIR)/$(DEB_SOURCE)_$(DEB_UPSTREAM_VERSION).orig.tar.xz `ls | head -n 1`; \
 	cd $(CURDIR); \
 	rm -rf $$tmpdir

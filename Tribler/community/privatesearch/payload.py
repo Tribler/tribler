@@ -6,7 +6,9 @@ MAXLONG256 = (1 << 2048) - 1
 
 # Search stuffs
 class SearchRequestPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, ttl, keywords, bloom_filter=None):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
@@ -40,8 +42,11 @@ class SearchRequestPayload(Payload):
         def bloom_filter(self):
             return self._bloom_filter
 
+
 class SearchResponsePayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, results):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
@@ -80,8 +85,11 @@ class SearchResponsePayload(Payload):
         def results(self):
             return self._results
 
+
 class TorrentRequestPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, torrents):
             if __debug__:
                 assert isinstance(torrents, dict), type(torrents)
@@ -100,8 +108,11 @@ class TorrentRequestPayload(Payload):
         def torrents(self):
             return self._torrents
 
+
 class TorrentPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, infohash, timestamp, name, files, trackers):
             assert isinstance(infohash, str), 'infohash is a %s' % type(infohash)
             assert len(infohash) == 20, 'infohash has length %d' % len(infohash)

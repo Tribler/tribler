@@ -1,9 +1,9 @@
-#Written by Niels Zeilemaker
+# Written by Niels Zeilemaker
 from struct import pack, unpack_from
 from random import choice, sample
 from math import ceil
 
-from Tribler.dispersy.encoding import encode, decode
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
@@ -11,7 +11,9 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 import zlib
 from Tribler.community.search.payload import TasteIntroPayload
 
+
 class SearchConversion(BinaryConversion):
+
     def __init__(self, community):
         super(SearchConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"search-request"), lambda message: self._encode_decode(self._encode_search_request, self._decode_search_request, message), self._decode_search_request)
@@ -31,7 +33,7 @@ class SearchConversion(BinaryConversion):
     def _decode_introduction_request(self, placeholder, offset, data):
         offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
 
-        #if there's still bytes in this request, treat them as taste_bloom_filter
+        # if there's still bytes in this request, treat them as taste_bloom_filter
         has_stuff = len(data) > offset
         if has_stuff:
             if len(data) < offset + 8:
@@ -54,7 +56,7 @@ class SearchConversion(BinaryConversion):
 
             length = int(ceil(size / 8))
             if not length == len(data) - offset:
-                raise DropPacket("Invalid number of bytes available (irq) %d, %d, %d"%(length, len(data) - offset, size))
+                raise DropPacket("Invalid number of bytes available (irq) %d, %d, %d" % (length, len(data) - offset, size))
 
             taste_bloom_filter = BloomFilter(data[offset:offset + length], functions, prefix=prefix)
             offset += length
@@ -94,7 +96,7 @@ class SearchConversion(BinaryConversion):
         identifier, keywords = payload[:2]
 
         if len(identifier) != 2:
-            raise DropPacket("Unable to decode the search-payload, got %d bytes expected 2"%(len(identifier)))
+            raise DropPacket("Unable to decode the search-payload, got %d bytes expected 2" % (len(identifier)))
         identifier, = unpack_from('!H', identifier)
 
         if not isinstance(keywords, list):
@@ -144,7 +146,7 @@ class SearchConversion(BinaryConversion):
         identifier, results = payload[:2]
 
         if len(identifier) != 2:
-            raise DropPacket("Unable to decode the search-response-payload, got %d bytes expected 2"%(len(identifier)))
+            raise DropPacket("Unable to decode the search-response-payload, got %d bytes expected 2" % (len(identifier)))
         identifier, = unpack_from('!H', identifier)
 
         if not isinstance(results, list):
@@ -168,7 +170,7 @@ class SearchConversion(BinaryConversion):
                 raise DropPacket("Invalid swarmname type")
 
             if not isinstance(length, long):
-                raise DropPacket("Invalid length type '%s'"%type(length))
+                raise DropPacket("Invalid length type '%s'" % type(length))
 
             if not isinstance(nrfiles, int):
                 raise DropPacket("Invalid nrfiles type")
@@ -183,14 +185,14 @@ class SearchConversion(BinaryConversion):
                 raise DropPacket("Invalid creation_date type")
 
             if not isinstance(seeders, int):
-                raise DropPacket("Invalid seeders type '%s'"%type(seeders))
+                raise DropPacket("Invalid seeders type '%s'" % type(seeders))
 
             if not isinstance(leechers, int):
-                raise DropPacket("Invalid leechers type '%s'"%type(leechers))
+                raise DropPacket("Invalid leechers type '%s'" % type(leechers))
 
             if swift_hash:
                 if not isinstance(swift_hash, str):
-                    raise DropPacket("Invalid swift_hash type '%s'"%type(swift_hash))
+                    raise DropPacket("Invalid swift_hash type '%s'" % type(swift_hash))
 
                 if len(swift_hash) != 20:
                     raise DropPacket("Invalid swift_hash length")
@@ -212,7 +214,7 @@ class SearchConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(identifier, results)
 
     def _encode_torrent_request(self, message):
-        max_len = self._community.dispersy_sync_bloom_filter_bits/8
+        max_len = self._community.dispersy_sync_bloom_filter_bits / 8
 
         def create_msg():
             return encode(message.payload.torrents)
@@ -224,7 +226,7 @@ class SearchConversion(BinaryConversion):
             if nrTorrents == 1:
                 del message.payload.torrents[community]
             else:
-                message.payload.torrents[community] = set(sample(message.payload.torrents[community], nrTorrents-1))
+                message.payload.torrents[community] = set(sample(message.payload.torrents[community], nrTorrents - 1))
 
             packet = create_msg()
         return packet,
@@ -259,7 +261,7 @@ class SearchConversion(BinaryConversion):
 
         hashpack = '20s20sHHH' * len(message.payload.torrents)
         torrents = [item for sublist in message.payload.torrents for item in sublist]
-        return pack('!HH'+hashpack, message.payload.identifier, message.payload.hashtype, *torrents),
+        return pack('!HH' + hashpack, message.payload.identifier, message.payload.hashtype, *torrents),
 
     def _decode_torrent_collect_request(self, placeholder, offset, data):
         if len(data) < offset + 4:
@@ -273,13 +275,13 @@ class SearchConversion(BinaryConversion):
             raise DropPacket("Invalid number of bytes available (tcr)")
 
         if length:
-            hashpack = '20s20sHHH' * (length/46)
-            hashes = unpack_from('!'+hashpack, data, offset)
+            hashpack = '20s20sHHH' * (length / 46)
+            hashes = unpack_from('!' + hashpack, data, offset)
             offset += length
 
             torrents = []
             for i in range(0, len(hashes), 5):
-                torrents.append([hashes[i], hashes[i+1], hashes[i+2], hashes[i+3], hashes[i+4]])
+                torrents.append([hashes[i], hashes[i + 1], hashes[i + 2], hashes[i+3], hashes[i+4]])
         else:
             torrents = []
         return offset, placeholder.meta.payload.implement(identifier, hashtype, torrents)
@@ -291,7 +293,7 @@ class SearchConversion(BinaryConversion):
         return self._decode_torrent_collect_request(placeholder, offset, data)
 
     def _encode_torrent(self, message):
-        max_len = self._community.dispersy_sync_bloom_filter_bits/8
+        max_len = self._community.dispersy_sync_bloom_filter_bits / 8
 
         files = message.payload.files
         trackers = message.payload.trackers
@@ -304,11 +306,11 @@ class SearchConversion(BinaryConversion):
         compressed_msg = create_msg()
         while len(compressed_msg) > max_len:
             if len(trackers) > 10:
-                #only use first 10 trackers, .torrents in the wild have been seen to have 1000+ trackers...
+                # only use first 10 trackers, .torrents in the wild have been seen to have 1000+ trackers...
                 trackers = trackers[:10]
             else:
-                #reduce files by the amount we are currently to big
-                reduce_by = max_len / (len(compressed_msg)*1.0)
+                # reduce files by the amount we are currently to big
+                reduce_by = max_len / (len(compressed_msg) * 1.0)
                 nr_files_to_include = int(len(files) * reduce_by)
                 files = sample(files, nr_files_to_include)
 
@@ -326,7 +328,7 @@ class SearchConversion(BinaryConversion):
 
         infohash_time, name, files, trackers = values
         if len(infohash_time) != 28:
-            raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28"%(len(infohash_time)))
+            raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28" % (len(infohash_time)))
         infohash, timestamp = unpack_from('!20sQ', infohash_time)
 
         if not isinstance(name, unicode):
@@ -344,9 +346,9 @@ class SearchConversion(BinaryConversion):
 
             path, length = file
             if not isinstance(path, unicode):
-                raise DropPacket("Invalid 'files_path' type is %s"%type(path))
+                raise DropPacket("Invalid 'files_path' type is %s" % type(path))
             if not isinstance(length, (int, long)):
-                raise DropPacket("Invalid 'files_length' type is %s"%type(length))
+                raise DropPacket("Invalid 'files_length' type is %s" % type(length))
 
         if not isinstance(trackers, tuple):
             raise DropPacket("Invalid 'trackers' type")

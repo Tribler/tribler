@@ -1,3 +1,10 @@
 *.pyc
 *.pyo
-swift
+*~
+.ropeproject
+/.Tribler
+/.noseids
+/output
+/swift
+/swift.exe
+\#*\#

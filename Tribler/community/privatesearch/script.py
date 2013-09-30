@@ -18,6 +18,7 @@ from Tribler.community.privatesearch.oneswarm.community import PoliOneSwarmCommu
 DEBUG = False
 
 class SearchScript(SemanticScript):
+
     def __init__(self, **kargs):
         SemanticScript.__init__(self, **kargs)
 
