@@ -5,6 +5,8 @@ import sys
 from cStringIO import StringIO
 from binascii import b2a_hex
 from Tribler.Core.MessageID import protocol_name
+from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
+from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 
 try:
     True
@@ -235,5 +237,18 @@ class MultiHandler:
     # be wary of name collisions
 
     def external_connection_made(self, ss):
-        # ss: SingleSocket
-        NewSocketHandler(self, ss)
+        """
+        :param ss: SingleSocket
+        @type ss: Tribler.Core.RawServer.SocketHandler.SingleSocket
+        """
+
+        # If we are on the SOCKS port patch into the AnonTunnel's code
+        if ss.myport == 1080:
+            if not hasattr(self,'_anon_tunnel_tcp_handler'):
+                self._anon_tunnel_tcp_handler = TcpConnectionHandler()
+
+                ss.set_handler(self._anon_tunnel_tcp_handler)
+
+            self._anon_tunnel_tcp_handler.external_connection_made(ss)
+        else:
+            NewSocketHandler(self, ss)

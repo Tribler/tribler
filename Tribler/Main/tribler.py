@@ -14,6 +14,9 @@
 
 import sys
 import logging.config
+from Tribler.community.anontunnel.ConnectionHandlers import TcpConnectionHandler
+from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
+
 try:
     logging.config.fileConfig("logger.conf")
 except:
@@ -479,6 +482,8 @@ class ABCApp():
 
             socks_server = Socks5AnonTunnelServer(s.lm.rawserver, 1080)
             socks_server.start()
+            TcpConnectionHandler.set_server(socks_server)
+
             dispersy.define_auto_load(ProxyCommunity,
                                      (s.dispersy_member, socks_server),
                                      load=True)

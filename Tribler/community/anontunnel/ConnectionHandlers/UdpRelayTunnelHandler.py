@@ -25,8 +25,9 @@ class UdpRelayTunnelHandler(object):
 
             self.server.destination_address = source_address
 
-            logger.info("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
-                        request.destination_address, request.destination_port)
+            if __debug__:
+                logger.info("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
+                            request.destination_address, request.destination_port)
 
             self.server.tunnel.send_data(
                 ultimate_destination=(request.destination_address, request.destination_port),

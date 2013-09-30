@@ -18,7 +18,7 @@ from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 import Socks5.structs
 
 
-class Socks5AnonTunnelServer(Thread):
+class Socks5AnonTunnelServer(object):
     @property
     def tunnel(self):
         return self._tunnel
@@ -31,9 +31,9 @@ class Socks5AnonTunnelServer(Thread):
 
 
     def __init__(self, raw_server, socks5_port=1080, timeout=10.0):
-        Thread.__init__(self)
-        self.setDaemon(False)
-        self.setName('Socks5Server' + self.getName())
+        #Thread.__init__(self)
+        #self.setDaemon(False)
+        #self.setName('Socks5Server' + self.getName())
         self.socks5_port = socks5_port
 
         self.udp_relay_socket = None
@@ -49,6 +49,8 @@ class Socks5AnonTunnelServer(Thread):
         self.raw_server = raw_server
 
 
+
+
         try:
             port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
                                                  reuse=True)
@@ -61,6 +63,9 @@ class Socks5AnonTunnelServer(Thread):
     def shutdown(self):
         self.connection_handler.shutdown()
         self.server_done_flag.set()
+
+    def start(self):
+        pass
 
     def run(self):
         try:

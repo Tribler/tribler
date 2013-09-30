@@ -134,7 +134,7 @@ class DispersyTunnelProxy(Observable):
             community = self.community
             community.send(u"extended", created_for.address, created_for.circuit_id, extended_with)
 
-            logger.info('We have extended circuit (%s, %d) with (%s,%d)',
+            logger.INFOinfo('We have extended circuit (%s, %d) with (%s,%d)',
                         created_for.address,
                         created_for.circuit_id,
                         extended_with,
