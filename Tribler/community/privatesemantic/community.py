@@ -32,9 +32,6 @@ from pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt,
 from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from polycreate import compute_coeff, polyval
 
-if __debug__:
-    from Tribler.dispersy.dprint import dprint
-
 DEBUG = False
 DEBUG_VERBOSE = False
 ENCRYPTION = True
@@ -42,7 +39,7 @@ PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
 class ForwardCommunity():
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = rsa_init()
@@ -136,15 +133,15 @@ class ForwardCommunity():
                 yield tb_tuple[-1]
 
     def is_taste_buddy(self, candidate):
-        candidate_mids = set(candidate.get_members(self))
+        candidate_mids = set(candidate.get_members())
         for tb in self.yield_taste_buddies():
-            tb_mids = set(tb.get_members(self))
+            tb_mids = set(tb.get_members())
             if tb_mids & candidate_mids:
                 return True
 
     def is_taste_buddy_mid(self, mid):
         for tb in self.yield_taste_buddies():
-            if mid in [member.mid for member in tb.get_members(self)]:
+            if mid in [member.mid for member in tb.get_members()]:
                 return True
 
     def is_taste_buddy_sock(self, sock_addr):
@@ -153,10 +150,10 @@ class ForwardCommunity():
                 return True
 
     def resetTastebuddy(self, candidate):
-        candidate_mids = set(candidate.get_members(self))
+        candidate_mids = set(candidate.get_members())
 
         for tb in self.taste_buddies:
-            tb_mids = set(tb[-1].get_members(self))
+            tb_mids = set(tb[-1].get_members())
             if tb_mids & candidate_mids:
                 tb[1] = time()
 
@@ -245,7 +242,7 @@ class ForwardCommunity():
             if ignore_candidate:
                 sock_addresses.add(ignore_candidate.sock_addr)
 
-            for candidate in self.dispersy_yield_candidates():
+            for candidate in self.dispersy_yield_verified_candidates():
                 if candidate.sock_addr not in sock_addresses:
                     candidates.add(candidate)
                     sock_addresses.add(candidate.sock_addr)
@@ -258,15 +255,14 @@ class ForwardCommunity():
 
         return candidates
 
-    def dispersy_yield_introduce_candidates(self, candidate=None):
-        if candidate:
-            if candidate in self.requested_introductions:
-                intro_me_candidate = self.requested_introductions[candidate]
-                del self.requested_introductions[candidate]
-                yield intro_me_candidate
+    def dispersy_get_introduce_candidate(self, exclude_candidate=None):
+        if exclude_candidate:
+            if exclude_candidate in self.requested_introductions:
+                intro_me_candidate = self.requested_introductions[exclude_candidate]
+                del self.requested_introductions[exclude_candidate]
+                return intro_me_candidate
 
-        for random_candidate in Community.dispersy_yield_introduce_candidates(self, candidate):
-            yield random_candidate
+        return Community.dispersy_get_introduce_candidate(self, exclude_candidate)
 
     class SimilarityAttempt(Cache):
         timeout_delay = 10.5
@@ -305,7 +301,7 @@ class ForwardCommunity():
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
             for candidate in self.requested_candidates:
-                for member in candidate.get_members(community):
+                for member in candidate.get_members():
                     self.requested_mids.add(member.mid)
 
             self.received_candidates = set()
@@ -437,7 +433,7 @@ class ForwardCommunity():
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
 
         self._dispersy.statistics.walk_attempt += 1
-        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
+        destination.walk(time(), IntroductionRequestCache.timeout_delay)
 
         advice = True
         identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
@@ -545,8 +541,8 @@ class ForwardCommunity():
 
 class PForwardCommunity(ForwardCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
+        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs)
 
         self.key = pallier_init(self.key)
 
@@ -852,8 +848,8 @@ class HForwardCommunity(ForwardCommunity):
 
 class PoliForwardCommunity(ForwardCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs)
+    def __init__(self,dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
+        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs)
         self.key = pallier_init(self.key)
 
     def initiate_conversions(self):

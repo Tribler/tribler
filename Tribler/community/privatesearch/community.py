@@ -147,7 +147,7 @@ class TTLSearchCommunity(Community):
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
             for candidate in self.requested_candidates:
-                for member in candidate.get_members(community):
+                for member in candidate.get_members():
                     self.requested_mids.add(member.mid)
             self.received_candidates = []
 
@@ -276,7 +276,7 @@ class TTLSearchCommunity(Community):
             ignore_candidates = set()
 
         if return_candidate:
-            for member in return_candidate.get_members(self):
+            for member in return_candidate.get_members():
                 ignore_candidates.add(member.mid)
 
         # impose upper limit for forwarding
@@ -530,7 +530,7 @@ class TTLSearchCommunity(Community):
             if ignore_candidate:
                 sock_addresses.add(ignore_candidate.sock_addr)
 
-            for candidate in self.dispersy_yield_candidates():
+            for candidate in self.dispersy_yield_verified_candidates():
                 if candidate.sock_addr not in sock_addresses:
                     candidates.add(candidate)
                     sock_addresses.add(candidate.sock_addr)
@@ -548,7 +548,7 @@ class TTLSearchCommunity(Community):
 
         random_peers = []
         sock_addresses = set(candidate.sock_addr for candidate in taste_buddies)
-        for candidate in self.dispersy_yield_candidates():
+        for candidate in self.dispersy_yield_verified_candidates():
             if candidate.sock_addr not in sock_addresses:
                 random_peers.append(candidate)
                 sock_addresses.add(candidate.sock_addr)
@@ -558,7 +558,7 @@ class TTLSearchCommunity(Community):
             _taste_buddies = []
             for candidate in random_peers:
                 add = True
-                for member in candidate.get_members(self):
+                for member in candidate.get_members():
                     if member.mid in ignore_candidates:
                         add = False
                         break
@@ -568,7 +568,7 @@ class TTLSearchCommunity(Community):
 
             for candidate in taste_buddies:
                 add = True
-                for member in candidate.get_members(self):
+                for member in candidate.get_members():
                     if member.mid in ignore_candidates:
                         add = False
                         break
