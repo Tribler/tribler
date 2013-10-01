@@ -1114,6 +1114,30 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         """ Called by any thread """
         pass
 
+    def add_trackers(self, trackers, update_tdef=False):
+        with self.dllock:
+            if self.handle:
+                # Update torrent handle
+                for tracker in trackers:
+                    self.handle.add_tracker({'url': tracker, 'verified': False})
+                if update_tdef:
+                    # Update TorrentDef
+                    metainfo = self.tdef.get_metainfo()
+
+                    trackers = [tracker['url'] for tracker in self.handle.trackers()]
+                    if trackers:
+                        if len(trackers) > 1:
+                            metainfo["announce-list"] = [trackers]
+                        else:
+                            metainfo["announce"] = trackers[0]
+
+                    self.tdef = TorrentDef.load_from_dict(metainfo)
+                    self.checkpoint()
+
+                    # Triggers GUI refresh
+                    self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, self.tdef.get_infohash())
+
+
     #
     # External addresses
     #
