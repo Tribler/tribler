@@ -466,6 +466,9 @@ class MainFrame(wx.Frame):
 
             cdef = sdef or tdef
 
+            if self.utility.session.get_download(cdef.get_id()):
+                raise DuplicateDownloadException()
+
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
 
