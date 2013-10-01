@@ -550,6 +550,7 @@ class TorrentDetails(AbstractDetails):
                 for tracker in self.torrent.trackers:
                     if isinstance(tracker, basestring):
                         self._add_row(self.trackerTab, self.trackerSizer, None, tracker)
+                self.trackerSizer.Layout()
         else:
             self.notebook.ShowMessageOnPage(self.notebook.GetIndexFromText('Trackers'), True)
 
