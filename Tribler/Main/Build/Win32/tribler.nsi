@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "6.2.0"
+!define VERSION "__GIT__"
 
 !include "MUI.nsh"
 !include "UAC.nsh"
@@ -50,10 +50,10 @@ BrandingText "${PRODUCT}"
 
 ; Arno, 2010-02-09: On Vista+Win7 the default value for RequestExecutionLevel
 ; is auto, so this installer will be run as Administrator. Hence also the
-; Tribler.exe that is launched by FINISHPAGE_RUN will be launched as that user. 
-; This is not what we want. We do want an admin-level install, in particular 
+; Tribler.exe that is launched by FINISHPAGE_RUN will be launched as that user.
+; This is not what we want. We do want an admin-level install, in particular
 ; for configuring the Windows firewall automatically. Alternative is the
-; UAC plugin (http://nsis.sourceforge.net/UAC_plug-in) but that's still beta. 
+; UAC plugin (http://nsis.sourceforge.net/UAC_plug-in) but that's still beta.
 ; Bouman, 2012-04-13: Now using the UAC plugin.
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION PageFinishRun
@@ -73,7 +73,7 @@ BrandingText "${PRODUCT}"
 ;Languages
 
 !insertmacro MUI_LANGUAGE "English"
- 
+
 ;--------------------------------
 ;Language Strings
 
@@ -157,7 +157,7 @@ Section "!Main EXE" SecMain
  SetOutPath "$INSTDIR\Tribler\Category"
  File Tribler\Category\*.conf
  File Tribler\Category\*.filter
- 
+
  ; Arno, 2012-05-25: data files for pymdht
  CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking"
  CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht"
@@ -165,7 +165,7 @@ Section "!Main EXE" SecMain
  SetOutPath "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht\core"
  File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.main
  File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.backup
- 
+
  ; End
  SetOutPath "$INSTDIR"
  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT}"
@@ -205,7 +205,7 @@ SectionEnd
 
 Section "Startmenu Icons" SecStart
    CreateDirectory "$SMPROGRAMS\${PRODUCT}"
-   CreateShortCut "$SMPROGRAMS\${PRODUCT}\Uninstall ${PRODUCT}.lnk" "$INSTDIR\Uninstall.exe"   
+   CreateShortCut "$SMPROGRAMS\${PRODUCT}\Uninstall ${PRODUCT}.lnk" "$INSTDIR\Uninstall.exe"
    CreateShortCut "$SMPROGRAMS\${PRODUCT}\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe"
 SectionEnd
 
@@ -228,7 +228,7 @@ Section "Make Default For .tstream" SecDefaultTStream
    ; Arno: Poor man's attempt to check if already registered
    ReadRegStr $0 HKCR .tstream ""
    ReadRegStr $1 HKCR "tstream\shell\open\command" ""
-   StrCpy $2 $1 -4 
+   StrCpy $2 $1 -4
    StrCmp $0 "" 0 +2
       return
    MessageBox MB_YESNO ".tstream already registered to $2. Overwrite?" IDYES +2 IDNO 0
@@ -284,11 +284,11 @@ Section "Uninstall"
  RMDir /r "$INSTDIR"
 
  Delete "$DESKTOP\${PRODUCT}.lnk"
- 
+
  SetShellVarContext all
  RMDir "$SMPROGRAMS\${PRODUCT}"
  RMDir /r "$SMPROGRAMS\${PRODUCT}"
- 
+
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
 
@@ -323,7 +323,7 @@ ${Default}
 	MessageBox mb_IconStop|mb_TopMost|mb_SetForeground "Unable to elevate , error $0"
 	Quit
 ${EndSwitch}
- 
+
 SetShellVarContext all
 !macroend
 
@@ -331,15 +331,15 @@ SetShellVarContext all
 Function .onInit
   !insertmacro Init "installer"
 
-  System::Call 'kernel32::CreateMutexA(i 0, i 0, t "Tribler") i .r1 ?e' 
+  System::Call 'kernel32::CreateMutexA(i 0, i 0, t "Tribler") i .r1 ?e'
 
-  Pop $R0 
+  Pop $R0
 
-  StrCmp $R0 0 +3 
+  StrCmp $R0 0 +3
 
   MessageBox MB_OK "The installer is already running."
 
-  Abort 
+  Abort
 
   ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
   StrCmp $R0 "" done
