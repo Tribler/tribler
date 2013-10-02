@@ -1,5 +1,5 @@
-import logging
-logger = logging.getLogger(__name__)
+from Tribler.dispersy.logger import get_logger
+logger = get_logger(__name__)
 
 from hashlib import sha1
 from itertools import islice

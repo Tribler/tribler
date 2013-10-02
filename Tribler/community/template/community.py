@@ -2,8 +2,8 @@
 Example file
 """
 
-import logging
-logger = logging.getLogger(__name__)
+from Tribler.dispersy.logger import get_logger
+logger = get_logger(__name__)
 
 from .conversion import Conversion
 from .payload import TextPayload

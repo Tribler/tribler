@@ -19,9 +19,9 @@ import sys
 import os
 import tempfile
 import shutil
-from logging import getLogger
 from Tribler.Test.test_as_server import AbstractServer
-logger = getLogger(__name__)
+from Tribler.dispersy.logger import get_logger
+logger = get_logger(__name__)
 
 from Tribler.Core.API import *
 
