@@ -237,7 +237,7 @@ class TTLSearchCommunity(Community):
         def created_by_me(self):
             return self.search_requests[0].created_by_me
 
-    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None):
+    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None, return_member=None):
         if identifier == None:
             identifier = self._dispersy.request_cache.generate_identifier()
             if self.log_searches:
@@ -276,8 +276,10 @@ class TTLSearchCommunity(Community):
             ignore_candidates = set()
 
         if return_candidate:
-            for member in return_candidate.get_members():
-                ignore_candidates.add(member.mid)
+            # ERR
+            # for member in return_candidate.get_members():
+            #     ignore_candidates.add(member.mid)
+            ignore_candidates.add(return_member.mid)
 
         # impose upper limit for forwarding
         candidates = []
@@ -371,7 +373,7 @@ class TTLSearchCommunity(Community):
                     print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding (%f, %f)" % (ttl, message.payload.ttl, self.prob, self.fprob)
 
                 callback = lambda keywords, newresults, candidate, myidentifier = identifier: self._create_search_response(myidentifier, newresults, candidate)
-                candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
+                candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate, message.authentication.member)
 
                 if DEBUG:
                     print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d, %f, %f) received from" % (ttl, message.payload.ttl, len(candidates), identifier, self.prob, self.fprob), message.candidate
