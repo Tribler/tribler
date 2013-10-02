@@ -9,7 +9,7 @@ from cStringIO import StringIO
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Utilities.configreader import ConfigReader
-from Tribler.Core.__init__ import version_id
+from Tribler.Core.version import version_id
 
 #
 #
