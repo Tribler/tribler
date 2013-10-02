@@ -149,20 +149,17 @@ class ForwardCommunity():
             if tb.sock_addr == sock_addr:
                 return True
 
-    def resetTastebuddy(self, candidate):
-        candidate_mids = set(candidate.get_members())
-
+    def resetTastebuddy(self, member):
         for tb in self.taste_buddies:
-            tb_mids = set(tb[-1].get_members())
-            if tb_mids & candidate_mids:
+            if member in tb[-1].get_members():
                 tb[1] = time()
 
-    def removeTastebuddy(self, candidate):
+    def removeTastebuddy(self, member):
         remove = None
 
         removeIf = time() - CANDIDATE_WALK_LIFETIME
         for taste_buddy in self.taste_buddies:
-            if taste_buddy[-1] == candidate:
+            if member in taste_buddy[-1].get_members():
                 if taste_buddy[1] < removeIf:
                     remove = taste_buddy
                 break
@@ -478,7 +475,8 @@ class ForwardCommunity():
             if not self.processed:
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: no response on ping, removing from taste_buddies", self.candidate
-                self.community.removeTastebuddy(self.candidate)
+                for member in self.candidate.get_members():
+                    self.community.removeTastebuddy(member)
 
     def create_ping_request(self, candidate):
         while self.is_taste_buddy(candidate):
@@ -496,7 +494,7 @@ class ForwardCommunity():
             if len(message.payload.torrents) > 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
 
-            self.resetTastebuddy(message.candidate)
+            self.resetTastebuddy(message.authentication.member)
 
     def check_pong(self, messages):
         for message in messages:
@@ -519,7 +517,7 @@ class ForwardCommunity():
             if len(message.payload.torrents) > 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
 
-            self.resetTastebuddy(message.candidate)
+            self.resetTastebuddy(message.authentication.member)
 
     def _create_pingpong(self, meta_name, candidates, identifiers=None):
         torrents = []
