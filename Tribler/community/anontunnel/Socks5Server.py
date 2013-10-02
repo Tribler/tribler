@@ -11,14 +11,12 @@ logger = logging.getLogger(__name__)
 import socket
 from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 from traceback import print_exc
-from threading import Thread, Event
-from Tribler.Core.RawServer.RawServer import RawServer
 from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 
 import Socks5.structs
 
 
-class Socks5AnonTunnelServer(object):
+class Socks5Server(object):
     @property
     def tunnel(self):
         return self._tunnel
@@ -30,23 +28,23 @@ class Socks5AnonTunnelServer(object):
         self._tunnel.socket_server = self
 
 
-    def __init__(self, raw_server, socks5_port=1080, timeout=10.0):
-        self.socks5_port = socks5_port
+    def __init__(self, ):
+        self.socks5_port = None
+        self.raw_server = None
 
         self.udp_relay_socket = None
 
         self.connection_handler = TcpConnectionHandler()
-        self.connection_handler.server = self
-
-        self.destination_address = None
+        self.connection_handler.socks5_server = self
 
         self._tunnel = None
 
-        self.server_done_flag = Event()
-        self.raw_server = raw_server
-
         self.routes = {}
         self.udp_relays = {}
+
+    def attach_to(self,raw_server, socks5_port=1080):
+        self.socks5_port = socks5_port
+        self.raw_server = raw_server
 
         try:
             port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
@@ -55,24 +53,6 @@ class Socks5AnonTunnelServer(object):
         except socket.error:
             logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
                          socks5_port)
-
-
-    def shutdown(self):
-        self.connection_handler.shutdown()
-        self.server_done_flag.set()
-
-    def start(self):
-        pass
-
-    def run(self):
-        try:
-            try:
-                self.raw_server.listen_forever(self)
-            except Exception, e:
-                if not isinstance(e, SystemExit):
-                    print_exc()
-        finally:
-            self.raw_server.shutdown()
 
     def external_connection_made(self, s):
         try:

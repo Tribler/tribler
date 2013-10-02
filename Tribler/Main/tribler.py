@@ -458,7 +458,7 @@ class ABCApp():
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
-            from Tribler.community.anontunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
+            from Tribler.community.anontunnel.Socks5Server import Socks5Server
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
@@ -480,8 +480,8 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
-            socks_server = Socks5AnonTunnelServer(s.lm.rawserver, 1080)
-            socks_server.start()
+            socks_server = Socks5Server()
+            socks_server.attach_to(s.lm.rawserver, 1080)
 
             dispersy.define_auto_load(ProxyCommunity,
                                      (s.dispersy_member, socks_server),

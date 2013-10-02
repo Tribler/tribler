@@ -31,7 +31,7 @@ class Socks5Connection(object):
         """:type : SingleSocket"""
 
         self.connection_handler = connection_handler
-        """:type : Socks5Handler """
+        """:type : TcpConnectionHandler """
 
         self.buffer = ''
 
@@ -130,12 +130,12 @@ class Socks5Connection(object):
                                             self.single_socket.get_myport())
             self.write(response)
         elif request.cmd == structs.REQ_CMD_UDP_ASSOCIATE:
-            socket = self.connection_handler.server.create_udp_relay()
+            socket = self.connection_handler.socks5_server.create_udp_relay()
 
             # We use same IP as the single socket, but the port number comes from the newly created UDP listening socket
             ip, port = self.single_socket.get_myip(), socket.getsockname()[1]
 
-            logger.info("Accepting UDP ASSOCIATE request, direct client to %s:%d", ip, port)
+            logger.error("Accepting UDP ASSOCIATE request, direct client to %s:%d", ip, port)
 
             response = structs.encode_reply(0x05, 0x00, 0x00, structs.ADDRESS_TYPE_IPV4, ip, port)
             self.write(response)

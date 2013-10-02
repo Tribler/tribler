@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
-from Tribler.community.anontunnel.Socks5AnonTunnelServer import Socks5AnonTunnelServer
+from Tribler.community.anontunnel.Socks5Server import Socks5Server
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import RawserverEndpoint
@@ -39,13 +39,14 @@ class AnonTunnel:
                                     errorfunc=lambda (e): print_exc())
 
         self.callback = Callback()
-        self.socket_server = Socks5AnonTunnelServer(self.raw_server, socks5_port)
+        self.socks5_server = Socks5Server()
+        self.socks5_server.attach_to(self.raw_server, socks5_port)
 
-        self.endpoint = RawserverEndpoint(self.socket_server.raw_server, port=10000)
+        self.endpoint = RawserverEndpoint(self.socks5_server.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
 
         self.command_handler = CommandHandler(self)
-        self.command_handler.attach_to(self.socket_server, cmd_port)
+        self.command_handler.attach_to(self.socks5_server, cmd_port)
 
         self.community = None
 
@@ -55,18 +56,18 @@ class AnonTunnel:
 
         def join_overlay(dispersy):
             dispersy.define_auto_load(ProxyCommunity,
-                                     (self.dispersy.get_new_member(), self.socket_server),
+                                     (self.dispersy.get_new_member(), self.socks5_server),
                                      load=True)
 
         self.community = self.dispersy.callback.call(join_overlay, (self.dispersy,))
-        self.socket_server.start()
+        self.raw_server.listen_forever(None)
 
     def stop(self):
         if self.community:
             pass
 
-        if self.socket_server:
-            self.socket_server.shutdown()
+        if self.raw_server:
+            self.raw_server.shutdown()
 
         if self.dispersy:
             self.dispersy.stop()

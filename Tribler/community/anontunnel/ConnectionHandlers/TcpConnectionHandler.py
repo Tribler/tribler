@@ -20,8 +20,8 @@ class TcpConnectionHandler(object):
     """
     def __init__(self):
         self.socket2connection = {}
-        self.server = None
-        """ :type : Tribler.community.anontunnel.Socks5AnonTunnel.Socks5AnonTunnel """
+        self.socks5_server = None
+        """ :type : Tribler.community.anontunnel.Socks5Server.Socks5Server """
 
     def external_connection_made(self, s):
         # Extra check in case bind() no work
@@ -76,5 +76,5 @@ class TcpConnectionHandler(object):
             tcp_connection.shutdown()
 
     def start_connection(self, dns):
-        s = self.server.start_connection(dns)
+        s = self.socks5_server.start_connection(dns)
         return s
