@@ -136,13 +136,17 @@ class DispersyTunnelProxy(Observable):
 
             self._process_extension_queue(circuit)
         else:
-            created_for = self.relay_from_to[(address, msg.circuit_id)]
+            try:
+                created_for = self.relay_from_to[(address, msg.circuit_id)]
+            except KeyError, e:
+                logger.error(e.message)
+
             extended_with = address
 
             community = self.community
             community.send(u"extended", created_for.address, created_for.circuit_id, extended_with)
 
-            logger.INFOinfo('We have extended circuit (%s, %d) with (%s,%d)',
+            logger.info('We have extended circuit (%s, %d) with (%s,%d)',
                         created_for.address,
                         created_for.circuit_id,
                         extended_with,
@@ -151,6 +155,12 @@ class DispersyTunnelProxy(Observable):
 
             self.fire("circuit_extended_for", extended_for=(created_for.address, created_for.circuit_id),
                       extended_with=(extended_with, msg.circuit_id))
+
+            # transfer extending for queue to the next hop
+            while self.extending_for[(created_for.address,created_for.circuit_id)] > 0:
+                self.extending_for[(created_for.address,created_for.circuit_id)] -= 1
+
+                community.send(u"extend", extended_with, msg.circuit_id)
 
     def on_data(self, event):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""

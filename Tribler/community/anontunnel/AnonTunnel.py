@@ -14,10 +14,10 @@ from Tribler.community.anontunnel.Socks5Server import Socks5Server
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import RawserverEndpoint
-from threading import Event
+from threading import Event, Thread
 
 
-class AnonTunnel:
+class AnonTunnel(Thread):
 
     @property
     def tunnel(self):
@@ -30,6 +30,7 @@ class AnonTunnel:
         return [c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)][0].socks_server.tunnel;
 
     def __init__(self, socks5_port, cmd_port):
+        Thread.__init__(self)
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
                                     10.0 / 5.0,
@@ -50,9 +51,9 @@ class AnonTunnel:
 
         self.community = None
 
-    def start(self):
+    def run(self):
         self.dispersy.start()
-        logger.info("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
+        logger.error("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
         def join_overlay(dispersy):
             dispersy.define_auto_load(ProxyCommunity,
