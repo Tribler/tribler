@@ -15,7 +15,6 @@ from .database import BarterDatabase
 from .efforthistory import CYCLE_SIZE, EffortHistory
 from .payload import BarterRecordPayload, PingPayload, PongPayload, MemberRequestPayload, MemberResponsePayload
 
-from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, NoAuthentication, MemberAuthentication
 from Tribler.dispersy.candidate import WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.community import Community
@@ -23,7 +22,7 @@ from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
 from Tribler.dispersy.distribution import LastSyncDistribution, DirectDistribution, GlobalTimePruning
 from Tribler.dispersy.message import BatchConfiguration, Message, DropMessage
-from Tribler.dispersy.requestcache import Cache
+from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.resolution import PublicResolution
 
 # generated: Fri Apr 19 17:07:32 2013
@@ -50,15 +49,27 @@ def bitcount(l):
     return c
 
 
-class PingCache(Cache):
-    cleanup_delay = 0.0
-    timeout_delay = 10.0
+class PingCache(NumberCache):
+
+    @staticmethod
+    def create_identifier(number):
+        assert isinstance(number, (int, long)), type(number)
+        return u"request-cache:ping:%d" % (number,)
+
+    @classmethod
+    def create_identifier_from_message(cls, message):
+        assert isinstance(message, Message.Implementation), type(message)
+        return cls.create_identifier(message.payload.identifier)
 
     def __init__(self, community, candidate, member):
-        super(PingCache, self).__init__()
+        super(PingCache, self).__init__(community.request_cache)
         self.community = community
         self.candidate = candidate
         self.member = member
+
+    @property
+    def cleanup_delay(self):
+        return 0.0
 
     def on_timeout(self):
         self.community.remove_from_slope(self.member)
@@ -66,14 +77,24 @@ class PingCache(Cache):
             self.candidate.obsolete(time())
 
 
-class MemberRequestCache(Cache):
+class MemberRequestCache(NumberCache):
 
-    def __init__(self, func):
-        super(MemberRequestCache, self).__init__()
+    @staticmethod
+    def create_identifier(number):
+        assert isinstance(number, (int, long)), type(number)
+        return u"request-cache:member-request:%d" % (number,)
+
+    @classmethod
+    def create_identifier_from_message(cls, message):
+        assert isinstance(message, Message.Implementation), type(message)
+        return cls.create_identifier(message.payload.identifier)
+
+    def __init__(self, community, func):
+        super(MemberRequestCache, self).__init__(community.request_cache)
         self.func = func
 
     def on_timeout(self):
-        logger.warning("unable to find missing member [id:%d]", self.identifier)
+        logger.warning("unable to find missing member [%s]", self)
 
 
 class RecordCandidate(object):
@@ -330,11 +351,11 @@ class BarterCommunity(Community):
 
         def _delayed_update(response):
             member = response.authentication.member
-            logger.debug("retrieved member %s from swift address %s:%d [id:%d]",
+            logger.debug("retrieved member %s from swift address %s:%d [%s]",
                          member.mid.encode("HEX"),
                          swift_address[0],
                          swift_address[1],
-                         identifier)
+                         cache)
             association = self._address_association.setdefault(swift_address, Association())
             association.member = member
             if len(self._address_association) > self._address_association_length:
@@ -352,16 +373,15 @@ class BarterCommunity(Community):
 
         elif delayed and association.retrieve():
             # we do not have the member associated to the address, we will attempt to retrieve it
-            cache = MemberRequestCache(_delayed_update)
-            identifier = self._dispersy.request_cache.claim(cache)
+            cache = self._request_cache.add(MemberRequestCache(self, _delayed_update))
             meta = self._meta_messages[u"member-request"]
             request = meta.impl(distribution=(self.global_time,),
                                 destination=(Candidate(swift_address, True),),  # assume tunnel=True
-                                payload=(identifier,))
-            logger.debug("trying to obtain member from swift address %s:%d [id:%d]",
+                                payload=(cache.number,))
+            logger.debug("trying to obtain member from swift address %s:%d [%s]",
                          swift_address[0],
                          swift_address[1],
-                         identifier)
+                         cache)
             self._dispersy.store_update_forward([request], False, False, True)
 
         # else:
@@ -670,9 +690,8 @@ class BarterCommunity(Community):
     def _ping(self, candidate, member):
         meta = self._meta_messages[u"ping"]
         while True:
-            cache = PingCache(self, candidate, member)
-            identifier = self._dispersy.request_cache.claim(cache)
-            ping = meta.impl(distribution=(self._global_time,), destination=(candidate,), payload=(identifier, self._my_member))
+            cache = self._request_cache.add(PingCache(self, candidate, member))
+            ping = meta.impl(distribution=(self._global_time,), destination=(candidate,), payload=(cache.number, self._my_member))
             self._dispersy.store_update_forward([ping], False, False, True)
 
             yield 50.0
@@ -694,7 +713,7 @@ class BarterCommunity(Community):
 
     def check_pong(self, messages):
         for message in messages:
-            if not self._dispersy.request_cache.has(message.payload.identifier, PingCache):
+            if not self._request_cache.has(PingCache.create_identifier_from_message(message)):
                 yield DropMessage(message, "invalid response identifier")
                 continue
 
@@ -703,7 +722,7 @@ class BarterCommunity(Community):
     def on_pong(self, messages):
         cycle = int(time() / CYCLE_SIZE)
         for message in messages:
-            self._dispersy.request_cache.pop(message.payload.identifier, PingCache)
+            self._request_cache.pop(PingCache.create_identifier_from_message(message))
             book = self.get_book(message.payload.member)
             if book.cycle < cycle:
                 book.cycle = cycle
@@ -791,6 +810,6 @@ class BarterCommunity(Community):
 
     def on_member_response(self, messages):
         for message in messages:
-            cache = self._dispersy.request_cache.pop(message.payload.identifier, MemberRequestCache)
+            cache = self._request_cache.pop(MemberRequestCache.create_identifier_from_message(message))
             if cache:
                 cache.func(message)

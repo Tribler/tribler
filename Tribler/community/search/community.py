@@ -25,7 +25,7 @@ from Tribler.community.search.payload import SearchRequestPayload,\
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.channel.payload import TorrentPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.dispersy.requestcache import Cache
+from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME,\
     WalkCandidate, BootstrapCandidate
 from Tribler.dispersy.dispersy import IntroductionRequestCache
@@ -216,9 +216,6 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: sending introduction request to", destination
 
-        destination.walk(time(), IntroductionRequestCache.timeout_delay)
-        self.add_candidate(destination)
-
         advice = True
         if not (isinstance(destination, BootstrapCandidate) or is_fast_walker):
             myPreferences = sorted(self._mypref_db.getMyPrefListInfohash(limit=500))
@@ -237,11 +234,14 @@ class SearchCommunity(Community):
 
             taste_bloom_filter = self.taste_bloom_filter
 
-            identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, num_preferences, taste_bloom_filter)
+            cache = self._request_cache.add(IntroductionRequestCache(self, destination))
+            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, num_preferences, taste_bloom_filter)
         else:
-            identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, 0, None)
+            cache = self._request_cache.add(IntroductionRequestCache(self, destination))
+            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, 0, None)
+
+        destination.walk(time(), cache.timeout_delay)
+        self.add_candidate(destination)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
@@ -288,11 +288,26 @@ class SearchCommunity(Community):
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % message.candidate.sock_addr)
 
-    class SearchRequest(Cache):
-        timeout_delay = 30.0
-        cleanup_delay = 0.0
+    class SearchRequest(NumberCache):
 
-        def __init__(self, keywords, callback):
+        @staticmethod
+        def create_identifier(number):
+            return u"request-cache:search-request:%d" % (number,)
+
+        @classmethod
+        def create_identifier_from_message(cls, message):
+            return cls.create_identifier(message.payload.identifier)
+
+        @property
+        def timeout_delay(self):
+            return 30.0
+
+        @property
+        def cleanup_delay(self):
+            return 0.0
+
+        def __init__(self, request_cache, keywords, callback):
+            super(SearchCommunity.SearchRequest, self).__init__(request_cache)
             self.keywords = keywords
             self.callback = callback
 
@@ -300,18 +315,18 @@ class SearchCommunity(Community):
             pass
 
     def create_search(self, keywords, callback):
-        # register callback/fetch identifier
-        identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(keywords, callback))
-
         candidates = self.get_connections()
         if len(candidates) > 0:
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
 
+            # register callback/fetch identifier
+            cache = self._request_cache.add(SearchCommunity.SearchRequest(self._request_cache, keywords, callback))
+
             # create channelcast request message
             meta = self.get_meta_message(u"search-request")
             message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), payload=(identifier, keywords))
+                                distribution=(self.global_time,), payload=(cache.number, keywords))
 
             self._dispersy._send(candidates, [message])
 
@@ -373,7 +388,7 @@ class SearchCommunity(Community):
         with self._dispersy.database:
             for message in messages:
                 # fetch callback using identifier
-                search_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SearchRequest)
+                search_request = self._request_cache.get(SearchCommunity.SearchRequest.create_identifier_from_message(message))
                 if search_request:
                     if DEBUG:
                         print >> sys.stderr, "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
@@ -436,6 +451,10 @@ class SearchCommunity(Community):
 
     class PingRequestCache(IntroductionRequestCache):
 
+        @classmethod
+        def create_identifier_from_message(cls, message):
+            return cls.create_identifier(message.payload.identifier)
+
         def __init__(self, community, candidate):
             self.candidate = candidate
             IntroductionRequestCache.__init__(self, community, None)
@@ -493,7 +512,7 @@ class SearchCommunity(Community):
         toPopularity = {}
         for message in messages:
             if verifyRequest:
-                pong_request = self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.PingRequestCache)
+                pong_request = self._request_cache.pop(SearchCommunity.PingRequestCache.create_identifier_from_message(message))
                 logger.debug("pop %s", pong_request.helper_candidate if pong_request else "unknown")
             else:
                 logger.debug("no-pop")
@@ -528,7 +547,8 @@ class SearchCommunity(Community):
             if identifiers:
                 identifier = identifiers[index]
             else:
-                identifier = self._dispersy.request_cache.claim(SearchCommunity.PingRequestCache(self, candidate))
+                cache = self._request_cache.add(SearchCommunity.PingRequestCache(self, candidate))
+                identifier = cache.number
 
             # create torrent-collect-request/response message
             meta = self.get_meta_message(meta_name)
