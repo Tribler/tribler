@@ -31,6 +31,7 @@ class Circuit(object):
         self.id = circuit_id
         self.address = address
         self.hops = [address]
+        self.goal_hops = 0
 
 
 class RelayRoute(object):
@@ -128,6 +129,11 @@ class DispersyTunnelProxy(Observable):
             logger.info('Circuit %d has been created', msg.circuit_id)
 
             self.fire("circuit_created", circuit=circuit)
+
+            # Our circuit is too short, fix it!
+            if circuit.goal_hops > len(circuit.hops):
+                self.extend_circuit(circuit)
+
             self._process_extension_queue(circuit)
         else:
             created_for = self.relay_from_to[(address, msg.circuit_id)]
@@ -145,8 +151,6 @@ class DispersyTunnelProxy(Observable):
 
             self.fire("circuit_extended_for", extended_for=(created_for.address, created_for.circuit_id),
                       extended_with=(extended_with, msg.circuit_id))
-
-            self._process_extending_for_queue()
 
     def on_data(self, event):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
@@ -289,7 +293,18 @@ class DispersyTunnelProxy(Observable):
 
             self.fire("circuit_extended", extended_with=extended_with)
 
-            self._process_extension_queue(circuit)
+            # Our circuit is too short, fix it!
+            if circuit.goal_hops > len(circuit.hops):
+                self.extend_circuit(circuit)
+
+    def _generate_circuit_id(self, neighbour):
+        circuit_id = random.randint(1, 255)
+
+        # prevent collisions
+        while circuit_id in self.circuits:
+            circuit_id = random.randint(1, 255)
+
+        return circuit_id
 
     def create_circuit(self, first_hop, circuit_id=None):
         """ Create a new circuit, with one initial hop """
@@ -298,11 +313,13 @@ class DispersyTunnelProxy(Observable):
 
         # Generate a random circuit id that hasn't been used yet by us
         while circuit_id is None or circuit_id in self.circuits:
-            circuit_id = random.randint(1, 255)
-
-        logger.info('Circuit %d is to be created', circuit_id)
+            circuit_id = self._generate_circuit_id(first_hop)
 
         circuit = Circuit(circuit_id, address)
+        circuit.goal_hops = random.randrange(0, 4)
+
+        logger.info('Circuit %d is to be created, we want %d hops', circuit.id, circuit.goal_hops)
+
         self.circuits[circuit_id] = circuit
         self.circuit_membership[address].add(circuit_id)
 
