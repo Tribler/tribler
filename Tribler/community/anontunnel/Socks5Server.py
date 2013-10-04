@@ -42,7 +42,7 @@ class Socks5Server(object):
         self.routes = {}
         self.udp_relays = {}
 
-    def attach_to(self,raw_server, socks5_port=1080):
+    def attach_to(self, raw_server, socks5_port=1080):
         self.socks5_port = socks5_port
         self.raw_server = raw_server
 
@@ -139,10 +139,11 @@ class Socks5Server(object):
             return
 
         encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],
-                                                    source_address[1], packet.data)
+                                                        source_address[1], packet.data)
 
         if socks5_socket.sendto(encapsulated, destination_address) < len(encapsulated):
             logger.error("Not sending package!")
 
-        logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address, destination_address,
-                    socks5_socket.getsockname()[1])
+        if __debug__:
+            logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address, destination_address,
+                        socks5_socket.getsockname()[1])

@@ -1,6 +1,6 @@
-from Observable import Observable
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED, NTFY_CREATED, NTFY_EXTENDED_FOR
+
 
 class TriblerNotifier():
     def __init__(self, community):

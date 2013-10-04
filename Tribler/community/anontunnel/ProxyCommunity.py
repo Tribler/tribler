@@ -77,7 +77,7 @@ class ProxyCommunity(Community, Observable):
                 while True:
                     timeout = 2.0
 
-                    # Candidates we have sent a ping in the last timout seconds and haven't returned a heat beat
+                    # Candidates we have sent a ping in the last 'time out' seconds and haven't returned a heat beat
                     # in 2*timeout seconds shall be purged
                     candidates_to_be_purged = \
                         {
