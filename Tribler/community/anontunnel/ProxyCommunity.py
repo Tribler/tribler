@@ -124,87 +124,34 @@ class ProxyCommunity(Community, Observable):
                 self.fire("on_member_heartbeat", candidate=msg.candidate)
                 self.fire(event_name, message=msg)
 
-        return [
-            Message(self,
-                    u"ping",
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    PingPayload(),
-                    yield_all,
-                    self.on_ping),
+        event_messages_def = {
+            u"create": CreatePayload(),
+            u"created": CreatePayload(),
+            u"extend": ExtendPayload(),
+            u"extended": ExtendedPayload(),
+            u"data": DataPayload(),
+            u"break": BreakPayload(),
+            u"pong": PongPayload(),
+            u"ping": PingPayload()
+        }
 
+        event_messages = [
             Message(self,
-                    u"pong",
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    PongPayload(),
-                    yield_all,
-                    functools.partial(trigger_event, event_name="on_pong")),
+                message_key,
+                NoAuthentication(),
+                PublicResolution(),
+                DirectDistribution(),
+                CandidateDestination(),
+                payload,
+                yield_all,
+                functools.partial(trigger_event, event_name="on_"+message_key))
 
-            Message(self,
-                    u"create",
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    CreatePayload(),
-                    yield_all,
-                    functools.partial(trigger_event, event_name="on_create")),
-
-            Message(self,
-                    u"created",
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    CreatePayload(),
-                    yield_all,
-                    functools.partial(trigger_event, event_name="on_created")),
-
-            Message(self,
-                    u"extend",
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ExtendPayload(),
-                    yield_all,
-                    functools.partial(trigger_event, event_name="on_extend")),
-
-            Message(self,
-                    u"extended",
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ExtendedPayload(),
-                    yield_all,
-                    functools.partial(trigger_event, event_name="on_extended")),
-
-            Message(self,
-                    u"data",
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    DataPayload(),
-                    yield_all,
-                    functools.partial(trigger_event, event_name="on_data")),
-
-            Message(self,
-                    u"break",
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    BreakPayload(),
-                    yield_all,
-                    functools.partial(trigger_event, event_name="on_break")),
+            for message_key, payload in event_messages_def.items()
         ]
+
+        self.subscribe("on_ping", lambda(event): self.on_ping(event.message))
+
+        return event_messages
 
     def _initialize_meta_messages(self):
         super(ProxyCommunity, self)._initialize_meta_messages()
@@ -239,10 +186,9 @@ class ProxyCommunity(Community, Observable):
 
         self.dispersy.endpoint.send([candidate], [message.packet])
 
-    def on_ping(self, messages):
-        for message in messages:
-            logger.debug("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
-            self.send(u"pong", message.candidate.sock_addr)
+    def on_ping(self, message):
+        logger.debug("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
+        self.send(u"pong", message.candidate.sock_addr)
 
     def on_introduction_request(self, messages):
         try:

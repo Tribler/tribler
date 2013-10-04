@@ -1,13 +1,12 @@
-from traceback import print_exc
-from Tribler.Core.RawServer.RawServer import RawServer
-from Tribler.community.anontunnel.ConnectionHandlers.CommandHandler import CommandHandler
-
 __author__ = 'chris'
 
 import logging.config
 
 logger = logging.getLogger(__name__)
 
+from traceback import print_exc
+from Tribler.Core.RawServer.RawServer import RawServer
+from Tribler.community.anontunnel.ConnectionHandlers.CommandHandler import CommandHandler
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
 from Tribler.community.anontunnel.Socks5Server import Socks5Server

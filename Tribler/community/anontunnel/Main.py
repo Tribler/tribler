@@ -88,9 +88,12 @@ def main(argv):
                 print >> sys.stderr, "Profiling disabled!"
 
         elif line == 'c\n':
-            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops"
+            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
             for circuit in anon_tunnel.tunnel.circuits.values():
-                print "%d\t%s\t%d\t%d" % (circuit.id, circuit.address, circuit.goal_hops, len(circuit.hops))
+                print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f" % (
+                    circuit.id, circuit.address, circuit.goal_hops, len(circuit.hops),
+                    circuit.bytesIn / 1024.0 / 1024.0,
+                    circuit.bytesOut / 1024.0 / 1024.0)
 
                 for hop in circuit.hops[1:]:
                     print "\t%s" % (hop,)
@@ -112,7 +115,8 @@ def main(argv):
             from_to = anon_tunnel.tunnel.relay_from_to
 
             for key in from_to.keys():
-                print "%s-->\t%s\t\t%.2f" % (key, (from_to[key].address, from_to[key].circuit_id), from_to[key].bytes / 1024.0 / 1024.0)
+                print "%s-->\t%s\t\t%.2f" % (
+                    key, (from_to[key].address, from_to[key].circuit_id), from_to[key].bytes / 1024.0 / 1024.0)
 
 
 if __name__ == "__main__":

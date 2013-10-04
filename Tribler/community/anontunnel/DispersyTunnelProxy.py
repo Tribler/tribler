@@ -1,4 +1,5 @@
 import logging
+from random import choice
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.dispersy.candidate import Candidate
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 import random
 from Observable import Observable
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from ProxyConversion import DataPayload, ExtendPayload
 
 
@@ -30,6 +31,9 @@ class Circuit(object):
         self.address = address
         self.hops = [address]
         self.goal_hops = 0
+
+        self.bytesIn = 0
+        self.bytesOut = 0
 
 
 class RelayRoute(object):
@@ -56,6 +60,9 @@ class DispersyTunnelProxy(Observable):
         # Hashmap Candidate -> {circuits}
         self.circuit_membership = defaultdict(set)
 
+        # Map destination address to the circuit to be used
+        self.destination_circuit = {}
+
         # Routing tables
         self.relay_from_to = {}
 
@@ -67,10 +74,8 @@ class DispersyTunnelProxy(Observable):
 
         self.circuit_tag = {}
 
-        self.local_addresses = {}
         self.community = None
 
-        self.local_addresses = {dispersy.lan_address, dispersy.wan_address}
 
         community.subscribe("on_create", self.on_create)
         community.subscribe("on_created", self.on_created)
@@ -198,7 +203,8 @@ class DispersyTunnelProxy(Observable):
                 logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.address)
 
         # If message is meant for us, write it to output
-        elif msg.destination in self.local_addresses or msg.destination == ("0.0.0.0", 0):
+        elif msg.circuit_id in self.circuits and self.circuits[msg.circuit_id].address == direct_sender_address and msg.destination == ("0.0.0.0", 0):
+            self.circuits[msg.circuit_id].bytesIn += len(msg.data)
             self.fire("on_data", data=msg, sender=direct_sender_address)
 
         # If it is not ours and we have nowhere to forward to then act as exit node
@@ -396,7 +402,13 @@ class DispersyTunnelProxy(Observable):
 
         # If there are circuits, but no specific one is requested just pick the first.
         if circuit_id is None and len(self.circuits) > 0:
-            circuit_id = self.circuits.values()[0].id
+
+            # Each destination may be tunneled over a SINGLE different circuit
+            if ultimate_destination in self.destination_circuit:
+                circuit_id = self.destination_circuit[ultimate_destination]
+            else:
+                circuit_id = choice(self.circuits.values()).id
+                self.destination_circuit[ultimate_destination] = circuit_id
 
         if circuit_id is None:
             raise IOError("No circuit to send packet over!")
@@ -407,6 +419,9 @@ class DispersyTunnelProxy(Observable):
             address = self.circuits[circuit_id].address
 
         self.community.send(u"data", address, circuit_id, ultimate_destination, payload, origin)
+
+        if origin is None:
+            self.circuits[circuit_id].bytesOut += len(payload)
 
         if __debug__:
             logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s",
