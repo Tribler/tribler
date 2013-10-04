@@ -90,7 +90,10 @@ def main(argv):
         elif line == 'c\n':
             print "========\nCircuits\n========\nid\taddress\t\t\t\thops"
             for circuit in anon_tunnel.tunnel.circuits.values():
-                print "%d\t%s\t%d\n" % (circuit.id, circuit.address, len(circuit.hops))
+                print "%d\t%s\t%d" % (circuit.id, circuit.address, len(circuit.hops))
+
+                for hop in circuit.hops[1:]:
+                    print "\t%s" % (hop,)
 
         elif cmd_extend_match:
             circuit_id = int(cmd_extend_match.group(1))

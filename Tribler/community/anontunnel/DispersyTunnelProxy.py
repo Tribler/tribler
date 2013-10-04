@@ -97,12 +97,12 @@ class DispersyTunnelProxy(Observable):
             logger.info("Forwarding BREAK packet from %s to %s", address, relay.address)
 
             del self.relay_from_to[relay_key]
-            logger.info("BREAK circuit %d", msg.circuit_id)
+            logger.warning("BREAK circuit %d", msg.circuit_id)
 
         # We build this circuit but now its dead
         elif msg.circuit_id in self.circuits:
             del self.circuits[msg.circuit_id]
-            logger.info("BREAK circuit %d", msg.circuit_id)
+            logger.warning("BREAK circuit %d", msg.circuit_id)
 
 
     def on_create(self, event):
@@ -110,7 +110,7 @@ class DispersyTunnelProxy(Observable):
         address = event.message.candidate.sock_addr
         msg = event.message.payload
 
-        logger.info('We joined circuit %d with origin %s', msg.circuit_id, address)
+        logger.warning('We joined circuit %d with origin %s', msg.circuit_id, address)
 
         community = self.community
         community.send(u"created", address, msg.circuit_id)
@@ -124,14 +124,14 @@ class DispersyTunnelProxy(Observable):
         if self.circuits.has_key(msg.circuit_id):
             circuit = self.circuits[msg.circuit_id]
             circuit.created = True
-            logger.info('Circuit %d has been created', msg.circuit_id)
+            logger.warning('Circuit %d has been created', msg.circuit_id)
 
             self.fire("circuit_created", circuit=circuit)
 
             # Our circuit is too short, fix it!
             if circuit.goal_hops > len(circuit.hops) and self.extension_queue[circuit] == 0:
                 logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
-                               circuit.hops)
+                               circuit.goal_hops)
                 self.extend_circuit(circuit)
 
             self._process_extension_queue(circuit)
@@ -146,7 +146,7 @@ class DispersyTunnelProxy(Observable):
             community = self.community
             community.send(u"extended", created_for.address, created_for.circuit_id, extended_with)
 
-            logger.info('We have extended circuit (%s, %d) with (%s,%d)',
+            logger.warning('We have extended circuit (%s, %d) with (%s,%d)',
                         created_for.address,
                         created_for.circuit_id,
                         extended_with,
@@ -298,7 +298,7 @@ class DispersyTunnelProxy(Observable):
 
             circuit.hops.append(extended_with)
             self.circuit_membership[extended_with].add(circuit_id)
-            logger.info('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
+            logger.warning('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
                         extended_with, len(self.circuits[circuit_id].hops))
 
             self.fire("circuit_extended", extended_with=extended_with)
@@ -306,7 +306,7 @@ class DispersyTunnelProxy(Observable):
             # Our circuit is too short, fix it!
             if circuit.goal_hops > len(circuit.hops) and self.extension_queue[circuit] == 0:
                 logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
-                               circuit.hops)
+                               circuit.goal_hops)
                 self.extend_circuit(circuit)
 
     def _generate_circuit_id(self, neighbour):
@@ -330,7 +330,7 @@ class DispersyTunnelProxy(Observable):
         circuit = Circuit(circuit_id, address)
         circuit.goal_hops = random.randrange(0, 4)
 
-        logger.info('Circuit %d is to be created, we want %d hops', circuit.id, circuit.goal_hops)
+        logger.warning('Circuit %d is to be created, we want %d hops', circuit.id, circuit.goal_hops)
 
         self.circuits[circuit_id] = circuit
         self.circuit_membership[address].add(circuit_id)
@@ -345,7 +345,7 @@ class DispersyTunnelProxy(Observable):
 
         if circuit.created and queue > 0:
             self.extension_queue[circuit] -= 1
-            logger.info('Circuit %d is to be extended', circuit.id)
+            logger.warning('Circuit %d is to be extended', circuit.id)
 
             community = self.community
             community.send(u"extend", circuit.address, circuit.id)
