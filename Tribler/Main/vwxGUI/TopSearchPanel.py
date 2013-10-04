@@ -17,6 +17,7 @@ from Tribler.Main.vwxGUI.list_bundle import BundleListView
 from Tribler.Main.vwxGUI.channel import SelectedChannelList
 from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
 import time
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 DEBUG = False
 
@@ -377,38 +378,14 @@ class TopSearchPanel(FancyPanel):
         if not torrent:
             return
 
-        playable_files = torrent.videofiles
+        if torrent.isPlayable():
+            self.guiutility.ShowPlayer()
+            self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
 
-        if len(playable_files) > 1:  # Create a popup
-            playable_files.sort()
-
-            dialog = wx.SingleChoiceDialog(self, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play?', 'Which file do you want to play?', playable_files)
-
-            (_, selected_file) = max([(size, filename) for filename, size in torrent.files if filename in torrent.videofiles])
-
-            if selected_file in playable_files:
-                dialog.SetSelection(playable_files.index(selected_file))
-
-            if dialog.ShowModal() == wx.ID_OK:
-                selected_file = dialog.GetStringSelection()
-            else:
-                selected_file = None
-            dialog.Destroy()
-
-            if selected_file:
-                self.guiutility.library_manager.playTorrent(torrent, selected_file)
-                if not self.guiutility.frame.searchlist.IsShownOnScreen():
-                    self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
-                else:
-                    self.uelog.addEvent(message="Torrent: torrent play from other", type=2)
-
-        elif len(playable_files) == 1:
-            self.guiutility.library_manager.playTorrent(torrent)
-
-            if not self.guiutility.frame.searchlist.IsShownOnScreen():
-                self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
-            else:
-                self.uelog.addEvent(message="Torrent: torrent play from other", type=2)
+        if not self.guiutility.frame.searchlist.IsShownOnScreen():
+            self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
+        else:
+            self.uelog.addEvent(message="Torrent: torrent play from other", type=2)
 
         button = event.GetEventObject()
         button.Enable(False)
