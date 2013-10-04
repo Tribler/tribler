@@ -2,18 +2,16 @@ import logging
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.dispersy.candidate import Candidate
 
+__author__ = 'Chris'
 MAX_CIRCUITS_TO_CREATE = 10
 
 logger = logging.getLogger(__name__)
 
+import random
 from Observable import Observable
 
 from collections import defaultdict, deque
-import random
-# from ProxyCommunity import ProxyCommunity
 from ProxyConversion import DataPayload, ExtendPayload
-
-__author__ = 'Chris'
 
 
 class Circuit(object):
@@ -131,7 +129,9 @@ class DispersyTunnelProxy(Observable):
             self.fire("circuit_created", circuit=circuit)
 
             # Our circuit is too short, fix it!
-            if circuit.goal_hops > len(circuit.hops):
+            if circuit.goal_hops > len(circuit.hops) and self.extension_queue[circuit] == 0:
+                logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
+                               circuit.hops)
                 self.extend_circuit(circuit)
 
             self._process_extension_queue(circuit)
@@ -157,8 +157,8 @@ class DispersyTunnelProxy(Observable):
                       extended_with=(extended_with, msg.circuit_id))
 
             # transfer extending for queue to the next hop
-            while self.extending_for[(created_for.address,created_for.circuit_id)] > 0:
-                self.extending_for[(created_for.address,created_for.circuit_id)] -= 1
+            while self.extending_for[(created_for.address, created_for.circuit_id)] > 0:
+                self.extending_for[(created_for.address, created_for.circuit_id)] -= 1
 
                 community.send(u"extend", extended_with, msg.circuit_id)
 
@@ -304,7 +304,9 @@ class DispersyTunnelProxy(Observable):
             self.fire("circuit_extended", extended_with=extended_with)
 
             # Our circuit is too short, fix it!
-            if circuit.goal_hops > len(circuit.hops):
+            if circuit.goal_hops > len(circuit.hops) and self.extension_queue[circuit] == 0:
+                logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
+                               circuit.hops)
                 self.extend_circuit(circuit)
 
     def _generate_circuit_id(self, neighbour):
