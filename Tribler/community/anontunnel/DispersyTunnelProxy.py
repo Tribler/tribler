@@ -110,7 +110,7 @@ class DispersyTunnelProxy(Observable):
         address = event.message.candidate.sock_addr
         msg = event.message.payload
 
-        logger.warning('We joined circuit %d with origin %s', msg.circuit_id, address)
+        logger.warning('We joined circuit %d with neighbour %s', msg.circuit_id, address)
 
         community = self.community
         community.send(u"created", address, msg.circuit_id)
@@ -249,8 +249,8 @@ class DispersyTunnelProxy(Observable):
         )
 
         if to_candidate:
-            new_circuit_id = random.randint(1, 255)
             to_address = to_candidate.sock_addr
+            new_circuit_id = self._generate_circuit_id(self,to_address)
 
             self.relay_from_to[(to_address, new_circuit_id)] = RelayRoute(from_circuit_id, from_address)
             self.relay_from_to[(from_address, from_circuit_id)] = RelayRoute(new_circuit_id, to_address)
@@ -313,7 +313,7 @@ class DispersyTunnelProxy(Observable):
         circuit_id = random.randint(1, 255)
 
         # prevent collisions
-        while circuit_id in self.circuits:
+        while (neighbour, circuit_id) in self.relay_from_to:
             circuit_id = random.randint(1, 255)
 
         return circuit_id
@@ -328,7 +328,7 @@ class DispersyTunnelProxy(Observable):
             circuit_id = self._generate_circuit_id(first_hop)
 
         circuit = Circuit(circuit_id, address)
-        circuit.goal_hops = random.randrange(0, 4)
+        circuit.goal_hops = random.randrange(1, 4)
 
         logger.warning('Circuit %d is to be created, we want %d hops', circuit.id, circuit.goal_hops)
 
