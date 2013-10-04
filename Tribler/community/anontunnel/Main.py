@@ -48,7 +48,7 @@ def main(argv):
 
     anon_tunnel.start()
 
-    regex_cmd_extend_circuit = re.compile("e ([0-9]+)\n")
+    regex_cmd_extend_circuit = re.compile("e ?([0-9]+)\n")
 
     while 1:
         try:
@@ -106,7 +106,7 @@ def main(argv):
             anon_tunnel.stop()
             break
 
-        elif line == 'rt\n':
+        elif line == 'r\n':
             print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
 
             from_to = anon_tunnel.tunnel.relay_from_to
