@@ -75,7 +75,7 @@ def main(argv):
 
         elif line == 'P\n':
             if profile:
-                filename = 'callgrind_%d.yappi' % anon_tunnel.dispersy.lan_address[1]
+                filename = 'callgrindc_%d.yappi' % anon_tunnel.dispersy.lan_address[1]
                 yappi.get_func_stats().save(filename, type='callgrind')
             else:
                 print >> sys.stderr, "Profiling disabled!"
@@ -88,9 +88,9 @@ def main(argv):
                 print >> sys.stderr, "Profiling disabled!"
 
         elif line == 'c\n':
-            print "========\nCircuits\n========\nid\taddress\t\t\t\thops"
+            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops"
             for circuit in anon_tunnel.tunnel.circuits.values():
-                print "%d\t%s\t%d" % (circuit.id, circuit.address, len(circuit.hops))
+                print "%d\t%s\t%d\t%d" % (circuit.id, circuit.address, circuit.goal_hops, len(circuit.hops))
 
                 for hop in circuit.hops[1:]:
                     print "\t%s" % (hop,)
@@ -107,12 +107,12 @@ def main(argv):
             break
 
         elif line == 'rt\n':
-            print "circuit\tdirection\tcircuit"
+            print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
 
             from_to = anon_tunnel.tunnel.relay_from_to
 
             for key in from_to.keys():
-                print "%s-->\t%s" % (key, (from_to[key].address, from_to[key].circuit_id))
+                print "%s-->\t%s\t\t%.2f" % (key, (from_to[key].address, from_to[key].circuit_id), from_to[key].bytes / 1024.0 / 1024.0)
 
 
 if __name__ == "__main__":

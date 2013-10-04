@@ -37,6 +37,8 @@ class RelayRoute(object):
         self.address = address
         self.circuit_id = circuit_id
 
+        self.bytes = 0
+
 
 class DispersyTunnelProxy(Observable):
     def __init__(self, dispersy, community):
@@ -78,6 +80,19 @@ class DispersyTunnelProxy(Observable):
         community.subscribe("on_break", self.on_break)
         community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
         community.subscribe("on_member_exit", self.on_member_exit)
+
+        def extend_circuits():
+            circuits_needing_extension = [c for c in self.circuits.values()
+                                          if len(c.hops) < c.goal_hops
+                                          and self.extension_queue[c] == 0]
+
+            for c in circuits_needing_extension:
+                self.extend_circuit(c)
+
+            # Rerun every 5 seconds
+            yield 5.0
+
+        dispersy.callback.register(extend_circuits, priority= -10)
 
         self.community = community
 
@@ -175,6 +190,7 @@ class DispersyTunnelProxy(Observable):
         # If we can forward it along the chain, do so!
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
+            relay.bytes += len(event.message.packet)
 
             community.send(u"data", relay.address, relay.circuit_id, msg.destination, msg.data, msg.origin)
 
@@ -250,7 +266,7 @@ class DispersyTunnelProxy(Observable):
 
         if to_candidate:
             to_address = to_candidate.sock_addr
-            new_circuit_id = self._generate_circuit_id(self,to_address)
+            new_circuit_id = self._generate_circuit_id(to_address)
 
             self.relay_from_to[(to_address, new_circuit_id)] = RelayRoute(from_circuit_id, from_address)
             self.relay_from_to[(from_address, from_circuit_id)] = RelayRoute(new_circuit_id, to_address)
