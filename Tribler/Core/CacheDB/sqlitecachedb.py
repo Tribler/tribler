@@ -364,7 +364,7 @@ class SQLiteCacheDBBase:
         """
         try:
             if not os.path.isfile(dbfile_path):
-                raise Warning("No existing database found. Attempting to creating a new database %s" % repr(dbfile_path))
+                raise Warning("No existing database found. Attempting to create a new database %s" % repr(dbfile_path))
 
             cur = self.openDB(dbfile_path, busytimeout)
             if check_version:
