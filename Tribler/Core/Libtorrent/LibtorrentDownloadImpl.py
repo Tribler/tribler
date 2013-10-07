@@ -1134,8 +1134,11 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.tdef = TorrentDef.load_from_dict(metainfo)
                     self.checkpoint()
 
-                    # Triggers GUI refresh
-                    self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, self.tdef.get_infohash())
+                    if self.session.lm.rtorrent_handler:
+                        self.session.lm.rtorrent_handler._save_torrent(self.tdef)
+                    else:
+                        # Triggers GUI refresh
+                        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, self.tdef.get_infohash())
 
 
     #
