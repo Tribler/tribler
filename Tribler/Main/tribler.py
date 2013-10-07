@@ -422,7 +422,7 @@ class ABCApp():
         if sys.platform == "darwin":
             if not os.path.exists(swiftbinpath):
                 swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
-        self.sconfig.set_swift_path(swiftbinpath)
+                self.sconfig.set_swift_path(swiftbinpath)
 
         progress('Loading downloadconfig')
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
