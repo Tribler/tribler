@@ -18,13 +18,16 @@ if __name__ == '__main__':
     cmd = ['git', 'describe', '--tags', 'HEAD']
     version_id = runCommand(cmd).strip()[1:]
     print "Version:", version_id
+    cmd = ['git', 'rev-parse', 'HEAD']
+    commit_id = runCommand(cmd).strip()[1:]
+    print "Commit:", commit_id
 
     build_date = ctime()
     print "Build date:", build_date
 
     print 'Writing runtime version info.'
     f = open(path.join('Tribler', 'Core', 'version.py'), 'w')
-    f.write('version_id = "%s"%sbuild_date = "%s"' % (version_id, linesep, build_date))
+    f.write('version_id = "%s"%sbuild_date = "%s"%scommit_id = "%s"%s' % (version_id, linesep, build_date, linesep, commit_id, linesep))
     f.close()
 
     f = open('.TriblerVersion', 'w')
