@@ -95,7 +95,8 @@ class ProxyCommunity(Community, Observable):
                                                    seconds=timeout)}.difference(candidates_to_be_purged)
 
                     for candidate in candidates_to_be_pinged:
-                        self.send(u"ping", candidate.sock_addr)
+                        self.member_ping[candidate] = datetime.now()
+                        self.send(u"ping", candidate)
                         logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
                     # rerun over 3 seconds
@@ -172,23 +173,19 @@ class ProxyCommunity(Community, Observable):
                                                  self.on_introduction_response, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_response
 
-    def send(self, message_type, destination, *payload):
-        if not isinstance(destination, Candidate):
-            candidate = self.get_candidate(destination)
-        else:
-            candidate = destination
-
-        if not isinstance(candidate, Candidate):
+    def send(self, message_type, destination_candidate, *payload):
+        if not isinstance(destination_candidate, Candidate):
+            logger.error("destination_candidate should be a Candidate")
             return
 
         meta = self.get_meta_message(message_type)
         message = meta.impl(distribution=(self.global_time,), payload=payload)
 
-        self.dispersy.endpoint.send([candidate], [message.packet])
+        self.dispersy.endpoint.send([destination_candidate], [message.packet])
 
     def on_ping(self, message):
         logger.debug("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
-        self.send(u"pong", message.candidate.sock_addr)
+        self.send(u"pong", message.candidate)
 
     def on_introduction_request(self, messages):
         try:
