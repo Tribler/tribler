@@ -896,6 +896,12 @@ class TriblerLaunchMany(Thread):
         if not hidden and self.session.get_megacache():
             self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash), priority=1024)
 
+    def get_external_ip(self):
+        """ Returns the external IP address of this Session, i.e., by which
+        it is reachable from the Internet. This address is determined by libtorrent.
+        @return A string. """
+        return self.ltmgr.get_external_ip() if self.ltmgr else None
+
 
 def singledownload_size_cmp(x, y):
     """ Method that compares 2 SingleDownload objects based on the size of the
