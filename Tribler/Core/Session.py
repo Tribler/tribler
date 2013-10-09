@@ -304,12 +304,9 @@ class Session(SessionRuntimeConfig):
 
     def get_external_ip(self):
         """ Returns the external IP address of this Session, i.e., by which
-        it is reachable from the Internet. This address is determined via
-        various mechanisms such as the UPnP protocol, our dialback mechanism,
-        and an inspection of the local network configuration.
+        it is reachable from the Internet. This address is determined by libtorrent.
         @return A string. """
-        # locking done by lm
-        return self.lm.get_ext_ip()
+        return self.lm.get_external_ip()
 
     def get_externally_reachable(self):
         """ Returns whether the Session is externally reachable, i.e., its

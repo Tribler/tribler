@@ -135,6 +135,9 @@ class LibtorrentMgr:
     def get_download_rate_limit(self):
         return self.ltsession.download_rate_limit()
 
+    def get_external_ip(self):
+        return self.external_ip
+
     def get_dht_nodes(self):
         return self.ltsession.status().dht_nodes
 
