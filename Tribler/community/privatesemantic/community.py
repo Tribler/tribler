@@ -20,7 +20,7 @@ from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.member import DummyMember, Member
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.requestcache import Cache
+from Tribler.dispersy.requestcache import Cache, NumberCache
 from Tribler.dispersy.script import assert_
 
 from payload import *
@@ -261,13 +261,23 @@ class ForwardCommunity():
 
         return Community.dispersy_get_introduce_candidate(self, exclude_candidate)
 
-    class SimilarityAttempt(Cache):
-        timeout_delay = 10.5
-        cleanup_delay = 0.0
+    class SimilarityAttempt(NumberCache):
+        @staticmethod
+        def create_identifier(number):
+            return u"request-cache:similarity-attempt:%d" % (number,)
 
         def __init__(self, community, requested_candidate):
+            NumberCache.__init__(self, community.request_cache)
             self.community = community
             self.requested_candidate = requested_candidate
+
+        @property
+        def timeout_delay(self):
+            return 10.5
+
+        @property
+        def cleanup_delay(self):
+            return 0.0
 
         def on_timeout(self):
             self.community.send_introduction_request(self.requested_candidate)
@@ -275,23 +285,26 @@ class ForwardCommunity():
     def create_introduction_request(self, destination, allow_sync):
         send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination) and allow_sync:
-            identifier = self._dispersy.request_cache.claim(ForwardCommunity.SimilarityAttempt(self, destination))
-            send = self.send_msimilarity_request(destination, identifier)
+            cache = self._request_cache.add(ForwardCommunity.SimilarityAttempt(self, destination))
+            send = self.send_msimilarity_request(destination, cache.number)
 
             if not send:
-                self._dispersy.request_cache.pop(identifier, ForwardCommunity.SimilarityAttempt)
+                self._request_cache.pop(cache.identifier)
 
         if not send:
             self.send_introduction_request(destination)
 
-    def send_msimilarity_request(self, destination, indentifier):
+    def send_msimilarity_request(self, destination, identifier):
+        assert isinstance(identifier, int), type(identifier)
         raise NotImplementedError()
 
-    class MSimilarityRequest(Cache):
-        timeout_delay = 7.0
-        cleanup_delay = 0.0
+    class MSimilarityRequest(NumberCache):
+        @staticmethod
+        def create_identifier(number, force_number=-1):
+            return u"request-cache:m-similarity-request:%d" % (force_number if force_number >= 0 else number,)
 
-        def __init__(self, community, message, requested_candidates):
+        def __init__(self, community, message, requested_candidates, force_number=-1):
+            NumberCache.__init__(self, community.request_cache, force_number)
             self.community = community
 
             self.requesting_candidate = message.candidate
@@ -304,6 +317,14 @@ class ForwardCommunity():
             self.received_candidates = set()
             self.received_lists = []
             self.isProcessed = False
+
+        @property
+        def timeout_delay(self):
+            return 7.0
+
+        @property
+        def cleanup_delay(self):
+            return 0.0
 
         def add_response(self, candidate_mid, response):
             if candidate_mid:
@@ -323,8 +344,8 @@ class ForwardCommunity():
                 if DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
-                self.community._dispersy.request_cache.pop(self.identifier, ForwardCommunity.MSimilarityRequest)
-                return self.community.send_msimilarity_response(self.requesting_candidate, self.identifier, self.my_response, self.received_lists)
+                self.community.request_cache.pop(self.identifier)
+                return self.community.send_msimilarity_response(self.requesting_candidate, self.number, self.my_response, self.received_lists)
 
         def on_timeout(self):
             if not self.isProcessed:
@@ -340,7 +361,7 @@ class ForwardCommunity():
                 yield DelayMessageByProof(message)
                 continue
 
-            if self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.SimilarityAttempt):
+            if self._request_cache.has(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier)):
                 yield DropMessage(message, "send similarity attempt to myself?")
                 continue
 
@@ -352,11 +373,12 @@ class ForwardCommunity():
             candidates = self.get_connections(self.forward_to, message.candidate)
 
             # create a register similarity request
-            request = ForwardCommunity.MSimilarityRequest(self, message, candidates)
+            assert not self._request_cache.has(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier))
+            request = ForwardCommunity.MSimilarityRequest(self, message, candidates, force_number=message.payload.identifier)
             # add local response
             request.add_response(None, self.on_similarity_request([message], False))
 
-            self._dispersy.request_cache.set(message.payload.identifier, request)
+            self._request_cache.add(request)
             if candidates:
                 # forward it to others
                 self.send_similarity_request(message, candidates)
@@ -374,11 +396,11 @@ class ForwardCommunity():
                 yield DelayMessageByProof(message)
                 continue
 
-            if self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.SimilarityAttempt):
+            if self._request_cache.has(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier)):
                 yield DropMessage(message, "got similarity request issued by myself?")
                 continue
 
-            if self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.MSimilarityRequest):
+            if self._request_cache.has(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier)):
                 yield DropMessage(message, "got similarity request forwarded by myself?")
                 continue
 
@@ -394,7 +416,7 @@ class ForwardCommunity():
                 yield DelayMessageByProof(message)
                 continue
 
-            if not self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.MSimilarityRequest):
+            if not self._request_cache.has(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier)):
                 yield DropMessage(message, "unknown identifier")
                 continue
 
@@ -402,18 +424,19 @@ class ForwardCommunity():
 
     def on_similarity_response(self, messages):
         for message in messages:
-            request = self._dispersy.request_cache.get(message.payload.identifier, ForwardCommunity.MSimilarityRequest)
+            request = self._request_cache.get(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier))
             if request:
                 request.add_response(message.authentication.member.mid, message.payload)
                 if request.is_complete():
                     self.reply_packet_size += request.process()
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
+        assert isinstance(identifier, int), type(identifier)
         raise NotImplementedError()
 
     def on_msimilarity_response(self, messages):
         for message in messages:
-            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.SimilarityAttempt)
+            request = self._request_cache.pop(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier))
             if request:
                 # replace message.candidate with WalkCandidate
                 # TODO: this seems to be a bit dodgy
@@ -430,11 +453,11 @@ class ForwardCommunity():
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
 
         self._dispersy.statistics.walk_attempt += 1
-        destination.walk(time(), IntroductionRequestCache.timeout_delay)
 
         advice = True
-        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
-        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, introduce_me_to)
+        cache = self._request_cache.add(IntroductionRequestCache(self, destination))
+        destination.walk(time(), cache.timeout_delay)
+        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, introduce_me_to)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
@@ -503,7 +526,7 @@ class ForwardCommunity():
                 yield DelayMessageByProof(message)
                 continue
 
-            if not self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.PingRequestCache):
+            if not self._request_cache.has(ForwardCommunity.PingRequestCache.create_identifier(message.payload.identifier)):
                 yield DropMessage(message, "invalid response identifier")
                 continue
 
@@ -511,7 +534,7 @@ class ForwardCommunity():
 
     def on_pong(self, messages):
         for message in messages:
-            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.PingRequestCache)
+            request = self._request_cache.pop(ForwardCommunity.PingRequestCache.create_identifier(message.payload.identifier))
             request.on_success()
 
             if len(message.payload.torrents) > 0:
@@ -526,7 +549,9 @@ class ForwardCommunity():
             if identifiers:
                 identifier = identifiers[index]
             else:
-                identifier = self._dispersy.request_cache.claim(ForwardCommunity.PingRequestCache(self, candidate))
+                cache = ForwardCommunity.PingRequestCache(self, candidate)
+                self._request_cache.add(cache)
+                identifier = cache.number
 
             # create torrent-collect-request/response message
             meta = self.get_meta_message(meta_name)
@@ -556,6 +581,7 @@ class PForwardCommunity(ForwardCommunity):
         return [DefaultConversion(self), PSearchConversion(self)]
 
     def send_msimilarity_request(self, destination, identifier):
+        assert isinstance(identifier, int), type(identifier)
         global_vector = self.create_global_vector(destination, identifier)
 
         str_global_vector = str(global_vector)
@@ -637,6 +663,7 @@ class PForwardCommunity(ForwardCommunity):
                 return _sum
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_sum, received_sums):
+        assert isinstance(identifier, int), type(identifier)
         received_sums = [(mid, payload._sum) for mid, payload in received_sums]
 
         meta_request = self.get_meta_message(u"msimilarity-response")
@@ -707,6 +734,7 @@ class HForwardCommunity(ForwardCommunity):
         return [DefaultConversion(self), HSearchConversion(self)]
 
     def send_msimilarity_request(self, destination, identifier):
+        assert isinstance(identifier, int), type(identifier)
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
         str_myPreferences = str(myPreferences)
 
@@ -797,6 +825,7 @@ class HForwardCommunity(ForwardCommunity):
                 return hisList, myList
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
+        assert isinstance(identifier, int), type(identifier)
         received_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for mid, payload in received_responses]
 
         meta_request = self.get_meta_message(u"msimilarity-response")
@@ -862,6 +891,7 @@ class PoliForwardCommunity(ForwardCommunity):
         return messages
 
     def send_msimilarity_request(self, destination, identifier):
+        assert isinstance(identifier, int), type(identifier)
         # 1. fetch my preferences
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
         str_myPreferences = str(myPreferences)
@@ -980,6 +1010,7 @@ class PoliForwardCommunity(ForwardCommunity):
                 return results
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
+        assert isinstance(identifier, int), type(identifier)
         received_responses = [(mid, payload.my_response) for mid, payload in received_responses]
 
         meta_request = self.get_meta_message(u"msimilarity-response")

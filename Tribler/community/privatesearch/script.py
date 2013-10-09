@@ -110,7 +110,7 @@ class SearchScript(SemanticScript):
             nr_search = search_step / 300
             if nr_search <= self.search_limit and int(self._my_name) <= self.do_search:
                 self.nr_search = nr_search
-                self._dispersy.callback.persistent_register("do_search", self.perform_searches)
+                self._dispersy.callback.persistent_register(u"do_search", self.perform_searches)
 
         return SemanticScript.get_commands_from_fp(self, fp, step)
 

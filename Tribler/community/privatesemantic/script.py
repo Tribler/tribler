@@ -177,8 +177,11 @@ class SemanticScript(ScenarioScriptBase):
         if not candidate:
             candidate = self._community.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
 
+        fake_cache = IntroductionRequestCache(self._community, None)
+        delay = fake_cache.timeout_delay + fake_cache.cleanup_delay
+
         while not self._community.is_taste_buddy(candidate):
             log(self._logfile, "sending introduction request to %s" % str(candidate))
             self._manual_create_introduction_request(candidate, True)
 
-            yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
+            yield delay
