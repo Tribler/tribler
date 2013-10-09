@@ -453,7 +453,7 @@ class AllChannelCommunity(Community):
             self._votecast_db.on_votes_from_dispersy(votelist)
 
             # this might be a response to a dispersy-missing-message
-            self._dispersy.handle_missing_messages(messages, MissingMessageCache)
+            self.handle_missing_messages(messages, MissingMessageCache)
 
     def undo_votecast(self, descriptors, redo=False):
         if self.integrate_with_tribler:
