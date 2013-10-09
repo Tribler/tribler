@@ -476,7 +476,7 @@ class MainFrame(wx.Frame):
                     dialog = wx.MessageDialog(None, 'This torrent is already being downloaded. Do you wish to load the trackers from it?', 'Tribler', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                     if dialog.ShowModal() == wx.ID_YES:
                         # Update trackers
-                        d.add_trackers(new_trackers, update_tdef=True)
+                        self.utility.session.update_trackers(cdef.get_id(), new_trackers)
                     dialog.Destroy()
                 return
 
