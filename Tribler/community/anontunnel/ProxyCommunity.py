@@ -174,9 +174,7 @@ class ProxyCommunity(Community, Observable):
         assert self._original_on_introduction_response
 
     def send(self, message_type, destination_candidate, *payload):
-        if not isinstance(destination_candidate, Candidate):
-            logger.error("destination_candidate should be a Candidate")
-            return
+        assert isinstance(destination_candidate, Candidate), "destination_candidate should be a Candidate"
 
         meta = self.get_meta_message(message_type)
         message = meta.impl(distribution=(self.global_time,), payload=payload)

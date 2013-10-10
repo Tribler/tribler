@@ -26,7 +26,7 @@ class AnonTunnel(Thread):
         :return:
         :rtype: DispersyTunnelProxy
         """
-        return [c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)][0].socks_server.tunnel;
+        return [c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)][0].socks_server.tunnel
 
     def __init__(self, socks5_port, cmd_port):
         Thread.__init__(self)
@@ -66,8 +66,10 @@ class AnonTunnel(Thread):
         if self.community:
             pass
 
-        if self.raw_server:
-            self.raw_server.shutdown()
-
         if self.dispersy:
             self.dispersy.stop()
+
+        self.server_done_flag.set()
+
+        if self.raw_server:
+            self.raw_server.shutdown()

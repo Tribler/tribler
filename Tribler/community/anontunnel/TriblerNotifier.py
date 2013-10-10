@@ -2,7 +2,7 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED, NTFY_CREATED, NTFY_EXTENDED_FOR
 
 
-class TriblerNotifier():
+class TriblerNotifier(object):
     def __init__(self, community):
         self.notifier = Notifier.getInstance()
         community.subscribe("circuit_created", self.on_circuit_created)

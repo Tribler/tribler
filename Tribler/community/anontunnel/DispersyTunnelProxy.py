@@ -1,9 +1,8 @@
 import logging
 from random import choice
 import time
-from traceback import print_exc
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
-from Tribler.dispersy.candidate import Candidate, WalkCandidate
+from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
 MAX_CIRCUITS_TO_CREATE = 10
@@ -21,12 +20,12 @@ class Circuit(object):
     """ Circuit data structure storing the id, status, first hop and all hops """
 
     @property
-    def bytesDownloaded(self):
-        return self.bytesIn[1]
+    def bytes_downloaded(self):
+        return self.bytes_down[1]
 
     @property
-    def bytesUploaded(self):
-        return self.bytesOut[1]
+    def bytes_uploaded(self):
+        return self.bytes_up[1]
 
     def __init__(self, circuit_id, candidate):
         """
@@ -44,11 +43,11 @@ class Circuit(object):
 
         self.timestamp = None
 
-        self.speedUp = 0
-        self.speedDown = 0
+        self.speed_up = 0
+        self.speed_down = 0
 
-        self.bytesIn = [0, 0]
-        self.bytesOut = [0, 0]
+        self.bytes_down = [0, 0]
+        self.bytes_up = [0, 0]
 
 
 class RelayRoute(object):
@@ -105,28 +104,25 @@ class DispersyTunnelProxy(Observable):
 
         def calc_speeds():
             while True:
-                try:
-                    t2 = time.clock()
-                    for c in self.circuits.values():
-                        if c.timestamp is None:
-                            c.timestamp = time.clock()
-                        elif c.timestamp < t2:
-                            c.speedUp = (1.0 * c.bytesOut[1] - c.bytesOut[0]) / (t2 - c.timestamp)
-                            c.speedDown = (1.0 * c.bytesIn[1] - c.bytesIn[0]) / (t2 - c.timestamp)
+                t2 = time.clock()
+                for c in self.circuits.values():
+                    if c.timestamp is None:
+                        c.timestamp = time.clock()
+                    elif c.timestamp < t2:
+                        c.speed_up = (1.0 * c.bytes_out[1] - c.bytes_out[0]) / (t2 - c.timestamp)
+                        c.speed_down = (1.0 * c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp)
 
-                            c.timestamp = t2
-                            c.bytesOut = [c.bytesOut[1], c.bytesOut[1]]
-                            c.bytesIn = [c.bytesIn[1], c.bytesIn[1]]
+                        c.timestamp = t2
+                        c.bytes_out = [c.bytes_out[1], c.bytes_out[1]]
+                        c.bytes_down = [c.bytes_down[1], c.bytes_down[1]]
 
-                    for r in self.relay_from_to.values():
-                        if r.timestamp is None:
-                            r.timestamp = time.clock()
-                        elif r.timestamp < t2:
-                            r.speed = (1.0 * r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
-                            r.timestamp = t2
-                            r.bytes = [r.bytes[1], r.bytes[1]]
-                except:
-                    print_exc()
+                for r in self.relay_from_to.values():
+                    if r.timestamp is None:
+                        r.timestamp = time.clock()
+                    elif r.timestamp < t2:
+                        r.speed = (1.0 * r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
+                        r.timestamp = t2
+                        r.bytes = [r.bytes[1], r.bytes[1]]
 
                 yield 1.0
 
@@ -185,7 +181,6 @@ class DispersyTunnelProxy(Observable):
     def on_created(self, event):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
 
-        address = event.message.candidate.sock_addr
         msg = event.message.payload
 
         if self.circuits.has_key(msg.circuit_id):
@@ -345,7 +340,6 @@ class DispersyTunnelProxy(Observable):
             to the origin of the EXTEND. If we are the origin update
             our records. """
 
-        address = event.message.candidate.sock_addr
         msg = event.message.payload
 
         relay_key = (event.message.candidate, msg.circuit_id)
@@ -498,19 +492,20 @@ class DispersyTunnelProxy(Observable):
             del self.relay_from_to[relay_key]
 
 
-    def _get_member(self, candidate):
+    @staticmethod
+    def _get_member(candidate):
         try:
             member_set = candidate.get_members()
             member = next(iter(member_set), None)
-        except:
+        except AttributeError:
             member = None
 
         return member
 
     def on_member_exit(self, event):
-        '''
+        """
         When a candidate is leaving the community we must break any associated circuits.
-        '''
+        """
         candidate = event.member
 
         assert isinstance(candidate, Candidate)
