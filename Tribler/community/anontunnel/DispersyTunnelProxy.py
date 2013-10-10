@@ -1,6 +1,7 @@
 import logging
 from random import choice
 import time
+from traceback import print_exc
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.dispersy.candidate import Candidate, WalkCandidate
 
@@ -103,40 +104,47 @@ class DispersyTunnelProxy(Observable):
         community.subscribe("on_member_exit", self.on_member_exit)
 
         def calc_speeds():
-            t2 = time.clock()
-            for c in self.circuits.values():
-                if c.timestamp is None:
-                    c.timestamp = time.clock()
-                else:
-                    c.speedUp = (1.0 * c.bytesOut[1] - c.bytesOut[0]) / (t2 - c.timestamp)
-                    c.speedDown = (1.0 * c.bytesIn[1] - c.bytesIn[0]) / (t2 - c.timestamp)
+            while True:
+                try:
+                    t2 = time.clock()
+                    for c in self.circuits.values():
+                        if c.timestamp is None:
+                            c.timestamp = time.clock()
+                        else:
+                            c.speedUp = (1.0 * c.bytesOut[1] - c.bytesOut[0]) / (t2 - c.timestamp)
+                            c.speedDown = (1.0 * c.bytesIn[1] - c.bytesIn[0]) / (t2 - c.timestamp)
 
-                    c.bytesOut = [c.bytesOut[1], c.bytesOut[1]]
-                    c.bytesIn = [c.bytesIn[1], c.bytesIn[1]]
+                            c.timestamp = t2
+                            c.bytesOut = [c.bytesOut[1], c.bytesOut[1]]
+                            c.bytesIn = [c.bytesIn[1], c.bytesIn[1]]
 
-            for r in self.relay_from_to.values():
-                if r.timestamp is None:
-                    r.timestamp = time.clock()
-                else:
-                    r.speed = (1.0 * r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
-                    r.bytes = [r.bytes[1], r.bytes[1]]
+                    for r in self.relay_from_to.values():
+                        if r.timestamp is None:
+                            r.timestamp = time.clock()
+                        else:
+                            r.speed = (1.0 * r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
+                            r.timestamp = t2
+                            r.bytes = [r.bytes[1], r.bytes[1]]
+                except:
+                    print_exc()
 
-            yield 1.0
+                yield 1.0
 
 
         def extend_circuits():
-            circuits_needing_extension = [c for c in self.circuits.values()
-                                          if len(c.hops) < c.goal_hops
-                                          and self.extension_queue[c] == 0]
+            while True:
+                circuits_needing_extension = [c for c in self.circuits.values()
+                                              if len(c.hops) < c.goal_hops
+                                              and self.extension_queue[c] == 0]
 
-            for c in circuits_needing_extension:
-                self.extend_circuit(c)
+                for c in circuits_needing_extension:
+                    self.extend_circuit(c)
 
-            # Rerun every 5 seconds
-            yield 5.0
+                # Rerun every 5 seconds
+                yield 5.0
 
-        dispersy.callback.register(extend_circuits, priority= -5)
-        dispersy.callback.register(calc_speeds, priority= -10)
+        dispersy.callback.register(extend_circuits, priority=-10)
+        dispersy.callback.register(calc_speeds, priority=-10)
 
         self.community = community
 
