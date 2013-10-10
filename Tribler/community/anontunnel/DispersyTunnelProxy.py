@@ -2,7 +2,7 @@ import logging
 from random import choice
 import time
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
-from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.candidate import Candidate, WalkCandidate
 
 __author__ = 'Chris'
 MAX_CIRCUITS_TO_CREATE = 10
@@ -383,8 +383,6 @@ class DispersyTunnelProxy(Observable):
     def create_circuit(self, first_hop, circuit_id=None):
         """ Create a new circuit, with one initial hop """
 
-        address = first_hop.sock_addr
-
         # Generate a random circuit id that hasn't been used yet by us
         while circuit_id is None or circuit_id in self.circuits:
             circuit_id = self._generate_circuit_id(first_hop)
@@ -395,7 +393,9 @@ class DispersyTunnelProxy(Observable):
         logger.warning('Circuit %d is to be created, we want %d hops', circuit.id, circuit.goal_hops)
 
         self.circuits[circuit_id] = circuit
-        self.circuit_membership[iter(first_hop.get_members()).next().mid].add(circuit_id)
+
+        member = self._get_member(first_hop)
+        self.circuit_membership[member.mid].add(circuit_id)
 
         community = self.community
         community.send(u"create", first_hop, circuit_id)
@@ -425,7 +425,8 @@ class DispersyTunnelProxy(Observable):
         if len(self.circuits) > MAX_CIRCUITS_TO_CREATE:
             return
 
-        if iter(candidate.get_members()).next().mid not in self.circuit_membership:
+        member = self._get_member(candidate)
+        if member is not None and member.mid not in self.circuit_membership:
             self.create_circuit(candidate)
 
         # At least store that we have seen this candidate
@@ -476,14 +477,27 @@ class DispersyTunnelProxy(Observable):
         if circuit_id in self.circuits:
             del self.circuits[circuit_id]
 
-        # Delete any memberships
-        del self.circuit_membership[iter(candidate.get_members()).next().mid]
+        member = self._get_member(candidate)
+
+        if member is not None:
+            # Delete any memberships
+            if member.mid in self.circuit_membership:
+                del self.circuit_membership[member.mid]
 
         # Delete rules from routing tables
         relay_key = (candidate, circuit_id)
         if relay_key in self.relay_from_to:
             del self.relay_from_to[relay_key]
 
+
+    def _get_member(self, candidate):
+        try:
+            member_set = candidate.get_members()
+            member = next(iter(member_set), None)
+        except:
+            member = None
+
+        return member
 
     def on_member_exit(self, event):
         '''
@@ -493,8 +507,11 @@ class DispersyTunnelProxy(Observable):
 
         assert isinstance(candidate, Candidate)
 
-        # We must invalidate all circuits that have this candidate in its hop list
-        circuit_ids = list(self.circuit_membership[iter(candidate.get_members()).next().mid])
+        member = self._get_member(candidate)
 
-        for circuit_id in circuit_ids:
-            self.break_circuit(circuit_id, candidate)
+        if member is not None:
+            # We must invalidate all circuits that have this candidate in its hop list
+            circuit_ids = list(self.circuit_membership[member.mid])
+
+            for circuit_id in circuit_ids:
+                self.break_circuit(circuit_id, candidate)
