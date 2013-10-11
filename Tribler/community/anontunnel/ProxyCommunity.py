@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import logging
 from traceback import print_exc
-from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload
+from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload, StatsPayload
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
@@ -86,10 +86,6 @@ class ProxyCommunity(Community, Observable):
                             if self.member_heartbeat[candidate] < datetime.now() - 2 * timedelta(seconds=timeout)
                         }
 
-                    for candidate in candidates_to_be_purged:
-                        self.on_candidate_exit(candidate)
-                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
-
                     candidates_to_be_pinged = {candidate for candidate in self.member_heartbeat.keys() if
                                                self.member_heartbeat[candidate] < datetime.now() - timedelta(
                                                    seconds=timeout)}.difference(candidates_to_be_purged)
@@ -98,6 +94,10 @@ class ProxyCommunity(Community, Observable):
                         self.member_ping[candidate] = datetime.now()
                         self.send(u"ping", candidate)
                         logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+
+                    for candidate in candidates_to_be_purged:
+                        self.on_candidate_exit(candidate)
+                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
                     # rerun over 3 seconds
                     yield 3.0
@@ -133,7 +133,8 @@ class ProxyCommunity(Community, Observable):
             u"data": DataPayload(),
             u"break": BreakPayload(),
             u"pong": PongPayload(),
-            u"ping": PingPayload()
+            u"ping": PingPayload(),
+            u"stats": StatsPayload()
         }
 
         event_messages = [
@@ -208,4 +209,7 @@ class ProxyCommunity(Community, Observable):
         if candidate in self.member_heartbeat:
             del self.member_heartbeat[candidate]
 
-        self.fire("on_member_exit", member=candidate)
+        try:
+            self.fire("on_member_exit", member=candidate)
+        except:
+            logger.error("Error caught in on_member_exit callback")

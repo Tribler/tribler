@@ -94,8 +94,8 @@ def main(argv):
                     circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
                     circuit.bytes_downloaded / 1024.0 / 1024.0,
                     circuit.bytes_uploaded / 1024.0 / 1024.0,
-                    circuit.speed_down / 1024.0,
-                    circuit.speed_up / 1024.0
+                    (circuit.speed_down[-1] if len(circuit.speed_down) else 0) / 1024.0,
+                    (circuit.speed_up[-1] if len(circuit.speed_up) else 0) / 1024.0
                 )
 
                 for hop in circuit.hops[1:]:
@@ -118,9 +118,11 @@ def main(argv):
             from_to = anon_tunnel.tunnel.relay_from_to
 
             for key in from_to.keys():
+                relay = from_to[key]
+
                 print "%s-->\t%s\t\t%.2f\t\t%.2f" % (
-                    key, (from_to[key].candidate, from_to[key].circuit_id), from_to[key].bytes[1] / 1024.0 / 1024.0,
-                    from_to[key].speed
+                    key, (relay.candidate, from_to[key].circuit_id), relay.bytes[1] / 1024.0 / 1024.0,
+                    relay.speed[-1] if len(relay.speed) else 0
                 )
 
 

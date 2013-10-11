@@ -1,4 +1,5 @@
 import struct
+from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
@@ -61,6 +62,12 @@ class DataPayload(Payload):
             self.data = data
             self.origin = origin
 
+class StatsPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, stats):
+            super(StatsPayload.Implementation, self).__init__(meta)
+            self.stats = stats
+
 
 class ProxyConversion(BinaryConversion):
     def __init__(self, community):
@@ -116,6 +123,23 @@ class ProxyConversion(BinaryConversion):
             , self._encode_ping_pong
             , self._decode_ping_pong
         )
+
+        self.define_meta_message(
+            chr(9),
+            community.get_meta_message(u"stats")
+            , self._encode_stats
+            , self._decode_stats
+        )
+
+    @staticmethod
+    def _encode_stats(message):
+        return encode(message.payload.stats),
+
+    @staticmethod
+    def _decode_stats(placeholder, offset, data):
+        offset, stats = decode(data, offset)
+
+        return offset, placeholder.meta.payload.implement(stats)
 
     @staticmethod
     def _encode_ping_pong(message):
