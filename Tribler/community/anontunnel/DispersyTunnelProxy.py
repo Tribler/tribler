@@ -255,7 +255,7 @@ class DispersyTunnelProxy(Observable):
             and self.circuits[msg.circuit_id].candidate == event.message.candidate \
             and msg.destination == ("0.0.0.0", 0):
 
-            self.circuits[msg.circuit_id].bytesIn[1] += len(msg.data)
+            self.circuits[msg.circuit_id].bytes_down[1] += len(msg.data)
             self.fire("on_data", data=msg, sender=direct_sender_address)
 
         # If it is not ours and we have nowhere to forward to then act as exit node
@@ -469,7 +469,7 @@ class DispersyTunnelProxy(Observable):
         self.community.send(u"data", address, circuit_id, ultimate_destination, payload, origin)
 
         if origin is None:
-            self.circuits[circuit_id].bytesOut[1] += len(payload)
+            self.circuits[circuit_id].bytes_up[1] += len(payload)
 
         if __debug__:
             logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s",
