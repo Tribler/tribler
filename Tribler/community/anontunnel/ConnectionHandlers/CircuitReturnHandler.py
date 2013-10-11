@@ -36,6 +36,8 @@ class CircuitReturnHandler(object):
 
         for source_address, packet in packets:
             logger.info("ENTER DATA packet FROM %s", source_address)
+            self.proxy.stats['bytes_enter'] += len(packet)
+
             self.proxy.send_data(
                 circuit_id=self.circuit_id,
                 address=self.destination_address,
@@ -74,6 +76,8 @@ class ShortCircuitReturnHandler(object):
 
         for source_address, packet in packets:
             logger.info("ENTER DATA packet FROM %s", source_address)
+            self.proxy.stats['bytes_enter'] += len(packet)
+
             meta = self.proxy.community.get_meta_message(u"data")
             message = meta.impl(
                 distribution=(self.proxy.community.global_time,),

@@ -107,6 +107,12 @@ class DispersyTunnelProxy(Observable):
 
         self.community = None
 
+        self.stats = {
+            'bytes_enter': 0,
+            'bytes_exit': 0,
+            'bytes_returned': 0
+        }
+
 
         community.subscribe("on_create", self.on_create)
         community.subscribe("on_created", self.on_created)
@@ -268,6 +274,7 @@ class DispersyTunnelProxy(Observable):
             and event.message.candidate == self.circuits[msg.circuit_id]:
 
             self.circuits[msg.circuit_id].bytes_down[1] += len(msg.data)
+            self.stats['bytes_returned'] += len(msg.data)
             self.fire("on_data", data=msg, sender=direct_sender_address)
 
         # If it is not ours and we have nowhere to forward to then act as exit node
@@ -277,6 +284,8 @@ class DispersyTunnelProxy(Observable):
     def exit_data(self, circuit_id, return_candidate, destination, data):
         if __debug__:
             logger.info("EXIT DATA packet to %s", destination)
+
+        self.stats['bytes_exit'] += len(data)
 
         self.get_exit_socket(circuit_id, return_candidate).sendto(data, destination)
 
@@ -439,9 +448,9 @@ class DispersyTunnelProxy(Observable):
 
     def _create_stats(self):
         stats = {
-            'bytes_enter':  None,
-            'bytes_exit': None,
-            'bytes_return': None,
+            'bytes_enter':  self.stats['bytes_enter'],
+            'bytes_exit': self.stats['bytes_exit'],
+            'bytes_return': self.stats['bytes_returned'],
             'circuits': [
                 {
                     'bytes_down': c.bytes_down[1],
