@@ -1,5 +1,6 @@
 import logging
 from random import choice
+import time
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.dispersy.candidate import Candidate
 
@@ -19,34 +20,46 @@ from copy import deepcopy
 class Circuit(object):
     """ Circuit data structure storing the id, status, first hop and all hops """
 
-    def __init__(self, circuit_id, address):
+    @property
+    def bytes_downloaded(self):
+        return self.bytes_down[1]
+
+    @property
+    def bytes_uploaded(self):
+        return self.bytes_up[1]
+
+    def __init__(self, circuit_id, candidate):
         """
         Instantiate a new Circuit data structure
 
         :param circuit_id: the id of the circuit
-        :param address: the first hop of the circuit
+        :param candidate: the first hop of the circuit
         :return: Circuit
         """
         self.created = False
         self.id = circuit_id
-        self.address = address
-        self.hops = [address]
+        self.candidate = candidate
+        self.hops = [candidate]
         self.goal_hops = 0
 
+        self.timestamp = None
 
+        self.speed_up = 0
+        self.speed_down = 0
 
-        self.bytesIn = 0
-        self.bytesOut = 0
-
+        self.bytes_down = [0, 0]
+        self.bytes_up = [0, 0]
 
 
 
 class RelayRoute(object):
-    def __init__(self, circuit_id, address):
-        self.address = address
+    def __init__(self, circuit_id, candidate):
+        self.candidate = candidate
         self.circuit_id = circuit_id
 
-        self.bytes = 0
+        self.timestamp = None
+        self.speed = 0
+        self.bytes = [0, 0]
 
 
 class DispersyTunnelProxy(Observable):
@@ -94,18 +107,45 @@ class DispersyTunnelProxy(Observable):
         community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
         community.subscribe("on_member_exit", self.on_member_exit)
 
+        def calc_speeds():
+            while True:
+                t2 = time.clock()
+                for c in self.circuits.values():
+                    if c.timestamp is None:
+                        c.timestamp = time.clock()
+                    elif c.timestamp < t2:
+                        c.speed_up = (1.0 * c.bytes_out[1] - c.bytes_out[0]) / (t2 - c.timestamp)
+                        c.speed_down = (1.0 * c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp)
+
+                        c.timestamp = t2
+                        c.bytes_out = [c.bytes_out[1], c.bytes_out[1]]
+                        c.bytes_down = [c.bytes_down[1], c.bytes_down[1]]
+
+                for r in self.relay_from_to.values():
+                    if r.timestamp is None:
+                        r.timestamp = time.clock()
+                    elif r.timestamp < t2:
+                        r.speed = (1.0 * r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
+                        r.timestamp = t2
+                        r.bytes = [r.bytes[1], r.bytes[1]]
+
+                yield 1.0
+
+
         def extend_circuits():
-            circuits_needing_extension = [c for c in self.circuits.values()
-                                          if len(c.hops) < c.goal_hops
-                                          and self.extension_queue[c] == 0]
+            while True:
+                circuits_needing_extension = [c for c in self.circuits.values()
+                                              if len(c.hops) < c.goal_hops
+                                              and self.extension_queue[c] == 0]
 
-            for c in circuits_needing_extension:
-                self.extend_circuit(c)
+                for c in circuits_needing_extension:
+                    self.extend_circuit(c)
 
-            # Rerun every 5 seconds
-            yield 5.0
+                # Rerun every 5 seconds
+                yield 5.0
 
-        dispersy.callback.register(extend_circuits, priority= -10)
+        dispersy.callback.register(extend_circuits, priority=-10)
+        dispersy.callback.register(calc_speeds, priority=-10)
 
         self.community = community
 
@@ -114,15 +154,15 @@ class DispersyTunnelProxy(Observable):
         msg = event.message.payload
         assert isinstance(msg, DataPayload.Implementation)
 
-        relay_key = (address, msg.circuit_id)
+        relay_key = (event.message.candidate, msg.circuit_id)
         community = self.community
 
         # If we can forward it along the chain, do so!
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
 
-            community.send(u"data", relay.address, relay.circuit_id, msg.destination, msg.data)
-            logger.info("Forwarding BREAK packet from %s to %s", address, relay.address)
+            community.send(u"data", relay.candidate, relay.circuit_id, msg.destination, msg.data)
+            logger.info("Forwarding BREAK packet from %s to %s", address, relay.candidate)
 
             del self.relay_from_to[relay_key]
             logger.warning("BREAK circuit %d", msg.circuit_id)
@@ -135,10 +175,10 @@ class DispersyTunnelProxy(Observable):
 
     def on_create(self, event):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
-        address = event.message.candidate.sock_addr
+        address = event.message.candidate
         msg = event.message.payload
 
-        logger.warning('We joined circuit %d with neighbour %s', msg.circuit_id, address)
+        logger.warning('We joined circuit %d with neighbour %s', msg.circuit_id, address.sock_addr)
 
         community = self.community
         community.send(u"created", address, msg.circuit_id)
@@ -146,7 +186,6 @@ class DispersyTunnelProxy(Observable):
     def on_created(self, event):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
 
-        address = event.message.candidate.sock_addr
         msg = event.message.payload
 
         if self.circuits.has_key(msg.circuit_id):
@@ -165,28 +204,29 @@ class DispersyTunnelProxy(Observable):
             self._process_extension_queue(circuit)
         else:
             try:
-                created_for = self.relay_from_to[(address, msg.circuit_id)]
+                created_for = self.relay_from_to[(event.message.candidate, msg.circuit_id)]
             except KeyError, e:
                 logger.error(e.message)
+                return
 
-            extended_with = address
+            extended_with = event.message.candidate
 
             community = self.community
-            community.send(u"extended", created_for.address, created_for.circuit_id, extended_with)
+            community.send(u"extended", created_for.candidate, created_for.circuit_id, extended_with.sock_addr)
 
             logger.warning('We have extended circuit (%s, %d) with (%s,%d)',
-                        created_for.address,
+                        created_for.candidate.sock_addr,
                         created_for.circuit_id,
-                        extended_with,
+                        extended_with.sock_addr,
                         msg.circuit_id
             )
 
-            self.fire("circuit_extended_for", extended_for=(created_for.address, created_for.circuit_id),
+            self.fire("circuit_extended_for", extended_for=(created_for.candidate, created_for.circuit_id),
                       extended_with=(extended_with, msg.circuit_id))
 
             # transfer extending for queue to the next hop
-            while self.extending_for[(created_for.address, created_for.circuit_id)] > 0:
-                self.extending_for[(created_for.address, created_for.circuit_id)] -= 1
+            while self.extending_for[(created_for.candidate, created_for.circuit_id)] > 0:
+                self.extending_for[(created_for.candidate, created_for.circuit_id)] -= 1
 
                 community.send(u"extend", extended_with, msg.circuit_id)
 
@@ -197,33 +237,36 @@ class DispersyTunnelProxy(Observable):
         msg = event.message.payload
         assert isinstance(msg, DataPayload.Implementation)
 
-        relay_key = (direct_sender_address, msg.circuit_id)
+        relay_key = (event.message.candidate, msg.circuit_id)
         community = self.community
 
         # If we can forward it along the chain, do so!
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
-            relay.bytes += len(event.message.packet)
+            relay.bytes[1] += len(event.message.packet)
 
-            community.send(u"data", relay.address, relay.circuit_id, msg.destination, msg.data, msg.origin)
+            community.send(u"data", relay.candidate, relay.circuit_id, msg.destination, msg.data, msg.origin)
 
             if __debug__:
-                logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.address)
+                logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.candidate)
 
         # If message is meant for us, write it to output
-        elif msg.circuit_id in self.circuits and self.circuits[msg.circuit_id].address == direct_sender_address and msg.destination == ("0.0.0.0", 0):
-            self.circuits[msg.circuit_id].bytesIn += len(msg.data)
+        elif msg.circuit_id in self.circuits \
+            and self.circuits[msg.circuit_id].candidate == event.message.candidate \
+            and msg.destination == ("0.0.0.0", 0):
+
+            self.circuits[msg.circuit_id].bytesIn[1] += len(msg.data)
             self.fire("on_data", data=msg, sender=direct_sender_address)
 
         # If it is not ours and we have nowhere to forward to then act as exit node
         else:
-            self.exit_data(msg.circuit_id, direct_sender_address, msg.destination, msg.data)
+            self.exit_data(msg.circuit_id, event.message.candidate, msg.destination, msg.data)
 
-    def exit_data(self, circuit_id, direct_sender_address, destination, data):
+    def exit_data(self, circuit_id, return_candidate, destination, data):
         if __debug__:
             logger.info("EXIT DATA packet to %s", destination)
 
-        self.get_exit_socket(circuit_id, direct_sender_address).sendto(data, destination)
+        self.get_exit_socket(circuit_id, return_candidate).sendto(data, destination)
 
     def get_exit_socket(self, circuit_id, address):
 
@@ -253,44 +296,42 @@ class DispersyTunnelProxy(Observable):
             extend the circuit with. It's CREATED reply will
             eventually be received and propagated back along the Circuit. """
 
-        from_address = event.message.candidate.sock_addr
         msg = event.message.payload
         assert isinstance(msg, ExtendPayload.Implementation)
 
-        relay_key = (from_address, msg.circuit_id)
+        relay_key = (event.message.candidate, msg.circuit_id)
         community = self.community
 
         # If we can forward it along the chain, do so!
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
 
-            community.send(u"extend", relay.address, relay.circuit_id)
+            community.send(u"extend", relay.candidate, relay.circuit_id)
             return
         else:  # We are responsible for EXTENDING the circuit
-            self.extend_for(from_address, msg.circuit_id)
+            self.extend_for(event.message.candidate, msg.circuit_id)
 
 
-    def extend_for(self, from_address, from_circuit_id):
+    def extend_for(self, from_candidate, from_circuit_id):
         # Payload contains the address we want to invite to the circuit
         to_candidate = next(
             (x for x in self.community.dispersy_yield_verified_candidates()
-             if x.sock_addr != from_address),
+             if x != from_candidate),
             None
         )
 
         if to_candidate:
-            to_address = to_candidate.sock_addr
-            new_circuit_id = self._generate_circuit_id(to_address)
+            new_circuit_id = self._generate_circuit_id(to_candidate)
 
-            self.relay_from_to[(to_address, new_circuit_id)] = RelayRoute(from_circuit_id, from_address)
-            self.relay_from_to[(from_address, from_circuit_id)] = RelayRoute(new_circuit_id, to_address)
+            self.relay_from_to[(to_candidate, new_circuit_id)] = RelayRoute(from_circuit_id, from_candidate)
+            self.relay_from_to[(from_candidate, from_circuit_id)] = RelayRoute(new_circuit_id, to_candidate)
 
-            self.community.send(u"create", to_address, new_circuit_id)
+            self.community.send(u"create", to_candidate, new_circuit_id)
 
-            self.fire("circuit_extend", extend_for=(from_address, from_circuit_id),
-                      extend_with=(to_address, new_circuit_id))
+            self.fire("circuit_extend", extend_for=(from_candidate, from_circuit_id),
+                      extend_with=(to_candidate, new_circuit_id))
         else:
-            self.extending_for[(from_address, from_circuit_id)] += 1
+            self.extending_for[(from_candidate, from_circuit_id)] += 1
 
 
     def _process_extending_for_queue(self):
@@ -304,16 +345,15 @@ class DispersyTunnelProxy(Observable):
             to the origin of the EXTEND. If we are the origin update
             our records. """
 
-        address = event.message.candidate.sock_addr
         msg = event.message.payload
 
-        relay_key = (address, msg.circuit_id)
+        relay_key = (event.message.candidate, msg.circuit_id)
         community = self.community
 
         # If we can forward it along the chain, do so!
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
-            community.send(u"extended", relay.address, relay.circuit_id, msg.extended_with)
+            community.send(u"extended", relay.candidate, relay.circuit_id, msg.extended_with)
 
         # If it is ours, update our records
         elif self.circuits.has_key(msg.circuit_id):
@@ -327,7 +367,6 @@ class DispersyTunnelProxy(Observable):
 
 
             circuit.hops.append(extended_with)
-            self.circuit_membership[extended_with].add(circuit_id)
             logger.warning('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
                         extended_with, len(self.circuits[circuit_id].hops))
 
@@ -351,22 +390,22 @@ class DispersyTunnelProxy(Observable):
     def create_circuit(self, first_hop, circuit_id=None):
         """ Create a new circuit, with one initial hop """
 
-        address = first_hop.sock_addr
-
         # Generate a random circuit id that hasn't been used yet by us
         while circuit_id is None or circuit_id in self.circuits:
             circuit_id = self._generate_circuit_id(first_hop)
 
-        circuit = Circuit(circuit_id, address)
+        circuit = Circuit(circuit_id, first_hop)
         circuit.goal_hops = random.randrange(1, 4)
 
         logger.warning('Circuit %d is to be created, we want %d hops', circuit.id, circuit.goal_hops)
 
         self.circuits[circuit_id] = circuit
-        self.circuit_membership[address].add(circuit_id)
+
+        member = self._get_member(first_hop)
+        self.circuit_membership[member.mid].add(circuit_id)
 
         community = self.community
-        community.send(u"create", address, circuit_id)
+        community.send(u"create", first_hop, circuit_id)
 
         return self.circuits[circuit_id]
 
@@ -378,7 +417,7 @@ class DispersyTunnelProxy(Observable):
             logger.warning('Circuit %d is to be extended', circuit.id)
 
             community = self.community
-            community.send(u"extend", circuit.address, circuit.id)
+            community.send(u"extend", circuit.candidate, circuit.id)
 
     def extend_circuit(self, circuit):
         self.extension_queue[circuit] += 1
@@ -389,15 +428,16 @@ class DispersyTunnelProxy(Observable):
     def on_member_heartbeat(self, event):
         candidate = event.candidate
 
-        # At least store that we have seen this candidate
-        self.circuit_membership[candidate] = {}
-
         # We dont want to create too many circuits
         if len(self.circuits) > MAX_CIRCUITS_TO_CREATE:
             return
 
-        if candidate.sock_addr not in self.circuit_membership:
+        member = self._get_member(candidate)
+        if member is not None and member.mid not in self.circuit_membership:
             self.create_circuit(candidate)
+
+        # At least store that we have seen this candidate
+        self.circuit_membership[candidate] = {}
 
         self._process_extending_for_queue()
 
@@ -405,7 +445,7 @@ class DispersyTunnelProxy(Observable):
 
         # If there are no circuits and no circuit has been requested act as EXIT node ourselves
         if circuit_id is None and len(self.circuits) == 0:
-            self.exit_data(None, ultimate_destination, ultimate_destination, payload)
+            self.exit_data(None, None, ultimate_destination, payload)
             return
 
         # If there are circuits, but no specific one is requested just pick the first.
@@ -424,48 +464,62 @@ class DispersyTunnelProxy(Observable):
         # If no address has been given, pick the first hop
         # Note: for packet forwarding address MUST be given
         if address is None:
-            address = self.circuits[circuit_id].address
+            address = self.circuits[circuit_id].candidate
 
         self.community.send(u"data", address, circuit_id, ultimate_destination, payload, origin)
 
         if origin is None:
-            self.circuits[circuit_id].bytesOut += len(payload)
+            self.circuits[circuit_id].bytesOut[1] += len(payload)
 
         if __debug__:
             logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s",
                         origin, address, circuit_id, ultimate_destination)
 
-    def break_circuit(self, circuit_id, address):
+    def break_circuit(self, circuit_id, candidate):
         # Give other members possibility to clean up
 
-        logger.error("Breaking circuit %d due to %s:%d" % (circuit_id, address[0], address[1]))
-
-        # TODO: investigate if this is a good idea, since it may help malicious nodes determine which nodes are part of the downstream part of the circuit.
-        self.community.send(u"break", self.circuits[circuit_id].address, circuit_id)
+        logger.error("Breaking circuit %d due to %s:%d" % (circuit_id, candidate.sock_addr[0], candidate.sock_addr[1]))
 
         # Delete from data structures
         if circuit_id in self.circuits:
             del self.circuits[circuit_id]
 
-        # Delete any memberships
-        del self.circuit_membership[address]
+        member = self._get_member(candidate)
+
+        if member is not None:
+            # Delete any memberships
+            if member.mid in self.circuit_membership:
+                del self.circuit_membership[member.mid]
 
         # Delete rules from routing tables
-        relay_key = (address, circuit_id)
+        relay_key = (candidate, circuit_id)
         if relay_key in self.relay_from_to:
             del self.relay_from_to[relay_key]
 
 
+    @staticmethod
+    def _get_member(candidate):
+        try:
+            member_set = candidate.get_members()
+            member = next(iter(member_set), None)
+        except AttributeError:
+            member = None
+
+        return member
+
     def on_member_exit(self, event):
-        '''
+        """
         When a candidate is leaving the community we must break any associated circuits.
-        '''
+        """
         candidate = event.member
 
         assert isinstance(candidate, Candidate)
 
-        # We must invalidate all circuits that have this candidate in its hop list
-        circuit_ids = list(self.circuit_membership[candidate.sock_addr])
+        member = self._get_member(candidate)
 
-        for circuit_id in circuit_ids:
-            self.break_circuit(circuit_id, candidate.sock_addr)
+        if member is not None:
+            # We must invalidate all circuits that have this candidate in its hop list
+            circuit_ids = list(self.circuit_membership[member.mid])
+
+            for circuit_id in circuit_ids:
+                self.break_circuit(circuit_id, candidate)
