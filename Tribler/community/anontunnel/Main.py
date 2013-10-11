@@ -94,8 +94,8 @@ def main(argv):
                     circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
                     circuit.bytes_downloaded / 1024.0 / 1024.0,
                     circuit.bytes_uploaded / 1024.0 / 1024.0,
-                    circuit.speedDown / 1024.0,
-                    circuit.speedUp / 1024.0
+                    circuit.speed_down / 1024.0,
+                    circuit.speed_up / 1024.0
                 )
 
                 for hop in circuit.hops[1:]:

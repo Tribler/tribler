@@ -114,11 +114,11 @@ class DispersyTunnelProxy(Observable):
                     if c.timestamp is None:
                         c.timestamp = time.clock()
                     elif c.timestamp < t2:
-                        c.speed_up = (1.0 * c.bytes_out[1] - c.bytes_out[0]) / (t2 - c.timestamp)
+                        c.speed_up = (1.0 * c.bytes_up[1] - c.bytes_up[0]) / (t2 - c.timestamp)
                         c.speed_down = (1.0 * c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp)
 
                         c.timestamp = t2
-                        c.bytes_out = [c.bytes_out[1], c.bytes_out[1]]
+                        c.bytes_up = [c.bytes_up[1], c.bytes_up[1]]
                         c.bytes_down = [c.bytes_down[1], c.bytes_down[1]]
 
                 for r in self.relay_from_to.values():
