@@ -13,6 +13,7 @@ from Observable import Observable
 
 from collections import defaultdict
 from ProxyConversion import DataPayload, ExtendPayload
+from copy import deepcopy
 
 
 class Circuit(object):
@@ -32,8 +33,12 @@ class Circuit(object):
         self.hops = [address]
         self.goal_hops = 0
 
+
+
         self.bytesIn = 0
         self.bytesOut = 0
+
+
 
 
 class RelayRoute(object):
@@ -45,6 +50,9 @@ class RelayRoute(object):
 
 
 class DispersyTunnelProxy(Observable):
+    def get_circuits(self):
+        return deepcopy(self.circuits)
+
     def __init__(self, dispersy, community):
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
