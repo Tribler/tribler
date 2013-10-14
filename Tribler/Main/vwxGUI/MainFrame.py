@@ -27,7 +27,7 @@ from wx.html import HtmlWindow
 
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
-from Tribler.Main.vwxGUI.home import Home, Stats
+from Tribler.Main.vwxGUI.home import Home, Stats, Anonymity
 from Tribler.Main.vwxGUI.list import SearchList, ChannelList, \
     LibraryList, ActivitiesList
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
@@ -242,6 +242,8 @@ class MainFrame(wx.Frame):
 
         self.stats = Stats(self)
         self.stats.Show(False)
+        self.anonymity = Anonymity(self)
+        self.anonymity.Show(False)
         self.managechannel = ManageChannel(self)
         self.managechannel.Show(False)
 
@@ -262,6 +264,7 @@ class MainFrame(wx.Frame):
             hSizer.Add(separator, 0, wx.EXPAND)
             hSizer.Add(self.home, 1, wx.EXPAND)
             hSizer.Add(self.stats, 1, wx.EXPAND)
+            hSizer.Add(self.anonymity, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1187,15 +1190,15 @@ class MainFrame(wx.Frame):
         else:
             print >> sys.stderr, "mainframe: got app from wx"
             app = wx.GetApp()
-            
+
         print >> sys.stderr, "mainframe: looping through toplevelwindows"
         for item in wx.GetTopLevelWindows():
-            if item != self: 
+            if item != self:
                 if isinstance(item, wx.Dialog):
-                    print >> sys.stderr, "mainframe: destroying", item 
-                    item.Destroy() 
+                    print >> sys.stderr, "mainframe: destroying", item
+                    item.Destroy()
                 item.Close()
-        print >> sys.stderr, "mainframe: destroying", self 
+        print >> sys.stderr, "mainframe: destroying", self
         self.Destroy()
 
         if app:

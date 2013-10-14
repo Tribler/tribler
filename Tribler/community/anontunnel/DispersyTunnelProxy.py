@@ -163,8 +163,8 @@ class DispersyTunnelProxy(Observable):
                 # Rerun every 5 seconds
                 yield 5.0
 
-        dispersy.callback.register(extend_circuits, priority=-10)
-        dispersy.callback.register(calc_speeds, priority=-10)
+        dispersy.callback.register(extend_circuits, priority= -10)
+        dispersy.callback.register(calc_speeds, priority= -10)
 
         self.community = community
 
@@ -391,7 +391,7 @@ class DispersyTunnelProxy(Observable):
             logger.warning('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
                         extended_with, len(self.circuits[circuit_id].hops))
 
-            self.fire("circuit_extended", extended_with=extended_with)
+            self.fire("circuit_extended", circuit=circuit)
 
             # Our circuit is too short, fix it!
             if circuit.goal_hops > len(circuit.hops) and self.extension_queue[circuit] == 0:

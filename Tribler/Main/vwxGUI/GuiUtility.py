@@ -232,6 +232,11 @@ class GUIUtility:
             elif self.guiPage == 'stats':
                 self.frame.stats.Show(False)
 
+            if page == 'anonymity':
+                self.frame.anonymity.Show()
+            elif self.guiPage == 'anonymity':
+                self.frame.anonymity.Show(False)
+
             if self.frame.videoparentpanel:
                 if page == 'videoplayer':
                     self.frame.videoparentpanel.Show(True)
@@ -654,7 +659,7 @@ class GUIUtility:
                 if hasattr(button, 'selected'): button.selected = False
 
             dlgname = 'MSdialog'
-            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+            if not self.ReadGuiSetting('show_%s' % dlgname, default=True):
                 response = wx.ID_OK
             else:
                 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
@@ -681,7 +686,7 @@ class GUIUtility:
                 if hasattr(button, 'selected'): button.selected = False
 
             dlgname = 'RSdialog'
-            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+            if not self.ReadGuiSetting('show_%s' % dlgname, default=True):
                 response = wx.ID_OK
             else:
                 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog

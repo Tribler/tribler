@@ -13,7 +13,7 @@ class TriblerNotifier(object):
         self.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, event.circuit)
 
     def on_circuit_extended(self, event):
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, event.extended_with)
+        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, event.circuit)
 
     def on_circuit_extended_for(self, event):
         self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED_FOR, event.extended_for, event.extended_with)

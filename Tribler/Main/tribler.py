@@ -188,7 +188,7 @@ class ABCApp():
             print >> sys.stderr, "Tribler is using", self.installdir, "as working directory"
 
             self.splash.tick('Starting API')
-            s = self.startAPI(self.splash.tick)
+            s, socks_server = self.startAPI(self.splash.tick)
 
             print >> sys.stderr, "Tribler is expecting swift in", self.sconfig.get_swift_path()
 
@@ -197,6 +197,7 @@ class ABCApp():
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
+            self.utility.socks_server = socks_server
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance(self.dispersy.callback)
 
@@ -451,6 +452,10 @@ class ABCApp():
         s = Session(self.sconfig)
         s.start()
 
+        from Tribler.community.anontunnel.Socks5Server import Socks5Server
+        socks_server = Socks5Server()
+        socks_server.attach_to(s.lm.rawserver, 1080)
+
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
@@ -458,7 +463,6 @@ class ABCApp():
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
-            from Tribler.community.anontunnel.Socks5Server import Socks5Server
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
@@ -480,9 +484,6 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
-            socks_server = Socks5Server()
-            socks_server.attach_to(s.lm.rawserver, 1080)
-
             dispersy.define_auto_load(ProxyCommunity,
                                      (s.dispersy_member, socks_server),
                                      load=True)
@@ -492,7 +493,7 @@ class ABCApp():
         swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
-        return s
+        return s, socks_server
 
     def configure_install_dir(self, installdir):
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir

@@ -2,7 +2,10 @@
 import wx
 import sys
 import os
+import copy
+import igraph
 import random
+import threading
 from time import strftime, time
 
 from Tribler.__init__ import LIBRARYNAME
@@ -13,7 +16,7 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.widgets import BetterListCtrl, SelectableListCtrl, \
-    TextCtrlAutoComplete, BetterText as StaticText, _set_font
+    TextCtrlAutoComplete, BetterText as StaticText, _set_font, FancyPanel
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
@@ -21,12 +24,20 @@ from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 from Tribler.Core.Tag.Extraction import TermExtraction
+from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+
+try:
+    # C(ython) module
+    import arflayout
+except ImportError, e:
+    # Python fallback module
+    import arflayout_fb as arflayout
 
 
 class Home(XRCPanel):
@@ -1067,3 +1078,326 @@ class BuzzPanel(wx.Panel):
 #                uelog.addEvent(message=repr((term, last_shown_buzz)))
 #            last_shown_buzz = self.last_shown_buzz
 #            self.guiserver.add_task(db_callback)
+
+
+class Anonymity(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, -1)
+
+        self.SetBackgroundColour(wx.WHITE)
+        self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
+        self.session = self.utility.session
+        self.socks_server = self.utility.socks_server
+
+        self.AddComponents()
+
+        self.vertices = {}
+        self.edges = []
+
+        self.vertex_max = 100
+        self.vertex_active = -1
+        self.vertex_hover = -1
+        self.vertex_hover_evt = None
+        self.vertex_active_evt = None
+
+        self.vertex_to_colour = {}
+        self.colours = [wx.RED, wx.Colour(156, 18, 18), wx.Colour(183, 83, 83), wx.Colour(254, 134, 134), wx.Colour(254, 190, 190)]
+
+        self.step = 0
+        self.fps = 20
+
+        self.last_keyframe = 0
+        self.time_step = 5.0
+        self.radius = 16
+
+        self.layout_busy = False
+        self.new_data = False
+
+        self.peers = []
+        self.toInsert = set()
+
+        self.refresh_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, lambda evt: self.graph_panel.Refresh(), self.refresh_timer)
+        self.refresh_timer.Start(1000.0 / self.fps)
+
+        self.circuit_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnUpdateCircuits, self.circuit_timer)
+        self.circuit_timer.Start(5000)
+
+        self.taskqueue = TimedTaskQueue(nameprefix="GraphLayoutCalculator")
+
+        self.lock = threading.RLock()
+
+        self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED])
+
+    def AddComponents(self):
+        self.graph_panel = wx.Panel(self, -1)
+        self.graph_panel.Bind(wx.EVT_MOTION, self.OnMouse)
+        self.graph_panel.Bind(wx.EVT_LEFT_UP, self.OnMouse)
+        self.graph_panel.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.graph_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.graph_panel.Bind(wx.EVT_SIZE, self.OnSize)
+
+        self.circuit_list = SelectableListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SIMPLE)
+        self.circuit_list.InsertColumn(0, 'Circuit ID')
+        self.circuit_list.InsertColumn(1, 'Bytes up', wx.LIST_FORMAT_RIGHT, 100)
+        self.circuit_list.InsertColumn(2, 'Bytes down', wx.LIST_FORMAT_RIGHT, 100)
+        self.circuit_list.setResizeColumn(0)
+        self.circuit_to_listindex = {}
+
+        self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
+        self.log_text.SetEditable(False)
+
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20)
+        vSizer.Add(self.log_text, 1, wx.EXPAND)
+        self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.ALL, 20)
+        self.main_sizer.Add(vSizer, 2, wx.EXPAND | wx.ALL, 20)
+        self.SetSizer(self.main_sizer)
+
+    def OnUpdateCircuits(self, event):
+        circuits = self.socks_server.tunnel.get_circuits()
+
+        # Add new circuits & update existing circuits
+        for circuit_id, circuit in circuits.iteritems():
+            if circuit_id not in self.circuit_to_listindex:
+                pos = self.circuit_list.InsertStringItem(sys.maxsize, str(circuit_id))
+                self.circuit_to_listindex[circuit_id] = pos
+            else:
+                pos = self.circuit_to_listindex[circuit_id]
+            self.circuit_list.SetStringItem(pos, 1, self.utility.size_format(circuit.bytes_uploaded))
+            self.circuit_list.SetStringItem(pos, 2, self.utility.size_format(circuit.bytes_downloaded))
+
+        # Remove old circuits
+        old_circuits = [circuit_id for circuit_id in self.circuit_to_listindex if circuit_id not in circuits]
+        for circuit_id in old_circuits:
+            listindex = self.circuit_to_listindex[circuit_id]
+            self.circuit_list.DeleteItem(listindex)
+            self.circuit_to_listindex.pop(circuit_id)
+            for k, v in self.circuit_to_listindex.items():
+                if v > listindex:
+                    self.circuit_to_listindex[k] = v - 1
+
+    def OnExtended(self, subject, changeType, circuit):
+        circuit_id = circuit.id
+        extend_from = circuit.hops[-2].wan_address if hasattr(circuit.hops[-2], 'wan_address') else circuit.hops[-2]
+        extend_to = circuit.hops[-1].wan_address if hasattr(circuit.hops[-1], 'wan_address') else circuit.hops[-1]
+
+        self.log_text.AppendText("Extended circuit %s with %s:%d\n" % (circuit_id, extend_to[0], extend_to[1]))
+
+        if not self.peers:
+            with self.lock:
+                self.peers.append(('127.0.0.1', 0))
+                self.toInsert.add(0)
+                self.vertices[0] = {}
+            self.Layout()
+
+        with self.lock:
+            if extend_to not in self.peers:
+                self.peers.append(extend_to)
+            to_id = self.peers.index(extend_to)
+            from_id = self.peers.index(extend_from)
+            self.AddEdge(to_id, from_id)
+
+    def AddEdge(self, from_id, to_id):
+        with self.lock:
+            if to_id not in self.peers:
+                self.toInsert.add(to_id)
+                self.vertices[to_id] = {}
+            self.edges.append([to_id, from_id])
+            self.new_data = True
+
+    def RemoveVertex(self):
+        with self.lock:
+
+            # Build a list of the vertices, sorted by the number of neighbors.
+            num_neighbors = self.CountNeighbors()
+            num_neighbors = sorted([(v, k) for k, v in num_neighbors.iteritems()], reverse=True)
+            toremove = num_neighbors[-1][1]
+
+            # Remove the vertex with the fewest neighbors.
+            if toremove in self.vertices:
+                self.vertices.pop(toremove)
+            if toremove in self.vertex_to_colour:
+                self.vertex_to_colour.pop(toremove)
+            if toremove < len(self.peers):
+                self.peers.pop(toremove)
+            self.edges = [edge for edge in self.edges if toremove not in edge]
+            self.toInsert = set([id - 1 if id > toremove else id for id in self.toInsert if id != toremove])
+            self.vertex_active = self.vertex_active - 1 if self.vertex_active > toremove else self.vertex_active
+            self.vertex_hover = self.vertex_hover - 1 if self.vertex_hover > toremove else self.vertex_hover
+
+            # We want the vertex id's to be 0, 1, 2 etc., so we need to correct for the vertex that we just removed.
+            vertices = {}
+            for index, vertexid in enumerate(sorted(self.vertices)):
+                vertices[index] = self.vertices[vertexid]
+            self.vertices = vertices
+            vertex_to_colour = {}
+            for index, vertexid in enumerate(sorted(self.vertex_to_colour)):
+                vertex_to_colour[index] = self.vertex_to_colour[vertexid]
+            self.vertex_to_colour = vertex_to_colour
+            for edge in self.edges:
+                if edge[0] >= toremove:
+                    edge[0] -= 1
+                if edge[1] >= toremove:
+                    edge[1] -= 1
+
+            # The arflayout module keeps the vertex positions from the latest iteration in memory. So we need to notify arflayout.
+            arflayout.arf_remove([toremove])
+
+    def CountNeighbors(self):
+        with self.lock:
+            num_neighbors = dict([(k, 0) for k in self.vertices])
+            for edge in self.edges:
+                for vertexid in edge:
+                    num_neighbors[vertexid] = num_neighbors.get(vertexid, 0) + 1
+            return num_neighbors
+
+    def CalculateLayout(self):
+        with self.lock:
+            edges = copy.copy(self.edges)
+            toInsert = self.toInsert
+            self.toInsert = set()
+
+        graph = igraph.Graph(edges, directed=False)
+        positions = arflayout.arf_layout(toInsert, graph)
+
+        with self.lock:
+            self.step += 1
+            for vertexid, pos in positions.iteritems():
+                self.SetVertexPosition(vertexid, self.step, *pos)
+            self.time_step = 5 + max(0, len(self.vertices) - 75) / 9
+            self.last_keyframe = time()
+            self.layout_busy = False
+
+    def OnMouse(self, event):
+        if event.Moving():
+            self.vertex_hover_evt = event.GetPosition()
+        elif event.LeftUp():
+            self.vertex_active_evt = event.GetPosition()
+
+    def OnSize(self, evt):
+        size = min(*evt.GetEventObject().GetSize())
+        self.graph_panel.SetSize((size, size))
+
+    def OnEraseBackground(self, event):
+        pass
+
+    def OnPaint(self, event):
+        eo = event.GetEventObject()
+        dc = wx.BufferedPaintDC(eo)
+        dc.Clear()
+        gc = wx.GraphicsContext.Create(dc)
+
+        w, h = eo.GetSize().x - 2 * self.radius - 1, eo.GetSize().y - 2 * self.radius - 1
+
+        schedule_layout = not self.layout_busy and self.new_data and time() - self.last_keyframe >= self.time_step
+        if schedule_layout:
+            task = lambda : self.CalculateLayout()
+            self.taskqueue.add_task(task)
+            self.new_data = False
+            self.layout_busy = True
+
+        elif len(self.vertices) > self.vertex_max:
+            task = lambda: self.RemoveVertex()
+            self.taskqueue.add_task(task)
+
+        if len(self.vertices) > 0:
+
+            int_points = {}
+
+            with self.lock:
+
+                # Get current vertex positions using interpolation
+                for vertexid in self.vertices.iterkeys():
+                    if self.GetVertexPosition(vertexid, self.step - 1) and self.GetVertexPosition(vertexid, self.step):
+                        scaled_x, scaled_y = self.InterpolateVertexPosition(vertexid, self.step - 1, self.step)
+                        int_points[vertexid] = (scaled_x * w + self.radius, scaled_y * h + self.radius)
+
+                # Draw edges
+                gc.SetPen(wx.Pen(wx.Colour(229, 229, 229)))
+                for vertexid1, vertexid2 in self.edges:
+                    if int_points.has_key(vertexid1) and int_points.has_key(vertexid2):
+                        x1, y1 = int_points[vertexid1]
+                        x2, y2 = int_points[vertexid2]
+                        gc.DrawLines([(x1, y1), (x2, y2)])
+
+                # Draw vertices
+                gc.SetPen(wx.TRANSPARENT_PEN)
+                for vertexid in self.vertices.iterkeys():
+                    colour = self.vertex_to_colour.get(vertexid, None)
+                    if not colour:
+                        colour = self.colours[0] if vertexid == 0 else random.choice(self.colours[1:])
+                        self.vertex_to_colour[vertexid] = colour
+                    gc.SetBrush(wx.Brush(colour))
+
+                    if int_points.has_key(vertexid):
+                        x, y = int_points[vertexid]
+                        gc.DrawEllipse(x - self.radius / 2, y - self.radius / 2, self.radius, self.radius)
+
+                        if len(self.vertices.get(vertexid, {})) <= 2:
+                            gc.SetBrush(wx.WHITE_BRUSH)
+                            gc.DrawEllipse(x - self.radius / 4, y - self.radius / 4, self.radius / 2, self.radius / 2)
+
+                # Draw circle around active vertex
+                gc.SetBrush(wx.TRANSPARENT_BRUSH)
+
+                if self.vertex_hover_evt:
+                    self.vertex_hover = self.PositionToVertex(self.vertex_hover_evt, int_points)
+                    self.vertex_hover_evt = None
+
+                if self.vertex_hover >= 0:
+                    x, y = int_points[self.vertex_hover]
+                    pen = wx.Pen(wx.Colour(119, 119, 119), 1, wx.USER_DASH)
+                    pen.SetDashes([8, 4])
+                    gc.SetPen(pen)
+                    gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+
+                if self.vertex_active_evt:
+                    self.vertex_active = self.PositionToVertex(self.vertex_active_evt, int_points)
+                    self.vertex_active_evt = None
+
+                if self.vertex_active >= 0 and self.vertex_active != self.vertex_hover:
+                    x, y = int_points[self.vertex_active]
+                    pen = wx.Pen(self.vertex_to_colour.get(self.vertex_active, wx.BLACK), 1, wx.USER_DASH)
+                    pen.SetDashes([8, 4])
+                    gc.SetPen(pen)
+                    gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+
+            # Draw vertex count
+            gc.SetFont(self.GetFont())
+            gc.DrawText("|V| = %d" % len(int_points), w - 50, h - 20)
+
+    def PositionToVertex(self, position, key_to_position):
+        for vertexid, vposition in key_to_position.iteritems():
+            if (position[0] - vposition[0]) ** 2 + (position[1] - vposition[1]) ** 2 < self.radius ** 2:
+                return vertexid
+        return -1
+
+    def InterpolateVertexPosition(self, vertexid, s1, s2):
+        x0, y0 = self.GetVertexPosition(vertexid, s1)
+        x1, y1 = self.GetVertexPosition(vertexid, s2)
+
+        t = min(time() - self.last_keyframe, self.time_step)
+        t1 = 1.0 / 5 * self.time_step
+        t2 = 3.0 / 5 * self.time_step
+        t3 = 1.0 / 5 * self.time_step
+        x = arflayout.CubicHermiteInterpolate(t1, t2, t3, x0, x1, t)
+        y = arflayout.CubicHermiteInterpolate(t1, t2, t3, y0, y1, t)
+        return (x, y)
+
+    def GetVertexPosition(self, vertexid, t):
+        if self.vertices.has_key(vertexid):
+            return self.vertices[vertexid].get(t, None)
+        return None
+
+    def SetVertexPosition(self, vertexid, t, x, y):
+        if self.vertices.has_key(vertexid):
+            self.vertices[vertexid][t] = (x, y)
+        else:
+            self.vertices[vertexid] = {t: (x, y)}
+
+    def ResetSearchBox(self):
+        pass
