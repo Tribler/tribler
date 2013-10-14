@@ -1141,8 +1141,9 @@ class Anonymity(wx.Panel):
 
         self.circuit_list = SelectableListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SIMPLE)
         self.circuit_list.InsertColumn(0, 'Circuit ID')
-        self.circuit_list.InsertColumn(1, 'Bytes up', wx.LIST_FORMAT_RIGHT, 100)
-        self.circuit_list.InsertColumn(2, 'Bytes down', wx.LIST_FORMAT_RIGHT, 100)
+        self.circuit_list.InsertColumn(1, 'Hops', wx.LIST_FORMAT_RIGHT, 60)
+        self.circuit_list.InsertColumn(2, 'Bytes up', wx.LIST_FORMAT_RIGHT, 80)
+        self.circuit_list.InsertColumn(3, 'Bytes down', wx.LIST_FORMAT_RIGHT, 80)
         self.circuit_list.setResizeColumn(0)
         self.circuit_to_listindex = {}
 
@@ -1167,8 +1168,9 @@ class Anonymity(wx.Panel):
                 self.circuit_to_listindex[circuit_id] = pos
             else:
                 pos = self.circuit_to_listindex[circuit_id]
-            self.circuit_list.SetStringItem(pos, 1, self.utility.size_format(circuit.bytes_uploaded))
-            self.circuit_list.SetStringItem(pos, 2, self.utility.size_format(circuit.bytes_downloaded))
+            self.circuit_list.SetStringItem(pos, 1, str(len(circuit.hops)))
+            self.circuit_list.SetStringItem(pos, 2, self.utility.size_format(circuit.bytes_uploaded))
+            self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(circuit.bytes_downloaded))
 
         # Remove old circuits
         old_circuits = [circuit_id for circuit_id in self.circuit_to_listindex if circuit_id not in circuits]
@@ -1197,15 +1199,18 @@ class Anonymity(wx.Panel):
         with self.lock:
             if extend_to not in self.peers:
                 self.peers.append(extend_to)
+            if extend_from not in self.peers:
+                self.peers.append(extend_from)
             to_id = self.peers.index(extend_to)
             from_id = self.peers.index(extend_from)
             self.AddEdge(to_id, from_id)
 
     def AddEdge(self, from_id, to_id):
         with self.lock:
-            if to_id not in self.peers:
-                self.toInsert.add(to_id)
-                self.vertices[to_id] = {}
+            for peer_id in (from_id, to_id):
+                if peer_id not in self.vertices:
+                    self.toInsert.add(peer_id)
+                    self.vertices[peer_id] = {}
             self.edges.append([to_id, from_id])
             self.new_data = True
 
