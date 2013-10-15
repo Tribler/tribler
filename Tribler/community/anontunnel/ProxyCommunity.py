@@ -63,6 +63,8 @@ class ProxyCommunity(Community, Observable):
         self.socks_server = socks_server
         self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy, self)
 
+        self.socks_server.start()
+
         self.tribler_notifier = TriblerNotifier(self.socks_server.tunnel)
 
         # Heartbeat hashmap Candidate -> last heart beat timestamp, assume we never heard any
