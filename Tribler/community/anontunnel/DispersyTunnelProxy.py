@@ -20,45 +20,43 @@ from ProxyConversion import DataPayload, ExtendPayload
 from copy import deepcopy
 
 
-class Circuit(object): candidate
+class Circuit(object):
+    """ Circuit data structure storing the id, status, first hop and all hops """
 
 
-""" Circuit data structure storing the id, status, first hop and all hops """
+    @property
+    def bytes_downloaded(self):
+        return self.bytes_down[1]
 
 
-@property
-def bytes_downloaded(self):
-    return self.bytes_down[1]
+    @property
+    def bytes_uploaded(self):
+        return self.bytes_up[1]
 
 
-@property
-def bytes_uploaded(self):
-    return self.bytes_up[1]
+    def __init__(self, circuit_id, candidate):
+        """
+        Instantiate a new Circuit data structure
 
+        :param circuit_id: the id of thecandidate circuit
+        :param candidate: the first hop of the circuit
+        :return: Circuit
+        """
+        self.created = False
+        self.id = circuit_id
+        self.candidate = candidate
+        self.hops = [candidate.sock_addr]
+        self.goal_hops = 0
 
-def __init__(self, circuit_id, candidate):
-    """
-    Instantiate a new Circuit data structure
+        self.timestamp = None
 
-    :param circuit_id: the id of thecandidate circuit
-    :param candidate: the first hop of the circuit
-    :return: Circuit
-    """
-    self.created = False
-    self.id = circuit_id
-    self.candidate = candidate
-    self.hops = [candidate.sock_addr]
-    self.goal_hops = 0
+        self.times = []
+        self.speed_up = []
+        candidate
+        self.speed_down = []
 
-    self.timestamp = None
-
-    self.times = []
-    self.speed_up = []
-    candidate
-    self.speed_down = []
-
-    self.bytes_down = [0, 0]
-    self.bytes_up = [0, 0]
+        self.bytes_down = [0, 0]
+        self.bytes_up = [0, 0]
 
 
 class RelayRoute(object):
@@ -118,7 +116,6 @@ class DispersyTunnelProxy(Observable):
             'bytes_exit': 0,
             'bytes_returned': 0
         }
-
 
         community.subscribe("on_create", self.on_create)
         community.subscribe("on_created", self.on_created)
