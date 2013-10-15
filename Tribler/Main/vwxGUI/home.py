@@ -1092,6 +1092,8 @@ class Anonymity(wx.Panel):
 
         self.AddComponents()
 
+        self.my_address = ('127.0.0.1', 0)
+
         self.vertices = {}
         self.edges = []
 
@@ -1184,17 +1186,13 @@ class Anonymity(wx.Panel):
 
     def OnExtended(self, subject, changeType, circuit):
         circuit_id = circuit.id
-        extend_from = circuit.hops[-2].wan_address if hasattr(circuit.hops[-2], 'wan_address') else circuit.hops[-2]
+        if len(circuit.hops) > 1:
+            extend_from = circuit.hops[-2].wan_address if hasattr(circuit.hops[-2], 'wan_address') else circuit.hops[-2]
+        else:
+            extend_from = self.my_address
         extend_to = circuit.hops[-1].wan_address if hasattr(circuit.hops[-1], 'wan_address') else circuit.hops[-1]
 
         self.log_text.AppendText("Extended circuit %s with %s:%d\n" % (circuit_id, extend_to[0], extend_to[1]))
-
-        if not self.peers:
-            with self.lock:
-                self.peers.append(('127.0.0.1', 0))
-                self.toInsert.add(0)
-                self.vertices[0] = {}
-            self.Layout()
 
         with self.lock:
             if extend_to not in self.peers:
