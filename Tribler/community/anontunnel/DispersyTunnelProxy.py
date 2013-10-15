@@ -73,7 +73,7 @@ class RelayRoute(object):
 
 class DispersyTunnelProxy(Observable):
     def get_circuits(self):
-        return self.circuits
+        return self.circuits.values()
 
     def get_relays(self):
         return self.relay_from_to.values()
@@ -495,7 +495,7 @@ class DispersyTunnelProxy(Observable):
                     'speed_down': c.speed_down,
                     'speed_up': c.speed_up
                 }
-                for c in self.get_circuits().values()
+                for c in self.get_circuits()
             ],
             'relays': [
                 {
@@ -520,9 +520,6 @@ class DispersyTunnelProxy(Observable):
         if member is not None and candidate not in [c.candidate for c in self.circuits.values()]:
             self.create_circuit(candidate)
 
-        # At least store that we have seen this candidate
-        self.circuit_membership[candidate] = {}
-
         self._process_extending_for_queue()
 
 
@@ -530,49 +527,49 @@ class DispersyTunnelProxy(Observable):
         assert address is not None or ultimate_destination != ('0.0.0.0', None)
         assert address is not None or ultimate_destination is not None
 
-        self.lock.acquire()
-        try:
-            by_initiator = circuit_id is None and address is None
 
-            # If there are no circuits and no circuit has been requested act as EXIT node ourselves
-            if circuit_id is None and len(self.circuits) == 0:
-                self.exit_data(None, None, ultimate_destination, payload)
-                return
+        with self.lock:
+            try:
+                by_initiator = circuit_id is None and address is None
 
-            # If there are circuits, but no specific one is requested just pick the first.
-            if circuit_id is None and len(self.circuits) > 0:
-
-                # Each destination may be tunneled over a SINGLE different circuit
-                if ultimate_destination in self.destination_circuit:
-                    circuit_id = self.destination_circuit[ultimate_destination]
-                else:
-                    circuit_id = choice(self.circuits.values()).id
-                    self.destination_circuit[ultimate_destination] = circuit_id
-
-            if circuit_id is None:
-                raise IOError("No circuit to send packet over!")
-
-            # If no addbress has been given, pick the first hop
-            # Note: for packet forwarding address MUST be given
-            if address is None:
-                if circuit_id in self.circuits:
-                    address = self.circuits[circuit_id].candidate
-                else:
-                    logger.warning("Dropping packets from unknown / broken circuit")
+                # If there are no circuits and no circuit has been requested act as EXIT node ourselves
+                if circuit_id is None and len(self.circuits) == 0:
+                    self.exit_data(None, None, ultimate_destination, payload)
                     return
 
-            self.community.send(u"data", address, circuit_id, ultimate_destination, payload, origin)
+                # If there are circuits, but no specific one is requested just pick the first.
+                if circuit_id is None and len(self.circuits) > 0:
 
-            if origin is None:
-                self.circuits[circuit_id].bytes_up[1] += len(payload)
+                    # Each destination may be tunneled over a SINGLE different circuit
+                    if ultimate_destination in self.destination_circuit:
+                        circuit_id = self.destination_circuit[ultimate_destination]
+                    else:
+                        circuit_id = choice(self.circuits.values()).id
+                        self.destination_circuit[ultimate_destination] = circuit_id
 
-            if __debug__:
-                logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s",
-                            origin, address, circuit_id, ultimate_destination)
-        except:
-            print_exc()
+                if circuit_id is None:
+                    raise IOError("No circuit to send packet over!")
 
-        self.lock.release()
+                # If no addbress has been given, pick the first hop
+                # Note: for packet forwarding address MUST be given
+                if address is None:
+                    if circuit_id in self.circuits:
+                        address = self.circuits[circuit_id].candidate
+                    else:
+                        logger.warning("Dropping packets from unknown / broken circuit")
+                        return
+
+                self.community.send(u"data", address, circuit_id, ultimate_destination, payload, origin)
+
+                if origin is None:
+                    self.circuits[circuit_id].bytes_up[1] += len(payload)
+
+                if __debug__:
+                    logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s",
+                                origin, address, circuit_id, ultimate_destination)
+            except:
+                print_exc()
+
 
     def break_circuit(self, circuit_id, candidate):
         with self.lock:
