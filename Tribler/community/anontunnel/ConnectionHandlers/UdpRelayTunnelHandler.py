@@ -30,7 +30,9 @@ class UdpRelayTunnelHandler(object):
                             request.destination_address, request.destination_port)
 
             self.server.routes[(request.destination_address, request.destination_port)] = source_address
-            self.server.tunnel.send_data(
-                ultimate_destination=(request.destination_address, request.destination_port),
-                payload=request.payload
-            )
+
+            if self.server.tunnel:
+                self.server.tunnel.send_data(
+                    ultimate_destination=(request.destination_address, request.destination_port),
+                    payload=request.payload
+                )
