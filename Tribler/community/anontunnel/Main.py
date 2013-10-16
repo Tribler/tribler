@@ -122,7 +122,7 @@ def main(argv):
 
                 print "%s-->\t%s\t\t%.2f\t\t%.2f" % (
                     (key[0].sock_addr, key[1]), (relay.candidate.sock_addr, relay.circuit_id), relay.bytes[1] / 1024.0 / 1024.0,
-                    relay.speed[-1] if len(relay.speed) else 0
+                    relay.speed[-1] / 1024.0 if len(relay.speed) else 0
                 )
 
 
