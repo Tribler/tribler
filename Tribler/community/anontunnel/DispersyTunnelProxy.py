@@ -72,6 +72,10 @@ class RelayRoute(object):
 
 
 class DispersyTunnelProxy(Observable):
+    @property
+    def active_circuits(self):
+        return [circuit for circuit in self.get_circuits() if circuit.created == True]
+
     def get_circuits(self):
         return self.circuits.values()
 
@@ -114,7 +118,8 @@ class DispersyTunnelProxy(Observable):
         self.stats = {
             'bytes_enter': 0,
             'bytes_exit': 0,
-            'bytes_returned': 0
+            'bytes_returned': 0,
+            'dropped_exit': 0
         }
 
         community.subscribe("on_create", self.on_create)
@@ -302,7 +307,7 @@ class DispersyTunnelProxy(Observable):
         try:
             self.get_exit_socket(circuit_id, return_candidate).sendto(data, destination)
         except socket.error, e:
-            logger.error(e.message)
+            self.stats['dropped_exit'] += 1
             pass
 
 
@@ -533,18 +538,18 @@ class DispersyTunnelProxy(Observable):
                 by_initiator = circuit_id is None and address is None
 
                 # If there are no circuits and no circuit has been requested act as EXIT node ourselves
-                if circuit_id is None and len(self.circuits) == 0:
+                if circuit_id is None and len(self.active_circuits) == 0:
                     self.exit_data(None, None, ultimate_destination, payload)
                     return
 
                 # If there are circuits, but no specific one is requested just pick the first.
-                if circuit_id is None and len(self.circuits) > 0:
+                if circuit_id is None and len(self.active_circuits) > 0:
 
                     # Each destination may be tunneled over a SINGLE different circuit
                     if ultimate_destination in self.destination_circuit:
                         circuit_id = self.destination_circuit[ultimate_destination]
                     else:
-                        circuit_id = choice(self.circuits.values()).id
+                        circuit_id = choice(self.active_circuits).id
                         self.destination_circuit[ultimate_destination] = circuit_id
 
                 if circuit_id is None:
@@ -553,7 +558,7 @@ class DispersyTunnelProxy(Observable):
                 # If no addbress has been given, pick the first hop
                 # Note: for packet forwarding address MUST be given
                 if address is None:
-                    if circuit_id in self.circuits:
+                    if circuit_id in self.circuits and self.circuits[circuit_id].created:
                         address = self.circuits[circuit_id].candidate
                     else:
                         logger.warning("Dropping packets from unknown / broken circuit")
