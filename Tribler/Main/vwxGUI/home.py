@@ -1162,11 +1162,10 @@ class Anonymity(wx.Panel):
 
     def OnUpdateCircuits(self, event):
         circuits = self.socks_server.tunnel.get_circuits()
+        circuits = dict((circuit.id, circuit) for circuit in circuits)
 
         # Add new circuits & update existing circuits
-        for circuit in circuits:
-            circuit_id = circuit.id
-
+        for circuit_id, circuit in circuits.iteritems():
             if circuit_id not in self.circuit_to_listindex:
                 pos = self.circuit_list.InsertStringItem(sys.maxsize, str(circuit_id))
                 self.circuit_to_listindex[circuit_id] = pos
