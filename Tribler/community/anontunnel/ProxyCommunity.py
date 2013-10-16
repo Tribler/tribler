@@ -75,40 +75,40 @@ class ProxyCommunity(Community, Observable):
             "Got PONG from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
 
         def ping_and_purge():
+            while True:
+                logger.info("ping_purge")
 
-                while True:
-                    try:
-                        timeout = 2.0
+                try:
+                    timeout = 2.0
 
-                        # Candidates we have sent a ping in the last 'time out' seconds and haven't returned a heat beat
-                        # in 2*timeout seconds shall be purged
-                        candidates_to_be_purged = \
-                            {
-                                candidate
-                                for candidate in self.member_ping.keys()
-                                if self.member_heartbeat[candidate] < datetime.now() - 2 * timedelta(seconds=timeout)
-                            }
+                    # Candidates we have sent a ping in the last 'time out' seconds and haven't returned a heat beat
+                    # in 2*timeout seconds shall be purged
+                    candidates_to_be_purged = \
+                        {
+                            candidate
+                            for candidate in self.member_ping.keys()
+                            if self.member_heartbeat[candidate] < datetime.now() - 2 * timedelta(seconds=timeout)
+                        }
 
-                        candidates_to_be_pinged = {candidate for candidate in self.member_heartbeat.keys() if
-                                                   self.member_heartbeat[candidate] < datetime.now() - timedelta(
-                                                       seconds=timeout)}.difference(candidates_to_be_purged)
+                    candidates_to_be_pinged = {candidate for candidate in self.member_heartbeat.keys() if
+                                               self.member_heartbeat[candidate] < datetime.now() - timedelta(
+                                                   seconds=timeout)}.difference(candidates_to_be_purged)
 
-                        for candidate in candidates_to_be_pinged:
-                            self.member_ping[candidate] = datetime.now()
-                            self.send(u"ping", candidate)
-                            logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+                    for candidate in candidates_to_be_pinged:
+                        self.member_ping[candidate] = datetime.now()
+                        self.send(u"ping", candidate)
+                        logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
-                        for candidate in candidates_to_be_purged:
-                            self.on_candidate_exit(candidate)
-                            logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
-                    except Exception, e:
-                        print_exc()
-                        logger.error(e)
-                    finally:
-                        # rerun over 3 seconds
-                        yield 5.0
+                    for candidate in candidates_to_be_purged:
+                        self.on_candidate_exit(candidate)
+                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+                except:
+                    pass
 
-        self.dispersy.callback.register(ping_and_purge, priority= -10)
+                # rerun over 3 seconds
+                yield 3.0
+
+        self.dispersy.callback.register(ping_and_purge, priority= 0)
 
 
     def initiate_conversions(self):
