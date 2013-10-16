@@ -43,7 +43,7 @@ class ProxyCommunity(Community, Observable):
         return [master]
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, socks_server):
+    def load_community(cls, dispersy, master, my_member, socks_server, create_tunnel=True):
         try:
             dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
@@ -51,7 +51,7 @@ class ProxyCommunity(Community, Observable):
         else:
             return super(ProxyCommunity, cls).load_community(dispersy, master, socks_server)
 
-    def __init__(self, dispersy, master_member, socks_server):
+    def __init__(self, dispersy, master_member, socks_server, create_tunnel=True):
         Observable.__init__(self)
 
         # original walker callbacks (will be set during super(...).__init__)
@@ -60,12 +60,13 @@ class ProxyCommunity(Community, Observable):
 
         Community.__init__(self, dispersy, master_member)
 
-        self.socks_server = socks_server
-        self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy, self)
+        if socks_server is not None and create_tunnel:
+            self.socks_server = socks_server
+            self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy, self)
 
-        self.socks_server.start()
+            self.socks_server.start()
 
-        self.tribler_notifier = TriblerNotifier(self.socks_server.tunnel)
+            self.tribler_notifier = TriblerNotifier(self.socks_server.tunnel)
 
         # Heartbeat hashmap Candidate -> last heart beat timestamp, assume we never heard any
         self.member_heartbeat = defaultdict(lambda: datetime.min)
