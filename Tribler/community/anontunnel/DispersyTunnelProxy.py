@@ -5,6 +5,7 @@ import threading
 import time
 from traceback import print_exc
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
+from Tribler.community.anontunnel.ProxyConversion import BreakPayload
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
@@ -210,7 +211,7 @@ class DispersyTunnelProxy(Observable):
     def on_break(self, event):
         address = event.message.candidate.sock_addr
         msg = event.message.payload
-        assert isinstance(msg, DataPayload.Implementation)
+        assert isinstance(msg, BreakPayload.Implementation)
 
         relay_key = (event.message.candidate, msg.circuit_id)
         community = self.community
