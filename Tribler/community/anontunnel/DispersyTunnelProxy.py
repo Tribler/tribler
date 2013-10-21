@@ -23,7 +23,6 @@ from copy import deepcopy
 class Circuit(object):
     """ Circuit data structure storing the id, status, first hop and all hops """
 
-
     @property
     def bytes_downloaded(self):
         return self.bytes_down[1]
@@ -52,7 +51,6 @@ class Circuit(object):
 
         self.times = []
         self.speed_up = []
-        candidate
         self.speed_down = []
 
         self.bytes_down = [0, 0]
@@ -73,6 +71,23 @@ class RelayRoute(object):
 
 class DispersyTunnelProxy(Observable):
     @property
+    def record_stats(self):
+        return self._record_stats
+
+    @record_stats.setter
+    def record_stats(self, value):
+        self._record_stats = value
+
+        # clear old stats before recording new ones
+        if value:
+            with self.lock:
+                for circuit in self.active_circuits:
+                    circuit.speed_down = circuit.speed_down[:-2]
+                    circuit.speed_up = circuit.speed_up[:-2]
+
+                    circuit.times = []
+
+    @property
     def active_circuits(self):
         return [circuit for circuit in self.get_circuits() if circuit.created == True]
 
@@ -88,6 +103,7 @@ class DispersyTunnelProxy(Observable):
         Observable.__init__(self)
 
         self.socket_server = None
+        self._record_stats = False
 
         self._exit_sockets = {}
 
@@ -95,9 +111,6 @@ class DispersyTunnelProxy(Observable):
         self.circuits = {}
 
         self.lock = threading.RLock()
-
-        # Hashmap Candidate -> {circuits}
-        self.circuit_membership = defaultdict(set)
 
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
@@ -138,9 +151,15 @@ class DispersyTunnelProxy(Observable):
                     if c.timestamp is None:
                         c.timestamp = time.clock()
                     elif c.timestamp < t2:
-                        c.times.append(t2)
+
                         c.speed_up.append((1.0 * c.bytes_up[1] - c.bytes_up[0]) / (t2 - c.timestamp))
                         c.speed_down.append((1.0 * c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp))
+
+                        if not self.record_stats:
+                            c.speed_down = c.speed_down[:-1]
+                            c.speed_up = c.speed_up[:-1]
+                        else:
+                            c.times.append(t2)
 
                         c.timestamp = t2
                         c.bytes_up = [c.bytes_up[1], c.bytes_up[1]]
@@ -150,8 +169,12 @@ class DispersyTunnelProxy(Observable):
                     if r.timestamp is None:
                         r.timestamp = time.clock()
                     elif r.timestamp < t2:
-                        r.times.append(t2)
                         r.speed.append((1.0 * r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp))
+
+                        if not self.record_stats:
+                            r.speed = r.speed[:-1]
+                        else:
+                            r.times.append(t2)
 
                         r.timestamp = t2
                         r.bytes = [r.bytes[1], r.bytes[1]]
@@ -199,7 +222,8 @@ class DispersyTunnelProxy(Observable):
             community.send(u"break", relay.candidate, relay.circuit_id)
             logger.error("Forwarding BREAK packet from %s to %s", address, relay.candidate)
 
-            self.break_circuit(msg.circuit_id, event.message.candidate)
+            # Route is dead :(
+            del self.relay_from_to[relay_key]
 
         # We build this circuit but now its dead
         elif msg.circuit_id in self.circuits:
@@ -237,12 +261,10 @@ class DispersyTunnelProxy(Observable):
                 self.extend_circuit(circuit)
 
             self._process_extension_queue(circuit)
+        elif not self.relay_from_to.has_key((event.message.candidate, msg.circuit_id)):
+            logger.warning("Cannot route CREATED packet, probably concurrency overwrote routing rules!")
         else:
-            try:
-                created_for = self.relay_from_to[(event.message.candidate, msg.circuit_id)]
-            except KeyError, e:
-                logger.error(e.message)
-                return
+            created_for = self.relay_from_to[(event.message.candidate, msg.circuit_id)]
 
             extended_with = event.message.candidate
 
@@ -464,9 +486,6 @@ class DispersyTunnelProxy(Observable):
         with self.lock:
             self.circuits[circuit_id] = circuit
 
-        member = self._get_member(first_hop)
-        self.circuit_membership[member.mid].add(circuit_id)
-
         community = self.community
         community.send(u"create", first_hop, circuit_id)
 
@@ -589,18 +608,6 @@ class DispersyTunnelProxy(Observable):
                 del self.circuits[circuit_id]
 
             if candidate is not None:
-                member = self._get_member(candidate)
-
-                if member is not None:
-                    # Delete any memberships
-                    if member.mid in self.circuit_membership:
-                        del self.circuit_membership[member.mid]
-
-                # Delete rules from routing tables
-                relay_key = (candidate, circuit_id)
-                if relay_key in self.relay_from_to:
-                    del self.relay_from_to[relay_key]
-
                 # Delete any ultimate destinations mapped to this circuit
                 for key, value in self.destination_circuit.items():
                     if value == circuit_id:
@@ -620,21 +627,31 @@ class DispersyTunnelProxy(Observable):
         """
         When a candidate is leaving the community we must break any associated circuits.
         """
-        candidate = event.member
 
-        assert isinstance(candidate, Candidate)
+        try:
+            candidate = event.member
 
-        member = self._get_member(candidate)
+            assert isinstance(candidate, Candidate)
 
-        if member is not None:
-            # We must invalidate all circuits that have this candidate in its hop list
-            circuit_ids = list(self.circuit_membership[member.mid])
+            # We must invalidate all routes in which the candidate takes part
+            for c in self.circuits.values():
+                if c.candidate == candidate:
+                    self.break_circuit(c.id, candidate)
 
-            for circuit_id in circuit_ids:
-                relay_key = (candidate, circuit_id)
-                if relay_key in self.relay_from_to:
-                    relay = self.relay_from_to[relay_key]
+
+            for relay_key in self.relay_from_to.keys():
+                relay = self.relay_from_to[relay_key]
+
+                if relay_key[0] == candidate:
                     logger.error("Sending BREAK to (%s, %d)", relay.candidate, relay.circuit_id)
                     self.community.send(u"break", relay.candidate, relay.circuit_id)
+                    del self.relay_from_to[relay_key]
 
-                self.break_circuit(circuit_id, candidate)
+                elif relay.candidate == candidate:
+                    logger.error("Sending BREAK to (%s, %d)", relay_key[0], relay_key[1])
+                    self.community.send(u"break", relay_key[0], relay_key[1])
+                    del self.relay_from_to[relay_key]
+        except BaseException, e:
+            logger.exception(e)
+
+

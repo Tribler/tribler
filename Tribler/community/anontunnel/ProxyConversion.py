@@ -151,7 +151,7 @@ class ProxyConversion(BinaryConversion):
 
     @staticmethod
     def _encode_break(message):
-        return struct.pack("!L", message.payload.circuit_id)
+        return struct.pack("!L", message.payload.circuit_id),
 
     @staticmethod
     def _decode_break(placeholder, offset, data):
