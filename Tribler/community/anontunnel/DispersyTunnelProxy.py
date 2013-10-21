@@ -90,7 +90,7 @@ class DispersyTunnelProxy(Observable):
 
     @property
     def active_circuits(self):
-        return [circuit for circuit in self.get_circuits() if circuit.created == True]
+        return [circuit for circuit in self.get_circuits() if circuit.created == True and circuit.goal_hops == len(circuit.hops)]
 
     def get_circuits(self):
         return self.circuits.values()
@@ -552,7 +552,6 @@ class DispersyTunnelProxy(Observable):
         assert address is not None or ultimate_destination != ('0.0.0.0', None)
         assert address is not None or ultimate_destination is not None
 
-
         with self.lock:
             try:
                 by_initiator = circuit_id is None and address is None
@@ -566,7 +565,8 @@ class DispersyTunnelProxy(Observable):
                 if circuit_id is None and len(self.active_circuits) > 0:
 
                     # Each destination may be tunneled over a SINGLE different circuit
-                    if ultimate_destination in self.destination_circuit:
+                    if ultimate_destination in self.destination_circuit and self.circuits[self.destination_circuit[ultimate_destination]] in self.active_circuits:
+
                         circuit_id = self.destination_circuit[ultimate_destination]
                     else:
                         circuit_id = choice(self.active_circuits).id
@@ -575,7 +575,7 @@ class DispersyTunnelProxy(Observable):
                 if circuit_id is None:
                     raise IOError("No circuit to send packet over!")
 
-                # If no addbress has been given, pick the first hop
+                # If no address has been given, pick the first hop
                 # Note: for packet forwarding address MUST be given
                 if address is None:
                     if circuit_id in self.circuits and self.circuits[circuit_id].created:
@@ -638,7 +638,6 @@ class DispersyTunnelProxy(Observable):
             for c in self.circuits.values():
                 if c.candidate == candidate:
                     self.break_circuit(c.id, candidate)
-
 
             for relay_key in self.relay_from_to.keys():
                 relay = self.relay_from_to[relay_key]
