@@ -84,7 +84,6 @@ class AnonTunnel(Thread):
 
                     total_bytes_out_2 = tunnel.stats['bytes_exit'] \
                                         + sum([c.bytes_uploaded for c in tunnel.get_circuits()]) \
-                                        + tunnel.stats['bytes_returned'] \
                                         + sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
 
                     total_speed_in = (total_bytes_in_2 - total_bytes_in_1) / (t2 - t1)
