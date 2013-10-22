@@ -261,6 +261,10 @@ class DispersyTunnelProxy(Observable):
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
 
+            if len(self.active_circuits) > 0:
+                self.fire("on_ready",trigger_on_subscribe=True)
+
+
             self._process_extension_queue(circuit)
         elif not self.relay_from_to.has_key((event.message.candidate, msg.circuit_id)):
             logger.warning("Cannot route CREATED packet, probably concurrency overwrote routing rules!")
@@ -463,6 +467,9 @@ class DispersyTunnelProxy(Observable):
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
 
+            if len(self.active_circuits) > 0:
+                self.fire("on_ready",trigger_on_subscribe=True)
+
     def _generate_circuit_id(self, neighbour):
         circuit_id = random.randint(1, 255)
 
@@ -554,8 +561,6 @@ class DispersyTunnelProxy(Observable):
 
         with self.lock:
             try:
-                by_initiator = circuit_id is None and address is None
-
                 # If there are no circuits and no circuit has been requested act as EXIT node ourselves
                 if circuit_id is None and len(self.active_circuits) == 0:
                     self.exit_data(None, None, ultimate_destination, payload)
@@ -608,11 +613,22 @@ class DispersyTunnelProxy(Observable):
             if circuit_id in self.circuits:
                 del self.circuits[circuit_id]
 
-            if candidate is not None:
-                # Delete any ultimate destinations mapped to this circuit
-                for key, value in self.destination_circuit.items():
-                    if value == circuit_id:
-                        del self.destination_circuit[key]
+            tunnels_going_down = False
+            # Delete any ultimate destinations mapped to this circuit
+            for key, value in self.destination_circuit.items():
+                if value == circuit_id:
+                    del self.destination_circuit[key]
+                    tunnels_going_down = True
+
+            if tunnels_going_down:
+                self.fire("on_down")
+
+                if len(self.active_circuits):
+                    self.fire("on_ready")
+
+
+
+
 
     @staticmethod
     def _get_member(candidate):

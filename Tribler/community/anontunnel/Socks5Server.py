@@ -25,8 +25,20 @@ class Socks5Server(object):
     def tunnel(self, value):
         self._tunnel = value
         self._tunnel.subscribe("on_data", self.on_tunnel_data)
-        self._tunnel.socket_server = self
 
+        if self.bound:
+            self.bind_events()
+
+    def bind_events(self):
+        def accept_incoming(e):
+            self.connection_handler.accept_incoming = True
+
+        def disconnect_socks(e):
+                self.connection_handler.accept_incoming = False
+
+        self._tunnel.subscribe("on_ready", accept_incoming)
+        self._tunnel.subscribe("on_down", disconnect_socks)
+        self._tunnel.socket_server = self
 
     def __init__(self, ):
         self.socks5_port = None
@@ -38,6 +50,7 @@ class Socks5Server(object):
         self.connection_handler.socks5_server = self
 
         self._tunnel = None
+        self.bound = False
 
         self.routes = {}
         self.udp_relays = {}
@@ -51,6 +64,11 @@ class Socks5Server(object):
         try:
             port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
                                                  reuse=True, handler=self)
+
+            listening = True
+            if self.tunnel:
+                self.bind_events()
+
             logger.error("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
         except socket.error:
             logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",

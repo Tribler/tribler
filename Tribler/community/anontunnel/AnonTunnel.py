@@ -34,7 +34,7 @@ class AnonTunnel(Thread):
         Thread.__init__(self)
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
-                                    10.0 / 5.0,
+                                    600,
                                     10.0,
                                     ipv6_enable=False,
                                     failfunc=lambda (e): print_exc(),
