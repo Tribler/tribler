@@ -1372,8 +1372,11 @@ class Anonymity(wx.Panel):
 
                 # Get current vertex positions using interpolation
                 for vertexid in self.vertices.iterkeys():
-                    if self.GetVertexPosition(vertexid, self.step - 1) and self.GetVertexPosition(vertexid, self.step):
-                        scaled_x, scaled_y = self.InterpolateVertexPosition(vertexid, self.step - 1, self.step)
+                    if self.GetVertexPosition(vertexid, self.step):
+                        if self.GetVertexPosition(vertexid, self.step - 1):
+                            scaled_x, scaled_y = self.InterpolateVertexPosition(vertexid, self.step - 1, self.step)
+                        else:
+                            scaled_x, scaled_y = self.GetVertexPosition(vertexid, self.step)
                         int_points[vertexid] = (scaled_x * w + self.radius, scaled_y * h + self.radius)
 
                 # Draw edges
