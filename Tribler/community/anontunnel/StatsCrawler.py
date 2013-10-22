@@ -1,27 +1,24 @@
-import logging.config
 import os
-import re
+import logging.config
+logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
+logger = logging.getLogger(__name__)
+
+import json
+import sys
 from threading import Thread, Event
 from time import sleep
-from traceback import print_exc
+from datetime import datetime
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import RawserverEndpoint
 
-logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
-logger = logging.getLogger(__name__)
-
-import threading
-import yappi
-from Tribler.community.anontunnel.AnonTunnel import AnonTunnel
-
-import sys, getopt
-
 
 class StatsCrawler(Thread):
-    def run(self):
+    def __init__(self):
+        Thread.__init__(self)
+
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
                                     10.0 / 5.0,
@@ -33,11 +30,17 @@ class StatsCrawler(Thread):
         self.endpoint = RawserverEndpoint(self.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
 
+        self.first = True
+
+        self.filename = datetime.now().strftime("%Y%m%d-%H%M%S.json")
+        self.fout = open(self.filename, 'w')
+        self.fout.write("[")
+
+    def run(self):
         def join_overlay(dispersy):
             dispersy.define_auto_load(ProxyCommunity,
                                       (self.dispersy.get_new_member(), None, False),
                                       load=True)
-
 
         self.dispersy.start()
         self.dispersy.callback.call(join_overlay, (self.dispersy,))
@@ -54,127 +57,49 @@ class StatsCrawler(Thread):
 
             sleep(1)
 
-
         self.raw_server.listen_forever(None)
-        
+
+    @staticmethod
+    def stats_to_txt(stats):
+        return json.dumps(stats)
 
     def on_stats(self, e):
-        print e.message.payload.stats
+        if not self.first:
+            self.fout.write(",")
+        else:
+            self.first = False
+        self.fout.write(self.stats_to_txt(e.message.payload.stats))
+
+    def finalize_file(self):
+        self.fout.write("]")
+        self.fout.close()
+
+    def __del__(self):
+        self.finalize_file()
+
+    def stop(self):
+        self.finalize_file()
+        self.server_done_flag.set()
+        self.raw_server.shutdown()
 
 
 def main(argv):
-    try:
-        opts, args = getopt.getopt(argv, "hy", ["yappi=", "cmd=", "socks5="])
-    except getopt.GetoptError:
-        print 'Main.py [--yappi]'
-        sys.exit(2)
-
-    profile = None
-
     stats_crawler = StatsCrawler()
     stats_crawler.start()
-
-    cmd_port = 1081
-    socks5_port = 1080
-
-    for opt, arg in opts:
-        if opt == '-h':
-            print 'Main.py [--yappi] [--socks5 <port>] [--cmd <port>]'
-            sys.exit()
-        elif opt in ( "-y", "--yappi"):
-            if arg == 'wall':
-                profile = "wall"
-            else:
-                profile = "cpu"
-
-        elif opt == '--cmd':
-            cmd_port = int(arg)
-        elif opt == '--socks5':
-            socks5_port = int(arg)
-
-    if profile:
-        yappi.set_clock_type(profile)
-        yappi.start(builtins=True)
-        print "Profiling using %s time" % yappi.get_clock_type()['type']
-
-    regex_cmd_extend_circuit = re.compile("e ?([0-9]+)\n")
 
     while 1:
         try:
             line = sys.stdin.readline()
         except KeyboardInterrupt:
-
+            stats_crawler.stop()
             break
 
         if not line:
             break
 
-        cmd_extend_match = regex_cmd_extend_circuit.match(line)
-
-        if line == 'threads\n':
-            for thread in threading.enumerate():
-                print "%s \t %d" % (thread.name, thread.ident)
-        elif line == 'p\n':
-            if profile:
-
-                for func_stats in yappi.get_func_stats().sort("subtime")[:50]:
-                    print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
-            else:
-                print >> sys.stderr, "Profiling disabled!"
-
-        elif line == 'P\n':
-            if profile:
-                filename = 'callgrindc_%d.yappi' % anon_tunnel.dispersy.lan_address[1]
-                yappi.get_func_stats().save(filename, type='callgrind')
-            else:
-                print >> sys.stderr, "Profiling disabled!"
-
-        elif line == 't\n':
-            if profile:
-                yappi.get_thread_stats().sort("totaltime").print_all()
-
-            else:
-                print >> sys.stderr, "Profiling disabled!"
-
-        elif line == 'c\n':
-            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tIN (kBps)\tOUT (kBps)"
-            for circuit in anon_tunnel.tunnel.circuits.values():
-                print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
-                    circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
-                    circuit.bytes_downloaded / 1024.0 / 1024.0,
-                    circuit.bytes_uploaded / 1024.0 / 1024.0,
-                    (circuit.speed_down[-1] if len(circuit.speed_down) else 0) / 1024.0,
-                    (circuit.speed_up[-1] if len(circuit.speed_up) else 0) / 1024.0
-                )
-
-                for hop in circuit.hops[1:]:
-                    print "\t%s" % (hop,)
-
-        elif cmd_extend_match:
-            circuit_id = int(cmd_extend_match.group(1))
-
-            if circuit_id in anon_tunnel.tunnel.circuits:
-                circuit = anon_tunnel.tunnel.circuits[circuit_id]
-                anon_tunnel.tunnel.extend_circuit(circuit)
-
-        elif line == 'q\n':
-            anon_tunnel.stop()
+        if line == 'q\n':
+            stats_crawler.stop()
             break
-
-        elif line == 'r\n':
-            print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)\tSpeed (kBps)"
-
-            from_to = anon_tunnel.tunnel.relay_from_to
-
-            for key in from_to.keys():
-                relay = from_to[key]
-
-                print "%s-->\t%s\t\t%.2f\t\t%.2f" % (
-                    (key[0].sock_addr, key[1]), (relay.candidate.sock_addr, relay.circuit_id),
-                    relay.bytes[1] / 1024.0 / 1024.0,
-                    relay.speed[-1] if len(relay.speed) else 0
-                )
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])

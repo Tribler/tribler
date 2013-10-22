@@ -1,15 +1,13 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 import logging
-from traceback import print_exc
+logger = logging.getLogger(__name__)
+
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload, StatsPayload
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
-logger = logging.getLogger(__name__)
-
 from Tribler.dispersy.candidate import BootstrapCandidate, Candidate
-
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
