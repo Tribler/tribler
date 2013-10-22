@@ -1150,6 +1150,7 @@ class Anonymity(wx.Panel):
         self.circuit_list.InsertColumn(3, 'Bytes down', wx.LIST_FORMAT_RIGHT, 80)
         self.circuit_list.setResizeColumn(0)
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
+        self.circuit_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemSelected)
         self.circuit_to_listindex = {}
 
         self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
