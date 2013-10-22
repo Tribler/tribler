@@ -1097,6 +1097,8 @@ class Anonymity(wx.Panel):
         self.vertices = {}
         self.edges = []
 
+        self.selected_edges = []
+
         self.vertex_max = 100
         self.vertex_active = -1
         self.vertex_hover = -1
@@ -1147,6 +1149,7 @@ class Anonymity(wx.Panel):
         self.circuit_list.InsertColumn(2, 'Bytes up', wx.LIST_FORMAT_RIGHT, 80)
         self.circuit_list.InsertColumn(3, 'Bytes down', wx.LIST_FORMAT_RIGHT, 80)
         self.circuit_list.setResizeColumn(0)
+        self.circuit_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
         self.circuit_to_listindex = {}
 
         self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
@@ -1160,12 +1163,35 @@ class Anonymity(wx.Panel):
         self.main_sizer.Add(vSizer, 2, wx.EXPAND | wx.ALL, 20)
         self.SetSizer(self.main_sizer)
 
+    def OnItemSelected(self, event):
+        selected = []
+        item = self.circuit_list.GetFirstSelected()
+        while item != -1:
+            selected.append(item)
+            item = self.circuit_list.GetNextSelected(item)
+
+        selected_edges = []
+        for item in selected:
+            for circuit_id, listindex in self.circuit_to_listindex.iteritems():
+                if listindex == item:
+                    circuit = self.circuits.get(circuit_id, None)
+
+                    if circuit:
+                        hops = [self.my_address] + copy.copy(circuit.hops)
+                        for index in range(len(hops) - 1):
+                            vertexid1 = self.peers.index(hops[index]) if hops[index] in self.peers else None
+                            vertexid2 = self.peers.index(hops[index + 1]) if hops[index + 1] in self.peers else None
+                            edge = set([vertexid1, vertexid2])
+                            selected_edges.append(edge)
+
+        self.selected_edges = selected_edges
+
     def OnUpdateCircuits(self, event):
         circuits = self.socks_server.tunnel.get_circuits()
-        circuits = dict((circuit.id, circuit) for circuit in circuits)
+        self.circuits = dict((circuit.id, circuit) for circuit in circuits)
 
         # Add new circuits & update existing circuits
-        for circuit_id, circuit in circuits.iteritems():
+        for circuit_id, circuit in self.circuits.iteritems():
             if circuit_id not in self.circuit_to_listindex:
                 pos = self.circuit_list.InsertStringItem(sys.maxsize, str(circuit_id))
                 self.circuit_to_listindex[circuit_id] = pos
@@ -1176,7 +1202,7 @@ class Anonymity(wx.Panel):
             self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(circuit.bytes_downloaded))
 
         # Remove old circuits
-        old_circuits = [circuit_id for circuit_id in self.circuit_to_listindex if circuit_id not in circuits]
+        old_circuits = [circuit_id for circuit_id in self.circuit_to_listindex if circuit_id not in self.circuits]
         for circuit_id in old_circuits:
             listindex = self.circuit_to_listindex[circuit_id]
             self.circuit_list.DeleteItem(listindex)
@@ -1189,7 +1215,7 @@ class Anonymity(wx.Panel):
         old_edges = getattr(self, 'old_edges', [])
         new_edges = []
 
-        for circuit in circuits.values():
+        for circuit in self.circuits.values():
             hops = [self.my_address] + copy.copy(circuit.hops)
             for index in range(len(hops) - 1):
                 edge = set([hops[index], hops[index + 1]])
@@ -1351,9 +1377,12 @@ class Anonymity(wx.Panel):
                         int_points[vertexid] = (scaled_x * w + self.radius, scaled_y * h + self.radius)
 
                 # Draw edges
-                gc.SetPen(wx.Pen(wx.Colour(229, 229, 229)))
                 for vertexid1, vertexid2 in self.edges:
                     if int_points.has_key(vertexid1) and int_points.has_key(vertexid2):
+                        if set([vertexid1, vertexid2]) in self.selected_edges:
+                            gc.SetPen(wx.Pen(wx.BLUE))
+                        else:
+                            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229)))
                         x1, y1 = int_points[vertexid1]
                         x2, y2 = int_points[vertexid2]
                         gc.DrawLines([(x1, y1), (x2, y2)])
