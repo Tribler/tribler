@@ -78,6 +78,7 @@ class StatsCrawler(Thread):
         self.finalize_file()
 
     def stop(self):
+        self.dispersy.stop()
         self.finalize_file()
         self.server_done_flag.set()
         self.raw_server.shutdown()
