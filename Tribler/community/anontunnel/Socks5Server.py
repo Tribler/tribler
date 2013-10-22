@@ -38,7 +38,7 @@ class Socks5Server(object):
 
         self._tunnel.subscribe("on_ready", accept_incoming)
         self._tunnel.subscribe("on_down", disconnect_socks)
-        self._tunnel.socket_server = self
+
 
     def __init__(self, ):
         self.socks5_port = None

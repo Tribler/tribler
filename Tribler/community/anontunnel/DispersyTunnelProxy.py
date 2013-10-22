@@ -103,7 +103,7 @@ class DispersyTunnelProxy(Observable):
             the Proxy Overlay. """
         Observable.__init__(self)
 
-        self.socket_server = None
+        self.socket_server = community.socks_server
         self._record_stats = False
 
         self._exit_sockets = {}
@@ -228,9 +228,7 @@ class DispersyTunnelProxy(Observable):
 
         # We build this circuit but now its dead
         elif msg.circuit_id in self.circuits:
-            with self.lock:
-                del self.circuits[msg.circuit_id]
-            logger.error("BREAK circuit %d", msg.circuit_id)
+            self.break_circuit(msg.circuit_id)
 
 
     def on_create(self, event):
@@ -601,19 +599,18 @@ class DispersyTunnelProxy(Observable):
                 print_exc()
 
 
-    def break_circuit(self, circuit_id, candidate):
+    def break_circuit(self, circuit_id):
         with self.lock:
 
             # Give other members possibility to clean up
 
-            logger.error(
-                "Breaking circuit %d due to %s:%d" % (circuit_id, candidate.sock_addr[0], candidate.sock_addr[1]))
+            logger.error("Breaking circuit %d", circuit_id)
 
             # Delete from data structures
             if circuit_id in self.circuits:
                 del self.circuits[circuit_id]
 
-            tunnels_going_down = False
+            tunnels_going_down = len(self.active_circuits) == 0
             # Delete any ultimate destinations mapped to this circuit
             for key, value in self.destination_circuit.items():
                 if value == circuit_id:
@@ -653,7 +650,7 @@ class DispersyTunnelProxy(Observable):
             # We must invalidate all routes in which the candidate takes part
             for c in self.circuits.values():
                 if c.candidate == candidate:
-                    self.break_circuit(c.id, candidate)
+                    self.break_circuit(c.id)
 
             for relay_key in self.relay_from_to.keys():
                 relay = self.relay_from_to[relay_key]
@@ -667,6 +664,8 @@ class DispersyTunnelProxy(Observable):
                     logger.error("Sending BREAK to (%s, %d)", relay_key[0], relay_key[1])
                     self.community.send(u"break", relay_key[0], relay_key[1])
                     del self.relay_from_to[relay_key]
+
+
         except BaseException, e:
             logger.exception(e)
 

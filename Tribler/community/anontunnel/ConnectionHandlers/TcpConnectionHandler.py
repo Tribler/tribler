@@ -1,8 +1,8 @@
 import logging
+logger = logging.getLogger(__name__)
+
 from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
 from Tribler.community.anontunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
-
-logger = logging.getLogger(__name__)
 
 from traceback import print_exc
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
@@ -17,17 +17,19 @@ class TcpConnectionHandler(object):
 
     @accept_incoming.setter
     def accept_incoming(self, value):
-        self._accept_incoming = value
-
         if value:
-            logger.warning("Accepting SOCKS5 connections now!")
+            logger.error("Accepting SOCKS5 connections now!")
 
         if not value:
-            logger.warning("DISCONNECTING SOCKS5 !")
+            logger.error("DISCONNECTING SOCKS5 !")
 
-            for key, socket in self.socket2connection.items():
-                socket.close()
-                del self.socket2connection[socket]
+            for key in self.socket2connection.keys():
+                self.socket2connection[key].close()
+
+                if key in self.socket2connection:
+                    del self.socket2connection[key]
+
+        self._accept_incoming = value
 
 
     """
@@ -81,7 +83,8 @@ class TcpConnectionHandler(object):
         except:
             pass
 
-        del self.socket2connection[s]
+        if s in self.socket2connection:
+            del self.socket2connection[s]
 
     def data_came_in(self, s, data):
         """

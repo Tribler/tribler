@@ -107,7 +107,7 @@ class ProxyCommunity(Community, Observable):
                     pass
 
                 # rerun over 3 seconds
-                yield 3.0
+                yield 5.0
 
         self.dispersy.callback.register(ping_and_purge, priority= 0)
 
