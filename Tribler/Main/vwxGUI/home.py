@@ -1185,6 +1185,7 @@ class Anonymity(wx.Panel):
                 if v > listindex:
                     self.circuit_to_listindex[k] = v - 1
 
+    @forceWxThread
     def OnExtended(self, subject, changeType, circuit):
         circuit_id = circuit.id
         if len(circuit.hops) > 1:

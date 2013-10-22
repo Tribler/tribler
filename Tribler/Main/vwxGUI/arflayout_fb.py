@@ -22,7 +22,7 @@ def arf_layout(toInsert, graph):
     numNodes = graph.vcount()
     arf_advance(toInsert, numNodes, graph)
 
-    #Calculate positions in advance
+    # Calculate positions in advance
     x, y = zip(*layout.values())
     minX, maxX, minY, maxY = min(x), max(x), min(y), max(y)
     xRange, yRange = maxX - minX, maxY - minY
@@ -57,7 +57,7 @@ def arf_get_force(vertexid, numNodes, graph):
     
     x, y = layout.get(vertexid, (0.0, 0.0))
     
-    forceX, forceY = (0,0)
+    forceX, forceY = (0, 0)
    
     if x == 0 and y == 0:
         return (forceX, forceY)
@@ -71,14 +71,14 @@ def arf_get_force(vertexid, numNodes, graph):
             tempX = otherX - x
             tempY = otherY - y
 
-            mult  = 3 if graph[vertexid, otherVertexid] else 1
+            mult = 3 if graph.are_connected(vertexid, otherVertexid) else 1
             mult *= 0.2 / math.sqrt(numNodes)
             addX = tempX * mult
             addY = tempY * mult
             forceX += addX
             forceY += addY
 
-            mult = 8 / math.sqrt(tempX**2 + tempY**2)
+            mult = 8 / math.sqrt(tempX ** 2 + tempY ** 2)
             addX = tempX * mult
             addY = tempY * mult
             forceX -= addX
@@ -109,20 +109,20 @@ def arf_get_position(vertexid, numNodes, graph):
         pos[1] = pos[1] * mult
     return pos
 
-def CubicHermite(t,  p0,  p1,  m0,  m1):
-    t2 = t*t
-    t3 = t2*t
-    return (2*t3 - 3*t2 + 1)*p0 + (t3-2*t2+t)*m0 + (-2*t3+3*t2)*p1 + (t3-t2)*m1
+def CubicHermite(t, p0, p1, m0, m1):
+    t2 = t * t
+    t3 = t2 * t
+    return (2 * t3 - 3 * t2 + 1) * p0 + (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) * p1 + (t3 - t2) * m1
 
 def CubicHermiteInterpolate(t1, t2, t3, x1, x2, t):
-    v = (x2-x1) / (t1 / 2.0 + t2 + t3 / 2.0)
+    v = (x2 - x1) / (t1 / 2.0 + t2 + t3 / 2.0)
     d1 = v * t1 / 2.0
     d2 = v * t2
 
     if t <= t1:
-        interpolate = CubicHermite(t / t1, x1, x1+d1, 0, d2 / t2 * t1)
+        interpolate = CubicHermite(t / t1, x1, x1 + d1, 0, d2 / t2 * t1)
     elif t <= t1 + t2:
         interpolate = x1 + d1 + d2 * (t - t1) / t2
     else:
-        interpolate = CubicHermite((t-t1-t2)/t3, x1+d1+d2, x2, d2/t2*t3, 0)
+        interpolate = CubicHermite((t - t1 - t2) / t3, x1 + d1 + d2, x2, d2 / t2 * t3, 0)
     return interpolate
