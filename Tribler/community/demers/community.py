@@ -13,10 +13,6 @@ from Tribler.dispersy.tool.lencoder import log
 
 
 class DemersTest(Community):
-    def __init__(self, dispersy, master):
-        super(DemersTest, self).__init__(dispersy, master)
-        self._dispersy_sync_skip_enable = False
-
     def initiate_meta_messages(self):
         return [Message(self, u"text", MemberAuthentication(encoding="bin"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text)]
 
@@ -27,16 +23,19 @@ class DemersTest(Community):
     def dispersy_sync_response_limit(self):
         return 1
 
-    def dispersy_claim_sync_bloom_filter(self, request_cache):
-        if self._sync_cache:
-            self._sync_cache.responses_received = -1
-        return Community.dispersy_claim_sync_bloom_filter(self, request_cache)
+    @property
+    def dispersy_sync_skip_enable(self):
+        return False
+
+    @property
+    def dispersy_sync_cache_enable(self):
+        return False
 
     def create_text(self, text, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"text")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
-                            payload=(text, ))
+                            payload=(text,))
         self._dispersy.store_update_forward([message], store, update, forward)
 
     def check_text(self, messages):
