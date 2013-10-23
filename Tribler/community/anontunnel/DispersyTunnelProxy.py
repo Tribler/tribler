@@ -568,7 +568,7 @@ class DispersyTunnelProxy(Observable):
                 if circuit_id is None and len(self.active_circuits) > 0:
 
                     # Each destination may be tunneled over a SINGLE different circuit
-                    if ultimate_destination in self.destination_circuit and self.circuits[self.destination_circuit[ultimate_destination]] in self.active_circuits:
+                    if ultimate_destination in self.destination_circuit and self.destination_circuit[ultimate_destination] in [c.id for c in self.active_circuits]:
 
                         circuit_id = self.destination_circuit[ultimate_destination]
                     else:
