@@ -1429,7 +1429,7 @@ class Anonymity(wx.Panel):
                     self.vertex_active = self.PositionToVertex(self.vertex_active_evt, int_points)
                     self.vertex_active_evt = None
 
-                if self.vertex_active >= 0 and self.vertex_active != self.vertex_hover:
+                if self.vertex_active >= 0:
                     x, y = int_points[self.vertex_active]
                     pen = wx.Pen(self.vertex_to_colour.get(self.vertex_active, wx.BLACK), 1, wx.USER_DASH)
                     pen.SetDashes([8, 4])
