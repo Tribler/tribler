@@ -18,7 +18,6 @@ from Observable import Observable
 
 from collections import defaultdict
 from ProxyConversion import DataPayload, ExtendPayload
-from copy import deepcopy
 
 
 class Circuit(object):
@@ -38,7 +37,7 @@ class Circuit(object):
         """
         Instantiate a new Circuit data structure
 
-        :param circuit_id: the id of thecandidate circuit
+        :param circuit_id: the id of the candidate circuit
         :param candidate: the first hop of the circuit
         :return: Circuit
         """
@@ -102,6 +101,8 @@ class DispersyTunnelProxy(Observable):
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
         Observable.__init__(self)
+
+        self.share_stats = False
 
         self.socket_server = community.socks_server
         self._record_stats = False
@@ -184,11 +185,12 @@ class DispersyTunnelProxy(Observable):
 
         def share_stats():
             while True:
-                logger.info("Sharing STATS")
-                for candidate in self.community.dispersy_yield_verified_candidates():
-                    self.community.send(u"stats", candidate, (self._create_stats(),))
+                if self.share_stats:
+                    logger.info("Sharing STATS")
+                    for candidate in self.community.dispersy_yield_verified_candidates():
+                        self.community.send(u"stats", candidate, (self._create_stats(),))
 
-                yield 10.0
+                    yield 10.0
 
         def extend_circuits():
             while True:
@@ -331,7 +333,7 @@ class DispersyTunnelProxy(Observable):
 
         try:
             self.get_exit_socket(circuit_id, return_candidate).sendto(data, destination)
-        except socket.error, e:
+        except socket.error:
             self.stats['dropped_exit'] += 1
             pass
 
@@ -343,7 +345,7 @@ class DispersyTunnelProxy(Observable):
         if not (circuit_id in self._exit_sockets):
             self._exit_sockets[circuit_id] = self.socket_server.create_udp_socket()
 
-            # There is a special case where the ciruit_id is None, then we act as EXIT node ourselves. In this case we
+            # There is a special case where the circuit_id is None, then we act as EXIT node ourselves. In this case we
             # create a ShortCircuitHandler that bypasses dispersy by patching ENTER packets directly into the Proxy's
             # on_data event.
             if circuit_id is None:
@@ -443,7 +445,7 @@ class DispersyTunnelProxy(Observable):
 
 
             # CYCLE DETECTED!
-            # Quickfix, delete the circuit!
+            # Quick fix: delete the circuit!
             if extended_with in addresses_in_use:
                 with self.lock:
                     del self.circuits[circuit_id]
@@ -464,6 +466,9 @@ class DispersyTunnelProxy(Observable):
                 logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
+
+            if circuit.goal_hops < len(circuit.hops):
+                self.break_circuit(circuit_id)
 
             if len(self.active_circuits) > 0:
                 self.fire("on_ready",trigger_on_subscribe=True)
@@ -541,7 +546,7 @@ class DispersyTunnelProxy(Observable):
     def on_member_heartbeat(self, event):
         candidate = event.candidate
 
-        # We dont want to create too many circuits
+        # We don't want to create too many circuits
         if len(self.circuits) > MAX_CIRCUITS_TO_CREATE:
             return
 
@@ -601,9 +606,7 @@ class DispersyTunnelProxy(Observable):
 
     def break_circuit(self, circuit_id):
         with self.lock:
-
             # Give other members possibility to clean up
-
             logger.error("Breaking circuit %d", circuit_id)
 
             # Delete from data structures
@@ -622,10 +625,6 @@ class DispersyTunnelProxy(Observable):
 
                 if len(self.active_circuits):
                     self.fire("on_ready")
-
-
-
-
 
     @staticmethod
     def _get_member(candidate):
@@ -664,8 +663,6 @@ class DispersyTunnelProxy(Observable):
                     logger.error("Sending BREAK to (%s, %d)", relay_key[0], relay_key[1])
                     self.community.send(u"break", relay_key[0], relay_key[1])
                     del self.relay_from_to[relay_key]
-
-
         except BaseException, e:
             logger.exception(e)
 
