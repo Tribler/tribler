@@ -190,7 +190,7 @@ class DispersyTunnelProxy(Observable):
                     for candidate in self.community.dispersy_yield_verified_candidates():
                         self.community.send(u"stats", candidate, (self._create_stats(),))
 
-                    yield 10.0
+                yield 10.0
 
         def extend_circuits():
             while True:
