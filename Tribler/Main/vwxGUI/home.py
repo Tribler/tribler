@@ -1437,7 +1437,7 @@ class Anonymity(wx.Panel):
                     gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
                     text_height = dc.GetTextExtent('gG')[1]
-                    box_height = text_height * 1 + 10
+                    box_height = text_height + 3
 
                     # Draw status box                
                     x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
