@@ -4,7 +4,10 @@ import sys
 import os
 import copy
 import igraph
-import igraph.vendor.texttable
+try:
+    import igraph.vendor.texttable
+except:
+    pass
 import random
 import threading
 from time import strftime, time
