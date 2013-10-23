@@ -29,7 +29,7 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL,
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from traceback import print_exc, print_stack
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, LIST_BLUE
 from Tribler.Core.Tag.Extraction import TermExtraction
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 
@@ -1146,9 +1146,10 @@ class Anonymity(wx.Panel):
 
         self.circuit_list = SelectableListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SIMPLE)
         self.circuit_list.InsertColumn(0, 'Circuit ID')
-        self.circuit_list.InsertColumn(1, 'Hops', wx.LIST_FORMAT_RIGHT, 60)
-        self.circuit_list.InsertColumn(2, 'Bytes up', wx.LIST_FORMAT_RIGHT, 80)
-        self.circuit_list.InsertColumn(3, 'Bytes down', wx.LIST_FORMAT_RIGHT, 80)
+        self.circuit_list.InsertColumn(1, 'Ready', wx.LIST_FORMAT_RIGHT, 60)
+        self.circuit_list.InsertColumn(2, 'Hops', wx.LIST_FORMAT_RIGHT, 60)
+        self.circuit_list.InsertColumn(3, 'Bytes up', wx.LIST_FORMAT_RIGHT, 80)
+        self.circuit_list.InsertColumn(4, 'Bytes down', wx.LIST_FORMAT_RIGHT, 80)
         self.circuit_list.setResizeColumn(0)
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemSelected)
@@ -1199,9 +1200,10 @@ class Anonymity(wx.Panel):
                 self.circuit_to_listindex[circuit_id] = pos
             else:
                 pos = self.circuit_to_listindex[circuit_id]
-            self.circuit_list.SetStringItem(pos, 1, str(len(circuit.hops)))
-            self.circuit_list.SetStringItem(pos, 2, self.utility.size_format(circuit.bytes_uploaded))
-            self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(circuit.bytes_downloaded))
+            self.circuit_list.SetStringItem(pos, 1, str(len(circuit.hops) == circuit.goal_hops))
+            self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)))
+            self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(circuit.bytes_uploaded))
+            self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(circuit.bytes_downloaded))
 
         # Remove old circuits
         old_circuits = [circuit_id for circuit_id in self.circuit_to_listindex if circuit_id not in self.circuits]
@@ -1418,7 +1420,7 @@ class Anonymity(wx.Panel):
 
                 if self.vertex_hover >= 0:
                     x, y = int_points[self.vertex_hover]
-                    pen = wx.Pen(wx.Colour(119, 119, 119), 1, wx.USER_DASH)
+                    pen = wx.Pen(wx.Colour(229, 229, 229), 1, wx.USER_DASH)
                     pen.SetDashes([8, 4])
                     gc.SetPen(pen)
                     gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
@@ -1433,6 +1435,21 @@ class Anonymity(wx.Panel):
                     pen.SetDashes([8, 4])
                     gc.SetPen(pen)
                     gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+
+                    text_height = dc.GetTextExtent('gG')[1]
+                    box_height = text_height * 1 + 10
+
+                    # Draw status box                
+                    x = x + 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
+                    y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
+                    gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
+                    gc.SetPen(wx.Pen(LIST_BLUE))
+                    gc.DrawRectangle(x, y, 150, box_height)
+
+                    # Draw status text
+                    dc.SetFont(self.GetFont())
+                    for index, text in enumerate(['IP %s:%s' % (self.peers[self.vertex_active][0], self.peers[self.vertex_active][1])]):
+                        dc.DrawText(text, x + 5, y + index * text_height + 5)
 
             # Draw vertex count
             gc.SetFont(self.GetFont())
