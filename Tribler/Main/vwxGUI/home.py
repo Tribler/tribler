@@ -1440,7 +1440,7 @@ class Anonymity(wx.Panel):
                     box_height = text_height * 1 + 10
 
                     # Draw status box                
-                    x = x + 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
+                    x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
                     y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
                     gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
                     gc.SetPen(wx.Pen(LIST_BLUE))
