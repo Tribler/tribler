@@ -1,3 +1,5 @@
+import time
+
 __author__ = 'chris'
 
 import logging.config
@@ -32,7 +34,7 @@ class AnonTunnel(Thread):
         Thread.__init__(self)
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
-                                    10.0 / 5.0,
+                                    600,
                                     10.0,
                                     ipv6_enable=False,
                                     failfunc=lambda (e): print_exc(),
@@ -50,6 +52,7 @@ class AnonTunnel(Thread):
 
         self.community = None
 
+
     def run(self):
         self.dispersy.start()
         logger.error("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
@@ -60,7 +63,49 @@ class AnonTunnel(Thread):
                                      load=True)
 
         self.community = self.dispersy.callback.call(join_overlay, (self.dispersy,))
+        '" :type : Tribler.community.anontunnel.DispersyTunnelProxy.DispersyTunnelProxy "'
+
+        def speed_stats():
+            print
+
+            t1 = None
+            total_bytes_in_1 = 0
+            total_bytes_out_1 = 0
+
+            while True:
+                tunnel = self.socks5_server.tunnel
+
+                t2 = time.clock()
+                if tunnel and t1 and t2 > t1:
+
+                    total_bytes_in_2 = tunnel.stats['bytes_enter'] \
+                                       + sum([c.bytes_downloaded for c in tunnel.get_circuits()]) \
+                                       + sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
+
+                    total_bytes_out_2 = tunnel.stats['bytes_exit'] \
+                                        + sum([c.bytes_uploaded for c in tunnel.get_circuits()]) \
+                                        + sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
+
+                    total_speed_in = (total_bytes_in_2 - total_bytes_in_1) / (t2 - t1)
+                    total_speed_out = (total_bytes_out_2 - total_bytes_out_1) / (t2 - t1)
+
+                    active_circuits = len(tunnel.active_circuits)
+                    num_routes = len(tunnel.relay_from_to) / 2
+
+                    print "\r%.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules" % (total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes),
+
+
+                    total_bytes_out_1 = total_bytes_out_2
+                    total_bytes_in_1 = total_bytes_in_2
+
+                t1 = t2
+                yield 1.0
+
+        self.callback.register(speed_stats)
+
         self.raw_server.listen_forever(None)
+
+
 
     def stop(self):
         if self.community:

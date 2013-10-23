@@ -90,7 +90,7 @@ class DispersyTunnelProxy(Observable):
 
     @property
     def active_circuits(self):
-        return [circuit for circuit in self.get_circuits() if circuit.created == True]
+        return [circuit for circuit in self.get_circuits() if circuit.created == True and circuit.goal_hops == len(circuit.hops)]
 
     def get_circuits(self):
         return self.circuits.values()
@@ -103,7 +103,7 @@ class DispersyTunnelProxy(Observable):
             the Proxy Overlay. """
         Observable.__init__(self)
 
-        self.socket_server = None
+        self.socket_server = community.socks_server
         self._record_stats = False
 
         self._exit_sockets = {}
@@ -228,9 +228,7 @@ class DispersyTunnelProxy(Observable):
 
         # We build this circuit but now its dead
         elif msg.circuit_id in self.circuits:
-            with self.lock:
-                del self.circuits[msg.circuit_id]
-            logger.error("BREAK circuit %d", msg.circuit_id)
+            self.break_circuit(msg.circuit_id)
 
 
     def on_create(self, event):
@@ -260,6 +258,10 @@ class DispersyTunnelProxy(Observable):
                 logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
+
+            if len(self.active_circuits) > 0:
+                self.fire("on_ready",trigger_on_subscribe=True)
+
 
             self._process_extension_queue(circuit)
         elif not self.relay_from_to.has_key((event.message.candidate, msg.circuit_id)):
@@ -463,6 +465,9 @@ class DispersyTunnelProxy(Observable):
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
 
+            if len(self.active_circuits) > 0:
+                self.fire("on_ready",trigger_on_subscribe=True)
+
     def _generate_circuit_id(self, neighbour):
         circuit_id = random.randint(1, 255)
 
@@ -552,11 +557,8 @@ class DispersyTunnelProxy(Observable):
         assert address is not None or ultimate_destination != ('0.0.0.0', None)
         assert address is not None or ultimate_destination is not None
 
-
         with self.lock:
             try:
-                by_initiator = circuit_id is None and address is None
-
                 # If there are no circuits and no circuit has been requested act as EXIT node ourselves
                 if circuit_id is None and len(self.active_circuits) == 0:
                     self.exit_data(None, None, ultimate_destination, payload)
@@ -566,7 +568,8 @@ class DispersyTunnelProxy(Observable):
                 if circuit_id is None and len(self.active_circuits) > 0:
 
                     # Each destination may be tunneled over a SINGLE different circuit
-                    if ultimate_destination in self.destination_circuit:
+                    if ultimate_destination in self.destination_circuit and self.circuits[self.destination_circuit[ultimate_destination]] in self.active_circuits:
+
                         circuit_id = self.destination_circuit[ultimate_destination]
                     else:
                         circuit_id = choice(self.active_circuits).id
@@ -575,7 +578,7 @@ class DispersyTunnelProxy(Observable):
                 if circuit_id is None:
                     raise IOError("No circuit to send packet over!")
 
-                # If no addbress has been given, pick the first hop
+                # If no address has been given, pick the first hop
                 # Note: for packet forwarding address MUST be given
                 if address is None:
                     if circuit_id in self.circuits and self.circuits[circuit_id].created:
@@ -596,23 +599,33 @@ class DispersyTunnelProxy(Observable):
                 print_exc()
 
 
-    def break_circuit(self, circuit_id, candidate):
+    def break_circuit(self, circuit_id):
         with self.lock:
 
             # Give other members possibility to clean up
 
-            logger.error(
-                "Breaking circuit %d due to %s:%d" % (circuit_id, candidate.sock_addr[0], candidate.sock_addr[1]))
+            logger.error("Breaking circuit %d", circuit_id)
 
             # Delete from data structures
             if circuit_id in self.circuits:
                 del self.circuits[circuit_id]
 
-            if candidate is not None:
-                # Delete any ultimate destinations mapped to this circuit
-                for key, value in self.destination_circuit.items():
-                    if value == circuit_id:
-                        del self.destination_circuit[key]
+            tunnels_going_down = len(self.active_circuits) == 0
+            # Delete any ultimate destinations mapped to this circuit
+            for key, value in self.destination_circuit.items():
+                if value == circuit_id:
+                    del self.destination_circuit[key]
+                    tunnels_going_down = True
+
+            if tunnels_going_down:
+                self.fire("on_down")
+
+                if len(self.active_circuits):
+                    self.fire("on_ready")
+
+
+
+
 
     @staticmethod
     def _get_member(candidate):
@@ -637,8 +650,7 @@ class DispersyTunnelProxy(Observable):
             # We must invalidate all routes in which the candidate takes part
             for c in self.circuits.values():
                 if c.candidate == candidate:
-                    self.break_circuit(c.id, candidate)
-
+                    self.break_circuit(c.id)
 
             for relay_key in self.relay_from_to.keys():
                 relay = self.relay_from_to[relay_key]
@@ -652,6 +664,8 @@ class DispersyTunnelProxy(Observable):
                     logger.error("Sending BREAK to (%s, %d)", relay_key[0], relay_key[1])
                     self.community.send(u"break", relay_key[0], relay_key[1])
                     del self.relay_from_to[relay_key]
+
+
         except BaseException, e:
             logger.exception(e)
 

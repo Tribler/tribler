@@ -1,7 +1,7 @@
 import logging
-from Tribler.Core.RawServer.SocketHandler import SingleSocket
-
 logger = logging.getLogger(__name__)
+
+from Tribler.Core.RawServer.SocketHandler import SingleSocket
 
 
 class TcpRelayConnection(object):

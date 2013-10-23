@@ -14,8 +14,7 @@
 
 import sys
 import logging.config
-from Tribler.community.anontunnel.ConnectionHandlers import TcpConnectionHandler
-from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
+
 
 try:
     logging.config.fileConfig("logger.conf")
@@ -23,6 +22,9 @@ except:
     print >> sys.stderr, "Unable to load logging config from 'logger.conf' file."
 logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
+
+from Tribler.community.anontunnel.ConnectionHandlers import TcpConnectionHandler
+from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler

@@ -1,8 +1,8 @@
 import logging
+logger = logging.getLogger(__name__)
+
 from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
 from Tribler.community.anontunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
-
-logger = logging.getLogger(__name__)
 
 from traceback import print_exc
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
@@ -11,6 +11,27 @@ __author__ = 'chris'
 
 
 class TcpConnectionHandler(object):
+    @property
+    def accept_incoming(self):
+        return self._accept_incoming
+
+    @accept_incoming.setter
+    def accept_incoming(self, value):
+        if value:
+            logger.error("Accepting SOCKS5 connections now!")
+
+        if not value:
+            logger.error("DISCONNECTING SOCKS5 !")
+
+            for key in self.socket2connection.keys():
+                self.socket2connection[key].close()
+
+                if key in self.socket2connection:
+                    del self.socket2connection[key]
+
+        self._accept_incoming = value
+
+
     """
     The TCP Connection handler which responds on events fired by the server.
 
@@ -21,10 +42,17 @@ class TcpConnectionHandler(object):
     def __init__(self):
         self.socket2connection = {}
         self.socks5_server = None
+
+        self._accept_incoming = False
+
         """ :type : Tribler.community.anontunnel.Socks5Server.Socks5Server """
 
     def external_connection_made(self, s):
         # Extra check in case bind() no work
+
+        if not self.accept_incoming:
+            s.close()
+            return
 
         assert isinstance(s, SingleSocket)
         logger.info("accepted a socket on port %d", s.get_myport())
@@ -55,7 +83,8 @@ class TcpConnectionHandler(object):
         except:
             pass
 
-        del self.socket2connection[s]
+        if s in self.socket2connection:
+            del self.socket2connection[s]
 
     def data_came_in(self, s, data):
         """
