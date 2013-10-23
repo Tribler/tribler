@@ -94,7 +94,10 @@ class SwiftProcess:
         if DEBUG:
             print >> sys.stderr, "SwiftProcess: __init__: Running", args, "workdir", workdir
 
+        startupinfo = None
         if sys.platform == "win32":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             creationflags = 0
@@ -104,7 +107,7 @@ class SwiftProcess:
         # However, windows does not support non-files in the select command, hence we cannot integrate
         # these streams into the FastI2I thread
         # A proper solution would be to switch to twisted for the communication with the swift binary
-        self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE, startupinfo=startupinfo)
 
         def read_and_print(socket):
             prefix = currentThread().getName() + ":"
