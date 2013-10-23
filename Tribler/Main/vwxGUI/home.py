@@ -4,6 +4,7 @@ import sys
 import os
 import copy
 import igraph
+import igraph.vendor.texttable
 import random
 import threading
 from time import strftime, time
