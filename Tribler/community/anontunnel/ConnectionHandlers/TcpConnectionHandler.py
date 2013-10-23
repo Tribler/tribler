@@ -31,15 +31,15 @@ class TcpConnectionHandler(object):
 
         self._accept_incoming = value
 
-
-    """
-    The TCP Connection handler which responds on events fired by the server.
-
-    It distinguishes two connection types (and its associated handlers). The Socks5Connection and the TcpRelayConnection.
-    The first and default mode implements the SOCKS5 protocol where the latter just acts as a man in the middle PROXY for a
-    TCP connection.
-    """
     def __init__(self):
+        """
+        The TCP Connection handler which responds on events fired by the server.
+
+        It distinguishes two connection types (and its associated handlers). The Socks5Connection and the TcpRelayConnection.
+        The first and default mode implements the SOCKS5 protocol where the latter just acts as a man in the middle PROXY for a
+        TCP connection.
+        """
+
         self.socket2connection = {}
         self.socks5_server = None
 

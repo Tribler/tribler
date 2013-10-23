@@ -31,6 +31,7 @@ class StatsCrawler(Thread):
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
 
         self.first = True
+        self.community = None
 
         self.filename = datetime.now().strftime("%Y%m%d-%H%M%S.json")
         self.fout = open(self.filename, 'w')

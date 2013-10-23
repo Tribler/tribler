@@ -64,8 +64,6 @@ class Socks5Server(object):
         try:
             port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
                                                  reuse=True, handler=self)
-
-            listening = True
             if self.tunnel:
                 self.bind_events()
 
