@@ -104,8 +104,8 @@ class RemoteSearchManager(BaseManager):
         BaseManager.Reset(self)
 
         if self.oldkeywords:
-            cancelWorker("RemoteSearchManager_refresh_%s" % self.oldkeywords)
-            cancelWorker("RemoteSearchManager_refresh_channel_%s" % self.oldkeywords)
+            cancelWorker(u"RemoteSearchManager_refresh_%s" % self.oldkeywords)
+            cancelWorker(u"RemoteSearchManager_refresh_channel_%s" % self.oldkeywords)
 
         self.oldkeywords = ''
         self.torrentsearch_manager.oldsearchkeywords = None
@@ -286,7 +286,7 @@ class ChannelSearchManager(BaseManager):
     def Reset(self):
         BaseManager.Reset(self)
         if self.category:
-            cancelWorker("ChannelSearchManager_refresh_%s" % self.category)
+            cancelWorker(u"ChannelSearchManager_refresh_%s" % self.category)
 
         self.category = ''
         self.dirtyset.clear()
