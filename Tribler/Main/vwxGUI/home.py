@@ -652,32 +652,26 @@ class RightDispersyPanel(FancyPanel):
         if self.IsShownOnScreen():
             self.UpdateStats()
 
-    def UpdateStats(self):
-        includeStuffs = self.includeStuffs.GetValue()
-        includeDebug = self.includeDebug.GetValue()
-
-        def db_callback():
-            self.dispersy.statistics.enable_debug_statistics(includeDebug)
-            self.dispersy.statistics.update(database=includeStuffs)
-            self._UpdateStats(self.dispersy.statistics)
-
-        startWorker(None, db_callback, uId=u"DispersyPanel_UpdateStats", priority=GUI_PRI_DISPERSY)
-
-    @forceWxThread
-    def _UpdateStats(self, stats):
+    def AddDataToTree(self, data, parent, tree):
 
         def addValue(parentNode, value):
             if isinstance(value, dict):
                 addDict(parentNode, value)
             elif isinstance(value, list):
                 addList(parentNode, value)
+            elif isinstance(value, tuple):
+                addTuple(parentNode, value)
             elif value != None:
-                self.rawinfo_tree.AppendItem(parentNode, str(value))
+                tree.AppendItem(parentNode, str(value))
 
         def addList(parentNode, nodelist):
             for key, value in enumerate(nodelist):
-                keyNode = self.rawinfo_tree.AppendItem(parentNode, str(key))
+                keyNode = tree.AppendItem(parentNode, str(key))
                 addValue(keyNode, value)
+
+        def addTuple(parentNode, nodetuple):
+            for value in nodetuple:
+                addValue(parentNode, value)
 
         def addDict(parentNode, nodedict):
             for key, value in nodedict.items():
@@ -693,8 +687,24 @@ class RightDispersyPanel(FancyPanel):
                 except UnicodeDecodeError:
                     key = key.encode("hex")
 
-                keyNode = self.rawinfo_tree.AppendItem(parentNode, prepend + key)
+                keyNode = tree.AppendItem(parentNode, prepend + key)
                 addValue(keyNode, value)
+
+        addValue(parent, data)
+
+    def UpdateStats(self):
+        includeStuffs = self.includeStuffs.GetValue()
+        includeDebug = self.includeDebug.GetValue()
+
+        def db_callback():
+            self.dispersy.statistics.enable_debug_statistics(includeDebug)
+            self.dispersy.statistics.update(database=includeStuffs)
+            self._UpdateStats(self.dispersy.statistics)
+
+        startWorker(None, db_callback, uId=u"DispersyPanel_UpdateStats", priority=GUI_PRI_DISPERSY)
+
+    @forceWxThread
+    def _UpdateStats(self, stats):
 
         if not self.community_tree.blockUpdate:
             self.community_tree.DeleteAllItems()
@@ -756,8 +766,15 @@ class RightDispersyPanel(FancyPanel):
             if stats.bootstrap_candidates:
                 raw_info['bootstrap_candidates'] = stats.bootstrap_candidates
             if getattr(stats, 'runtime', None):
-                raw_info['runtime'] = stats.runtime
-            addValue(parentNode, raw_info)
+                raw_info['runtime'] = []
+                for stat_dict in stats.runtime:
+                    stat_list = []
+                    for k, v in stat_dict.iteritems():
+                        if isinstance(v, basestring):
+                            v = v.replace('\n', '\n          ')
+                        stat_list.append('%-10s%s' % (k, v))
+                    raw_info['runtime'].append(tuple(stat_list))
+            self.AddDataToTree(raw_info, parentNode, self.rawinfo_tree)
 
         self.Layout()
 
