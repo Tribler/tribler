@@ -2249,10 +2249,12 @@ class ActivitiesList(List):
         channels_item = self.list.GetItem(3)
         self.expandedPanel_channels = ChannelsExpandedPanel(channels_item)
         channels_item.AddEvents(self.expandedPanel_channels)
+        self.expandedPanel_channels.Hide()
 
         videoplayer_item = self.list.GetItem(5)
         self.expandedPanel_videoplayer = VideoplayerExpandedPanel(videoplayer_item)
         videoplayer_item.AddEvents(self.expandedPanel_videoplayer)
+        self.expandedPanel_videoplayer.Hide()
 
     def do_or_schedule_refresh(self, force_refresh=False):
         pass
