@@ -19,6 +19,9 @@ class StatsCrawler(Thread):
     def __init__(self):
         Thread.__init__(self)
 
+        self.stored_candidates = {}
+        self.community = None
+
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
                                     10.0 / 5.0,
@@ -64,11 +67,18 @@ class StatsCrawler(Thread):
         return json.dumps(stats)
 
     def on_stats(self, e):
+
+        # Do not store if we have received a STATS message from the same client before
+        if e.message.candidate in self.stored_candidates:
+            return
+
         if not self.first:
             self.fout.write(",")
         else:
             self.first = False
+
         self.fout.write(self.stats_to_txt(e.message.payload.stats))
+        self.stored_candidates[e.message.candidate] = True
 
     def finalize_file(self):
         self.fout.write("]")
@@ -84,7 +94,7 @@ class StatsCrawler(Thread):
         self.raw_server.shutdown()
 
 
-def main(argv):
+def main():
     stats_crawler = StatsCrawler()
     stats_crawler.start()
 
@@ -103,5 +113,4 @@ def main(argv):
             break
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
-
+    main()
