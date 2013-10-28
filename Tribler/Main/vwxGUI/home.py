@@ -618,6 +618,10 @@ class RightDispersyPanel(FancyPanel):
         self.rawinfo_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.rawinfo_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
 
+        font = self.rawinfo_tree.GetFont()
+        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.rawinfo_tree.SetFont(font)
+
         self.rawinfo_sizer.Add(self.rawinfo_tree, 1, wx.EXPAND)
         self.includeDebug = wx.CheckBox(self.rawinfo_panel, -1, "Collect debug")
         self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
