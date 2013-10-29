@@ -35,7 +35,7 @@ class SocialCommunity(Community):
     def initiate_meta_messages(self):
         # TODO replace with modified full sync
         return [Message(self, u"text", MemberAuthentication(encoding="bin"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CandidateDestination(), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
-                Message(self, u"encrypted", NoAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), FOAFDestination(), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
+                Message(self, u"encrypted", NoAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CandidateDestination(), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
