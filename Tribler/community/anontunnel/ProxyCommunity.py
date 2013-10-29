@@ -60,7 +60,7 @@ class ProxyCommunity(Community, Observable):
 
         if socks_server is not None and create_tunnel:
             self.socks_server = socks_server
-            self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy, self)
+            self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy.callback, self)
 
             self.socks_server.start()
 

@@ -17,7 +17,7 @@ class TcpConnectionHandler(object):
 
     @accept_incoming.setter
     def accept_incoming(self, value):
-        if value:
+        if value and not self._accept_incoming:
             logger.error("Accepting SOCKS5 connections now!")
 
         if not value:
