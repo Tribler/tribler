@@ -30,7 +30,7 @@ class SocialCommunity(Community):
         if integrate_with_tribler:
             raise NotImplementedError()
         else:
-            self._db = Das4DBStub(dispersy)
+            self._friend_db = Das4DBStub(dispersy)
 
     def initiate_meta_messages(self):
         # TODO replace with modified full sync
