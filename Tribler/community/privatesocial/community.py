@@ -91,7 +91,7 @@ class SocialCommunity(Community):
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
 
-class PSearchCommunity(PForwardCommunity, SocialCommunity):
+class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None):
@@ -101,7 +101,7 @@ class PSearchCommunity(PForwardCommunity, SocialCommunity):
         except StopIteration:
             return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(PSearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(PSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
