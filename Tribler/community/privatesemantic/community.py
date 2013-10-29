@@ -39,7 +39,7 @@ PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
 class ForwardCommunity():
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = rsa_init()
@@ -59,6 +59,7 @@ class ForwardCommunity():
         self.max_f_prefs = max_fprefs
 
         self.forward_to = forward_to
+        self.max_taste_buddies = max_taste_buddies
 
         self.taste_buddies = []
         self.possible_taste_buddies = []
@@ -112,12 +113,12 @@ class ForwardCommunity():
 
             # new peer
             else:
-                if len(self.taste_buddies) < 10 or new_tb_tuple[0] > self.taste_buddies[-1][0]:
+                if len(self.taste_buddies) < self.max_taste_buddies or new_tb_tuple[0] > self.taste_buddies[-1][0]:
                     self.taste_buddies.append(new_tb_tuple)
                     self.dispersy.callback.register(self.create_ping_request, args=(new_tb_tuple[-1],), delay=PING_INTERVAL)
 
         self.taste_buddies.sort(reverse=True)
-        self.taste_buddies = self.taste_buddies[:10]
+        self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
         if DEBUG:
             print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), self.taste_buddies
@@ -205,7 +206,7 @@ class ForwardCommunity():
         return False
 
     def get_low_sim(self):
-        if len(self.taste_buddies) == 10:
+        if len(self.taste_buddies) == self.max_taste_buddies:
             return self.taste_buddies[-1][0]
         return 0
 
@@ -491,9 +492,6 @@ class ForwardCommunity():
         self._create_pingpong(u"pong", candidates, identifiers)
 
         for message in messages:
-            if len(message.payload.torrents) > 0:
-                self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
-
             self.resetTastebuddy(message.authentication.member)
 
     def check_pong(self, messages):
@@ -514,14 +512,9 @@ class ForwardCommunity():
             request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.PingRequestCache)
             request.on_success()
 
-            if len(message.payload.torrents) > 0:
-                self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
-
             self.resetTastebuddy(message.authentication.member)
 
     def _create_pingpong(self, meta_name, candidates, identifiers=None):
-        torrents = []
-
         for index, candidate in enumerate(candidates):
             if identifiers:
                 identifier = identifiers[index]
@@ -531,7 +524,7 @@ class ForwardCommunity():
             # create torrent-collect-request/response message
             meta = self.get_meta_message(meta_name)
             message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), payload=(identifier, torrents))
+                                distribution=(self.global_time,), payload=(identifier, []))
             self._dispersy._send([candidate], [message])
 
             if DEBUG:
@@ -539,8 +532,8 @@ class ForwardCommunity():
 
 class PForwardCommunity(ForwardCommunity):
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
-        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10):
+        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies)
 
         self.key = pallier_init(self.key)
 
@@ -846,8 +839,8 @@ class HForwardCommunity(ForwardCommunity):
 
 class PoliForwardCommunity(ForwardCommunity):
 
-    def __init__(self,dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
-        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10):
+        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies)
         self.key = pallier_init(self.key)
 
     def initiate_conversions(self):
@@ -1055,48 +1048,3 @@ class Das4DBStub():
         if limit:
             return preferences[:limit]
         return preferences
-
-    def searchNames(self, keywords, local=True, keys=[]):
-        my_preferences = {}
-        for infohash in self.getMyPrefListInfohash(local=local):
-            my_preferences[infohash] = unicode(self._dispersy._lan_address)
-        for infohash, results in self.myMegaCache.iteritems():
-            if infohash not in my_preferences:
-                my_preferences[infohash] = results[1]
-
-        results = []
-        for keyword in keywords:
-            infohash = str(keyword)
-            if infohash in my_preferences:
-                results.append((infohash, my_preferences[infohash], 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
-        return results
-
-    def on_search_response(self, results):
-        for result in results:
-            if result[0] not in self.myMegaCache:
-                self.myMegaCache[result[0]] = (result[0], result[1], 0, 0, 0, time())
-        return len(self.myMegaCache)
-
-    def deleteTorrent(self, infohash, delete_file=False, commit=True):
-        if infohash in self.myMegaCache:
-            del self.myMegaCache[infohash]
-
-    def on_pingpong(self, torrents):
-        unknown_torrents = [[infohash, ] for infohash, _, _, _, _ in torrents if infohash not in self.myMegaCache]
-        if len(unknown_torrents) > 5:
-            unknown_torrents = sample(unknown_torrents, 5)
-        return self.on_search_response(unknown_torrents)
-
-    def getRecentlyCollectedSwiftHashes(self, limit=None):
-        megaCache = self.myMegaCache.values()
-        if limit:
-            return megaCache[-limit:]
-        return megaCache
-
-    def getRandomlyCollectedSwiftHashes(self, leastRecent=0, limit=None):
-        megaCache = self.myMegaCache.values()
-        shuffle(megaCache)
-
-        if limit:
-            return megaCache[:limit]
-        return megaCache

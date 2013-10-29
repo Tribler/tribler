@@ -5,24 +5,8 @@ from time import time
 from gmpy import mpz
 from hashlib import md5
 
-from binascii import hexlify, unhexlify
-def long_to_bytes(val, nrbytes):
-    hex_val = '%x' % abs(val)
-    padding = '0' * ((abs(nrbytes) * 2) - len(hex_val))
-    result = unhexlify(padding + hex_val)[::-1]
-
-    if nrbytes < 0:
-        return ("-" if val < 0 else "+") + result
-    return result
-
-def bytes_to_long(val):
-    if val[0] == "-" or val[0] == "+":
-        _val = long(hexlify(val[1:][::-1]), 16)
-        if val[0] == "-":
-            return -_val
-        return _val
-    else:
-        return long(hexlify(val[::-1]), 16)
+from Tribler.community.privatesemantic.conversion import bytes_to_long, \
+    long_to_bytes
 
 class X:
     def __init__(self, val, power):
@@ -83,10 +67,10 @@ if __name__ == "__main__":
     r = Random()
     set1 = [r.randint(0, 2 ** 40) for i in range(10)]
     print set1
-    
+
     bitmask = (2 ** 40) - 1
     set1 = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in set1]
-    
+
     partitionmask = (2 ** 32) - 1
     set1 = [val & partitionmask for val in set1]
 
@@ -95,14 +79,14 @@ if __name__ == "__main__":
     print time() - t1
 
     coeffs = compute_coeff(set1)
-    
+
     MAXLONG256 = (1 << 2048) - 1
     for coeff in coeffs:
         assert bytes_to_long(long_to_bytes(coeff, -256)) == coeff, (bytes_to_long(long_to_bytes(coeff, -256)), coeff, long_to_bytes(coeff, -256))
-    
+
     coeffs = [long_to_bytes(coeff, -256) for coeff in coeffs]
     coeffs = [bytes_to_long(str_coeff) for str_coeff in coeffs]
-    
+
     for val in set1:
         print val, polyval(coeffs, val)
 
