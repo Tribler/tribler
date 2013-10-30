@@ -267,7 +267,7 @@ class DispersyTunnelProxy(Observable):
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
 
-            if len(self.active_circuits) > 0:
+            if len(self.active_circuits) > 2:
                 self.fire("on_ready", trigger_on_subscribe=True)
 
             self._process_extension_queue(circuit)
@@ -475,7 +475,7 @@ class DispersyTunnelProxy(Observable):
             if circuit.goal_hops < len(circuit.hops):
                 self.break_circuit(circuit_id)
 
-            if len(self.active_circuits) > 0:
+            if len(self.active_circuits) > 2:
                 self.fire("on_ready", trigger_on_subscribe=True)
 
     def _generate_circuit_id(self, neighbour):
@@ -567,15 +567,16 @@ class DispersyTunnelProxy(Observable):
         with self.lock:
             try:
                 # If no circuit specified, pick one from the ACTIVE LIST + 0-HOP
-                if circuit_id is None:
+                if circuit_id is None and ultimate_destination is not None:
                     # Each destination may be tunneled over a SINGLE different circuit
-                    if ultimate_destination in self.destination_circuit \
-                            and self.destination_circuit[ultimate_destination] in [c.id for c in self.active_circuits] + [0]:
+                    if ultimate_destination in self.destination_circuit:
                         circuit_id = self.destination_circuit[ultimate_destination]
-                    else:
+
+                    if circuit_id is None or circuit_id not in [c.id for c in self.active_circuits] + [0]:
                         # Make sure the '0-hop circuit' is also a candidate for selection
                         circuit_id = choice(self.active_circuits + [self.circuits[0]]).id
                         self.destination_circuit[ultimate_destination] = circuit_id
+                        logger.warning("SELECT %d for %s", circuit_id, ultimate_destination)
 
                 # If chosen the 0-hop circuit OR if there are no other circuits act as EXIT node ourselves
                 if circuit_id == 0:
@@ -621,7 +622,7 @@ class DispersyTunnelProxy(Observable):
             if tunnels_going_down:
                 self.fire("on_down")
 
-                if len(self.active_circuits):
+                if len(self.active_circuits) > 2:
                     self.fire("on_ready")
 
     def on_member_exit(self, event):
