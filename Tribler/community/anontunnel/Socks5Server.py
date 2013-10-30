@@ -61,16 +61,17 @@ class Socks5Server(object):
 
 
     def start(self):
-        try:
-            port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
-                                                 reuse=True, handler=self)
-            if self.tunnel:
-                self.bind_events()
+        if self.socks5_port:
+            try:
+                port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
+                                                     reuse=True, handler=self)
+                if self.tunnel:
+                    self.bind_events()
 
-            logger.error("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
-        except socket.error:
-            logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
-                         self.socks5_port)
+                logger.error("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
+            except socket.error:
+                logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
+                             self.socks5_port)
 
     def external_connection_made(self, s):
         try:

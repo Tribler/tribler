@@ -22,7 +22,7 @@ def main(argv):
     profile = None
 
     cmd_port = 1081
-    socks5_port = 1080
+    socks5_port = None
 
     for opt, arg in opts:
         if opt == '-h':

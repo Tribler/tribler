@@ -42,13 +42,14 @@ class AnonTunnel(Thread):
 
         self.callback = Callback()
         self.socks5_server = Socks5Server()
+
         self.socks5_server.attach_to(self.raw_server, socks5_port)
 
-        self.endpoint = RawserverEndpoint(self.socks5_server.raw_server, port=10000)
+        self.endpoint = RawserverEndpoint(self.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
 
-        self.command_handler = CommandHandler(self)
-        self.command_handler.attach_to(self.socks5_server, cmd_port)
+        #self.command_handler = CommandHandler(self)
+        #self.command_handler.attach_to(self.socks5_server, cmd_port)
 
         self.community = None
 

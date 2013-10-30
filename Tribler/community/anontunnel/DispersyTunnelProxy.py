@@ -551,6 +551,9 @@ class DispersyTunnelProxy(Observable):
     def on_member_heartbeat(self, event):
         candidate = event.candidate
 
+        if candidate.sock_addr[0].startswith("130."):
+            return
+
         # We don't want to create too many circuits
         if len(self.circuits) > MAX_CIRCUITS_TO_CREATE:
             return
@@ -571,7 +574,7 @@ class DispersyTunnelProxy(Observable):
                 if circuit_id is None:
                     # Each destination may be tunneled over a SINGLE different circuit
                     if ultimate_destination in self.destination_circuit \
-                            and self.destination_circuit[ultimate_destination] in [c.id for c in self.active_circuits]:
+                            and self.destination_circuit[ultimate_destination] in [c.id for c in self.active_circuits] + [self.circuits[0]]:
                         circuit_id = self.destination_circuit[ultimate_destination]
                     else:
                         # Make sure the '0-hop circuit' is also a candidate for selection
