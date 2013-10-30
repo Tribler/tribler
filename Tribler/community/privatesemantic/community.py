@@ -260,7 +260,7 @@ class ForwardCommunity():
     # connect to first nr peers in peercache
     def connect_to_peercache(self, nr=10):
         def attempt_to_connect(candidate, attempts):
-            while not self._community.is_taste_buddy(candidate) and attempts:
+            while not self.is_taste_buddy(candidate) and attempts:
                 self.send_introduction_request(candidate, True)
 
                 yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
