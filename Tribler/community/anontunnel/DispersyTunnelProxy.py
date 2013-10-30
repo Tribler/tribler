@@ -554,11 +554,7 @@ class DispersyTunnelProxy(Observable):
         if candidate.sock_addr[0].startswith("130."):
             return
 
-        # We don't want to create too many circuits
-        if len(self.circuits) > MAX_CIRCUITS_TO_CREATE:
-            return
-
-        if candidate not in [c.candidate for c in self.circuits.values()]:
+        if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in [c.candidate for c in self.circuits.values()]:
             self.create_circuit(candidate)
 
         self._process_extending_for_queue()
@@ -574,7 +570,7 @@ class DispersyTunnelProxy(Observable):
                 if circuit_id is None:
                     # Each destination may be tunneled over a SINGLE different circuit
                     if ultimate_destination in self.destination_circuit \
-                            and self.destination_circuit[ultimate_destination] in [c.id for c in self.active_circuits] + [self.circuits[0]]:
+                            and self.destination_circuit[ultimate_destination] in [c.id for c in self.active_circuits] + [0]:
                         circuit_id = self.destination_circuit[ultimate_destination]
                     else:
                         # Make sure the '0-hop circuit' is also a candidate for selection
