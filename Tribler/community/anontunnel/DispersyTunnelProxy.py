@@ -552,9 +552,6 @@ class DispersyTunnelProxy(Observable):
     def on_member_heartbeat(self, event):
         candidate = event.candidate
 
-        if candidate.sock_addr[0].startswith("130."):
-            return
-
         if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in [c.candidate for c in self.circuits.values()]:
             self.create_circuit(candidate)
 

@@ -67,8 +67,8 @@ class ProxyCommunity(Community, Observable):
             self.tribler_notifier = TriblerNotifier(self.socks_server.tunnel)
 
         # Heartbeat hashmap Candidate -> last heart beat timestamp, assume we never heard any
-        self.member_heartbeat = defaultdict(lambda: datetime.min)
-        self.member_ping = defaultdict(lambda: datetime.min)
+        self.member_heartbeat = {}
+        self.member_ping = {}
 
         self.subscribe("on_pong", lambda (event): logger.debug(
             "Got PONG from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
@@ -85,27 +85,30 @@ class ProxyCommunity(Community, Observable):
                     candidates_to_be_purged = \
                         {
                             candidate
-                            for candidate in self.member_ping.keys()
-                            if self.member_heartbeat[candidate] < datetime.now() - 2 * timedelta(seconds=timeout)
+                            for candidate in self.member_heartbeat.keys()
+                            if self.member_heartbeat[candidate] < datetime.now() - timedelta(seconds=4*timeout)
                         }
+
+                    for candidate in candidates_to_be_purged:
+                        self.on_candidate_exit(candidate)
+                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+
 
                     candidates_to_be_pinged = {candidate for candidate in self.member_heartbeat.keys() if
                                                self.member_heartbeat[candidate] < datetime.now() - timedelta(
-                                                   seconds=timeout)}.difference(candidates_to_be_purged)
+                                                   seconds=timeout)}
 
                     for candidate in candidates_to_be_pinged:
                         self.member_ping[candidate] = datetime.now()
                         self.send(u"ping", candidate)
                         logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
-                    for candidate in candidates_to_be_purged:
-                        self.on_candidate_exit(candidate)
-                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+
                 except:
                     pass
 
                 # rerun over 3 seconds
-                yield 5.0
+                yield 2.0
 
         self.dispersy.callback.register(ping_and_purge, priority= 0)
 
