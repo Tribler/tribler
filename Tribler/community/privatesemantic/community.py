@@ -266,7 +266,7 @@ class ForwardCommunity():
                 yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
                 attempts -= 1
 
-        peers = self._peercache[:nr]
+        peers = self._peercache.get_peers()[:nr]
         for sock_addr in peers:
             candidate = self.get_candidate(sock_addr, replace=False)
             if not candidate:
