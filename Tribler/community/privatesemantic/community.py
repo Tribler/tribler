@@ -83,9 +83,9 @@ class ForwardCommunity():
             self._torrent_db = TorrentDBHandler.getInstance()
             self._mypref_db = MyPreferenceDBHandler.getInstance()
             self._notifier = Notifier.getInstance()
-
+            self._peercache = None
         else:
-            self._mypref_db = self._torrent_db = Das4DBStub(self._dispersy)
+            self._mypref_db = self._torrent_db = self._peercache = Das4DBStub(self._dispersy)
             self._notifier = None
 
     def initiate_meta_messages(self):
@@ -116,6 +116,10 @@ class ForwardCommunity():
                 if len(self.taste_buddies) < self.max_taste_buddies or new_tb_tuple[0] > self.taste_buddies[-1][0]:
                     self.taste_buddies.append(new_tb_tuple)
                     self.dispersy.callback.register(self.create_ping_request, args=(new_tb_tuple[-1],), delay=PING_INTERVAL)
+
+                # if we have any similarity, cache peer
+                if new_tb_tuple[0] and new_tb_tuple[-1].connection_type == u"public":
+                    self._peercache.add_peer(new_tb_tuple[0], new_tb_tuple[-1].sock_addr)
 
         self.taste_buddies.sort(reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
@@ -252,6 +256,23 @@ class ForwardCommunity():
             candidates = sample(candidates, nr)
 
         return candidates
+
+    # connect to first nr peers in peercache
+    def connect_to_peercache(self, nr=10):
+        def attempt_to_connect(candidate, attempts):
+            while not self._community.is_taste_buddy(candidate) and attempts:
+                self.send_introduction_request(candidate, True)
+
+                yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
+                attempts -= 1
+
+        peers = self._peercache[:nr]
+        for sock_addr in peers:
+            candidate = self.get_candidate(sock_addr, replace=False)
+            if not candidate:
+                candidate = self.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
+
+            self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10))
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
         if exclude_candidate:
@@ -1031,6 +1052,8 @@ class Das4DBStub():
         self.myMegaCache = OrderedDict()
         self.id2category = {1:u''}
 
+        self.peercache = {}
+
     def addMyPreference(self, torrent_id, data):
         infohash = str(torrent_id)
         self.myPreferences.add(infohash)
@@ -1048,3 +1071,12 @@ class Das4DBStub():
         if limit:
             return preferences[:limit]
         return preferences
+
+    def add_peer(self, similarity, ipport):
+        self.peercache[ipport] = similarity
+
+    def get_peers(self):
+        peers = self.peercache.items()
+        peers.sort(cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
+
+        return [ipport for ipport, _ in peers]
