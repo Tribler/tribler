@@ -92,7 +92,7 @@ class DispersyTunnelProxy(Observable):
     def active_circuits(self):
         # Circuit is active when it has recieved a CREATED for it and the final length and the length is 0
         return [circuit for circuit in self.get_circuits() if
-                circuit.created and circuit.goal_hops == len(circuit.hops) and circuit.goal_hops > 0]
+                circuit.created and circuit.goal_hops == len(circuit.hops)]
 
     def get_circuits(self):
         return self.circuits.values()
@@ -117,6 +117,7 @@ class DispersyTunnelProxy(Observable):
 
         # Add 0-hop circuit
         self.circuits[0] = Circuit(0)
+        self.circuits[0].created = True
 
         self.lock = threading.RLock()
 
@@ -267,7 +268,7 @@ class DispersyTunnelProxy(Observable):
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
 
-            if len(self.active_circuits) > 2:
+            if len(self.active_circuits) > 3:
                 self.fire("on_ready", trigger_on_subscribe=True)
 
             self._process_extension_queue(circuit)
@@ -475,7 +476,7 @@ class DispersyTunnelProxy(Observable):
             if circuit.goal_hops < len(circuit.hops):
                 self.break_circuit(circuit_id)
 
-            if len(self.active_circuits) > 2:
+            if len(self.active_circuits) > 3:
                 self.fire("on_ready", trigger_on_subscribe=True)
 
     def _generate_circuit_id(self, neighbour):
@@ -566,15 +567,15 @@ class DispersyTunnelProxy(Observable):
 
         with self.lock:
             try:
-                # If no circuit specified, pick one from the ACTIVE LIST + 0-HOP
+                # If no circuit specified, pick one from the ACTIVE LIST
                 if circuit_id is None and ultimate_destination is not None:
                     # Each destination may be tunneled over a SINGLE different circuit
                     if ultimate_destination in self.destination_circuit:
                         circuit_id = self.destination_circuit[ultimate_destination]
 
-                    if circuit_id is None or circuit_id not in [c.id for c in self.active_circuits] + [0]:
+                    if circuit_id is None or circuit_id not in [c.id for c in self.active_circuits]:
                         # Make sure the '0-hop circuit' is also a candidate for selection
-                        circuit_id = choice(self.active_circuits + [self.circuits[0]]).id
+                        circuit_id = choice(self.active_circuits).id
                         self.destination_circuit[ultimate_destination] = circuit_id
                         logger.warning("SELECT %d for %s", circuit_id, ultimate_destination)
 
@@ -612,7 +613,7 @@ class DispersyTunnelProxy(Observable):
             if circuit_id in self.circuits:
                 del self.circuits[circuit_id]
 
-            tunnels_going_down = len(self.active_circuits) == 0
+            tunnels_going_down = len(self.active_circuits) == 1 # Don't count the 0-hop tunnel
             # Delete any ultimate destinations mapped to this circuit
             for key, value in self.destination_circuit.items():
                 if value == circuit_id:
@@ -622,7 +623,7 @@ class DispersyTunnelProxy(Observable):
             if tunnels_going_down:
                 self.fire("on_down")
 
-                if len(self.active_circuits) > 2:
+                if len(self.active_circuits) > 3:
                     self.fire("on_ready")
 
     def on_member_exit(self, event):
