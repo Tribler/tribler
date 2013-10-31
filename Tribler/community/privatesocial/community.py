@@ -16,7 +16,7 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesocial.payload import EncryptedPayload
 from Tribler.community.privatesemantic.rsa import rsa_encrypt, key_to_bytes
-from Tribler.community.privatesemantic.community import PForwardCommunity
+from Tribler.community.privatesemantic.community import PoliForwardCommunity
 
 ENCRYPTION = True
 
@@ -91,7 +91,7 @@ class SocialCommunity(Community):
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
 
-class PSocialCommunity(PForwardCommunity, SocialCommunity):
+class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None):
@@ -101,17 +101,17 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
         except StopIteration:
             return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(PSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(PoliForwardCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        PForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint)
+        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint)
 
     def initiate_conversions(self):
-        return PForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
+        return PoliForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return PForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return PoliForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
 
 class Das4DBStub():
     def __init__(self, dispersy):
