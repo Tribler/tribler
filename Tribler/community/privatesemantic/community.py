@@ -306,6 +306,11 @@ class ForwardCommunity():
     def create_similarity_payload(self, identifier):
         raise NotImplementedError()
 
+    def process_similarity_response(self, candidate_mid, response):
+        raise NotImplementedError()
+    def process_msimilarity_response(self, message):
+        raise NotImplementedError()
+
     def create_msimilarity_request(self, destination):
         identifier = self._dispersy.request_cache.claim(ForwardCommunity.SimilarityAttempt(self, destination))
 
@@ -324,10 +329,10 @@ class ForwardCommunity():
         timeout_delay = 7.0
         cleanup_delay = 0.0
 
-        def __init__(self, community, message, requested_candidates):
+        def __init__(self, community, requesting_candidate, requested_candidates):
             self.community = community
 
-            self.requesting_candidate = message.candidate
+            self.requesting_candidate = requesting_candidate
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
             for candidate in self.requested_candidates:
@@ -338,12 +343,12 @@ class ForwardCommunity():
             self.received_lists = []
             self.isProcessed = False
 
-        def add_response(self, candidate_mid, response):
+        def add_response(self, candidate, candidate_mid, response):
             if candidate_mid:
                 if candidate_mid in self.requested_mids:
                     if candidate_mid not in self.received_candidates:
                         self.received_candidates.add(candidate_mid)
-                        self.received_lists.append((candidate_mid, response))
+                        self.received_lists.append((candidate, candidate_mid, response))
             else:
                 self.my_response = response
 
@@ -353,11 +358,17 @@ class ForwardCommunity():
         def process(self):
             if not self.isProcessed:
                 self.isProcessed = True
-                if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
-                self.community._dispersy.request_cache.pop(self.identifier, ForwardCommunity.MSimilarityRequest)
-                return self.community.send_msimilarity_response(self.requesting_candidate, self.identifier, self.my_response, self.received_lists)
+                if self.requesting_candidate:
+                    if DEBUG_VERBOSE:
+                        print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
+
+                    self.community._dispersy.request_cache.pop(self.identifier, ForwardCommunity.MSimilarityRequest)
+                    return self.community.send_msimilarity_response(self.requesting_candidate, self.identifier, self.my_response, self.received_lists)
+
+                for response in self.received_lists:
+                    self.community.process_similarity_response(response[0], response[1], response[2])
+                return 0
 
         def on_timeout(self):
             if not self.isProcessed:
@@ -385,9 +396,9 @@ class ForwardCommunity():
             candidates = self.get_connections(self.forward_to, message.candidate)
 
             # create a register similarity request
-            request = ForwardCommunity.MSimilarityRequest(self, message, candidates)
+            request = ForwardCommunity.MSimilarityRequest(self, message.candidate, candidates)
             # add local response
-            request.add_response(None, self.on_similarity_request([message], False))
+            request.add_response(None, None, self.on_similarity_request([message], False))
 
             self._dispersy.request_cache.set(message.payload.identifier, request)
             if candidates:
@@ -398,13 +409,13 @@ class ForwardCommunity():
                 request.process()
 
     def create_similarity_request(self, destination):
-        identifier = self._dispersy.request_cache.claim(ForwardCommunity.SimilarityAttempt(self, destination))
+        identifier = self._dispersy.request_cache.claim(ForwardCommunity.MSimilarityRequest(self, None, [destination]))
         payload = self.create_similarity_payload(identifier)
         if payload:
             self.send_similarity_request([destination], payload)
             return True
 
-        self._dispersy.request_cache.pop(identifier, ForwardCommunity.SimilarityAttempt)
+        self._dispersy.request_cache.pop(identifier, ForwardCommunity.MSimilarityRequest)
         return False
 
     def send_similarity_request(self, candidates, payload):
@@ -447,7 +458,7 @@ class ForwardCommunity():
         for message in messages:
             request = self._dispersy.request_cache.get(message.payload.identifier, ForwardCommunity.MSimilarityRequest)
             if request:
-                request.add_response(message.authentication.member.mid, message.payload)
+                request.add_response(message.candidate, message.authentication.member.mid, message.payload)
                 if request.is_complete():
                     self.reply_packet_size += request.process()
 
@@ -461,6 +472,8 @@ class ForwardCommunity():
                 # replace message.candidate with WalkCandidate
                 # TODO: this seems to be a bit dodgy
                 message._candidate = request.requested_candidate
+
+                self.process_msimilarity_response(message)
 
                 destination, introduce_me_to = self.get_most_similar(message.candidate)
                 self.send_introduction_request(destination, introduce_me_to)
@@ -616,6 +629,31 @@ class PForwardCommunity(ForwardCommunity):
             Payload = namedtuple('Payload', ['identifier', 'key_n', 'preference_list', 'global_vector'])
             return Payload(identifier, self.key.n, encrypted_vector, global_vector)
 
+    def process_similarity_response(self, candidate, candidate_mid, payload):
+        _sum = self.self.compute_overlap(payload._sum)
+        self.add_taste_buddies([[_sum, time(), candidate]])
+
+    def process_msimilarity_response(self, message):
+        if DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
+
+        _sums = [[self.compute_overlap(_sum), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
+        _sum = self.self.compute_overlap(message.payload._sum)
+
+        self.add_taste_buddies([[_sum, time(), message.candidate]])
+
+        _sums = [possible for possible in _sums if possible[0]]
+        if _sums:
+            self.add_possible_taste_buddies(_sums)
+
+    def compute_overlap(self, _sum):
+        t1 = time()
+        if self.encryption:
+            _sum = pallier_decrypt(self.key, _sum)
+
+        self.create_time_decryption += time() - t1
+        return _sum
+
     def send_msimilarity_request(self, destination, payload):
         meta_request = self.get_meta_message(u"msimilarity-request")
         request = meta_request.impl(authentication=(self.my_member,),
@@ -674,7 +712,7 @@ class PForwardCommunity(ForwardCommunity):
                 return _sum
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_sum, received_sums):
-        received_sums = [(mid, payload._sum) for mid, payload in received_sums]
+        received_sums = [(mid, payload._sum) for _, mid, payload in received_sums]
 
         meta_request = self.get_meta_message(u"msimilarity-response")
         response = meta_request.impl(authentication=(self._my_member,),
@@ -684,29 +722,6 @@ class PForwardCommunity(ForwardCommunity):
 
         self._dispersy._forward([response])
         return len(response.packet)
-
-    def on_msimilarity_response(self, messages):
-        for message in messages:
-            if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
-
-            t1 = time()
-            if self.encryption:
-                _sums = [[pallier_decrypt(self.key, _sum), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
-                _sum = pallier_decrypt(self.key, message.payload._sum)
-            else:
-                _sums = [[_sum, time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
-                _sum = message.payload._sum
-
-            self.create_time_decryption += time() - t1
-
-            self.add_taste_buddies([[_sum, time(), message.candidate]])
-
-            _sums = [possible for possible in _sums if possible[0]]
-            if _sums:
-                self.add_possible_taste_buddies(_sums)
-
-        ForwardCommunity.on_msimilarity_response(self, messages)
 
     def create_global_vector(self):
         # 1. fetch my preferences
@@ -765,6 +780,43 @@ class HForwardCommunity(ForwardCommunity):
         if myPreferences:
             Payload = namedtuple('Payload', ['identifier', 'key_n', 'preference_list'])
             return Payload(identifier, long(self.key.n), myPreferences)
+
+    def process_similarity_response(self, candidate, candidate_mid, payload):
+        overlap = self.compute_overlap([payload.preference_list, payload.his_preference_list])
+        self.add_taste_buddies([[overlap, time(), candidate]])
+
+    def process_msimilarity_response(self, message):
+        if DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
+
+        overlap = self.compute_overlap([message.payload.preference_list, message.payload.his_preference_list])
+        self.add_taste_buddies([[overlap, time(), message.candidate]])
+
+        possibles = []
+        for candidate_mid, remote_response in message.payload.bundled_responses:
+            overlap = self.compute_overlap(remote_response)
+            possibles.append([overlap, time(), candidate_mid, message.candidate])
+
+        self.add_possible_taste_buddies(possibles)
+
+    def compute_overlap(self, lists):
+        preference_list, his_preference_list = lists
+
+        if self.encryption:
+            t1 = time()
+            myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in preference_list]
+
+            self.create_time_decryption += time() - t1
+        else:
+            myList = [long_to_bytes(infohash) for infohash in preference_list]
+
+        assert all(len(infohash) == 20 for infohash in myList)
+
+        overlap = 0
+        for pref in myList:
+            if pref in his_preference_list:
+                overlap += 1
+        return overlap
 
     def send_msimilarity_request(self, destination, payload):
         if DEBUG_VERBOSE:
@@ -836,7 +888,7 @@ class HForwardCommunity(ForwardCommunity):
                 return hisList, myList
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
-        received_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for mid, payload in received_responses]
+        received_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for _, mid, payload in received_responses]
 
         meta_request = self.get_meta_message(u"msimilarity-response")
         response = meta_request.impl(authentication=(self._my_member,),
@@ -846,42 +898,6 @@ class HForwardCommunity(ForwardCommunity):
 
         self._dispersy._forward([response])
         return len(response.packet)
-
-    def compute_overlap(self, lists):
-        preference_list, his_preference_list = lists
-
-        if self.encryption:
-            t1 = time()
-            myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in preference_list]
-
-            self.create_time_decryption += time() - t1
-        else:
-            myList = [long_to_bytes(infohash) for infohash in preference_list]
-
-        assert all(len(infohash) == 20 for infohash in myList)
-
-        overlap = 0
-        for pref in myList:
-            if pref in his_preference_list:
-                overlap += 1
-        return overlap
-
-    def on_msimilarity_response(self, messages):
-        for message in messages:
-            if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
-
-            overlap = self.compute_overlap([message.payload.preference_list, message.payload.his_preference_list])
-            self.add_taste_buddies([[overlap, time(), message.candidate]])
-
-            possibles = []
-            for candidate_mid, remote_response in message.payload.bundled_responses:
-                overlap = self.compute_overlap(remote_response)
-                possibles.append([overlap, time(), candidate_mid, message.candidate])
-
-            self.add_possible_taste_buddies(possibles)
-
-        ForwardCommunity.on_msimilarity_response(self, messages)
 
 class PoliForwardCommunity(ForwardCommunity):
 
@@ -937,6 +953,39 @@ class PoliForwardCommunity(ForwardCommunity):
         if partitions:
             Payload = namedtuple('Payload', ['identifier', 'key_n', 'coefficients'])
             return Payload(identifier, long(self.key.n), partitions)
+
+    def process_similarity_response(self, candidate, candidate_mid, payload):
+        overlap = self.compute_overlap(payload.my_response)
+        self.add_taste_buddies([[overlap, time(), candidate]])
+
+    def process_msimilarity_response(self, message):
+        if DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "PoliSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
+
+        overlap = self.compute_overlap(message.payload.my_response)
+        self.add_taste_buddies([[overlap, time(), message.candidate]])
+
+        possibles = []
+        for candidate_mid, remote_response in message.payload.bundled_responses:
+            overlap = self.compute_overlap(remote_response)
+            possibles.append([overlap, time(), candidate_mid, message.candidate])
+
+        self.add_possible_taste_buddies(possibles)
+
+    def compute_overlap(self, evaluated_polynomial):
+        overlap = 0
+
+        t1 = time()
+        for py in evaluated_polynomial:
+            if self.encryption:
+                if pallier_decrypt(self.key, py) == 0:
+                    overlap += 1
+            else:
+                if py == 0:
+                    overlap += 1
+        self.create_time_decryption += time() - t1
+        return overlap
+
 
     def send_msimilarity_request(self, destination, payload):
         if DEBUG_VERBOSE:
@@ -1021,7 +1070,7 @@ class PoliForwardCommunity(ForwardCommunity):
                 return results
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
-        received_responses = [(mid, payload.my_response) for mid, payload in received_responses]
+        received_responses = [(mid, payload.my_response) for _, mid, payload in received_responses]
 
         meta_request = self.get_meta_message(u"msimilarity-response")
         response = meta_request.impl(authentication=(self._my_member,),
@@ -1031,37 +1080,6 @@ class PoliForwardCommunity(ForwardCommunity):
 
         self._dispersy._forward([response])
         return len(response.packet)
-
-    def on_msimilarity_response(self, messages):
-        for message in messages:
-            if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PoliSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
-
-            overlap = self.compute_overlap(message.payload.my_response)
-            self.add_taste_buddies([[overlap, time(), message.candidate]])
-
-            possibles = []
-            for candidate_mid, remote_response in message.payload.bundled_responses:
-                overlap = self.compute_overlap(remote_response)
-                possibles.append([overlap, time(), candidate_mid, message.candidate])
-
-            self.add_possible_taste_buddies(possibles)
-
-        ForwardCommunity.on_msimilarity_response(self, messages)
-
-    def compute_overlap(self, evaluated_polynomial):
-        overlap = 0
-
-        t1 = time()
-        for py in evaluated_polynomial:
-            if self.encryption:
-                if pallier_decrypt(self.key, py) == 0:
-                    overlap += 1
-            else:
-                if py == 0:
-                    overlap += 1
-        self.create_time_decryption += time() - t1
-        return overlap
 
 class Das4DBStub():
     def __init__(self, dispersy):
