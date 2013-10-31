@@ -32,6 +32,7 @@ from pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt,
 from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from polycreate import compute_coeff, polyval
 from collections import namedtuple
+from scipy.signal._arraytools import even_ext
 
 DEBUG = True
 DEBUG_VERBOSE = False
@@ -1065,7 +1066,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
             self.create_time_decryption += time() - t1
         else:
-            print >> sys.stderr, "Comparing", myPreferences, "to", evaluated_polynomial
+            print >> sys.stderr, "Comparing", myPreferences, py
 
             for py in evaluated_polynomial:
                 if py in myPreferences:
@@ -1130,14 +1131,12 @@ class PoliForwardCommunity(ForwardCommunity):
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
                     py = pallier_polyval(message.payload.coefficients[partition], val, user_n2)
-                    if self.use_cardinality:
-                        py = pallier_multiply(py, randint(0, 2 ** 40), user_n2)
+                    py = pallier_multiply(py, randint(0, 2 ** 40), user_n2)
                     results.append(py)
             else:
                 for partition, val in _myPreferences:
                     py = polyval(message.payload.coefficients[partition], val)
-                    if self.use_cardinality:
-                        py = py * randint(0, 2 ** 40)
+                    py = py * randint(0, 2 ** 40) + (0 if self.use_cardinality else val)
                     results.append(py)
 
             self.receive_time_encryption += time() - t1
