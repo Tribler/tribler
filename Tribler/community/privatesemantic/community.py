@@ -32,7 +32,6 @@ from pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt,
 from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from polycreate import compute_coeff, polyval
 from collections import namedtuple
-from scipy.signal._arraytools import even_ext
 
 DEBUG = True
 DEBUG_VERBOSE = False
