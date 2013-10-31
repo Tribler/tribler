@@ -262,7 +262,8 @@ class ForwardCommunity():
     def connect_to_peercache(self, nr=10):
         def attempt_to_connect(candidate, attempts):
             while not self.is_taste_buddy(candidate) and attempts:
-                self.create_similarity_request(candidate)
+                if not self.create_similarity_request(candidate):
+                    print >> sys.stderr, "Did not send request to %s ???" % candidate
 
                 yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
                 attempts -= 1
@@ -416,8 +417,7 @@ class ForwardCommunity():
             if DEBUG:
                 print >> sys.stderr, long(time()), "SearchCommunity: sending similarity request to", str(destination), identifier
 
-            self.send_similarity_request([destination], payload)
-            return True
+            return self.send_similarity_request([destination], payload)
 
         self._dispersy.request_cache.pop(identifier, ForwardCommunity.MSimilarityRequest)
         return False
@@ -673,8 +673,10 @@ class PForwardCommunity(ForwardCommunity):
                             distribution=(self.global_time,),
                             payload=(payload.identifier, payload.key_n, payload.preference_list, payload.global_vector))
 
-        self._dispersy._send(candidates, [request])
-        self.forward_packet_size += len(request.packet) * len(candidates)
+        if self._dispersy._send(candidates, [request]):
+            self.forward_packet_size += len(request.packet) * len(candidates)
+            return True
+        return False
 
     def on_similarity_request(self, messages, send_messages=True):
         for message in messages:
@@ -839,8 +841,10 @@ class HForwardCommunity(ForwardCommunity):
                             distribution=(self.global_time,),
                             payload=(payload.identifier, payload.key_n, payload.preference_list[:self.max_f_prefs]))
 
-        self._dispersy._send(candidates, [request])
-        self.forward_packet_size += len(request.packet) * len(candidates)
+        if self._dispersy._send(candidates, [request]):
+            self.forward_packet_size += len(request.packet) * len(candidates)
+            return True
+        return False
 
     def on_similarity_request(self, messages, send_messages=True):
         # 1. fetch my preferences
@@ -1020,8 +1024,10 @@ class PoliForwardCommunity(ForwardCommunity):
                             distribution=(self.global_time,),
                             payload=(payload.identifier, payload.key_n, coefficients))
 
-        self._dispersy._send(candidates, [request])
-        self.forward_packet_size += len(request.packet) * len(candidates)
+        if self._dispersy._send(candidates, [request]):
+            self.forward_packet_size += len(request.packet) * len(candidates)
+            return True
+        return False
 
     def on_similarity_request(self, messages, send_messages=True):
         # 1. fetch my preferences
