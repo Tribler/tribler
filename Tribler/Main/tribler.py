@@ -363,6 +363,9 @@ class ABCApp():
             self.frame.home.channelLinkText.ShowItems(False)
             self.frame.home.buzzpanel.Show(False)
             self.frame.home.searchButton.Show(False)
+
+            # Disable drag and drop
+            self.frame.SetDropTarget(None)
         except Exception as e:
             self.onError(e)
             return False

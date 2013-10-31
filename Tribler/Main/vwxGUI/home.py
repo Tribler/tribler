@@ -87,6 +87,9 @@ class Home(XRCPanel):
             searchButton.SetLabel('Search')
         else:
             searchButton = wx.Button(self, -1, 'Search')
+
+        self.searchButton = searchButton
+
         searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
 
         scalingSizer.Add(searchButton, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
@@ -95,6 +98,8 @@ class Home(XRCPanel):
         textSizer.AddSpacer((1, 1))
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.channelLinkText = hSizer
+
         hSizer.Add(StaticText(self, -1, "Take me to "))
         channelLink = LinkStaticText(self, "channels", icon=None)
 
