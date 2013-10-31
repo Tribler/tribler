@@ -638,7 +638,7 @@ class PForwardCommunity(ForwardCommunity):
             print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
 
         _sums = [[self.compute_overlap(_sum), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
-        _sum = self.self.compute_overlap(message.payload._sum)
+        _sum = self.compute_overlap(message.payload._sum)
 
         self.add_taste_buddies([[_sum, time(), message.candidate]])
 
