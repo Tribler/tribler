@@ -33,7 +33,7 @@ from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from polycreate import compute_coeff, polyval
 from collections import namedtuple
 
-DEBUG = False
+DEBUG = True
 DEBUG_VERBOSE = False
 ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
@@ -637,11 +637,9 @@ class PForwardCommunity(ForwardCommunity):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
 
+        self.add_taste_buddies([[self.compute_overlap(message.payload._sum), time(), message.candidate]])
+
         _sums = [[self.compute_overlap(_sum), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
-        _sum = self.compute_overlap(message.payload._sum)
-
-        self.add_taste_buddies([[_sum, time(), message.candidate]])
-
         _sums = [possible for possible in _sums if possible[0]]
         if _sums:
             self.add_possible_taste_buddies(_sums)
