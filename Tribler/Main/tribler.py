@@ -11,9 +11,11 @@
 #
 # see LICENSE.txt for license information
 #
+import glob
 
 import sys
 import logging.config
+import time
 
 
 try:
@@ -350,6 +352,33 @@ class ABCApp():
 
             self.ready = True
 
+            def test_download():
+                def state_call(ds):
+                    if ds.get_status() == DLSTATUS_DOWNLOADING:
+                        print >> sys.stderr, "DLSTATUS_DOWNLOADING"
+                    else:
+                        print >> sys.stderr, ds.get_status()
+
+                    return (1.0, False)
+
+                root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
+
+                try:
+                    download = get_default_dest_dir() + "/" + root_hash
+
+                    for file in glob.glob(download + "*"):
+                        os.remove(file)
+                except:
+                    pass
+
+                sdef = SwiftDef.load_from_url("tswift://devristo.dyndns.org:20001/" + root_hash)
+                sdef.set_name("AnonTunnel test")
+
+                result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
+                result.set_state_callback(state_call, delay=1)
+
+
+            wx.CallAfter(test_download)
         except Exception as e:
             self.onError(e)
             return False
@@ -431,6 +460,10 @@ class ABCApp():
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         if DEBUG:
             print >> sys.stderr, "main: Download config", dlcfgfilename
+
+        if os.path.isfile(dlcfgfilename):
+            os.remove(dlcfgfilename)
+
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
