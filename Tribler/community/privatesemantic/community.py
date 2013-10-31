@@ -63,9 +63,15 @@ class TasteBuddy():
             return other in self.candidate.get_members()
 
     def __cmp__(self, other):
-        if isinstance(self.overlap, list):
-            return cmp(len(self.overlap), len(other.overlap))
-        return cmp(self.overlap, other.overlap)
+        if isinstance(other, TasteBuddy):
+            if isinstance(self.overlap, list):
+                return cmp(len(self.overlap), len(other.overlap))
+            return cmp(self.overlap, other.overlap)
+
+        elif isinstance(other, int):
+            if isinstance(self.overlap, list):
+                return cmp(len(self.overlap), other)
+            return cmp(self.overlap, other)
 
     def __str__(self):
         overlap = self.overlap
