@@ -126,7 +126,7 @@ class ForwardCommunity():
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
         if DEBUG:
-            print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), self.taste_buddies
+            print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), [map(str, tb_tuple) for tb_tuple in self.taste_buddies]
 
     def yield_taste_buddies(self, ignore_candidate=None):
         taste_buddies = self.taste_buddies[:]
@@ -373,7 +373,7 @@ class ForwardCommunity():
         def on_timeout(self):
             if not self.isProcessed:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: timeout MSimilarityRequest", self.identifier, len(self.received_lists), len(self.requested_candidates)
+                    print >> sys.stderr, long(time()), "ForwardCommunity: timeout MSimilarityRequest", self.identifier, len(self.received_lists), len(self.requested_candidates), str(self.requested_candidates[0])
 
                 self.process()
 
