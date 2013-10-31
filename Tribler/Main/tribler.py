@@ -58,7 +58,8 @@ from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIG
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import current_thread, currentThread
+from threading import current_thread, currentThread, Lock
+
 try:
     prctlimported = True
     import prctl
@@ -154,6 +155,9 @@ ALLOW_MULTIPLE = False
 class ABCApp():
 
     def __init__(self, params, single_instance_checker, installdir):
+        self.tunnel = None
+
+
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.installdir = self.configure_install_dir(installdir)
@@ -288,6 +292,7 @@ class ABCApp():
                 f.close()
 
             self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
+            self.setup_anon_test()
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
@@ -409,6 +414,35 @@ class ABCApp():
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
+    def setup_anon_test(self):
+        if not self.tunnel or not self.frame:
+            return
+
+        def state_call(ds):
+            if ds.get_status() == DLSTATUS_DOWNLOADING:
+                self.tunnel.record_stats = True
+            elif ds.get_current_speed == DLSTATUS_SEEDING:
+                self.tunnel.record_stats = False
+                self.tunnel.share_stats = True
+
+            return (1.0, False)
+
+        root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
+
+        try:
+            download = get_default_dest_dir() + "/" + root_hash
+
+            for file in glob.glob(download + "*"):
+                os.remove(file)
+        except:
+            pass
+
+        sdef = SwiftDef.load_from_url("tswift://devristo.dyndns.org:20001/" + root_hash)
+        sdef.set_name("AnonTunnel test")
+
+        result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
+        result.set_state_callback(state_call, delay=1)
+
     def startAPI(self, progress):
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
@@ -479,7 +513,7 @@ class ABCApp():
         socks_server.attach_to(s.lm.rawserver, 1080)
 
         # Yep there is a cyclic dependency!
-        tunnel = DispersyTunnelProxy(socks_server)
+        tunnel = DispersyTunnelProxy(s.lm.rawserver)
         socks_server.tunnel = tunnel
         socks_server.start()
 
@@ -515,30 +549,8 @@ class ABCApp():
             def on_load(proxy_community):
                 print >> sys.stderr, "ProxyCommunity has been loaded, linking TUNNEL, starting TEST"
                 tunnel.start(dispersy.callback, proxy_community)
-                def state_call(ds):
-                    if ds.get_status() == DLSTATUS_DOWNLOADING:
-                        tunnel.record_stats = True
-                    elif ds.get_current_speed == DLSTATUS_SEEDING:
-                        tunnel.record_stats = False
-                        tunnel.share_stats = True
-
-                    return (1.0, False)
-
-                root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
-
-                try:
-                    download = get_default_dest_dir() + "/" + root_hash
-
-                    for file in glob.glob(download + "*"):
-                        os.remove(file)
-                except:
-                    pass
-
-                sdef = SwiftDef.load_from_url("tswift://devristo.dyndns.org:20001/" + root_hash)
-                sdef.set_name("AnonTunnel test")
-
-                #result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
-                #result.set_state_callback(state_call, delay=1)
+                self.tunnel = tunnel
+                self.setup_anon_test()
 
 
             dispersy.define_auto_load(ProxyCommunity,

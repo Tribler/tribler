@@ -100,20 +100,23 @@ class DispersyTunnelProxy(Observable):
     def get_relays(self):
         return self.relay_from_to.values()
 
-    def __init__(self, socks_server):
+    def __init__(self, raw_server):
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
         Observable.__init__(self)
 
         self.share_stats = False
+        self.callback = None
 
-        self.socket_server = socks_server
+        self.raw_server = raw_server
         self._record_stats = False
 
         self._exit_sockets = {}
 
         self.done = False
         self.circuits = {}
+
+        self.member_heartbeat = {}
 
         # Add 0-hop circuit
         self.circuits[0] = Circuit(0)
@@ -143,9 +146,53 @@ class DispersyTunnelProxy(Observable):
             'dropped_exit': 0
         }
 
+    def setup_keep_alive(self):
+        def ping_and_purge():
+            while True:
+                logger.info("ping_purge")
+
+                try:
+                    timeout = 2.0
+
+                    # Candidates we have sent a ping in the last 'time out' seconds and haven't returned a heat beat
+                    # in 2*timeout seconds shall be purged
+                    candidates_to_be_purged = \
+                        {
+                            circuit.candidate
+                            for circuit in self.circuits.values()
+                            if circuit.candidate and (
+                                circuit.candidate not in self.member_heartbeat
+                                or self.member_heartbeat[circuit.candidate] < time.time() - 4*timeout
+                            )
+                        }
+
+                    for candidate in candidates_to_be_purged:
+                        self.on_candidate_exit(candidate)
+                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+
+
+                    candidates_to_be_pinged = \
+                        {
+                            circuit.candidate
+                            for circuit in self.circuits.values()
+                            if circuit.candidate and self.member_heartbeat[circuit.candidate] < time.time() - timeout
+                        }
+
+                    for candidate in candidates_to_be_pinged:
+                        self.community.send(u"ping", candidate)
+                        logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+
+                except:
+                    print_exc()
+
+                # rerun over 3 seconds
+                yield 2.0
+
+        self.callback.register(ping_and_purge, priority= 0)
 
     def start(self, callback, community):
         self.community = community
+        self.callback = callback
 
 
         community.subscribe("on_create", self.on_create)
@@ -155,14 +202,14 @@ class DispersyTunnelProxy(Observable):
         community.subscribe("on_data", self.on_data)
         community.subscribe("on_break", self.on_break)
         community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
-        community.subscribe("on_member_exit", self.on_member_exit)
+        self.setup_keep_alive()
 
         def calc_speeds():
             while True:
-                t2 = time.clock()
+                t2 = time.time()
                 for c in self.circuits.values():
                     if c.timestamp is None:
-                        c.timestamp = time.clock()
+                        c.timestamp = time.time()
                     elif c.timestamp < t2:
 
                         c.speed_up.append((1.0 * c.bytes_up[1] - c.bytes_up[0]) / (t2 - c.timestamp))
@@ -180,7 +227,7 @@ class DispersyTunnelProxy(Observable):
 
                 for r in self.relay_from_to.values():
                     if r.timestamp is None:
-                        r.timestamp = time.clock()
+                        r.timestamp = time.time()
                     elif r.timestamp < t2:
                         r.speed.append((1.0 * r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp))
 
@@ -352,7 +399,7 @@ class DispersyTunnelProxy(Observable):
         # If we don't have an exit socket yet for this socket, create one
 
         if not (circuit_id in self._exit_sockets):
-            self._exit_sockets[circuit_id] = self.socket_server.create_udp_socket()
+            self._exit_sockets[circuit_id] = self.raw_server.create_udpsocket(0, "0.0.0.0")
 
             # There is a special case where the circuit_id is None, then we act as EXIT node ourselves. In this case we
             # create a ShortCircuitHandler that bypasses dispersy by patching ENTER packets directly into the Proxy's
@@ -364,7 +411,7 @@ class DispersyTunnelProxy(Observable):
                 # CircuitReturnHandler. It will use the DispersyTunnelProxy.send_data method to forward the data packet
                 return_handler = CircuitReturnHandler(self._exit_sockets[circuit_id], self, circuit_id, address)
 
-            self.socket_server.start_listening_udp(self._exit_sockets[circuit_id], return_handler)
+            self.raw_server.start_listening_udp(self._exit_sockets[circuit_id], return_handler)
 
         return self._exit_sockets[circuit_id]
 
@@ -553,7 +600,7 @@ class DispersyTunnelProxy(Observable):
         return stats
 
     def on_member_heartbeat(self, event, candidate):
-        candidate = candidate
+        self.member_heartbeat[candidate] = time.time()
 
         if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in [c.candidate for c in self.circuits.values()]:
             self.create_circuit(candidate)
@@ -626,12 +673,11 @@ class DispersyTunnelProxy(Observable):
                 if len(self.active_circuits) > 3:
                     self.fire("on_ready")
 
-    def on_member_exit(self, event, member):
+    def on_candidate_exit(self, candidate):
         """
         When a candidate is leaving the community we must break any associated circuits.
         """
         try:
-            candidate = member
             assert isinstance(candidate, Candidate)
 
             # We must invalidate all routes in which the candidate takes part

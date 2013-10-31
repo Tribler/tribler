@@ -47,7 +47,7 @@ class Observable(object):
 
 
 
-    def fire(self, event_name, **event_parameter_dictionary):
+    def fire(self, event_name, trigger_on_subscribe=False, **event_parameter_dictionary):
         """
         Fire an event by name
         :param event_name: the event to fire
@@ -55,7 +55,7 @@ class Observable(object):
         :return: None
         """
 
-        if 'trigger_on_subscribe' in event_parameter_dictionary:
+        if trigger_on_subscribe:
             self.trigger_on_subscribe[event_name] = True
 
         if not event_name in self.callbacks:

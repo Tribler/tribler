@@ -36,7 +36,7 @@ class AnonTunnel(Thread):
 
         self.endpoint = RawserverEndpoint(self.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
-        self.tunnel = DispersyTunnelProxy(self.socks5_server)
+        self.tunnel = DispersyTunnelProxy(self.raw_server)
         self.socks5_server.tunnel = self.tunnel
 
         #self.command_handler = CommandHandler(self)

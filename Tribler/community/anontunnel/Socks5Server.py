@@ -64,7 +64,7 @@ class Socks5Server(object):
         if self.socks5_port:
             try:
                 port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
-                                                     reuse=True, handler=self)
+                                                     reuse=True, handler=self.connection_handler)
                 if self.tunnel:
                     self.bind_events()
 
@@ -99,37 +99,19 @@ class Socks5Server(object):
     def start_connection(self, dns):
         return self.raw_server.start_connection_raw(dns, handler=self.connection_handler)
 
-    def create_udp_socket(self):
-        """
-        Creates a UDP socket bound to a free port on all interfaces
-        :rtype : socket.socket
-        """
-        return self.raw_server.create_udpsocket(0, "0.0.0.0")
-
     def create_udp_relay(self):
         """
         Initializes an UDP relay by listening to a newly created socket and attaching a UdpRelayHandler
         :rtype : socket.socket
         """
 
-        udp_relay_socket = self.create_udp_socket()
+        udp_relay_socket = self.raw_server.create_udpsocket(0,"0.0.0.0")
         handler = UdpRelayTunnelHandler(udp_relay_socket, self)
-        self.start_listening_udp(udp_relay_socket, handler)
+        self.raw_server.start_listening_udp(udp_relay_socket, handler)
 
         return udp_relay_socket
 
-    def start_listening_udp(self, udp_socket, handler):
-        """
-        Start listening on an UDP socket by attaching an event handler
-
-        :param udp_socket: the socket to listen on
-        :param handler: the handler to call when new packets are received on the UDP socket
-        :return: None
-        """
-
-        self.raw_server.start_listening_udp(udp_socket, handler)
-
-    def on_tunnel_data(self, event, data):
+    def on_tunnel_data(self, event, data, sender=None):
         # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
 
         # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP

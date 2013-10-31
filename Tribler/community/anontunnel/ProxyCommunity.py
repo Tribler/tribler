@@ -7,7 +7,7 @@ from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPaylo
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
-from Tribler.dispersy.candidate import BootstrapCandidate, Candidate
+from Tribler.dispersy.candidate import BootstrapCandidate, Candidate, WalkCandidate
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -86,7 +86,7 @@ class ProxyCommunity(Community, Observable):
                             if self.member_heartbeat[candidate] < datetime.now() - timedelta(seconds=4*timeout)
                         }
 
-                    for candidate in candidates_to_be_purged:
+                    for candidate in candidates_to_be_purged.values():
                         self.on_candidate_exit(candidate)
                         logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
@@ -107,7 +107,7 @@ class ProxyCommunity(Community, Observable):
                 # rerun over 3 seconds
                 yield 2.0
 
-        self.dispersy.callback.register(ping_and_purge, priority= 0)
+        # self.dispersy.callback.register(ping_and_purge, priority= 0)
 
 
     def initiate_conversions(self):
@@ -123,7 +123,6 @@ class ProxyCommunity(Community, Observable):
                 if msg.candidate in self.member_ping:
                     del self.member_ping[msg.candidate]
 
-                self.member_heartbeat[msg.candidate] = datetime.now()
                 self.fire("on_member_heartbeat", candidate=msg.candidate)
                 self.fire(event_name, message=msg)
 
@@ -193,7 +192,7 @@ class ProxyCommunity(Community, Observable):
             return self._original_on_introduction_request(messages)
         finally:
             for message in messages:
-                if not isinstance(message.candidate, BootstrapCandidate):
+                if not isinstance(message.candidate, BootstrapCandidate) and isinstance(message.candidate, WalkCandidate):
                     self.fire("on_member_heartbeat", candidate=message.candidate)
 
     def on_introduction_response(self, messages):
@@ -201,7 +200,7 @@ class ProxyCommunity(Community, Observable):
             return self._original_on_introduction_response(messages)
         finally:
             for message in messages:
-                if not isinstance(message.candidate, BootstrapCandidate):
+                if not isinstance(message.candidate, BootstrapCandidate) and isinstance(message.candidate, WalkCandidate):
                     self.fire("on_member_heartbeat", candidate=message.candidate)
 
     def on_candidate_exit(self, candidate):
