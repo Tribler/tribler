@@ -201,7 +201,7 @@ class ForwardCommunity():
             else:
                 self.possible_taste_buddies.append(new_pos_tuple)
 
-        self.possible_taste_buddies.sort(reverse=True)
+        self.possible_taste_buddies.sort(cmp=lambda a, b: cmp(len(a[0]), len(b[0])), reverse=True)
 
         if DEBUG and possibles:
             print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
@@ -915,9 +915,10 @@ class HForwardCommunity(ForwardCommunity):
 
 class PoliForwardCommunity(ForwardCommunity):
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True):
         ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies)
         self.key = pallier_init(self.key)
+        self.use_cardinality = use_cardinality
 
     def initiate_conversions(self):
         return [DefaultConversion(self), PoliSearchConversion(self)]
@@ -987,20 +988,37 @@ class PoliForwardCommunity(ForwardCommunity):
         self.add_possible_taste_buddies(possibles)
 
     def compute_overlap(self, evaluated_polynomial):
-        overlap = 0
-
-        t1 = time()
-        for py in evaluated_polynomial:
+        if self.use_cardinality:
+            overlap = 0
             if self.encryption:
-                if pallier_decrypt(self.key, py) == 0:
-                    overlap += 1
+                t1 = time()
+                for py in evaluated_polynomial:
+                    if pallier_decrypt(self.key, py) == 0:
+                        overlap += 1
+                self.create_time_decryption += time() - t1
             else:
-                if py == 0:
-                    overlap += 1
+                for py in evaluated_polynomial:
+                    if py == 0:
+                        overlap += 1
 
-        self.create_time_decryption += time() - t1
+            return [1] * overlap
 
-        return [1] * overlap
+        myPreferences = set([preference for preference in self._mypref_db.getMyPrefListInfohash() if preference])
+
+        overlap = []
+        if self.encryption:
+            t1 = time()
+            for py in evaluated_polynomial:
+                py = pallier_decrypt(self.key, py)
+                if py in myPreferences:
+                    overlap.append(py)
+
+            self.create_time_decryption += time() - t1
+        else:
+            for py in evaluated_polynomial:
+                if py in myPreferences:
+                    overlap.append(py)
+        return overlap
 
     def send_msimilarity_request(self, destination, payload):
         if DEBUG_VERBOSE:
@@ -1060,11 +1078,14 @@ class PoliForwardCommunity(ForwardCommunity):
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
                     py = pallier_polyval(message.payload.coefficients[partition], val, user_n2)
-                    py = pallier_multiply(py, randint(0, 2 ** 40), user_n2)
+                    if self.use_cardinality:
+                        py = pallier_multiply(py, randint(0, 2 ** 40), user_n2)
                     results.append(py)
             else:
                 for partition, val in _myPreferences:
                     py = polyval(message.payload.coefficients[partition], val)
+                    if self.use_cardinality:
+                        py = py * randint(0, 2 ** 40)
                     results.append(py)
 
             self.receive_time_encryption += time() - t1
