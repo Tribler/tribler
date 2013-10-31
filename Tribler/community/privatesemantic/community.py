@@ -710,7 +710,7 @@ class PForwardCommunity(ForwardCommunity):
 
         self.create_time_decryption += time() - t1
 
-        return [1] * _sum
+        return _sum
 
     def send_msimilarity_request(self, destination, payload):
         meta_request = self.get_meta_message(u"msimilarity-request")
@@ -877,7 +877,7 @@ class HForwardCommunity(ForwardCommunity):
 
         self.create_time_decryption += time() - t1
 
-        return [1] * overlap
+        return overlap
 
     def send_msimilarity_request(self, destination, payload):
         if DEBUG_VERBOSE:
@@ -1049,7 +1049,7 @@ class PoliForwardCommunity(ForwardCommunity):
                     if py == 0:
                         overlap += 1
 
-            return [1] * overlap
+            return overlap
 
         myPreferences = set([preference for preference in self._mypref_db.getMyPrefListInfohash() if preference])
 
