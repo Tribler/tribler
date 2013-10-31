@@ -108,7 +108,8 @@ class ForwardCommunity():
                 if tb_tuple[-1].sock_addr == new_tb_tuple[-1].sock_addr:
 
                     # update similarity
-                    tb_tuple[0] = max(new_tb_tuple[0], tb_tuple[0])
+                    if len(new_tb_tuple[0]) > len(tb_tuple[0]):
+                        tb_tuple[0] = new_tb_tuple[0]
                     new_taste_buddies.remove(new_tb_tuple)
                     break
 
@@ -122,7 +123,7 @@ class ForwardCommunity():
                 if new_tb_tuple[0] and new_tb_tuple[-1].connection_type == u"public":
                     self._peercache.add_peer(new_tb_tuple[0], new_tb_tuple[-1].sock_addr)
 
-        self.taste_buddies.sort(reverse=True)
+        self.taste_buddies.sort(cmp=lambda a, b: cmp(len(a[0]), len(b[0])), reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
         if DEBUG:
@@ -176,20 +177,21 @@ class ForwardCommunity():
     def add_possible_taste_buddies(self, possibles):
         if __debug__:
             for possible in possibles:
-                assert isinstance(possible[0], (float, int, long)), type(possible[0])
+                assert isinstance(possible[0], list), type(possible[0])
                 assert isinstance(possible[1], (float, long)), type(possible[1])
                 assert isinstance(possible[2], str), type(possible[2])
                 assert isinstance(possible[3], WalkCandidate), type(possible[3])
 
         low_sim = self.get_low_sim()
         for new_pos_tuple in possibles:
-            if new_pos_tuple[0] <= low_sim:
+            if len(new_pos_tuple[0]) <= low_sim:
                 continue
 
             for i, pos_tuple in enumerate(self.possible_taste_buddies):
                 if new_pos_tuple[2] == pos_tuple[2]:
-                    # max similarity
-                    new_pos_tuple[0] = max(pos_tuple[0], new_pos_tuple[0])
+                    # update similarity
+                    if len(new_pos_tuple[0]) > len(pos_tuple[0]):
+                        new_pos_tuple[0] = pos_tuple[0]
 
                     # replace in list
                     self.possible_taste_buddies[i] = new_pos_tuple
@@ -212,7 +214,7 @@ class ForwardCommunity():
 
     def get_low_sim(self):
         if len(self.taste_buddies) == self.max_taste_buddies:
-            return self.taste_buddies[-1][0]
+            return len(self.taste_buddies[-1][0])
         return 0
 
     def get_most_similar(self, candidate):
@@ -223,7 +225,7 @@ class ForwardCommunity():
         low_sim = self.get_low_sim()
 
         for i in range(len(self.possible_taste_buddies) - 1, -1, -1):
-            to_low_sim = self.possible_taste_buddies[i][0] <= low_sim
+            to_low_sim = len(self.possible_taste_buddies[i][0]) <= low_sim
             to_old = self.possible_taste_buddies[i][1] < to_be_removed
             is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i][2])
             if to_low_sim or to_old or is_tb:
@@ -652,11 +654,13 @@ class PForwardCommunity(ForwardCommunity):
 
     def compute_overlap(self, _sum):
         t1 = time()
+
         if self.encryption:
             _sum = pallier_decrypt(self.key, _sum)
 
         self.create_time_decryption += time() - t1
-        return _sum
+
+        return [1] * _sum
 
     def send_msimilarity_request(self, destination, payload):
         meta_request = self.get_meta_message(u"msimilarity-request")
@@ -808,11 +812,10 @@ class HForwardCommunity(ForwardCommunity):
     def compute_overlap(self, lists):
         preference_list, his_preference_list = lists
 
-        if self.encryption:
-            t1 = time()
-            myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in preference_list]
+        t1 = time()
 
-            self.create_time_decryption += time() - t1
+        if self.encryption:
+            myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in preference_list]
         else:
             myList = [long_to_bytes(infohash) for infohash in preference_list]
 
@@ -822,7 +825,10 @@ class HForwardCommunity(ForwardCommunity):
         for pref in myList:
             if pref in his_preference_list:
                 overlap += 1
-        return overlap
+
+        self.create_time_decryption += time() - t1
+
+        return [1] * overlap
 
     def send_msimilarity_request(self, destination, payload):
         if DEBUG_VERBOSE:
@@ -991,9 +997,10 @@ class PoliForwardCommunity(ForwardCommunity):
             else:
                 if py == 0:
                     overlap += 1
-        self.create_time_decryption += time() - t1
-        return overlap
 
+        self.create_time_decryption += time() - t1
+
+        return [1] * overlap
 
     def send_msimilarity_request(self, destination, payload):
         if DEBUG_VERBOSE:
