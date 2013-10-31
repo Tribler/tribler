@@ -49,7 +49,7 @@ class ProxyCommunity(Community, Observable):
         else:
             return super(ProxyCommunity, cls).load_community(dispersy, master, socks_server)
 
-    def __init__(self, dispersy, master_member, socks_server, create_tunnel=True):
+    def __init__(self, dispersy, master_member, onready=None):
         Observable.__init__(self)
 
         # original walker callbacks (will be set during super(...).__init__)
@@ -58,13 +58,8 @@ class ProxyCommunity(Community, Observable):
 
         Community.__init__(self, dispersy, master_member)
 
-        if socks_server is not None and create_tunnel:
-            self.socks_server = socks_server
-            self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy.callback, self)
-
-            self.socks_server.start()
-
-            self.tribler_notifier = TriblerNotifier(self.socks_server.tunnel)
+        if onready:
+            onready(self)
 
         # Heartbeat hashmap Candidate -> last heart beat timestamp, assume we never heard any
         self.member_heartbeat = {}

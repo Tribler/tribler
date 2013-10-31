@@ -90,7 +90,7 @@ class DispersyTunnelProxy(Observable):
 
     @property
     def active_circuits(self):
-        # Circuit is active when it has recieved a CREATED for it and the final length and the length is 0
+        # Circuit is active when it has received a CREATED for it and the final length and the length is 0
         return [circuit for circuit in self.get_circuits() if
                 circuit.created and circuit.goal_hops == len(circuit.hops)]
 
@@ -100,14 +100,14 @@ class DispersyTunnelProxy(Observable):
     def get_relays(self):
         return self.relay_from_to.values()
 
-    def __init__(self, callback, community):
+    def __init__(self, socks_server):
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
         Observable.__init__(self)
 
         self.share_stats = False
 
-        self.socket_server = community.socks_server
+        self.socket_server = socks_server
         self._record_stats = False
 
         self._exit_sockets = {}
@@ -136,13 +136,17 @@ class DispersyTunnelProxy(Observable):
         self.circuit_tag = {}
 
         self.community = None
-
         self.stats = {
             'bytes_enter': 0,
             'bytes_exit': 0,
             'bytes_returned': 0,
             'dropped_exit': 0
         }
+
+
+    def start(self, callback, community):
+        self.community = community
+
 
         community.subscribe("on_create", self.on_create)
         community.subscribe("on_created", self.on_created)
@@ -215,7 +219,6 @@ class DispersyTunnelProxy(Observable):
         callback.register(calc_speeds, priority=-10)
         callback.register(share_stats, priority=-10)
 
-        self.community = community
 
     def on_break(self, event):
         address = event.message.candidate.sock_addr

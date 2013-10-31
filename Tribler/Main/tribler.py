@@ -16,6 +16,7 @@ import glob
 import sys
 import logging.config
 import time
+from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 
 
 try:
@@ -352,33 +353,16 @@ class ABCApp():
 
             self.ready = True
 
-            def test_download():
-                def state_call(ds):
-                    if ds.get_status() == DLSTATUS_DOWNLOADING:
-                        print >> sys.stderr, "DLSTATUS_DOWNLOADING"
-                    else:
-                        print >> sys.stderr, ds.get_status()
+            # AnonTunnel test
+            self.frame.actlist.DisableItem(3)
+            self.frame.top_bg.searchField.Disable()
+            self.frame.top_bg.searchFieldPanel.Disable()
+            self.frame.top_bg.add_btn.Disable()
 
-                    return (1.0, False)
-
-                root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
-
-                try:
-                    download = get_default_dest_dir() + "/" + root_hash
-
-                    for file in glob.glob(download + "*"):
-                        os.remove(file)
-                except:
-                    pass
-
-                sdef = SwiftDef.load_from_url("tswift://devristo.dyndns.org:20001/" + root_hash)
-                sdef.set_name("AnonTunnel test")
-
-                result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
-                result.set_state_callback(state_call, delay=1)
-
-
-            wx.CallAfter(test_download)
+            self.frame.home.searchBox.Show(False)
+            self.frame.home.channelLinkText.ShowItems(False)
+            self.frame.home.buzzpanel.Show(False)
+            self.frame.home.searchButton.Show(False)
         except Exception as e:
             self.onError(e)
             return False
@@ -491,6 +475,12 @@ class ABCApp():
         socks_server = Socks5Server()
         socks_server.attach_to(s.lm.rawserver, 1080)
 
+        # Yep there is a cyclic dependency!
+        tunnel = DispersyTunnelProxy(socks_server)
+        socks_server.tunnel = tunnel
+        socks_server.start()
+
+
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
@@ -519,8 +509,37 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
+            def on_load(proxy_community):
+                print >> sys.stderr, "ProxyCommunity has been loaded, linking TUNNEL, starting TEST"
+                tunnel.start(dispersy.callback, proxy_community)
+                def state_call(ds):
+                    if ds.get_status() == DLSTATUS_DOWNLOADING:
+                        tunnel.record_stats = True
+                    elif ds.get_current_speed == DLSTATUS_SEEDING:
+                        tunnel.record_stats = False
+                        tunnel.share_stats = True
+
+                    return (1.0, False)
+
+                root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
+
+                try:
+                    download = get_default_dest_dir() + "/" + root_hash
+
+                    for file in glob.glob(download + "*"):
+                        os.remove(file)
+                except:
+                    pass
+
+                sdef = SwiftDef.load_from_url("tswift://devristo.dyndns.org:20001/" + root_hash)
+                sdef.set_name("AnonTunnel test")
+
+                #result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
+                #result.set_state_callback(state_call, delay=1)
+
+
             dispersy.define_auto_load(ProxyCommunity,
-                                     (s.dispersy_member, socks_server),
+                                     (s.dispersy_member, on_load),
                                      load=True)
 
             print >> sys.stderr, "tribler: Dispersy communities are ready"
