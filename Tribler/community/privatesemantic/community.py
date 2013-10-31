@@ -38,6 +38,47 @@ DEBUG_VERBOSE = False
 ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
+class TasteBuddy():
+    def __init__(self, overlap, timestamp, candidate):
+        self.overlap = overlap
+        self.timestamp = timestamp
+        self.candidate = candidate
+
+    def update_overlap(self, otheroverlap):
+        if isinstance(self.overlap, list):
+            # update similarity
+            if len(otheroverlap) > len(self.overlap):
+                self.overlap = otheroverlap
+
+        else:
+            self.overlap = max(self.overlap, otheroverlap)
+
+    def should_cache(self):
+        return self.candidate.connection_type == u"public"
+
+    def __eq__(self, other):
+        if isinstance(other, TasteBuddy):
+            return self.candidate.sock_addr == other.candidate.sock_addr
+        elif isinstance(other, Member):
+            return other in self.candidate.get_members()
+
+    def __cmp__(self, other):
+        if isinstance(self.overlap, list):
+            return cmp(len(self.overlap), len(other.overlap))
+        return cmp(self.overlap, other.overlap)
+
+class PossibleTasteBuddy(TasteBuddy):
+    def __init__(self, overlap, timestamp, candidate_mid, received_from):
+        TasteBuddy.__init__(self, overlap, timestamp, None)
+        self.candidate_mid = candidate_mid
+        self.received_from = received_from
+
+    def __eq__(self, other):
+        if isinstance(other, Candidate):
+            return self.received_from.sock_addr == other.sock_addr
+
+        return self.candidate_mid == other.candidate_mid
+
 class ForwardCommunity():
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10):
@@ -103,27 +144,24 @@ class ForwardCommunity():
         return [DefaultConversion(self), SemanticConversion(self)]
 
     def add_taste_buddies(self, new_taste_buddies):
-        for new_tb_tuple in new_taste_buddies[:]:
-            for tb_tuple in self.taste_buddies:
-                if tb_tuple[-1].sock_addr == new_tb_tuple[-1].sock_addr:
-
-                    # update similarity
-                    if len(new_tb_tuple[0]) > len(tb_tuple[0]):
-                        tb_tuple[0] = new_tb_tuple[0]
-                    new_taste_buddies.remove(new_tb_tuple)
+        for new_taste_buddy in new_taste_buddies:
+            for taste_buddy in self.taste_buddies:
+                if new_taste_buddy == taste_buddy:
+                    taste_buddy.update_overlap(new_taste_buddy.overlap)
+                    new_taste_buddies.remove(new_taste_buddy)
                     break
 
             # new peer
             else:
-                if len(self.taste_buddies) < self.max_taste_buddies or new_tb_tuple[0] > self.taste_buddies[-1][0]:
-                    self.taste_buddies.append(new_tb_tuple)
-                    self.dispersy.callback.register(self.create_ping_request, args=(new_tb_tuple[-1],), delay=PING_INTERVAL)
+                if len(self.taste_buddies) < self.max_taste_buddies or new_taste_buddy > self.taste_buddies[-1]:
+                    self.taste_buddies.append(new_taste_buddy)
+                    self.dispersy.callback.register(self.create_ping_request, args=(new_taste_buddy.candidate,), delay=PING_INTERVAL)
 
                 # if we have any similarity, cache peer
-                if new_tb_tuple[0] and new_tb_tuple[-1].connection_type == u"public":
-                    self._peercache.add_peer(new_tb_tuple[0], new_tb_tuple[-1].sock_addr)
+                if new_taste_buddy.overlap and new_taste_buddy.should_cache():
+                    self._peercache.add_peer(new_taste_buddy.overlap, new_taste_buddy.candidate.sock_addr)
 
-        self.taste_buddies.sort(cmp=lambda a, b: cmp(len(a[0]), len(b[0])), reverse=True)
+        self.taste_buddies.sort(reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
         if DEBUG:
@@ -135,9 +173,9 @@ class ForwardCommunity():
 
         ignore_sock_addr = ignore_candidate.sock_addr if ignore_candidate else None
 
-        for tb_tuple in taste_buddies:
-            if tb_tuple[0] and tb_tuple[-1].sock_addr != ignore_sock_addr:
-                yield tb_tuple[-1]
+        for taste_buddy in taste_buddies:
+            if taste_buddy.overlap and taste_buddy.candidate.sock_addr != ignore_sock_addr:
+                yield taste_buddy.candidate
 
     def is_taste_buddy(self, candidate):
         candidate_mids = set(candidate.get_members())
@@ -157,17 +195,17 @@ class ForwardCommunity():
                 return True
 
     def resetTastebuddy(self, member):
-        for tb in self.taste_buddies:
-            if member in tb[-1].get_members():
-                tb[1] = time()
+        for taste_buddy in self.taste_buddies:
+            if taste_buddy == member:
+                taste_buddy.timestamp = time()
 
     def removeTastebuddy(self, member):
         remove = None
 
         removeIf = time() - CANDIDATE_WALK_LIFETIME
         for taste_buddy in self.taste_buddies:
-            if member in taste_buddy[-1].get_members():
-                if taste_buddy[1] < removeIf:
+            if taste_buddy == member:
+                if taste_buddy.timestamp < removeIf:
                     remove = taste_buddy
                 break
 
@@ -177,57 +215,52 @@ class ForwardCommunity():
     def add_possible_taste_buddies(self, possibles):
         if __debug__:
             for possible in possibles:
-                assert isinstance(possible[0], list), type(possible[0])
-                assert isinstance(possible[1], (float, long)), type(possible[1])
-                assert isinstance(possible[2], str), type(possible[2])
-                assert isinstance(possible[3], WalkCandidate), type(possible[3])
+                assert isinstance(possible, PossibleTasteBuddy), type(possible)
 
-        low_sim = self.get_low_sim()
-        for new_pos_tuple in possibles:
-            if len(new_pos_tuple[0]) <= low_sim:
+        low_sim = self.get_least_similar_tb()
+        for new_possible in possibles:
+            if new_possible <= low_sim:
                 continue
 
-            for i, pos_tuple in enumerate(self.possible_taste_buddies):
-                if new_pos_tuple[2] == pos_tuple[2]:
-                    # update similarity
-                    if len(new_pos_tuple[0]) > len(pos_tuple[0]):
-                        new_pos_tuple[0] = pos_tuple[0]
+            for i, possible in enumerate(self.possible_taste_buddies):
+                if possible == new_possible:
+                    new_possible.update_overlap(possible)
 
                     # replace in list
-                    self.possible_taste_buddies[i] = new_pos_tuple
+                    self.possible_taste_buddies[i] = new_possible
                     break
 
             # new peer
             else:
-                self.possible_taste_buddies.append(new_pos_tuple)
+                self.possible_taste_buddies.append(new_possible)
 
-        self.possible_taste_buddies.sort(cmp=lambda a, b: cmp(len(a[0]), len(b[0])), reverse=True)
-
+        self.possible_taste_buddies.sort(reverse=True)
         if DEBUG and possibles:
             print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
 
     def has_possible_taste_buddies(self, candidate):
-        for _, _, _, from_candidate in self.possible_taste_buddies:
-            if from_candidate.sock_addr == candidate.sock_addr:
+        for possible in self.possible_taste_buddies:
+            if possible == candidate:
                 return True
         return False
 
-    def get_low_sim(self):
+    def get_least_similar_tb(self):
         if len(self.taste_buddies) == self.max_taste_buddies:
-            return len(self.taste_buddies[-1][0])
+            return self.taste_buddies[-1]
         return 0
 
     def get_most_similar(self, candidate):
         assert isinstance(candidate, WalkCandidate), [type(candidate), candidate]
 
+        low_sim = self.get_least_similar_tb()
+
         # clean possible taste buddies, remove all entries older than 60s
         to_be_removed = time() - 60
-        low_sim = self.get_low_sim()
-
         for i in range(len(self.possible_taste_buddies) - 1, -1, -1):
-            to_low_sim = len(self.possible_taste_buddies[i][0]) <= low_sim
-            to_old = self.possible_taste_buddies[i][1] < to_be_removed
-            is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i][2])
+            to_low_sim = self.possible_taste_buddies[i] <= low_sim
+            to_old = self.possible_taste_buddies[i].timestamp < to_be_removed
+            is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i].candidate_mid)
+
             if to_low_sim or to_old or is_tb:
                 if DEBUG:
                     print >> sys.stderr, long(time()), "ForwardCommunity: removing possible tastebuddy", long(time()), to_low_sim, to_old, is_tb, self.possible_taste_buddies[i]
@@ -235,7 +268,7 @@ class ForwardCommunity():
 
         if self.possible_taste_buddies:
             most_similar = self.possible_taste_buddies.pop(0)
-            return most_similar[3], most_similar[2]
+            return most_similar.received_from, most_similar.candidate_mid
 
         return candidate, None
 
@@ -639,16 +672,15 @@ class PForwardCommunity(ForwardCommunity):
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
         _sum = self.compute_overlap(payload._sum)
-        self.add_taste_buddies([[_sum, time(), candidate]])
+        self.add_taste_buddies([TasteBuddy(_sum, time(), candidate)])
 
     def process_msimilarity_response(self, message):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
 
-        self.add_taste_buddies([[self.compute_overlap(message.payload._sum), time(), message.candidate]])
+        self.add_taste_buddies([TasteBuddy(self.compute_overlap(message.payload._sum), time(), message.candidate)])
 
-        _sums = [[self.compute_overlap(_sum), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
-        _sums = [possible for possible in _sums if possible[0]]
+        _sums = [PossibleTasteBuddy(self.compute_overlap(_sum), time(), candidate_mid, message.candidate) for candidate_mid, _sum in message.payload.sums]
         if _sums:
             self.add_possible_taste_buddies(_sums)
 
@@ -793,19 +825,18 @@ class HForwardCommunity(ForwardCommunity):
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
         overlap = self.compute_overlap([payload.preference_list, payload.his_preference_list])
-        self.add_taste_buddies([[overlap, time(), candidate]])
+        self.add_taste_buddies([TasteBuddy(overlap, time(), candidate)])
 
     def process_msimilarity_response(self, message):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
 
         overlap = self.compute_overlap([message.payload.preference_list, message.payload.his_preference_list])
-        self.add_taste_buddies([[overlap, time(), message.candidate]])
+        self.add_taste_buddies([TasteBuddy(overlap, time(), message.candidate)])
 
         possibles = []
         for candidate_mid, remote_response in message.payload.bundled_responses:
-            overlap = self.compute_overlap(remote_response)
-            possibles.append([overlap, time(), candidate_mid, message.candidate])
+            possibles.append(PossibleTasteBuddy(self.compute_overlap(remote_response), time(), candidate_mid, message.candidate))
 
         self.add_possible_taste_buddies(possibles)
 
@@ -971,19 +1002,18 @@ class PoliForwardCommunity(ForwardCommunity):
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
         overlap = self.compute_overlap(payload.my_response)
-        self.add_taste_buddies([[overlap, time(), candidate]])
+        self.add_taste_buddies([TasteBuddy(overlap, time(), candidate)])
 
     def process_msimilarity_response(self, message):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "PoliSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
 
         overlap = self.compute_overlap(message.payload.my_response)
-        self.add_taste_buddies([[overlap, time(), message.candidate]])
+        self.add_taste_buddies([TasteBuddy(overlap, time(), message.candidate)])
 
         possibles = []
         for candidate_mid, remote_response in message.payload.bundled_responses:
-            overlap = self.compute_overlap(remote_response)
-            possibles.append([overlap, time(), candidate_mid, message.candidate])
+            possibles.append(PossibleTasteBuddy(self.compute_overlap(remote_response), time(), candidate_mid, message.candidate))
 
         self.add_possible_taste_buddies(possibles)
 
