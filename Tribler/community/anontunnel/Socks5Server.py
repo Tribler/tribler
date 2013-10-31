@@ -30,10 +30,10 @@ class Socks5Server(object):
             self.bind_events()
 
     def bind_events(self):
-        def accept_incoming(e):
+        def accept_incoming(event):
             self.connection_handler.accept_incoming = True
 
-        def disconnect_socks(e):
+        def disconnect_socks(event):
                 self.connection_handler.accept_incoming = False
 
         self._tunnel.subscribe("on_ready", accept_incoming)
@@ -129,7 +129,7 @@ class Socks5Server(object):
 
         self.raw_server.start_listening_udp(udp_socket, handler)
 
-    def on_tunnel_data(self, event):
+    def on_tunnel_data(self, event, data):
         # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
 
         # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP
@@ -141,7 +141,7 @@ class Socks5Server(object):
 
         # The socket together with the destination address is enough to return the data
 
-        packet = event.data
+        packet = data
 
         source_address = packet.origin
 

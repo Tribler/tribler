@@ -65,8 +65,10 @@ class ProxyCommunity(Community, Observable):
         self.member_heartbeat = {}
         self.member_ping = {}
 
-        self.subscribe("on_pong", lambda (event): logger.debug(
-            "Got PONG from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
+        def on_pong(event, message):
+            logger.debug("Got PONG from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
+
+        self.subscribe("on_pong", on_pong)
 
         def ping_and_purge():
             while True:
@@ -151,7 +153,7 @@ class ProxyCommunity(Community, Observable):
             for message_key, payload in event_messages_def.items()
         ]
 
-        self.subscribe("on_ping", lambda(event): self.on_ping(event.message))
+        self.subscribe("on_ping", self.on_ping)
 
         return event_messages
 
@@ -182,7 +184,7 @@ class ProxyCommunity(Community, Observable):
 
         self.dispersy.endpoint.send([destination_candidate], [message.packet])
 
-    def on_ping(self, message):
+    def on_ping(self, event, message):
         logger.debug("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
         self.send(u"pong", message.candidate)
 

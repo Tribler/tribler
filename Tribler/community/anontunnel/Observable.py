@@ -68,7 +68,7 @@ class Observable(object):
 
         delete = []
         for handler in self.callbacks[event_name]:
-            handler(event_parameter)
+            handler(event_parameter, **event_parameter_dictionary)
 
             if (event_name, handler) in self.only_once:
                 delete.append(handler)
