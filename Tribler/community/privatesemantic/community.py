@@ -75,9 +75,9 @@ class TasteBuddy():
 
     def __str__(self):
         overlap = self.overlap
-        if isinstance(self.overlap, list):
-            overlap = len(overlap)
-        return "TB_%d_%d_%s" % (self.timestamp, overlap, self.candidate)
+#         if isinstance(self.overlap, list):
+#             overlap = len(overlap)
+        return "TB_%d_%s_%s" % (self.timestamp, overlap, self.candidate)
 
 class PossibleTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate_mid, received_from):
@@ -95,7 +95,7 @@ class PossibleTasteBuddy(TasteBuddy):
         overlap = self.overlap
         if isinstance(self.overlap, list):
             overlap = len(overlap)
-        return "PTB_%d_%d_%s_%s" % (self.timestamp, overlap, self.candidate_mid, self.received_from)
+        return "PTB_%d_%d_%s_%s" % (self.timestamp, overlap, self.candidate_mid.encode("HEX"), self.received_from)
 
 class ForwardCommunity():
 
