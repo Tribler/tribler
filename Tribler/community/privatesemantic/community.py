@@ -256,7 +256,7 @@ class ForwardCommunity():
         elif len(candidates) > nr:
             candidates = sample(candidates, nr)
 
-        return candidates
+        return list(candidates)
 
     # connect to first nr peers in peercache
     def connect_to_peercache(self, nr=10):
