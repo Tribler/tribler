@@ -228,7 +228,7 @@ class ForwardCommunity():
             is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i][2])
             if to_low_sim or to_old or is_tb:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), long(time()), "ForwardCommunity: removing possible tastebuddy", long(time()), to_low_sim, to_old, is_tb, self.possible_taste_buddies[i]
+                    print >> sys.stderr, long(time()), "ForwardCommunity: removing possible tastebuddy", long(time()), to_low_sim, to_old, is_tb, self.possible_taste_buddies[i]
                 self.possible_taste_buddies.pop(i)
 
         if self.possible_taste_buddies:
@@ -263,7 +263,7 @@ class ForwardCommunity():
         def attempt_to_connect(candidate, attempts):
             while not self.is_taste_buddy(candidate) and attempts:
                 if not self.create_similarity_request(candidate):
-                    print >> sys.stderr, "Did not send request to %s ???" % candidate
+                    print >> sys.stderr, long(time()), "ForwardCommunity: did not send request to %s ???" % candidate
 
                 yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
                 attempts -= 1
@@ -346,10 +346,12 @@ class ForwardCommunity():
 
         def add_response(self, candidate, candidate_mid, response):
             if candidate_mid:
-                if candidate_mid in self.requested_mids:
+                if candidate_mid in self.requested_mids or not self.requested_mids:
                     if candidate_mid not in self.received_candidates:
                         self.received_candidates.add(candidate_mid)
                         self.received_lists.append((candidate, candidate_mid, response))
+                elif DEBUG:
+                    print >> sys.stderr, long(time()), "ForwardCommunity: received response from candidate_mid which was not in requested_mids"
             else:
                 self.my_response = response
 
@@ -534,7 +536,7 @@ class ForwardCommunity():
         def on_timeout(self):
             if not self.processed:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: no response on ping, removing from taste_buddies", self.candidate
+                    print >> sys.stderr, long(time()), "ForwardCommunity: no response on ping, removing from taste_buddies", self.candidate
                 for member in self.candidate.get_members():
                     self.community.removeTastebuddy(member)
 
@@ -587,7 +589,7 @@ class ForwardCommunity():
             self._dispersy._send([candidate], [message])
 
             if DEBUG:
-                print >> sys.stderr, long(time()), "SearchCommunity: send", meta_name, "to", candidate
+                print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", candidate
 
 class PForwardCommunity(ForwardCommunity):
 
