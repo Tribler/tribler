@@ -630,7 +630,7 @@ class PForwardCommunity(ForwardCommunity):
             return Payload(identifier, self.key.n, encrypted_vector, global_vector)
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
-        _sum = self.self.compute_overlap(payload._sum)
+        _sum = self.compute_overlap(payload._sum)
         self.add_taste_buddies([[_sum, time(), candidate]])
 
     def process_msimilarity_response(self, message):
