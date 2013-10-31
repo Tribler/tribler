@@ -1065,6 +1065,8 @@ class PoliForwardCommunity(ForwardCommunity):
 
             self.create_time_decryption += time() - t1
         else:
+            print >> sys.stderr, "Comparing", myPreferences, "to", evaluated_polynomial
+
             for py in evaluated_polynomial:
                 if py in myPreferences:
                     overlap.append(py)
