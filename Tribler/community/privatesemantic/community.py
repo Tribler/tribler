@@ -412,6 +412,10 @@ class ForwardCommunity():
         identifier = self._dispersy.request_cache.claim(ForwardCommunity.MSimilarityRequest(self, None, [destination]))
         payload = self.create_similarity_payload(identifier)
         if payload:
+
+            if DEBUG:
+                print >> sys.stderr, long(time()), "SearchCommunity: sending similarity request to", str(destination), identifier
+
             self.send_similarity_request([destination], payload)
             return True
 
