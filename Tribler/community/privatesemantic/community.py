@@ -67,6 +67,12 @@ class TasteBuddy():
             return cmp(len(self.overlap), len(other.overlap))
         return cmp(self.overlap, other.overlap)
 
+    def __str__(self):
+        overlap = self.overlap
+        if isinstance(self.overlap, list):
+            overlap = len(overlap)
+        return "TB_%d_%d_%s" % (self.timestamp, overlap, self.candidate)
+
 class PossibleTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate_mid, received_from):
         TasteBuddy.__init__(self, overlap, timestamp, None)
@@ -78,6 +84,12 @@ class PossibleTasteBuddy(TasteBuddy):
             return self.received_from.sock_addr == other.sock_addr
 
         return self.candidate_mid == other.candidate_mid
+
+    def __str__(self):
+        overlap = self.overlap
+        if isinstance(self.overlap, list):
+            overlap = len(overlap)
+        return "PTB_%d_%d_%s_%s" % (self.timestamp, overlap, self.candidate_mid, self.received_from)
 
 class ForwardCommunity():
 
@@ -165,7 +177,7 @@ class ForwardCommunity():
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
         if DEBUG:
-            print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), [map(str, tb_tuple) for tb_tuple in self.taste_buddies]
+            print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), map(str, self.taste_buddies)
 
     def yield_taste_buddies(self, ignore_candidate=None):
         taste_buddies = self.taste_buddies[:]
@@ -236,7 +248,7 @@ class ForwardCommunity():
 
         self.possible_taste_buddies.sort(reverse=True)
         if DEBUG and possibles:
-            print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
+            print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), map(str, self.possible_taste_buddies)
 
     def has_possible_taste_buddies(self, candidate):
         for possible in self.possible_taste_buddies:
