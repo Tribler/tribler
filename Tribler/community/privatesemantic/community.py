@@ -13,7 +13,7 @@ from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.destination import CandidateDestination, Destination
 from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import DirectDistribution
@@ -261,7 +261,7 @@ class ForwardCommunity():
     def connect_to_peercache(self, nr=10):
         def attempt_to_connect(candidate, attempts):
             while not self.is_taste_buddy(candidate) and attempts:
-                self.send_introduction_request(candidate, True)
+                self.create_msimilarity_request(candidate)
 
                 yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
                 attempts -= 1
@@ -297,14 +297,18 @@ class ForwardCommunity():
     def create_introduction_request(self, destination, allow_sync):
         send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination) and allow_sync:
-            identifier = self._dispersy.request_cache.claim(ForwardCommunity.SimilarityAttempt(self, destination))
-            send = self.send_msimilarity_request(destination, identifier)
-
-            if not send:
-                self._dispersy.request_cache.pop(identifier, ForwardCommunity.SimilarityAttempt)
+            send = self.create_msimilarity_request(destination)
 
         if not send:
             self.send_introduction_request(destination)
+
+    def create_msimilarity_request(self, destination):
+        identifier = self._dispersy.request_cache.claim(ForwardCommunity.SimilarityAttempt(self, destination))
+        send = self.send_msimilarity_request(destination, identifier)
+
+        if not send:
+            self._dispersy.request_cache.pop(identifier, ForwardCommunity.SimilarityAttempt)
+        return send
 
     def send_msimilarity_request(self, destination, indentifier):
         raise NotImplementedError()
