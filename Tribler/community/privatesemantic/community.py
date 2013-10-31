@@ -1051,7 +1051,9 @@ class PoliForwardCommunity(ForwardCommunity):
 
             return overlap
 
+        bitmask = (2 ** 32) - 1
         myPreferences = set([preference for preference in self._mypref_db.getMyPrefListInfohash() if preference])
+        myPreferences = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in myPreferences]
 
         overlap = []
         if self.encryption:
