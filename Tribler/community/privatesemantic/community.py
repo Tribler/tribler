@@ -253,8 +253,10 @@ class ForwardCommunity():
                 self.possible_taste_buddies.append(new_possible)
 
         self.possible_taste_buddies.sort(reverse=True)
-        if DEBUG and possibles:
+        if DEBUG_VERBOSE and possibles:
             print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), map(str, self.possible_taste_buddies)
+        elif DEBUG and possibles:
+            print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies)
 
     def has_possible_taste_buddies(self, candidate):
         for possible in self.possible_taste_buddies:
