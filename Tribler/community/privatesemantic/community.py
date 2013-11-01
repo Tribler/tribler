@@ -63,8 +63,12 @@ class TasteBuddy():
     def __eq__(self, other):
         if isinstance(other, TasteBuddy):
             return self.candidate.sock_addr == other.candidate.sock_addr
+
         elif isinstance(other, Member):
             return other in self.candidate.get_members()
+
+        elif isinstance(other, Candidate):
+            return self.candidate == other
 
     def __cmp__(self, other):
         if isinstance(other, TasteBuddy):
@@ -218,23 +222,17 @@ class ForwardCommunity():
             if tb.sock_addr == sock_addr:
                 return True
 
-    def resetTastebuddy(self, member):
+    def reset_taste_buddy(self, candidate):
         for taste_buddy in self.taste_buddies:
-            if taste_buddy == member:
+            if taste_buddy == candidate:
                 taste_buddy.timestamp = time()
-
-    def removeTastebuddy(self, member):
-        remove = None
-
-        removeIf = time() - CANDIDATE_WALK_LIFETIME
-        for taste_buddy in self.taste_buddies:
-            if taste_buddy == member:
-                if taste_buddy.timestamp < removeIf:
-                    remove = taste_buddy
                 break
 
-        if remove:
-            self.taste_buddies.remove(remove)
+    def remove_taste_buddy(self, candidate):
+        for taste_buddy in self.taste_buddies:
+            if taste_buddy == candidate:
+                self.taste_buddies.remove(taste_buddy)
+                break
 
     def add_possible_taste_buddies(self, possibles):
         if __debug__:
@@ -604,8 +602,8 @@ class ForwardCommunity():
             if not self.processed:
                 if DEBUG:
                     print >> sys.stderr, long(time()), "ForwardCommunity: no response on ping, removing from taste_buddies", self.candidate
-                for member in self.candidate.get_members():
-                    self.community.removeTastebuddy(member)
+
+                self.community.remove_taste_buddy(self.candidate)
 
     def create_ping_request(self, tb):
         while tb.time_remaining():
@@ -616,18 +614,15 @@ class ForwardCommunity():
             diff = tb.time_remaining()
 
             if diff < 10.0:
-                self._create_pingpong(u"ping", [tb.candidate])
+                self._create_pingpong(u"ping", tb.candidate)
 
                 yield diff
 
     def on_ping(self, messages):
-        candidates = [message.candidate for message in messages]
-        identifiers = [message.payload.identifier for message in messages]
-
-        self._create_pingpong(u"pong", candidates, identifiers)
-
         for message in messages:
-            self.resetTastebuddy(message.authentication.member)
+            self._create_pingpong(u"pong", message.candidate, message.payload.identifier)
+
+            self.reset_taste_buddy(message.candidate)
 
     def check_pong(self, messages):
         for message in messages:
@@ -647,22 +642,19 @@ class ForwardCommunity():
             request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.PingRequestCache)
             request.on_success()
 
-            self.resetTastebuddy(message.authentication.member)
+            self.reset_taste_buddy(request.candidate)
 
-    def _create_pingpong(self, meta_name, candidates, identifiers=None):
-        for index, candidate in enumerate(candidates):
-            if identifiers:
-                identifier = identifiers[index]
-            else:
-                identifier = self._dispersy.request_cache.claim(ForwardCommunity.PingRequestCache(self, candidate))
+    def _create_pingpong(self, meta_name, candidate, identifier=None):
+        if identifier == None:
+            identifier = self._dispersy.request_cache.claim(ForwardCommunity.PingRequestCache(self, candidate))
 
-            # create torrent-collect-request/response message
-            meta = self.get_meta_message(meta_name)
-            message = meta.impl(distribution=(self.global_time,), payload=(identifier, []))
-            self._dispersy._send([candidate], [message])
+        # create torrent-collect-request/response message
+        meta = self.get_meta_message(meta_name)
+        message = meta.impl(distribution=(self.global_time,), payload=(identifier, []))
+        self._dispersy._send([candidate], [message])
 
-            if DEBUG:
-                print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", candidate
+        if DEBUG:
+            print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", candidate
 
 class PForwardCommunity(ForwardCommunity):
 
