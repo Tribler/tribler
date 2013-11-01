@@ -317,27 +317,23 @@ class ForwardCommunity():
 
     # connect to first nr peers in peercache
     def connect_to_peercache(self, nr=10):
-        def attempt_to_connect(candidates, attempts):
-            while candidates and attempts:
-                for candidate in candidates:
-                    if self.is_taste_buddy_sock(candidate.sock_addr):
-                        candidates.remove(candidate)
-
-                    self.create_similarity_request(candidate, payload)
-
-                yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
-                attempts -= 1
-
         payload = self.create_similarity_payload()
         if payload:
-            candidates = []
-            for sock_addr in self._peercache.get_peers()[:nr]:
+            peers = self._peercache.get_peers()[:nr]
+
+            def attempt_to_connect(candidate, attempts):
+                while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
+                    self.create_similarity_request(candidate, payload)
+
+                    yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
+                    attempts -= 1
+
+            for i, sock_addr in enumerate(peers):
                 candidate = self.get_candidate(sock_addr, replace=False)
                 if not candidate:
                     candidate = self.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
-                candidates.append(candidate)
 
-            self.dispersy.callback.register(attempt_to_connect, args=(candidates, 10))
+                self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i)
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
         if exclude_candidate:
