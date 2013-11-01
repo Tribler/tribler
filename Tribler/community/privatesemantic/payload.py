@@ -209,9 +209,10 @@ class EncryptedSumsPayload(Payload):
 # PoliSearchCommunity
 class PoliSimilarityRequest(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier, key_n, coefficients):
+        def __init__(self, meta, identifier, key_n, key_g, coefficients):
             assert isinstance(identifier, int), type(identifier)
             assert not key_n or isinstance(key_n, long), 'key_n should be long'
+            assert not key_g or isinstance(key_g, long), 'key_g should be long'
             assert not coefficients or isinstance(coefficients, dict), 'preferencelist should be dict'
             if coefficients:
                 for partition, coeffs in coefficients.iteritems():
@@ -223,6 +224,7 @@ class PoliSimilarityRequest(Payload):
 
             self._identifier = identifier
             self._key_n = key_n
+            self._key_g = key_g
             self._coefficients = coefficients
 
         @property
@@ -232,6 +234,10 @@ class PoliSimilarityRequest(Payload):
         @property
         def key_n(self):
             return self._key_n
+
+        @property
+        def key_g(self):
+            return self._key_g
 
         @property
         def coefficients(self):

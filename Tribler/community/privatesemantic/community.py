@@ -28,8 +28,8 @@ from payload import *
 from conversion import SemanticConversion, PSearchConversion, \
     HSearchConversion, PoliSearchConversion
 
-from pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt, \
-    pallier_polyval, pallier_multiply
+from paillier import paillier_add, paillier_init, paillier_encrypt, paillier_decrypt, \
+    paillier_polyval, paillier_multiply, paillier_add_unenc
 from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from polycreate import compute_coeff, polyval
 from collections import namedtuple
@@ -607,16 +607,8 @@ class ForwardCommunity():
 
     def create_ping_request(self, tb):
         while tb.time_remaining():
-            # wait for its remainder - 5.0
+            self._create_pingpong(u"ping", tb.candidate)
             yield tb.time_remaining() - 5.0
-
-            # see if we did not receive any response in the mean time
-            diff = tb.time_remaining()
-
-            if diff < 10.0:
-                self._create_pingpong(u"ping", tb.candidate)
-
-                yield diff
 
     def on_ping(self, messages):
         for message in messages:
@@ -661,7 +653,7 @@ class PForwardCommunity(ForwardCommunity):
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10):
         ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies)
 
-        self.key = pallier_init(self.key)
+        self.key = paillier_init(self.key)
 
     def initiate_meta_messages(self):
         messages = ForwardCommunity.initiate_meta_messages(self)
@@ -687,7 +679,7 @@ class PForwardCommunity(ForwardCommunity):
                 t1 = time()
                 encrypted_vector = []
                 for element in my_vector:
-                    cipher = pallier_encrypt(self.key, element)
+                    cipher = paillier_encrypt(self.key, element)
                     encrypted_vector.append(cipher)
 
                 self.create_time_encryption += time() - t1
@@ -718,7 +710,7 @@ class PForwardCommunity(ForwardCommunity):
         t1 = time()
 
         if self.encryption:
-            _sum = pallier_decrypt(self.key, _sum)
+            _sum = paillier_decrypt(self.key, _sum)
 
         self.create_time_decryption += time() - t1
 
@@ -761,7 +753,7 @@ class PForwardCommunity(ForwardCommunity):
 
                 for i, element in enumerate(user_vector):
                     if my_vector[i]:
-                        _sum = pallier_add(_sum, element, user_n2)
+                        _sum = paillier_add(_sum, element, user_n2)
             else:
                 _sum = 0l
                 for i, element in enumerate(user_vector):
@@ -978,7 +970,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True):
         ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies)
-        self.key = pallier_init(self.key)
+        self.key = paillier_init(self.key)
         self.use_cardinality = use_cardinality
 
     def initiate_conversions(self):
@@ -1019,7 +1011,7 @@ class PoliForwardCommunity(ForwardCommunity):
                 coeffs = compute_coeff(values)
 
                 if self.encryption:
-                    coeffs = [pallier_encrypt(self.key, coeff) for coeff in coeffs]
+                    coeffs = [paillier_encrypt(self.key, coeff) for coeff in coeffs]
 
                 partitions[partition] = coeffs
 
@@ -1028,7 +1020,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
         if partitions:
             Payload = namedtuple('Payload', ['identifier', 'key_n', 'coefficients'])
-            return Payload(identifier, long(self.key.n), partitions)
+            return Payload(identifier, long(self.key.n), long(self.key.g), partitions)
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
         overlap = self.compute_overlap(payload.my_response)
@@ -1053,7 +1045,7 @@ class PoliForwardCommunity(ForwardCommunity):
             if self.encryption:
                 t1 = time()
                 for py in evaluated_polynomial:
-                    if pallier_decrypt(self.key, py) == 0:
+                    if paillier_decrypt(self.key, py) == 0:
                         overlap += 1
                 self.create_time_decryption += time() - t1
             else:
@@ -1071,7 +1063,7 @@ class PoliForwardCommunity(ForwardCommunity):
         if self.encryption:
             t1 = time()
             for py in evaluated_polynomial:
-                py = pallier_decrypt(self.key, py)
+                py = paillier_decrypt(self.key, py)
                 if py in myPreferences:
                     overlap.append(py)
 
@@ -1090,7 +1082,7 @@ class PoliForwardCommunity(ForwardCommunity):
         request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
                                 destination=(destination,),
-                                payload=(payload.identifier, payload.key_n, payload.coefficients))
+                                payload=(payload.identifier, payload.key_n, payload.key_g, payload.coefficients))
 
         self._dispersy._forward([request])
         self.send_packet_size += len(request.packet)
@@ -1111,7 +1103,7 @@ class PoliForwardCommunity(ForwardCommunity):
         meta_request = self.get_meta_message(u"similarity-request")
         request = meta_request.impl(authentication=(self.my_member,),
                             distribution=(self.global_time,),
-                            payload=(payload.identifier, payload.key_n, coefficients))
+                            payload=(payload.identifier, payload.key_n, payload.key_g, coefficients))
 
         if self._dispersy._send(candidates, [request]):
             self.forward_packet_size += len(request.packet) * len(candidates)
@@ -1139,13 +1131,17 @@ class PoliForwardCommunity(ForwardCommunity):
             if self.encryption:
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
-                    py = pallier_polyval(message.payload.coefficients[partition], val, user_n2)
-                    py = pallier_multiply(py, randint(0, 2 ** 40), user_n2)
+                    py = paillier_polyval(message.payload.coefficients[partition], val, user_n2)
+                    py = paillier_multiply(py, randint(0, 2 ** 40), user_n2)
+                    if not self.use_cardinality:
+                        py = paillier_add_unenc(py, val, message.payload.key_g, user_n2)
                     results.append(py)
             else:
                 for partition, val in _myPreferences:
                     py = polyval(message.payload.coefficients[partition], val)
-                    py = py * randint(0, 2 ** 40) + (0 if self.use_cardinality else val)
+                    py = py * randint(0, 2 ** 40)
+                    if not self.use_cardinality:
+                        py += val
                     results.append(py)
 
             self.receive_time_encryption += time() - t1

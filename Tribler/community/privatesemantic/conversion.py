@@ -319,8 +319,9 @@ class PoliSearchConversion(ForwardConversion):
     def _encode_simi_request(self, message):
         contents = []
 
-        fmt = "!H128s"
+        fmt = "!H128s128s"
         contents.append(long_to_bytes(message.payload.key_n, 128))
+        contents.append(long_to_bytes(message.payload.key_g, 128))
 
         if len(message.payload.coefficients) > 0:
             fmt += "257s"
@@ -336,8 +337,8 @@ class PoliSearchConversion(ForwardConversion):
         return packet,
 
     def _decode_simi_request(self, placeholder, offset, data):
-        identifier, str_n = unpack_from('!H128s', data, offset)
-        offset += 130
+        identifier, str_n, str_g = unpack_from('!H128s128s', data, offset)
+        offset += 258
 
         preferences = {}
         length = len(data) - offset
@@ -358,7 +359,7 @@ class PoliSearchConversion(ForwardConversion):
             preferences[partition] = [one_coeff] + [bytes_to_long(str_coeff) for str_coeff in str_coeffs]
 
             length = len(data) - offset
-        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), preferences)
+        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), bytes_to_long(str_g), preferences)
 
     def _encode_simi_response(self, message):
         str_identifer = pack("!H", message.payload.identifier)
