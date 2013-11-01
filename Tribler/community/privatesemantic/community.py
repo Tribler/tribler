@@ -37,6 +37,7 @@ from collections import namedtuple
 DEBUG = True
 DEBUG_VERBOSE = False
 ENCRYPTION = True
+PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
 class TasteBuddy():
     def __init__(self, overlap, timestamp, candidate):
@@ -608,7 +609,7 @@ class ForwardCommunity():
         while tb.time_remaining():
             self._create_pingpong(u"ping", tb.candidate)
 
-            yield tb.time_remaining() - 5.0
+            yield PING_INTERVAL
 
     def on_ping(self, messages):
         for message in messages:
