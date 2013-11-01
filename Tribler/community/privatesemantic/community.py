@@ -1019,7 +1019,7 @@ class PoliForwardCommunity(ForwardCommunity):
             self.my_preference_cache = [str_myPreferences, partitions]
 
         if partitions:
-            Payload = namedtuple('Payload', ['identifier', 'key_n', 'coefficients'])
+            Payload = namedtuple('Payload', ['identifier', 'key_n', 'key_g', 'coefficients'])
             return Payload(identifier, long(self.key.n), long(self.key.g), partitions)
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
