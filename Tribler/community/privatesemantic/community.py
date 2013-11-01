@@ -73,8 +73,8 @@ class TasteBuddy():
 
     def __str__(self):
         overlap = self.overlap
-#         if isinstance(self.overlap, list):
-#             overlap = len(overlap)
+        if isinstance(self.overlap, list):
+            overlap = len(overlap)
         return "TB_%d_%s_%s" % (self.timestamp, overlap, self.candidate)
 
 class PossibleTasteBuddy(TasteBuddy):
