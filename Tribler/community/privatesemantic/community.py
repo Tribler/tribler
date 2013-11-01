@@ -55,6 +55,11 @@ class TasteBuddy():
     def should_cache(self):
         return self.candidate.connection_type == u"public"
 
+    def time_remaining(self):
+        too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
+        diff = self.timestamp - too_old
+        return diff if diff > 0 else 0
+
     def __eq__(self, other):
         if isinstance(other, TasteBuddy):
             return self.candidate.sock_addr == other.candidate.sock_addr
@@ -201,7 +206,7 @@ class ForwardCommunity():
         for tb in self.yield_taste_buddies():
             tb_mids = set(tb.get_members())
             if tb_mids & candidate_mids:
-                return True
+                return tb
 
     def is_taste_buddy_mid(self, mid):
         for tb in self.yield_taste_buddies():
@@ -275,12 +280,9 @@ class ForwardCommunity():
         assert isinstance(candidate, WalkCandidate), [type(candidate), candidate]
 
         low_sim = self.get_least_similar_tb()
-
-        # clean possible taste buddies, remove all entries older than 60s
-        to_be_removed = time() - 60
         for i in range(len(self.possible_taste_buddies) - 1, -1, -1):
             to_low_sim = self.possible_taste_buddies[i] <= low_sim
-            to_old = self.possible_taste_buddies[i].timestamp < to_be_removed
+            to_old = self.possible_taste_buddies[i].time_remaining() == 0
             is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i].candidate_mid)
 
             if to_low_sim or to_old or is_tb:
@@ -606,10 +608,19 @@ class ForwardCommunity():
                     self.community.removeTastebuddy(member)
 
     def create_ping_request(self, candidate):
-        while self.is_taste_buddy(candidate):
-            self._create_pingpong(u"ping", [candidate])
+        tb = self.is_taste_buddy(candidate)
 
-            yield PING_INTERVAL
+        while tb.time_remaining():
+            # wait for its remainder - 5.0
+            yield tb.time_remaining() - 5.0
+
+            # see if we did not receive any response in the mean time
+            diff = tb.time_remaining()
+
+            if diff < 10.0:
+                self._create_pingpong(u"ping", [candidate])
+
+                yield diff
 
     def on_ping(self, messages):
         candidates = [message.candidate for message in messages]
@@ -649,8 +660,7 @@ class ForwardCommunity():
 
             # create torrent-collect-request/response message
             meta = self.get_meta_message(meta_name)
-            message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), payload=(identifier, []))
+            message = meta.impl(distribution=(self.global_time,), payload=(identifier, []))
             self._dispersy._send([candidate], [message])
 
             if DEBUG:
