@@ -390,25 +390,28 @@ class ForwardCommunity():
 
             self.requesting_candidate = requesting_candidate
             self.requested_candidates = requested_candidates
-            self.requested_mids = set()
-            for candidate in self.requested_candidates:
-                for member in candidate.get_members():
-                    self.requested_mids.add(member.mid)
 
             self.received_candidates = set()
             self.received_lists = []
             self.isProcessed = False
 
-        def add_response(self, candidate, candidate_mid, response):
-            if candidate_mid:
-                if candidate_mid in self.requested_mids or not self.requested_mids:
-                    if candidate_mid not in self.received_candidates:
-                        self.received_candidates.add(candidate_mid)
-                        self.received_lists.append((candidate, candidate_mid, response))
-                elif DEBUG:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: received response from candidate_mid which was not in requested_mids", candidate.sock_addr, [str(rcandidate.sock_addr) for rcandidate in self.requested_candidates]
+        def add_response(self, candidate, member, response):
+            if candidate:
+                if self.did_request(candidate):
+
+                    # we need to associated this candidate with this mid, apparently this is only done when receiving an induction response
+                    candidate.associate(member)
+
+                    if candidate not in self.received_candidates:
+                        self.received_candidates.add(candidate)
+                        self.received_lists.append((candidate, member.mid, response))
             else:
                 self.my_response = response
+
+        def did_request(self, candidate):
+            if candidate:
+                return candidate in self.requested_candidates
+            return False
 
         def is_complete(self):
             return len(self.received_lists) == len(self.requested_candidates)
@@ -509,8 +512,13 @@ class ForwardCommunity():
                 yield DelayMessageByProof(message)
                 continue
 
-            if not self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.MSimilarityRequest):
+            request = self._dispersy.request_cache.get(message.payload.identifier, ForwardCommunity.MSimilarityRequest)
+            if not request:
                 yield DropMessage(message, "unknown identifier")
+                continue
+
+            if not request.did_request(message.candidate):
+                yield DropMessage(message, "did not request this candidate_mid")
                 continue
 
             yield message
@@ -519,7 +527,7 @@ class ForwardCommunity():
         for message in messages:
             request = self._dispersy.request_cache.get(message.payload.identifier, ForwardCommunity.MSimilarityRequest)
             if request:
-                request.add_response(message.candidate, message.authentication.member.mid, message.payload)
+                request.add_response(message.candidate, message.authentication.member, message.payload)
                 if request.is_complete():
                     self.reply_packet_size += request.process()
 
