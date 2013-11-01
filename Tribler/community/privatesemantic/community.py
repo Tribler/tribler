@@ -331,7 +331,7 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             candidates = []
-            for i, sock_addr in enumerate(self._peercache.get_peers()[:nr]):
+            for sock_addr in self._peercache.get_peers()[:nr]:
                 candidate = self.get_candidate(sock_addr, replace=False)
                 if not candidate:
                     candidate = self.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
