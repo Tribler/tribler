@@ -44,14 +44,12 @@ class TasteBuddy():
         self.timestamp = timestamp
         self.candidate = candidate
 
-    def update_overlap(self, otheroverlap):
+    def update_overlap(self, other):
         if isinstance(self.overlap, list):
-            # update similarity
-            if len(otheroverlap) > len(self.overlap):
-                self.overlap = otheroverlap
-
+            if len(other.overlap) > len(self.overlap):
+                self.overlap = other.overlap
         else:
-            self.overlap = max(self.overlap, otheroverlap)
+            self.overlap = max(self.overlap, other.overlap)
 
     def should_cache(self):
         return self.candidate.connection_type == u"public"
@@ -165,7 +163,7 @@ class ForwardCommunity():
         for new_taste_buddy in new_taste_buddies:
             for taste_buddy in self.taste_buddies:
                 if new_taste_buddy == taste_buddy:
-                    taste_buddy.update_overlap(new_taste_buddy.overlap)
+                    taste_buddy.update_overlap(new_taste_buddy)
                     new_taste_buddies.remove(new_taste_buddy)
                     break
 
@@ -1065,8 +1063,6 @@ class PoliForwardCommunity(ForwardCommunity):
 
             self.create_time_decryption += time() - t1
         else:
-            print >> sys.stderr, "Comparing", myPreferences, evaluated_polynomial
-
             for py in evaluated_polynomial:
                 if py in myPreferences:
                     overlap.append(py)
