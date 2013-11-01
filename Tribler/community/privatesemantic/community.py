@@ -618,11 +618,6 @@ class ForwardCommunity():
 
     def check_pong(self, messages):
         for message in messages:
-            accepted, _ = self._timeline.check(message)
-            if not accepted:
-                yield DelayMessageByProof(message)
-                continue
-
             if not self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.PingRequestCache):
                 yield DropMessage(message, "invalid response identifier")
                 continue
