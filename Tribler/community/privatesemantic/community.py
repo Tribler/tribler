@@ -37,7 +37,6 @@ from collections import namedtuple
 DEBUG = True
 DEBUG_VERBOSE = False
 ENCRYPTION = True
-PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
 class TasteBuddy():
     def __init__(self, overlap, timestamp, candidate):
@@ -181,7 +180,7 @@ class ForwardCommunity():
             else:
                 if len(self.taste_buddies) < self.max_taste_buddies or new_taste_buddy > self.taste_buddies[-1]:
                     self.taste_buddies.append(new_taste_buddy)
-                    self.dispersy.callback.register(self.create_ping_request, args=(new_taste_buddy,), delay=PING_INTERVAL)
+                    self.dispersy.callback.register(self.create_ping_request, args=(new_taste_buddy,), delay=new_taste_buddy.time_remaining() - 5.0)
 
                 # if we have any similarity, cache peer
                 if new_taste_buddy.overlap and new_taste_buddy.should_cache():
@@ -326,12 +325,12 @@ class ForwardCommunity():
                 attempts -= 1
 
         peers = self._peercache.get_peers()[:nr]
-        for sock_addr in peers:
+        for i, sock_addr in enumerate(peers):
             candidate = self.get_candidate(sock_addr, replace=False)
             if not candidate:
                 candidate = self.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
 
-            self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10))
+            self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i)
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
         if exclude_candidate:
@@ -608,6 +607,7 @@ class ForwardCommunity():
     def create_ping_request(self, tb):
         while tb.time_remaining():
             self._create_pingpong(u"ping", tb.candidate)
+
             yield tb.time_remaining() - 5.0
 
     def on_ping(self, messages):
