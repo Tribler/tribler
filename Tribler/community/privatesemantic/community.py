@@ -238,6 +238,7 @@ class ForwardCommunity():
         low_sim = self.get_least_similar_tb()
         for new_possible in possibles:
             if new_possible <= low_sim:
+                possibles.remove(new_possible)
                 continue
 
             for i, possible in enumerate(self.possible_taste_buddies):
