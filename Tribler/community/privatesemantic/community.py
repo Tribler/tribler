@@ -404,7 +404,7 @@ class ForwardCommunity():
                         self.received_candidates.add(candidate_mid)
                         self.received_lists.append((candidate, candidate_mid, response))
                 elif DEBUG:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: received response from candidate_mid which was not in requested_mids", candidate.sock_addr
+                    print >> sys.stderr, long(time()), "ForwardCommunity: received response from candidate_mid which was not in requested_mids", candidate.sock_addr, [str(rcandidate.sock_addr) for rcandidate in self.requested_candidates]
             else:
                 self.my_response = response
 
