@@ -474,13 +474,12 @@ class ForwardCommunity():
             if request.is_complete():
                 request.process()
 
-    def create_similarity_request(self, destinations, payload):
-        for destination in destinations:
-            identifier = self._dispersy.request_cache.claim(ForwardCommunity.MSimilarityRequest(self, None, [destination]))
+    def create_similarity_request(self, destination, payload):
+        identifier = self._dispersy.request_cache.claim(ForwardCommunity.MSimilarityRequest(self, None, [destination]))
 
-            if DEBUG:
-                print >> sys.stderr, long(time()), "SearchCommunity: sending similarity request to", str(destination), identifier
-            self.send_similarity_request([destination], identifier, payload)
+        if DEBUG:
+            print >> sys.stderr, long(time()), "SearchCommunity: sending similarity request to", str(destination), identifier
+        self.send_similarity_request([destination], identifier, payload)
 
     def send_similarity_request(self, candidates, identifier, payload):
         raise NotImplementedError()
