@@ -180,8 +180,10 @@ class ForwardCommunity():
         self.taste_buddies.sort(reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
-        if DEBUG:
+        if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), map(str, self.taste_buddies)
+        elif DEBUG:
+            print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies)
 
     def yield_taste_buddies(self, ignore_candidate=None):
         taste_buddies = self.taste_buddies[:]
