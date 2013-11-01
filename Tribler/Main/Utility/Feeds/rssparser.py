@@ -215,51 +215,56 @@ class RssParser(Thread):
             for key, urls in channel_url.iteritems():
                 if key in self.key_callbacks:
                     for url in urls:
-                        if DEBUG:
-                            print >> sys.stderr, "RssParser: getting rss", url, len(urls)
-
-                        historyfile = self.gethistfilename(url, key)
-                        urls_already_seen = URLHistory(historyfile)
-                        urls_already_seen.read()
-
-                        newItems = self.readUrl(url, urls_already_seen)
-                        for title, new_urls, description, thumbnail in newItems:
-                            for new_url in new_urls:
-                                urls_already_seen.add(new_url)
-                                urls_already_seen.write()
-
-                                try:
-                                    if DEBUG:
-                                        print >> sys.stderr, "RssParser: trying", new_url
-
-                                    referer = urlparse(new_url)
-                                    referer = referer.scheme + "://" + referer.netloc + "/"
-                                    stream = urlOpenTimeout(new_url, referer=referer)
-                                    bdata = stream.read()
-                                    stream.close()
-
-                                    bddata = bdecode(bdata, 1)
-                                    torrent = TorrentDef._create(bddata)
-
-                                    def processCallbacks(key):
-                                        for callback in self.key_callbacks[key]:
-                                            try:
-                                                callback(key, torrent, extraInfo={'title': title, 'description': description, 'thumbnail': thumbnail})
-                                            except:
-                                                print_exc()
-
-                                    if self.remote_th.is_registered():
-                                        callback = lambda key = key: processCallbacks(key)
-                                        self.remote_th.save_torrent(torrent, callback)
-                                    else:
-                                        processCallbacks(key)
-
-                                except:
-                                    if DEBUG:
-                                        print >> sys.stderr, "RssParser: could not download", new_url
-                                    pass
-
-                                time.sleep(RSS_CHECK_FREQUENCY)
+                        try:
+                            if DEBUG:
+                                print >> sys.stderr, "RssParser: getting rss", url, len(urls)
+    
+                            historyfile = self.gethistfilename(url, key)
+                            urls_already_seen = URLHistory(historyfile)
+                            urls_already_seen.read()
+    
+                            newItems = self.readUrl(url, urls_already_seen)
+                            for title, new_urls, description, thumbnail in newItems:
+                                for new_url in new_urls:
+                                    urls_already_seen.add(new_url)
+                                    urls_already_seen.write()
+    
+                                    try:
+                                        if DEBUG:
+                                            print >> sys.stderr, "RssParser: trying", new_url
+    
+                                        referer = urlparse(new_url)
+                                        referer = referer.scheme + "://" + referer.netloc + "/"
+                                        stream = urlOpenTimeout(new_url, referer=referer)
+                                        bdata = stream.read()
+                                        stream.close()
+    
+                                        bddata = bdecode(bdata, 1)
+                                        torrent = TorrentDef._create(bddata)
+    
+                                        def processCallbacks(key):
+                                            for callback in self.key_callbacks[key]:
+                                                try:
+                                                    callback(key, torrent, extraInfo={'title': title, 'description': description, 'thumbnail': thumbnail})
+                                                except:
+                                                    print_exc()
+    
+                                        if self.remote_th.is_registered():
+                                            callback = lambda key = key: processCallbacks(key)
+                                            self.remote_th.save_torrent(torrent, callback)
+                                        else:
+                                            processCallbacks(key)
+    
+                                    except:
+                                        if DEBUG:
+                                            print >> sys.stderr, "RssParser: could not download", new_url
+                                        pass
+    
+                                    time.sleep(RSS_CHECK_FREQUENCY)
+                        except:
+                            if DEBUG:
+                                print >> sys.stderr, "RssParser: could load ", url
+                            pass
 
     def readUrl(self, url, urls_already_seen):
         if DEBUG:
