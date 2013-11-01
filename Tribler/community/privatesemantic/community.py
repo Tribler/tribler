@@ -8,7 +8,8 @@ from math import ceil
 from hashlib import md5
 from itertools import groupby
 
-from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.authentication import MemberAuthentication, \
+    NoAuthentication
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.community import Community
@@ -153,8 +154,8 @@ class ForwardCommunity():
         new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, ExtendedIntroPayload(), ori.check_callback, self.on_intro_request)
         self._meta_messages[u"dispersy-introduction-request"] = new
 
-        return [Message(self, u"ping", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
-                Message(self, u"pong", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
+        return [Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
+                Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SemanticConversion(self)]
