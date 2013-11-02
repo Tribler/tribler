@@ -19,17 +19,6 @@ from threading import Event, Thread
 
 
 class AnonTunnel(Thread):
-
-    @property
-    def tunnel(self):
-        """
-
-
-        :return:
-        :rtype: DispersyTunnelProxy
-        """
-        return [c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)][0].socks_server.tunnel
-
     def __init__(self, socks5_port, cmd_port):
         Thread.__init__(self)
         self.server_done_flag = Event()
@@ -42,13 +31,16 @@ class AnonTunnel(Thread):
 
         self.callback = Callback()
         self.socks5_server = Socks5Server()
+
         self.socks5_server.attach_to(self.raw_server, socks5_port)
 
-        self.endpoint = RawserverEndpoint(self.socks5_server.raw_server, port=10000)
+        self.endpoint = RawserverEndpoint(self.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
+        self.tunnel = DispersyTunnelProxy(self.raw_server)
+        self.socks5_server.tunnel = self.tunnel
 
-        self.command_handler = CommandHandler(self)
-        self.command_handler.attach_to(self.socks5_server, cmd_port)
+        #self.command_handler = CommandHandler(self)
+        #self.command_handler.attach_to(self.socks5_server, cmd_port)
 
         self.community = None
 
@@ -58,8 +50,12 @@ class AnonTunnel(Thread):
         logger.error("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
         def join_overlay(dispersy):
+            def on_ready(proxy_community):
+                self.tunnel.start(self.callback, proxy_community)
+                self.socks5_server.start()
+
             dispersy.define_auto_load(ProxyCommunity,
-                                     (self.dispersy.get_new_member(), self.socks5_server),
+                                     (self.dispersy.get_new_member(), on_ready),
                                      load=True)
 
         self.community = self.dispersy.callback.call(join_overlay, (self.dispersy,))

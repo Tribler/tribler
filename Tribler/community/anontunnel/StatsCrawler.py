@@ -67,8 +67,8 @@ class StatsCrawler(Thread):
     def stats_to_txt(stats):
         return json.dumps(stats)
 
-    def on_stats(self, e):
-        candidate = e.message.candidate
+    def on_stats(self, event, message):
+        candidate = message.candidate
 
         # Do not store if we have received a STATS message from the same client before
         if candidate in self.stored_candidates:
@@ -79,7 +79,7 @@ class StatsCrawler(Thread):
         else:
             self.first = False
 
-        stats = e.message.payload.stats
+        stats = message.payload.stats
         stats['candidate'] = candidate
 
         self.fout.write(self.stats_to_txt(stats))

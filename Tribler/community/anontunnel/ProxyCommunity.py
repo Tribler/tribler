@@ -7,7 +7,7 @@ from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPaylo
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
-from Tribler.dispersy.candidate import BootstrapCandidate, Candidate
+from Tribler.dispersy.candidate import BootstrapCandidate, Candidate, WalkCandidate
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -49,7 +49,7 @@ class ProxyCommunity(Community, Observable):
         else:
             return super(ProxyCommunity, cls).load_community(dispersy, master, socks_server)
 
-    def __init__(self, dispersy, master_member, socks_server, create_tunnel=True):
+    def __init__(self, dispersy, master_member, onready=None):
         Observable.__init__(self)
 
         # original walker callbacks (will be set during super(...).__init__)
@@ -58,20 +58,17 @@ class ProxyCommunity(Community, Observable):
 
         Community.__init__(self, dispersy, master_member)
 
-        if socks_server is not None and create_tunnel:
-            self.socks_server = socks_server
-            self.socks_server.tunnel = DispersyTunnelProxy(self.dispersy.callback, self)
-
-            self.socks_server.start()
-
-            self.tribler_notifier = TriblerNotifier(self.socks_server.tunnel)
+        if onready:
+            onready(self)
 
         # Heartbeat hashmap Candidate -> last heart beat timestamp, assume we never heard any
-        self.member_heartbeat = defaultdict(lambda: datetime.min)
-        self.member_ping = defaultdict(lambda: datetime.min)
+        self.member_heartbeat = {}
+        self.member_ping = {}
 
-        self.subscribe("on_pong", lambda (event): logger.debug(
-            "Got PONG from %s:%d" % (event.message.candidate.sock_addr[0], event.message.candidate.sock_addr[1])))
+        def on_pong(event, message):
+            logger.debug("Got PONG from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
+
+        self.subscribe("on_pong", on_pong)
 
         def ping_and_purge():
             while True:
@@ -85,29 +82,32 @@ class ProxyCommunity(Community, Observable):
                     candidates_to_be_purged = \
                         {
                             candidate
-                            for candidate in self.member_ping.keys()
-                            if self.member_heartbeat[candidate] < datetime.now() - 2 * timedelta(seconds=timeout)
+                            for candidate in self.member_heartbeat.keys()
+                            if self.member_heartbeat[candidate] < datetime.now() - timedelta(seconds=4*timeout)
                         }
+
+                    for candidate in candidates_to_be_purged.values():
+                        self.on_candidate_exit(candidate)
+                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+
 
                     candidates_to_be_pinged = {candidate for candidate in self.member_heartbeat.keys() if
                                                self.member_heartbeat[candidate] < datetime.now() - timedelta(
-                                                   seconds=timeout)}.difference(candidates_to_be_purged)
+                                                   seconds=timeout)}
 
                     for candidate in candidates_to_be_pinged:
                         self.member_ping[candidate] = datetime.now()
                         self.send(u"ping", candidate)
                         logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
-                    for candidate in candidates_to_be_purged:
-                        self.on_candidate_exit(candidate)
-                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
+
                 except:
                     pass
 
                 # rerun over 3 seconds
-                yield 5.0
+                yield 2.0
 
-        self.dispersy.callback.register(ping_and_purge, priority= 0)
+        # self.dispersy.callback.register(ping_and_purge, priority= 0)
 
 
     def initiate_conversions(self):
@@ -123,7 +123,6 @@ class ProxyCommunity(Community, Observable):
                 if msg.candidate in self.member_ping:
                     del self.member_ping[msg.candidate]
 
-                self.member_heartbeat[msg.candidate] = datetime.now()
                 self.fire("on_member_heartbeat", candidate=msg.candidate)
                 self.fire(event_name, message=msg)
 
@@ -153,7 +152,7 @@ class ProxyCommunity(Community, Observable):
             for message_key, payload in event_messages_def.items()
         ]
 
-        self.subscribe("on_ping", lambda(event): self.on_ping(event.message))
+        self.subscribe("on_ping", self.on_ping)
 
         return event_messages
 
@@ -184,7 +183,7 @@ class ProxyCommunity(Community, Observable):
 
         self.dispersy.endpoint.send([destination_candidate], [message.packet])
 
-    def on_ping(self, message):
+    def on_ping(self, event, message):
         logger.debug("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
         self.send(u"pong", message.candidate)
 
@@ -193,7 +192,7 @@ class ProxyCommunity(Community, Observable):
             return self._original_on_introduction_request(messages)
         finally:
             for message in messages:
-                if not isinstance(message.candidate, BootstrapCandidate):
+                if not isinstance(message.candidate, BootstrapCandidate) and isinstance(message.candidate, WalkCandidate):
                     self.fire("on_member_heartbeat", candidate=message.candidate)
 
     def on_introduction_response(self, messages):
@@ -201,7 +200,7 @@ class ProxyCommunity(Community, Observable):
             return self._original_on_introduction_response(messages)
         finally:
             for message in messages:
-                if not isinstance(message.candidate, BootstrapCandidate):
+                if not isinstance(message.candidate, BootstrapCandidate) and isinstance(message.candidate, WalkCandidate):
                     self.fire("on_member_heartbeat", candidate=message.candidate)
 
     def on_candidate_exit(self, candidate):
