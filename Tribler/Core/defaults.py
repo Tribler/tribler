@@ -39,8 +39,8 @@ sessdefaults['maxport'] = DEFAULTPORT
 sessdefaults['bind'] = []
 sessdefaults['ipv6_enabled'] = 0  # allow the client to connect to peers via IPv6 (currently not supported)
 sessdefaults['ipv6_binds_v4'] = None  # set if an IPv6 server socket won't also field IPv4 connections (default = set automatically)
-sessdefaults['timeout'] = 300.0
-sessdefaults['timeout_check_interval'] = 60.0
+sessdefaults['timeout'] = 3000.0
+sessdefaults['timeout_check_interval'] = 600.0
 sessdefaults['eckeypairfilename'] = None
 sessdefaults['megacache'] = True
 sessdefaults['torrent_collecting'] = False

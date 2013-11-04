@@ -345,7 +345,6 @@ class DispersyTunnelProxy(Observable):
             # transfer extending for queue to the next hop
             while self.extending_for[(created_for.candidate, created_for.circuit_id)] > 0:
                 self.extending_for[(created_for.candidate, created_for.circuit_id)] -= 1
-            self.proxy.stats['bytes_enter'] += len(packet)
 
                 community.send(u"extend", extended_with, msg.circuit_id)
 

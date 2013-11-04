@@ -73,25 +73,6 @@ class Socks5Server(object):
                 logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
                              self.socks5_port)
 
-    def external_connection_made(self, s):
-        try:
-            self.connection_handler.external_connection_made(s)
-        except:
-            print_exc()
-            s.close()
-
-    def connection_flushed(self, s):
-        self.connection_handler.connection_flushed(s)
-
-    def connection_lost(self, s):
-        self.connection_handler.connection_lost(s)
-
-    def data_came_in(self, s, data):
-        try:
-            self.connection_handler.data_came_in(s, data)
-        except:
-            print_exc()
-            s.close()
 
     def add_task(self, func, t):
         self.raw_server.add_task(func, t)

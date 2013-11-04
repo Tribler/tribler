@@ -432,6 +432,9 @@ class ABCApp():
         host = "145.94.47.142:20000"
         root_hash = "7968deb036fcb297b437d92919d4649f6955bbd0"
 
+        host = "devristo.dyndns.org:20001"
+        root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
+
         try:
             download = get_default_dest_dir() + "/" + root_hash
 
