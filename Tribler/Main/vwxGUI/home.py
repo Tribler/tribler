@@ -806,7 +806,7 @@ class RightDispersyPanel(FancyPanel):
                         if isinstance(v, basestring):
                             v = v.replace('\n', '\n          ')
                         stat_list.append('%-10s%s' % (k, v))
-                    runtime.append(("duration = %7.2f ; entry = %s" % (stat_dict['duration'], stat_dict['entry'].split()[0]), tuple(stat_list)))
+                    runtime.append(("duration = %7.2f ; entry = %s" % (stat_dict['duration'], stat_dict['entry'].split('\n')[0]), tuple(stat_list)))
                 runtime.sort(reverse=True)
             self.AddDataToTree(dict(runtime), parentNode, self.rawinfo_tree, prepend=False, sort_dict=True)
 
