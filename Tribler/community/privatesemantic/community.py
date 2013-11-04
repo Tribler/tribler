@@ -666,7 +666,7 @@ class PForwardCommunity(ForwardCommunity):
     def initiate_conversions(self):
         return [DefaultConversion(self), PSearchConversion(self)]
 
-    def create_similarity_payload(self, identifier):
+    def create_similarity_payload(self):
         global_vector = self.create_global_vector()
 
         str_global_vector = str(global_vector)
@@ -689,8 +689,8 @@ class PForwardCommunity(ForwardCommunity):
             self.my_preference_cache = [str_global_vector, encrypted_vector]
 
         if encrypted_vector:
-            Payload = namedtuple('Payload', ['identifier', 'key_n', 'preference_list', 'global_vector'])
-            return Payload(identifier, self.key.n, encrypted_vector, global_vector)
+            Payload = namedtuple('Payload', ['key_n', 'preference_list', 'global_vector'])
+            return Payload(self.key.n, encrypted_vector, global_vector)
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
