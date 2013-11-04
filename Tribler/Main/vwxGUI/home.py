@@ -1271,14 +1271,15 @@ class Anonymity(wx.Panel):
 
     def RemoveEdge(self, from_addr, to_addr):
         with self.lock:
-            from_id = self.peers.index(from_addr)
-            to_id = self.peers.index(to_addr)
-            if [to_id, from_id] in self.edges:
-                self.edges.remove([to_id, from_id])
-            if [from_id, to_id] in self.edges:
-                self.edges.remove([from_id, to_id])
-            self.RemoveUnconnectedVertices()
-            self.new_data = True
+            if from_addr in self.peers and to_addr in self.peers:
+                from_id = self.peers.index(from_addr)
+                to_id = self.peers.index(to_addr)
+                if [to_id, from_id] in self.edges:
+                    self.edges.remove([to_id, from_id])
+                if [from_id, to_id] in self.edges:
+                    self.edges.remove([from_id, to_id])
+                self.RemoveUnconnectedVertices()
+                self.new_data = True
 
     def RemoveUnconnectedVertices(self):
         # Build a list of vertices and their number of neighbors, and delete the unconnected ones.

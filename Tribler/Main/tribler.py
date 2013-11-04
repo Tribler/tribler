@@ -318,7 +318,7 @@ class ABCApp():
                     if hand.GetMimeType() == 'image/x-bmp':
                         bmphand = hand
                         break
-                # wx.Image.AddHandler()
+                    # wx.Image.AddHandler()
                 if bmphand is not None:
                     bmphand.SetMimeType('image/bmp')
             except:
@@ -348,8 +348,8 @@ class ABCApp():
 
             status = get_status_holder("LivingLab")
             status.add_reporter(NullReporter("Periodically remove all events", 0))
-# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
-# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
+            # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
+            # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
             status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
@@ -361,9 +361,10 @@ class ABCApp():
             # AnonTunnel test
             self.frame.actlist.DisableItem(3)
             self.frame.actlist.DisableItem(6)
-            self.frame.top_bg.searchField.Disable()
-            self.frame.top_bg.searchFieldPanel.Disable()
-            self.frame.top_bg.add_btn.Disable()
+            #self.frame.top_bg.searchField.Disable()
+            #self.frame.top_bg.searchFieldPanel.Disable()
+            #self.frame.top_bg.add_btn.Disable()
+            self.frame.top_bg.GetSizer().ShowItems(False)
 
             self.frame.home.searchBox.Show(False)
             self.frame.home.channelLinkText.ShowItems(False)
