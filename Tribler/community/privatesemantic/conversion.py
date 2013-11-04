@@ -257,15 +257,20 @@ class HSearchConversion(ForwardConversion):
             nr_to_reduce = int((len(packet) - max_len) / 148.0) + 1
 
             for _ in range(nr_to_reduce):
-                index = choice(range(len(message.payload.bundled_responses)))
+                nr_bundled_responses = len(message.payload.bundled_responses)
+                if nr_bundled_responses:
+                    index = choice(range(nr_bundled_responses))
 
-                nr_my_responses = len(message.payload.bundled_responses[index][1][0])
-                nr_his_responses = len(message.payload.bundled_responses[index][1][1])
-                if nr_my_responses <= 1 or nr_his_responses <= 1:
-                    message.payload.bundled_responses.pop(index)
+                    nr_my_responses = len(message.payload.bundled_responses[index][1][0])
+                    nr_his_responses = len(message.payload.bundled_responses[index][1][1])
+                    if nr_my_responses <= 1 or nr_his_responses <= 1:
+                        message.payload.bundled_responses.pop(index)
+                    else:
+                        message.payload.bundled_responses[index][1][0].pop(choice(range(nr_my_responses)))
+                        message.payload.bundled_responses[index][1][1].pop(choice(range(nr_his_responses)))
                 else:
-                    message.payload.bundled_responses[index][1][0].pop(choice(range(nr_my_responses)))
-                    message.payload.bundled_responses[index][1][1].pop(choice(range(nr_his_responses)))
+                    message.payload.preference_list.pop(choice(range(len(message.payload.preference_list))))
+                    message.payload.his_preference_list.pop(choice(range(len(message.payload.his_preference_list))))
 
             packet = create_msg()
 
