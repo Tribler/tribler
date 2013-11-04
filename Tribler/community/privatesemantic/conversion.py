@@ -256,6 +256,9 @@ class HSearchConversion(ForwardConversion):
         while len(packet) > max_len:
             nr_to_reduce = int((len(packet) - max_len) / 148.0) + 1
 
+            import sys
+            print >> sys.stderr, len(packet), max_len, nr_to_reduce
+
             for _ in range(nr_to_reduce):
                 nr_bundled_responses = len(message.payload.bundled_responses)
                 if nr_bundled_responses:
@@ -268,6 +271,7 @@ class HSearchConversion(ForwardConversion):
                     else:
                         message.payload.bundled_responses[index][1][0].pop(choice(range(nr_my_responses)))
                         message.payload.bundled_responses[index][1][1].pop(choice(range(nr_his_responses)))
+
                 else:
                     nr_my_responses = len(message.payload.preference_list)
                     nr_his_responses = len(message.payload.his_preference_list)
