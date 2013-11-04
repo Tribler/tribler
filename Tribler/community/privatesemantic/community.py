@@ -34,7 +34,7 @@ from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from polycreate import compute_coeff, polyval
 from collections import namedtuple
 
-DEBUG = True
+DEBUG = False
 DEBUG_VERBOSE = False
 ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
