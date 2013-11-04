@@ -26,7 +26,7 @@ from conversion import SearchConversion
 from payload import *
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
-from Tribler.dispersy.requestcache import NumberCache
+from Tribler.dispersy.requestcache import Cache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.dispersy import IntroductionRequestCache
@@ -149,14 +149,18 @@ class TTLSearchCommunity(Community):
                     self.requested_mids.add(member.mid)
             self.received_candidates = []
 
-            # # setting timeout
-            # if self.return_candidate:
-            #     self.timeout_delay = 5.0
-            # else:
-            #     self.timeout_delay = 30.0
+            # setting timeout
+            if self.return_candidate:
+                self.timeout_delay = 5.0
+            else:
+                self.timeout_delay = 30.0
 
-            # self.timeout_delay += (ttl * 2)
+            self.timeout_delay += (ttl * 2)
             self.processed = False
+
+            # call self.on_timeout after self.timeout_delay seconds.  We do not need to cancel this
+            # call registered call because we rely on the self.processed boolean
+            self.community.dispersy.callback.register(self.on_timeout, delay=self.timeout_delay)
 
         def did_request(self, candidate_mid):
             return candidate_mid in self.requested_mids
@@ -191,23 +195,29 @@ class TTLSearchCommunity(Community):
                 else:
                     self.community.search_timeout += (len(self.requested_candidates) - len(self.received_candidates))
 
-    class MSearchRequest(NumberCache):
+    class MSearchRequest(Cache):
         @staticmethod
         def create_identifier(number):
             return u"private-search:m-search-request:%d" % (number,)
 
-        # def __init__(self, community, timeout_delay):
-            # self._timeout_delay = timeout_delay
-        def __init__(self, community, ttl, return_candidate=None):
-            NumberCache.__init__(self, community.request_cache)
+        @classmethod
+        def find_unclaimed_identifier(cls, request_cache):
+            """
+            Returns unclaimed (int:number, unicode:identifier) tuple.
+            """
+            while True:
+                number = int(random() * 2 ** 16)
+                identifier = cls.create_identifier(number)
+                if not request_cache.has(identifier):
+                    return number, identifier
 
-            # setting timeout
-            if return_candidate:
-                self._timeout_delay = 5.0 + (ttl * 2)
-            else:
-                self._timeout_delay = 30.0 + (ttl * 2)
+        def __init__(self, identifier, search_request):
+            assert identifier == search_request.identifier, [identifier, search_request.identifier]
+            Cache.__init__(self, identifier)
+            self._timeout_delay = timeout_delay
 
             self.search_requests = []
+            self.search_requests.append(search_request)
 
         @property
         def timeout_delay(self):
@@ -222,9 +232,7 @@ class TTLSearchCommunity(Community):
                 requested_candidates = self.get_requested_candidates()
                 assert all(mid not in requested_candidates for mid in search_request.requested_mids), "requested candidates cannot overlap"
                 assert search_request.identifier == self.identifier, [search_request.identifier, self.identifier]
-                # when no search_request have been added, we don't yet have any keywords
-                if self.search_requests:
-                    assert search_request.keywords == self.keywords, [search_request.keywords, self.keywords]
+                assert search_request.keywords == self.keywords, [search_request.keywords, self.keywords]
 
             self.search_requests.append(search_request)
 
@@ -371,11 +379,11 @@ class TTLSearchCommunity(Community):
 
         # fetch requested candidates from previous forward
         if identifier is None:
-            prev_request = None
+            prev_mrequest = None
             ignore_candidates = set()
         else:
-            prev_request = self.request_cache.get(TTLSearchCommunity.MSearchRequest.create_identifier(identifier))
-            ignore_candidates = cache.get_requested_candidates() if prev_request else set()
+            prev_mrequest = self.request_cache.get(TTLSearchCommunity.MSearchRequest.create_identifier(identifier))
+            ignore_candidates = prev_mrequest.get_requested_candidates() if prev_mrequest else set()
 
         if return_candidate:
             # ERR
@@ -403,17 +411,18 @@ class TTLSearchCommunity(Community):
                 candidates.append(candidate)
 
         if candidates:
-            if prev_request:
-                this_mrequest = prev_request
-                assert prev_request.keywords == keywords
+            if prev_mrequest:
+                assert prev_mrequest.keywords == keywords
+                this_request = SearchCommunity.SearchRequest(self, prev_mrequest.identifier, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
+                this_mrequest = prev_mrequest
+                this_mrequest.add_request(this_request)
+
             else:
-                # this_mrequest = self._request_cache.add(TTLSearchCommunity.MSearchRequest(self, this_request.timeout_delay))
-                this_mrequest = self._request_cache.add(TTLSearchCommunity.MSearchRequest(self, ttl or 7, return_candidate))
+                this_mrequest_identifier = TTLSearchCommunity.MSearchRequest.find_unclaimed_identifier(self._request_cache)
+                this_request = SearchCommunity.SearchRequest(self, this_mrequest_identifier, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
+                this_mrequest = self._request_cache.add(TTLSearchCommunity.MSearchRequest(this_mrequest_identifier, this_request))
                 if self.log_searches:
                     log("dispersy.log", "search-statistics", identifier=this_mrequest.number, keywords=keywords, created_by_me=True)
-
-            this_request = SearchCommunity.SearchRequest(self, this_mrequest.identifier, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
-            this_mrequest.add_request(this_request)
 
             # create request message
             meta = self.get_meta_message(u"search-request")
