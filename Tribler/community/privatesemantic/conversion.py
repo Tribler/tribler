@@ -237,7 +237,6 @@ class HSearchConversion(ForwardConversion):
     def _encode_simi_responses(self, message):
         max_len = 65000 - (1500 - (self._community.dispersy_sync_bloom_filter_bits / 8))
 
-
         def create_msg():
             def _encode_response(mid, preference_list, his_preference_list):
                 str_mid = pack("!20s", mid) if mid else ''
@@ -255,15 +254,17 @@ class HSearchConversion(ForwardConversion):
 
         packet = create_msg()
         while len(packet) > max_len:
-            nr_to_reduce = int((len(packet) - max_len) / 128.0) + 1
+            nr_to_reduce = int((len(packet) - max_len) / 148.0) + 1
 
             for _ in range(nr_to_reduce):
                 index = choice(range(len(message.payload.bundled_responses)))
+
                 nr_responses = len(message.payload.bundled_responses[index][1])
                 if nr_responses <= 1:
                     message.payload.bundled_responses.pop(index)
                 else:
-                    message.payload.bundled_responses[index] = (message.payload.bundled_responses[index][0], sample(message.payload.bundled_responses[index][1], nr_responses - 1))
+                    message.payload.bundled_responses[index].pop(choice(range(nr_responses)))
+
             packet = create_msg()
 
         return packet,
@@ -418,7 +419,8 @@ class PoliSearchConversion(ForwardConversion):
                 if nr_polynomials <= 1:
                     message.payload.bundled_responses.pop(index)
                 else:
-                    message.payload.bundled_responses[index] = (message.payload.bundled_responses[index][0], sample(message.payload.bundled_responses[index][1], nr_polynomials - 1))
+                    message.payload.bundled_responses[index].pop(choice(range(nr_polynomials)))
+
             packet = create_msg()
 
         return packet,
