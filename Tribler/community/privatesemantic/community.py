@@ -203,7 +203,7 @@ class ForwardCommunity():
 
         for taste_buddy in taste_buddies:
             if taste_buddy.overlap and taste_buddy.candidate.sock_addr != ignore_sock_addr:
-                yield taste_buddy.candidate
+                yield taste_buddy
 
     def yield_taste_buddies_candidates(self, ignore_candidate=None):
         for tb in self.yield_taste_buddies(ignore_candidate):
