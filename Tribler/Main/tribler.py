@@ -360,9 +360,10 @@ class ABCApp():
 
             # AnonTunnel test
             self.frame.actlist.DisableItem(3)
-            self.frame.top_bg.searchField.Disable()
-            self.frame.top_bg.searchFieldPanel.Disable()
-            self.frame.top_bg.add_btn.Disable()
+            #self.frame.top_bg.searchField.Disable()
+            #self.frame.top_bg.searchFieldPanel.Disable()
+            #self.frame.top_bg.add_btn.Disable()
+            self.frame.top_bg.GetSizer().ShowItems(False)
 
             self.frame.home.searchBox.Show(False)
             self.frame.home.channelLinkText.ShowItems(False)
