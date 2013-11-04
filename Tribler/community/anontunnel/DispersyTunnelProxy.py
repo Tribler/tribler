@@ -345,6 +345,7 @@ class DispersyTunnelProxy(Observable):
             # transfer extending for queue to the next hop
             while self.extending_for[(created_for.candidate, created_for.circuit_id)] > 0:
                 self.extending_for[(created_for.candidate, created_for.circuit_id)] -= 1
+            self.proxy.stats['bytes_enter'] += len(packet)
 
                 community.send(u"extend", extended_with, msg.circuit_id)
 
@@ -386,6 +387,7 @@ class DispersyTunnelProxy(Observable):
             logger.info("EXIT DATA packet to %s", destination)
 
         self.circuits[0].bytes_up[1] += len(data)
+        self.stats['bytes_exit'] += len(data)
 
         try:
             self.get_exit_socket(circuit_id, return_candidate).sendto(data, destination)
@@ -583,15 +585,17 @@ class DispersyTunnelProxy(Observable):
                 {
                     'bytes_down': c.bytes_down[1],
                     'bytes_up': c.bytes_up[1],
-                    'speed_down': c.speed_down,
-                    'speed_up': c.speed_up
+                    'times': c.times[::5],
+                    'speed_down': c.speed_down[::5],
+                    'speed_up': c.speed_up[::5]
                 }
                 for c in self.get_circuits()
             ],
             'relays': [
                 {
                     'bytes': r.bytes[1],
-                    'speed': r.speed
+                    'times': r.times[::5],
+                    'speed': r.speed[::5]
                 }
                 for r in self.get_relays()
             ]
