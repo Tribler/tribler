@@ -650,7 +650,7 @@ class ForwardCommunity():
         self._dispersy._send(candidates, [message])
 
         if True or DEBUG:
-            print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", candidates
+            print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", len(candidates), "candidates:", map(str, candidates)
 
 class PForwardCommunity(ForwardCommunity):
 
