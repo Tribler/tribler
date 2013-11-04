@@ -643,7 +643,7 @@ class ForwardCommunity():
     def _create_pingpong(self, meta_name, candidates, identifier=None):
         meta = self.get_meta_message(meta_name)
         message = meta.impl(distribution=(self.global_time,), payload=(identifier,))
-        self._dispersy._send([candidates], [message])
+        self._dispersy._send(candidates, [message])
 
         if True or DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", candidates
