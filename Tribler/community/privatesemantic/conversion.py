@@ -254,7 +254,7 @@ class HSearchConversion(ForwardConversion):
 
         packet = create_msg()
         while len(packet) > max_len:
-            nr_to_reduce = int((len(packet) - max_len) / 148.0) + 1
+            nr_to_reduce = int((len(packet) - max_len) / 128.0) + 1
 
             import sys
             print >> sys.stderr, "before", len(packet), max_len, nr_to_reduce
@@ -268,8 +268,11 @@ class HSearchConversion(ForwardConversion):
                     nr_his_responses = len(message.payload.bundled_responses[index][1][1])
                     if nr_my_responses <= 1 or nr_his_responses <= 1:
                         message.payload.bundled_responses.pop(index)
-                    else:
+
+                    elif nr_my_responses > nr_his_responses:
                         message.payload.bundled_responses[index][1][0].pop(choice(range(nr_my_responses)))
+
+                    else:
                         message.payload.bundled_responses[index][1][1].pop(choice(range(nr_his_responses)))
 
                     print >> sys.stderr, "removed one", nr_bundled_responses, nr_my_responses, nr_his_responses
