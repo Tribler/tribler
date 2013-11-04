@@ -360,6 +360,7 @@ class ABCApp():
 
             # AnonTunnel test
             self.frame.actlist.DisableItem(3)
+            self.frame.actlist.DisableItem(6)
             self.frame.top_bg.searchField.Disable()
             self.frame.top_bg.searchFieldPanel.Disable()
             self.frame.top_bg.add_btn.Disable()
@@ -427,17 +428,23 @@ class ABCApp():
 
             return (1.0, False)
 
-        root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
+        host = "145.94.47.142:20000"
+        root_hash = "7968deb036fcb297b437d92919d4649f6955bbd0"
 
         try:
             download = get_default_dest_dir() + "/" + root_hash
 
             for file in glob.glob(download + "*"):
                 os.remove(file)
-        except:
-            pass
 
-        sdef = SwiftDef.load_from_url("tswift://devristo.dyndns.org:20001/" + root_hash)
+            meta = self.sconfig.get_swift_meta_dir() + "/" + root_hash
+
+            for file in glob.glob(meta + "*"):
+                os.remove(file)
+        except BaseException, e:
+            print_exc()
+
+        sdef = SwiftDef.load_from_url("tswift://" + host + "/" + root_hash)
         sdef.set_name("AnonTunnel test")
 
         result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
@@ -527,13 +534,13 @@ class ABCApp():
             from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
 
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(SearchCommunity,
-                                     (s.dispersy_member,),
-                                     load=True)
-            dispersy.define_auto_load(AllChannelCommunity,
-                                           (s.dispersy_member,),
-                                           {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
-                                           load=True)
+            #dispersy.define_auto_load(SearchCommunity,
+            #                         (s.dispersy_member,),
+            #                         load=True)
+            #dispersy.define_auto_load(AllChannelCommunity,
+            #                               (s.dispersy_member,),
+            #                               {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+            #                               load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
@@ -543,8 +550,8 @@ class ABCApp():
             #                               (swift_process,),
             #                               load=True)
 
-            dispersy.define_auto_load(ChannelCommunity, load=True)
-            dispersy.define_auto_load(PreviewChannelCommunity)
+            #dispersy.define_auto_load(ChannelCommunity, load=True)
+            #dispersy.define_auto_load(PreviewChannelCommunity)
 
             def on_load(proxy_community):
                 print >> sys.stderr, "ProxyCommunity has been loaded, linking TUNNEL, starting TEST"
@@ -774,6 +781,8 @@ class ABCApp():
         return (1.0, wantpeers)
 
     def loadSessionCheckpoint(self):
+        return
+
         # Niels: first remove all "swift" torrent collect checkpoints
         dir = self.utility.session.get_downloads_pstate_dir()
         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))

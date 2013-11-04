@@ -119,7 +119,7 @@ class Home(XRCPanel):
         self.SetSizer(vSizer)
         self.Layout()
 
-        self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
+        # self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
 
         self.SearchFocus()
 
