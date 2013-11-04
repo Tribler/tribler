@@ -599,6 +599,11 @@ class ForwardCommunity():
             if self.did_request(candidate):
                 self.received_candidates.add(candidate)
 
+            return self.is_complete()
+
+        def is_complete(self):
+            return len(self.received_candidates) == len(self.requested_candidates)
+
         def did_request(self, candidate):
             return candidate in self.requested_candidates
 
@@ -639,8 +644,9 @@ class ForwardCommunity():
 
     def on_pong(self, messages):
         for message in messages:
-            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.PingRequestCache)
-            request.on_success(message.candidate)
+            request = self._dispersy.request_cache.get(message.payload.identifier, ForwardCommunity.PingRequestCache)
+            if request.on_success(message.candidate):
+                self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.PingRequestCache)
 
             self.reset_taste_buddy(message.candidate)
 
