@@ -572,6 +572,7 @@ class RightDispersyPanel(FancyPanel):
     def __init__(self, parent):
         FancyPanel.__init__(self, parent, border=wx.LEFT | wx.BOTTOM)
         self.SetBorderColour(SEPARATOR_GREY)
+        self.SetBackgroundColour(wx.WHITE)
 
         guiutility = GUIUtility.getInstance()
         self.dispersy = guiutility.utility.session.lm.dispersy
@@ -580,9 +581,12 @@ class RightDispersyPanel(FancyPanel):
 
         # Create notebook
         self.notebook = SimpleNotebook(self, show_single_tab=True, style=wx.NB_NOPAGETHEME)
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.notebook, 1, wx.EXPAND | wx.LEFT | wx.BOTTOM, 1)
-        self.SetSizer(hSizer)
+        checkboxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(self.notebook, 1, wx.EXPAND | wx.LEFT, 1)
+        vSizer.Add(checkboxSizer, 0, wx.EXPAND | wx.LEFT, 5)
+        vSizer.AddSpacer((-1, 2))
+        self.SetSizer(vSizer)
 
         # Create and populate community panel
         self.community_panel = wx.Panel(self.notebook)
@@ -600,11 +604,9 @@ class RightDispersyPanel(FancyPanel):
         self.community_tree.SetFont(font)
 
         community_sizer.Add(self.community_tree, 1, wx.EXPAND)
-        self.includeStuffs = wx.CheckBox(self.community_panel, -1, "Include stuffs")
-        community_sizer.Add(self.includeStuffs, 0, wx.TOP | wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(community_sizer, 1, wx.EXPAND | wx.LEFT, 10)
+        hSizer.Add(community_sizer, 1, wx.EXPAND)
         self.community_panel.SetSizer(hSizer)
 
         # Create and populate raw info panel
@@ -623,12 +625,9 @@ class RightDispersyPanel(FancyPanel):
         self.rawinfo_tree.SetFont(font)
 
         self.rawinfo_sizer.Add(self.rawinfo_tree, 1, wx.EXPAND)
-        self.includeDebug = wx.CheckBox(self.rawinfo_panel, -1, "Collect debug")
-        self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
-        self.rawinfo_sizer.Add(self.includeDebug, 0, wx.TOP | wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.rawinfo_sizer, 1, wx.EXPAND | wx.LEFT, 10)
+        hSizer.Add(self.rawinfo_sizer, 1, wx.EXPAND)
         self.rawinfo_panel.SetSizer(hSizer)
 
         # Create and populate runtime statistics panel
@@ -647,15 +646,18 @@ class RightDispersyPanel(FancyPanel):
         self.runtime_tree.SetFont(font)
 
         self.runtime_sizer.Add(self.runtime_tree, 1, wx.EXPAND)
-        self.includeDebugRT = wx.CheckBox(self.runtime_panel, -1, "Collect debug")
-        self.includeDebugRT.SetValue(self.includeDebug.GetValue())
-        self.includeDebugRT.Bind(wx.EVT_CHECKBOX, lambda evt: self.includeDebug.SetValue(self.includeDebugRT.GetValue()))
-        self.includeDebug.Bind(wx.EVT_CHECKBOX, lambda evt: self.includeDebugRT.SetValue(self.includeDebug.GetValue()))
-        self.runtime_sizer.Add(self.includeDebugRT, 0, wx.TOP | wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.runtime_sizer, 1, wx.EXPAND | wx.LEFT, 10)
+        hSizer.Add(self.runtime_sizer, 1, wx.EXPAND)
         self.runtime_panel.SetSizer(hSizer)
+
+        # Add checkboxes
+        self.includeStuffs = wx.CheckBox(self, -1, "Include stuffs")
+        checkboxSizer.Add(self.includeStuffs, 0, wx.TOP | wx.BOTTOM, 3)
+
+        self.includeDebug = wx.CheckBox(self, -1, "Collect debug")
+        self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
+        checkboxSizer.Add(self.includeDebug, 0, wx.TOP | wx.BOTTOM, 3)
 
         # Add timer for stats updates
         self.timer = wx.Timer(self)
