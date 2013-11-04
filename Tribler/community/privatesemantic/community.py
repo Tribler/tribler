@@ -37,7 +37,7 @@ from collections import namedtuple
 DEBUG = False
 DEBUG_VERBOSE = False
 ENCRYPTION = True
-PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
+PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
 
 class TasteBuddy():
     def __init__(self, overlap, timestamp, candidate):
@@ -181,7 +181,7 @@ class ForwardCommunity():
             else:
                 if len(self.taste_buddies) < self.max_taste_buddies or new_taste_buddy > self.taste_buddies[-1]:
                     self.taste_buddies.append(new_taste_buddy)
-                    self.dispersy.callback.register(self.create_ping_request, args=(new_taste_buddy,), delay=new_taste_buddy.time_remaining() - 5.0)
+                    self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_request2, delay=new_taste_buddy.time_remaining() - 5.0)
 
                 # if we have any similarity, cache peer
                 if new_taste_buddy.overlap and new_taste_buddy.should_cache():
@@ -516,7 +516,7 @@ class ForwardCommunity():
                 continue
 
             if not request.did_request(message.candidate):
-                yield DropMessage(message, "did not request this candidate_mid")
+                yield DropMessage(message, "did not send request to this candidate")
                 continue
 
             yield message
@@ -586,37 +586,49 @@ class ForwardCommunity():
     class PingRequestCache(IntroductionRequestCache):
         cleanup_delay = 0.0
 
-        def __init__(self, community, candidate):
+        def __init__(self, community, requested_candidates):
             IntroductionRequestCache.__init__(self, community, None)
-            self.candidate = candidate
-            self.processed = False
+            self.requested_candidates = requested_candidates
+            self.received_candidates = set()
 
-        def on_success(self):
-            self.processed = True
+        def on_success(self, candidate):
+            if self.did_request(candidate):
+                self.received_candidates.add(candidate)
+
+        def did_request(self, candidate):
+            return candidate in self.requested_candidates
 
         def on_timeout(self):
-            if not self.processed:
-                if DEBUG:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: no response on ping, removing from taste_buddies", self.candidate
+            for candidate in self.requested_candidates:
+                if candidate not in self.received_candidates:
+                    if DEBUG:
+                        print >> sys.stderr, long(time()), "ForwardCommunity: no response on ping, removing from taste_buddies", candidate
+                    self.community.remove_taste_buddy(candidate)
 
-                self.community.remove_taste_buddy(self.candidate)
+    def create_ping_requests(self):
+        while True:
+            tbs = [tb.candidate for tb in self.yield_taste_buddies() if tb.time_remaining() < PING_INTERVAL]
 
-    def create_ping_request(self, tb):
-        while tb.time_remaining():
-            self._create_pingpong(u"ping", tb.candidate)
+            identifier = self._dispersy.request_cache.claim(ForwardCommunity.PingRequestCache(self, tbs))
+            self._create_pingpong(u"ping", tbs, identifier)
 
             yield PING_INTERVAL
 
     def on_ping(self, messages):
         for message in messages:
-            self._create_pingpong(u"pong", message.candidate, message.payload.identifier)
+            self._create_pingpong(u"pong", [message.candidate], message.payload.identifier)
 
             self.reset_taste_buddy(message.candidate)
 
     def check_pong(self, messages):
         for message in messages:
-            if not self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.PingRequestCache):
+            request = self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.PingRequestCache)
+            if not request:
                 yield DropMessage(message, "invalid response identifier")
+                continue
+
+            if not request.did_request(message.candidate):
+                yield DropMessage(message, "did not send ping to this candidate")
                 continue
 
             yield message
@@ -624,21 +636,17 @@ class ForwardCommunity():
     def on_pong(self, messages):
         for message in messages:
             request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.PingRequestCache)
-            request.on_success()
+            request.on_success(message.candidate)
 
             self.reset_taste_buddy(request.candidate)
 
-    def _create_pingpong(self, meta_name, candidate, identifier=None):
-        if identifier == None:
-            identifier = self._dispersy.request_cache.claim(ForwardCommunity.PingRequestCache(self, candidate))
-
-        # create torrent-collect-request/response message
+    def _create_pingpong(self, meta_name, candidates, identifier=None):
         meta = self.get_meta_message(meta_name)
         message = meta.impl(distribution=(self.global_time,), payload=(identifier,))
-        self._dispersy._send([candidate], [message])
+        self._dispersy._send([candidates], [message])
 
-        if DEBUG:
-            print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", candidate
+        if True or DEBUG:
+            print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", candidates
 
 class PForwardCommunity(ForwardCommunity):
 
