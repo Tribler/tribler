@@ -886,6 +886,8 @@ class HForwardCommunity(ForwardCommunity):
             myList = [long_to_bytes(infohash) for infohash in preference_list]
 
         assert all(len(infohash) == 20 for infohash in myList)
+        
+        print >> sys.stderr, myList, self.my_preference_cache[1]
 
         overlap = 0
         for pref in myList:
