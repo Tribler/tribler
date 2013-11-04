@@ -181,7 +181,7 @@ class ForwardCommunity():
             else:
                 if len(self.taste_buddies) < self.max_taste_buddies or new_taste_buddy > self.taste_buddies[-1]:
                     self.taste_buddies.append(new_taste_buddy)
-                    self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_request, delay=new_taste_buddy.time_remaining() - 5.0)
+                    self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_requests, delay=new_taste_buddy.time_remaining() - 5.0)
 
                 # if we have any similarity, cache peer
                 if new_taste_buddy.overlap and new_taste_buddy.should_cache():
