@@ -254,7 +254,7 @@ class HSearchConversion(ForwardConversion):
 
         packet = create_msg()
         while len(packet) > max_len:
-            nr_to_reduce = int((len(packet) - max_len) / 148.0) + 1
+            nr_to_reduce = int((len(packet) - max_len) / 256.0) + 1
 
             import sys
             print >> sys.stderr, len(packet), max_len, nr_to_reduce
