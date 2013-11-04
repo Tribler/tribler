@@ -259,13 +259,13 @@ class HSearchConversion(ForwardConversion):
             for _ in range(nr_to_reduce):
                 index = choice(range(len(message.payload.bundled_responses)))
 
-                nr_responses = len(message.payload.bundled_responses[index][1])
-                if nr_responses <= 1:
+                nr_my_responses = len(message.payload.bundled_responses[index][1][0])
+                nr_his_responses = len(message.payload.bundled_responses[index][1][1])
+                if nr_my_responses <= 1 or nr_his_responses <= 1:
                     message.payload.bundled_responses.pop(index)
                 else:
-                    response_to_remove = choice(range(nr_responses))
-                    message.payload.bundled_responses[index][1][0].pop(response_to_remove)
-                    message.payload.bundled_responses[index][1][1].pop(response_to_remove)
+                    message.payload.bundled_responses[index][1][0].pop(choice(range(nr_my_responses)))
+                    message.payload.bundled_responses[index][1][1].pop(choice(range(nr_his_responses)))
 
             packet = create_msg()
 
