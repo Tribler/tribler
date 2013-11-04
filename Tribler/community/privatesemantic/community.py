@@ -642,7 +642,7 @@ class ForwardCommunity():
             request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.PingRequestCache)
             request.on_success(message.candidate)
 
-            self.reset_taste_buddy(request.candidate)
+            self.reset_taste_buddy(message.candidate)
 
     def _create_pingpong(self, meta_name, candidates, identifier=None):
         meta = self.get_meta_message(meta_name)
