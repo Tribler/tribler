@@ -263,8 +263,8 @@ class HSearchConversion(ForwardConversion):
                 if nr_responses <= 1:
                     message.payload.bundled_responses.pop(index)
                 else:
-                    message.payload.bundled_responses[index] = list(message.payload.bundled_responses[index])
-                    message.payload.bundled_responses[index].pop(choice(range(nr_responses)))
+                    message.payload.bundled_responses[index][1] = list(message.payload.bundled_responses[index][1])
+                    message.payload.bundled_responses[index][1].pop(choice(range(nr_responses)))
 
             packet = create_msg()
 
@@ -420,8 +420,8 @@ class PoliSearchConversion(ForwardConversion):
                 if nr_polynomials <= 1:
                     message.payload.bundled_responses.pop(index)
                 else:
-                    message.payload.bundled_responses[index] = list(message.payload.bundled_responses[index])
-                    message.payload.bundled_responses[index].pop(choice(range(nr_polynomials)))
+                    message.payload.bundled_responses[index][1] = list(message.payload.bundled_responses[index][1])
+                    message.payload.bundled_responses[index][1].pop(choice(range(nr_polynomials)))
 
             packet = create_msg()
 
