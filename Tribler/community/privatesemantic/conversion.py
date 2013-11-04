@@ -235,19 +235,38 @@ class HSearchConversion(ForwardConversion):
         return offset, placeholder.meta.payload.implement(identifier, hashes, his_hashes)
 
     def _encode_simi_responses(self, message):
-        def _encode_response(mid, preference_list, his_preference_list):
-            str_mid = pack("!20s", mid) if mid else ''
-            str_prefs = pack("!" + "128s"*len(preference_list), *[long_to_bytes(preference, 128) for preference in preference_list])
-            str_hprefs = pack("!" + "20s"*len(his_preference_list), *his_preference_list)
-            return (str_mid, str_prefs, str_hprefs)
+        max_len = 65000 - (1500 - (self._community.dispersy_sync_bloom_filter_bits / 8))
 
-        responses = []
-        responses.append(_encode_response(None, message.payload.preference_list, message.payload.his_preference_list))
-        for mid, list_tuple in message.payload.bundled_responses:
-            responses.append(_encode_response(mid, list_tuple[0], list_tuple[1]))
 
-        packet = pack('!H', message.payload.identifier), responses
-        return encode(packet),
+        def create_msg():
+            def _encode_response(mid, preference_list, his_preference_list):
+                str_mid = pack("!20s", mid) if mid else ''
+                str_prefs = pack("!" + "128s"*len(preference_list), *[long_to_bytes(preference, 128) for preference in preference_list])
+                str_hprefs = pack("!" + "20s"*len(his_preference_list), *his_preference_list)
+                return (str_mid, str_prefs, str_hprefs)
+
+            responses = []
+            responses.append(_encode_response(None, message.payload.preference_list, message.payload.his_preference_list))
+            for mid, list_tuple in message.payload.bundled_responses:
+                responses.append(_encode_response(mid, list_tuple[0], list_tuple[1]))
+
+            packet = pack('!H', message.payload.identifier), responses
+            return encode(packet)
+
+        packet = create_msg()
+        while len(packet) > max_len:
+            nr_to_reduce = int((len(packet) - max_len) / 128.0) + 1
+
+            for _ in range(nr_to_reduce):
+                index = choice(range(len(message.payload.bundled_responses)))
+                nr_responses = len(message.payload.bundled_responses[index][1])
+                if nr_responses <= 1:
+                    message.payload.bundled_responses.pop(index)
+                else:
+                    message.payload.bundled_responses[index] = (message.payload.bundled_responses[index][0], sample(message.payload.bundled_responses[index][1], nr_responses - 1))
+            packet = create_msg()
+
+        return packet,
 
     def _decode_simi_responses(self, placeholder, offset, data):
         try:
