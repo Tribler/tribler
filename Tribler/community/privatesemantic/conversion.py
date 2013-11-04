@@ -263,8 +263,9 @@ class HSearchConversion(ForwardConversion):
                 if nr_responses <= 1:
                     message.payload.bundled_responses.pop(index)
                 else:
-                    message.payload.bundled_responses[index][1] = list(message.payload.bundled_responses[index][1])
-                    message.payload.bundled_responses[index][1].pop(choice(range(nr_responses)))
+                    response_to_remove = choice(range(nr_responses))
+                    message.payload.bundled_responses[index][1][0].pop(response_to_remove)
+                    message.payload.bundled_responses[index][1][1].pop(response_to_remove)
 
             packet = create_msg()
 
@@ -420,7 +421,6 @@ class PoliSearchConversion(ForwardConversion):
                 if nr_polynomials <= 1:
                     message.payload.bundled_responses.pop(index)
                 else:
-                    message.payload.bundled_responses[index][1] = list(message.payload.bundled_responses[index][1])
                     message.payload.bundled_responses[index][1].pop(choice(range(nr_polynomials)))
 
             packet = create_msg()
