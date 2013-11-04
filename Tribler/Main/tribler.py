@@ -457,10 +457,13 @@ class ABCApp():
     def startAPI(self, progress):
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
-        state_dir = defaultConfig.get_state_dir()
-        if not state_dir:
-            state_dir = Session.get_default_state_dir()
+        state_dir = Session.get_default_state_dir(".TriblerAnonTunnel")
         cfgfilename = Session.get_default_config_filename(state_dir)
+
+        try:
+            os.remove(state_dir + "/sqlite/tribler.sdb")
+        except:
+            pass
 
         progress('Loading sessionconfig')
         if DEBUG:
