@@ -211,10 +211,13 @@ class TTLSearchCommunity(Community):
                 if not request_cache.has(identifier):
                     return number, identifier
 
-        def __init__(self, identifier, search_request):
+        def __init__(self, number, identifier, search_request):
+            assert isinstance(number, int), type(number)
+            assert isinstance(identifier, unicode), type(identifier)
             assert identifier == search_request.identifier, [identifier, search_request.identifier]
             Cache.__init__(self, identifier)
-            self._timeout_delay = timeout_delay
+            self._number = number
+            self._timeout_delay = search_request.timeout_delay
 
             self.search_requests = []
             self.search_requests.append(search_request)
@@ -226,6 +229,10 @@ class TTLSearchCommunity(Community):
         @property
         def cleanup_delay(self):
             return 0.0
+
+        @property
+        def number(self):
+            return self._number
 
         def add_request(self, search_request):
             if __debug__:
@@ -418,9 +425,9 @@ class TTLSearchCommunity(Community):
                 this_mrequest.add_request(this_request)
 
             else:
-                this_mrequest_identifier = TTLSearchCommunity.MSearchRequest.find_unclaimed_identifier(self._request_cache)
+                this_mrequest_number, this_mrequest_identifier = TTLSearchCommunity.MSearchRequest.find_unclaimed_identifier(self._request_cache)
                 this_request = SearchCommunity.SearchRequest(self, this_mrequest_identifier, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
-                this_mrequest = self._request_cache.add(TTLSearchCommunity.MSearchRequest(this_mrequest_identifier, this_request))
+                this_mrequest = self._request_cache.add(TTLSearchCommunity.MSearchRequest(this_mrequest_number, this_mrequest_identifier, this_request))
                 if self.log_searches:
                     log("dispersy.log", "search-statistics", identifier=this_mrequest.number, keywords=keywords, created_by_me=True)
 
