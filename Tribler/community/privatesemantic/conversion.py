@@ -257,7 +257,7 @@ class HSearchConversion(ForwardConversion):
             nr_to_reduce = int((len(packet) - max_len) / 256.0) + 1
 
             import sys
-            print >> sys.stderr, len(packet), max_len, nr_to_reduce
+            print >> sys.stderr, "before", len(packet), max_len, nr_to_reduce
 
             for _ in range(nr_to_reduce):
                 nr_bundled_responses = len(message.payload.bundled_responses)
@@ -282,6 +282,8 @@ class HSearchConversion(ForwardConversion):
                         message.payload.his_preference_list.pop(choice(range(nr_his_responses)))
 
             packet = create_msg()
+
+            print >> sys.stderr, "after", len(packet), max_len, nr_to_reduce
 
         return packet,
 
