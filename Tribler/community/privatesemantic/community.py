@@ -626,7 +626,7 @@ class ForwardCommunity():
 
     def check_pong(self, messages):
         for message in messages:
-            request = self._dispersy.request_cache.has(message.payload.identifier, ForwardCommunity.PingRequestCache)
+            request = self._dispersy.request_cache.get(message.payload.identifier, ForwardCommunity.PingRequestCache)
             if not request:
                 yield DropMessage(message, "invalid response identifier")
                 continue
