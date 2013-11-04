@@ -205,20 +205,24 @@ class ForwardCommunity():
             if taste_buddy.overlap and taste_buddy.candidate.sock_addr != ignore_sock_addr:
                 yield taste_buddy.candidate
 
+    def yield_taste_buddies_candidates(self, ignore_candidate=None):
+        for tb in self.yield_taste_buddies(ignore_candidate):
+            yield tb.candidate
+
     def is_taste_buddy(self, candidate):
         candidate_mids = set(candidate.get_members())
-        for tb in self.yield_taste_buddies():
+        for tb in self.yield_taste_buddies_candidates():
             tb_mids = set(tb.get_members())
             if tb_mids & candidate_mids:
                 return tb
 
     def is_taste_buddy_mid(self, mid):
-        for tb in self.yield_taste_buddies():
+        for tb in self.yield_taste_buddies_candidates():
             if mid in [member.mid for member in tb.get_members()]:
                 return True
 
     def is_taste_buddy_sock(self, sock_addr):
-        for tb in self.yield_taste_buddies():
+        for tb in self.yield_taste_buddies_candidates():
             if tb.sock_addr == sock_addr:
                 return True
 
@@ -296,7 +300,7 @@ class ForwardCommunity():
 
     def get_connections(self, nr=10, ignore_candidate=None):
         # use taste buddies and fill with random candidates
-        candidates = set(self.yield_taste_buddies(ignore_candidate))
+        candidates = set(self.yield_taste_buddies_candidates(ignore_candidate))
         if len(candidates) < nr:
             sock_addresses = set(candidate.sock_addr for candidate in candidates)
             if ignore_candidate:
