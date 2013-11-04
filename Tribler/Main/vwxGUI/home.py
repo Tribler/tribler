@@ -631,6 +631,32 @@ class RightDispersyPanel(FancyPanel):
         hSizer.Add(self.rawinfo_sizer, 1, wx.EXPAND | wx.LEFT, 10)
         self.rawinfo_panel.SetSizer(hSizer)
 
+        # Create and populate runtime statistics panel
+        self.runtime_panel = wx.Panel(self.notebook)
+        self.runtime_panel.SetBackgroundColour(wx.WHITE)
+        self.notebook.AddPage(self.runtime_panel, "Runtime stats")
+
+        self.runtime_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.runtime_tree = CT.CustomTreeCtrl(self.runtime_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.runtime_tree.blockUpdate = False
+        self.runtime_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.runtime_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+
+        font = self.runtime_tree.GetFont()
+        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.runtime_tree.SetFont(font)
+
+        self.runtime_sizer.Add(self.runtime_tree, 1, wx.EXPAND)
+        self.includeDebugRT = wx.CheckBox(self.runtime_panel, -1, "Collect debug")
+        self.includeDebugRT.SetValue(self.includeDebug.GetValue())
+        self.includeDebugRT.Bind(wx.EVT_CHECKBOX, lambda evt: self.includeDebug.SetValue(self.includeDebugRT.GetValue()))
+        self.includeDebug.Bind(wx.EVT_CHECKBOX, lambda evt: self.includeDebugRT.SetValue(self.includeDebug.GetValue()))
+        self.runtime_sizer.Add(self.includeDebugRT, 0, wx.TOP | wx.BOTTOM, 3)
+
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.runtime_sizer, 1, wx.EXPAND | wx.LEFT, 10)
+        self.runtime_panel.SetSizer(hSizer)
+
         # Add timer for stats updates
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
@@ -652,7 +678,7 @@ class RightDispersyPanel(FancyPanel):
         if self.IsShownOnScreen():
             self.UpdateStats()
 
-    def AddDataToTree(self, data, parent, tree):
+    def AddDataToTree(self, data, parent, tree, prepend=True, sort_dict=False):
 
         def addValue(parentNode, value):
             if isinstance(value, dict):
@@ -674,10 +700,11 @@ class RightDispersyPanel(FancyPanel):
                 addValue(parentNode, value)
 
         def addDict(parentNode, nodedict):
-            for key, value in nodedict.items():
-                prepend = ''
-                if not isinstance(value, (list, dict)):
-                    prepend = str(value) + "x "
+            kv_pairs = sorted(nodedict.items(), reverse=True) if sort_dict else nodedict.items()
+            for key, value in kv_pairs:
+                prepend_str = ''
+                if prepend and not isinstance(value, (list, dict)):
+                    prepend_str = str(value) + "x "
                     value = None
 
                 if not isinstance(key, basestring):
@@ -687,7 +714,7 @@ class RightDispersyPanel(FancyPanel):
                 except UnicodeDecodeError:
                     key = key.encode("hex")
 
-                keyNode = tree.AppendItem(parentNode, prepend + key)
+                keyNode = tree.AppendItem(parentNode, prepend_str + key)
                 addValue(keyNode, value)
 
         addValue(parent, data)
@@ -765,19 +792,25 @@ class RightDispersyPanel(FancyPanel):
                 raw_info['endpoint_send'] = stats.endpoint_send
             if stats.bootstrap_candidates:
                 raw_info['bootstrap_candidates'] = stats.bootstrap_candidates
+            self.AddDataToTree(raw_info, parentNode, self.rawinfo_tree)
+
+        if not self.runtime_tree.blockUpdate:
+            self.runtime_tree.DeleteAllItems()
+            parentNode = self.runtime_tree.AddRoot('runtime stats')
+
+            runtime = []
             if getattr(stats, 'runtime', None):
-                raw_info['runtime'] = []
                 for stat_dict in stats.runtime:
                     stat_list = []
                     for k, v in stat_dict.iteritems():
                         if isinstance(v, basestring):
                             v = v.replace('\n', '\n          ')
                         stat_list.append('%-10s%s' % (k, v))
-                    raw_info['runtime'].append(tuple(stat_list))
-            self.AddDataToTree(raw_info, parentNode, self.rawinfo_tree)
+                    runtime.append(("duration = %7.2f ; entry = %s" % (stat_dict['duration'], stat_dict['entry'].split()[0]), tuple(stat_list)))
+                runtime.sort(reverse=True)
+            self.AddDataToTree(dict(runtime), parentNode, self.rawinfo_tree, prepend=False, sort_dict=True)
 
         self.Layout()
-
 
 class NewTorrentPanel(HomePanel):
 
