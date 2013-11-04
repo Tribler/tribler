@@ -634,7 +634,7 @@ class ForwardCommunity():
 
         # create torrent-collect-request/response message
         meta = self.get_meta_message(meta_name)
-        message = meta.impl(distribution=(self.global_time,), payload=(identifier, []))
+        message = meta.impl(distribution=(self.global_time,), payload=(identifier,))
         self._dispersy._send([candidate], [message])
 
         if DEBUG:

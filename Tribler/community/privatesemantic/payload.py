@@ -287,35 +287,15 @@ class EncryptedPoliResponsesPayload(EncryptedPoliResponsePayload):
 # ForwardCommunity
 class PingPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier, torrents):
-            if __debug__:
-                assert isinstance(identifier, int), type(identifier)
-
-                assert isinstance(torrents, list), type(torrents)
-                for hash, infohash, seeders, leechers, ago in torrents:
-                    assert isinstance(hash, str)
-                    assert len(hash) == 20, "%d, %s" % (len(hash), hash)
-                    assert isinstance(infohash, str)
-                    assert len(infohash) == 20, "%d, %s" % (len(infohash), infohash)
-                    assert isinstance(seeders, int)
-                    assert 0 <= seeders < 2 ** 16, seeders
-                    assert isinstance(leechers, int)
-                    assert 0 <= leechers < 2 ** 16, leechers
-                    assert isinstance(ago, int)
-                    assert 0 <= ago < 2 ** 16, ago
+        def __init__(self, meta, identifier):
+            assert isinstance(identifier, int), type(identifier)
 
             super(PingPayload.Implementation, self).__init__(meta)
-
             self._identifier = identifier
-            self._torrents = torrents
 
         @property
         def identifier(self):
             return self._identifier
-
-        @property
-        def torrents(self):
-            return self._torrents
 
 class PongPayload(PingPayload):
     pass

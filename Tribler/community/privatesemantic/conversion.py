@@ -32,9 +32,7 @@ class SemanticConversion(BinaryConversion):
         self.define_meta_message(chr(5), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
 
     def _encode_ping(self, message):
-        hashpack = '20s20sHHH' * len(message.payload.torrents)
-        torrents = [item for sublist in message.payload.torrents for item in sublist]
-        return pack('!H' + hashpack, message.payload.identifier, *torrents),
+        return pack('!H', message.payload.identifier),
 
     def _decode_ping(self, placeholder, offset, data):
         if len(data) < offset + 2:
@@ -43,22 +41,7 @@ class SemanticConversion(BinaryConversion):
         identifier, = unpack_from('!H', data, offset)
         offset += 2
 
-        length = len(data) - offset
-        if length % 46 != 0:
-            raise DropPacket("Invalid number of bytes available")
-
-        if length:
-            hashpack = '20s20sHHH' * (length / 46)
-            hashes = unpack_from('!' + hashpack, data, offset)
-            offset += length
-
-            torrents = []
-            for i in range(0, len(hashes), 5):
-                torrents.append([hashes[i], hashes[i + 1], hashes[i + 2], hashes[i + 3], hashes[i + 4]])
-        else:
-            torrents = []
-
-        return offset, placeholder.meta.payload.implement(identifier, torrents)
+        return offset, placeholder.meta.payload.implement(identifier)
 
     def _encode_pong(self, message):
         return self._encode_ping(message)
