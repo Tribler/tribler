@@ -229,7 +229,7 @@ class HSearchConversion(ForwardConversion):
             raise DropPacket("Invalid number of bytes available (simi_res)")
         if length:
             hashpack = '20s' * (length / 20)
-            his_hashes = unpack_from('!' + hashpack, str_his_prefs)
+            his_hashes = list(unpack_from('!' + hashpack, str_his_prefs))
         else:
             his_hashes = []
         return offset, placeholder.meta.payload.implement(identifier, hashes, his_hashes)
