@@ -270,11 +270,11 @@ class HSearchConversion(ForwardConversion):
                         message.payload.bundled_responses[index][1][1].pop(choice(range(nr_his_responses)))
                 else:
                     nr_my_responses = len(message.payload.preference_list)
-                    if nr_my_responses:
-                        message.payload.preference_list.pop(choice(range(nr_my_responses)))
-
                     nr_his_responses = len(message.payload.his_preference_list)
-                    if nr_his_responses:
+
+                    if nr_my_responses > nr_his_responses:
+                        message.payload.preference_list.pop(choice(range(nr_my_responses)))
+                    else:
                         message.payload.his_preference_list.pop(choice(range(nr_his_responses)))
 
             packet = create_msg()
