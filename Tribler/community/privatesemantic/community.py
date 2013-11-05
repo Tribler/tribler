@@ -901,12 +901,12 @@ class HForwardCommunity(ForwardCommunity):
         assert all(isinstance(preference_list, str))
         assert all(isinstance(his_preference_list, str))
 
-        print >> sys.stderr, preference_list, his_preference_list
-
         overlap = 0
         for pref in preference_list:
             if pref in his_preference_list:
                 overlap += 1
+
+        print >> sys.stderr, overlap, len(preference_list), len(his_preference_list)
 
         self.create_time_decryption += time() - t1
 
