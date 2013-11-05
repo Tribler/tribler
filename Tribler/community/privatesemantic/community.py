@@ -683,6 +683,8 @@ class PForwardCommunity(ForwardCommunity):
         return [DefaultConversion(self), PSearchConversion(self)]
 
     def create_similarity_payload(self):
+        t1 = time()
+
         global_vector = self.create_global_vector()
 
         str_global_vector = str(global_vector)
@@ -691,18 +693,16 @@ class PForwardCommunity(ForwardCommunity):
         else:
             my_vector = self.get_my_vector(global_vector, local=True)
             if self.encryption:
-
-                t1 = time()
                 encrypted_vector = []
                 for element in my_vector:
                     cipher = paillier_encrypt(self.key, element)
                     encrypted_vector.append(cipher)
-
-                self.create_time_encryption += time() - t1
             else:
                 encrypted_vector = my_vector
 
             self.my_preference_cache = [str_global_vector, encrypted_vector]
+
+        self.create_time_encryption += time() - t1
 
         if encrypted_vector:
             Payload = namedtuple('Payload', ['key_n', 'preference_list', 'global_vector'])
@@ -840,6 +840,8 @@ class HForwardCommunity(ForwardCommunity):
         return [DefaultConversion(self), HSearchConversion(self)]
 
     def create_similarity_payload(self):
+        t1 = time()
+
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
         str_myPreferences = str(myPreferences)
 
@@ -859,11 +861,11 @@ class HForwardCommunity(ForwardCommunity):
 
             # 3. encrypt
             if self.encryption:
-                t1 = time()
                 myPreferences = [rsa_encrypt(self.key, preference) for preference in myPreferences]
-                self.create_time_encryption += time() - t1
 
             self.my_preference_cache = [str_myPreferences, myPreferences]
+
+        self.create_time_encryption += time() - t1
 
         if myPreferences:
             Payload = namedtuple('Payload', ['key_n', 'preference_list'])
@@ -904,8 +906,6 @@ class HForwardCommunity(ForwardCommunity):
         for pref in preference_list:
             if pref in his_preference_list:
                 overlap += 1
-
-        print >> sys.stderr, overlap, len(preference_list), len(his_preference_list)
 
         self.create_time_decryption += time() - t1
 
@@ -1017,6 +1017,8 @@ class PoliForwardCommunity(ForwardCommunity):
         return messages
 
     def create_similarity_payload(self):
+        t1 = time()
+
         # 1. fetch my preferences
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
         str_myPreferences = str(myPreferences)
@@ -1037,7 +1039,6 @@ class PoliForwardCommunity(ForwardCommunity):
             myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
 
             partitions = {}
-            t1 = time()
             for partition, g in groupby(myPreferences, lambda x: x[0]):
                 values = [value for _, value in list(g)]
                 coeffs = compute_coeff(values)
@@ -1047,8 +1048,9 @@ class PoliForwardCommunity(ForwardCommunity):
 
                 partitions[partition] = coeffs
 
-            self.create_time_encryption += time() - t1
             self.my_preference_cache = [str_myPreferences, partitions]
+
+        self.create_time_encryption += time() - t1
 
         if partitions:
             Payload = namedtuple('Payload', ['key_n', 'key_g', 'coefficients'])
