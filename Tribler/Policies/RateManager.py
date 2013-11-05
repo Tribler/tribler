@@ -4,8 +4,6 @@
 import sys
 from sets import Set
 from threading import RLock
-from traceback import print_exc
-
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
@@ -61,6 +59,7 @@ class RateManager:
         self.statusmap[DLSTATUS_SEEDING] = []
         self.statusmap[DLSTATUS_STOPPED] = []
         self.statusmap[DLSTATUS_STOPPED_ON_ERROR] = []
+        self.statusmap[DLSTATUS_WAITING_TUNNEL] = []
         for dir in [UPLOAD, DOWNLOAD]:
             self.currenttotal[dir] = 0
         self.dset.clear()

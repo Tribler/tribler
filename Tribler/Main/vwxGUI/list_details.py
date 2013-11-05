@@ -1,34 +1,29 @@
 # Written by Niels Zeilemaker
-import wx
 import sys
 import os
 import re
 import shutil
-from datetime import date, datetime
-from threading import currentThread
+
+import wx
 
 from Tribler.Core.API import *
 from Tribler.Core.osutils import startfile
 from Tribler.TrackerChecking.TorrentChecking import *
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText, ProgressButton, FancyPanel, TransparentText, LinkText, \
+    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, ProgressButton, FancyPanel, TransparentText, LinkText, \
     StaticBitmaps, TransparentStaticBitmap, Graph, ProgressBar
-
-from list_body import ListBody
-from widgets import _set_font
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent, \
-    LibraryTorrent, ChannelTorrent, CollectedTorrent, Channel, Playlist
+from Tribler.Main.Utility.GuiDBTuples import Torrent, \
+    ChannelTorrent, CollectedTorrent, Channel, Playlist
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
+
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 DEBUG = False
@@ -1094,6 +1089,8 @@ class TorrentDetails(AbstractDetails):
             status = 'Downloading @ %s' % self.utility.speed_format_new(dls)
         elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
+        elif statusflag == DLSTATUS_WAITING_TUNNEL:
+            status = 'Waiting for tunnel'
 
         if status and not finished and self.torrent.progress and statusflag in [DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED]:
             status += " (%.1f%%)" % (self.torrent.progress * 100)

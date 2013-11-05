@@ -1,26 +1,23 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-import wx
 import os
 import sys
 import math
 
-from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
+import wx
+from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 from wx.lib.scrolledpanel import ScrolledPanel
-from wx.lib.buttons import GenBitmapButton
-
-from traceback import print_exc, print_stack
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from __init__ import LIST_GREY, LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, GRADIENT_LGREY, GRADIENT_DGREY, SEPARATOR_GREY, FILTER_GREY
-from wx.lib.stattext import GenStaticText
 from wx.lib.stattext import GenStaticText
 from wx.lib.colourutils import AdjustColour
 from wx.lib.wordwrap import wordwrap
+from wx.lib.embeddedimage import PyEmbeddedImage
+
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR, \
     SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from wx.lib.embeddedimage import PyEmbeddedImage
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+
 
 DEBUG = False
 
@@ -2037,6 +2034,8 @@ class TorrentStatus(wx.Panel):
             status = 'Stopped on error'
         elif 'stopped' in torrent_state:
             status = 'Stopped'
+        elif 'waiting_tunnel' in torrent_state:
+            status = 'Waiting for tunnel'
         else:
             status = 'Unknown'
 

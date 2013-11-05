@@ -4,17 +4,18 @@ import os.path
 from datetime import date
 from time import time
 from inspect import getargspec
+import binascii
+
 from Tribler.Video.utils import videoextdefaults
-from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS,\
-    CHANNEL_REQ_COLUMNS
+from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
     DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING,\
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,\
-    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA
+    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA, DLSTATUS_WAITING_TUNNEL
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.Search.SearchManager import split_into_keywords
-import binascii
+
 
 DEBUGDB = False
 
@@ -248,6 +249,9 @@ class Torrent(Helper):
 
             if status == DLSTATUS_DOWNLOADING:
                 stateList.append('downloading')
+
+            if status == DLSTATUS_WAITING_TUNNEL:
+                stateList.append('waiting_tunnel')
 
             if self.ds.progress == 1.0:
                 stateList.append('completed')
