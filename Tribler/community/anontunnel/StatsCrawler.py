@@ -41,26 +41,19 @@ class StatsCrawler(Thread):
         self.fout.write("[")
 
     def run(self):
+
+        def on_ready(community):
+            logger.error("Community has been loaded")
+            self.community = community
+            self.community.subscribe("on_stats", self.on_stats)
+
         def join_overlay(dispersy):
             dispersy.define_auto_load(ProxyCommunity,
-                                      (self.dispersy.get_new_member(), None, False),
+                                      (self.dispersy.get_new_member(), on_ready),
                                       load=True)
 
         self.dispersy.start()
         self.dispersy.callback.call(join_overlay, (self.dispersy,))
-
-        while True:
-            communities = self.dispersy.get_communities()
-            proxy_communities = filter(lambda c: isinstance(c, ProxyCommunity), communities)
-
-            if proxy_communities:
-                logger.error("Community loaded")
-                self.community = proxy_communities[0]
-                self.community.subscribe("on_stats", self.on_stats)
-                break
-
-            sleep(1)
-
         self.raw_server.listen_forever(None)
 
     @staticmethod
@@ -80,7 +73,7 @@ class StatsCrawler(Thread):
             self.first = False
 
         stats = message.payload.stats
-        stats['candidate'] = candidate
+        stats['candidate'] = candidate.sock_addr
 
         self.fout.write(self.stats_to_txt(stats))
         self.stored_candidates[candidate] = True
