@@ -1233,13 +1233,11 @@ class Das4DBStub():
 
         self.peercache = {}
 
-    def addMyPreference(self, torrent_id, data):
-        infohash = str(torrent_id)
-        self.myPreferences.add(infohash)
+    def addMyPreference(self, preference, data):
+        self.myPreferences.add(preference)
 
-    def addTestPreference(self, torrent_id):
-        infohash = str(torrent_id)
-        self.myTestPreferences.add(infohash)
+    def addTestPreference(self, preference):
+        self.myTestPreferences.add(preference)
 
     def getMyPrefListInfohash(self, limit=None, local=True):
         preferences = self.myPreferences
