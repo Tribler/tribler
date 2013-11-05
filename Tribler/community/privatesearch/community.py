@@ -169,7 +169,11 @@ class TTLSearchCommunity(Community):
 
         def on_success(self, candidate_mid, keywords, results, candidate):
             if not self.processed:
-                logger.info("process SearchRequest [%s]", self.identifier)
+                logger.info("process SearchRequest %d/%d [%s]",
+                            len(self.received_candidates),
+                            len(self.requested_candidates),
+                            self.identifier)
+
                 if self.did_request(candidate_mid):
                     self.received_candidates.append(candidate_mid)
                     self.results.extend(results)
@@ -460,6 +464,8 @@ class TTLSearchCommunity(Community):
             keywords = message.payload.keywords
             bloomfilter = message.payload.bloom_filter
 
+            logger.info("request from %s [%s]", message.candidate, identifier)
+
             if DEBUG:
                 print >> sys.stderr, long(time()), "TTLSearchCommunity: got search request for", keywords
 
@@ -566,6 +572,7 @@ class TTLSearchCommunity(Community):
         return results
 
     def _create_search_response(self, identifier, results, candidate):
+        logger.info("response to %s [%s]", candidate, identifier)
         # create search-response message
         meta = self.get_meta_message(u"search-response")
         message = meta.impl(authentication=(self._my_member,),
