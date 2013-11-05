@@ -813,7 +813,7 @@ class PForwardCommunity(ForwardCommunity):
         return global_vector
 
     def get_my_vector(self, global_vector, local=False):
-        my_preferences = set([long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local=local) if preference])
+        my_preferences = set([preference for preference in self._mypref_db.getMyPrefListInfohash(local=local) if preference])
         my_vector = [0l] * len(global_vector)
         for i, element in enumerate(global_vector):
             if element in my_preferences:
@@ -839,15 +839,22 @@ class HForwardCommunity(ForwardCommunity):
 
         if self.my_preference_cache[0] == str_myPreferences:
             myPreferences = self.my_preference_cache[1]
+
         else:
             if len(myPreferences) > self.max_prefs:
                 myPreferences = sample(myPreferences, self.max_prefs)
             shuffle(myPreferences)
 
-            myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
+            # 1. hash to limit size
+            myPreferences = [hash_element(preference) for preference in myPreferences]
+
+            # 2. convert to long
+            myPreferences = [bytes_to_long(preference) for preference in myPreferences]
+
+            # 3. encrypt
             if self.encryption:
                 t1 = time()
-                myPreferences = [rsa_encrypt(self.key, infohash) for infohash in myPreferences]
+                myPreferences = [rsa_encrypt(self.key, preference) for preference in myPreferences]
                 self.create_time_encryption += time() - t1
 
             self.my_preference_cache = [str_myPreferences, myPreferences]
@@ -881,16 +888,15 @@ class HForwardCommunity(ForwardCommunity):
         t1 = time()
 
         if self.encryption:
-            myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in preference_list]
-        else:
-            myList = [long_to_bytes(infohash) for infohash in preference_list]
+            preference_list = [hash_element(rsa_decrypt(self.key, preference)) for preference in preference_list]
 
-        assert all(len(infohash) == 20 for infohash in myList)
-        
-        print >> sys.stderr, myList, self.my_preference_cache[1]
+        assert all(isinstance(preference_list, str))
+        assert all(isinstance(his_preference_list, str))
+
+        print >> sys.stderr, preference_list, his_preference_list
 
         overlap = 0
-        for pref in myList:
+        for pref in preference_list:
             if pref in his_preference_list:
                 overlap += 1
 
@@ -931,26 +937,30 @@ class HForwardCommunity(ForwardCommunity):
         if myListLen > self.max_h_prefs:
             myPreferences = sample(myPreferences, self.max_h_prefs)
 
-        if self.encryption:
-            myPreferences = [bytes_to_long(preference) for preference in myPreferences]
+        # 3. hash to limit size
+        myPreferences = [hash_element(preference) for preference in myPreferences]
+
+        # 4. convert to long
+        myPreferences = [bytes_to_long(preference) for preference in myPreferences]
 
         for message in messages:
             if self.encryption:
                 t1 = time()
 
-                # 3. construct a rsa key to encrypt my preferences
+                # 5. construct a rsa key to encrypt my preferences
                 his_n = message.payload.key_n
                 fake_phi = his_n / 2
                 compatible_key = rsa_compatible(his_n, fake_phi)
 
-                # 4. encrypt hislist and mylist + hash mylist
-                hisList = [rsa_encrypt(compatible_key, infohash) for infohash in message.payload.preference_list]
-                myList = [hash_element(rsa_encrypt(compatible_key, infohash)) for infohash in myPreferences]
+                # 6. encrypt hislist and mylist + hash mylist
+                hisList = [rsa_encrypt(compatible_key, preference) for preference in message.payload.preference_list]
+                myList = [hash_element(rsa_encrypt(compatible_key, preference)) for preference in myPreferences]
 
                 self.receive_time_encryption += time() - t1
+
             else:
                 hisList = message.payload.preference_list
-                myList = myPreferences
+                myList = [hash_element(preference) for preference in myPreferences]
 
             shuffle(hisList)
             shuffle(myList)
