@@ -134,6 +134,8 @@ class TTLSearchCommunity(Community):
 
     class SearchRequest(object):
         def __init__(self, community, identifier, keywords, ttl, callback, results=[], return_candidate=None, requested_candidates=[]):
+            logger.info("create SearchRequest [%s]", identifier)
+
             self.identifier = identifier
             self.community = community
             self.keywords = keywords
@@ -167,6 +169,7 @@ class TTLSearchCommunity(Community):
 
         def on_success(self, candidate_mid, keywords, results, candidate):
             if not self.processed:
+                logger.info("process SearchRequest [%s]", self.identifier)
                 if self.did_request(candidate_mid):
                     self.received_candidates.append(candidate_mid)
                     self.results.extend(results)
@@ -185,6 +188,7 @@ class TTLSearchCommunity(Community):
         def on_timeout(self):
             # timeout, message was probably lost return our local results
             if not self.processed:
+                logger.info("timeout SearchRequest [%s]", self.identifier)
                 self.processed = True
                 if self.return_candidate:
                     self.callback(self.keywords, self.results, self.return_candidate)
@@ -212,6 +216,7 @@ class TTLSearchCommunity(Community):
                     return number, identifier
 
         def __init__(self, number, identifier, search_request):
+            logger.info("create MSearchRequest [%s]", identifier)
             assert isinstance(number, int), type(number)
             assert isinstance(identifier, unicode), type(identifier)
             assert identifier == search_request.identifier, [identifier, search_request.identifier]
@@ -250,6 +255,7 @@ class TTLSearchCommunity(Community):
             return requested_candidates
 
         def on_success(self, candidate_mid, keywords, results, candidate):
+            logger.info("process MSearchRequest [%s]", self.identifier)
             for i in range(len(self.search_requests) - 1, -1, -1):
                 search_request = self.search_requests[i]
                 if search_request.did_request(candidate_mid):
@@ -260,6 +266,7 @@ class TTLSearchCommunity(Community):
             return len(self.search_requests) == 0
 
         def on_timeout(self):
+            logger.info("timeout MSearchRequest [%s]", self.identifier)
             for search_request in self.search_requests:
                 search_request.on_timeout()
 
