@@ -552,16 +552,22 @@ class ForwardCommunity():
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, long(time()), "ForwardCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
 
-    def send_introduction_request(self, destination, introduce_me_to=None):
+    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
 
         self._dispersy.statistics.walk_attempt += 1
         destination.walk(time(), IntroductionRequestCache.timeout_delay)
 
-        advice = True
-        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
-        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, introduce_me_to)
+        cache = IntroductionRequestCache(self, destination)
+        identifier = self._dispersy.request_cache.claim()
+
+        if allow_sync:
+            sync = self.dispersy_claim_sync_bloom_filter(cache)
+        else:
+            sync = None
+
+        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, True, self._dispersy._connection_type, sync, identifier, introduce_me_to)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
@@ -889,6 +895,8 @@ class HForwardCommunity(ForwardCommunity):
 
         if self.encryption:
             preference_list = [hash_element(rsa_decrypt(self.key, preference)) for preference in preference_list]
+        else:
+            preference_list = [long_to_bytes(preference) for preference in preference_list]
 
         assert all(isinstance(preference_list, str))
         assert all(isinstance(his_preference_list, str))

@@ -41,9 +41,16 @@ class SocialCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
 
+
     def dispersy_claim_sync_bloom_filter(self, request_cache):
         # TODO change with only shared friend sync
         return Community.dispersy_claim_sync_bloom_filter(self, request_cache)
+
+    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
+        if self.is_taste_buddy(destination):
+            allow_sync = False
+
+        super(SocialCommunity).send_introduction_request(self, destination, introduce_me_to, allow_sync)
 
     def create_text(self, text, friends):
         meta = self.get_meta_message(u"text")
