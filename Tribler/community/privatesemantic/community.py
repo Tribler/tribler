@@ -894,9 +894,8 @@ class HForwardCommunity(ForwardCommunity):
         t1 = time()
 
         if self.encryption:
-            preference_list = [hash_element(rsa_decrypt(self.key, preference)) for preference in preference_list]
-        else:
-            preference_list = [long_to_bytes(preference) for preference in preference_list]
+            preference_list = [rsa_decrypt(self.key, preference) for preference in preference_list]
+        preference_list = [hash_element(preference) for preference in preference_list]
 
         assert all(isinstance(preference_list, str))
         assert all(isinstance(his_preference_list, str))
