@@ -22,7 +22,6 @@ from ProxyConversion import DataPayload, ExtendPayload
 
 class Circuit(object):
     """ Circuit data structure storing the id, status, first hop and all hops """
-
     @property
     def bytes_downloaded(self):
         return self.bytes_down[1]
@@ -32,6 +31,9 @@ class Circuit(object):
     def bytes_uploaded(self):
         return self.bytes_up[1]
 
+    @property
+    def online(self):
+        return self.created and self.goal_hops == len(self.hops)
 
     def __init__(self, circuit_id, candidate=None):
         """
@@ -51,11 +53,14 @@ class Circuit(object):
         self.timestamp = None
 
         self.times = []
-        self.speed_up = []
-        self.speed_down = []
+        self.bytes_up_list = []
+        self.bytes_down_list = []
 
         self.bytes_down = [0, 0]
         self.bytes_up = [0, 0]
+
+        self.speed_up = 0.0
+        self.speed_down = 0.0
 
 
 class RelayRoute(object):
@@ -66,9 +71,11 @@ class RelayRoute(object):
         self.timestamp = None
 
         self.times = []
-        self.speed = []
+        self.bytes_list = []
         self.bytes = [0, 0]
+        self.speed = 0
 
+        self.online = False
 
 class DispersyTunnelProxy(Observable):
     @property
@@ -77,16 +84,24 @@ class DispersyTunnelProxy(Observable):
 
     @record_stats.setter
     def record_stats(self, value):
+        previous_value = self._record_stats
         self._record_stats = value
 
         # clear old stats before recording new ones
-        if value:
+        if value and not previous_value:
             with self.lock:
                 for circuit in self.active_circuits:
-                    circuit.speed_down = circuit.speed_down[:-2]
-                    circuit.speed_up = circuit.speed_up[:-2]
+                    circuit.bytes_down_list = circuit.bytes_down_list[:-1]
+                    circuit.bytes_up_list = circuit.bytes_up_list[:-1]
 
-                    circuit.times = []
+                    circuit.times = [circuit.timestamp]
+
+                for relay in self.relay_from_to.values():
+                    relay.bytes_list = relay.bytes_list[:-1]
+
+                    relay.times = [relay.timestamp]
+
+                logger.error("Recording stats from NOW")
 
     @property
     def active_circuits(self):
@@ -212,14 +227,13 @@ class DispersyTunnelProxy(Observable):
                         c.timestamp = time.time()
                     elif c.timestamp < t2:
 
-                        c.speed_up.append((1.0 * c.bytes_up[1] - c.bytes_up[0]) / (t2 - c.timestamp))
-                        c.speed_down.append((1.0 * c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp))
-
-                        if not self.record_stats:
-                            c.speed_down = c.speed_down[:-1]
-                            c.speed_up = c.speed_up[:-1]
-                        else:
+                        if self.record_stats and (len(c.bytes_up_list) == 0 or c.bytes_up[-1] != c.bytes_up_list[-1] and c.bytes_down[-1] != c.bytes_down_list[-1]):
+                            c.bytes_up_list.append(c.bytes_up[-1])
+                            c.bytes_down_list.append(c.bytes_down[-1])
                             c.times.append(t2)
+
+                        c.speed_up = 1.0*(c.bytes_up[1]-c.bytes_up[0]) / (t2 - c.timestamp)
+                        c.speed_down = 1.0*(c.bytes_down[1]-c.bytes_down[0]) / (t2 - c.timestamp)
 
                         c.timestamp = t2
                         c.bytes_up = [c.bytes_up[1], c.bytes_up[1]]
@@ -229,13 +243,12 @@ class DispersyTunnelProxy(Observable):
                     if r.timestamp is None:
                         r.timestamp = time.time()
                     elif r.timestamp < t2:
-                        r.speed.append((1.0 * r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp))
 
-                        if not self.record_stats:
-                            r.speed = r.speed[:-1]
-                        else:
+                        if self.record_stats and (len(r.bytes_list) == 0 or r.bytes[-1] != r.bytes_list[-1]):
+                            r.bytes_list.append(r.bytes[-1])
                             r.times.append(t2)
 
+                        r.speed = 1.0*(r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
                         r.timestamp = t2
                         r.bytes = [r.bytes[1], r.bytes[1]]
 
@@ -244,7 +257,7 @@ class DispersyTunnelProxy(Observable):
         def share_stats():
             while True:
                 if self.share_stats:
-                    logger.info("Sharing STATS")
+                    logger.error("Sharing STATS")
                     for candidate in self.community.dispersy_yield_verified_candidates():
                         self.community.send(u"stats", candidate, (self._create_stats(),))
 
@@ -326,6 +339,9 @@ class DispersyTunnelProxy(Observable):
             logger.warning("Cannot route CREATED packet, probably concurrency overwrote routing rules!")
         else:
             created_for = self.relay_from_to[(message.candidate, msg.circuit_id)]
+
+            created_for.online = True
+            self.relay_from_to[(created_for.candidate, created_for.circuit_id)].online = True
 
             extended_with = message.candidate
 
@@ -430,7 +446,7 @@ class DispersyTunnelProxy(Observable):
         community = self.community
 
         # If we can forward it along the chain, do so!
-        if relay_key in self.relay_from_to:
+        if relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
             relay = self.relay_from_to[relay_key]
 
             community.send(u"extend", relay.candidate, relay.circuit_id)
@@ -464,7 +480,6 @@ class DispersyTunnelProxy(Observable):
                       extend_with=(to_candidate, new_circuit_id))
         else:
             self.extending_for[(from_candidate, from_circuit_id)] += 1
-
 
     def _process_extending_for_queue(self):
         for key in self.extending_for.keys():
@@ -582,19 +597,16 @@ class DispersyTunnelProxy(Observable):
             'bytes_return': self.stats['bytes_returned'],
             'circuits': [
                 {
-                    'bytes_down': c.bytes_down[1],
-                    'bytes_up': c.bytes_up[1],
+                    'bytes_down_list': c.bytes_down_list[::5],
+                    'bytes_up_list': c.bytes_up_list[::5],
                     'times': c.times[::5],
-                    'speed_down': c.speed_down[::5],
-                    'speed_up': c.speed_up[::5]
                 }
                 for c in self.get_circuits()
             ],
             'relays': [
                 {
-                    'bytes': r.bytes[1],
+                    'bytes_list': r.bytes_list[::5],
                     'times': r.times[::5],
-                    'speed': r.speed[::5]
                 }
                 for r in self.get_relays()
             ]
