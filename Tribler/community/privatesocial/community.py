@@ -26,8 +26,6 @@ class SocialCommunity(Community):
         super(SocialCommunity, self).__init__(dispersy, master)
         self.encryption = bool(encryption)
 
-        self._dispersy_sync_skip_enable = False
-
         if integrate_with_tribler:
             raise NotImplementedError()
         else:
@@ -41,6 +39,13 @@ class SocialCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
 
+    @property
+    def dispersy_sync_skip_enable(self):
+        return False
+
+    @property
+    def dispersy_sync_cache_enable(self):
+        return False
 
     def dispersy_claim_sync_bloom_filter(self, request_cache):
         # TODO change with only shared friend sync
