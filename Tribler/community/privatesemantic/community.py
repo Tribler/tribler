@@ -756,16 +756,16 @@ class PForwardCommunity(ForwardCommunity):
         return False
 
     def on_similarity_request(self, messages, send_messages=True):
+        t1 = time()
+
         for message in messages:
             user_vector = message.payload.preference_list
             global_vector = message.payload.global_vector
             my_vector = self.get_my_vector(global_vector)
             assert len(global_vector) == len(user_vector) and len(global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" % (len(global_vector), len(user_vector), len(my_vector))
 
-            t1 = time()
             if self.encryption:
                 _sum = 1l
-
                 user_n2 = pow(message.payload.key_n, 2)
 
                 for i, element in enumerate(user_vector):
@@ -776,7 +776,6 @@ class PForwardCommunity(ForwardCommunity):
                 for i, element in enumerate(user_vector):
                     if my_vector[i] and element:
                         _sum += 1
-            self.receive_time_encryption += time() - t1
 
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "PSearchCommunity: calculated sum", _sum
@@ -790,7 +789,10 @@ class PForwardCommunity(ForwardCommunity):
 
                 self._dispersy._forward([response])
             else:
+                self.receive_time_encryption += time() - t1
                 return _sum
+
+        self.receive_time_encryption += time() - t1
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_sum, received_sums):
         received_sums = [(mid, payload._sum) for _, mid, payload in received_sums]
@@ -891,9 +893,9 @@ class HForwardCommunity(ForwardCommunity):
         self.add_possible_taste_buddies(possibles)
 
     def compute_overlap(self, lists):
-        preference_list, his_preference_list = lists
-
         t1 = time()
+
+        preference_list, his_preference_list = lists
 
         if self.encryption:
             preference_list = [rsa_decrypt(self.key, preference) for preference in preference_list]
@@ -936,6 +938,8 @@ class HForwardCommunity(ForwardCommunity):
         return False
 
     def on_similarity_request(self, messages, send_messages=True):
+        t1 = time()
+
         # 1. fetch my preferences
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local=False) if preference]
         myListLen = len(myPreferences)
@@ -952,8 +956,6 @@ class HForwardCommunity(ForwardCommunity):
 
         for message in messages:
             if self.encryption:
-                t1 = time()
-
                 # 5. construct a rsa key to encrypt my preferences
                 his_n = message.payload.key_n
                 fake_phi = his_n / 2
@@ -962,8 +964,6 @@ class HForwardCommunity(ForwardCommunity):
                 # 6. encrypt hislist and mylist + hash mylist
                 hisList = [rsa_encrypt(compatible_key, preference) for preference in message.payload.preference_list]
                 myList = [hash_element(rsa_encrypt(compatible_key, preference)) for preference in myPreferences]
-
-                self.receive_time_encryption += time() - t1
 
             else:
                 hisList = message.payload.preference_list
@@ -984,7 +984,10 @@ class HForwardCommunity(ForwardCommunity):
                 if DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "HSearchCommunity: sending similarity-response to", message.payload.identifier, message.candidate
             else:
+                self.receive_time_encryption += time() - t1
                 return hisList, myList
+
+        self.receive_time_encryption += time() - t1
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         received_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for _, mid, payload in received_responses]
@@ -1075,19 +1078,20 @@ class PoliForwardCommunity(ForwardCommunity):
         self.add_possible_taste_buddies(possibles)
 
     def compute_overlap(self, evaluated_polynomial):
+        t1 = time()
+
         if self.use_cardinality:
             overlap = 0
             if self.encryption:
-                t1 = time()
                 for py in evaluated_polynomial:
                     if paillier_decrypt(self.key, py) == 0:
                         overlap += 1
-                self.create_time_decryption += time() - t1
             else:
                 for py in evaluated_polynomial:
                     if py == 0:
                         overlap += 1
 
+            self.create_time_decryption += time() - t1
             return overlap
 
         bitmask = (2 ** 32) - 1
@@ -1096,17 +1100,16 @@ class PoliForwardCommunity(ForwardCommunity):
 
         overlap = []
         if self.encryption:
-            t1 = time()
             for py in evaluated_polynomial:
                 py = paillier_decrypt(self.key, py)
                 if py in myPreferences:
                     overlap.append(py)
-
-            self.create_time_decryption += time() - t1
         else:
             for py in evaluated_polynomial:
                 if py in myPreferences:
                     overlap.append(py)
+
+        self.create_time_decryption += time() - t1
         return overlap
 
     def send_msimilarity_request(self, destination, identifier, payload):
@@ -1146,6 +1149,8 @@ class PoliForwardCommunity(ForwardCommunity):
         return False
 
     def on_similarity_request(self, messages, send_messages=True):
+        t1 = time()
+
         # 1. fetch my preferences
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local=False) if preference]
 
@@ -1162,7 +1167,6 @@ class PoliForwardCommunity(ForwardCommunity):
             _myPreferences = [(partition, val) for partition, val in myPreferences if partition in message.payload.coefficients]
 
             results = []
-            t1 = time()
             if self.encryption:
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
@@ -1179,8 +1183,6 @@ class PoliForwardCommunity(ForwardCommunity):
                         py += val
                     results.append(py)
 
-            self.receive_time_encryption += time() - t1
-
             shuffle(results)
             if send_messages:
                 # 4. create a messages, containing the py values
@@ -1196,7 +1198,10 @@ class PoliForwardCommunity(ForwardCommunity):
                 if DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "PoliSearchCommunity: sending similarity-response to", message.payload.identifier, message.candidate
             else:
+                self.receive_time_encryption += time() - t1
                 return results
+
+        self.receive_time_encryption += time() - t1
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         received_responses = [(mid, payload.my_response) for _, mid, payload in received_responses]
