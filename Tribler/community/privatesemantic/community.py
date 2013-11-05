@@ -560,7 +560,7 @@ class ForwardCommunity():
         destination.walk(time(), IntroductionRequestCache.timeout_delay)
 
         cache = IntroductionRequestCache(self, destination)
-        identifier = self._dispersy.request_cache.claim()
+        identifier = self._dispersy.request_cache.claim(cache)
 
         if allow_sync:
             sync = self.dispersy_claim_sync_bloom_filter(cache)
