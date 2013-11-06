@@ -193,28 +193,26 @@ class DispersyTunnelProxy(Observable):
                 try:
                     timeout = 2.0
 
+                    candidates = {c.candidate for c in self.circuits.values() if c.candidate}
+
                     # Candidates we have sent a ping in the last 'time out' seconds and haven't returned a heat beat
-                    # in 2*timeout seconds shall be purged
+                    # in 4*timeout seconds shall be purged
                     candidates_to_be_purged = \
                         {
-                            circuit.candidate
-                            for circuit in self.circuits.values()
-                            if circuit.candidate and (
-                                circuit.candidate not in self.member_heartbeat
-                                or self.member_heartbeat[circuit.candidate] < time.time() - 4*timeout
-                            )
+                            candidate
+                            for candidate in candidates
+                            if self.member_heartbeat[candidate] < time.time() - 4*timeout
                         }
 
                     for candidate in candidates_to_be_purged:
                         self.on_candidate_exit(candidate)
                         logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
 
-
                     candidates_to_be_pinged = \
                         {
-                            circuit.candidate
-                            for circuit in self.circuits.values()
-                            if circuit.candidate and self.member_heartbeat[circuit.candidate] < time.time() - timeout
+                            candidate
+                            for candidate in candidates
+                            if self.member_heartbeat[candidate] < time.time() - timeout
                         }
 
                     for candidate in candidates_to_be_pinged:
