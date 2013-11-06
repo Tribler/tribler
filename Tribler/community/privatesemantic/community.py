@@ -1057,7 +1057,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
         if partitions:
             Payload = namedtuple('Payload', ['key_n', 'key_g', 'coefficients'])
-            return Payload(long(self.key.n), long(self.key.g), partitions)
+            return Payload(long(self.key.n), 0l if self.use_cardinality else long(self.key.g), partitions)
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
