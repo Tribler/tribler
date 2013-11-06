@@ -3,8 +3,8 @@ import sys
 
 from conversion import SocialConversion
 from payload import TextPayload
-from destination import FOAFDestination
 from collections import defaultdict
+from hashlib import sha1
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -16,11 +16,13 @@ from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesocial.payload import EncryptedPayload
-from Tribler.community.privatesemantic.rsa import rsa_encrypt, key_to_bytes
+from Tribler.community.privatesemantic.rsa import rsa_encrypt, key_to_bytes, \
+    rsa_sign, rsa_verify
 from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
     HForwardCommunity, PForwardCommunity, PING_INTERVAL, ForwardCommunity
 
 from random import choice
+from Tribler.dispersy.member import Member
 
 ENCRYPTION = True
 
@@ -36,12 +38,12 @@ class SocialCommunity(Community):
 
     def initiate_meta_messages(self):
         # TODO replace with modified full sync
-        return [Message(self, u"text", MemberAuthentication(encoding="bin"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CandidateDestination(), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
+        return [Message(self, u"text", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CandidateDestination(), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
                 Message(self, u"encrypted", NoAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CandidateDestination(), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
-    
+
     @property
     def dispersy_sync_skip_enable(self):
         return False
@@ -77,7 +79,7 @@ class SocialCommunity(Community):
 
     def create_encrypted(self, message_str, dest_friend):
         # get rsa key
-        rsakey = self.db.get_key(dest_friend)
+        rsakey, _ = self.db.get_key(dest_friend)
 
         # convert key into string
         strkey = key_to_bytes(rsakey)
@@ -95,7 +97,7 @@ class SocialCommunity(Community):
         decrypted_messages = []
 
         for message in messages:
-            body = message.decrypt([key for key,_ in self._db.get_my_keys()])
+            body = message.decrypt([key for key, _ in self._db.get_my_keys()])
             if body:
                 decrypted_messages.append((message.candidate, body))
             else:
@@ -106,35 +108,67 @@ class SocialCommunity(Community):
 
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
-            
+
     def create_ping_requests(self):
         while True:
             to_maintain = set()
-            
+
             foafs = defaultdict(list)
-            my_key_hashes = [keyhash for _,keyhash in self._friend_db.get_my_keys()]
+            my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
             for tb in self.yield_taste_buddies():
-                #if a peer has overlap with any of my key_hashes, its my friend -> maintain connection
+                # if a peer has overlap with any of my key_hashes, its my friend -> maintain connection
                 if any(map(tb.does_overlap, my_key_hashes)):
                     to_maintain.append(tb)
-                    
-                #else add this foaf as a possible candidate to be used as a backup for a friend
+
+                # else add this foaf as a possible candidate to be used as a backup for a friend
                 else:
                     for keyhash in tb.overlap:
                         foafs[keyhash].append(tb)
-            
+
             # for each friend we maintain an additional connection to at least one foaf
             # this peer is chosen randomly to attempt to load balance these pings
             for keyhash, tbs in foafs.iteritems():
                 to_maintain.append(choice(tbs))
-            
+
             # from the to_maintain list check if we need to send any pings
             tbs = [tb.candidate for tb in to_maintain if tb.time_remaining() < PING_INTERVAL]
             if len(tbs) > 0:
                 identifier = self._dispersy.request_cache.claim(ForwardCommunity.PingRequestCache(self, tbs))
                 self._create_pingpong(u"ping", tbs, identifier)
-            
+
             yield PING_INTERVAL
+
+    def get_rsa_member(self):
+        rsakey = self._friend_db.get_my_keys()[-1]
+        return RSAMember(rsakey)
+
+class RSAMember(Member):
+    def __init__(self, dispersy, key):
+        self._key = key
+        self._mid = sha1(self._key).digest()
+        self._signature_length = key.size / 8
+        self._tags = []
+
+    def has_identity(self, community):
+        return True
+
+    def verify(self, data, signature, offset=0, length=0):
+        assert isinstance(data, str)
+        assert isinstance(signature, str)
+        assert isinstance(offset, (int, long))
+        assert isinstance(length, (int, long))
+        assert len(signature) == self._signature_length
+
+        message = data[offset:offset + (length or len(data))]
+        return rsa_verify(self._key, message, signature)
+
+    def sign(self, data, offset=0, length=0):
+        assert isinstance(data, str)
+        assert isinstance(offset, (int, long))
+        assert isinstance(length, (int, long))
+
+        message = data[offset:offset + (length or len(data))]
+        return rsa_sign(self._key, message)
 
 class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
@@ -236,7 +270,7 @@ class Das4DBStub():
 
     def get_key(self, friend):
         return self._keys[friend]
-    
+
     def get_keys(self):
         return self._keys
 

@@ -1,13 +1,15 @@
+# Written by Niels Zeilemaker
+
 from Crypto.PublicKey import RSA
 from Crypto.Random.random import StrongRandom
 from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
 
+from string import ascii_uppercase, digits
 from gmpy import mpz
-
 from hashlib import sha1
 
 from time import time
-from random import randint
+from random import randint, choice
 from collections import namedtuple
 from struct import pack, unpack, unpack_from
 import json
@@ -36,6 +38,18 @@ def rsa_decrypt(key, cipher):
 
     _cipher = mpz(cipher)
     return long(pow(_cipher, key.d, key.n))
+
+def rsa_sign(key, message):
+    message_hash = long(sha1(str(message)).hexdigest(), 16)
+    _message_hash = mpz(message_hash)
+    return long(pow(_message_hash, key.d, key.n))
+
+def rsa_verify(key, message, signature):
+    message_hash = long(sha1(str(message)).hexdigest(), 16)
+
+    _signature = mpz(signature)
+    should_be_hash = long(pow(_signature, key.e, key.n))
+    return message_hash == should_be_hash
 
 def hash_element(element):
     return sha1(str(element)).digest()
@@ -109,6 +123,10 @@ if __name__ == "__main__":
     fakeinfohash = '296069              '
     assert long_to_bytes(rsa_decrypt(key, rsa_encrypt(key, bytes_to_long(fakeinfohash)))) == fakeinfohash
 
+    random_large_string = ''.join(choice(ascii_uppercase + digits) for _ in range(100000))
+    signature = rsa_sign(key, random_large_string)
+    assert rsa_verify(key, random_large_string, signature)
+
     # performance
     random_list = [randint(0, i * 1000) for i in xrange(100)]
 
@@ -123,3 +141,7 @@ if __name__ == "__main__":
 
     print "Encrypting took", t2 - t1
     print "Decrypting took", time() - t2
+
+
+
+

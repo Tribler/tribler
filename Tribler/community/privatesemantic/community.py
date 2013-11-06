@@ -59,7 +59,7 @@ class TasteBuddy():
         too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
         diff = self.timestamp - too_old
         return diff if diff > 0 else 0
-    
+
     def does_overlap(self, preference):
         if isinstance(self.overlap, list):
             return preference in self.overlap
@@ -328,7 +328,7 @@ class ForwardCommunity():
     def connect_to_peercache(self, nr=10):
         payload = self.create_similarity_payload()
         if payload:
-            peers = [ipport for _,ipport in self._peercache.get_peers()[:nr]]
+            peers = [ipport for _, ipport in self._peercache.get_peers()[:nr]]
 
             def attempt_to_connect(candidate, attempts):
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
