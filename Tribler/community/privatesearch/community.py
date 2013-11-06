@@ -44,7 +44,6 @@ NEIGHBORS = 5
 FNEIGHBORS = 1
 FPROB = 0.5
 ENCRYPTION = True
-PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
 class TTLSearchCommunity(Community):
     """
