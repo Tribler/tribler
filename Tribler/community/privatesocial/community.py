@@ -4,6 +4,7 @@ import sys
 from conversion import SocialConversion
 from payload import TextPayload
 from destination import FOAFDestination
+from collections import defaultdict
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -17,7 +18,9 @@ from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesocial.payload import EncryptedPayload
 from Tribler.community.privatesemantic.rsa import rsa_encrypt, key_to_bytes
 from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
-    HForwardCommunity, PForwardCommunity
+    HForwardCommunity, PForwardCommunity, PING_INTERVAL, ForwardCommunity
+
+from random import choice
 
 ENCRYPTION = True
 
@@ -38,7 +41,7 @@ class SocialCommunity(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
-
+    
     @property
     def dispersy_sync_skip_enable(self):
         return False
@@ -92,7 +95,7 @@ class SocialCommunity(Community):
         decrypted_messages = []
 
         for message in messages:
-            body = message.decrypt(self._db.get_my_keys())
+            body = message.decrypt([key for key,_ in self._db.get_my_keys()])
             if body:
                 decrypted_messages.append((message.candidate, body))
             else:
@@ -103,6 +106,35 @@ class SocialCommunity(Community):
 
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
+            
+    def create_ping_requests(self):
+        while True:
+            to_maintain = set()
+            
+            foafs = defaultdict(list)
+            my_key_hashes = [keyhash for _,keyhash in self._friend_db.get_my_keys()]
+            for tb in self.yield_taste_buddies():
+                #if a peer has overlap with any of my key_hashes, its my friend -> maintain connection
+                if any(map(tb.does_overlap, my_key_hashes)):
+                    to_maintain.append(tb)
+                    
+                #else add this foaf as a possible candidate to be used as a backup for a friend
+                else:
+                    for keyhash in tb.overlap:
+                        foafs[keyhash].append(tb)
+            
+            # for each friend we maintain an additional connection to at least one foaf
+            # this peer is chosen randomly to attempt to load balance these pings
+            for keyhash, tbs in foafs.iteritems():
+                to_maintain.append(choice(tbs))
+            
+            # from the to_maintain list check if we need to send any pings
+            tbs = [tb.candidate for tb in to_maintain if tb.time_remaining() < PING_INTERVAL]
+            if len(tbs) > 0:
+                identifier = self._dispersy.request_cache.claim(ForwardCommunity.PingRequestCache(self, tbs))
+                self._create_pingpong(u"ping", tbs, identifier)
+            
+            yield PING_INTERVAL
 
 class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
@@ -199,14 +231,17 @@ class Das4DBStub():
         self._keys = {}
         self._mykeys = []
 
-    def set_key(self, friend, key):
-        self._keys[friend] = key
+    def set_key(self, friend, key, keyhash):
+        self._keys[friend] = (key, keyhash)
 
     def get_key(self, friend):
         return self._keys[friend]
+    
+    def get_keys(self):
+        return self._keys
 
-    def set_my_key(self, key):
-        self._mykeys.append(key)
+    def set_my_key(self, key, keyhash):
+        self._mykeys.append((key, keyhash))
 
     def get_my_keys(self):
         return self._mykeys
