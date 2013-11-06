@@ -277,7 +277,7 @@ class SwiftProcess:
 
             metadir = d.get_swift_meta_dir()
 
-            self.send_start(url, roothash_hex=roothash_hex, maxdlspeed=maxdlspeed, maxulspeed=maxulspeed, destdir=d.get_dest_dir(), metadir=metadir)
+            self.send_start(url, roothash_hex=roothash_hex, maxdlspeed=maxdlspeed, maxulspeed=maxulspeed, destdir=d.get_dest_dir(), metadir=None) #metadir)
 
         finally:
             self.splock.release()
