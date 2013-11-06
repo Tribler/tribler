@@ -33,6 +33,7 @@ from paillier import paillier_add, paillier_init, paillier_encrypt, paillier_dec
 from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from polycreate import compute_coeff, polyval
 from collections import namedtuple
+from Tribler.community.privatesemantic.database import SemanticDatabase
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -158,8 +159,10 @@ class ForwardCommunity():
             self._notifier = Notifier.getInstance()
             self._peercache = None
         else:
-            self._mypref_db = self._torrent_db = self._peercache = Das4DBStub(self._dispersy)
+            self._mypref_db = self._torrent_db = Das4DBStub(self._dispersy)
             self._notifier = None
+
+        self._peercache = SemanticDatabase(self._dispersy)
 
     def initiate_meta_messages(self):
         ori = self._meta_messages[u"dispersy-introduction-request"]
@@ -1236,8 +1239,6 @@ class Das4DBStub():
         self.myMegaCache = OrderedDict()
         self.id2category = {1:u''}
 
-        self.peercache = {}
-
     def addMyPreference(self, preference, data):
         self.myPreferences.add(preference)
 
@@ -1253,12 +1254,3 @@ class Das4DBStub():
         if limit:
             return preferences[:limit]
         return preferences
-
-    def add_peer(self, similarity, ipport):
-        self.peercache[ipport] = similarity
-
-    def get_peers(self):
-        peers = self.peercache.items()
-        peers.sort(cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
-
-        return peers

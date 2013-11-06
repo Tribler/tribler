@@ -1,6 +1,6 @@
 # Written by Niels Zeilemaker
 from Tribler.dispersy.payload import Payload
-from Tribler.community.privatesemantic.rsa import rsa_decrypt, key_to_bytes
+from Tribler.community.privatesemantic.rsa import rsa_decrypt
 
 class TextPayload(Payload):
 
@@ -29,8 +29,8 @@ class EncryptedPayload(Payload):
             self._encrypted_message = encrypted_message
 
         def decrypt(self, keypairs):
-            for rsakey in keypairs:
-                if key_to_bytes(rsakey) == self._pubkey:
+            for rsakey, keyhash in keypairs:
+                if keyhash == self._pubkey:
                     return rsa_decrypt(rsakey, self._encrypted_message)
 
         @property

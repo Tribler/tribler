@@ -16,8 +16,7 @@ from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesocial.payload import EncryptedPayload
-from Tribler.community.privatesemantic.rsa import rsa_encrypt, key_to_bytes, \
-    rsa_sign, rsa_verify
+from Tribler.community.privatesemantic.rsa import rsa_encrypt, rsa_sign, rsa_verify
 from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
     HForwardCommunity, PForwardCommunity, PING_INTERVAL, ForwardCommunity
 
@@ -31,10 +30,7 @@ class SocialCommunity(Community):
         super(SocialCommunity, self).__init__(dispersy, master)
         self.encryption = bool(encryption)
 
-        if integrate_with_tribler:
-            raise NotImplementedError()
-        else:
-            self._friend_db = Das4DBStub(dispersy)
+        self._friend_db = FriendDatabase(dispersy)
 
     def initiate_meta_messages(self):
         # TODO replace with modified full sync
@@ -57,12 +53,49 @@ class SocialCommunity(Community):
         return Community.dispersy_claim_sync_bloom_filter(self, request_cache)
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        if self.is_taste_buddy(destination):
+        # never sync with a non-friend
+        if not self.is_taste_buddy(destination):
             allow_sync = False
 
         super(SocialCommunity).send_introduction_request(self, destination, introduce_me_to, allow_sync)
 
+    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
+        # first select_and_fix based on friendsync table
+        if higher:
+            data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time > ? ORDER BY global_time ASC LIMIT ?",
+                                                    (global_time, to_select + 1)))
+        else:
+            data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time < ? ORDER BY global_time DESC LIMIT ?",
+                                                    (global_time, to_select + 1)))
+
+        fixed = False
+        if len(data) > to_select:
+            fixed = True
+
+            # if last 2 packets are equal, then we need to drop those
+            global_time = data[-1][0]
+            del data[-1]
+            while data and data[-1][0] == global_time:
+                del data[-1]
+
+        # next get actual packets from sync table, friendsync does not contain any non-syncable_messages hence this variable isn't used
+        sync_ids = (sync_id for _, sync_id in data)
+        if higher:
+            data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time ASC", sync_ids))
+        else:
+            data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
+
+        if not higher:
+            data.reverse()
+
+        return data, fixed
+
+    def _dispersy_claim_sync_bloom_filter_modulo(self):
+        raise NotImplementedError()
+
     def create_text(self, text, friends):
+        assert all(isinstance(friend, str) for friend in friends)
+
         meta = self.get_meta_message(u"text")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
@@ -79,17 +112,14 @@ class SocialCommunity(Community):
 
     def create_encrypted(self, message_str, dest_friend):
         # get rsa key
-        rsakey, _ = self.db.get_key(dest_friend)
-
-        # convert key into string
-        strkey = key_to_bytes(rsakey)
+        rsakey, keyhash = self._friend_db.get_friend(dest_friend)
 
         # encrypt message
         encrypted_message = rsa_encrypt(rsakey, message_str)
 
         meta = self.get_meta_message(u"encrypted")
         message = meta.impl(distribution=(self.claim_global_time(),),
-                            payload=(strkey, encrypted_message))
+                            payload=(keyhash, encrypted_message))
 
         self._dispersy.store_update_forward([message], True, False, True)
 
@@ -97,12 +127,11 @@ class SocialCommunity(Community):
         decrypted_messages = []
 
         for message in messages:
-            body = message.decrypt([key for key, _ in self._db.get_my_keys()])
+            body = message.decrypt(self._db.get_my_keys())
             if body:
                 decrypted_messages.append((message.candidate, body))
             else:
-                # TODO: add to partial sync table
-                pass
+                self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.pubkey)
 
             log("dispersy.log", "handled-record", type="encrypted", global_time=message._distribution.global_time, could_decrypt=bool(body))
 
@@ -116,7 +145,7 @@ class SocialCommunity(Community):
             foafs = defaultdict(list)
             my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
             for tb in self.yield_taste_buddies():
-                # if a peer has overlap with any of my key_hashes, its my friend -> maintain connection
+                # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
                 if any(map(tb.does_overlap, my_key_hashes)):
                     to_maintain.append(tb)
 
@@ -257,25 +286,3 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     def initiate_meta_messages(self):
         return PoliForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
-
-class Das4DBStub():
-    def __init__(self, dispersy):
-        self._dispersy = dispersy
-
-        self._keys = {}
-        self._mykeys = []
-
-    def set_key(self, friend, key, keyhash):
-        self._keys[friend] = (key, keyhash)
-
-    def get_key(self, friend):
-        return self._keys[friend]
-
-    def get_keys(self):
-        return self._keys
-
-    def set_my_key(self, key, keyhash):
-        self._mykeys.append((key, keyhash))
-
-    def get_my_keys(self):
-        return self._mykeys

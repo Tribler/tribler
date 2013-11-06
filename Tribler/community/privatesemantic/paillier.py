@@ -1,3 +1,5 @@
+# Written by Niels Zeilemaker
+
 from Crypto.Random.random import StrongRandom
 from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes, inverse
 from Crypto.PublicKey import RSA
@@ -144,6 +146,9 @@ if __name__ == "__main__":
     for b_result, b_val in b_results:
         print b_val, paillier_decrypt(key, b_result)
 
+    encrypted1 = paillier_encrypt(key, 1l)
+    _encrypted0 = paillier_add_unenc(encrypted1, -1, key.g, key.n2)
+    assert 0l == paillier_decrypt(key, _encrypted0)
 
 #     encrypted0 = paillier_encrypt(key, 0l)
 #     encrypted1 = paillier_encrypt(key, 1l)

@@ -1,3 +1,5 @@
+# Written by Niels Zeilemaker
+
 from itertools import product, groupby
 from random import Random
 from time import time
