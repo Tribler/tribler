@@ -88,7 +88,7 @@ class AnonTunnel(Thread):
                     active_circuits = len(tunnel.active_circuits)
                     num_routes = len(tunnel.relay_from_to) / 2
 
-                    print "\r%.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules" % (total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes),
+                    print "\r%s %.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules" % ("ONLINE" if tunnel.online else "OFFLINE", total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes),
 
 
                     total_bytes_out_1 = total_bytes_out_2
