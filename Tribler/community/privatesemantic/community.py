@@ -59,6 +59,11 @@ class TasteBuddy():
         too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
         diff = self.timestamp - too_old
         return diff if diff > 0 else 0
+    
+    def does_overlap(self, preference):
+        if isinstance(self.overlap, list):
+            return preference in self.overlap
+        return False
 
     def __eq__(self, other):
         if isinstance(other, TasteBuddy):
@@ -323,7 +328,7 @@ class ForwardCommunity():
     def connect_to_peercache(self, nr=10):
         payload = self.create_similarity_payload()
         if payload:
-            peers = self._peercache.get_peers()[:nr]
+            peers = [ipport for _,ipport in self._peercache.get_peers()[:nr]]
 
             def attempt_to_connect(candidate, attempts):
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
@@ -1096,18 +1101,18 @@ class PoliForwardCommunity(ForwardCommunity):
 
         bitmask = (2 ** 32) - 1
         myPreferences = set([preference for preference in self._mypref_db.getMyPrefListInfohash() if preference])
-        myPreferences = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in myPreferences]
+        myPreferences = dict([(long(md5(str(preference)).hexdigest(), 16) & bitmask, preference) for preference in myPreferences])
 
         overlap = []
         if self.encryption:
             for py in evaluated_polynomial:
                 py = paillier_decrypt(self.key, py)
                 if py in myPreferences:
-                    overlap.append(py)
+                    overlap.append(myPreferences[py])
         else:
             for py in evaluated_polynomial:
                 if py in myPreferences:
-                    overlap.append(py)
+                    overlap.append(myPreferences[py])
 
         self.create_time_decryption += time() - t1
         return overlap
@@ -1256,4 +1261,4 @@ class Das4DBStub():
         peers = self.peercache.items()
         peers.sort(cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
 
-        return [ipport for ipport, _ in peers]
+        return peers
