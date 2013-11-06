@@ -86,6 +86,9 @@ class DispersyTunnelProxy(Observable):
 
     @online.setter
     def online(self, value):
+        if value == self.__online:
+            return
+
         self.__online = value
 
         if value:
@@ -178,6 +181,9 @@ class DispersyTunnelProxy(Observable):
             'bytes_returned': 0,
             'dropped_exit': 0
         }
+
+    def clear_state(self):
+        self.destination_circuit.clear()
 
     def setup_keep_alive(self):
         def ping_and_purge():

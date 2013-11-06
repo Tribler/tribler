@@ -5,11 +5,13 @@ Created on 3 jun. 2013
 """
 
 import logging
+from Tribler.Core.RawServer.SocketHandler import SingleSocket
+from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
+from Tribler.community.anontunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
 
 logger = logging.getLogger(__name__)
 
 import socket
-from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 from traceback import print_exc
 from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 
@@ -17,6 +19,26 @@ import Socks5.structs
 
 
 class Socks5Server(object):
+    @property
+    def accept_incoming(self):
+        return self._accept_incoming
+
+    @accept_incoming.setter
+    def accept_incoming(self, value):
+        if value and not self._accept_incoming:
+            logger.error("Accepting SOCKS5 connections now!")
+
+        if not value:
+            logger.error("DISCONNECTING SOCKS5 !")
+
+            for key in self.socket2connection.keys():
+                self.socket2connection[key].close()
+
+                if key in self.socket2connection:
+                    del self.socket2connection[key]
+
+        self._accept_incoming = value
+
     @property
     def tunnel(self):
         return self._tunnel
@@ -31,29 +53,29 @@ class Socks5Server(object):
 
     def bind_events(self):
         def accept_incoming(event):
-            self.connection_handler.accept_incoming = True
+            self.accept_incoming = True
 
         def disconnect_socks(event):
-                self.connection_handler.accept_incoming = False
+                self.accept_incoming = False
 
         self._tunnel.subscribe("on_ready", accept_incoming)
         self._tunnel.subscribe("on_down", disconnect_socks)
 
 
     def __init__(self, ):
+        self._tunnel = None
+        self._accept_incoming = False
+
+        self.socket2connection = {}
         self.socks5_port = None
         self.raw_server = None
 
         self.udp_relay_socket = None
-
-        self.connection_handler = TcpConnectionHandler()
-        self.connection_handler.socks5_server = self
-
-        self._tunnel = None
         self.bound = False
 
         self.routes = {}
         self.udp_relays = {}
+
 
     def attach_to(self, raw_server, socks5_port=1080):
         self.socks5_port = socks5_port
@@ -64,7 +86,7 @@ class Socks5Server(object):
         if self.socks5_port:
             try:
                 port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
-                                                     reuse=True, handler=self.connection_handler)
+                                                     reuse=True, handler=self)
                 if self.tunnel:
                     self.bind_events()
 
@@ -129,3 +151,62 @@ class Socks5Server(object):
         if __debug__:
             logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address, destination_address,
                         socks5_socket.getsockname()[1])
+
+    def external_connection_made(self, s):
+        # Extra check in case bind() no work
+
+        if not self.accept_incoming:
+            s.close()
+            return
+
+        assert isinstance(s, SingleSocket)
+        logger.info("accepted a socket on port %d", s.get_myport())
+
+        tcp_connection = Socks5Connection(s, self)
+        self.socket2connection[s] = tcp_connection
+
+    def switch_to_tcp_relay(self, source_socket, destination_socket):
+        """
+        Switch the connection mode to RELAY, any incoming and outgoing data will be relayed
+
+        :param source_socket:
+        :param destination_socket:
+        """
+        self.socket2connection[source_socket] = TcpRelayConnection(source_socket, destination_socket, self)
+        self.socket2connection[destination_socket] = TcpRelayConnection(destination_socket, source_socket, self)
+
+
+    def connection_flushed(self, s):
+        pass
+
+    def connection_lost(self, s):
+        logger.info("Connection lost")
+
+        tcp_connection = self.socket2connection[s]
+        self.tunnel.clear_state()
+
+        try:
+            tcp_connection.close()
+        except:
+            pass
+
+        if s in self.socket2connection:
+            del self.socket2connection[s]
+
+    def data_came_in(self, s, data):
+        """
+        Data is in the READ buffer, depending on MODE the Socks5 or Relay mechanism will be used
+
+        :param s:
+        :param data:
+        :return:
+        """
+        tcp_connection = self.socket2connection[s]
+        try:
+            tcp_connection.data_came_in(data)
+        except:
+            print_exc()
+
+    def shutdown(self):
+        for tcp_connection in self.socket2connection.values():
+            tcp_connection.shutdown()

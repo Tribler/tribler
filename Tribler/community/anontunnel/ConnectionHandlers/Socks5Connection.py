@@ -24,13 +24,13 @@ class Socks5Connection(object):
     Supports a subset of the SOCKS5 protocol, no authentication and no support for TCP BIND requests
     """
 
-    def __init__(self, single_socket, connection_handler):
+    def __init__(self, single_socket, socks5_server):
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
 
         self.single_socket = single_socket
         """:type : SingleSocket"""
 
-        self.connection_handler = connection_handler
+        self.socks5_server = socks5_server
         """:type : TcpConnectionHandler """
 
         self.buffer = ''
@@ -118,19 +118,19 @@ class Socks5Connection(object):
 
         if request.cmd == structs.REQ_CMD_CONNECT:
             dns = (request.destination_address, request.destination_port)
-            destination_socket = self.connection_handler.start_connection(dns)
+            destination_socket = self.socks5_server.start_connection(dns)
 
             logger.debug("Accepting TCP RELAY request, direct client to %s:%d", self.single_socket.get_myip(),
                          self.single_socket.get_myport())
 
             # Switch to TCP relay mode
-            self.connection_handler.switch_to_tcp_relay(self.single_socket, destination_socket)
+            self.socks5_server.switch_to_tcp_relay(self.single_socket, destination_socket)
 
             response = structs.encode_reply(0x05, 0x00, 0x00, structs.ADDRESS_TYPE_IPV4, self.single_socket.get_myip(),
                                             self.single_socket.get_myport())
             self.write(response)
         elif request.cmd == structs.REQ_CMD_UDP_ASSOCIATE:
-            socket = self.connection_handler.socks5_server.create_udp_relay()
+            socket = self.socks5_server.create_udp_relay()
 
             # We use same IP as the single socket, but the port number comes from the newly created UDP listening socket
             ip, port = self.single_socket.get_myip(), socket.getsockname()[1]
@@ -172,6 +172,6 @@ class Socks5Connection(object):
     def close(self):
         if self.single_socket is not None:
             self.single_socket.close()
-            self.connection_handler.connection_lost(self.single_socket)
+            self.socks5_server.connection_lost(self.single_socket)
             self.single_socket = None
 
