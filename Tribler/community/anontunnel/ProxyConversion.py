@@ -139,7 +139,7 @@ class ProxyConversion(BinaryConversion):
     def _decode_stats(placeholder, offset, data):
         offset, stats = decode(data, offset)
 
-        return offset, placeholder.meta.payload.implement(stats)
+        return offset, placeholder.meta.payload.implement(stats[0])
 
     @staticmethod
     def _encode_ping_pong(message):

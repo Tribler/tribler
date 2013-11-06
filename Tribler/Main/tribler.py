@@ -423,7 +423,7 @@ class ABCApp():
         def state_call(ds):
             if ds.get_status() == DLSTATUS_DOWNLOADING:
                 self.tunnel.record_stats = True
-            elif ds.get_current_speed == DLSTATUS_SEEDING:
+            elif ds.get_status() == DLSTATUS_SEEDING:
                 self.tunnel.record_stats = False
                 self.tunnel.share_stats = True
 
@@ -434,6 +434,9 @@ class ABCApp():
 
         host = "devristo.dyndns.org:20001"
         root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
+
+        #host = "pygmee.tribler.org:20004"
+        #root_hash = ""
 
         try:
             download = get_default_dest_dir() + "/" + root_hash
@@ -458,6 +461,7 @@ class ABCApp():
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
         state_dir = Session.get_default_state_dir(".TriblerAnonTunnel")
+        shutil.rmtree(state_dir)
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         try:
