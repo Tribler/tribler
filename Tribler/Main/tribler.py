@@ -449,7 +449,7 @@ class ABCApp():
             print_exc()
 
         sdef = SwiftDef.load_from_url("tswift://" + host + "/" + root_hash)
-        sdef.set_name("AnonTunnel test")
+        sdef.set_name("AnonTunnel test (100MB)")
 
         result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
         result.set_state_callback(state_call, delay=1)
