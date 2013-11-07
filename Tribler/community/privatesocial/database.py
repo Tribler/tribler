@@ -2,6 +2,7 @@ from os import path
 from time import time
 
 from Tribler.dispersy.database import Database
+from Tribler.community.privatesemantic.rsa import key_to_bytes, bytes_to_key
 
 LATEST_VERSION = 1
 
@@ -77,13 +78,19 @@ class FriendDatabase(Database):
         self.execute(u"INSERT INTO friendsync (sync_id, global_time, keyhash) VALUES (?,?,?) ", (sync_id, global_time, pubkey))
 
     def add_friend(self, name, key, keyhash):
-        self.execute(u"INSERT INTO friends (name, key, keyhash) VALUES (?,?,?)", (name, key, keyhash))
+        _key = key_to_bytes(key)
+        self.execute(u"INSERT INTO friends (name, key, keyhash) VALUES (?,?,?)", (name, _key, keyhash))
 
     def get_friend(self, name):
-        return self.execute(u"SELECT key, keyhash FROM friends WHERE name = ?", (name,)).next()
+        return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE name = ?", (name,))).next()
 
     def add_my_key(self, key, keyhash):
-        self.execute(u"INSERT INTO my_keys (key, keyhash, inserted) VALUES (?,?,?)", (key, keyhash, time()))
+        _key = key_to_bytes(key)
+        self.execute(u"INSERT INTO my_keys (key, keyhash, inserted) VALUES (?,?,?)", (_key, keyhash, time()))
 
     def get_my_keys(self):
-        return list(self.execute(u"SELECT key, keyhash FROM my_keys ORDER BY inserted DESC"))
+        return list(self._converted_keys(self.execute(u"SELECT key, keyhash FROM my_keys ORDER BY inserted DESC")))
+
+    def _converted_keys(self, keylist):
+        for key, keyhash in keylist:
+            yield bytes_to_key(key), keyhash
