@@ -71,11 +71,11 @@ class SemanticDatabase(Database):
             self.execute(u"INSERT INTO peercache (ip, port, overlap, last_connected) VALUES (?,?,?,?)", (ip, port, overlap, last_connected or time()))
 
     def get_peers(self):
-        peers = [[(ip, port), overlap] for ip, port, overlap in self.execute(u"SELECT ip, port, overlap from peercache")]
+        peers = list(self.execute(u"SELECT overlap, ip, port from peercache"))
         if peers:
-            if isinstance(peers[0][1], str):
+            if isinstance(peers[0][0], str):
                 for i in range(len(peers)):
-                    peers[i][1] = peers[i][1].split(",")
+                    peers[i][0] = peers[i][0].split(",")
             else:
                 peers.sort(cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
 

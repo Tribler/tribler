@@ -198,7 +198,7 @@ class ForwardCommunity():
 
                 # if we have any similarity, cache peer
                 if new_taste_buddy.overlap and new_taste_buddy.should_cache():
-                    self._peercache.add_peer(new_taste_buddy.overlap, new_taste_buddy.candidate.sock_addr)
+                    self._peercache.add_peer(new_taste_buddy.overlap, *new_taste_buddy.candidate.sock_addr)
 
         self.taste_buddies.sort(reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
@@ -336,7 +336,7 @@ class ForwardCommunity():
     def connect_to_peercache(self, nr=10):
         payload = self.create_similarity_payload()
         if payload:
-            peers = [ipport for _, ipport in self._peercache.get_peers()[:nr]]
+            peers = [(ip, port) for _, ip, port in self._peercache.get_peers()[:nr]]
 
             def attempt_to_connect(candidate, attempts):
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
