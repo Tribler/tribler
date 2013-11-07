@@ -163,6 +163,11 @@ class ForwardCommunity():
             self._notifier = None
 
         self._peercache = SemanticDatabase(self._dispersy)
+        self._peercache.open()
+
+    def unload_community(self):
+        super(ForwardCommunity, self).unload_community()
+        self._peercache.close()
 
     def initiate_meta_messages(self):
         ori = self._meta_messages[u"dispersy-introduction-request"]

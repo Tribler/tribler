@@ -32,6 +32,11 @@ class SocialCommunity(Community):
         self.encryption = bool(encryption)
 
         self._friend_db = FriendDatabase(dispersy)
+        self._friend_db.open()
+
+    def unload_community(self):
+        super(SocialCommunity, self).unload_community()
+        self._friend_db.close()
 
     def initiate_meta_messages(self):
         # TODO replace with modified full sync
