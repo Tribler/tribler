@@ -1,5 +1,4 @@
 import logging
-from random import choice
 import socket
 import threading
 import time
@@ -7,7 +6,7 @@ from traceback import print_exc
 from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategies
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload
-from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
+from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 import random
 from Observable import Observable
 
-from collections import defaultdict
 from ProxyConversion import DataPayload, ExtendPayload
 
 
@@ -162,13 +160,6 @@ class DispersyTunnelProxy(Observable):
 
         # Routing tables
         self.relay_from_to = {}
-
-        # Queue of EXTEND request, circuit id is key of the dictionary
-        self.extension_queue = defaultdict(int)
-
-        # Queue of EXTENDING 'FOR' requests
-        self.extending_for = defaultdict(int)
-
         self.circuit_tag = {}
 
         self.circuit_length_strategy = RandomCircuitLengthStrategies(1,4)
@@ -301,14 +292,13 @@ class DispersyTunnelProxy(Observable):
         def extend_circuits():
             while True:
                 circuits_needing_extension = [c for c in self.circuits.values()
-                                              if len(c.hops) < c.goal_hops
-                    and self.extension_queue[c] == 0]
+                                              if len(c.hops) < c.goal_hops]
 
                 for c in circuits_needing_extension:
                     self.extend_circuit(c)
 
                 # Rerun every 5 seconds
-                yield 5.0
+                yield 1.0
 
         callback.register(extend_circuits, priority=-10)
         callback.register(calc_speeds, priority=-10)
@@ -362,12 +352,10 @@ class DispersyTunnelProxy(Observable):
             self.fire("circuit_created", circuit=circuit)
 
             # Our circuit is too short, fix it!
-            if circuit.goal_hops > len(circuit.hops) and self.extension_queue[circuit] == 0:
+            if circuit.goal_hops > len(circuit.hops):
                 logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
-
-            self._process_extension_queue(circuit)
         elif not self.relay_from_to.has_key((message.candidate, msg.circuit_id)):
             logger.warning("Cannot route CREATED packet, probably concurrency overwrote routing rules!")
         else:
@@ -391,12 +379,6 @@ class DispersyTunnelProxy(Observable):
 
             self.fire("circuit_extended_for", extended_for=(created_for.candidate, created_for.circuit_id),
                       extended_with=(extended_with, msg.circuit_id))
-
-            # transfer extending for queue to the next hop
-            while self.extending_for[(created_for.candidate, created_for.circuit_id)] > 0:
-                self.extending_for[(created_for.candidate, created_for.circuit_id)] -= 1
-
-                community.send(u"extend", extended_with, msg.circuit_id)
 
     def on_data(self, event, message):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
@@ -524,14 +506,7 @@ class DispersyTunnelProxy(Observable):
 
             self.fire("circuit_extend", extend_for=(from_candidate, from_circuit_id),
                       extend_with=(to_candidate, new_circuit_id))
-        else:
-            self.extending_for[(from_candidate, from_circuit_id)] += 1
 
-    def _process_extending_for_queue(self):
-        for key in self.extending_for.keys():
-            if self.extending_for[key] > 0:
-                self.extending_for[key] -= 1
-                self.extend_for(*key)
 
     def on_extended(self, event, message):
         """ A circuit has been extended, forward the acknowledgment back
@@ -580,7 +555,7 @@ class DispersyTunnelProxy(Observable):
             self.fire("circuit_extended", circuit=circuit)
 
             # Our circuit is too short, fix it!
-            if circuit.goal_hops > len(circuit.hops) and self.extension_queue[circuit] == 0:
+            if circuit.goal_hops > len(circuit.hops):
                 logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
@@ -617,21 +592,9 @@ class DispersyTunnelProxy(Observable):
 
         return self.circuits[circuit_id]
 
-    def _process_extension_queue(self, circuit):
-        queue = self.extension_queue[circuit]
-
-        if circuit.created and queue > 0:
-            self.extension_queue[circuit] -= 1
-            logger.warning('Circuit %d is to be extended', circuit.id)
-
-            community = self.community
-            community.send(u"extend", circuit.candidate, circuit.id)
-
     def extend_circuit(self, circuit):
-        self.extension_queue[circuit] += 1
-
         if circuit.created:
-            self._process_extension_queue(circuit)
+            self.community.send(u"extend", circuit.candidate, circuit.id)
 
     def _create_stats(self):
         stats = {
@@ -662,9 +625,6 @@ class DispersyTunnelProxy(Observable):
 
         if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in [c.candidate for c in self.circuits.values()]:
             self.create_circuit(candidate)
-
-        self._process_extending_for_queue()
-
 
     def send_data(self, payload, circuit_id=None, address=None, ultimate_destination=None, origin=None):
         assert address is not None or ultimate_destination != ('0.0.0.0', None)
