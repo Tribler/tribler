@@ -337,6 +337,7 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             peers = [(ip, port) for _, ip, port in self._peercache.get_peers()[:nr]]
+            print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", peers
 
             def attempt_to_connect(candidate, attempts):
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
@@ -351,8 +352,8 @@ class ForwardCommunity():
                     candidate = self.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
 
                 self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i)
-        else:
-            print >> sys.stderr, "No SimilarityPayload, cannot connect"
+        elif DEBUG:
+            print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
         if exclude_candidate:
