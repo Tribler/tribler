@@ -22,6 +22,7 @@ from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
 
 from random import choice
 from Tribler.dispersy.member import Member
+from database import FriendDatabase
 
 ENCRYPTION = True
 
