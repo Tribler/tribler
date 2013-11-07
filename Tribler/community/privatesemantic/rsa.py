@@ -61,11 +61,10 @@ def get_bits(number):
     return bits
 
 def key_to_bytes(key):
-    keydict = key.__dict__.copy()
     non_mpzdict = {}
-    for key, value in keydict.items():
-        if value:
-            non_mpzdict[key] = long(value)
+    for i, prop in enumerate(['n', 'e', 'p', 'q', 'd', 'size']):
+        if key[i]:
+            non_mpzdict[prop] = long(key[i])
 
     return json.dumps(non_mpzdict)
 
