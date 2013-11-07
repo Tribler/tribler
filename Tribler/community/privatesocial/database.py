@@ -24,7 +24,7 @@ CREATE TABLE friends(
  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
  key text,
  keyhash text,
- inserted integer
+ inserted real
  );
  
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);

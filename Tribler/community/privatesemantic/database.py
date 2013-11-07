@@ -10,7 +10,7 @@ CREATE TABLE peercache(
  ip text,
  port interger,
  overlap text,
- last_connected integer,
+ last_connected real,
  connected_times integer DEFAULT 0,
  PRIMARY KEY (ip, port));
  
