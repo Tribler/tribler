@@ -22,7 +22,7 @@ CREATE TABLE friends(
  CREATE TABLE my_keys(
  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
  key text,
- keyhash text
+ keyhash text,
  inserted integer
  );
  
@@ -83,7 +83,7 @@ class FriendDatabase(Database):
         return self.execute(u"SELECT key, keyhash FROM friends WHERE name = ?", (name,)).next()
 
     def add_my_key(self, key, keyhash):
-        self.execute(u"INSERT INTO my_keys (key, keyhash,inserted) VALUES (?,?,?)", (key, keyhash, time()))
+        self.execute(u"INSERT INTO my_keys (key, keyhash, inserted) VALUES (?,?,?)", (key, keyhash, time()))
 
     def get_my_keys(self):
         return list(self.execute(u"SELECT key, keyhash FROM my_keys ORDER BY inserted DESC"))

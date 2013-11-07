@@ -66,9 +66,9 @@ class SemanticDatabase(Database):
         if isinstance(overlap, list):
             overlap = ",".join(overlap)
         try:
-            self.execute(u"INSERT INTO peercache (ip, port, overlap, last_connected) VALUES (?,?,?,?)", (ip, port, overlap, last_connected or time()))
-        except:
             self.execute(u"UPDATE peercache SET overlap = ?, last_connected = ?, connected_times = connected_times + 1 WHERE ip = ? AND port = ?", (overlap, last_connected or time(), ip, port))
+        except:
+            self.execute(u"INSERT INTO peercache (ip, port, overlap, last_connected) VALUES (?,?,?,?)", (ip, port, overlap, last_connected or time()))
 
     def get_peers(self):
         peers = [[(ip, port), overlap] for ip, port, overlap in self.execute(u"SELECT ip, port, overlap from peercache")]
