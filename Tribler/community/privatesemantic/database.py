@@ -64,7 +64,7 @@ class SemanticDatabase(Database):
 
     def add_peer(self, overlap, ip, port, last_connected=None):
         if isinstance(overlap, list):
-            overlap = ",".join(overlap)
+            overlap = ",".join(map(str, overlap))
         try:
             self.execute(u"UPDATE peercache SET overlap = ?, last_connected = ?, connected_times = connected_times + 1 WHERE ip = ? AND port = ?", (overlap, last_connected or time(), ip, port))
         except:
@@ -75,7 +75,7 @@ class SemanticDatabase(Database):
         if peers:
             if isinstance(peers[0][0], str):
                 for i in range(len(peers)):
-                    peers[i][0] = peers[i][0].split(",")
+                    peers[i][0] = map(long, peers[i][0].split(","))
             else:
                 peers.sort(cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
 
