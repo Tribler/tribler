@@ -351,6 +351,8 @@ class ForwardCommunity():
                     candidate = self.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
 
                 self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i)
+        else:
+            print >> sys.stderr, "No SimilarityPayload, cannot connect"
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
         if exclude_candidate:
