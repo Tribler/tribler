@@ -85,7 +85,7 @@ class SocialCommunity(Community):
                 del data[-1]
 
         # next get actual packets from sync table, friendsync does not contain any non-syncable_messages hence this variable isn't used
-        sync_ids = (sync_id for _, sync_id in data)
+        sync_ids = tuple(sync_id for _, sync_id in data)
         if higher:
             data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time ASC", sync_ids))
         else:
