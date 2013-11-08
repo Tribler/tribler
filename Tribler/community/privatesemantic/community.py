@@ -335,6 +335,8 @@ class ForwardCommunity():
     # connect to first nr peers in peercache
     def connect_to_peercache(self, nr=10):
         payload = self.create_similarity_payload()
+
+        print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", nr, "peers", payload
         if payload:
             peers = [(ip, port) for _, ip, port in self._peercache.get_peers()[:nr]]
             print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", peers
