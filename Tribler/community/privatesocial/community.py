@@ -146,26 +146,7 @@ class SocialCommunity(Community):
 
     def create_ping_requests(self):
         while True:
-            to_maintain = set()
-
-            foafs = defaultdict(list)
-            my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
-            for tb in self.yield_taste_buddies():
-                # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
-                if any(map(tb.does_overlap, my_key_hashes)):
-                    to_maintain.add(tb)
-
-                # else add this foaf as a possible candidate to be used as a backup for a friend
-                else:
-                    for keyhash in tb.overlap:
-                        foafs[keyhash].append(tb)
-
-            # for each friend we maintain an additional connection to at least one foaf
-            # this peer is chosen randomly to attempt to load balance these pings
-            for keyhash, tbs in foafs.iteritems():
-                to_maintain.add(choice(tbs))
-
-            print >> sys.stderr, "Should maintain", len(to_maintain), "connections", map(str, to_maintain)
+            to_maintain = self.filter_tb(self.yield_taste_buddies())
 
             # from the to_maintain list check if we need to send any pings
             tbs = [tb.candidate for tb in to_maintain if tb.time_remaining() < PING_INTERVAL]
@@ -174,6 +155,34 @@ class SocialCommunity(Community):
                 self._create_pingpong(u"ping", tbs, identifier)
 
             yield PING_INTERVAL
+
+    def get_tbs_from_peercache(self, nr):
+        peers = super(SocialCommunity).get_tbs_from_peercache(nr)
+        return self.filter_tb(peers)
+
+    def filter_tb(self, tbs):
+        to_maintain = set()
+
+        foafs = defaultdict(list)
+        my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
+        for tb in tbs:
+            # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
+            if any(map(tb.does_overlap, my_key_hashes)):
+                to_maintain.add(tb)
+
+            # else add this foaf as a possible candidate to be used as a backup for a friend
+            else:
+                for keyhash in tb.overlap:
+                    foafs[keyhash].append(tb)
+
+        # for each friend we maintain an additional connection to at least one foaf
+        # this peer is chosen randomly to attempt to load balance these pings
+        for keyhash, tbs in foafs.iteritems():
+            to_maintain.add(choice(tbs))
+
+        print >> sys.stderr, "Should maintain", len(to_maintain), "connections instead of", len(tbs)
+
+        return to_maintain
 
     def get_rsa_member(self):
         rsakey = self._friend_db.get_my_keys()[-1]
