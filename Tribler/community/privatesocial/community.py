@@ -18,7 +18,8 @@ from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesocial.payload import EncryptedPayload
 from Tribler.community.privatesemantic.rsa import rsa_encrypt, rsa_sign, rsa_verify
 from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
-    HForwardCommunity, PForwardCommunity, PING_INTERVAL, ForwardCommunity
+    HForwardCommunity, PForwardCommunity, PING_INTERVAL, ForwardCommunity, \
+    TasteBuddy
 
 from random import choice
 from Tribler.dispersy.member import Member
@@ -157,7 +158,7 @@ class SocialCommunity(Community):
             yield PING_INTERVAL
 
     def get_tbs_from_peercache(self, nr):
-        peers = super(SocialCommunity).get_tbs_from_peercache(nr)
+        peers = [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()[:nr]]
         return self.filter_tb(peers)
 
     def filter_tb(self, tbs):
