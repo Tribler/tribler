@@ -207,7 +207,7 @@ class RSAMember(Member):
         message = data[offset:offset + (length or len(data))]
         return rsa_sign(self._key, message)
 
-class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
+class NoFSocialCommunity(SocialCommunity, HForwardCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
@@ -229,7 +229,7 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
     def initiate_meta_messages(self):
         return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
 
-class PSocialCommunity(PForwardCommunity, SocialCommunity):
+class PSocialCommunity(SocialCommunity, PForwardCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
@@ -251,7 +251,7 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
     def initiate_meta_messages(self):
         return PForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
 
-class HSocialCommunity(HForwardCommunity, SocialCommunity):
+class HSocialCommunity(SocialCommunity, HForwardCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
@@ -273,7 +273,7 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
     def initiate_meta_messages(self):
         return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
 
-class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
+class PoliSocialCommunity(SocialCommunity, PoliForwardCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
