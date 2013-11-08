@@ -72,14 +72,14 @@ class TasteBuddy():
         overlap = self.overlap
         if isinstance(self.overlap, list):
             overlap = len(overlap)
-        return "TB_%s" % overlap
+        return "TB_%s_%s" % (overlap, self.sock_addr)
 
     def __hash__(self):
         return hash(self.sock_addr)
 
 class ActualTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate):
-        TasteBuddy.__init__(self, overlap)
+        TasteBuddy.__init__(self, overlap, candidate.sock_addr)
         self.timestamp = timestamp
         self.candidate = candidate
 
@@ -93,7 +93,7 @@ class ActualTasteBuddy(TasteBuddy):
 
     def __eq__(self, other):
         if isinstance(other, TasteBuddy):
-            return self.candidate.sock_addr == other.candidate.sock_addr
+            return self.sock_addr == other.sock_addr
 
         elif isinstance(other, Member):
             return other in self.candidate.get_members()
@@ -107,12 +107,9 @@ class ActualTasteBuddy(TasteBuddy):
             overlap = len(overlap)
         return "ATB_%d_%s_%s" % (self.timestamp, overlap, self.candidate)
 
-    def __hash__(self):
-        return hash(self.candidate.sock_addr)
-
 class PossibleTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate_mid, received_from):
-        TasteBuddy.__init__(self, overlap)
+        TasteBuddy.__init__(self, overlap, None)
         self.timestamp = timestamp
         self.candidate_mid = candidate_mid
         self.received_from = received_from
