@@ -12,9 +12,14 @@
 #
 #
 
+import ast
 import sys
 import copy
 import pickle
+import StringIO
+import ConfigParser
+
+from collections import OrderedDict
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults
@@ -38,7 +43,7 @@ class SessionConfigInterface:
         to make this a copy constructor.
         """
 
-        self.sessconfig = {}
+        self.sessconfig = OrderedDict()
         self.sessconfig.update(sessdefaults)
 
         if sessconfig is not None:  # copy constructor
@@ -536,11 +541,19 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         @return SessionStartupConfig object
         """
         # Class method, no locking required
-        f = open(filename, "rb")
-        sessconfig = pickle.load(f)
-        sscfg = SessionStartupConfig(sessconfig)
-        f.close()
-        return sscfg
+        config_str = '[root]\n' + open(filename, 'r').read()
+        config_fp = StringIO.StringIO(config_str)
+        config = ConfigParser.ConfigParser()
+        config.readfp(config_fp)
+
+        sessconfig = OrderedDict()
+        for k, v in config.items('root'):
+            try:
+                sessconfig[k] = ast.literal_eval(v)
+            except:
+                sessconfig[k] = v
+        return SessionStartupConfig(sessconfig)
+
     load = staticmethod(load)
 
     def save(self, filename):
@@ -548,9 +561,16 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         @param filename  An absolute Unicode filename
         """
         # Called by any thread
-        f = open(filename, "wb")
-        pickle.dump(self.sessconfig, f)
-        f.close()
+        config_fp = StringIO.StringIO()
+        config = ConfigParser.ConfigParser()
+        config.add_section('root')
+        for k, v in self.sessconfig.iteritems():
+            config.set('root', k, v)
+        config.write(config_fp)
+
+        config_file = open(filename, "wb")
+        config_file.write(config_fp.getvalue()[7:])
+        config_file.close()
 
     #
     # Copyable interface

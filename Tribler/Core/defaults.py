@@ -19,6 +19,7 @@
 import sys
 import os
 from simpledefs import *
+from collections import OrderedDict
 
 DEFAULTPORT = 7760
 
@@ -29,7 +30,7 @@ DEFAULTPORT = 7760
 #  Version 2: as released in Tribler 4.5.0
 #
 SESSDEFAULTS_VERSION = 2
-sessdefaults = {}
+sessdefaults = OrderedDict()
 sessdefaults['version'] = SESSDEFAULTS_VERSION
 sessdefaults['state_dir'] = None
 sessdefaults['install_dir'] = u'.'
@@ -50,7 +51,6 @@ sessdefaults['torrent_collecting_dir'] = None
 sessdefaults['torrent_checking'] = 1
 sessdefaults['torrent_checking_period'] = 31  # will be changed to min(max(86400/ntorrents, 15), 300) at runtime
 sessdefaults['stop_collecting_threshold'] = 200
-sessdefaults['internaltracker'] = True
 sessdefaults['nickname'] = '__default_name__'  # is replaced with hostname in LaunchManyCore.py
 sessdefaults['mugshot'] = None
 sessdefaults['videoanalyserpath'] = None

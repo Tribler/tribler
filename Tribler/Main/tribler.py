@@ -401,8 +401,15 @@ class ABCApp():
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
         except:
-            self.sconfig = SessionStartupConfig()
-            self.sconfig.set_state_dir(state_dir)
+            try:
+                # Maybe we have an old config file?
+                f = open(os.path.join(state_dir, 'sessconfig.pickle'), "rb")
+                sessconfig = pickle.load(f)
+                f.close()
+                self.sconfig = SessionStartupConfig(sessconfig)
+            except:
+                self.sconfig = SessionStartupConfig()
+                self.sconfig.set_state_dir(state_dir)
 
         self.sconfig.set_install_dir(self.installdir)
 
