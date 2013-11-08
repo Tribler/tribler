@@ -65,18 +65,22 @@ class SemanticDatabase(Database):
     def add_peer(self, overlap, ip, port, last_connected=None):
         if isinstance(overlap, list):
             overlap = ",".join(map(str, overlap))
+            overlap = buffer(overlap)
         try:
-            self.execute(u"UPDATE peercache SET overlap = ?, last_connected = ?, connected_times = connected_times + 1 WHERE ip = ? AND port = ?", (overlap, last_connected or time(), ip, port))
+            self.execute(u"INSERT INTO peercache (ip, port, overlap, last_connected) VALUES (?,?,?,?)", (unicode(ip), port, overlap, last_connected or time()))
         except:
-            self.execute(u"INSERT INTO peercache (ip, port, overlap, last_connected) VALUES (?,?,?,?)", (ip, port, overlap, last_connected or time()))
+            self.execute(u"UPDATE peercache SET overlap = ?, last_connected = ?, connected_times = connected_times + 1 WHERE ip = ? AND port = ?", (overlap, last_connected or time(), unicode(ip), port))
 
     def get_peers(self):
-        peers = list(self.execute(u"SELECT overlap, ip, port from peercache"))
+        peers = list(self.execute(u"SELECT overlap, ip, port FROM peercache"))
         if peers:
-            if isinstance(peers[0][0], str):
+            if isinstance(peers[0][0], buffer):
                 for i in range(len(peers)):
-                    peers[i][0] = map(long, peers[i][0].split(","))
+                    peers[i][0] = map(long, str(peers[i][0]).split(","))
+                    peers[i][1] = str(peers[i][1])
             else:
                 peers.sort(cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
+                for i in range(len(peers)):
+                    peers[i][1] = str(peers[i][1])
 
         return peers
