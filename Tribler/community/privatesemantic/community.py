@@ -361,8 +361,8 @@ class ForwardCommunity():
     def connect_to_peercache(self, nr=10):
         payload = self.create_similarity_payload()
         if payload:
-            peers = self.get_tbs_from_peercache(nr)
-            print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(peers), peers
+            tbs = self.get_tbs_from_peercache(nr)
+            print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
 
             def attempt_to_connect(candidate, attempts):
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
@@ -371,10 +371,10 @@ class ForwardCommunity():
                     yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
                     attempts -= 1
 
-            for i, sock_addr in enumerate(peers):
-                candidate = self.get_candidate(sock_addr, replace=False)
+            for i, tb in enumerate(tbs):
+                candidate = self.get_candidate(tb.sock_addr, replace=False)
                 if not candidate:
-                    candidate = self.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
+                    candidate = self.create_candidate(tb.sock_addr, False, tb.sock_addr, tb.sock_addr, u"unknown")
 
                 self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i)
         elif DEBUG:
