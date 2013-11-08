@@ -162,11 +162,13 @@ class SocialCommunity(Community):
         return self.filter_tb(peers)
 
     def filter_tb(self, tbs):
+        _tbs = list(tbs)
+
         to_maintain = set()
 
         foafs = defaultdict(list)
         my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
-        for tb in tbs:
+        for tb in _tbs:
             # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
             if any(map(tb.does_overlap, my_key_hashes)):
                 to_maintain.add(tb)
@@ -178,10 +180,10 @@ class SocialCommunity(Community):
 
         # for each friend we maintain an additional connection to at least one foaf
         # this peer is chosen randomly to attempt to load balance these pings
-        for keyhash, tbs in foafs.iteritems():
-            to_maintain.add(choice(tbs))
+        for keyhash, f_tbs in foafs.iteritems():
+            to_maintain.add(choice(f_tbs))
 
-        print >> sys.stderr, "Should maintain", len(to_maintain), "connections instead of", len(tbs)
+        print >> sys.stderr, "Should maintain", len(to_maintain), "connections instead of", len(_tbs)
 
         return to_maintain
 
