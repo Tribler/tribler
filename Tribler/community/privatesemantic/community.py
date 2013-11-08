@@ -93,6 +93,9 @@ class TasteBuddy():
             overlap = len(overlap)
         return "TB_%d_%s_%s" % (self.timestamp, overlap, self.candidate)
 
+    def __hash__(self):
+        return hash(self.candidate.sock_addr)
+
 class PossibleTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate_mid, received_from):
         TasteBuddy.__init__(self, overlap, timestamp, None)
@@ -110,6 +113,9 @@ class PossibleTasteBuddy(TasteBuddy):
         if isinstance(self.overlap, list):
             overlap = len(overlap)
         return "PTB_%d_%d_%s_%s" % (self.timestamp, overlap, self.candidate_mid.encode("HEX"), self.received_from)
+
+    def __hash__(self):
+        return hash(self.candidate_mid)
 
 class ForwardCommunity():
 
