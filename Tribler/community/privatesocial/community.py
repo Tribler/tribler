@@ -165,6 +165,8 @@ class SocialCommunity(Community):
             for keyhash, tbs in foafs.iteritems():
                 to_maintain.append(choice(tbs))
 
+            print >> sys.stderr, "Should maintain connections to", map(str, to_maintain)
+
             # from the to_maintain list check if we need to send any pings
             tbs = [tb.candidate for tb in to_maintain if tb.time_remaining() < PING_INTERVAL]
             if len(tbs) > 0:
