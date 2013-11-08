@@ -343,7 +343,7 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             peers = [(ip, port) for _, ip, port in self._peercache.get_peers()[:nr]]
-            print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", peers
+            print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(peers), peers
 
             def attempt_to_connect(candidate, attempts):
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
