@@ -153,7 +153,7 @@ class SocialCommunity(Community):
             for tb in self.yield_taste_buddies():
                 # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
                 if any(map(tb.does_overlap, my_key_hashes)):
-                    to_maintain.append(tb)
+                    to_maintain.add(tb)
 
                 # else add this foaf as a possible candidate to be used as a backup for a friend
                 else:
@@ -163,7 +163,7 @@ class SocialCommunity(Community):
             # for each friend we maintain an additional connection to at least one foaf
             # this peer is chosen randomly to attempt to load balance these pings
             for keyhash, tbs in foafs.iteritems():
-                to_maintain.append(choice(tbs))
+                to_maintain.add(choice(tbs))
 
             print >> sys.stderr, "Should maintain connections to", map(str, to_maintain)
 
