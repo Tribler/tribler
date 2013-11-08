@@ -73,14 +73,9 @@ class SemanticDatabase(Database):
 
     def get_peers(self):
         peers = list(self.execute(u"SELECT overlap, ip, port FROM peercache"))
-        if peers:
-            if isinstance(peers[0][0], buffer):
-                for i in range(len(peers)):
-                    peers[i][0] = map(long, str(peers[i][0]).split(","))
-                    peers[i][1] = str(peers[i][1])
-            else:
-                peers.sort(cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
-                for i in range(len(peers)):
-                    peers[i][1] = str(peers[i][1])
-
+        for i in range(len(peers)):
+            peers[i] = list(peers[i])
+            if isinstance(peers[i][0], buffer):
+                peers[i][0] = map(long, str(peers[i][0]).split(","))
+            peers[i][1] = str(peers[i][1])
         return peers
