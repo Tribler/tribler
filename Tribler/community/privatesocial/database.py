@@ -99,4 +99,4 @@ class FriendDatabase(Database):
 
     def _converted_keys(self, keylist):
         for key, keyhash in keylist:
-            yield bytes_to_key(key), long(keyhash)
+            yield bytes_to_key(key), long(str(keyhash))
