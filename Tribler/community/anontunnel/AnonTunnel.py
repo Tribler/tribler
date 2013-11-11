@@ -74,6 +74,7 @@ class AnonTunnel(Thread):
                 t2 = time.clock()
                 if tunnel and t1 and t2 > t1:
 
+
                     total_bytes_in_2 = tunnel.stats['bytes_enter'] \
                                        + sum([c.bytes_downloaded for c in tunnel.get_circuits()]) \
                                        + sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
@@ -90,7 +91,6 @@ class AnonTunnel(Thread):
 
                     print "\r%s %.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules" % ("ONLINE" if tunnel.online else "OFFLINE", total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes),
 
-
                     total_bytes_out_1 = total_bytes_out_2
                     total_bytes_in_1 = total_bytes_in_2
 
@@ -98,15 +98,9 @@ class AnonTunnel(Thread):
                 yield 1.0
 
         self.callback.register(speed_stats)
-
         self.raw_server.listen_forever(None)
 
-
-
     def stop(self):
-        if self.community:
-            pass
-
         if self.dispersy:
             self.dispersy.stop()
 

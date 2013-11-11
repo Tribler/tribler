@@ -17,7 +17,7 @@ class RandomCircuitLengthStrategy(CircuitLengthStrategy):
         self.max = max
 
     def circuit_length(self):
-        return random.randrange(1, 4)
+        return random.randrange(self.min, self.max)
 
 
 class ConstantCircuitLengthStrategy(CircuitLengthStrategy):

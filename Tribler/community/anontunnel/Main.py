@@ -20,7 +20,7 @@ def main(argv):
         parser = argparse.ArgumentParser(description = 'Anonymous Tunnel CLI interface')
         parser.add_argument('-p', '--socks5', nargs=1, help='Socks5 port')
         parser.add_argument('-y', '--yappi', nargs=1, help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
-        parser.add_argument('-c', '--cmd', nargs=1, help='The command UDP port to listen on')
+        parser.add_argument('-c', '--cmd', help='The command UDP port to listen on')
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
         parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
