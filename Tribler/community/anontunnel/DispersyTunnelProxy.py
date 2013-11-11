@@ -635,8 +635,7 @@ class DispersyTunnelProxy(Observable):
                 # If no circuit specified, pick one from the ACTIVE LIST
                 if circuit_id is None and ultimate_destination is not None:
                     # Each destination may be tunneled over a SINGLE different circuit
-                    if ultimate_destination in self.destination_circuit:
-                        circuit_id = self.destination_circuit[ultimate_destination]
+                    circuit_id = self.destination_circuit.get(ultimate_destination, None)
 
                     if circuit_id is None or circuit_id not in [c.id for c in self.active_circuits]:
                         # Make sure the '0-hop circuit' is also a candidate for selection
