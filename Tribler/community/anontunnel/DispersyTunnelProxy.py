@@ -604,6 +604,7 @@ class DispersyTunnelProxy(Observable):
                     'bytes_down_list': c.bytes_down_list[::5],
                     'bytes_up_list': c.bytes_up_list[::5],
                     'times': c.times[::5],
+                    'hops': len(c.hops)
                 }
                 for c in self.get_circuits()
             ],
