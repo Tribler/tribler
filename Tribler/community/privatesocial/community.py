@@ -55,10 +55,6 @@ class SocialCommunity(Community):
     def dispersy_sync_cache_enable(self):
         return False
 
-    def dispersy_claim_sync_bloom_filter(self, request_cache):
-        # TODO change with only shared friend sync
-        return Community.dispersy_claim_sync_bloom_filter(self, request_cache)
-
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
         # never sync with a non-friend
         if not self.is_taste_buddy(destination):
@@ -232,7 +228,7 @@ class RSAMember(Member):
         message = data[offset:offset + (length or len(data))]
         return rsa_sign(self._key, message)
 
-class NoFSocialCommunity(SocialCommunity, HForwardCommunity):
+class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
@@ -258,7 +254,22 @@ class NoFSocialCommunity(SocialCommunity, HForwardCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
-class PSocialCommunity(SocialCommunity, PForwardCommunity):
+    def create_ping_requests(self):
+        return SocialCommunity.create_ping_requests(self)
+
+    def get_tbs_from_peercache(self, nr):
+        return SocialCommunity.get_tbs_from_peercache(self, nr)
+
+    def _dispersy_claim_sync_bloom_filter_modulo(self):
+        return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
+
+    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
+        return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+
+    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
+        return SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync)
+
+class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
@@ -280,11 +291,22 @@ class PSocialCommunity(SocialCommunity, PForwardCommunity):
     def initiate_meta_messages(self):
         return PForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
 
-    def add_possible_taste_buddies(self, possibles):
-        PForwardCommunity.add_possible_taste_buddies(self, possibles)
-        SocialCommunity.add_possible_taste_buddies(self)
+    def create_ping_requests(self):
+        return SocialCommunity.create_ping_requests(self)
 
-class HSocialCommunity(SocialCommunity, HForwardCommunity):
+    def get_tbs_from_peercache(self, nr):
+        return SocialCommunity.get_tbs_from_peercache(self, nr)
+
+    def _dispersy_claim_sync_bloom_filter_modulo(self):
+        return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
+
+    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
+        return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+
+    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
+        return SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync)
+
+class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
@@ -310,7 +332,22 @@ class HSocialCommunity(SocialCommunity, HForwardCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
-class PoliSocialCommunity(SocialCommunity, PoliForwardCommunity):
+    def create_ping_requests(self):
+        return SocialCommunity.create_ping_requests(self)
+
+    def get_tbs_from_peercache(self, nr):
+        return SocialCommunity.get_tbs_from_peercache(self, nr)
+
+    def _dispersy_claim_sync_bloom_filter_modulo(self):
+        return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
+
+    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
+        return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+
+    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
+        return SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync)
+
+class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
@@ -335,3 +372,18 @@ class PoliSocialCommunity(SocialCommunity, PoliForwardCommunity):
     def add_possible_taste_buddies(self, possibles):
         PoliForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
+
+    def create_ping_requests(self):
+        return SocialCommunity.create_ping_requests(self)
+
+    def get_tbs_from_peercache(self, nr):
+        return SocialCommunity.get_tbs_from_peercache(self, nr)
+
+    def _dispersy_claim_sync_bloom_filter_modulo(self):
+        return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
+
+    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
+        return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+
+    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
+        return SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync)
