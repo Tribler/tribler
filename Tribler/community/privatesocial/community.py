@@ -60,7 +60,7 @@ class SocialCommunity(Community):
         if not self.is_taste_buddy(destination):
             allow_sync = False
 
-        super(SocialCommunity).send_introduction_request(self, destination, introduce_me_to, allow_sync)
+        return destination, introduce_me_to, allow_sync
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         # first select_and_fix based on friendsync table
@@ -267,7 +267,7 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        return SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync)
+        return HForwardCommunity.send_introduction_request(self, *SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync))
 
 class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
@@ -304,7 +304,7 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        return SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync)
+        return PForwardCommunity.send_introduction_request(self, *SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync))
 
 class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
@@ -345,7 +345,7 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        return SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync)
+        return HForwardCommunity.send_introduction_request(self, *SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync))
 
 class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
@@ -386,4 +386,4 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        return SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync)
+        return PoliForwardCommunity.send_introduction_request(self, *SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync))
