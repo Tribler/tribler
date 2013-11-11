@@ -406,7 +406,28 @@ class ABCApp():
                 f = open(os.path.join(state_dir, 'sessconfig.pickle'), "rb")
                 sessconfig = pickle.load(f)
                 f.close()
-                self.sconfig = SessionStartupConfig(sessconfig)
+                # Upgrade to new config                
+                self.sconfig = SessionStartupConfig()
+                for key, value in sessconfig.iteritems():
+                    if key in ['version', 'state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled', \
+                               'ipv6_binds_v4', 'timeout', 'timeout_check_interval', 'eckeypairfilename', 'megacache', \
+                               'nickname', 'mugshot', 'videoanalyserpath', 'peer_icon_path', 'family_filter', \
+                               'live_aux_seeders']:
+                        self.sconfig.sessconfig.set('general', key, value)
+                    if key in ['mainline_dht', 'mainline_dht_port']:
+                        self.sconfig.sessconfig.set('mainline_dht', 'enabled' if key == 'mainline_dht' else key, value)
+                    if key in ['torrent_checking', 'torrent_checking_period']:
+                        self.sconfig.sessconfig.set('torrent_checking', 'enabled' if key == 'torrent_checking' else key, value)
+                    if key in ['torrent_collecting', 'dht_torrent_collecting', 'torrent_collecting_max_torrents', 'torrent_collecting_dir' \
+                               'stop_collecting_threshold']:
+                        self.sconfig.sessconfig.set('torrent_collecting', 'enabled' if key == 'torrent_collecting' else key, value)
+                    if key in ['libtorrent', 'lt_proxytype', 'lt_proxyserver', 'lt_proxyauth']:
+                        self.sconfig.sessconfig.set('libtorrent', 'enabled' if key == 'libtorrent' else key, value)
+                    if key in ['swiftproc', 'swiftpath', 'swiftworkingdir', 'swiftcmdlistenport', 'swiftdlsperproc', 'swiftmetadir' \
+                               'swifttunnellistenport', 'swifttunnelhttpgwlistenport', 'swifttunnelcmdgwlistenport', 'swiftdhtport']:
+                        self.sconfig.sessconfig.set('swift', 'enabled' if key == 'swiftproc' else key, value)
+                    if key in ['dispersy_port', 'dispersy-tunnel-over-swift', 'dispersy']:
+                        self.sconfig.sessconfig.set('dispersy', 'enabled' if key == 'dispersy' else key, value)
             except:
                 self.sconfig = SessionStartupConfig()
                 self.sconfig.set_state_dir(state_dir)

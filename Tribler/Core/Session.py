@@ -85,36 +85,27 @@ class Session(SessionRuntimeConfig):
             if not os.path.isdir(fullpath):
                 os.makedirs(fullpath)
 
-        def set_and_create_dir(config, name, default_dir):
-            dirname = config.get(name, None)
+        def set_and_create_dir(dirname, setter, default_dir):
             if dirname is None:
-                config[name] = default_dir
+                setter(default_dir)
+            create_dir(dirname)
 
-            create_dir(config[name])
+        set_and_create_dir(self.get_state_dir(), self.set_state_dir, Session.get_default_state_dir())
+        set_and_create_dir(self.get_torrent_collecting_dir(), self.set_torrent_collecting_dir, os.path.join(self.get_state_dir(), STATEDIR_TORRENTCOLL_DIR))
+        set_and_create_dir(self.get_swift_meta_dir(), self.set_swift_meta_dir, os.path.join(self.get_state_dir(), STATEDIR_SWIFTRESEED_DIR))
+        set_and_create_dir(self.get_peer_icon_path(), self.set_peer_icon_path, os.path.join(self.get_state_dir(), STATEDIR_PEERICON_DIR))
 
-        set_and_create_dir(self.sessconfig, 'state_dir', Session.get_default_state_dir())
-        set_and_create_dir(self.sessconfig, 'torrent_collecting_dir', os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR))
-        set_and_create_dir(self.sessconfig, 'swiftmetadir', os.path.join(self.sessconfig['state_dir'], STATEDIR_SWIFTRESEED_DIR))
-        set_and_create_dir(self.sessconfig, 'peer_icon_path', os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR))
+        create_dir(os.path.join(self.get_state_dir(), STATEDIR_DLPSTATE_DIR))
 
-        create_dir(os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR))
-
-        # Poor man's versioning of SessionConfig, add missing
-        # default values. Really should use PERSISTENTSTATE_CURRENTVERSION
-        # and do conversions.
-        for key, defvalue in sessdefaults.iteritems():
-            if key not in self.sessconfig:
-                self.sessconfig[key] = defvalue
-
-        if self.sessconfig['nickname'] == '__default_name__':
-            self.sessconfig['nickname'] = socket.gethostname()
+        if self.get_nickname() == '__default_name__':
+            self.set_nickname(socket.gethostname())
 
         # SWIFTPROC
-        if self.sessconfig['swiftpath'] is None:
+        if self.get_swift_path() is None:
             if sys.platform == "win32":
-                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'], "swift.exe")
+                self.set_swift_path(os.path.join(self.get_install_dir(), "swift.exe"))
             else:
-                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'], "swift")
+                self.set_swift_path(os.path.join(self.get_install_dir(), "swift"))
 
         if GOTM2CRYPTO:
             permidmod.init()
@@ -122,18 +113,18 @@ class Session(SessionRuntimeConfig):
             #
             # 1. keypair
             #
-            pairfilename = os.path.join(self.sessconfig['state_dir'], 'ec.pem')
-            if self.sessconfig['eckeypairfilename'] is None:
-                self.sessconfig['eckeypairfilename'] = pairfilename
+            pairfilename = os.path.join(self.get_state_dir(), 'ec.pem')
+            if self.get_permid_keypair_filename() is None:
+                self.set_permid_keypair_filename(pairfilename)
 
-            if os.access(self.sessconfig['eckeypairfilename'], os.F_OK):
+            if os.access(self.get_permid_keypair_filename(), os.F_OK):
                 # May throw exceptions
-                self.keypair = permidmod.read_keypair(self.sessconfig['eckeypairfilename'])
+                self.keypair = permidmod.read_keypair(self.get_permid_keypair_filename())
             else:
                 self.keypair = permidmod.generate_keypair()
 
                 # Save keypair
-                pubfilename = os.path.join(self.sessconfig['state_dir'], 'ecpub.pem')
+                pubfilename = os.path.join(self.get_state_dir(), 'ecpub.pem')
                 permidmod.save_keypair(self.keypair, pairfilename)
                 permidmod.save_pub_key(self.keypair, pubfilename)
 
@@ -472,7 +463,7 @@ class Session(SessionRuntimeConfig):
         # Called by network thread
         self.sesslock.acquire()
         try:
-            return os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR)
+            return os.path.join(self.get_state_dir(), STATEDIR_DLPSTATE_DIR)
         finally:
             self.sesslock.release()
 

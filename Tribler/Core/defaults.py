@@ -31,58 +31,73 @@ DEFAULTPORT = 7760
 #
 SESSDEFAULTS_VERSION = 2
 sessdefaults = OrderedDict()
-sessdefaults['version'] = SESSDEFAULTS_VERSION
-sessdefaults['state_dir'] = None
-sessdefaults['install_dir'] = u'.'
-sessdefaults['ip'] = ''
-sessdefaults['minport'] = DEFAULTPORT
-sessdefaults['maxport'] = DEFAULTPORT
-sessdefaults['bind'] = []
-sessdefaults['ipv6_enabled'] = 0  # allow the client to connect to peers via IPv6 (currently not supported)
-sessdefaults['ipv6_binds_v4'] = None  # set if an IPv6 server socket won't also field IPv4 connections (default = set automatically)
-sessdefaults['timeout'] = 300.0
-sessdefaults['timeout_check_interval'] = 60.0
-sessdefaults['eckeypairfilename'] = None
-sessdefaults['megacache'] = True
-sessdefaults['torrent_collecting'] = True
-sessdefaults['dht_torrent_collecting'] = True
-sessdefaults['torrent_collecting_max_torrents'] = 50000
-sessdefaults['torrent_collecting_dir'] = None
-sessdefaults['torrent_checking'] = 1
-sessdefaults['torrent_checking_period'] = 31  # will be changed to min(max(86400/ntorrents, 15), 300) at runtime
-sessdefaults['stop_collecting_threshold'] = 200
-sessdefaults['nickname'] = '__default_name__'  # is replaced with hostname in LaunchManyCore.py
-sessdefaults['mugshot'] = None
-sessdefaults['videoanalyserpath'] = None
-sessdefaults['peer_icon_path'] = None
-sessdefaults['family_filter'] = True
-sessdefaults['live_aux_seeders'] = []
-sessdefaults['mainline_dht'] = True
-sessdefaults['mainline_dht_port'] = DEFAULTPORT - 3
-sessdefaults['libtorrent'] = True
-# Libtorrent proxy settings
-sessdefaults['lt_proxytype'] = 0  # no proxy server is used by default
-sessdefaults['lt_proxyserver'] = None
-sessdefaults['lt_proxyauth'] = None
+
+# General Tribler settings
+sessdefaults['general'] = OrderedDict()
+sessdefaults['general']['version'] = SESSDEFAULTS_VERSION
+sessdefaults['general']['state_dir'] = None
+sessdefaults['general']['install_dir'] = u'.'
+sessdefaults['general']['ip'] = ''
+sessdefaults['general']['minport'] = DEFAULTPORT
+sessdefaults['general']['maxport'] = DEFAULTPORT
+sessdefaults['general']['bind'] = []
+sessdefaults['general']['ipv6_enabled'] = 0  # allow the client to connect to peers via IPv6 (currently not supported)
+sessdefaults['general']['ipv6_binds_v4'] = None  # set if an IPv6 server socket won't also field IPv4 connections (default = set automatically)
+sessdefaults['general']['timeout'] = 300.0
+sessdefaults['general']['timeout_check_interval'] = 60.0
+sessdefaults['general']['eckeypairfilename'] = None
+sessdefaults['general']['megacache'] = True
+sessdefaults['general']['nickname'] = '__default_name__'  # is replaced with hostname in LaunchManyCore.py
+sessdefaults['general']['mugshot'] = None
+sessdefaults['general']['videoanalyserpath'] = None
+sessdefaults['general']['peer_icon_path'] = None
+sessdefaults['general']['family_filter'] = True
+sessdefaults['general']['live_aux_seeders'] = []
+
+# Mainline DHT settings
+sessdefaults['mainline_dht'] = OrderedDict()
+sessdefaults['mainline_dht']['enabled'] = True
+sessdefaults['mainline_dht']['mainline_dht_port'] = DEFAULTPORT - 3
+
+# Torrent checking settings
+sessdefaults['torrent_checking'] = OrderedDict()
+sessdefaults['torrent_checking']['enabled'] = 1
+sessdefaults['torrent_checking']['torrent_checking_period'] = 31  # will be changed to min(max(86400/ntorrents, 15), 300) at runtime
+
+# Torrent collecting settings
+sessdefaults['torrent_collecting'] = OrderedDict()
+sessdefaults['torrent_collecting']['enabled'] = True
+sessdefaults['torrent_collecting']['dht_torrent_collecting'] = True
+sessdefaults['torrent_collecting']['torrent_collecting_max_torrents'] = 50000
+sessdefaults['torrent_collecting']['torrent_collecting_dir'] = None
+sessdefaults['torrent_collecting']['stop_collecting_threshold'] = 200
+
+# Libtorrent settings
+sessdefaults['libtorrent'] = OrderedDict()
+sessdefaults['libtorrent']['enabled'] = True
+sessdefaults['libtorrent']['lt_proxytype'] = 0  # no proxy server is used by default
+sessdefaults['libtorrent']['lt_proxyserver'] = None
+sessdefaults['libtorrent']['lt_proxyauth'] = None
 
 # SWIFTPROC config
-sessdefaults['swiftproc'] = True
-sessdefaults['swiftpath'] = None
-sessdefaults['swiftworkingdir'] = '.'
-sessdefaults['swiftcmdlistenport'] = DEFAULTPORT + 481
-sessdefaults['swiftdlsperproc'] = 1000
-sessdefaults['swiftmetadir'] = None
+sessdefaults['swift'] = OrderedDict()
+sessdefaults['swift']['enabled'] = True
+sessdefaults['swift']['swiftpath'] = None
+sessdefaults['swift']['swiftworkingdir'] = '.'
+sessdefaults['swift']['swiftcmdlistenport'] = DEFAULTPORT + 481
+sessdefaults['swift']['swiftdlsperproc'] = 1000
+sessdefaults['swift']['swiftmetadir'] = None
+# Config for tunneling via swift, e.g. dispersy
+sessdefaults['swift']['swifttunnellistenport'] = DEFAULTPORT - 2
+sessdefaults['swift']['swifttunnelhttpgwlistenport'] = sessdefaults['swift']['swifttunnellistenport'] + 10000
+sessdefaults['swift']['swifttunnelcmdgwlistenport'] = sessdefaults['swift']['swifttunnellistenport'] + 20000
+sessdefaults['swift']['swiftdhtport'] = 9999
 
-# config for tunneling via swift, e.g. dispersy
-sessdefaults['swifttunnellistenport'] = DEFAULTPORT - 2
-sessdefaults['swifttunnelhttpgwlistenport'] = sessdefaults['swifttunnellistenport'] + 10000
-sessdefaults['swifttunnelcmdgwlistenport'] = sessdefaults['swifttunnellistenport'] + 20000
-sessdefaults['swiftdhtport'] = 9999
-
-# dispersy config
-sessdefaults['dispersy'] = True
-sessdefaults['dispersy-tunnel-over-swift'] = False
-sessdefaults['dispersy_port'] = DEFAULTPORT - 1
+# Dispersy config
+sessdefaults['dispersy'] = OrderedDict()
+sessdefaults['dispersy']['enabled'] = True
+sessdefaults['dispersy']['dispersy-tunnel-over-swift'] = False
+sessdefaults['dispersy']['dispersy_port'] = DEFAULTPORT - 1
 
 #
 # BT per download opts
