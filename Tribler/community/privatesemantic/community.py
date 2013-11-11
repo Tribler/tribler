@@ -666,7 +666,11 @@ class ForwardCommunity():
 
         def did_request(self, candidate):
             # TODO: change if there's an __eq__ implemented in candidate
-            return candidate.sock_addr in [rcandidate.sock_addr for rcandidate in self.requested_candidates]
+            if candidate.sock_addr in [rcandidate.sock_addr for rcandidate in self.requested_candidates]:
+                return True
+
+            print >> sys.stderr, "Did not send request to", candidate.sock_addr, [rcandidate.sock_addr for rcandidate in self.requested_candidates]
+            return False
 
         def on_timeout(self):
             for candidate in self.requested_candidates:
