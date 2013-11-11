@@ -35,7 +35,7 @@ from polycreate import compute_coeff, polyval
 from collections import namedtuple
 from Tribler.community.privatesemantic.database import SemanticDatabase
 
-DEBUG = False
+DEBUG = True
 DEBUG_VERBOSE = False
 ENCRYPTION = True
 PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
