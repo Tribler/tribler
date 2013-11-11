@@ -79,19 +79,19 @@ class FriendDatabase(Database):
 
     def add_friend(self, name, key, keyhash):
         _key = key_to_bytes(key)
-        _keyhash = buffer(keyhash)
+        _keyhash = buffer(str(keyhash))
         self.execute(u"INSERT INTO friends (name, key, keyhash) VALUES (?,?,?)", (name, _key, _keyhash))
 
     def get_friend(self, name):
         return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE name = ?", (name,))).next()
 
     def get_friend_by_hash(self, keyhash):
-        _keyhash = buffer(keyhash)
+        _keyhash = buffer(str(keyhash))
         return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE keyhash = ?", (_keyhash,))).next()
 
     def add_my_key(self, key, keyhash):
         _key = key_to_bytes(key)
-        _keyhash = buffer(keyhash)
+        _keyhash = buffer(str(keyhash))
         self.execute(u"INSERT INTO my_keys (key, keyhash, inserted) VALUES (?,?,?)", (_key, _keyhash, time()))
 
     def get_my_keys(self):
