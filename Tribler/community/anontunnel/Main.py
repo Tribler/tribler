@@ -59,6 +59,9 @@ def main(argv):
 
     anon_tunnel = AnonTunnel(socks5_port, cmd_port)
 
+    if args.record_on_incoming:
+        anon_tunnel.socks5_server.toggle_recording_on_first_enter = True
+
     # Circuit length strategy
     if args.length_strategy[:1] == ['random']:
         strategy = RandomCircuitLengthStrategy(*args.length_strategy[1:])

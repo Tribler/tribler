@@ -78,6 +78,8 @@ class Socks5Server(object):
         self.routes = {}
         self.udp_relays = {}
 
+        self.toggle_recording_on_first_enter = False
+
 
     def attach_to(self, raw_server, socks5_port=1080):
         self.socks5_port = socks5_port
@@ -214,7 +216,9 @@ class Socks5Server(object):
             tcp_connection.shutdown()
 
     def enter_tunnel_data(self, ultimate_destination, payload):
-        self.tunnel.record_stats = True
+        if self.toggle_recording_on_first_enter:
+            self.tunnel.record_stats = True
+
         self.tunnel.send_data(
             ultimate_destination=ultimate_destination,
             payload=payload
