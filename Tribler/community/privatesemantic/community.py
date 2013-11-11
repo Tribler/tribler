@@ -188,7 +188,6 @@ class ForwardCommunity():
         self._peercache.open()
 
     def unload_community(self):
-        super(ForwardCommunity, self).unload_community()
         self._peercache.close()
 
     def initiate_meta_messages(self):

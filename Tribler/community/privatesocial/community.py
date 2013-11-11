@@ -250,6 +250,10 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
     def initiate_meta_messages(self):
         return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
 
+    def unload_community(self):
+        HForwardCommunity.unload_community(self)
+        SocialCommunity.unload_community(self)
+
     def add_possible_taste_buddies(self, possibles):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
@@ -291,6 +295,10 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
     def initiate_meta_messages(self):
         return PForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
 
+    def unload_community(self):
+        PForwardCommunity.unload_community(self)
+        SocialCommunity.unload_community(self)
+
     def create_ping_requests(self):
         return SocialCommunity.create_ping_requests(self)
 
@@ -327,6 +335,10 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
     def initiate_meta_messages(self):
         return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+
+    def unload_community(self):
+        HForwardCommunity.unload_community(self)
+        SocialCommunity.unload_community(self)
 
     def add_possible_taste_buddies(self, possibles):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
@@ -368,6 +380,10 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     def initiate_meta_messages(self):
         return PoliForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+
+    def unload_community(self):
+        PoliForwardCommunity.unload_community(self)
+        SocialCommunity.unload_community(self)
 
     def add_possible_taste_buddies(self, possibles):
         PoliForwardCommunity.add_possible_taste_buddies(self, possibles)
