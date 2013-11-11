@@ -417,6 +417,9 @@ class ForwardCommunity():
         raise NotImplementedError()
 
     def create_msimilarity_request(self, destination):
+        if DEBUG:
+            print >> sys.stderr, long(time()), "ForwardCommunity: sending msimilarity request to", destination
+
         identifier = self._dispersy.request_cache.claim(ForwardCommunity.SimilarityAttempt(self, destination))
 
         payload = self.create_similarity_payload()
@@ -617,6 +620,9 @@ class ForwardCommunity():
                                 payload=payload)
 
         self._dispersy._forward([request])
+
+        if DEBUG:
+            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction request to %s" % (destination)
 
     def on_intro_request(self, messages):
         for message in messages:
