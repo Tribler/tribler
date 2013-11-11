@@ -401,6 +401,9 @@ class ForwardCommunity():
             self.community.send_introduction_request(self.requested_candidate)
 
     def create_introduction_request(self, destination, allow_sync):
+        if DEBUG:
+            print >> sys.stderr, long(time()), "ForwardCommunity: creating intro request", isinstance(destination, BootstrapCandidate), self.is_taste_buddy(destination), self.has_possible_taste_buddies(destination), allow_sync
+
         send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination) and allow_sync:
             send = self.create_msimilarity_request(destination)
