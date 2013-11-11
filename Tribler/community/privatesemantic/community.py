@@ -225,14 +225,19 @@ class ForwardCommunity():
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
         if DEBUG_VERBOSE:
-            print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), map(str, self.taste_buddies)
+            print >> sys.stderr, long(time()), "ForwardCommunity: current tastebuddy list", len(self.taste_buddies), map(str, self.taste_buddies)
         elif DEBUG:
-            print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies)
+            print >> sys.stderr, long(time()), "ForwardCommunity: current tastebuddy list", len(self.taste_buddies)
 
     def yield_taste_buddies(self, ignore_candidate=None):
+        for i in range(len(self.taste_buddies) - 1, -1, -1):
+            if self.taste_buddies[i].time_remaining() == 0:
+                if DEBUG:
+                    print >> sys.stderr, long(time()), "ForwardCommunity: removing tastebuddy too old", self.taste_buddies[i]
+                self.taste_buddies.pop(i)
+
         taste_buddies = self.taste_buddies[:]
         shuffle(taste_buddies)
-
         ignore_sock_addr = ignore_candidate.sock_addr if ignore_candidate else None
 
         for taste_buddy in taste_buddies:
