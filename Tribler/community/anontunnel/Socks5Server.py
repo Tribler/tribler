@@ -41,6 +41,7 @@ class Socks5Server(object):
 
     @property
     def tunnel(self):
+        ''' :rtype : DispersyTunnelProxy '''
         return self._tunnel
 
     @tunnel.setter
@@ -64,6 +65,7 @@ class Socks5Server(object):
 
     def __init__(self, ):
         self._tunnel = None
+
         self._accept_incoming = False
 
         self.socket2connection = {}
@@ -210,3 +212,10 @@ class Socks5Server(object):
     def shutdown(self):
         for tcp_connection in self.socket2connection.values():
             tcp_connection.shutdown()
+
+    def enter_tunnel_data(self, ultimate_destination, payload):
+        self.tunnel.record_stats = True
+        self.tunnel.send_data(
+            ultimate_destination=ultimate_destination,
+            payload=payload
+        )

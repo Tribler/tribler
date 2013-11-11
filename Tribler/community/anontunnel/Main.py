@@ -24,6 +24,7 @@ def main(argv):
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
         parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
+        parser.add_argument('--record-on-incoming', help='Record stats from the moment the first data enters the tunnel')
 
         parser.add_help = True
         args = parser.parse_args(sys.argv[1:])

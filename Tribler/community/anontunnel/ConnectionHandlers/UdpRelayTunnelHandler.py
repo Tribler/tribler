@@ -15,7 +15,7 @@ class UdpRelayTunnelHandler(object):
         logger.info("UDP relay handler created")
         self.single_socket = single_socket
         self.server = server
-        """:type : Socks5Handler"""
+        """:type : Socks5Server"""
 
     def data_came_in(self, packets):
         for source_address, packet in packets:
@@ -29,8 +29,7 @@ class UdpRelayTunnelHandler(object):
 
             self.server.routes[(request.destination_address, request.destination_port)] = source_address
 
-            if self.server.tunnel:
-                self.server.tunnel.send_data(
-                    ultimate_destination=(request.destination_address, request.destination_port),
-                    payload=request.payload
-                )
+            self.server.enter_tunnel_data(
+                ultimate_destination=(request.destination_address, request.destination_port),
+                payload=request.payload
+            )
