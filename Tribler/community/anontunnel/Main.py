@@ -9,13 +9,23 @@ import threading
 import yappi
 from Tribler.community.anontunnel.AnonTunnel import AnonTunnel
 
-import sys, getopt
+import sys, argparse
 
 
 def main(argv):
     try:
+        parser = argparse.ArgumentParser(description = 'Demonstration of Argparse.')
+        parser.add_argument('-p', '--socks5', nargs=1, help='Socks5 port')
+        parser.add_argument('-y', '--yappi', nargs=1, help='Yappi profiling mode')
+        parser.add_argument('-c', '--length-strategy', nargs='*', help='Circuit length strategy')
+        parser.add_argument('-s', '--select-strategy', nargs='+', help='Circuit selection strategy')
+        args = parser.parse_args(sys.argv[1:])
+
+        print args
+        return
+
         opts, args = getopt.getopt(argv, "hy", ["yappi=", "cmd=", "socks5="])
-    except getopt.GetoptError:
+    except:
         print 'Main.py [--yappi]'
         sys.exit(2)
 

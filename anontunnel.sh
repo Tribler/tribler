@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Run Tribler from source tree
 
 PYTHONPATH=.:"$PYTHONPATH"

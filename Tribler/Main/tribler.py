@@ -26,8 +26,6 @@ except:
 logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-from Tribler.community.anontunnel.ConnectionHandlers import TcpConnectionHandler
-from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
@@ -430,13 +428,10 @@ class ABCApp():
             return (1.0, False)
 
         host = "145.94.47.142:20000"
-        root_hash = "7968deb036fcb297b437d92919d4649f6955bbd0"
+        root_hash = "61cee231614cf496ce7816d806d711817c7a9e37"
 
-        host = "devristo.dyndns.org:20001"
-        root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
-
-        #host = "pygmee.tribler.org:20004"
-        #root_hash = ""
+        #host = "devristo.dyndns.org:20001"
+        #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
 
         try:
             download = get_default_dest_dir() + "/" + root_hash
@@ -461,14 +456,13 @@ class ABCApp():
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
         state_dir = Session.get_default_state_dir(".TriblerAnonTunnel")
-        shutil.rmtree(state_dir)
-        cfgfilename = Session.get_default_config_filename(state_dir)
 
         try:
-            os.remove(state_dir + "/sqlite/tribler.sdb")
+            shutil.rmtree(state_dir)
         except:
             pass
 
+        cfgfilename = Session.get_default_config_filename(state_dir)
         progress('Loading sessionconfig')
         if DEBUG:
             print >> sys.stderr, "main: Session config", cfgfilename
