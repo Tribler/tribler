@@ -5,6 +5,7 @@ from conversion import SocialConversion
 from payload import TextPayload
 from collections import defaultdict
 from hashlib import sha1
+from binascii import hexlify
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -34,6 +35,12 @@ class SocialCommunity(Community):
 
         self._friend_db = FriendDatabase(dispersy)
         self._friend_db.open()
+
+        # self._orig_get_member = self._dispersy.get_member
+        self._orig_get_members_from_id = self._dispersy.get_members_from_id
+
+        # self._dispersy.get_member = self.get_rsa_member
+        self._dispersy.get_members_from_id = self.get_rsa_members_from_id
 
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
@@ -196,9 +203,16 @@ class SocialCommunity(Community):
 
         print >> sys.stderr, "After sorting", map(str, self.possible_taste_buddies), [tb.does_overlap(my_key_hashes) for tb in self.possible_taste_buddies]
 
-    def get_rsa_member(self):
-        rsakey = self._friend_db.get_my_keys()[-1]
-        return RSAMember(rsakey)
+    def get_rsa_members_from_id(self, mid):
+        try:
+            # dispersy uses the sha digest, we use a sha hexdigest converted into long
+            # convert it to our long format
+            keyhash = long(hexlify(mid), 16)
+
+            rsakey = self._friend_db.get_friend_by_hash(keyhash)
+            return RSAMember(rsakey)
+        except:
+            return self._orig_get_members_from_id(mid)
 
 class RSAMember(Member):
     def __init__(self, dispersy, key):
