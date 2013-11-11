@@ -11,7 +11,7 @@ class CircuitLengthStrategy(object):
         raise NotImplementedError()
 
 
-class RandomCircuitLengthStrategies(CircuitLengthStrategy):
+class RandomCircuitLengthStrategy(CircuitLengthStrategy):
     def __init__(self, min, max):
         self.min = min
         self.max = max

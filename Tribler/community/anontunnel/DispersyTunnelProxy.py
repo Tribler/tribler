@@ -3,7 +3,7 @@ import socket
 import threading
 import time
 from traceback import print_exc
-from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategies
+from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
@@ -162,7 +162,7 @@ class DispersyTunnelProxy(Observable):
         self.relay_from_to = {}
         self.circuit_tag = {}
 
-        self.circuit_length_strategy = RandomCircuitLengthStrategies(1,4)
+        self.circuit_length_strategy = RandomCircuitLengthStrategy(1,4)
         self.circuit_selection_strategy = RandomSelectionStrategy(min_population_size=4)
 
         self.community = None

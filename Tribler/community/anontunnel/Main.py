@@ -7,6 +7,9 @@ logger = logging.getLogger(__name__)
 
 import threading
 import yappi
+from Tribler.community.anontunnel import DispersyTunnelProxy
+from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
+from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
 from Tribler.community.anontunnel.AnonTunnel import AnonTunnel
 
 import sys, argparse
@@ -14,40 +17,39 @@ import sys, argparse
 
 def main(argv):
     try:
-        parser = argparse.ArgumentParser(description = 'Demonstration of Argparse.')
+        parser = argparse.ArgumentParser(description = 'Anonymous Tunnel CLI interface')
         parser.add_argument('-p', '--socks5', nargs=1, help='Socks5 port')
         parser.add_argument('-y', '--yappi', nargs=1, help='Yappi profiling mode')
-        parser.add_argument('-c', '--length-strategy', nargs='*', help='Circuit length strategy')
-        parser.add_argument('-s', '--select-strategy', nargs='+', help='Circuit selection strategy')
+        parser.add_argument('-c', '--cmd', nargs=1, help='The command UDP port to listen on')
+        parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
+        parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
+        parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
+
+        parser.add_help = True
         args = parser.parse_args(sys.argv[1:])
 
-        print args
-        return
-
-        opts, args = getopt.getopt(argv, "hy", ["yappi=", "cmd=", "socks5="])
-    except:
-        print 'Main.py [--yappi]'
+    except argparse.ArgumentError:
+        parser.print_help()
         sys.exit(2)
-
-    profile = None
 
     cmd_port = 1081
     socks5_port = None
 
-    for opt, arg in opts:
-        if opt == '-h':
-            print 'Main.py [--yappi] [--socks5 <port>] [--cmd <port>]'
-            sys.exit()
-        elif opt in ( "-y", "--yappi"):
-            if arg == 'wall':
-                profile = "wall"
-            else:
-                profile = "cpu"
+    if args.yappi == 'wall':
+        profile = "wall"
+    elif args.yappi == 'cpu':
+        profile = "cpu"
+    else:
+        profile = None
 
-        elif opt == '--cmd':
-            cmd_port = int(arg)
-        elif opt == '--socks5':
-            socks5_port = int(arg)
+    if args.cmd:
+        cmd_port = int(args.cmd)
+
+    if args.socks5:
+        socks5_port = int(args.socks5)
+
+    if args.max_circuits:
+        DispersyTunnelProxy.MAX_CIRCUITS_TO_CREATE = args.max_circuits
 
     if profile:
         yappi.set_clock_type(profile)
@@ -55,6 +57,27 @@ def main(argv):
         print "Profiling using %s time" % yappi.get_clock_type()['type']
 
     anon_tunnel = AnonTunnel(socks5_port, cmd_port)
+
+    # Circuit length strategy
+    if args.length_strategy[:1] == ['random']:
+        strategy = RandomCircuitLengthStrategy(*args.length_strategy[1:])
+        anon_tunnel.tunnel.circuit_length_strategy = strategy
+        logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
+    elif args.length_strategy[:1] == ['constant']:
+        strategy = ConstantCircuitLengthStrategy(*args.length_strategy[1:])
+        anon_tunnel.tunnel.circuit_length_strategy = strategy
+        logger.error("Using ConstantCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
+
+
+    # Circuit selection strategies
+    if args.select_strategy[:1] == ['random']:
+        strategy = RandomSelectionStrategy(*args.select_strategy[1:])
+        anon_tunnel.tunnel.circuit_selection_strategy = strategy
+        logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
+    elif args.select_strategy[:1] == ['length']:
+        strategy = LengthSelectionStrategy(*args.select_strategy[1:])
+        anon_tunnel.tunnel.circuit_selection_strategy = strategy
+        logger.error("Using LengthSelectionStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
 
     anon_tunnel.start()
 
