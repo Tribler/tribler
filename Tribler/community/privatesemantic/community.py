@@ -665,7 +665,8 @@ class ForwardCommunity():
             return len(self.received_candidates) == len(self.requested_candidates)
 
         def did_request(self, candidate):
-            return candidate in self.requested_candidates
+            # TODO: change if there's an __eq__ implemented in candidate
+            return candidate.sock_addr in [rcandidate.sock_addr for rcandidate in self.requested_candidates]
 
         def on_timeout(self):
             for candidate in self.requested_candidates:
