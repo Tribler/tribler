@@ -186,7 +186,7 @@ class SocialCommunity(Community):
         print >> sys.stderr, "Should maintain", len(to_maintain), "connections instead of", len(_tbs)
 
         return to_maintain
-    
+
     def add_possible_taste_buddies(self):
         my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
         def prefer_my_friends(a, b):
@@ -194,9 +194,11 @@ class SocialCommunity(Community):
                 return 1
             if b.does_overlap(my_key_hashes):
                 return -1
-            return cmp(a,b)
-            
-        self.possible_taste_buddies.sort(cmp = prefer_my_friends, reverse=True)
+            return cmp(a, b)
+
+        self.possible_taste_buddies.sort(cmp=prefer_my_friends, reverse=True)
+
+        print >> sys.stderr, "After sorting", map(str, self.possible_taste_buddies), [tb.does_overlap(my_key_hashes) for tb in self.possible_taste_buddies]
 
     def get_rsa_member(self):
         rsakey = self._friend_db.get_my_keys()[-1]
@@ -251,7 +253,7 @@ class NoFSocialCommunity(SocialCommunity, HForwardCommunity):
 
     def initiate_meta_messages(self):
         return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
-    
+
     def add_possible_taste_buddies(self, possibles):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
@@ -277,7 +279,7 @@ class PSocialCommunity(SocialCommunity, PForwardCommunity):
 
     def initiate_meta_messages(self):
         return PForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
-    
+
     def add_possible_taste_buddies(self, possibles):
         PForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
@@ -303,7 +305,7 @@ class HSocialCommunity(SocialCommunity, HForwardCommunity):
 
     def initiate_meta_messages(self):
         return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
-    
+
     def add_possible_taste_buddies(self, possibles):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
