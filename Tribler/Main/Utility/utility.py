@@ -183,7 +183,7 @@ class Utility:
         if sys.platform == 'win32':
             defaults['mintray'] = '2'
             # Don't use double quotes here, those are lost when this string is stored in the
-            # abc.conf file in INI-file format. The code that starts the player will add quotes
+            # tribler.conf file in INI-file format. The code that starts the player will add quotes
             # if there is a space in this string.
             progfilesdir = os.path.expandvars('${PROGRAMFILES}')
             # defaults['videoplayerpath'] = progfilesdir+'\\VideoLAN\\VLC\\vlc.exe'
@@ -221,8 +221,15 @@ class Utility:
             else:
                 defaults['videoanalyserpath'] = ffmpegpath
 
-        configfilepath = os.path.join(self.getConfigPath(), "abc.conf")
-        self.config = ConfigReader(configfilepath, "ABC", defaults)
+        configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")
+        if not os.path.exists(configfilepath):
+            oldconfigfilepath = os.path.join(self.getConfigPath(), "abc.conf")
+            if os.path.exists(oldconfigfilepath):
+                os.rename(oldconfigfilepath, configfilepath)
+                config_str = open(configfilepath, 'rb').read().replace('[ABC]', '[Tribler]')
+                open(configfilepath, 'wb').write(config_str)
+
+        self.config = ConfigReader(configfilepath, "Tribler", defaults)
 
     @staticmethod
     def _convert__helper_4_1__4_2(abc_config, set_config_func, name, convert=None):
