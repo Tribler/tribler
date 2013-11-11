@@ -1,12 +1,14 @@
 import pickle
-from Tribler.community.anontunnel.ConnectionHandlers.CommandHandler import CreateCircuitResponse, ListCircuitsResponse, IsOnlineResponse, IsOnlineRequest, ListCircuitsRequest, CreateCircuitRequest, StartRequest, StartResponse, StopRequest
+from threading import Thread, Event
+from Tribler.Core.RawServer.RawServer import RawServer
+from Tribler.community.anontunnel.ConnectionHandlers.CommandHandler import CreateCircuitResponse, ListCircuitsResponse, IsOnlineResponse, IsOnlineRequest, ListCircuitsRequest, CreateCircuitRequest, StartRequest, StartResponse, StopRequest, StatsRequest, StatsResponse
 from Tribler.community.anontunnel.Observable import Observable
 
 __author__ = 'Chris'
 
 
-class TunnelCommander(Observable):
-    def __init__(self, tunnel_address, raw_server):
+class TunnelCommander(Thread, Observable):
+    def __init__(self, tunnel_address):
         """
 
         :param tunnel_address:
@@ -14,13 +16,27 @@ class TunnelCommander(Observable):
         :type raw_server: RawServer
         :return:
         """
-
+        Thread.__init__(self)
         Observable.__init__(self)
+
+        timeout = 300.0
+        server_done_flag = Event()
+        raw_server = RawServer(server_done_flag,
+                       timeout / 5.0,
+                       timeout,
+                       ipv6_enable=False)
 
         self.address = tunnel_address
         self.raw_server = raw_server
         self.udp_socket = raw_server.create_udpsocket(0, "0.0.0.0")
+        self.setDaemon(False)
         raw_server.start_listening_udp(self.udp_socket, self)
+
+    def run(self):
+        self.raw_server.listen_forever(None)
+
+    def stop(self):
+        self.raw_server.doneflag.set()
 
     def data_came_in(self, packets):
         for packet in packets:
@@ -59,3 +75,9 @@ class TunnelCommander(Observable):
             self.fire("on_start_response", started=response.started)
         elif isinstance(response, StartResponse):
             self.fire("on_stop_response", started=response.started)
+        elif isinstance(response, StatsResponse):
+            self.fire("on_stats_response", stats=response.stats)
+
+    def request_stats(self):
+        request = StatsRequest()
+        self.udp_socket.sendto(pickle.dumps(request), self.address)

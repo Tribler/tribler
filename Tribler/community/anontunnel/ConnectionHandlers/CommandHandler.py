@@ -54,11 +54,17 @@ class StartRequest:
     def __init__(self):
         pass
 
-
 class StartResponse:
     def __init__(self, started):
         self.started = started
 
+class StatsRequest:
+    def __init__(self):
+        pass
+
+class StatsResponse:
+    def __init__(self, stats):
+        self.stats = stats
 
 class CommandHandler(object):
     def __init__(self, anon_tunnel):
@@ -88,6 +94,12 @@ class CommandHandler(object):
             self.on_stop_request(source_address, request)
         elif isinstance(request, CreateCircuitRequest):
             self.on_create_circuit_request(source_address, request)
+        elif isinstance(request, StatsRequest):
+            self.on_stats_request(source_address, request)
+
+    def on_stats_request(self, source_address, request):
+        logger.error("Got Stats request")
+        self.socket.sendto(pickle.dumps(StatsResponse(self.anon_tunnel.tunnel._create_stats())), source_address)
 
     def on_ready_request(self, source_address, request):
         is_online = len(self.anon_tunnel.tunnel.circuits) > 0
