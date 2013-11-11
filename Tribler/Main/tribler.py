@@ -403,7 +403,8 @@ class ABCApp():
         except:
             try:
                 # Maybe we have an old config file?
-                f = open(os.path.join(state_dir, 'sessconfig.pickle'), "rb")
+                oldcfgfilename = os.path.join(state_dir, 'sessconfig.pickle')
+                f = open(oldcfgfilename, "rb")
                 sessconfig = pickle.load(f)
                 f.close()
                 # Upgrade to new config                
@@ -428,6 +429,9 @@ class ABCApp():
                         self.sconfig.sessconfig.set('swift', 'enabled' if key == 'swiftproc' else key, value)
                     if key in ['dispersy_port', 'dispersy-tunnel-over-swift', 'dispersy']:
                         self.sconfig.sessconfig.set('dispersy', 'enabled' if key == 'dispersy' else key, value)
+                # Save the new file, remove the old one
+                self.sconfig.save(cfgfilename)
+                os.remove(oldcfgfilename)
             except:
                 self.sconfig = SessionStartupConfig()
                 self.sconfig.set_state_dir(state_dir)
