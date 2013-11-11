@@ -42,6 +42,7 @@ class UserDownloadChoice:
             if os.path.exists(oldcfgfilename):
                 self._choices = cPickle.Unpickler(open(oldcfgfilename, "r")).load()
                 self.flush()
+                self._config.Flush()
                 os.remove(oldcfgfilename)
 
         # Ensure that there is a "download_state" dictionary. It

@@ -4,6 +4,9 @@
 import wx
 import os
 import sys
+import json
+import copy
+
 from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler import LIBRARYNAME
@@ -13,21 +16,22 @@ from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
 
 class SaveAs(wx.Dialog):
 
-    def __init__(self, parent, tdef, defaultdir, defaultname, configfile, selectedFiles=None):
+    def __init__(self, parent, tdef, defaultdir, defaultname, config, selectedFiles=None):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450), name="SaveAsDialog")
 
-        self.filehistory = wx.FileHistory(25)
-        self.config = wx.FileConfig(appName="Tribler", localFilename=configfile)
-        self.filehistory.Load(self.config)
+        self.config = config
+        self.filehistory = []
+        try:
+            self.filehistory = json.loads(self.config.Read("recent_download_history"))
+        except:
+            pass
+
         self.defaultdir = defaultdir
         self.guiutility = GUIUtility.getInstance()
         self.listCtrl = None
         self.collected = None
 
-        if self.filehistory.GetCount() > 0:
-            lastUsed = self.filehistory.GetHistoryFile(0)
-        else:
-            lastUsed = defaultdir
+        lastUsed = self.filehistory[0] if self.filehistory else defaultdir
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -48,7 +52,7 @@ class SaveAs(wx.Dialog):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(wx.StaticText(self, -1, 'Save as:'), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.BOTTOM, 3)
 
-        choices = [self.filehistory.GetHistoryFile(i) for i in range(self.filehistory.GetCount())]
+        choices = copy.copy(self.filehistory)
         if defaultdir not in choices:
             choices.append(defaultdir)
 
@@ -211,9 +215,12 @@ class SaveAs(wx.Dialog):
         path = self.GetPath()
         if not os.path.exists(path) or os.path.isfile(path):
             path, _ = os.path.split(path)
-        self.filehistory.AddFileToHistory(path)
+        if path in self.filehistory:
+            self.filehistory.remove(path)
+        self.filehistory.insert(0, path)
+        self.filehistory = self.filehistory[:25]
 
-        self.filehistory.Save(self.config)
+        self.config.Write("recent_download_history", json.dumps(self.filehistory))
         self.config.Flush()
 
         self.EndModal(wx.ID_OK)
