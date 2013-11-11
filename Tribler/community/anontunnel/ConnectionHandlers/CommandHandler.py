@@ -117,7 +117,7 @@ class CommandHandler(object):
 
     def attach_to(self, server, port=1081):
         try:
-            self.socket = server.raw_server.create_udpsocket(port, "127.0.0.1")
+            self.socket = server.create_udpsocket(port, "127.0.0.1")
             server.start_listening_udp(self.socket, self)
 
             logger.info("Listening on CMD socket on port %d" % port)

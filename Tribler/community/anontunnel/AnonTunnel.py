@@ -39,8 +39,8 @@ class AnonTunnel(Thread):
         self.tunnel = DispersyTunnelProxy(self.raw_server)
         self.socks5_server.tunnel = self.tunnel
 
-        #self.command_handler = CommandHandler(self)
-        #self.command_handler.attach_to(self.socks5_server, cmd_port)
+        self.command_handler = CommandHandler(self)
+        self.command_handler.attach_to(self.raw_server, cmd_port)
 
         self.community = None
 
