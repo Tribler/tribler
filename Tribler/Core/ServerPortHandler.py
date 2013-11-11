@@ -5,8 +5,6 @@ import sys
 from cStringIO import StringIO
 from binascii import b2a_hex
 from Tribler.Core.MessageID import protocol_name
-from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
-from Tribler.community.anontunnel.ConnectionHandlers.TcpConnectionHandler import TcpConnectionHandler
 
 try:
     True
