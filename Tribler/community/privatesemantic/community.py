@@ -642,6 +642,8 @@ class ForwardCommunity():
         for message in messages:
             if message.payload.introduce_me_to:
                 candidate = self._dispersy.get_walkcandidate(message, self)
+                message._candidate = candidate
+                
                 self.requested_introductions[candidate] = introduce_me_to = self.get_tb_or_candidate_mid(message.payload.introduce_me_to)
 
                 if DEBUG and not introduce_me_to:
