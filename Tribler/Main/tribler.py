@@ -427,8 +427,8 @@ class ABCApp():
 
             return (1.0, False)
 
-        host = "145.94.47.142:20000"
-        root_hash = "61cee231614cf496ce7816d806d711817c7a9e37"
+        host = "95.211.198.140:21000"
+        root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
 
         #host = "devristo.dyndns.org:20001"
         #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
