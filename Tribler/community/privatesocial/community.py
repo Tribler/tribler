@@ -200,15 +200,15 @@ class SocialCommunity(Community):
     def add_possible_taste_buddies(self):
         my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
         def prefer_my_friends(a, b):
-            if a.does_overlap(my_key_hashes):
+            if any(map(a.does_overlap, my_key_hashes)):
                 return 1
-            if b.does_overlap(my_key_hashes):
+            if any(map(b.does_overlap, my_key_hashes)):
                 return -1
             return cmp(a, b)
 
         self.possible_taste_buddies.sort(cmp=prefer_my_friends, reverse=True)
 
-        print >> sys.stderr, "After sorting", map(str, self.possible_taste_buddies), [tb.does_overlap(my_key_hashes) for tb in self.possible_taste_buddies]
+        print >> sys.stderr, "After sorting", map(str, self.possible_taste_buddies), [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies]
 
     def get_rsa_members_from_id(self, mid):
         try:

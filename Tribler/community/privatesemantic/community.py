@@ -54,9 +54,6 @@ class TasteBuddy():
 
     def does_overlap(self, preference):
         if isinstance(self.overlap, list):
-            if isinstance(self, PossibleTasteBuddy):
-                print >> sys.stderr, "comparing overlap", self.overlap[0], preference
-            
             return preference in self.overlap
         return False
 
