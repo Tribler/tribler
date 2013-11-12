@@ -67,13 +67,14 @@ class SocialCommunity(Community):
 
     def sync_with_friends(self):
         while True:
-            tbs = list(self.yield_taste_buddies)
-            interval = max(300 / float(len(tbs)), 5.0)
-            
-            for tb in tbs:
-                self._orig_send_introduction_request(tb.candidate, None, True, False)
-                
-                yield interval
+            tbs = list(self.yield_taste_buddies())
+            if tbs:
+                interval = max(300 / float(len(tbs)), 5.0)
+                for tb in tbs:
+                    self._orig_send_introduction_request(tb.candidate, None, True, False)
+                    yield interval
+            else:
+                yield 15.0
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         # first select_and_fix based on friendsync table
