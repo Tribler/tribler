@@ -291,9 +291,6 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
-    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        return HForwardCommunity.send_introduction_request(self, *SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync))
-
 class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
     @classmethod
@@ -331,9 +328,6 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
-
-    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        return PForwardCommunity.send_introduction_request(self, *SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync))
 
 class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
@@ -377,9 +371,6 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
-    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        return HForwardCommunity.send_introduction_request(self, *SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync))
-
 class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     @classmethod
@@ -421,6 +412,3 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
-
-    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        return PoliForwardCommunity.send_introduction_request(self, *SocialCommunity.send_introduction_request(self, destination, introduce_me_to, allow_sync))
