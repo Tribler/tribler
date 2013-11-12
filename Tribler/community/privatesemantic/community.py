@@ -702,6 +702,7 @@ class ForwardCommunity():
                 continue
 
             if not request.did_request(message.candidate):
+                print >> sys.stderr, "did not send request to", message.candidate.sock_addr, [rcandidate.sock_addr for rcandidate in request.requested_candidates]
                 yield DropMessage(message, "did not send ping to this candidate")
                 continue
 
