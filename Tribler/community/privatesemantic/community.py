@@ -286,16 +286,10 @@ class ForwardCommunity():
                 assert isinstance(possible, PossibleTasteBuddy), type(possible)
         
         low_sim = self.get_least_similar_tb()
-        tbs = list(self.yield_taste_buddies())
         for new_possible in possibles:
-            if new_possible <= low_sim:
+            if new_possible <= low_sim or self.is_taste_buddy_mid(new_possible.candidate_mid):
                 possibles.remove(new_possible)
                 continue
-            
-            for tb in tbs:
-                if tb == new_possible:
-                    possibles.remove(new_possible)
-                    continue 
 
             for i, possible in enumerate(self.possible_taste_buddies):
                 if possible == new_possible:
@@ -617,9 +611,6 @@ class ForwardCommunity():
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
-        
-        if DEBUG:
-            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction-request to %s (%s,%s,%s)"%(destination, introduce_me_to, allow_sync, advice)
 
         self._dispersy.statistics.walk_attempt += 1
         destination.walk(time(), IntroductionRequestCache.timeout_delay)
@@ -641,9 +632,10 @@ class ForwardCommunity():
                                 payload=payload)
 
         self._dispersy._forward([request])
-
+        
         if DEBUG:
-            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction request to %s" % (destination)
+            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction-request to %s (%s,%s,%s)"%(destination, introduce_me_to.encode("HEX"), allow_sync, advice)
+
 
     def on_intro_request(self, messages):
         for message in messages:
