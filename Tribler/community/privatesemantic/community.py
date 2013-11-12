@@ -389,6 +389,7 @@ class ForwardCommunity():
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
         if exclude_candidate:
+            print >> sys.stderr, long(time()), "ForwardCommunity: got exclude_candidate", self.requested_introductions, exclude_candidate in self.requested_introductions
             if exclude_candidate in self.requested_introductions:
                 intro_me_candidate = self.requested_introductions[exclude_candidate]
                 del self.requested_introductions[exclude_candidate]
@@ -640,12 +641,11 @@ class ForwardCommunity():
     def on_intro_request(self, messages):
         for message in messages:
             if message.payload.introduce_me_to:
-
                 candidate = self._dispersy.get_walkcandidate(message, self)
                 self.requested_introductions[candidate] = introduce_me_to = self.get_tb_or_candidate_mid(message.payload.introduce_me_to)
 
-                if not introduce_me_to and DEBUG:
-                    print >> sys.stderr, long(time()), long(time()), "Cannot create candidate for mid", message.payload.introduce_me_to
+                if DEBUG and not introduce_me_to:
+                    print >> sys.stderr, long(time()), "ForwardCommunity: Cannot create candidate for mid", message.payload.introduce_me_to
 
         self._disp_intro_handler(messages)
 
