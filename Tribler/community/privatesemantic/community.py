@@ -634,7 +634,7 @@ class ForwardCommunity():
         self._dispersy._forward([request])
         
         if DEBUG:
-            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction-request to %s (%s,%s,%s)"%(destination, introduce_me_to.encode("HEX"), allow_sync, advice)
+            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction-request to %s (%s,%s,%s)"%(destination, introduce_me_to.encode("HEX") if introduce_me_to else '', allow_sync, advice)
 
 
     def on_intro_request(self, messages):
