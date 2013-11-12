@@ -607,7 +607,7 @@ class ForwardCommunity():
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, long(time()), "ForwardCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
 
-    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
+    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
 
@@ -622,7 +622,7 @@ class ForwardCommunity():
         else:
             sync = None
 
-        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, True, self._dispersy._connection_type, sync, identifier, introduce_me_to)
+        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, sync, identifier, introduce_me_to)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),

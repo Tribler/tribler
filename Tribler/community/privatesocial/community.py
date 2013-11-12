@@ -36,11 +36,14 @@ class SocialCommunity(Community):
         self._friend_db = FriendDatabase(dispersy)
         self._friend_db.open()
 
-        # self._orig_get_member = self._dispersy.get_member
         self._orig_get_members_from_id = self._dispersy.get_members_from_id
-
-        # self._dispersy.get_member = self.get_rsa_member
         self._dispersy.get_members_from_id = self.get_rsa_members_from_id
+        
+        # never sync while taking a step, only sync with friends
+        self._orig_send_introduction_request = self.send_introduction_request
+        self.send_introduction_request = lambda destination, introduce_me_to=None, allow_sync=True, advice=True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
+        
+        self._dispersy.callback.register(self.sync_with_friends)
 
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
@@ -62,12 +65,15 @@ class SocialCommunity(Community):
     def dispersy_sync_cache_enable(self):
         return False
 
-    def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True):
-        # never sync with a non-friend
-        if not self.is_taste_buddy(destination):
-            allow_sync = False
-
-        return destination, introduce_me_to, allow_sync
+    def sync_with_friends(self):
+        while True:
+            tbs = list(self.yield_taste_buddies)
+            interval = max(300 / float(len(tbs)), 5.0)
+            
+            for tb in tbs:
+                self._orig_send_introduction_request(tb.candidate, None, True, False)
+                
+                yield interval
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         # first select_and_fix based on friendsync table
