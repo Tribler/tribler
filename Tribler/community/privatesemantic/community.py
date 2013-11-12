@@ -99,7 +99,10 @@ class ActualTasteBuddy(TasteBuddy):
             return other in self.candidate.get_members()
 
         elif isinstance(other, Candidate):
-            return self.candidate == other
+            return self.candidate.sock_addr == other.sock_addr
+        
+        elif isinstance(other, tuple):
+            return self.candidate.sock_addr == other
 
     def __str__(self):
         overlap = self.overlap
@@ -261,20 +264,20 @@ class ForwardCommunity():
                 return True
 
     def is_taste_buddy_sock(self, sock_addr):
-        for tb in self.yield_taste_buddies_candidates():
-            if tb.sock_addr == sock_addr:
+        for tb in self.yield_taste_buddies():
+            if tb == sock_addr:
                 return True
 
     def reset_taste_buddy(self, candidate):
-        for taste_buddy in self.taste_buddies:
-            if taste_buddy == candidate:
-                taste_buddy.timestamp = time()
+        for tb in self.yield_taste_buddies():
+            if tb == candidate:
+                tb.timestamp = time()
                 break
 
     def remove_taste_buddy(self, candidate):
-        for taste_buddy in self.taste_buddies:
-            if taste_buddy == candidate:
-                self.taste_buddies.remove(taste_buddy)
+        for tb in self.yield_taste_buddies():
+            if tb == candidate:
+                self.taste_buddies.remove(tb)
                 break
 
     def add_possible_taste_buddies(self, possibles):
