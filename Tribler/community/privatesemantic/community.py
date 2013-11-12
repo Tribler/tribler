@@ -459,10 +459,10 @@ class ForwardCommunity():
 
         def add_response(self, candidate, member, response):
             if candidate:
-                if self.did_request(candidate):
-
+                rcandidate = self.did_request(candidate)
+                if rcandidate:
                     # we need to associated this candidate with this mid, apparently this is only done when receiving an induction response
-                    candidate.associate(member)
+                    rcandidate.associate(member)
 
                     if candidate not in self.received_candidates:
                         self.received_candidates.add(candidate)
@@ -472,8 +472,9 @@ class ForwardCommunity():
 
         def did_request(self, candidate):
             if candidate:
-                # TODO: change if there's an __eq__ implemented in candidate
-                return candidate.sock_addr in [rcandidate.sock_addr for rcandidate in self.requested_candidates]
+                for rcandidate in self.requested_candidates:
+                    if rcandidate.sock_addr == candidate.sock_addr:
+                        return rcandidate
             return False
 
         def is_complete(self):
