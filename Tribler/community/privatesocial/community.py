@@ -43,7 +43,7 @@ class SocialCommunity(Community):
         self._orig_send_introduction_request = self.send_introduction_request
         self.send_introduction_request = lambda destination, introduce_me_to=None, allow_sync=True, advice=True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
         
-        self._dispersy.callback.register(self.sync_with_friends)
+        # self._dispersy.callback.register(self.sync_with_friends)
 
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
