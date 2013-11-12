@@ -33,17 +33,10 @@ class UserDownloadChoice:
     def set_config(self, config, state_dir):
         self._config = config
 
-        self._choices = {}
-
         try:
             self._choices = json.loads(config.Read("user_download_choice"))
         except:
-            oldcfgfilename = os.path.join(state_dir, 'user_download_choice.pickle')
-            if os.path.exists(oldcfgfilename):
-                self._choices = cPickle.Unpickler(open(oldcfgfilename, "r")).load()
-                self.flush()
-                self._config.Flush()
-                os.remove(oldcfgfilename)
+            self._choices = {}
 
         # Ensure that there is a "download_state" dictionary. It
         # should contain infohash/state tuples.

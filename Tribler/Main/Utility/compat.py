@@ -1,314 +1,96 @@
-# Written by ABC authors and Arno Bakker
-# see LICENSE.txt for license information
+# Written by Egbert Bouman
 
 #
-#
-# Things to handle backward compatability for the old-style
-# torrent.lst and abc.ini
-#
+# Things to handle backward compatability for old-style config files
 #
 
+import io
 import os
-import sys
+import json
+import pickle
+import cPickle
+import StringIO
 
-from shutil import move, copy2
-
-from Tribler.Utilities.configreader import ConfigReader
-from Tribler.Main.Utility.helpers import existsAndIsReadable
-
-
-def moveOldConfigFiles(utility):
-    oldpath = utility.getPath()
-    newpath = utility.getConfigPath()
-
-    files = ["torrent.lst",
-             "torrent.list",
-             "torrent.list.backup1",
-             "torrent.list.backup2",
-             "torrent.list.backup3",
-             "torrent.list.backup4",
-             "abc.ini",
-             "abc.conf",
-             "webservice.conf",
-             "maker.conf",
-             "torrent",
-             "torrentinfo"]
-
-    for name in files:
-        oldname = os.path.join(oldpath, name)
-        if existsAndIsReadable(oldname):
-            newname = os.path.join(newpath, name)
-            try:
-                move(oldname, newname)
-            except:
-#                data = StringIO()
-#                print_exc(file = data)
-#                sys.stderr.write(data.getvalue())
-                pass
-
-    # Special case: move lang\user.lang to configdir\user.lang
-    oldname = os.path.join(oldpath, "lang", "user.lang")
-    if existsAndIsReadable(oldname):
-        newname = os.path.join(newpath, "user.lang")
-        try:
-            move(oldname, newname)
-        except:
-            pass
+from ConfigParser import RawConfigParser
+from Tribler.Core.SessionConfig import SessionStartupConfig
 
 
-def convertOldList(utility):
-    convertOldList1(utility)
-    convertOldList2(utility)
+def convertSessionConfig(oldfilename, newfilename):
+    # Convert tribler <= 6.2 session config file to tribler 6.3
 
-#
-# Convert the torrent.lst file to the new torrent.list
-# format the first time ABC is run (if necessary)
-#
+    # We assume oldfilename exists
+    with open(oldfilename, "rb") as f:
+        sessconfig = pickle.load(f)
 
+    # Upgrade to new config
+    sconfig = SessionStartupConfig()
+    for key, value in sessconfig.iteritems():
+        if key in ['version', 'state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled', \
+                   'ipv6_binds_v4', 'timeout', 'timeout_check_interval', 'eckeypairfilename', 'megacache', \
+                   'nickname', 'mugshot', 'videoanalyserpath', 'peer_icon_path', 'family_filter', \
+                   'live_aux_seeders']:
+            sconfig.sessconfig.set('general', key, value)
+        if key in ['mainline_dht', 'mainline_dht_port']:
+            sconfig.sessconfig.set('mainline_dht', 'enabled' if key == 'mainline_dht' else key, value)
+        if key in ['torrent_checking', 'torrent_checking_period']:
+            sconfig.sessconfig.set('torrent_checking', 'enabled' if key == 'torrent_checking' else key, value)
+        if key in ['torrent_collecting', 'dht_torrent_collecting', 'torrent_collecting_max_torrents', 'torrent_collecting_dir' \
+                   'stop_collecting_threshold']:
+            sconfig.sessconfig.set('torrent_collecting', 'enabled' if key == 'torrent_collecting' else key, value)
+        if key in ['libtorrent', 'lt_proxytype', 'lt_proxyserver', 'lt_proxyauth']:
+            sconfig.sessconfig.set('libtorrent', 'enabled' if key == 'libtorrent' else key, value)
+        if key in ['swiftproc', 'swiftpath', 'swiftworkingdir', 'swiftcmdlistenport', 'swiftdlsperproc', 'swiftmetadir' \
+                   'swifttunnellistenport', 'swifttunnelhttpgwlistenport', 'swifttunnelcmdgwlistenport', 'swiftdhtport']:
+            sconfig.sessconfig.set('swift', 'enabled' if key == 'swiftproc' else key, value)
+        if key in ['dispersy_port', 'dispersy-tunnel-over-swift', 'dispersy']:
+            sconfig.sessconfig.set('dispersy', 'enabled' if key == 'dispersy' else key, value)
 
-def convertOldList1(utility):
-    # Only continue if torrent.lst exists
-    filename = os.path.join(utility.getConfigPath(), "torrent.lst")
-    if not existsAndIsReadable(filename):
-        return
-
-    torrentconfig = utility.torrentconfig
-
-    # Don't continue unless torrent.list is empty
-    try:
-        if torrentconfig.has_section("0"):
-            return
-    except:
-        return
-
-    oldconfig = open(filename, "r+")
-
-    configline = oldconfig.readline()
-    index = 0
-    while configline != "" and configline != "\n":
-        try:
-            configmap = configline.split('|')
-
-            torrentconfig.setSection(str(index))
-
-            torrentconfig.Write("src", configmap[1])
-            torrentconfig.Write("dest", configmap[2])
-
-            # Write status information
-            torrentconfig.Write("status", configmap[3])
-            torrentconfig.Write("prio", configmap[4])
-
-            # Write progress information
-            torrentconfig.Write("downsize", configmap[5])
-            torrentconfig.Write("upsize", configmap[6])
-            if (len(configmap) <= 7) or (configmap[7] == '?\n'):
-                progress = "0.0"
-            else:
-                progress = configmap[7]
-            torrentconfig.Write("progress", str(progress))
-        except:
-#            data = StringIO()
-#            print_exc(file = data)
-# sys.stderr.write(data.getvalue())   # report exception here too
-            pass
-
-        configline = oldconfig.readline()
-        index += 1
-
-    oldconfig.close()
-    torrentconfig.Flush()
-
-    # Rename the old list file
-    move(filename, filename + ".old")
-
-#
-# Convert list to new format
-# (only src stored in list, everything else stored in torrentinfo)
-#
+    # Save the new file, remove the old one
+    sconfig.save(newfilename)
+    os.remove(oldfilename)
+    return sconfig
 
 
-def convertOldList2(utility):
-    index = 0
-    while convertOldList2B(utility, index):
-        index += 1
-    utility.torrentconfig.Flush()
+def convertMainConfig(state_dir, oldfilename, newfilename):
+    # Convert tribler <= 6.2 config files to tribler 6.3
 
+    # We assume oldfilename exists
+    with io.open(oldfilename, 'r', encoding='utf_8_sig') as f:
+        corrected_config = StringIO.StringIO(f.read().replace('[ABC]', '[Tribler]'))
 
-def convertOldList2B(utility, indexval):
-    torrentconfig = utility.torrentconfig
+    config = RawConfigParser()
+    config.readfp(corrected_config)
 
-    index = str(indexval)
+    # Convert user_download_choice.pickle
+    udcfilename = os.path.join(state_dir, 'user_download_choice.pickle')
+    if os.path.exists(udcfilename):
+        with open(udcfilename, "r") as f:
+            choices = cPickle.Unpickler(f).load()
+            choices = dict([(k.encode('hex'), v) for k, v in choices["download_state"].iteritems()])
+            config.set('Tribler', 'user_download_choice', json.dumps(choices))
+        os.remove(udcfilename)
 
-    try:
-        if not torrentconfig.has_section(index):
-            return False
-    except:
-        return False
+    # Convert gui_settings
+    guifilename = os.path.join(state_dir, 'gui_settings')
+    if os.path.exists(guifilename):
+        with open(guifilename, "r") as f:
+            for line in f.readlines():
+                key, value = line.split('=')
+                config.set('Tribler', key, value.strip())
+        os.remove(guifilename)
 
-    if indexval == 0:
-        # backup the old file
-        oldconfigname = os.path.join(utility.getConfigPath(), "torrent.list")
-        if existsAndIsReadable(oldconfigname):
-            try:
-                copy2(oldconfigname, oldconfigname + ".old")
-            except:
-                pass
+    # Convert recent_download_history
+    histfilename = os.path.join(state_dir, 'recent_download_history')
+    if os.path.exists(histfilename):
+        with open(histfilename, "r") as f:
+            history = []
+            for line in f.readlines():
+                key, value = line.split('=')
+                if value != '' and value != '\n':
+                    history.append(value.replace('\\\\', '\\').strip())
+            config.set('Tribler', 'recent_download_history', json.dumps(history))
+        os.remove(histfilename)
 
-    # Torrent information
-    filename = torrentconfig.Read("src", section=index)
-    # Format from earlier 2.7.0 test builds:
-    if not filename:
-        # If the src is missing, then we should not try to add the torrent
-        sys.stdout.write("Filename is empty for index: " + str(index) + "!\n")
-        return False
-    elif filename.startswith(utility.getPath()):
-        src = filename
-    else:
-        src = os.path.join(utility.getConfigPath(), "torrent", filename)
-
-    filename = os.path.split(src)[1]
-    newsrc = os.path.join(utility.getConfigPath(), "torrent", filename)
-
-    configpath = os.path.join(utility.getConfigPath(), "torrentinfo", filename + ".info")
-    config = ConfigReader(configpath, "TorrentInfo")
-
-    for name, value in torrentconfig.Items(index):
-        if name != "src" and value != "":
-            config.Write(name, value)
-
-    config.Flush()
-
-    torrentconfig.DeleteGroup(index)
-    torrentconfig.Write(index, newsrc)
-
-    return True
-
-# Get settings from the old abc.ini file
-
-
-def convertINI(utility):
-    # Only continue if abc.ini exists
-    filename = os.path.join(utility.getConfigPath(), "abc.ini")
-    if not existsAndIsReadable(filename):
-        return
-
-    config = utility.config
-    lang = utility.lang
-
-    # We'll ignore anything that was set to the defaults
-    # from the previous version
-    olddefaults = {0: [-1, "abc_width", 710],
-                  1: [-1, "abc_height", 400],
-                  2: [-1, "detailwin_width", 610],
-                  3: [-1, "detailwin_height", 500],
-                    4: [0, "Title", 150],
-                    5: [1, "Progress", 60],
-                    6: [2, "BT Status", 100],
-                    7: [8, "Priority", 50],
-                    8: [5, "ETA", 85],
-                    9: [6, "Size", 75],
-                    10: [3, "DL Speed", 65],
-                    11: [4, "UL Speed", 60],
-                    12: [7, "%U/D Size", 65],
-                    13: [9, "Error Message", 200],
-                    14: [-1, "#Connected Seed", 60],
-                    15: [-1, "#Connected Peer", 60],
-                    16: [-1, "#Seeing Copies", 60],
-                    17: [-1, "Peer Avg Progress", 60],
-                    18: [-1, "Download Size", 75],
-                    19: [-1, "Upload Size", 75],
-                    20: [-1, "Total Speed", 80],
-                    21: [-1, "Torrent Name", 150]}
-
-    oldconfig = open(filename, "r+")
-
-    configline = oldconfig.readline()
-    while configline != "" and configline != "\n":
-        try:
-            configmap = configline.split("|")
-
-            colid = int(configmap[0])
-
-            # Main window - width
-            if colid == 0:
-                if not config.Exists("window_width"):
-                    try:
-                        width = int(configmap[3])
-                        if width != olddefaults[colid][2]:
-                            config.Write("window_width", width)
-                    except:
-                        pass
-
-            # Main window - height
-            elif colid == 1:
-                if not config.Exists("window_height"):
-                    try:
-                        height = int(configmap[3])
-                        if height != olddefaults[colid][2]:
-                            config.Write("window_height", height)
-                    except:
-                        pass
-
-            # Advanced details - width
-            elif colid == 2:
-                if not config.Exists("detailwindow_width"):
-                    try:
-                        width = int(configmap[3])
-                        if width != olddefaults[colid][2]:
-                            config.Write("detailwindow_width", width)
-                    except:
-                        pass
-
-            # Advanced details - height
-            elif colid == 3:
-                if not config.Exists("detailwindow_height"):
-                    try:
-                        height = int(configmap[3])
-                        if height != olddefaults[colid][2]:
-                            config.Write("detailwindow_height", height)
-                    except:
-                        pass
-
-            # Column information
-            elif colid >= utility.list.columns.minid and colid < utility.list.columns.maxid:
-                # Column RankQ
-                if not config.Exists("column" + colid + "_rank"):
-                    try:
-                        rank = int(configmap[1])
-                        if rank != olddefaults[colid][0]:
-                            config.Write("column" + colid + "_rank", rank)
-                    except:
-                        pass
-
-                # Column title
-                if not lang.user_lang.Exists("column" + colid + "_text"):
-                    try:
-                        title = configmap[2]
-                        if title != olddefaults[colid][1]:
-                            lang.writeUser("column" + colid + "_text", title)
-                    except:
-                        pass
-
-                # Column width
-                if not config.Exists("column" + colid + "_width"):
-                    try:
-                        width = int(configmap[3])
-                        if width != olddefaults[colid][2]:
-                            config.Write("column" + colid + "_width", width)
-                    except:
-                        pass
-        except:
-            pass
-
-        configline = oldconfig.readline()
-
-    oldconfig.close()
-
-    # Add in code to process things later
-
-    lang.flush()
-    config.Flush()
-
-    # Rename the old ini file
-    # (uncomment this out after we actually include something to process things)
-    move(filename, filename + ".old")
+    with open(newfilename, "wb") as f:
+        config.write(f)
+    os.remove(oldfilename)

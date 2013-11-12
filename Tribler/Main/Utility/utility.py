@@ -3,18 +3,14 @@
 import wx
 import sys
 import os
+
 from threading import Event, Semaphore
-from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
 from random import gauss
-# from cStringIO import StringIO
-
 from wx.lib import masked
 
 from Tribler.Lang.lang import Lang
 from Tribler.Core.Utilities.bencode import bdecode
-from Tribler.Core.defaults import dldefaults as BTDefaults
-from Tribler.Core.defaults import DEFAULTPORT
 from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults
 from Tribler.Core.__init__ import version_id
 
@@ -22,7 +18,6 @@ if sys.platform == 'win32':
     from Tribler.Main.Utility.regchecker import RegChecker
 
 from Tribler.Utilities.configreader import ConfigReader
-from Tribler.Main.Utility.compat import convertINI, moveOldConfigFiles
 from Tribler.Main.Utility.constants import *  # IGNORE:W0611
 
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
@@ -46,15 +41,11 @@ class Utility:
 
         # Find the directory to save config files, etc.
         self.dir_root = configpath
-        moveOldConfigFiles(self)
 
         self.setupConfig()
 
         # Setup language files
         self.lang = Lang(self)
-
-        # Convert old INI file
-        convertINI(self)
 
         # Make torrent directory (if needed)
         self.MakeTorrentDir()
@@ -144,7 +135,7 @@ class Utility:
             # AdvancedNetworkPanel
             # AdvancedDiskPanel
             # TriblerPanel
-            'torrentcollectsleep': '15', # for RSS Subscriptions
+            'torrentcollectsleep': '15',  # for RSS Subscriptions
             # VideoPanel
             'videoplaybackmode': '0',
             # Misc
@@ -159,8 +150,8 @@ class Utility:
             'prefwindow_height': '480',
             'prefwindow_split': '400',
             'sash_position': '-185',
-            't4t_option': 0, # Seeding items added by Boxun
-            't4t_ratio': 100, # T4T seeding ratio added by Niels
+            't4t_option': 0,  # Seeding items added by Boxun
+            't4t_ratio': 100,  # T4T seeding ratio added by Niels
             't4t_hours': 0,
             't4t_mins': 30,
             'g2g_option': 1,
@@ -222,12 +213,6 @@ class Utility:
                 defaults['videoanalyserpath'] = ffmpegpath
 
         configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")
-        if not os.path.exists(configfilepath):
-            oldconfigfilepath = os.path.join(self.getConfigPath(), "abc.conf")
-            if os.path.exists(oldconfigfilepath):
-                os.rename(oldconfigfilepath, configfilepath)
-                config_str = open(configfilepath, 'rb').read().replace('[ABC]', '[Tribler]')
-                open(configfilepath, 'wb').write(config_str)
 
         self.config = ConfigReader(configfilepath, "Tribler", defaults)
 
@@ -248,7 +233,7 @@ class Utility:
     def setupTorrentMakerConfig(self):
         # Arno, 2008-03-27: To keep fileformat compatible
         defaults = {
-            'piece_size': '0', # An index into TorrentMaker.FileInfoPanel.piece_choices
+            'piece_size': '0',  # An index into TorrentMaker.FileInfoPanel.piece_choices
             'comment': TorrentDefDefaults['comment'],
             'created_by': TorrentDefDefaults['created by'],
             'announcedefault': TorrentDefDefaults['announce'],
