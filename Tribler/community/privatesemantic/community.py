@@ -611,6 +611,9 @@ class ForwardCommunity():
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
+        
+        if DEBUG:
+            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction-request to %s (%s,%s,%s)"%(destination, introduce_me_to, allow_sync, advice)
 
         self._dispersy.statistics.walk_attempt += 1
         destination.walk(time(), IntroductionRequestCache.timeout_delay)
