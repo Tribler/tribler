@@ -284,12 +284,18 @@ class ForwardCommunity():
         if __debug__:
             for possible in possibles:
                 assert isinstance(possible, PossibleTasteBuddy), type(possible)
-
+        
         low_sim = self.get_least_similar_tb()
+        tbs = list(self.yield_taste_buddies())
         for new_possible in possibles:
             if new_possible <= low_sim:
                 possibles.remove(new_possible)
                 continue
+            
+            for tb in tbs:
+                if tb == new_possible:
+                    possibles.remove(new_possible)
+                    continue 
 
             for i, possible in enumerate(self.possible_taste_buddies):
                 if possible == new_possible:
