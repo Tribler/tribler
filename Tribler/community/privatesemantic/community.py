@@ -261,12 +261,12 @@ class ForwardCommunity():
     def is_taste_buddy_mid(self, mid):
         for tb in self.yield_taste_buddies_candidates():
             if mid in [member.mid for member in tb.get_members()]:
-                return True
+                return tb
 
     def is_taste_buddy_sock(self, sock_addr):
         for tb in self.yield_taste_buddies():
             if tb == sock_addr:
-                return True
+                return tb
 
     def reset_taste_buddy(self, candidate):
         for tb in self.yield_taste_buddies():
@@ -640,7 +640,12 @@ class ForwardCommunity():
     def on_intro_request(self, messages):
         for message in messages:
             if message.payload.introduce_me_to:
-                candidate = self._dispersy.get_walkcandidate(message, self)
+                tb = self.is_taste_buddy_mid(message.payload.introduce_me_to)
+                if tb:
+                    candidate = tb.candidate
+                else:
+                    candidate = self._dispersy.get_walkcandidate(message, self)
+                    
                 self.requested_introductions[candidate] = introduce_me_to = self.get_candidate_mid(message.payload.introduce_me_to)
 
                 if not introduce_me_to and DEBUG:
