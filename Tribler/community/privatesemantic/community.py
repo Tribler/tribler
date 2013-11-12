@@ -640,13 +640,9 @@ class ForwardCommunity():
     def on_intro_request(self, messages):
         for message in messages:
             if message.payload.introduce_me_to:
-                tb = self.is_taste_buddy_mid(message.payload.introduce_me_to)
-                if tb:
-                    candidate = tb.candidate
-                else:
-                    candidate = self._dispersy.get_walkcandidate(message, self)
-                    
-                self.requested_introductions[candidate] = introduce_me_to = self.get_candidate_mid(message.payload.introduce_me_to)
+
+                candidate = self._dispersy.get_walkcandidate(message, self)
+                self.requested_introductions[candidate] = introduce_me_to = self.get_tb_or_candidate_mid(message.payload.introduce_me_to)
 
                 if not introduce_me_to and DEBUG:
                     print >> sys.stderr, long(time()), long(time()), "Cannot create candidate for mid", message.payload.introduce_me_to
@@ -657,6 +653,12 @@ class ForwardCommunity():
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % message.candidate.sock_addr)
+    
+    def get_tb_or_candidate_mid(self, mid):
+        tb = self.is_taste_buddy_mid(mid)
+        if tb:
+            return tb.candidate
+        return self.get_candidate_mid(mid)
 
     class PingRequestCache(IntroductionRequestCache):
         cleanup_delay = 0.0
