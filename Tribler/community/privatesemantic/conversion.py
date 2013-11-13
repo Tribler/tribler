@@ -1,4 +1,3 @@
-import sys
 from struct import pack, unpack_from
 from random import choice, sample
 
@@ -54,7 +53,6 @@ class ForwardConversion(BinaryConversion):
         data = BinaryConversion._encode_introduction_request(self, message)
 
         if message.payload.introduce_me_to:
-            print >> sys.stderr, "ForwardConversion: including introduce_me_to into introduction request message"
             data.append(pack('!20s', message.payload.introduce_me_to))
         return data
 
@@ -70,7 +68,6 @@ class ForwardConversion(BinaryConversion):
 
             candidate_mid, = unpack_from('!20s', data, offset)
             payload.set_introduce_me_to(candidate_mid)
-            print >> sys.stderr, "ForwardConversion: decoding introduce_me_to", candidate_mid.encode("HEX")
 
             offset += length
         return offset, payload

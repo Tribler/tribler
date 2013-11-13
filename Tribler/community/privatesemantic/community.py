@@ -35,7 +35,7 @@ from polycreate import compute_coeff, polyval
 from collections import namedtuple
 from Tribler.community.privatesemantic.database import SemanticDatabase
 
-DEBUG = True
+DEBUG = False
 DEBUG_VERBOSE = False
 ENCRYPTION = True
 PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
@@ -366,7 +366,8 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             tbs = self.get_tbs_from_peercache(nr)
-            print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
+            if DEBUG:
+                print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
 
             def attempt_to_connect(candidate, attempts):
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
@@ -381,21 +382,12 @@ class ForwardCommunity():
                     candidate = self.create_candidate(tb.sock_addr, False, tb.sock_addr, tb.sock_addr, u"unknown")
 
                 self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i)
+
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
 
     def get_tbs_from_peercache(self, nr):
         return [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()[:nr]]
-
-    def dispersy_get_introduce_candidate(self, exclude_candidate=None):
-        if exclude_candidate:
-            print >> sys.stderr, long(time()), "ForwardCommunity: got exclude_candidate", self.requested_introductions, exclude_candidate in self.requested_introductions
-            if exclude_candidate in self.requested_introductions:
-                intro_me_candidate = self.requested_introductions[exclude_candidate]
-                del self.requested_introductions[exclude_candidate]
-                return intro_me_candidate
-
-        return Community.dispersy_get_introduce_candidate(self, exclude_candidate)
 
     class SimilarityAttempt(Cache):
         timeout_delay = 10.5
@@ -663,6 +655,15 @@ class ForwardCommunity():
             return tb
         return self.get_candidate_mid(mid)
 
+    def dispersy_get_introduce_candidate(self, exclude_candidate=None):
+        if exclude_candidate:
+            if exclude_candidate in self.requested_introductions:
+                intro_me_candidate = self.requested_introductions[exclude_candidate]
+                del self.requested_introductions[exclude_candidate]
+                return intro_me_candidate
+
+        return Community.dispersy_get_introduce_candidate(self, exclude_candidate)
+
     class PingRequestCache(IntroductionRequestCache):
         cleanup_delay = 0.0
 
@@ -733,7 +734,7 @@ class ForwardCommunity():
         message = meta.impl(distribution=(self.global_time,), payload=(identifier,))
         self._dispersy._send(candidates, [message])
 
-        if True or DEBUG:
+        if DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", len(candidates), "candidates:", map(str, candidates)
 
 class PForwardCommunity(ForwardCommunity):
