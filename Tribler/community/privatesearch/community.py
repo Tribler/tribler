@@ -439,7 +439,7 @@ class TTLSearchCommunity(Community):
                 if identifier is None:
                     this_mrequest_number, this_mrequest_identifier = TTLSearchCommunity.MSearchRequest.find_unclaimed_identifier(self._request_cache)
                     if self.log_searches:
-                        log("dispersy.log", "search-statistics", identifier=this_mrequest.number, keywords=keywords, created_by_me=True)
+                        log("dispersy.log", "search-statistics", identifier=this_mrequest_number, keywords=keywords, created_by_me=True)
                 else:
                     this_mrequest_number = identifier
                     this_mrequest_identifier = TTLSearchCommunity.MSearchRequest.create_identifier(this_mrequest_number)
