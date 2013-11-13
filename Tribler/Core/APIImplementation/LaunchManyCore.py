@@ -198,8 +198,6 @@ class TriblerLaunchMany(Thread):
 
                 if self.dispersy:
                     self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
-            else:
-                self.session.set_torrent_checking(0)
 
             self.rtorrent_handler = None
             if self.session.get_torrent_collecting():

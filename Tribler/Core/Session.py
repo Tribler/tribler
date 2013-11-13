@@ -127,6 +127,9 @@ class Session(SessionRuntimeConfig):
                 permidmod.save_keypair(self.keypair, pairfilename)
                 permidmod.save_pub_key(self.keypair, pubfilename)
 
+        if not scfg.get_megacache():
+            scfg.set_torrent_checking(0)
+
         self.sessconfig = scfg.sessconfig
 
         # Checkpoint startup config
