@@ -27,8 +27,7 @@ def convertSessionConfig(oldfilename, newfilename):
     for key, value in sessconfig.iteritems():
         if key in ['version', 'state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled', \
                    'ipv6_binds_v4', 'timeout', 'timeout_check_interval', 'eckeypairfilename', 'megacache', \
-                   'nickname', 'mugshot', 'videoanalyserpath', 'peer_icon_path', 'family_filter', \
-                   'live_aux_seeders']:
+                   'nickname', 'mugshot', 'videoanalyserpath', 'peer_icon_path', 'live_aux_seeders']:
             sconfig.sessconfig.set('general', key, value)
         if key in ['mainline_dht', 'mainline_dht_port']:
             sconfig.sessconfig.set('mainline_dht', 'enabled' if key == 'mainline_dht' else key, value)

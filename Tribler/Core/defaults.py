@@ -51,7 +51,6 @@ sessdefaults['general']['nickname'] = '__default_name__'  # is replaced with hos
 sessdefaults['general']['mugshot'] = None
 sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
-sessdefaults['general']['family_filter'] = True
 sessdefaults['general']['live_aux_seeders'] = []
 
 # Mainline DHT settings
