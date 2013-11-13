@@ -282,93 +282,6 @@ class TTLSearchCommunity(Community):
         def created_by_me(self):
             return self.search_requests[0].created_by_me
 
-    # def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None, return_member=None):
-    #     if identifier == None:
-    #         identifier = self._dispersy.request_cache.generate_identifier()
-    #         if self.log_searches:
-    #             log("dispersy.log", "search-statistics", identifier=identifier, keywords=keywords, created_by_me=True)
-
-    #     if ttl == None:
-    #         if isinstance(self.ttl, tuple):
-    #             _ttl = self.ttl[1]
-    #         elif isinstance(self.ttl, int):
-    #             _ttl = self.ttl
-    #         else:
-    #             _ttl = 1
-    #     else:
-    #         _ttl = ttl
-
-    #     if nrcandidates == None:
-    #         nrcandidates = self.neighbors
-
-    #     if isinstance(nrcandidates, tuple):
-    #         nrcandidates = randint(nrcandidates[0], nrcandidates[1])
-    #     elif isinstance(nrcandidates, float):
-    #         nrcandidates = int(ceil(_ttl * nrcandidates))
-
-    #     if bloomfilter == None:
-    #         bloomfilter = BloomFilter(0.01, 100)
-
-    #     # put local results in bloomfilter
-    #     if results == None:
-    #         results = self._get_results(keywords, bloomfilter, True)
-
-    #     # fetch requested candidates from previous forward
-    #     prev_request = self._dispersy.request_cache.get(identifier, TTLSearchCommunity.SearchRequest)
-    #     if prev_request:
-    #         ignore_candidates = prev_request.get_requested_candidates()
-    #     else:
-    #         ignore_candidates = set()
-
-    #     if return_candidate:
-    #         # ERR
-    #         # for member in return_candidate.get_members():
-    #         #     ignore_candidates.add(member.mid)
-    #         ignore_candidates.add(return_member.mid)
-
-    #     # impose upper limit for forwarding
-    #     candidates = []
-
-    #     if len(ignore_candidates) < 10:
-    #         random_peers, taste_buddies = self.get_randompeers_tastebuddies(ignore_candidates)
-    #         shuffle(taste_buddies)
-    #         shuffle(random_peers)
-
-    #         for _ in xrange(nrcandidates):
-    #             # prefer taste buddies, fallback to random peers
-    #             if taste_buddies:
-    #                 candidate = taste_buddies.pop()
-    #             elif random_peers:
-    #                 candidate = random_peers.pop()
-    #             else:
-    #                 break
-
-    #             # create request message
-    #             meta = self.get_meta_message(u"search-request")
-    #             message = meta.impl(authentication=(self._my_member,),
-    #                                 distribution=(self.global_time,), payload=(identifier, _ttl, keywords, bloomfilter))
-    #             self._dispersy._send([candidate], [message])
-    #             candidates.append(candidate)
-
-    #     if candidates:
-    #         # this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
-    #         # this_request.identifier = identifier
-    #         this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
-
-    #         if prev_request:
-    #             assert prev_request.keywords == keywords
-    #             prev_request.add_request(this_request)
-    #         else:
-    #             # self._dispersy.request_cache.set(identifier, TTLSearchCommunity.MSearchRequest(this_request))
-    #             self._request_cache.add(identifier, TTLSearchCommunity.MSearchRequest(this_request))
-
-    #         if DEBUG:
-    #             print >> sys.stderr, long(time()), "TTLSearchCommunity: sending search request for", keywords, "to", map(str, candidates)
-    #     else:
-    #         self.search_no_candidates_remain += 1
-
-    #     return candidates, results, identifier
-
     def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None, return_member=None):
         if ttl == None:
             if isinstance(self.ttl, tuple):
@@ -491,17 +404,6 @@ class TTLSearchCommunity(Community):
             forward_message = ttl > 0
 
             # detect cycle
-            # results = []
-            # if not self._dispersy.request_cache.has(identifier, TTLSearchCommunity.MSearchRequest):
-            #     results = self._get_results(keywords, bloomfilter, False)
-            #     if not results and DEBUG:
-            #         print >> sys.stderr, long(time()), "TTLSearchCommunity: no results"
-            # else:
-            #     self.search_cycle_detected += 1
-
-            #     cache = self._dispersy.request_cache.get(identifier, TTLSearchCommunity.MSearchRequest)
-            #     if cache.keywords != keywords:  # abort, return
-            #         forward_message = False
             results = []
             mrequest = self._request_cache.get(TTLSearchCommunity.MSearchRequest.create_identifier(identifier))
             if mrequest:
