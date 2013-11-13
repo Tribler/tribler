@@ -28,6 +28,7 @@ from Tribler.dispersy.member import Member
 from database import FriendDatabase
 
 DEBUG = False
+DEBUG_VERBOSE = False
 ENCRYPTION = True
 
 class SocialCommunity(Community):
@@ -211,8 +212,10 @@ class SocialCommunity(Community):
 
         self.possible_taste_buddies.sort(cmp=prefer_my_friends, reverse=True)
 
-        if DEBUG:
-            print >> sys.stderr, long(time()), "SocialCommunity: After sorting", map(str, self.possible_taste_buddies), [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies]
+        if DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "SocialCommunity: After sorting", [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies], map(str, self.possible_taste_buddies),
+        elif DEBUG:
+            print >> sys.stderr, long(time()), "SocialCommunity: After sorting", [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies]
 
     def get_rsa_members_from_id(self, mid):
         try:
