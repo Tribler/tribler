@@ -1,7 +1,7 @@
 # Written by Niels Zeilemaker
 
-from Tribler.dispersy.logger import get_logger
-logger = get_logger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 import sys
 from time import time
