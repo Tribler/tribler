@@ -1,5 +1,7 @@
+import sys
 from struct import pack, unpack_from
 from random import choice, sample
+
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
@@ -24,9 +26,9 @@ def bytes_to_long(val):
     else:
         return long(hexlify(val[::-1]), 16)
 
-class SemanticConversion(BinaryConversion):
+class ForwardConversion(BinaryConversion):
     def __init__(self, community):
-        super(SemanticConversion, self).__init__(community, "\x01")
+        super(ForwardConversion, self).__init__(community, "\x01")
         # we need to use 4 and 5 as we are combining this overlay with the searchcommunity which has 1,2,and 3 defined.
         self.define_meta_message(chr(4), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
         self.define_meta_message(chr(5), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
@@ -48,6 +50,31 @@ class SemanticConversion(BinaryConversion):
     def _decode_pong(self, placeholder, offset, data):
         return self._decode_ping(placeholder, offset, data)
 
+    def _encode_introduction_request(self, message):
+        data = BinaryConversion._encode_introduction_request(self, message)
+
+        if message.payload.introduce_me_to:
+            print >> sys.stderr, "ForwardConversion: including introduce_me_to into introduction request message"
+            data.append(pack('!20s', message.payload.introduce_me_to))
+        return data
+
+    def _decode_introduction_request(self, placeholder, offset, data):
+        offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
+
+        # if there's still bytes in this request, get introduce_me_to
+        has_stuff = len(data) > offset
+        if has_stuff:
+            length = len(data) - offset
+            if length != 20:
+                raise DropPacket("Invalid number of bytes available (ir)")
+
+            candidate_mid, = unpack_from('!20s', data, offset)
+            payload.set_introduce_me_to(candidate_mid)
+            print >> sys.stderr, "ForwardConversion: decoding introduce_me_to", candidate_mid.encode("HEX")
+
+            offset += length
+        return offset, payload
+
     def _encode_decode(self, encode, decode, message):
         result = encode(message)
         try:
@@ -58,31 +85,6 @@ class SemanticConversion(BinaryConversion):
         except:
             pass
         return result
-
-class ForwardConversion(SemanticConversion):
-
-    def _encode_introduction_request(self, message):
-        data = BinaryConversion._encode_introduction_request(self, message)
-
-        if message.payload.introduce_me_to:
-            data.append(pack('!20s', message.payload.introduce_me_to))
-        return data
-
-    def _decode_introduction_request(self, placeholder, offset, data):
-        offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
-
-        # if there's still bytes in this request, treat them as taste_bloom_filter
-        has_stuff = len(data) > offset
-        if has_stuff:
-            length = len(data) - offset
-            if length != 20:
-                raise DropPacket("Invalid number of bytes available (ir)")
-
-            candidate_mid, = unpack_from('!20s', data, offset)
-            payload.set_introduce_me_to(candidate_mid)
-
-            offset += length
-        return offset, payload
 
 class PSearchConversion(ForwardConversion):
 
