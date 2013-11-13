@@ -640,6 +640,7 @@ class ForwardCommunity():
 
     def on_intro_request(self, messages):
         for message in messages:
+            introduce_me_to = ''
             if message.payload.introduce_me_to:
                 candidate = self._dispersy.get_walkcandidate(message, self)
                 message._candidate = candidate
