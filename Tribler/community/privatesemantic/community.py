@@ -25,7 +25,7 @@ from Tribler.dispersy.requestcache import Cache
 from Tribler.dispersy.script import assert_
 
 from payload import *
-from conversion import SemanticConversion, PSearchConversion, \
+from conversion import ForwardConversion, PSearchConversion, \
     HSearchConversion, PoliSearchConversion
 
 from paillier import paillier_add, paillier_init, paillier_encrypt, paillier_decrypt, \
@@ -204,7 +204,7 @@ class ForwardCommunity():
                 Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), SemanticConversion(self)]
+        return [DefaultConversion(self), ForwardConversion(self)]
 
     def add_taste_buddies(self, new_taste_buddies):
         for new_taste_buddy in new_taste_buddies:
