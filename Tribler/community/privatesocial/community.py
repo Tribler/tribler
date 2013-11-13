@@ -6,6 +6,7 @@ from payload import TextPayload
 from collections import defaultdict
 from hashlib import sha1
 from binascii import hexlify
+from time import time
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -26,6 +27,7 @@ from random import choice
 from Tribler.dispersy.member import Member
 from database import FriendDatabase
 
+DEBUG = False
 ENCRYPTION = True
 
 class SocialCommunity(Community):
@@ -38,11 +40,11 @@ class SocialCommunity(Community):
 
         self._orig_get_members_from_id = self._dispersy.get_members_from_id
         self._dispersy.get_members_from_id = self.get_rsa_members_from_id
-        
+
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
-        self.send_introduction_request = lambda destination, introduce_me_to=None, allow_sync=True, advice=True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
-        
+        self.send_introduction_request = lambda destination, introduce_me_to = None, allow_sync = True, advice = True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
+
         # self._dispersy.callback.register(self.sync_with_friends)
 
     def unload_community(self):
@@ -193,7 +195,8 @@ class SocialCommunity(Community):
         for keyhash, f_tbs in foafs.iteritems():
             to_maintain.add(choice(f_tbs))
 
-        print >> sys.stderr, "Should maintain", len(to_maintain), "connections instead of", len(_tbs)
+        if DEBUG:
+            print >> sys.stderr, long(time()), "SocialCommunity: Will maintain", len(to_maintain), "connections instead of", len(_tbs)
 
         return to_maintain
 
@@ -208,7 +211,8 @@ class SocialCommunity(Community):
 
         self.possible_taste_buddies.sort(cmp=prefer_my_friends, reverse=True)
 
-        print >> sys.stderr, "After sorting", map(str, self.possible_taste_buddies), [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies]
+        if DEBUG:
+            print >> sys.stderr, long(time()), "SocialCommunity: After sorting", map(str, self.possible_taste_buddies), [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies]
 
     def get_rsa_members_from_id(self, mid):
         try:
@@ -287,7 +291,7 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
-    
+
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
@@ -367,7 +371,7 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
-    
+
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
@@ -409,6 +413,6 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
-    
+
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
