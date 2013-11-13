@@ -134,7 +134,7 @@ class TTLSearchCommunity(Community):
 
     class SearchRequest(object):
         def __init__(self, community, identifier, keywords, ttl, callback, results=[], return_candidate=None, requested_candidates=[]):
-            logger.info("create SearchRequest [%s]", identifier)
+            logger.debug("create SearchRequest [%s]", identifier)
 
             self.identifier = identifier
             self.community = community
@@ -169,10 +169,10 @@ class TTLSearchCommunity(Community):
 
         def on_success(self, candidate_mid, keywords, results, candidate):
             if not self.processed:
-                logger.info("process SearchRequest %d/%d [%s]",
-                            len(self.received_candidates),
-                            len(self.requested_candidates),
-                            self.identifier)
+                logger.debug("process SearchRequest %d/%d [%s]",
+                             len(self.received_candidates),
+                             len(self.requested_candidates),
+                             self.identifier)
 
                 if self.did_request(candidate_mid):
                     self.received_candidates.append(candidate_mid)
@@ -192,7 +192,7 @@ class TTLSearchCommunity(Community):
         def on_timeout(self):
             # timeout, message was probably lost return our local results
             if not self.processed:
-                logger.info("timeout SearchRequest [%s]", self.identifier)
+                logger.debug("timeout SearchRequest [%s]", self.identifier)
                 self.processed = True
                 if self.return_candidate:
                     self.callback(self.keywords, self.results, self.return_candidate)
@@ -220,7 +220,7 @@ class TTLSearchCommunity(Community):
                     return number, identifier
 
         def __init__(self, number, identifier, search_request):
-            logger.info("create MSearchRequest [%s]", identifier)
+            logger.debug("create MSearchRequest [%s]", identifier)
             assert isinstance(number, int), type(number)
             assert isinstance(identifier, unicode), type(identifier)
             assert identifier == search_request.identifier, [identifier, search_request.identifier]
@@ -259,7 +259,7 @@ class TTLSearchCommunity(Community):
             return requested_candidates
 
         def on_success(self, candidate_mid, keywords, results, candidate):
-            logger.info("process MSearchRequest [%s]", self.identifier)
+            logger.debug("process MSearchRequest [%s]", self.identifier)
             for i in range(len(self.search_requests) - 1, -1, -1):
                 search_request = self.search_requests[i]
                 if search_request.did_request(candidate_mid):
@@ -270,7 +270,7 @@ class TTLSearchCommunity(Community):
             return len(self.search_requests) == 0
 
         def on_timeout(self):
-            logger.info("timeout MSearchRequest [%s]", self.identifier)
+            logger.debug("timeout MSearchRequest [%s]", self.identifier)
             for search_request in self.search_requests:
                 search_request.on_timeout()
 
@@ -468,7 +468,7 @@ class TTLSearchCommunity(Community):
             keywords = message.payload.keywords
             bloomfilter = message.payload.bloom_filter
 
-            logger.info("request from %s [%s]", message.candidate, identifier)
+            logger.debug("request from %s [%s]", message.candidate, identifier)
 
             if DEBUG:
                 print >> sys.stderr, long(time()), "TTLSearchCommunity: got search request for", keywords
@@ -576,7 +576,7 @@ class TTLSearchCommunity(Community):
         return results
 
     def _create_search_response(self, identifier, results, candidate):
-        logger.info("response to %s [%s]", candidate, identifier)
+        logger.debug("response to %s [%s]", candidate, identifier)
         # create search-response message
         meta = self.get_meta_message(u"search-response")
         message = meta.impl(authentication=(self._my_member,),
