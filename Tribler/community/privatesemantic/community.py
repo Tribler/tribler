@@ -100,7 +100,7 @@ class ActualTasteBuddy(TasteBuddy):
 
         elif isinstance(other, Candidate):
             return self.candidate.sock_addr == other.sock_addr
-        
+
         elif isinstance(other, tuple):
             return self.candidate.sock_addr == other
 
@@ -284,7 +284,7 @@ class ForwardCommunity():
         if __debug__:
             for possible in possibles:
                 assert isinstance(possible, PossibleTasteBuddy), type(possible)
-        
+
         low_sim = self.get_least_similar_tb()
         for new_possible in possibles:
             if new_possible <= low_sim or self.is_taste_buddy_mid(new_possible.candidate_mid):
@@ -633,9 +633,9 @@ class ForwardCommunity():
                                 payload=payload)
 
         self._dispersy._forward([request])
-        
+
         if DEBUG:
-            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction-request to %s (%s,%s,%s)"%(destination, introduce_me_to.encode("HEX") if introduce_me_to else '', allow_sync, advice)
+            print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction-request to %s (%s,%s,%s)" % (destination, introduce_me_to.encode("HEX") if introduce_me_to else '', allow_sync, advice)
 
 
     def on_intro_request(self, messages):
@@ -643,11 +643,11 @@ class ForwardCommunity():
             if message.payload.introduce_me_to:
                 candidate = self._dispersy.get_walkcandidate(message, self)
                 message._candidate = candidate
-                
+
                 self.requested_introductions[candidate] = introduce_me_to = self.get_tb_or_candidate_mid(message.payload.introduce_me_to)
 
-                if DEBUG and not introduce_me_to:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: Cannot create candidate for mid", message.payload.introduce_me_to
+            if DEBUG:
+                print >> sys.stderr, long(time()), "ForwardCommunity: got introduction request", message.payload.introduce_me_to.encode("HEX") if message.payload.introduce_me_to else '', introduce_me_to, self.requested_introductions
 
         self._disp_intro_handler(messages)
 
@@ -655,7 +655,7 @@ class ForwardCommunity():
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % message.candidate.sock_addr)
-    
+
     def get_tb_or_candidate_mid(self, mid):
         tb = self.is_taste_buddy_mid(mid)
         if tb:
