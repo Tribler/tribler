@@ -703,6 +703,8 @@ class RightDispersyPanel(FancyPanel):
 
         def addDict(parentNode, nodedict):
             kv_pairs = sorted(nodedict.items(), reverse=True) if sort_dict else nodedict.items()
+            if prepend and kv_pairs:
+                kv_pairs.sort(key=lambda kv: kv[1], reverse=True)
             for key, value in kv_pairs:
                 prepend_str = ''
                 if prepend and not isinstance(value, (list, dict)):
