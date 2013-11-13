@@ -660,7 +660,7 @@ class ForwardCommunity():
     def get_tb_or_candidate_mid(self, mid):
         tb = self.is_taste_buddy_mid(mid)
         if tb:
-            return tb.candidate
+            return tb
         return self.get_candidate_mid(mid)
 
     class PingRequestCache(IntroductionRequestCache):
