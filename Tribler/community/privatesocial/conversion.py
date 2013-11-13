@@ -1,16 +1,16 @@
 # Written by Niels Zeilemaker
 from struct import pack, unpack_from
 
-from Tribler.dispersy.conversion import BinaryConversion
+from Tribler.dispersy.conversion import NoDefBinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.community.privatesemantic.conversion import long_to_bytes, \
     bytes_to_long
 from Tribler.community.privatesemantic.rsa import get_bits
 
-class SocialConversion(BinaryConversion):
+class SocialConversion(NoDefBinaryConversion):
 
     def __init__(self, community):
-        super(SocialConversion, self).__init__(community, "\x01")
+        super(NoDefBinaryConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(2), community.get_meta_message(u"encrypted"), self._encode_encrypted, self._decode_encrypted)
 
