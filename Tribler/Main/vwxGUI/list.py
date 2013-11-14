@@ -104,8 +104,8 @@ class RemoteSearchManager(BaseManager):
         BaseManager.Reset(self)
 
         if self.oldkeywords:
-            cancelWorker("RemoteSearchManager_refresh_%s" % self.oldkeywords)
-            cancelWorker("RemoteSearchManager_refresh_channel_%s" % self.oldkeywords)
+            cancelWorker(u"RemoteSearchManager_refresh_%s" % self.oldkeywords)
+            cancelWorker(u"RemoteSearchManager_refresh_channel_%s" % self.oldkeywords)
 
         self.oldkeywords = ''
         self.torrentsearch_manager.oldsearchkeywords = None
@@ -286,7 +286,7 @@ class ChannelSearchManager(BaseManager):
     def Reset(self):
         BaseManager.Reset(self)
         if self.category:
-            cancelWorker("ChannelSearchManager_refresh_%s" % self.category)
+            cancelWorker(u"ChannelSearchManager_refresh_%s" % self.category)
 
         self.category = ''
         self.dirtyset.clear()
@@ -2202,16 +2202,15 @@ class ActivitiesList(List):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.settings = {}
-        self.expandedPanel = None
+        self.expandedPanel_channels = None
+        self.expandedPanel_videoplayer = None
         self.notifyTimer = None
         columns = [{'width': wx.LIST_AUTOSIZE}]
         List.__init__(self, columns, wx.WHITE, [10, 10], True, parent=parent)
 
     def _PostInit(self):
         self.list = self.CreateList(self.parent)
-        listSizer = wx.BoxSizer(wx.HORIZONTAL)
-        listSizer.Add(self.list, 1, wx.EXPAND)
-        self.Add(listSizer, 0, wx.EXPAND)
+        self.Add(self.list, 0, wx.EXPAND)
 
         self.notifyPanel = FancyPanel(self.parent, radius=5, border=wx.ALL)
         self.notifyPanel.SetBorderColour(SEPARATOR_GREY)
@@ -2228,11 +2227,11 @@ class ActivitiesList(List):
         self.notifyPanel.Hide()
 
         self.AddStretchSpacer()
-        self.Add(self.notifyPanel, 0, wx.EXPAND | wx.ALIGN_BOTTOM | wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
+        self.Add(self.notifyPanel, 0, wx.EXPAND | wx.ALIGN_BOTTOM | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
         self.SetBackgroundColour(self.background)
         self.Layout()
-        self.list.Bind(wx.EVT_SIZE, self.OnSize)
+        self.guiutility.frame.Bind(wx.EVT_SIZE, self.OnSize)
         _set_font(self.list, size_increment=2)
         wx.CallAfter(self.__SetData)
 
@@ -2246,8 +2245,24 @@ class ActivitiesList(List):
         self.DisableCollapse()
         self.selectTab('home')
 
+        # Create expanded panels in advance
+        channels_item = self.list.GetItem(3)
+        self.expandedPanel_channels = ChannelsExpandedPanel(channels_item)
+        channels_item.AddEvents(self.expandedPanel_channels)
+        self.expandedPanel_channels.Hide()
+
+        videoplayer_item = self.list.GetItem(5)
+        self.expandedPanel_videoplayer = VideoplayerExpandedPanel(videoplayer_item)
+        videoplayer_item.AddEvents(self.expandedPanel_videoplayer)
+        self.expandedPanel_videoplayer.Hide()
+
     def do_or_schedule_refresh(self, force_refresh=False):
         pass
+
+    def OnSize(self, event):
+        if self.expandedPanel_videoplayer:
+            self.expandedPanel_videoplayer.OnChange()
+        event.Skip()
 
     def GotFilter(self, filter):
         pass
@@ -2309,23 +2324,17 @@ class ActivitiesList(List):
         elif item.data[0] == 'Channels':
             if self.guiutility.guiPage not in ['channels', 'selectedchannel', 'mychannel']:
                 self.guiutility.ShowPage('channels')
-            if not self.expandedPanel:
-                self.expandedPanel = ChannelsExpandedPanel(item)
-                item.AddEvents(self.expandedPanel)
-            return self.expandedPanel
+            return self.expandedPanel_channels
         elif item.data[0] == 'Downloads':
             self.guiutility.ShowPage('my_files')
         elif item.data[0] == 'Videoplayer':
-            self.guiutility.ShowPlayer()
+            if self.guiutility.guiPage not in ['videoplayer']:
+                self.guiutility.ShowPage('videoplayer')
+            return self.expandedPanel_videoplayer
         return True
 
     def OnCollapse(self, item, panel, from_expand):
-        assert self.isReady, "List not ready"
-
-        if panel == self.expandedPanel:
-            panel = None
-
-        self.OnCollapseInternal(item)
+        List.OnCollapse(self, item, panel, False)
 
     def OnCollapseInternal(self, item):
         for child in item.GetChildren():
@@ -2347,17 +2356,17 @@ class ActivitiesList(List):
         else:
             self.notifyIcon.Hide()
 
+        self.notifyPanel.Show()
         self.notifyPanel.Layout()
+        self.Layout()
         cdc = wx.ClientDC(self.notify)
         cdc.SetFont(self.notify.GetFont())
         wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], cdc, breakLongWords=True, margin=0)
         self.notify.SetLabel(wrapped_msg)
         self.notify.SetSize(self.notify.GetBestSize())
-
-        self.Freeze()
-        self.notifyPanel.Show()
-        # NotifyLabel size changed, thus call Layout
+        # NotifyLabel size changed, thus call Layout again
         self.Layout()
+        self.Freeze()
         self.Thaw()
 
         self.notifyTimer = wx.CallLater(5000, self.HideNotify)
@@ -2366,8 +2375,11 @@ class ActivitiesList(List):
         if self.notifyPanel.GetScreenRect().Contains(wx.GetMousePosition()):
             self.notifyTimer = wx.CallLater(1000, self.HideNotify)
         else:
+            def DoHide():
+                self.notifyPanel.Hide()
+                self.Layout()
             self.notifyTimer = None
-            wx.CallLater(500, self.notifyPanel.Hide)
+            wx.CallLater(500, DoHide)
 
     def selectTab(self, tab):
         itemKey = 0

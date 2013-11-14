@@ -66,6 +66,11 @@ class LibtorrentMgr:
         self.ltsession.add_dht_router('router.utorrent.com', 6881)
         self.ltsession.add_dht_router('router.bitcomet.com', 6881)
 
+        # Load proxy settings
+        self.set_proxy_settings(*self.trsession.get_libtorrent_proxy_settings())
+
+        self.external_ip = None
+
         self.torlock = NoDispersyRLock()
         self.torrents = {}
 
@@ -99,6 +104,22 @@ class LibtorrentMgr:
         del self.ltsession
         self.ltsession = None
 
+    def set_proxy_settings(self, ptype, server=None, auth=None):
+        proxy_settings = lt.proxy_settings()
+        proxy_settings.type = lt.proxy_type(ptype)
+        if server:
+            proxy_settings.hostname = server[0]
+            proxy_settings.port = server[1]
+        if auth:
+            proxy_settings.username = auth[0]
+            proxy_settings.password = auth[1]
+        proxy_settings.proxy_hostnames = True
+        proxy_settings.proxy_peer_connections = True
+        self.ltsession.set_peer_proxy(proxy_settings)
+        self.ltsession.set_web_seed_proxy(proxy_settings)
+        self.ltsession.set_tracker_proxy(proxy_settings)
+        self.ltsession.set_dht_proxy(proxy_settings)
+
     def set_max_connections(self, conns):
         self.ltsession.set_max_connections(conns)
 
@@ -113,6 +134,9 @@ class LibtorrentMgr:
 
     def get_download_rate_limit(self):
         return self.ltsession.download_rate_limit()
+
+    def get_external_ip(self):
+        return self.external_ip
 
     def get_dht_nodes(self):
         return self.ltsession.status().dht_nodes
@@ -215,13 +239,18 @@ class LibtorrentMgr:
         if self.ltsession:
             alert = self.ltsession.pop_alert()
             while alert:
+                alert_type = str(type(alert)).split("'")[1].split(".")[-1]
+                if alert_type == 'external_ip_alert':
+                    external_ip = str(alert).split()[-1]
+                    if self.external_ip != external_ip:
+                        self.external_ip = external_ip
+                        print >> sys.stderr, 'LibtorrentMgr: external IP is now', self.external_ip
                 handle = getattr(alert, 'handle', None)
                 if handle:
                     if handle.is_valid():
                         infohash = str(handle.info_hash())
                         with self.torlock:
                             if infohash in self.torrents:
-                                alert_type = str(type(alert)).split("'")[1].split(".")[-1]
                                 self.torrents[infohash].process_alert(alert, alert_type)
                             elif infohash in self.metainfo_requests:
                                 if type(alert) == lt.metadata_received_alert:

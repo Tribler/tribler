@@ -286,7 +286,8 @@ class TorrentManager:
                         return torrent_filename[1]
             else:
                 try:
-                    tdef = TorrentDef.load(torrent_filename)
+                    d = self.session.get_download(torrent.infohash)
+                    tdef = (d.get_def() if d else None) or TorrentDef.load(torrent_filename)
 
                 except ValueError:
                     # we should move fixTorrent to this object

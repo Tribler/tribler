@@ -274,3 +274,21 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_swift_downloads_per_process(self)
         finally:
             self.sesslock.release()
+
+    def set_libtorrent_proxy_settings(self, ptype, server=None, auth=None):
+        self.sesslock.acquire()
+        try:
+            SessionConfigInterface.set_libtorrent_proxy_settings(self, ptype, server, auth)
+
+            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+            ltmgr = LibtorrentMgr.getInstance()
+            ltmgr.set_proxy_settings(ptype, server, auth)
+        finally:
+            self.sesslock.release()
+
+    def get_libtorrent_proxy_settings(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_libtorrent_proxy_settings(self)
+        finally:
+            self.sesslock.release()

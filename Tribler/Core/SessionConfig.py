@@ -141,6 +141,23 @@ class SessionConfigInterface:
         """
         return self.sessconfig['libtorrent']
 
+    def set_libtorrent_proxy_settings(self, ptype, server=None, auth=None):
+        """ Set which proxy LibTorrent should use (default = 0).
+        @param ptype Integer (0 = no proxy server, 1 = SOCKS4, 2 = SOCKS5, 3 = SOCKS5 + auth, 4 = HTTP, 5 = HTTP + auth)
+        @param server (host, port) tuple or None
+        @param auth (username, password) tuple or None
+        """
+        self.sessconfig['lt_proxytype'] = ptype
+        self.sessconfig['lt_proxyserver'] = server if ptype else None
+        self.sessconfig['lt_proxyauth'] = auth if ptype in [3, 5] else None
+
+    def get_libtorrent_proxy_settings(self):
+        """ Returns which proxy LibTorrent is using.
+        @return Tuple containing ptype, server, authentication values (as described in set_libtorrent_proxy_settings)
+        """
+        return (self.sessconfig['lt_proxytype'], self.sessconfig['lt_proxyserver'], self.sessconfig['lt_proxyauth'])
+
+
     #
     # Torrent file collecting
     #

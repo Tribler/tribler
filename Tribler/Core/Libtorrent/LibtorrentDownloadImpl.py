@@ -1114,6 +1114,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         """ Called by any thread """
         pass
 
+    def set_def(self, tdef):
+        with self.dllock:
+            self.tdef = tdef
+
+    def add_trackers(self, trackers):
+        with self.dllock:
+            if self.handle:
+                for tracker in trackers:
+                    self.handle.add_tracker({'url': tracker, 'verified': False})
+
     #
     # External addresses
     #

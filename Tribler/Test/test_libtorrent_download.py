@@ -131,13 +131,30 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.screenshot("After streaming a libtorrent download (buffering took %.2f s)" % (time() - t))
             self.quit()
 
+        def check_playlist():
+            from Tribler.Video.VideoPlayer import VideoPlayer
+            from Tribler.Video.utils import videoextdefaults
+
+            d = VideoPlayer.getInstance().get_vod_download()
+            videofiles = []
+            for filename in d.get_def().get_files():
+                _, ext = os.path.splitext(filename)
+                if ext.startswith('.'):
+                    ext = ext[1:]
+                if ext in videoextdefaults:
+                    videofiles.append(filename)
+
+            playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
+            self.CallConditional(1, lambda: len(playlist.links) == len(videofiles), take_screenshot)
+
         def do_monitor():
             from Tribler.Video.VideoPlayer import VideoPlayer
+
             d = VideoPlayer.getInstance().get_vod_download()
             self.assert_(bool(d), "No VOD download found")
 
             self.screenshot('After starting a VOD download')
-            self.CallConditional(60, lambda: d.network_get_vod_stats()['status'] == "started", take_screenshot, "streaming did not start")
+            self.CallConditional(60, lambda: d.network_get_vod_stats()['status'] == "started", check_playlist, "streaming did not start")
 
         def do_vod():
             self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/8-blue---a-short-film.torrent', self.getDestDir(), selectedFiles=[os.path.join('Content', 'blue-a-short-film-divx.avi')], vodmode=True)

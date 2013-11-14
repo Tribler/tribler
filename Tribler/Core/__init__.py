@@ -5,15 +5,15 @@ from threading import RLock
 # Written by BitTornado authors and Arno Bakker
 # see LICENSE.txt for license information
 
-# Arno: FIXME _idprefix is also defined in .__init__ and that's the one
-# actually used in connections, so make sure they are defined in one place
-# (here) and correct.
-#
+## Arno: FIXME _idprefix is also defined in .__init__ and that's the one
+## actually used in connections, so make sure they are defined in one place
+## (here) and correct.
+##
 
 from Tribler.__init__ import LIBRARYNAME
+from Tribler.Core.version import version_id
 
 if LIBRARYNAME == "Tribler":
-    version_id = '6.2.0'
     product_name = 'Tribler'
     version_short = 'Tribler-' + version_id
     report_email = 'tribler@tribler.org'
