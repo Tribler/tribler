@@ -100,12 +100,12 @@ class LimitedOrderedDict(OrderedDict):
             self.popitem(last=False)
 
 
-def init(session, db_exception_handler=None):
+def init(state_dir, install_dir, db_exception_handler=None):
     """ create sqlite database """
     global CREATE_SQL_FILE
     global config_dir
-    config_dir = session.get_state_dir()
-    CREATE_SQL_FILE = os.path.join(session.get_install_dir(), CREATE_SQL_FILE_POSTFIX)
+    config_dir = state_dir
+    CREATE_SQL_FILE = os.path.join(install_dir, CREATE_SQL_FILE_POSTFIX)
 
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     print >> sys.stderr, "cachedb: init: SQL FILE", sqlite_db_path

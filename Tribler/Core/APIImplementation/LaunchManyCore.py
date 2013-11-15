@@ -177,7 +177,7 @@ class TriblerLaunchMany(Thread):
                 if DEBUG:
                     print >> sys.stderr, 'tlm: Reading Session state from', self.session.get_state_dir()
 
-                nocachedb = cachedb.init(self.session, self.rawserver_fatalerrorfunc)
+                nocachedb = cachedb.init(self.session.get_state_dir(), self.session.get_install_dir(), self.rawserver_fatalerrorfunc)
                 try_register(nocachedb, self.database_thread)
 
                 self.cat = Category.getInstance(self.session.get_install_dir())
