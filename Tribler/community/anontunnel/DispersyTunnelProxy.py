@@ -170,7 +170,8 @@ class DispersyTunnelProxy(Observable):
             'bytes_enter': 0,
             'bytes_exit': 0,
             'bytes_returned': 0,
-            'dropped_exit': 0
+            'dropped_exit': 0,
+            'packet_size': 0
         }
 
     def clear_state(self):
@@ -384,6 +385,8 @@ class DispersyTunnelProxy(Observable):
         direct_sender_address = message.candidate.sock_addr
         msg = message.payload
         assert isinstance(msg, DataPayload.Implementation)
+
+        self.stats['packet_size'] = 0.8*self.stats['packet_size'] + 0.2*len(msg.data)
 
         relay_key = (message.candidate, msg.circuit_id)
         community = self.community
@@ -674,7 +677,7 @@ class DispersyTunnelProxy(Observable):
 
             # Delete from data structures
             if circuit_id in self.circuits:
-                del self.circuits[circuit_id]
+                self.circuits[circuit_id].created = False
 
             tunnels_going_down = len(self.active_circuits) == 1 # Don't count the 0-hop tunnel
             # Delete any ultimate destinations mapped to this circuit
