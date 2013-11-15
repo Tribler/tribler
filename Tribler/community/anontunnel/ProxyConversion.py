@@ -131,6 +131,21 @@ class ProxyConversion(BinaryConversion):
             , self._decode_stats
         )
 
+        #self.define_meta_message(
+        #    chr(10),
+        #    community.get_meta_message(u"circuit")
+        #    , self._encode_circuit
+        #    , self._decode_circuit
+        #)
+
+    @staticmethod
+    def _encode_circuit(message):
+        return message.payload.data
+
+    @staticmethod
+    def _decode_circuit(placeholder, offset, data):
+        return offset + len(data), placeholder.meta.payload.implement(data)
+
     @staticmethod
     def _encode_stats(message):
         return encode(message.payload.stats),

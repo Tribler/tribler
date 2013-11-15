@@ -1,4 +1,5 @@
 import time
+from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
 
 __author__ = 'chris'
 
@@ -34,7 +35,7 @@ class AnonTunnel(Thread):
 
         self.socks5_server.attach_to(self.raw_server, socks5_port)
 
-        self.endpoint = RawserverEndpoint(self.raw_server, port=10000)
+        self.endpoint = HackyEndpoint(self.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
         self.tunnel = DispersyTunnelProxy(self.raw_server)
         self.socks5_server.tunnel = self.tunnel
@@ -89,7 +90,7 @@ class AnonTunnel(Thread):
                     active_circuits = len(tunnel.active_circuits)
                     num_routes = len(tunnel.relay_from_to) / 2
 
-                    print "\r%s %.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules" % ("ONLINE" if tunnel.online else "OFFLINE", total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes),
+                    print "\r%s %.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules. Average data packet size is %s bytes" % ("ONLINE" if tunnel.online else "OFFLINE", total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes, tunnel.stats['packet_size']),
 
                     total_bytes_out_1 = total_bytes_out_2
                     total_bytes_in_1 = total_bytes_in_2

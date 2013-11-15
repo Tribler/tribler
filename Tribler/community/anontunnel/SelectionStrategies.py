@@ -25,9 +25,9 @@ class RandomSelectionStrategy(SelectionStrategy):
 
 class LengthSelectionStrategy(SelectionStrategy):
     def __init__(self, min, max, random=True):
-        self.min = min
-        self.max = max
-        self.random = random
+        self.min = int(min)
+        self.max = int(max)
+        self.random = True if random else False
 
     def select(self, circuits_to_select_from):
         candidates = [c for c in circuits_to_select_from if self.min <= len(c.hops) <= self.max]

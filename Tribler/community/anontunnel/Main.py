@@ -18,8 +18,8 @@ import sys, argparse
 def main(argv):
     try:
         parser = argparse.ArgumentParser(description = 'Anonymous Tunnel CLI interface')
-        parser.add_argument('-p', '--socks5', nargs=1, help='Socks5 port')
-        parser.add_argument('-y', '--yappi', nargs=1, help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
+        parser.add_argument('-p', '--socks5', help='Socks5 port')
+        parser.add_argument('-y', '--yappi', help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
         parser.add_argument('-c', '--cmd', help='The command UDP port to listen on')
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
         parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
@@ -92,6 +92,7 @@ def main(argv):
             line = sys.stdin.readline()
         except KeyboardInterrupt:
             anon_tunnel.stop()
+            os._exit(0)
             break
 
         if not line:
@@ -147,6 +148,7 @@ def main(argv):
 
         elif line == 'q\n':
             anon_tunnel.stop()
+            os._exit(0)
             break
 
         elif line == 'r\n':

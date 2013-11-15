@@ -1,10 +1,11 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 import logging
+from Tribler.dispersy.tests.dispersytestclass import call_on_dispersy_thread
+
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload, StatsPayload
-from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
 from Tribler.dispersy.candidate import BootstrapCandidate, Candidate, WalkCandidate
@@ -20,6 +21,9 @@ from ProxyConversion import CreatePayload, ProxyConversion, ExtendedPayload, Dat
 from Observable import Observable
 import functools
 
+class Mock(object):
+    def __init__(self, **kwargs):
+         self.__dict__.update(kwargs)
 
 class ProxyCommunity(Community, Observable):
 
@@ -57,6 +61,8 @@ class ProxyCommunity(Community, Observable):
         self._original_on_introduction_response = None
 
         Community.__init__(self, dispersy, master_member)
+
+        dispersy.endpoint.bypass_community = self
 
         if onready:
             onready(self)
@@ -111,7 +117,11 @@ class ProxyCommunity(Community, Observable):
 
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), ProxyConversion(self)]
+        ret = [DefaultConversion(self), ProxyConversion(self)]
+
+        self.dispersy.endpoint.bypass_prefix = ret[1]._prefix + chr(5)
+
+        return ret
 
     def initiate_meta_messages(self):
         def yield_all(messages):
@@ -155,6 +165,16 @@ class ProxyCommunity(Community, Observable):
         self.subscribe("on_ping", self.on_ping)
 
         return event_messages
+
+    def on_bypass_message(self, candidate, packet):
+        placeholder = Mock(meta=self.get_meta_message(u"data"))
+        offset, payload = ProxyConversion._decode_data(placeholder, len(self.dispersy.endpoint.bypass_prefix), packet)
+        self.fire("on_data", message=Mock(payload=payload, candidate=candidate))
+
+
+    def send_data(self, candidate, msg):
+        data = self.dispersy.endpoint.bypass_prefix + ''.join(s for s in ProxyConversion._encode_data(Mock(payload=msg)))
+        self.dispersy.endpoint.send([candidate],[data])
 
     def _initialize_meta_messages(self):
         super(ProxyCommunity, self)._initialize_meta_messages()

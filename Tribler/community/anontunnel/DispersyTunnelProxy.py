@@ -5,6 +5,7 @@ import time
 from traceback import print_exc
 from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
+from Tribler.community.anontunnel.ProxyCommunity import Mock
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
 from Tribler.dispersy.candidate import Candidate
@@ -396,7 +397,9 @@ class DispersyTunnelProxy(Observable):
             relay = self.relay_from_to[relay_key]
             relay.bytes[1] += len(message.packet)
 
-            community.send(u"data", relay.candidate, relay.circuit_id, msg.destination, msg.data, msg.origin)
+            msg.circuit_id = relay.circuit_id
+
+            community.send_data(relay.candidate, msg)
 
             if __debug__:
                 logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.candidate)
@@ -659,7 +662,9 @@ class DispersyTunnelProxy(Observable):
                         logger.warning("Dropping packets from unknown / broken circuit")
                         return
 
-                self.community.send(u"data", address, circuit_id, ultimate_destination, payload, origin)
+
+
+                self.community.send_data(address, Mock(circuit_id=circuit_id, destination=ultimate_destination, data=payload, origin=origin))
 
                 if origin is None:
                     self.circuits[circuit_id].bytes_up[1] += len(payload)
