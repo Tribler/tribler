@@ -3,10 +3,10 @@ import socket
 import threading
 import time
 from traceback import print_exc
-from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy
+from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload
-from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
+from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
@@ -162,8 +162,8 @@ class DispersyTunnelProxy(Observable):
         self.relay_from_to = {}
         self.circuit_tag = {}
 
-        self.circuit_length_strategy = RandomCircuitLengthStrategy(1,4)
-        self.circuit_selection_strategy = RandomSelectionStrategy(min_population_size=4)
+        self.circuit_length_strategy = ConstantCircuitLengthStrategy(1)# RandomCircuitLengthStrategy(1,4)
+        self.circuit_selection_strategy = LengthSelectionStrategy(1,1)# (min_population_size=4)
 
         self.community = None
         self.stats = {
@@ -668,7 +668,7 @@ class DispersyTunnelProxy(Observable):
                     logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s",
                                 origin, address, circuit_id, ultimate_destination)
             except Exception, e:
-                logger.exception()
+                logger.exception(e)
 
     def break_circuit(self, circuit_id):
         with self.lock:
