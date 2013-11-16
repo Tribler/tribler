@@ -258,14 +258,14 @@ class ForwardCommunity():
 
     def is_taste_buddy(self, candidate):
         candidate_mids = set(candidate.get_members())
-        for tb in self.yield_taste_buddies_candidates():
-            tb_mids = set(tb.get_members())
+        for tb in self.yield_taste_buddies():
+            tb_mids = set(tb.candidate.get_members())
             if tb_mids & candidate_mids:
                 return tb
 
     def is_taste_buddy_mid(self, mid):
-        for tb in self.yield_taste_buddies_candidates():
-            if mid in [member.mid for member in tb.get_members()]:
+        for tb in self.yield_taste_buddies():
+            if mid in [member.mid for member in tb.candidate.get_members()]:
                 return tb
 
     def is_taste_buddy_sock(self, sock_addr):
@@ -678,7 +678,7 @@ class ForwardCommunity():
     def get_tb_or_candidate_mid(self, mid):
         tb = self.is_taste_buddy_mid(mid)
         if tb:
-            return tb
+            return tb.candidate
         return self.get_candidate_mid(mid)
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
