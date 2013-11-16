@@ -4,7 +4,6 @@ from os import path
 from collections import defaultdict
 from time import time
 from random import sample, randint, shuffle, random, choice
-from Crypto.Util.number import bytes_to_long, long_to_bytes
 from math import ceil
 from hashlib import md5
 from itertools import groupby
@@ -37,6 +36,8 @@ from polycreate import compute_coeff, polyval
 from collections import namedtuple
 from Tribler.community.privatesemantic.database import SemanticDatabase
 from Tribler.community.privatesemantic.payload import SimiRevealPayload
+from Tribler.community.privatesemantic.conversion import bytes_to_long, \
+    long_to_bytes
 
 DEBUG = False
 DEBUG_VERBOSE = False
