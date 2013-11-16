@@ -8,6 +8,7 @@ from Crypto.Util.number import bytes_to_long, long_to_bytes
 from math import ceil
 from hashlib import md5
 from itertools import groupby
+from binascii import hexlify
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -679,6 +680,14 @@ class ForwardCommunity():
         tb = self.is_taste_buddy_mid(mid)
         if tb:
             return tb.candidate
+
+        # no exact match, see if this is a friend
+        _mid = long(hexlify(mid), 16)
+        tbs = [tb for tb in self.yield_taste_buddies() if tb.does_overlap(_mid)]
+        if tbs:
+            tb = choice(tbs)
+            return tb.candidate
+
         return self.get_candidate_mid(mid)
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
