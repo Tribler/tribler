@@ -1347,7 +1347,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
             for tb in self.yield_taste_buddies(candidate):
                 for keyhash in tb.overlap:
-                    if keyhash in ctb.overlap:
+                    if keyhash in connections:
                         connections[keyhash] += 1
 
             ckeys = connections.keys()
