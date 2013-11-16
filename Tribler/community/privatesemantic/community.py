@@ -1353,6 +1353,9 @@ class PoliForwardCommunity(ForwardCommunity):
 
             ckeys = connections.keys()
             ckeys.sort(cmp=lambda a, b: cmp(connections[a], connections[b]))
+
+            print >> sys.stderr, "Most interresting", connections
+
             return candidate, long_to_bytes(ckeys[0], 20)
 
         return candidate, None
