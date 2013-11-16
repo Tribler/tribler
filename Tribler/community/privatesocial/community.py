@@ -28,6 +28,7 @@ from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
 from random import choice
 from Tribler.dispersy.member import Member
 from database import FriendDatabase
+from Tribler.community.privatesemantic.conversion import long_to_bytes
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -249,6 +250,27 @@ class SocialCommunity(Community):
         except:
             return self._orig_get_members_from_id(mid)
 
+    def get_most_similar(self, candidate):
+        ctb = self.is_taste_buddy(candidate)
+        if ctb and ctb.overlap:
+            # see which peer i havn't made a connection to/have fewest connections with
+            connections = defaultdict(int)
+            for keyhash in ctb.overlap:
+                connections[keyhash] += 1
+
+            my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
+            for tb in self.yield_taste_buddies(candidate):
+                if any(map(tb.does_overlap, my_key_hashes)):
+                    for keyhash in tb.overlap:
+                        if keyhash in connections:
+                            connections[keyhash] += 1
+
+            ckeys = connections.keys()
+            ckeys.sort(cmp=lambda a, b: cmp(connections[a], connections[b]))
+            return candidate, long_to_bytes(ckeys[0], 20)
+
+        return candidate, None
+
 class RSAMember(Member):
     def __init__(self, dispersy, key):
         self._key = key
@@ -440,3 +462,6 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+
+    def get_most_similar(self, candidate):
+        return SocialCommunity.get_most_similar(self, candidate)

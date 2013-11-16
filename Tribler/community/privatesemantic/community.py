@@ -626,9 +626,8 @@ class ForwardCommunity():
             yield message
 
     def on_similarity_reveal(self, messages):
-#         for message in messages:
-#             self.add_taste_buddies([ActualTasteBuddy(message.payload.overlap, time(), message.candidate)])
-        pass
+        for message in messages:
+            self.add_taste_buddies([ActualTasteBuddy(message.payload.overlap, time(), message.candidate)])
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
@@ -693,9 +692,6 @@ class ForwardCommunity():
         if tbs:
             tb = choice(tbs)
             return tb.candidate
-
-        for tb in self.yield_taste_buddies():
-            print >> sys.stderr, "Comparing", _mid, "to", tb.overlap
 
         return self.get_candidate_mid(mid)
 
@@ -1358,8 +1354,6 @@ class PoliForwardCommunity(ForwardCommunity):
 
             ckeys = connections.keys()
             ckeys.sort(cmp=lambda a, b: cmp(connections[a], connections[b]))
-
-            print >> sys.stderr, "Most interresting", connections
             return candidate, long_to_bytes(ckeys[0], 20)
 
         return candidate, None
