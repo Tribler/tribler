@@ -666,6 +666,10 @@ class ForwardCommunity():
                 candidate = self.get_walkcandidate(message)
                 message._candidate = candidate
 
+                ctb = self.is_taste_buddy(candidate)
+                if ctb:
+                    print >> sys.stderr, "Got intro request from", ctb, ctb.overlap
+
                 self.requested_introductions[candidate] = introduce_me_to = self.get_tb_or_candidate_mid(message.payload.introduce_me_to)
 
             if DEBUG:
