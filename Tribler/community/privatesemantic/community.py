@@ -688,6 +688,9 @@ class ForwardCommunity():
             tb = choice(tbs)
             return tb.candidate
 
+        for tb in self.yield_taste_buddies():
+            print >> sys.stderr, "Comparing", mid, _mid, "to", tb.overlap
+
         return self.get_candidate_mid(mid)
 
     def dispersy_get_introduce_candidate(self, exclude_candidate=None):
