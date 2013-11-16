@@ -12,13 +12,15 @@ from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.destination import CandidateDestination, \
+    CommunityDestination
 from Tribler.dispersy.distribution import FullSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesocial.payload import EncryptedPayload
-from Tribler.community.privatesemantic.rsa import rsa_encrypt, rsa_sign, rsa_verify
+from Tribler.community.privatesemantic.rsa import rsa_encrypt, rsa_sign, rsa_verify, \
+    encrypt_str
 from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
     HForwardCommunity, PForwardCommunity, PING_INTERVAL, ForwardCommunity, \
     TasteBuddy
@@ -58,8 +60,8 @@ class SocialCommunity(Community):
 
     def initiate_meta_messages(self):
         # TODO replace with modified full sync
-        return [Message(self, u"text", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CandidateDestination(), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
-                Message(self, u"encrypted", NoAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CandidateDestination(), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
+        return [Message(self, u"text", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
+                Message(self, u"encrypted", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
@@ -85,7 +87,8 @@ class SocialCommunity(Community):
 
     def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
         if community != self:
-            return self._orig__get_packets_for_bloomfilters(community, requests, include_inactive)
+            for message, packet in self._orig__get_packets_for_bloomfilters(community, requests, include_inactive):
+                yield message, packet
 
         for message, time_low, time_high, offset, modulo in requests:
             data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0 ORDER BY sync.global_time DESC",
@@ -146,14 +149,18 @@ class SocialCommunity(Community):
             log("dispersy.log", "handled-record", type="text", global_time=message._distribution.global_time)
 
     def create_encrypted(self, message_str, dest_friend):
+        assert isinstance(message_str, str)
+        assert isinstance(dest_friend, str)
+
         # get rsa key
         rsakey, keyhash = self._friend_db.get_friend(dest_friend)
 
         # encrypt message
-        encrypted_message = rsa_encrypt(rsakey, message_str)
+        encrypted_message = encrypt_str(rsa_encrypt, rsakey, message_str)
 
         meta = self.get_meta_message(u"encrypted")
-        message = meta.impl(distribution=(self.claim_global_time(),),
+        message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
                             payload=(keyhash, encrypted_message))
 
         self._dispersy.store_update_forward([message], True, False, True)

@@ -1,7 +1,9 @@
 # Written by Niels Zeilemaker
 
+from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
 from Crypto.Random.random import StrongRandom
+from Crypto import Random
 from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
 
 from string import ascii_uppercase, digits
@@ -13,6 +15,24 @@ from random import randint, choice
 from collections import namedtuple
 from struct import pack, unpack, unpack_from
 import json
+from numpy.oldnumeric.random_array import random
+
+
+def encrypt_str(encrypt_method, key, plain_str):
+    aes_key = StrongRandom().getrandbits(128)
+    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+
+    enc_aes_key = long_to_bytes(encrypt_method(key, aes_key), key.size / 8)
+    enc_str = cipher.encrypt(plain_str)
+    return enc_aes_key + enc_str
+
+def decrypt_str(decrypt_method, key, encr_str):
+    enc_aes_key = bytes_to_long(encr_str[:key.size / 8])
+    aes_key = long_to_bytes(decrypt_method(key, enc_aes_key))
+
+    cipher = AES.new(aes_key, AES.MODE_CFB, '\x00' * 16)
+    plain_str = cipher.decrypt(encr_str[key.size / 8:])
+    return plain_str
 
 RSAKey = namedtuple('RSAKey', ['n', 'e', 'p', 'q', 'd', 'size'])
 
@@ -122,9 +142,12 @@ if __name__ == "__main__":
     fakeinfohash = '296069              '
     assert long_to_bytes(rsa_decrypt(key, rsa_encrypt(key, bytes_to_long(fakeinfohash)))) == fakeinfohash
 
-    random_large_string = ''.join(choice(ascii_uppercase + digits) for _ in range(100000))
+    random_large_string = ''.join(choice(ascii_uppercase + digits) for _ in range(100001))
     signature = rsa_sign(key, random_large_string)
     assert rsa_verify(key, random_large_string, signature)
+
+    encrypted_str = encrypt_str(rsa_encrypt, key, random_large_string)
+    assert random_large_string == decrypt_str(rsa_decrypt, key, encrypted_str)
 
     # performance
     random_list = [randint(0, i * 1000) for i in xrange(100)]

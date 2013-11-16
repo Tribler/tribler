@@ -35,18 +35,18 @@ class SocialConversion(NoDefBinaryConversion):
         return offset, placeholder.meta.payload.implement(text)
 
     def _encode_encrypted(self, message):
-        encypted_bytes = long_to_bytes(message.encrypted_long, get_bits(message.encrypted_long))
-        return pack("!H%ds%ds" % (len(message.pubkey), len(encypted_bytes)), len(message.pubkey), message.pubkey, encypted_bytes),
+        keyhash = long_to_bytes(message.payload.keyhash)
+        return pack("!H%ds%ds" % (len(keyhash), len(message.payload.encrypted_message)), len(keyhash), keyhash, message.payload.encrypted_message),
 
     def _decode_encrypted(self, placeholder, offset, data):
         if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size")
 
-        pub_length, = unpack_from("!H", data, offset)
+        keyhash_length, = unpack_from("!H", data, offset)
         offset += 2
 
-        pubkey, encrypted_bytes = unpack_from("!%ds%ds" % (pub_length, len(data) - offset - 2 - pub_length), data, offset)
-        offset += len(pubkey) + len(encrypted_bytes)
+        keyhash, encrypted_message = unpack_from("!%ds%ds" % (keyhash_length, len(data) - offset - 2 - keyhash_length), data, offset)
+        offset += len(keyhash) + len(encrypted_message)
 
-        encrypted_long = bytes_to_long(encrypted_bytes)
-        return offset, placeholder.meta.payload.implement(pubkey, encrypted_long)
+        keyhash = bytes_to_long(keyhash)
+        return offset, placeholder.meta.payload.implement(keyhash, encrypted_message)

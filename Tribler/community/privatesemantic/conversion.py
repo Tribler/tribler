@@ -7,9 +7,12 @@ from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
 
 from binascii import hexlify, unhexlify
-def long_to_bytes(val, nrbytes):
+def long_to_bytes(val, nrbytes=0):
     hex_val = '%x' % abs(val)
-    padding = '0' * ((abs(nrbytes) * 2) - len(hex_val))
+    if nrbytes:
+        padding = '0' * ((abs(nrbytes) * 2) - len(hex_val))
+    else:
+        padding = ''
     result = unhexlify(padding + hex_val)[::-1]
 
     if nrbytes < 0:
@@ -359,10 +362,10 @@ class PoliSearchConversion(ForwardConversion):
 
     def __init__(self, community):
         ForwardConversion.__init__(self, community)
-        self.define_meta_message(chr(6), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
-        self.define_meta_message(chr(7), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
-        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
-        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_simi_response, self._decode_simi_response, message), self._decode_simi_response)
+        self.define_meta_message(chr(7), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(8), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(9), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
+        self.define_meta_message(chr(10), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_simi_response, self._decode_simi_response, message), self._decode_simi_response)
 
     def _encode_simi_request(self, message):
         contents = []

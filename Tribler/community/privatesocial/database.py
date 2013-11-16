@@ -78,12 +78,13 @@ class FriendDatabase(Database):
         self.execute(u"INSERT INTO friendsync (sync_id, global_time, keyhash) VALUES (?,?,?) ", (sync_id, global_time, pubkey))
 
     def add_friend(self, name, key, keyhash):
+        _name = unicode(name)
         _key = key_to_bytes(key)
         _keyhash = buffer(str(keyhash))
         self.execute(u"INSERT INTO friends (name, key, keyhash) VALUES (?,?,?)", (name, _key, _keyhash))
 
     def get_friend(self, name):
-        return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE name = ?", (name,))).next()
+        return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE name = ?", (unicode(name),))).next()
 
     def get_friend_by_hash(self, keyhash):
         _keyhash = buffer(str(keyhash))
