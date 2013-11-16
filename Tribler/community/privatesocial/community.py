@@ -46,6 +46,10 @@ class SocialCommunity(Community):
         self._orig_send_introduction_request = self.send_introduction_request
         self.send_introduction_request = lambda destination, introduce_me_to = None, allow_sync = True, advice = True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
 
+        # replace _get_packets_for_bloomfilters
+        self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
+        self._dispersy._get_packets_for_bloomfilters = self._get_packets_for_bloomfilters
+
         # self._dispersy.callback.register(self.sync_with_friends)
 
     def unload_community(self):
@@ -78,6 +82,17 @@ class SocialCommunity(Community):
                     yield interval
             else:
                 yield 15.0
+
+    def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
+        if community != self:
+            return self._orig__get_packets_for_bloomfilters(community, requests, include_inactive)
+
+        for message, time_low, time_high, offset, modulo in requests:
+            data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0 ORDER BY sync.global_time DESC",
+                                                (time_low, time_high, offset, modulo))
+
+            sync_ids = tuple(sync_id for _, sync_id in data)
+            yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         # first select_and_fix based on friendsync table
@@ -147,12 +162,11 @@ class SocialCommunity(Community):
         decrypted_messages = []
 
         for message in messages:
+            self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.pubkey)
+
             body = message.decrypt(self._db.get_my_keys())
             if body:
                 decrypted_messages.append((message.candidate, body))
-            else:
-                self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.pubkey)
-
             log("dispersy.log", "handled-record", type="encrypted", global_time=message._distribution.global_time, could_decrypt=bool(body))
 
         if decrypted_messages:

@@ -299,3 +299,15 @@ class PingPayload(Payload):
 
 class PongPayload(PingPayload):
     pass
+
+class SimiRevealPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, overlap):
+            assert isinstance(overlap, (list, int)), type(overlap)
+
+            super(SimiRevealPayload.Implementation, self).__init__(meta)
+            self._overlap = overlap
+
+        @property
+        def overlap(self):
+            return self._overlap

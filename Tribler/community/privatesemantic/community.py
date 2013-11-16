@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 import sys
 from os import path
+from collections import defaultdict
 from time import time
 from random import sample, randint, shuffle, random, choice
 from Crypto.Util.number import bytes_to_long, long_to_bytes
@@ -34,6 +35,7 @@ from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from polycreate import compute_coeff, polyval
 from collections import namedtuple
 from Tribler.community.privatesemantic.database import SemanticDatabase
+from Tribler.community.privatesemantic.payload import SimiRevealPayload
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -138,7 +140,7 @@ class PossibleTasteBuddy(TasteBuddy):
 
 class ForwardCommunity():
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = rsa_init()
@@ -159,6 +161,8 @@ class ForwardCommunity():
 
         self.forward_to = forward_to
         self.max_taste_buddies = max_taste_buddies
+
+        self.send_simi_reveal = send_simi_reveal
 
         self.taste_buddies = []
         self.possible_taste_buddies = []
@@ -200,7 +204,8 @@ class ForwardCommunity():
         new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, ExtendedIntroPayload(), ori.check_callback, self.on_intro_request)
         self._meta_messages[u"dispersy-introduction-request"] = new
 
-        return [Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
+        return [Message(self, u"similarity-reveal", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), SimiRevealPayload(), self.check_similarity_reveal, self.on_similarity_reveal),
+                Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
                 Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
 
     def initiate_conversions(self):
@@ -593,13 +598,34 @@ class ForwardCommunity():
                 # TODO: this seems to be a bit dodgy
                 message._candidate = request.requested_candidate
 
-                self.process_msimilarity_response(message)
+                overlap = self.process_msimilarity_response(message)
+                if self.send_simi_reveal:
+                    self.send_similarity_reveal(message.candidate, overlap)
 
                 destination, introduce_me_to = self.get_most_similar(message.candidate)
                 self.send_introduction_request(destination, introduce_me_to)
 
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, long(time()), "ForwardCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+
+    def send_similarity_reveal(self, destination, overlap):
+        assert isinstance(destination, WalkCandidate), [type(destination), destination]
+        assert isinstance(overlap, (list, int))
+
+        meta_request = self.get_meta_message(u"similarity-reveal")
+        request = meta_request.impl(authentication=(self.my_member,),
+                                distribution=(self.global_time,),
+                                destination=(destination,),
+                                payload=(overlap,))
+        self._dispersy._forward([request])
+
+    def check_similarity_reveal(self, messages):
+        for message in messages:
+            yield message
+
+    def on_similarity_reveal(self, messages):
+        for message in messages:
+            self.add_taste_buddies([ActualTasteBuddy(message.payload.overlap, time(), message.candidate)])
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
@@ -790,11 +816,14 @@ class PForwardCommunity(ForwardCommunity):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
 
-        self.add_taste_buddies([ActualTasteBuddy(self.compute_overlap(message.payload._sum), time(), message.candidate)])
+        overlap = self.compute_overlap(message.payload._sum)
+        self.add_taste_buddies([ActualTasteBuddy(overlap, time(), message.candidate)])
 
         _sums = [PossibleTasteBuddy(self.compute_overlap(_sum), time(), candidate_mid, message.candidate) for candidate_mid, _sum in message.payload.sums]
         if _sums:
             self.add_possible_taste_buddies(_sums)
+
+        return overlap
 
     def compute_overlap(self, _sum):
         t1 = time()
@@ -964,6 +993,7 @@ class HForwardCommunity(ForwardCommunity):
             possibles.append(PossibleTasteBuddy(self.compute_overlap(remote_response), time(), candidate_mid, message.candidate))
 
         self.add_possible_taste_buddies(possibles)
+        return overlap
 
     def compute_overlap(self, lists):
         t1 = time()
@@ -1077,7 +1107,10 @@ class HForwardCommunity(ForwardCommunity):
 class PoliForwardCommunity(ForwardCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True):
+        if not use_cardinality:
+            forward_to = 0
         ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies)
+
         self.key = paillier_init(self.key)
         self.use_cardinality = use_cardinality
 
@@ -1149,6 +1182,7 @@ class PoliForwardCommunity(ForwardCommunity):
             possibles.append(PossibleTasteBuddy(self.compute_overlap(remote_response), time(), candidate_mid, message.candidate))
 
         self.add_possible_taste_buddies(possibles)
+        return overlap
 
     def compute_overlap(self, evaluated_polynomial):
         t1 = time()
@@ -1287,6 +1321,28 @@ class PoliForwardCommunity(ForwardCommunity):
 
         self._dispersy._forward([response])
         return len(response.packet)
+
+    def get_most_similar(self, candidate):
+        if self.use_cardinality:
+            return ForwardCommunity.get_most_similar(self, candidate)
+
+        ctb = self.is_taste_buddy(candidate)
+        if ctb and ctb.overlap:
+            # see which peer i havn't made a connection to/have fewest connections with
+            connections = defaultdict(int)
+            for keyhash in ctb.overlap:
+                connections[keyhash] += 1
+
+            for tb in self.yield_taste_buddies(candidate):
+                for keyhash in tb.overlap:
+                    if keyhash in ctb.overlap:
+                        connections[keyhash] += 1
+
+            ckeys = connections.keys()
+            ckeys.sort(cmp=lambda a, b: cmp(connections[a], connections[b]))
+            return candidate, long_to_bytes(ckeys[0], 20)
+
+        return candidate, None
 
 class Das4DBStub():
     def __init__(self, dispersy):

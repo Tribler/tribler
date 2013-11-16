@@ -28,9 +28,40 @@ def bytes_to_long(val):
 class ForwardConversion(BinaryConversion):
     def __init__(self, community):
         super(ForwardConversion, self).__init__(community, "\x01")
-        # we need to use 4 and 5 as we are combining this overlay with the searchcommunity which has 1,2,and 3 defined.
-        self.define_meta_message(chr(4), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
-        self.define_meta_message(chr(5), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
+        # we need to use 4 , 5, and 6 as we are combining this overlay with the searchcommunity which has 1,2,and 3 defined.
+        self.define_meta_message(chr(4), community.get_meta_message(u"similarity-reveal"), lambda message: self._encode_decode(self._encode_simi_reveal, self._decode_simi_reveal, message), self._decode_simi_reveal)
+        self.define_meta_message(chr(5), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
+        self.define_meta_message(chr(6), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
+
+    def _encode_simi_reveal(self, message):
+        if isinstance(message.payload.overlap, int):
+            return pack('!ci', 'I', message.payload.overlap)
+
+        # convert long into string
+        str_overlap = [long_to_bytes(overlap, 20) for overlap in message.payload.overlap]
+        return pack('!c' + '20s' * len(message.payload.overlap), 'L', *str_overlap)
+
+    def _decode_simi_reveal(self, placeholder, offset, data):
+        if len(data) < offset + 1:
+            raise DropPacket("Insufficient packet size")
+
+        identifier, = unpack_from('!c', data, offset)
+        offset += 1
+
+        if identifier == 'I':
+            overlap, = unpack_from('!i', data, offset)
+        else:
+            length = len(data) - offset
+            if length % 20 != 0:
+                raise DropPacket("Invalid number of bytes available")
+
+            if length:
+                hashpack = '20s' * (length / 20)
+                str_overlap = unpack_from('!' + hashpack, data, offset)
+                overlap = [bytes_to_long(str_over) for str_over in str_overlap]
+            else:
+                overlap = []
+        return offset, placeholder.meta.payload.implement(overlap)
 
     def _encode_ping(self, message):
         return pack('!H', message.payload.identifier),
