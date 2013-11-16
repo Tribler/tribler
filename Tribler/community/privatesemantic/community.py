@@ -1361,7 +1361,13 @@ class PoliForwardCommunity(ForwardCommunity):
 
             print >> sys.stderr, "Most interresting", connections
 
-            return candidate, long_to_bytes(ckeys[0], 20)
+            str_key = long_to_bytes(ckeys[0], 20)
+            key = long(hexlify(str_key), 16)
+            if key != ckeys[0]:
+                print >> sys.stderr, key, ckeys[0]
+                raise RuntimeError()
+
+            return candidate, str_key
 
         return candidate, None
 
