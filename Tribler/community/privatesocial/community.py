@@ -464,4 +464,4 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
 
     def get_most_similar(self, candidate):
-        return SocialCommunity.get_most_similar(self, candidate)
+        return ForwardCommunity.get_most_similar(self, candidate)
