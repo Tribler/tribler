@@ -1121,8 +1121,6 @@ class HForwardCommunity(ForwardCommunity):
 class PoliForwardCommunity(ForwardCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True):
-        if not use_cardinality:
-            forward_to = 0
         ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies)
 
         self.key = paillier_init(self.key)
