@@ -6,7 +6,12 @@ logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger
 logger = logging.getLogger(__name__)
 
 import threading
-import yappi
+
+try:
+    import yappi
+except:
+    pass
+
 from Tribler.community.anontunnel import DispersyTunnelProxy
 from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
@@ -128,16 +133,17 @@ def main(argv):
         elif line == 'c\n':
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tIN (kBps)\tOUT (kBps)"
             for circuit in anon_tunnel.tunnel.circuits.values():
-                print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
-                    circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
-                    circuit.bytes_downloaded / 1024.0 / 1024.0,
-                    circuit.bytes_uploaded / 1024.0 / 1024.0,
-                    circuit.speed_down / 1024.0,
-                    circuit.speed_up / 1024.0
-                )
+                if circuit.created:
+                    print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
+                        circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
+                        circuit.bytes_downloaded / 1024.0 / 1024.0,
+                        circuit.bytes_uploaded / 1024.0 / 1024.0,
+                        circuit.speed_down / 1024.0,
+                        circuit.speed_up / 1024.0
+                    )
 
-                for hop in circuit.hops[1:]:
-                    print "\t%s" % (hop,)
+                    for hop in circuit.hops[1:]:
+                        print "\t%s" % (hop,)
 
         elif cmd_extend_match:
             circuit_id = int(cmd_extend_match.group(1))
