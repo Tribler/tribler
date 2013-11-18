@@ -345,9 +345,6 @@ class TorrentChecking(Thread):
         tracker = None
         check_torrent_list = list()
 
-        if DEBUG:
-            print >> sys.stderr, \
-            '[!!!] Selecting torrents to check ...'
         current_time = int(time.time())
         while True:
             if self._tracker_selection_idx >= len(self._tracker_info_cache.trackerInfoDict):
@@ -401,10 +398,6 @@ class TorrentChecking(Thread):
         self._tracker_selection_idx += 1
         if self._tracker_selection_idx >= len(self._tracker_info_cache.trackerInfoDict):
             self._tracker_selection_idx = 0
-
-        if DEBUG:
-            print >> sys.stderr, \
-            '[!!!] Torrents selection done.'
 
     # ------------------------------------------------------------
     # Adds a request to the queue.
