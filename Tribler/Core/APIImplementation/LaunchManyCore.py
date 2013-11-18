@@ -9,9 +9,9 @@ import pickle
 import binascii
 import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
-from traceback import print_exc, print_stack
-import traceback
+from traceback import print_exc
 from Tribler.Core.ServerPortHandler import MultiHandler
+from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
 
 try:
     prctlimported = True
@@ -19,7 +19,6 @@ try:
 except ImportError as e:
     prctlimported = False
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
@@ -109,14 +108,14 @@ class TriblerLaunchMany(Thread):
             if config['dispersy']:
                 from Tribler.dispersy.callback import Callback
                 from Tribler.dispersy.dispersy import Dispersy
-                from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
+                from Tribler.dispersy.endpoint import TunnelEndpoint
                 from Tribler.dispersy.community import HardKilledCommunity
 
                 # set communication endpoint
                 if config['dispersy-tunnel-over-swift'] and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
                 else:
-                    endpoint = RawserverEndpoint(self.rawserver, config['dispersy_port'])
+                    endpoint = HackyEndpoint(self.rawserver, config['dispersy_port'])
 
                 callback = Callback("Dispersy")  # WARNING NAME SIGNIFICANT
                 working_directory = unicode(config['state_dir'])

@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -72,45 +71,6 @@ class ProxyCommunity(Community, Observable):
             logger.debug("Got PONG from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
 
         self.subscribe("on_pong", on_pong)
-
-        def ping_and_purge():
-            while True:
-                logger.info("ping_purge")
-
-                try:
-                    timeout = 2.0
-
-                    # Candidates we have sent a ping in the last 'time out' seconds and haven't returned a heat beat
-                    # in 2*timeout seconds shall be purged
-                    candidates_to_be_purged = \
-                        {
-                            candidate
-                            for candidate in self.member_heartbeat.keys()
-                            if self.member_heartbeat[candidate] < datetime.now() - timedelta(seconds=4*timeout)
-                        }
-
-                    for candidate in candidates_to_be_purged.values():
-                        self.on_candidate_exit(candidate)
-                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
-
-
-                    candidates_to_be_pinged = {candidate for candidate in self.member_heartbeat.keys() if
-                                               self.member_heartbeat[candidate] < datetime.now() - timedelta(
-                                                   seconds=timeout)}
-
-                    for candidate in candidates_to_be_pinged:
-                        self.member_ping[candidate] = datetime.now()
-                        self.send(u"ping", candidate)
-                        logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
-
-
-                except:
-                    pass
-
-                # rerun over 3 seconds
-                yield 2.0
-
-        # self.dispersy.callback.register(ping_and_purge, priority= 0)
 
 
     def initiate_conversions(self):

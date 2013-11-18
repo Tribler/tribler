@@ -166,9 +166,11 @@ class ProxyConversion(BinaryConversion):
 
     @staticmethod
     def _decode_ping_pong(placeholder, offset, data):
+        if offset + 4 > len(data):
+            raise DropPacket("Cannot unpack circuit_id, insufficient packet size")
+
         circuit_id, = struct.unpack_from("!L", data, offset)
         offset += 4
-
 
         return offset, placeholder.meta.payload.implement(circuit_id)
 
