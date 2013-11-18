@@ -2171,6 +2171,17 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             self.database_update.release()
 
+        if fromver < 19:
+            self.database_update.acquire()
+
+            self.execute_write("ALTER TABLE Torrent ADD COLUMN tracker_check_retries integer DEFAULT 0;", commit=False)
+            self.execute_write("ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0;", commit=False)
+            self.execute_write("ALTER TABLE Torrent ADD COLUMN trackers text;", commit=False)
+
+            self.execute_write("CREATE TABLE TrackerInfo (tracker text PRIMARY KEY, last_check numeric DEFAULT 0, failures integer DEFAULT 0, is_alive integer DEFAULT 1);", commit=False)
+
+            self.database_update.release()
+
     def clean_db(self, vacuum=False):
         from time import time
 

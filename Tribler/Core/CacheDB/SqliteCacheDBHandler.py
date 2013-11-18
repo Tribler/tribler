@@ -487,13 +487,17 @@ class TorrentDBHandler(BasicDBHandler):
                 'length', 'creation_date', 'num_files', 'thumbnail',
                 'insert_time', 'secret', 'relevance',
                 'source_id', 'category_id', 'status_id',
-                'num_seeders', 'num_leechers', 'comment', 'swift_hash', 'swift_torrent_hash']
+                'num_seeders', 'num_leechers', 'comment', 'swift_hash', 'swift_torrent_hash',
+                'tracker_check_retries', 'tracker_check_ignores',
+                'last_tracker_check', 'trackers']
         self.existed_torrents = set()
 
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                       'num_leechers', 'num_seeders', 'length',
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash', 'tracker', 'last_check']
+                      'relevance', 'infohash',
+                      'trackers', 'last_tracker_check',
+                      'tracker_check_retries', 'tracker_check_ignores']
 
         self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
         self.category = Category.getInstance()
@@ -834,9 +838,16 @@ class TorrentDBHandler(BasicDBHandler):
             kw['num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
             kw['num_leechers'] = kw.pop('leecher')
-        if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw \
-          or 'retried_times' in kw or 'ignored_times' in kw:
-            self.updateTracker(infohash, kw, commit=False)
+        #if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw \
+        #  or 'retried_times' in kw or 'ignored_times' in kw:
+        #    self.updateTracker(infohash, kw, commit=False)
+
+        if 'retries' in kw:
+            kw['tracker_check_retries'] = kw.pop('retries')
+        if 'last_check' in kw:
+            kw['last_tracker_check'] = kw.pop('last_check')
+        if 'trackers' in kw:
+            kw['trackers'] = kw.pop('trackers')
 
         if 'swift_hash' in kw:
             kw['swift_hash'] = bin2str(kw['swift_hash'])
@@ -1069,6 +1080,48 @@ class TorrentDBHandler(BasicDBHandler):
 
         return True
 
+    # ============================================================
+    # MARK <BEGIN>: Added by Lipu Fei
+    # ============================================================
+    # ------------------------------------------------------------
+    # Gets a list of torrents that have a given tracker.
+    # ------------------------------------------------------------
+    def getTorrentsOnTracker(self, tracker):
+        sql = 'SELECT infohash, tracker_check_retries, last_tracker_check from Torrent WHERE trackers like ?'
+        args = ['%' + tracker + '%']
+        torrent_list = self._db.fetchall(sql, args)
+        return [torrent for torrent in torrent_list]
+
+    def getTrackerInfoList(self):
+        sql = 'SELECT tracker, last_check, failures, is_alive FROM TrackerInfo'
+        tracker_info_list = self._db.fetchall(sql)
+        return [tracker_info for tracker_info in tracker_info_list]
+
+    # ------------------------------------------------------------
+    # Updates a tracker status into the TrackerInfo table.
+    # ------------------------------------------------------------
+    def updateTrackerInfo(self, tracker, last_check, failures, is_alive):
+        sql = 'SELECT * FROM TrackerInfo WHERE tracker = ?'
+        tracker_info_list = self._db.fetchall(sql, (tracker,))
+        if not tracker_info_list:
+            # insert a new record
+            kw = [ (tracker, last_check, failures, is_alive) ]
+            sql = 'INSERT INTO TrackerInfo(tracker, last_check, failures, is_alive)' \
+                 + ' VALUES(?, ?, ?, ?)'
+            self._db.executemany(sql, kw)
+        else:
+            # update the old one
+            kw = dict()
+            kw['last_check'] = last_check
+            kw['failures'] = failures
+            kw['is_alive'] = is_alive
+            where = 'tracker = \'%s\'' % tracker
+            self._db.update('TrackerInfo', where, **kw)
+
+    # ============================================================
+    # MARK <END>: Added by Lipu Fei
+    # ============================================================
+
     def getTracker(self, infohash, tier=0):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is not None:
@@ -1180,12 +1233,13 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             keys = list(keys)
 
-        tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
-        tracker_keys = [key for key in tracker_keys if key in keys]
-        if len(tracker_keys) > 0:
-            res = self._db.getOne('Torrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
-        else:
-            res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
+        # TODO: to be removed
+        #tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
+        #tracker_keys = [key for key in tracker_keys if key in keys]
+        #if len(tracker_keys) > 0:
+        #    res = self._db.getOne('Torrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
+        #else:
+        res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
 
         if not res:
             return None
@@ -1207,8 +1261,11 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent['infohash'] = infohash
 
-        if 'last_check' in torrent:
-            torrent['last_check_time'] = torrent['last_check']
+        # TODO: to be removed
+        #if 'last_check' in torrent:
+        #    torrent['last_check_time'] = torrent['last_check']
+        if 'trackers' in torrent and torrent['trackers']:
+            torrent['tracker_list'] = torrent['trackers'].split('\n')
 
         if include_mypref:
             tid = torrent['C.torrent_id']
