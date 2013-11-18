@@ -50,7 +50,7 @@ except ImportError:
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is
 # written to the DB in the schema_sdb_v*.sql file!!!
-CURRENT_MAIN_DB_VERSION = 18
+CURRENT_MAIN_DB_VERSION = 19
 
 config_dir = None
 CREATE_SQL_FILE = None
@@ -2168,6 +2168,17 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write("DROP INDEX IF EXISTS bartercast_idx")
             self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails')")
             self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('video-info')")
+
+            self.database_update.release()
+
+        if fromver < 19:
+            self.database_update.acquire()
+
+            self.execute_write("ALTER TABLE Torrent ADD COLUMN tracker_check_retries integer DEFAULT 0;", commit=False)
+            self.execute_write("ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0;", commit=False)
+            self.execute_write("ALTER TABLE Torrent ADD COLUMN trackers text;", commit=False)
+
+            self.execute_write("CREATE TABLE TrackerInfo (tracker text PRIMARY KEY, last_check numeric DEFAULT 0, failures integer DEFAULT 0, is_alive integer DEFAULT 1);", commit=False)
 
             self.database_update.release()
 

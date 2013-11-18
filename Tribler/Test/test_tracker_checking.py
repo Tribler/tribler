@@ -34,7 +34,7 @@ class TestTorrentChecking(AbstractServer):
         tdef.metainfo_valid = True
 
         self.tdb.addExternalTorrent(tdef)
-        self.torrentChecking.addToQueue(tdef.get_infohash())
+        self.torrentChecking._test_checkInfohash(tdef.get_infohash())
         sleep(30)
 
         id, num_leechers, num_seeders, last_check = self.tdb.getSwarmInfoByInfohash(tdef.get_infohash())
