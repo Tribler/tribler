@@ -157,6 +157,18 @@ class SessionConfigInterface:
         """
         return (self.sessconfig['lt_proxytype'], self.sessconfig['lt_proxyserver'], self.sessconfig['lt_proxyauth'])
 
+    def set_libtorrent_utp(self, value):
+        """ Enable or disable LibTorrent uTP (default = True).
+        @param value Boolean.
+        """
+        self.sessconfig['utp'] = value
+
+    def get_libtorrent_utp(self):
+        """ Returns whether LibTorrent uTP is enabled.
+        @return Boolean.
+        """
+        return self.sessconfig['utp']
+
 
     #
     # Torrent file collecting

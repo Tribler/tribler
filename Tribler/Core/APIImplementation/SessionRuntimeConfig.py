@@ -292,3 +292,21 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_libtorrent_proxy_settings(self)
         finally:
             self.sesslock.release()
+
+    def set_libtorrent_utp(self, value):
+        self.sesslock.acquire()
+        try:
+            SessionConfigInterface.set_libtorrent_utp(self, value)
+
+            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+            ltmgr = LibtorrentMgr.getInstance()
+            ltmgr.set_utp(value)
+        finally:
+            self.sesslock.release()
+
+    def get_libtorrent_utp(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_libtorrent_utp(self)
+        finally:
+            self.sesslock.release()

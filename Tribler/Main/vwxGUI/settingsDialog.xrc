@@ -659,6 +659,22 @@
 											<flag>wxEXPAND</flag>
 										</object>
 										
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>BitTorrent features</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+											<flag>wxBOTTOM|wxTOP</flag>
+											<border>5</border>
+                                        </object>
+                                        <object class="sizeritem">
+		                                    <object class="wxCheckBox" name="enable_utp">
+												<label>Enable bandwidth management (uTP)</label>
+												<checked>0</checked>
+											</object>
+	                                    </object>
 										
                                     </object>
                                 </object>

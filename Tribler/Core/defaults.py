@@ -60,6 +60,7 @@ sessdefaults['live_aux_seeders'] = []
 sessdefaults['mainline_dht'] = True
 sessdefaults['mainline_dht_port'] = DEFAULTPORT - 3
 sessdefaults['libtorrent'] = True
+sessdefaults['utp'] = True
 # Libtorrent proxy settings
 sessdefaults['lt_proxytype'] = 0  # no proxy server is used by default
 sessdefaults['lt_proxyserver'] = None

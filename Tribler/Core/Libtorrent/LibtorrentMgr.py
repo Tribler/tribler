@@ -69,6 +69,8 @@ class LibtorrentMgr:
         # Load proxy settings
         self.set_proxy_settings(*self.trsession.get_libtorrent_proxy_settings())
 
+        self.set_utp(self.trsession.get_libtorrent_utp())
+
         self.external_ip = None
 
         self.torlock = NoDispersyRLock()
