@@ -133,7 +133,7 @@ class ProxyCommunity(Community, Observable):
         #assert payload.origin == ("127.0.0.1", 1234)
 
 
-        self.fire("on_data", message=Mock(payload=payload, candidate=candidate))
+        self.fire("on_data", message=Mock(payload=payload, candidate=candidate, packet=packet))
 
 
     def send_data(self, candidate, payload):
