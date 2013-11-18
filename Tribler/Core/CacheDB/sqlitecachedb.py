@@ -50,7 +50,7 @@ except ImportError:
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is
 # written to the DB in the schema_sdb_v*.sql file!!!
-CURRENT_MAIN_DB_VERSION = 18
+CURRENT_MAIN_DB_VERSION = 19
 
 config_dir = None
 CREATE_SQL_FILE = None

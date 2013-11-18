@@ -488,7 +488,7 @@ class TorrentDBHandler(BasicDBHandler):
                 'insert_time', 'secret', 'relevance',
                 'source_id', 'category_id', 'status_id',
                 'num_seeders', 'num_leechers', 'comment', 'swift_hash', 'swift_torrent_hash',
-                'tracker_check_retries', 'tracker_check_ignores',
+                'tracker_check_retries',
                 'last_tracker_check', 'trackers']
         self.existed_torrents = set()
 
@@ -497,7 +497,7 @@ class TorrentDBHandler(BasicDBHandler):
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
                       'relevance', 'infohash',
                       'trackers', 'last_tracker_check',
-                      'tracker_check_retries', 'tracker_check_ignores']
+                      'tracker_check_retries']
 
         self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
         self.category = Category.getInstance()
