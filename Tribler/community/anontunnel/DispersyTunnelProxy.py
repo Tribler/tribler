@@ -3,11 +3,11 @@ import socket
 import threading
 import time
 from traceback import print_exc
-from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
+from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.community.anontunnel.ProxyCommunity import Mock
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload
-from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
+from Tribler.community.anontunnel.SelectionStrategies import LengthSelectionStrategy
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
@@ -62,6 +62,8 @@ class Circuit(object):
 
         self.speed_up = 0.0
         self.speed_down = 0.0
+
+        self.last_incoming = time.time()
 
 
 class RelayRoute(object):
@@ -179,51 +181,37 @@ class DispersyTunnelProxy(Observable):
         self.destination_circuit.clear()
 
     def setup_keep_alive(self):
-        def ping_and_purge():
+        def cleanup_dead_circuits():
             while True:
-                logger.info("ping_purge")
-
+                logger.info("cleanup_dead_circuits")
                 try:
-                    timeout = 2.0
 
-                    candidates = {c.candidate for c in self.circuits.values() if c.candidate}
+                    for circuit in self.circuits.values():
+                        if circuit.candidate:
+                            self.community.send(u"ping", circuit.candidate, circuit.id)
 
-                    # Candidates we have sent a ping in the last 'time out' seconds and haven't returned a heat beat
-                    # in 4*timeout seconds shall be purged
-                    candidates_to_be_purged = \
-                        {
-                            candidate
-                            for candidate in candidates
-                            if self.member_heartbeat[candidate] < time.time() - 4*timeout
-                        }
+                    for relay in self.relay_from_to.values():
+                        self.community.send(u"ping", relay.candidate, relay.circuit_id)
 
-                    for candidate in candidates_to_be_purged:
-                        self.on_candidate_exit(candidate)
-                        logger.error("CANDIDATE exit %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
-
-                    candidates_to_be_pinged = \
-                        {
-                            candidate
-                            for candidate in candidates
-                            if self.member_heartbeat[candidate] < time.time() - timeout
-                        }
-
-                    for candidate in candidates_to_be_pinged:
-                        self.community.send(u"ping", candidate)
-                        logger.debug("PING sent to %s:%d" % (candidate.sock_addr[0], candidate.sock_addr[1]))
-
+                    timeout = 10.0
+                    dead_circuits = [c for c in self.circuits.values() if c.goal_hops > 0 and c.created and c.last_incoming < time.time() - timeout]
+                    for circuit in dead_circuits:
+                        self.break_circuit(circuit.id)
                 except:
                     print_exc()
 
                 # rerun over 3 seconds
                 yield 2.0
 
-        self.callback.register(ping_and_purge, priority= 0)
+        self.callback.register(cleanup_dead_circuits, priority=0)
 
     def start(self, callback, community):
         self.community = community
         self.callback = callback
 
+        def on_ping(event, message):
+            if message.payload.circuit_id in self.circuits:
+                self.circuits[message.payload.circuit_id].last_incoming = time.time()
 
         community.subscribe("on_create", self.on_create)
         community.subscribe("on_created", self.on_created)
@@ -232,6 +220,8 @@ class DispersyTunnelProxy(Observable):
         community.subscribe("on_data", self.on_data)
         community.subscribe("on_break", self.on_break)
         community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
+        community.subscribe("on_ping", on_ping)
+        community.subscribe("on_pong", on_ping)
         self.setup_keep_alive()
 
         def check_ready():
@@ -346,6 +336,7 @@ class DispersyTunnelProxy(Observable):
 
         if msg.circuit_id in self.circuits:
             circuit = self.circuits[msg.circuit_id]
+            circuit.last_incoming = time.time()
             circuit.created = True
             logger.warning('Circuit %d has been created', msg.circuit_id)
 
@@ -390,8 +381,6 @@ class DispersyTunnelProxy(Observable):
         self.stats['packet_size'] = 0.8*self.stats['packet_size'] + 0.2*len(msg.data)
 
         relay_key = (message.candidate, msg.circuit_id)
-        community = self.community
-
         # If we can forward it along the chain, do so!
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
@@ -399,7 +388,7 @@ class DispersyTunnelProxy(Observable):
 
             msg.circuit_id = relay.circuit_id
 
-            community.send_data(relay.candidate, msg)
+            self.community.send_data(relay.candidate, msg)
 
             if __debug__:
                 logger.info("Forwarding DATA packet from %s to %s", direct_sender_address, relay.candidate)
@@ -409,6 +398,7 @@ class DispersyTunnelProxy(Observable):
             and msg.destination == ("0.0.0.0", 0) \
             and message.candidate == self.circuits[msg.circuit_id].candidate:
 
+            self.circuits[msg.circuit_id].last_incoming = time.time()
             self.circuits[msg.circuit_id].bytes_down[1] += len(msg.data)
             self.stats['bytes_returned'] += len(msg.data)
             self.fire("on_data", data=msg, sender=direct_sender_address)
@@ -533,6 +523,7 @@ class DispersyTunnelProxy(Observable):
             extended_with = msg.extended_with
 
             circuit = self.circuits[circuit_id]
+            circuit.last_incoming = time.time()
 
             addresses_in_use = [self.community.dispersy.wan_address]
             addresses_in_use.extend([

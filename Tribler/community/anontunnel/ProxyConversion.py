@@ -8,14 +8,18 @@ from Tribler.dispersy.payload import Payload
 
 class PongPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta):
-            pass
+        def __init__(self, meta, circuit_id):
+            super(PongPayload.Implementation, self).__init__(meta)
+
+            self.circuit_id = circuit_id
 
 
 class PingPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta):
-            pass
+        def __init__(self, meta, circuit_id):
+            super(PingPayload.Implementation, self).__init__(meta)
+
+            self.circuit_id = circuit_id
 
 
 class CreatePayload(Payload):
@@ -158,11 +162,15 @@ class ProxyConversion(BinaryConversion):
 
     @staticmethod
     def _encode_ping_pong(message):
-        return '',
+        return struct.pack("!L", message.payload.circuit_id),
 
     @staticmethod
     def _decode_ping_pong(placeholder, offset, data):
-        return offset, placeholder.meta.payload.implement()
+        circuit_id, = struct.unpack_from("!L", data, offset)
+        offset += 4
+
+
+        return offset, placeholder.meta.payload.implement(circuit_id)
 
     @staticmethod
     def _encode_break(message):

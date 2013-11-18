@@ -1,8 +1,9 @@
-from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.endpoint import RawserverEndpoint, TUNNEL_PREFIX
 from time import time
-
 import logging.config
+
+from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.endpoint import RawserverEndpoint
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,16 @@ class HackyEndpoint(RawserverEndpoint):
     def data_came_in(self, packets):
         assert self._dispersy, "Should not be called before open(...)"
 
-        normal_packets = [packet for packet in packets if not self.bypass_prefix or not packet[1].startswith(self.bypass_prefix) and not packet[1].startswith(TUNNEL_PREFIX + self.bypass_prefix)]
+        candidate_data_pairs = [
+            (Candidate(address, False), data)
+            for address, data in packets if data.startswith(self.bypass_prefix)]
+
+        if candidate_data_pairs:
+            for candidate, data in candidate_data_pairs:
+                candidate = self.bypass_community.candidates.get(candidate.sock_addr) or candidate
+                self.bypass_community.on_bypass_message(candidate, data)
+
+        normal_packets = [packet for packet in packets if not self.bypass_prefix or not packet[1].startswith(self.bypass_prefix)]
 
         if normal_packets:
             self._dispersy.callback.register(self.dispersythread_data_came_in, (normal_packets, time()))
@@ -26,20 +36,7 @@ class HackyEndpoint(RawserverEndpoint):
         if not self.bypass_prefix:
             return
 
-        bypass_packets = [
-            (data.startswith(TUNNEL_PREFIX), address, data)
-            for address, data in packets if data.startswith(self.bypass_prefix) or data.startswith(TUNNEL_PREFIX + self.bypass_prefix)]
 
-
-
-        candidate_data_pairs = [(Candidate(sock_addr, tunnel), data[4:] if tunnel else data)
-                                        for tunnel, sock_addr, data
-                                        in bypass_packets]
-
-        if candidate_data_pairs:
-            for candidate, data in candidate_data_pairs:
-                candidate = self.bypass_community.candidates.get(candidate.sock_addr) or candidate
-                self.bypass_community.on_bypass_message(candidate, packet[1])
 
 
     def send(self, candidates, packets):

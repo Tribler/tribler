@@ -1,12 +1,9 @@
-from collections import defaultdict
 from datetime import datetime, timedelta
 import logging
-from Tribler.dispersy.tests.dispersytestclass import call_on_dispersy_thread
 
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload, StatsPayload
-from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
 from Tribler.dispersy.candidate import BootstrapCandidate, Candidate, WalkCandidate
 from Tribler.dispersy.authentication import NoAuthentication
@@ -169,12 +166,21 @@ class ProxyCommunity(Community, Observable):
     def on_bypass_message(self, candidate, packet):
         placeholder = Mock(meta=self.get_meta_message(u"data"))
         offset, payload = ProxyConversion._decode_data(placeholder, len(self.dispersy.endpoint.bypass_prefix), packet)
+
+        #assert payload.circuit_id == 123
+        #assert payload.destination == ("8.8.8.8", 80)
+        #assert payload.data == "TEST"
+        #assert payload.origin == ("127.0.0.1", 1234)
+
+
         self.fire("on_data", message=Mock(payload=payload, candidate=candidate))
 
 
-    def send_data(self, candidate, msg):
-        data = self.dispersy.endpoint.bypass_prefix + ''.join(s for s in ProxyConversion._encode_data(Mock(payload=msg)))
-        self.dispersy.endpoint.send([candidate],[data])
+    def send_data(self, candidate, payload):
+        #payload = Mock(circuit_id=123, destination=("8.8.8.8", 80), data="TEST", origin=("127.0.0.1", 1234))
+
+        data = self.dispersy.endpoint.bypass_prefix + ''.join(s for s in ProxyConversion._encode_data(Mock(payload=payload)))
+        self.dispersy.endpoint.send([candidate], [data])
 
     def _initialize_meta_messages(self):
         super(ProxyCommunity, self)._initialize_meta_messages()
@@ -205,7 +211,7 @@ class ProxyCommunity(Community, Observable):
 
     def on_ping(self, event, message):
         logger.debug("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
-        self.send(u"pong", message.candidate)
+        self.send(u"pong", message.candidate, message.payload.circuit_id)
 
     def on_introduction_request(self, messages):
         try:
