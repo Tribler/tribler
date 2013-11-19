@@ -52,7 +52,10 @@ class TrackerInfoCache(object):
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTrackerInfoIntoDb(self, tracker, last_check, failures, alive):
-        self._torrentdb.updateTrackerInfo(tracker, last_check, failures, alive)
+        try:
+            self._torrentdb.updateTrackerInfo(tracker, last_check, failures, alive)
+        except:
+            pass
 
 
     # ------------------------------------------------------------

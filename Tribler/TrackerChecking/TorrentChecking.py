@@ -82,7 +82,6 @@ class TorrentChecking(Thread):
 
         self.start()
 
-
     # ------------------------------------------------------------
     # (Public API)
     # The public interface to initialize and get the single instance.
@@ -92,7 +91,6 @@ class TorrentChecking(Thread):
         if TorrentChecking.__single is None:
             TorrentChecking(*args, **kw)
         return TorrentChecking.__single
-
 
     # ------------------------------------------------------------
     # (Public API)
@@ -105,7 +103,6 @@ class TorrentChecking(Thread):
 
     def shutdown(self):
         self._should_stop = True
-        self.join()
 
     # ------------------------------------------------------------
     # (Public API)
@@ -282,7 +279,10 @@ class TorrentChecking(Thread):
         trackers_data = trackers_data[:-1]
 
         kw = {'trackers': trackers_data }
-        self._torrentdb.updateTorrent(infohash, **kw)
+        try:
+            self._torrentdb.updateTorrent(infohash, **kw)
+        except:
+            pass
 
     # ------------------------------------------------------------
     # Updates result into the database.
@@ -309,7 +309,10 @@ class TorrentChecking(Thread):
 
         kw = {'seeder': seeders, 'leecher': leechers, 'status': status, \
             'retries': retries, 'last_tracker_check': last_check}
-        self._torrentdb.updateTorrent(response['infohash'], **kw)
+        try:
+            self._torrentdb.updateTorrent(response['infohash'], **kw)
+        except:
+            pass
 
     # ------------------------------------------------------------
     # Updates the check result into the database
