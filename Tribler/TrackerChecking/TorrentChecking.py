@@ -372,7 +372,7 @@ class TorrentChecking(Thread):
         current_time = int(time.time())
         while True:
             if self._tracker_selection_idx >= len(self._tracker_info_cache.trackerInfoDict):
-                return None, None
+                return
 
             tracker, _ = \
                 self._tracker_info_cache.trackerInfoDict.items()[self._tracker_selection_idx]
@@ -384,7 +384,12 @@ class TorrentChecking(Thread):
                 continue
 
             # get all the torrents on this tracker
-            all_torrent_list = self._torrentdb.getTorrentsOnTracker(tracker)
+            try:
+                if self._should_stop:
+                    return
+                all_torrent_list = self._torrentdb.getTorrentsOnTracker(tracker)
+            except:
+                return
             if not all_torrent_list:
                 break
 
