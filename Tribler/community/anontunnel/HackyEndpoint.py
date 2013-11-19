@@ -12,32 +12,27 @@ __author__ = 'chris'
 class HackyEndpoint(RawserverEndpoint):
 
     def __init__(self, rawserver, port, ip="0.0.0.0"):
-        RawserverEndpoint.__init__(self,rawserver,port, ip)
+        RawserverEndpoint.__init__(self, rawserver, port, ip)
         self.bypass_community = None
         self.bypass_prefix = None
 
     def data_came_in(self, packets):
         assert self._dispersy, "Should not be called before open(...)"
 
-        candidate_data_pairs = [
-            (Candidate(address, False), data)
-            for address, data in packets if data.startswith(self.bypass_prefix)]
+        if self.bypass_prefix and not self.bypass_community:
+            raise ValueError("Bypass_community must be set if bypass_prefix is set!")
 
-        if candidate_data_pairs:
-            for candidate, data in candidate_data_pairs:
-                candidate = self.bypass_community.candidates.get(candidate.sock_addr) or candidate
-                self.bypass_community.on_bypass_message(candidate, data)
-
-        normal_packets = [packet for packet in packets if not self.bypass_prefix or not packet[1].startswith(self.bypass_prefix)]
+        # Inspect packages
+        normal_packets = []
+        for packet in packets:
+            if self.bypass_prefix and packet[1].startswith(self.bypass_prefix):
+                candidate = self.bypass_community.candidates.get(packet[0]) or Candidate(packet[0], False)
+                self.bypass_community.on_bypass_message(candidate, packet[1])
+            else:
+                normal_packets.append(packet)
 
         if normal_packets:
             self._dispersy.callback.register(self.dispersythread_data_came_in, (normal_packets, time()))
-
-        if not self.bypass_prefix:
-            return
-
-
-
 
     def send(self, candidates, packets):
         assert self._dispersy, "Should not be called before open(...)"
