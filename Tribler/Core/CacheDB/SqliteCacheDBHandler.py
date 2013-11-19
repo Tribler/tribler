@@ -495,7 +495,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                       'num_leechers', 'num_seeders', 'length',
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash',
+                      'relevance', 'infohash', #'tracker', 'last_check',
                       'trackers', 'last_tracker_check',
                       'tracker_check_retries']
 
@@ -1088,8 +1088,8 @@ class TorrentDBHandler(BasicDBHandler):
     # ------------------------------------------------------------
     def getTorrentsOnTracker(self, tracker):
         sql = 'SELECT infohash, tracker_check_retries, last_tracker_check from Torrent WHERE trackers like ?'
-        args = ['%' + tracker + '%']
-        torrent_list = self._db.fetchall(sql, args)
+        args = '%' + tracker + '%'
+        torrent_list = self._db.fetchall(sql, (args, ))
         return [torrent for torrent in torrent_list]
 
     def getTrackerInfoList(self):

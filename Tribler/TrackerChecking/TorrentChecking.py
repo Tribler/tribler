@@ -72,6 +72,8 @@ class TorrentChecking(Thread):
         self._torrent_select_interval = 60
         self._torrent_check_interval = 30
 
+        self._should_stop = False
+
         self.start()
 
 
@@ -94,6 +96,9 @@ class TorrentChecking(Thread):
     def delInstance():
         TorrentChecking.__single = None
 
+
+    def shutdown(self):
+        self._should_stop = True
 
     # ------------------------------------------------------------
     # (Public API)
@@ -461,7 +466,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     def run(self):
         last_time_select_torrent = 0
-        while True:
+        while not self._should_stop:
             # torrent selection
             this_time = int(time.time())
             if this_time - last_time_select_torrent > self._torrent_select_interval:
