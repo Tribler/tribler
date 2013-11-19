@@ -105,6 +105,7 @@ class TorrentChecking(Thread):
 
     def shutdown(self):
         self._should_stop = True
+        self.join()
 
     # ------------------------------------------------------------
     # (Public API)
