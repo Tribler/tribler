@@ -18,6 +18,12 @@ from threading import Thread, Lock
 
 from traceback import print_exc, print_stack
 
+try:
+    prctlimported = True
+    import prctl
+except ImportError as e:
+    prctlimported = False
+
 from Tribler.TrackerChecking.TrackerInfoCache import TrackerInfoCache
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
@@ -262,6 +268,9 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentTrackerList(self, infohash, tracker_list):
+        if self._should_stop:
+            return
+
         if not tracker_list:
             return
 
@@ -279,6 +288,9 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentResult(self, response):
+        if self._should_stop:
+            return
+
         seeders  = response['seeders']
         leechers = response['leechers']
         retries  = response['retries']
@@ -305,6 +317,9 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _checkResponseFinal(self, response):
+        if self._should_stop:
+            return
+
         seeders  = response['seeders']
         leechers = response['leechers']
         retries  = response['retries']
@@ -465,6 +480,9 @@ class TorrentChecking(Thread):
     # The thread function.
     # ------------------------------------------------------------
     def run(self):
+        if prctlimported:
+            prctl.set_name("Tribler" + currentThread().getName())
+
         last_time_select_torrent = 0
         while not self._should_stop:
             # torrent selection
@@ -549,6 +567,9 @@ class TorrentChecking(Thread):
                         self._pending_response_dict[infohash]['remainingResponses'] -= 1
 
                     # update the Tracker Status Cache
+                    if self._should_stop:
+                        self._lock.release()
+                        return
                     self._tracker_info_cache.updateTrackerInfo( \
                         session.tracker, success)
 
@@ -570,6 +591,9 @@ class TorrentChecking(Thread):
                 # can not do it in the previous loop because it will change the
                 # dictionary and hence cause error in the iteration.
                 for infohash in obsolete_list:
+                    if self._should_stop:
+                        self._lock.release()
+                        return
                     self._checkResponseFinal(self._pending_response_dict[infohash])
                     del self._pending_response_dict[infohash]
                 del obsolete_list
