@@ -13,6 +13,11 @@ from Tribler.dispersy.candidate import Candidate
 __author__ = 'Chris'
 MAX_CIRCUITS_TO_CREATE = 10
 
+CIRCUIT_STATE_READY = 'READY'
+CIRCUIT_STATE_CREATING = 'CREATING'
+CIRCUIT_STATE_EXTENDING = 'EXTENDING'
+CIRCUIT_STATE_BROKEN = 'BROKEN'
+
 logger = logging.getLogger(__name__)
 
 import random
@@ -50,6 +55,8 @@ class Circuit(object):
         self.candidate = candidate
         self.hops = [candidate.sock_addr] if candidate else []
         self.goal_hops = 0
+
+        self.state = CIRCUIT_STATE_CREATING
 
         self.timestamp = None
 
@@ -126,7 +133,7 @@ class DispersyTunnelProxy(Observable):
     def active_circuits(self):
         # Circuit is active when it has received a CREATED for it and the final length and the length is 0
         return [circuit for circuit in self.get_circuits() if
-                circuit.created and circuit.goal_hops == len(circuit.hops)]
+                circuit.state == CIRCUIT_STATE_READY and circuit.goal_hops == len(circuit.hops)]
 
     def get_circuits(self):
         return self.circuits.values()
@@ -154,7 +161,7 @@ class DispersyTunnelProxy(Observable):
 
         # Add 0-hop circuit
         self.circuits[0] = Circuit(0)
-        self.circuits[0].created = True
+        self.circuits[0].state = CIRCUIT_STATE_READY
 
         self.lock = threading.RLock()
 
@@ -194,7 +201,7 @@ class DispersyTunnelProxy(Observable):
                         self.community.send(u"ping", relay.candidate, relay.circuit_id)
 
                     timeout = 10.0
-                    dead_circuits = [c for c in self.circuits.values() if c.goal_hops > 0 and c.created and c.last_incoming < time.time() - timeout]
+                    dead_circuits = [c for c in self.circuits.values() if c.goal_hops > 0 and c.state is not CIRCUIT_STATE_BROKEN and c.last_incoming < time.time() - timeout]
                     for circuit in dead_circuits:
                         self.break_circuit(circuit.id)
                 except:
@@ -347,6 +354,9 @@ class DispersyTunnelProxy(Observable):
                 logger.warning("Circuit %d is too short, is %d should be %d long", circuit.id, len(circuit.hops),
                                circuit.goal_hops)
                 self.extend_circuit(circuit)
+            else:
+                circuit.state = CIRCUIT_STATE_READY
+
         elif not self.relay_from_to.has_key((message.candidate, msg.circuit_id)):
             logger.warning("Cannot route CREATED packet, probably concurrency overwrote routing rules!")
         else:
@@ -419,7 +429,6 @@ class DispersyTunnelProxy(Observable):
         except socket.error:
             self.stats['dropped_exit'] += 1
             pass
-
 
     def get_exit_socket(self, circuit_id, address):
 
@@ -544,6 +553,10 @@ class DispersyTunnelProxy(Observable):
             # Decrease the EXTEND queue of this circuit if there is any
             # if circuit in self.extension_queue and self.extension_queue[circuit] > 0:
             circuit.hops.append(extended_with)
+
+            if circuit.goal_hops == len(circuit.hops):
+                circuit.state = CIRCUIT_STATE_READY
+
             logger.warning('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
                            extended_with, len(self.circuits[circuit_id].hops))
 
@@ -589,6 +602,7 @@ class DispersyTunnelProxy(Observable):
 
     def extend_circuit(self, circuit):
         if circuit.created:
+            circuit.state = CIRCUIT_STATE_EXTENDING
             self.community.send(u"extend", circuit.candidate, circuit.id)
 
     def _create_stats(self):
@@ -673,7 +687,7 @@ class DispersyTunnelProxy(Observable):
 
             # Delete from data structures
             if circuit_id in self.circuits:
-                self.circuits[circuit_id].created = False
+                self.circuits[circuit_id].state = CIRCUIT_STATE_BROKEN
 
             tunnels_going_down = len(self.active_circuits) == 1 # Don't count the 0-hop tunnel
             # Delete any ultimate destinations mapped to this circuit

@@ -126,13 +126,6 @@ class ProxyCommunity(Community, Observable):
     def on_bypass_message(self, candidate, packet):
         placeholder = Mock(meta=self.get_meta_message(u"data"))
         offset, payload = ProxyConversion._decode_data(placeholder, len(self.dispersy.endpoint.bypass_prefix), packet)
-
-        #assert payload.circuit_id == 123
-        #assert payload.destination == ("8.8.8.8", 80)
-        #assert payload.data == "TEST"
-        #assert payload.origin == ("127.0.0.1", 1234)
-
-
         self.fire("on_data", message=Mock(payload=payload, candidate=candidate, packet=packet))
 
 
