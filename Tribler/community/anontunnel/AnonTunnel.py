@@ -15,7 +15,6 @@ from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
 from Tribler.community.anontunnel.Socks5Server import Socks5Server
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import RawserverEndpoint
 from threading import Event, Thread
 
 
@@ -40,8 +39,9 @@ class AnonTunnel(Thread):
         self.tunnel = DispersyTunnelProxy(self.raw_server)
         self.socks5_server.tunnel = self.tunnel
 
-        self.command_handler = CommandHandler(self)
-        self.command_handler.attach_to(self.raw_server, cmd_port)
+        if cmd_port:
+            self.command_handler = CommandHandler(self)
+            self.command_handler.attach_to(self.raw_server, cmd_port)
 
         self.community = None
 
@@ -72,13 +72,13 @@ class AnonTunnel(Thread):
             while True:
                 tunnel = self.socks5_server.tunnel
 
-                t2 = time.clock()
+                t2 = time.time()
                 if tunnel and t1 and t2 > t1:
 
 
-                    total_bytes_in_2 = tunnel.stats['bytes_enter'] \
+                    total_bytes_in_2 = tunnel.stats['bytes_enter']  \
                                        + sum([c.bytes_downloaded for c in tunnel.get_circuits()]) \
-                                       + sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
+                                       + sum([r.bytes[1] for r in tunnel.relay_from_to.values()]) # Relay is always downloaded and uploaded
 
                     total_bytes_out_2 = tunnel.stats['bytes_exit'] \
                                         + sum([c.bytes_uploaded for c in tunnel.get_circuits()]) \

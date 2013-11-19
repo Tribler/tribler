@@ -38,7 +38,7 @@ def main(argv):
         parser.print_help()
         sys.exit(2)
 
-    cmd_port = 1081
+    cmd_port = None
     socks5_port = None
 
     if args.yappi == 'wall':
