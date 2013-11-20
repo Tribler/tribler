@@ -14,7 +14,7 @@ import select
 import socket
 
 import threading
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
 import Queue
 
 from traceback import print_exc, print_stack
@@ -87,6 +87,8 @@ class TorrentChecking(Thread):
         self._torrent_check_interval = 30
 
         # request queues
+        self._new_request_event = Event()
+
         self._max_gui_requests = DEFAULT_MAX_GUI_REQUESTS
         self._max_selected_requests = DEFAULT_MAX_SELECTED_REQUESTS
 
@@ -138,6 +140,7 @@ class TorrentChecking(Thread):
         successful = True
         try:
             self._gui_request_queue.put_nowait(gui_torrent)
+            self._new_request_event.set()
         except Queue.Full:
             if DEBUG:
                 print >> sys.stderr, '[WARN] GUI request queue is full.'
@@ -156,11 +159,9 @@ class TorrentChecking(Thread):
         infohash   = gui_torrent.infohash
 
         # get torrent's tracker list
-        self._lock.acquire()
         retries, last_check, tracker_list = \
             self._getTorrentInfo(infohash=infohash,\
                 is_gui_request=True,gui_torrent=gui_torrent)
-        self._lock.release()
         if not tracker_list:
             # TODO: add method to handle torrents with no tracker
             return False
@@ -525,6 +526,7 @@ class TorrentChecking(Thread):
     # The thread function.
     # ------------------------------------------------------------
     def run(self):
+        # TODO: someone please check this? I am not really sure what this is.
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
 
@@ -536,9 +538,7 @@ class TorrentChecking(Thread):
                     gui_torrent = self._gui_request_queue.get_nowait()
                     self._handleGuiRequest(gui_torrent)
             except Queue.Empty:
-                if DEBUG:
-                    print >> sys.stderr,\
-                    '[DEBUG] GUI request queue is empty.'
+                pass
             except Exception as e:
                 print >> sys.stderr,\
                 '[WARN] Unexpected error while handling GUI requests:', e
@@ -559,6 +559,19 @@ class TorrentChecking(Thread):
                     print_stack()
                 self._lock.release()
                 last_time_select_torrent = this_time
+
+            # sleep if no existing session and no request
+            self._lock.acquire()
+            if self._session_dict:
+                has_session = True
+            else:
+                has_session = False
+            self._lock.release()
+            if not has_session:
+                # TODO: make this configurable
+                self._new_request_event.wait(10)
+                self._new_request_event.clear()
+                continue
 
             # create read and write socket check list
             # check non-blocking connection TCP sockets if they are writable

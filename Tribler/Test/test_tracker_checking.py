@@ -25,7 +25,7 @@ class TestTorrentChecking(AbstractServer):
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
         self.tdb._nb = NetworkBuzzDBHandler.getInstance()
 
-        self.torrentChecking = TorrentChecking()
+        self.torrentChecking = TorrentChecking.getInstance()
         sleep(5)
 
     def test_torrent_checking(self):
