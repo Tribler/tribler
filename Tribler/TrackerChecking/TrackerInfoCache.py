@@ -40,9 +40,8 @@ class TrackerInfoCache(object):
     # Destructor.
     # ------------------------------------------------------------
     def __del__(self):
-        self._lock.acquire()
         del self._tracker_info_dict
-        self._lock.release()
+        del self._lock
 
     # ------------------------------------------------------------
     # Loads and initializes the cache from database.
