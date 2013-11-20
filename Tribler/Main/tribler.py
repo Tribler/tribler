@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 #
 import urllib
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
 original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.

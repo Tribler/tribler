@@ -827,11 +827,11 @@ class TriblerLaunchMany(Thread):
 
         self.update_torrent_checking_period()
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
-        try:
-            self.torrent_checking.setInterval(self.torrent_checking_period)
-        except Exception as e:
-            print_exc()
-            self.rawserver_nonfatalerrorfunc(e)
+        #try:
+        #    self.torrent_checking.setInterval(self.torrent_checking_period)
+        #except Exception as e:
+        #    print_exc()
+        #    self.rawserver_nonfatalerrorfunc(e)
 
     # SWIFTPROC
     def swift_add(self, sdef, dscfg, pstate=None, initialdlstatus=None, hidden=False):

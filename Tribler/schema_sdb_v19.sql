@@ -122,7 +122,10 @@ CREATE TABLE Torrent (
   comment          text,
   dispersy_id      integer,
   swift_hash        text,
-  swift_torrent_hash text
+  swift_torrent_hash text,
+  tracker_check_retries integer DEFAULT 0,
+  last_tracker_check    numeric DEFAULT 0,
+  trackers              text
 );
 
 CREATE UNIQUE INDEX infohash_idx
@@ -177,6 +180,13 @@ CREATE TABLE TorrentTracker (
   ignored_times    integer,
   retried_times    integer,
   last_check       numeric
+);
+
+CREATE TABLE TrackerInfo (
+  tracker     text    PRIMARY KEY,
+  last_check  numeric DEFAULT 0,
+  failures    integer DEFAULT 0,
+  is_alive    integer DEFAULT 1
 );
 
 CREATE UNIQUE INDEX torrent_tracker_idx
@@ -477,7 +487,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 18);
+INSERT INTO MyInfo VALUES ('version', 19);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');

@@ -25,7 +25,7 @@ class TestTorrentChecking(AbstractServer):
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
         self.tdb._nb = NetworkBuzzDBHandler.getInstance()
 
-        self.torrentChecking = TorrentChecking()
+        self.torrentChecking = TorrentChecking.getInstance()
         sleep(5)
 
     def test_torrent_checking(self):
@@ -34,7 +34,7 @@ class TestTorrentChecking(AbstractServer):
         tdef.metainfo_valid = True
 
         self.tdb.addExternalTorrent(tdef)
-        self.torrentChecking.addToQueue(tdef.get_infohash())
+        self.torrentChecking._test_checkInfohash(tdef.get_infohash(), tdef.get_tracker())
         sleep(30)
 
         id, num_leechers, num_seeders, last_check = self.tdb.getSwarmInfoByInfohash(tdef.get_infohash())
