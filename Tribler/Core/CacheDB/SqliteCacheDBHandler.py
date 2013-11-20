@@ -495,7 +495,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                       'num_leechers', 'num_seeders', 'length',
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash', 'tracker', 'last_check',
+                      'relevance', 'infohash', 'last_check', #'tracker',
                       'trackers', 'last_tracker_check',
                       'tracker_check_retries']
 
