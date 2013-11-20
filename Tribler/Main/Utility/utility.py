@@ -216,20 +216,6 @@ class Utility:
 
         self.config = ConfigReader(configfilepath, "Tribler", defaults)
 
-    @staticmethod
-    def _convert__helper_4_1__4_2(abc_config, set_config_func, name, convert=None):
-        if convert is None:
-            convert = lambda x: x
-        if abc_config.Exists(name):
-            v = abc_config.Read(name)
-            try:
-                v = convert(v)
-            except:
-                pass
-            else:
-                set_config_func(v)
-                abc_config.DeleteEntry(name)
-
     def setupTorrentMakerConfig(self):
         # Arno, 2008-03-27: To keep fileformat compatible
         defaults = {
