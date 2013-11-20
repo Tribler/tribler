@@ -1,5 +1,6 @@
 # ============================================================
 # Written by Lipu Fei
+# optimizing the TrackerChecking module written by Niels Zeilemaker.
 #
 # The tracker session modules.
 # ============================================================

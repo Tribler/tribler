@@ -1,6 +1,6 @@
 # ============================================================
 # Written by Lipu Fei,
-# optimizing the TrackerChecking module built by Niels Zeilemaker.
+# optimizing the TrackerChecking module written by Niels Zeilemaker.
 #
 # see LICENSE.txt for license information
 #
@@ -15,6 +15,7 @@ import socket
 
 import threading
 from threading import Thread, Lock
+import Queue
 
 from traceback import print_exc, print_stack
 
@@ -40,6 +41,9 @@ from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChe
 
 # some settings
 DEBUG = True
+
+DEFAULT_MAX_GUI_REQUESTS = 1000
+DEFAULT_MAX_SELECTED_REQUESTS = 2000
 
 # ============================================================
 # This is the single-threaded tracker checking class.
@@ -82,6 +86,13 @@ class TorrentChecking(Thread):
         self._torrent_select_interval = 60
         self._torrent_check_interval = 30
 
+        # request queues
+        self._max_gui_requests = DEFAULT_MAX_GUI_REQUESTS
+        self._max_selected_requests = DEFAULT_MAX_SELECTED_REQUESTS
+
+        self._gui_request_queue = Queue.Queue(self._max_gui_requests)
+        self._selected_request_queue = Queue.Queue(self._max_selected_requests)
+
         self._should_stop = False
 
         self.start()
@@ -104,7 +115,10 @@ class TorrentChecking(Thread):
     def delInstance():
         TorrentChecking.__single = None
 
-
+    # ------------------------------------------------------------
+    # (Public API)
+    # The public interface to shutdown the thread.
+    # ------------------------------------------------------------
     def shutdown(self):
         self._should_stop = True
 
@@ -118,21 +132,37 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     def addTorrentToQueue(self, gui_torrent):
         if gui_torrent._torrent_id == -1:
-            print >> sys.stderr, '[DEBUG] Skipping torrent[%s] invalid ID.' %\
-                binascii.b2a_hex(gui_torrent.infohash)
             return False
 
-        infohash = gui_torrent.infohash
+        # enqueue the request
+        successful = True
+        try:
+            self._gui_request_queue.put_nowait(gui_torrent)
+        except Queue.Full:
+            if DEBUG:
+                print >> sys.stderr, '[WARN] GUI request queue is full.'
+            successful = False
+        except Exception as e:
+            print >> sys.stderr,\
+                '[WARN] Unexpected error while adding GUI request:', e
+            successful = False
+        return successful
+
+    # ------------------------------------------------------------
+    # ------------------------------------------------------------
+    @forceDBThread
+    def _handleGuiRequest(self, gui_torrent):
+        torrent_id = gui_torrent._torrent_id
+        infohash   = gui_torrent.infohash
 
         # get torrent's tracker list
         self._lock.acquire()
         retries, last_check, tracker_list = \
-            self._getTorrentInfo(infohash, gui_torrent)
+            self._getTorrentInfo(infohash=infohash,\
+                is_gui_request=True,gui_torrent=gui_torrent)
         self._lock.release()
         if not tracker_list:
             # TODO: add method to handle torrents with no tracker
-            print >> sys.stderr, '[DEBUG] Skipping torrent[%s] with no tracker.' %\
-                binascii.b2a_hex(infohash)
             return False
 
         # for each valid tracker, try to (1) append a request or
@@ -209,7 +239,7 @@ class TorrentChecking(Thread):
     # from magnet links and gui_torrent's "trackers" field and update the
     # DB.
     # ------------------------------------------------------------
-    def _getTorrentInfo(self, infohash, gui_torrent=None):
+    def _getTorrentInfo(self, infohash, is_gui_request=False, gui_torrent=None):
         # see if we can find anything from DB
         torrent = self._torrentdb.getTorrent(infohash)
         retries = torrent['tracker_check_retries']
@@ -258,8 +288,6 @@ class TorrentChecking(Thread):
     # This method is only used by TrackerSession to update a retrieved result.
     # ------------------------------------------------------------
     def updateResultFromSession(self, infohash, seeders, leechers):
-        print >> sys.stderr, '[DEBUG] update called: %s, %d, %d' %\
-            (binascii.b2a_hex(infohash), seeders, leechers)
         response = self._pending_response_dict[infohash]
         response['last_check'] = int(time.time())
         if response['seeders'] < seeders or \
@@ -423,9 +451,6 @@ class TorrentChecking(Thread):
                 retries = torrent[1]
                 last_check = torrent[2]
 
-                if DEBUG:
-                    print >> sys.stderr, \
-                    '[!!!] Adding torrent[%s].' % binascii.b2a_hex(infohash)
                 self._addInfohashToQueue(infohash, retries, last_check, tracker)
 
             del check_torrent_list
@@ -505,6 +530,21 @@ class TorrentChecking(Thread):
 
         last_time_select_torrent = 0
         while not self._should_stop:
+            # handle GUI requests
+            try:
+                while True:
+                    gui_torrent = self._gui_request_queue.get_nowait()
+                    self._handleGuiRequest(gui_torrent)
+            except Queue.Empty:
+                if DEBUG:
+                    print >> sys.stderr,\
+                    '[DEBUG] GUI request queue is empty.'
+            except Exception as e:
+                print >> sys.stderr,\
+                '[WARN] Unexpected error while handling GUI requests:', e
+
+            # handle selected requests TODO
+
             # torrent selection
             this_time = int(time.time())
             if this_time - last_time_select_torrent > self._torrent_select_interval:
@@ -588,9 +628,6 @@ class TorrentChecking(Thread):
                         self._pending_response_dict[infohash]['remainingResponses'] -= 1
 
                     # update the Tracker Status Cache
-                    if self._should_stop:
-                        self._lock.release()
-                        return
                     self._tracker_info_cache.updateTrackerInfo( \
                         session.tracker, success)
 
@@ -612,13 +649,9 @@ class TorrentChecking(Thread):
                 # can not do it in the previous loop because it will change the
                 # dictionary and hence cause error in the iteration.
                 for infohash in obsolete_list:
-                    if self._should_stop:
-                        self._lock.release()
-                        return
                     self._checkResponseFinal(self._pending_response_dict[infohash])
                     del self._pending_response_dict[infohash]
                 del obsolete_list
-
 
                 # >> Last Step. check and handle timed out UDP sessions
                 for _, session in self._session_dict.items():
@@ -636,7 +669,7 @@ class TorrentChecking(Thread):
                         print >> sys.stderr, \
                         '[DEBUG] Tracker[%s] retried out.' % session.tracker
                     else:
-                        # re-establish the message
+                        # re-establish the connection
                         session.reestablishConnection()
                         session.retries += 1
                         print >> sys.stderr, \
@@ -649,8 +682,6 @@ class TorrentChecking(Thread):
                 print_exc()
                 print_stack()
                 time.sleep(1000)
-
-            print >> sys.stderr, '[DEBUG] Sessions: %d' % len(self._session_dict.keys())
 
             self._lock.release()
 
