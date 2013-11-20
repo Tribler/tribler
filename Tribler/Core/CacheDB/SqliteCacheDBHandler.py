@@ -1233,13 +1233,12 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             keys = list(keys)
 
-        # TODO: to be removed
-        #tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
-        #tracker_keys = [key for key in tracker_keys if key in keys]
-        #if len(tracker_keys) > 0:
-        #    res = self._db.getOne('Torrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
-        #else:
-        res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
+        tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
+        tracker_keys = [key for key in tracker_keys if key in keys]
+        if len(tracker_keys) > 0:
+            res = self._db.getOne('Torrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
+        else:
+            res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
 
         if not res:
             return None
