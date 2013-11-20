@@ -10,7 +10,9 @@
 # "dead" trackers over and over again.
 # ============================================================
 
+import sys
 import time
+from threading import Lock
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
@@ -30,33 +32,42 @@ class TrackerInfoCache(object):
         self._max_tracker_failures = max_failures
         self._dead_tracker_recheck_Interval = dead_tracker_recheck_interval
 
+        self._lock = Lock()
+
         self._loadCacheFromDb()
 
+    # ------------------------------------------------------------
+    # Destructor.
+    # ------------------------------------------------------------
+    def __del__(self):
+        self._lock.acquire()
+        del self._tracker_info_dict
+        self._lock.release()
 
     # ------------------------------------------------------------
     # Loads and initializes the cache from database.
     # ------------------------------------------------------------
+    @forceDBThread
     def _loadCacheFromDb(self):
         tracker_info_list = self._torrentdb.getTrackerInfoList()
-        for tracker_info in tracker_info_list:
-            tracker, alive, last_check, failures = tracker_info
-            self._tracker_info_dict[tracker] = dict()
-            self._tracker_info_dict[tracker]['last_check'] = last_check
-            self._tracker_info_dict[tracker]['failures'] = failures
-            self._tracker_info_dict[tracker]['alive'] = alive
-        del tracker_info_list
-
+        # update tracker info
+        self._lock.acquire()
+        if self._tracker_info_dict:
+            for tracker_info in tracker_info_list:
+                tracker, alive, last_check, failures = tracker_info
+                self._tracker_info_dict[tracker] = dict()
+                self._tracker_info_dict[tracker]['last_check'] = last_check
+                self._tracker_info_dict[tracker]['failures'] = failures
+                self._tracker_info_dict[tracker]['alive'] = alive
+            del tracker_info_list
+        self._lock.release()
 
     # ------------------------------------------------------------
     # Updates the tracker status into the DB.
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTrackerInfoIntoDb(self, tracker, last_check, failures, alive):
-        try:
-            self._torrentdb.updateTrackerInfo(tracker, last_check, failures, alive)
-        except:
-            pass
-
+        self._torrentdb.updateTrackerInfo(tracker, last_check, failures, alive)
 
     # ------------------------------------------------------------
     # (Public API)
@@ -65,21 +76,31 @@ class TrackerInfoCache(object):
     def toCheckTracker(self, tracker):
         currentTime = int(time.time())
 
+        self._lock.acquire()
+        # the deconstructor can be called beforehand.
+        if not self._tracker_info_dict:
+            self._lock.release()
+            return True
+
         if not tracker in self._tracker_info_dict:
+            self._lock.release()
             return True
 
         alive = self._tracker_info_dict[tracker]['alive']
-        last_check = self._tracker_info_dict[tracker]['last_check']
         if alive:
+            self._lock.release()
             return True
 
         # check the last time we check this 'dead' tracker
+        last_check = self._tracker_info_dict[tracker]['last_check']
         interval = currentTime - last_check
         if interval >= self._dead_tracker_recheck_Interval:
-            return True
+            result = True
         else:
-            return False
+            result = False
+        self._lock.release()
 
+        return result
 
     # ------------------------------------------------------------
     # (Public API)
@@ -87,6 +108,12 @@ class TrackerInfoCache(object):
     # ------------------------------------------------------------
     def updateTrackerInfo(self, tracker, success=True):
         currentTime = int(time.time())
+
+        self._lock.acquire()
+        # the deconstructor can be called beforehand.
+        if not self._tracker_info_dict:
+            self._lock.release()
+            return False
 
         # create a new record if doesn't exist
         if not tracker in self._tracker_info_dict:
@@ -110,10 +137,14 @@ class TrackerInfoCache(object):
             alive = 1
         tracker_info['alive'] = alive
 
-        # to avoid the concurrency problem of using the TrackerInfo Dict
-        self._updateTrackerInfoIntoDb(tracker, tracker_info['last_check'], \
-            tracker_info['failures'], tracker_info['alive'])
+        # avoid concurrency problem
+        last_check = tracker_info['last_check']
+        failures   = tracker_info['failures']
+        alive      = tracker_info['alive']
+        self._lock.release()
 
+        # to avoid the concurrency problem of using the TrackerInfo Dict
+        self._updateTrackerInfoIntoDb(tracker, last_check, failures, alive)
 
     # ========================================
     # Methods for properties.
@@ -128,4 +159,3 @@ class TrackerInfoCache(object):
     @trackerInfoDict.deleter
     def trackerInfoDict(self):
         del self._tracker_info_dict
-
