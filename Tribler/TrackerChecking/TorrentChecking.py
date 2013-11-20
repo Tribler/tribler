@@ -100,6 +100,19 @@ class TorrentChecking(Thread):
         self.start()
 
     # ------------------------------------------------------------
+    # Deconstructor.
+    # ------------------------------------------------------------
+    def __del__(self):
+        del self._gui_request_queue
+        del self._selected_request_queue
+
+        del self._tracker_info_cache
+
+        del self._pending_response_dict
+        del self._session_dict
+        del self._lock
+
+    # ------------------------------------------------------------
     # (Public API)
     # The public interface to initialize and get the single instance.
     # ------------------------------------------------------------
@@ -123,6 +136,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     def shutdown(self):
         self._should_stop = True
+        self._new_request_event.set()
 
     # ------------------------------------------------------------
     # (Public API)
@@ -697,4 +711,15 @@ class TorrentChecking(Thread):
                 time.sleep(1000)
 
             self._lock.release()
+
+        # the thread is shutting down, kill all the tracker sessions
+        for sock, session in self._session_dict.items():
+            sock.close()
+            del session
+        del self._session_dict
+
+        del self._tracker_info_cache
+
+        del self._gui_request_queue
+        del self._selected_request_queue
 
