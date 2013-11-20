@@ -495,7 +495,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                       'num_leechers', 'num_seeders', 'length',
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash', #'tracker', 'last_check',
+                      'relevance', 'infohash', 'tracker', 'last_check',
                       'trackers', 'last_tracker_check',
                       'tracker_check_retries']
 
@@ -1261,9 +1261,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent['infohash'] = infohash
 
-        # TODO: to be removed
-        #if 'last_check' in torrent:
-        #    torrent['last_check_time'] = torrent['last_check']
+        if 'last_check' in torrent:
+            torrent['last_check_time'] = torrent['last_check']
         if 'trackers' in torrent and torrent['trackers']:
             torrent['tracker_list'] = torrent['trackers'].split('\n')
 
