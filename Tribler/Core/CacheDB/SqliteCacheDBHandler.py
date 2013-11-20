@@ -495,7 +495,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                       'num_leechers', 'num_seeders', 'length',
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash', 'last_check', #'tracker',
+                      'relevance', 'infohash', 'last_check', 'tracker',
                       'trackers', 'last_tracker_check',
                       'tracker_check_retries']
 
@@ -838,9 +838,9 @@ class TorrentDBHandler(BasicDBHandler):
             kw['num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
             kw['num_leechers'] = kw.pop('leecher')
-        #if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw \
-        #  or 'retried_times' in kw or 'ignored_times' in kw:
-        #    self.updateTracker(infohash, kw, commit=False)
+        if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw \
+          or 'retried_times' in kw or 'ignored_times' in kw:
+            self.updateTracker(infohash, kw, commit=False)
 
         if 'retries' in kw:
             kw['tracker_check_retries'] = kw.pop('retries')
@@ -1078,9 +1078,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         return True
 
-    # ============================================================
-    # MARK <BEGIN>: Added by Lipu Fei
-    # ============================================================
+
     # ------------------------------------------------------------
     # Gets a list of torrents that have a given tracker.
     # ------------------------------------------------------------
@@ -1116,9 +1114,6 @@ class TorrentDBHandler(BasicDBHandler):
             where = 'tracker = \'%s\'' % tracker
             self._db.update('TrackerInfo', where, **kw)
 
-    # ============================================================
-    # MARK <END>: Added by Lipu Fei
-    # ============================================================
 
     def getTracker(self, infohash, tier=0):
         torrent_id = self._db.getTorrentID(infohash)
