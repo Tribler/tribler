@@ -844,8 +844,6 @@ class TorrentDBHandler(BasicDBHandler):
 
         if 'retries' in kw:
             kw['tracker_check_retries'] = kw.pop('retries')
-        if 'last_check' in kw:
-            kw['last_tracker_check'] = kw.pop('last_check')
         if 'trackers' in kw:
             kw['trackers'] = kw.pop('trackers')
 
