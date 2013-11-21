@@ -179,6 +179,14 @@ CREATE TABLE TorrentTracker (
   last_check       numeric
 );
 
+CREATE TABLE TrackerInfo (
+  tracker_id  integer PRIMARY KEY AUTOINCREMENT,
+  tracker     text    UNIQUE NOT NULL,
+  last_check  numeric DEFAULT 0,
+  failures    integer DEFAULT 0,
+  is_alive    integer DEFAULT 1
+);
+
 CREATE UNIQUE INDEX torrent_tracker_idx
   ON TorrentTracker
   (torrent_id, tracker);
@@ -477,7 +485,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 18);
+INSERT INTO MyInfo VALUES ('version', 19);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
