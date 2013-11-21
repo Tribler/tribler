@@ -4,7 +4,7 @@ logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload, StatsPayload
 
-from Tribler.dispersy.candidate import BootstrapCandidate, Candidate, WalkCandidate
+from Tribler.dispersy.candidate import BootstrapCandidate, WalkCandidate
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -67,18 +67,10 @@ class ProxyCommunity(Community, Observable):
         self.member_heartbeat = {}
         self.member_ping = {}
 
-        def on_pong(event, message):
-            logger.debug("Got PONG from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
-
-        self.subscribe("on_pong", on_pong)
 
 
     def initiate_conversions(self):
-        ret = [DefaultConversion(self), ProxyConversion(self)]
-
-        self.dispersy.endpoint.bypass_prefix = ret[1]._prefix + chr(5)
-
-        return ret
+        return [DefaultConversion(self), ProxyConversion(self)]
 
     def initiate_meta_messages(self):
         def yield_all(messages):
@@ -87,9 +79,6 @@ class ProxyCommunity(Community, Observable):
 
         def trigger_event(messages, event_name):
             for msg in messages:
-                if msg.candidate in self.member_ping:
-                    del self.member_ping[msg.candidate]
-
                 self.fire("on_member_heartbeat", candidate=msg.candidate)
                 self.fire(event_name, message=msg)
 
@@ -119,15 +108,7 @@ class ProxyCommunity(Community, Observable):
             for message_key, payload in event_messages_def.items()
         ]
 
-        self.subscribe("on_ping", self.on_ping)
-
         return event_messages
-
-    def on_bypass_message(self, candidate, packet):
-        placeholder = Mock(meta=self.get_meta_message(u"data"))
-        offset, payload = ProxyConversion._decode_data(placeholder, len(self.dispersy.endpoint.bypass_prefix), packet)
-        self.fire("on_data", message=Mock(payload=payload, candidate=candidate, packet=packet))
-
 
     def send_data(self, candidate, payload):
         #payload = Mock(circuit_id=123, destination=("8.8.8.8", 80), data="TEST", origin=("127.0.0.1", 1234))
@@ -153,14 +134,6 @@ class ProxyCommunity(Community, Observable):
                                                  meta.distribution, meta.destination, meta.payload, meta.check_callback,
                                                  self.on_introduction_response, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_response
-
-    def send(self, message_type, destination_candidate, *payload):
-        assert isinstance(destination_candidate, Candidate), "destination_candidate should be a Candidate"
-
-        meta = self.get_meta_message(message_type)
-        message = meta.impl(distribution=(self.global_time,), payload=payload)
-
-        self.dispersy.endpoint.send([destination_candidate], [message.packet])
 
     def on_ping(self, event, message):
         logger.debug("Got PING from %s:%d" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))

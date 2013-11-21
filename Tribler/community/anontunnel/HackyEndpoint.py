@@ -26,8 +26,7 @@ class HackyEndpoint(RawserverEndpoint):
         normal_packets = []
         for packet in packets:
             if self.bypass_prefix and packet[1].startswith(self.bypass_prefix):
-                candidate = self.bypass_community.candidates.get(packet[0]) or Candidate(packet[0], False)
-                self.bypass_community.on_bypass_message(candidate, packet[1])
+                self.bypass_community.on_bypass_message(packet[0], packet[1])
             else:
                 normal_packets.append(packet)
 
