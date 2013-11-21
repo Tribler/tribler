@@ -46,7 +46,7 @@ STATEDIR_PEERICON_DIR = 'icons'
 STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
 STATEDIR_SWIFTRESEED_DIR = os.path.join(STATEDIR_TORRENTCOLL_DIR, 'swift_reseeds')
 
-STATEDIR_SESSCONFIG = 'sessconfig.pickle'
+STATEDIR_SESSCONFIG = 'libtribler.conf'
 STATEDIR_SEEDINGMANAGER_DIR = 'seeding_manager_stats'
 PROXYSERVICE_DESTDIR = 'proxyservice'
 

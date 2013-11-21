@@ -14,6 +14,7 @@
 
 import sys
 import logging.config
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig
 try:
     logging.config.fileConfig("logger.conf")
 except:
@@ -201,7 +202,7 @@ class ABCApp():
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-            UserDownloadChoice.get_singleton().set_session_dir(s.get_state_dir())
+            UserDownloadChoice.get_singleton().set_config(self.utility.config, s.get_state_dir())
 
             self.splash.tick('Initializing Family Filter')
             cat = Category.getInstance()
@@ -401,8 +402,12 @@ class ABCApp():
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
         except:
-            self.sconfig = SessionStartupConfig()
-            self.sconfig.set_state_dir(state_dir)
+            try:
+                self.sconfig = convertSessionConfig(os.path.join(state_dir, 'sessconfig.pickle'), cfgfilename)
+                convertMainConfig(state_dir, os.path.join(state_dir, 'abc.conf'), os.path.join(state_dir, 'tribler.conf'))
+            except:
+                self.sconfig = SessionStartupConfig()
+                self.sconfig.set_state_dir(state_dir)
 
         self.sconfig.set_install_dir(self.installdir)
 

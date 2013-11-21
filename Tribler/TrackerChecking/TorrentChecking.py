@@ -429,12 +429,7 @@ if __name__ == '__main__':
 
     from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, str2bin
     configure_dir = sys.argv[1]
-    config = {}
-    config['state_dir'] = configure_dir
-    config['install_dir'] = '.'
-    config['peer_icon_path'] = '.'
-    config['torrent_collecting_dir'] = '.'
-    init_db(config)
+    init_db(configure_dir, '.')
 
     t = TorrentChecking()
 

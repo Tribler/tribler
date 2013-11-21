@@ -15,10 +15,7 @@ class TestTorrentChecking(AbstractServer):
     def setUp(self):
         self.setUpCleanup()
 
-        config = {}
-        config['state_dir'] = self.getStateDir()
-        config['install_dir'] = '.'
-        init_db(config)
+        init_db(self.getStateDir(), '.')
 
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.torrent_dir = FILES_DIR

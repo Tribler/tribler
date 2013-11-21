@@ -153,13 +153,13 @@ class DoubleLineListItem(ListItem):
                             self.columns[column_index]['width'] += self.descrSizer.GetChildren()[index - 1].GetSize().x
                         break
 
-            fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
-            column_sizes = fileconfig.Read("column_sizes")
+            config = self.guiutility.utility.config
+            column_sizes = config.Read("column_sizes")
             column_sizes = json.loads(column_sizes) if column_sizes else {}
             column_sizes[type(self).__name__] = column_sizes.get(type(self).__name__, {})
             column_sizes[type(self).__name__].update({self.columns[column_index]['name']: self.columns[column_index]['width']})
-            fileconfig.Write("column_sizes", json.dumps(column_sizes))
-            fileconfig.Flush()
+            config.Write("column_sizes", json.dumps(column_sizes))
+            config.Flush()
 
             def rebuild():
                 if hasattr(self.parent_list.parent_list, 'oldDS'):
@@ -222,15 +222,15 @@ class DoubleLineListItem(ListItem):
     def OnShowColumn(self, event, index):
         self.columns[index]['show'] = not self.columns[index].get('show', True)
 
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
+        config = self.guiutility.utility.config
 
-        hide_columns = fileconfig.Read("hide_columns")
+        hide_columns = config.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
         hide_columns[type(self).__name__] = hide_columns.get(type(self).__name__, {})
         hide_columns[type(self).__name__].update({self.columns[index]['name']: self.columns[index]['show']})
 
-        fileconfig.Write("hide_columns", json.dumps(hide_columns))
-        fileconfig.Flush()
+        config.Write("hide_columns", json.dumps(hide_columns))
+        config.Flush()
 
         if getattr(self.parent_list.parent_list, 'ResetBottomWindow', False):
             self.parent_list.parent_list.ResetBottomWindow()
