@@ -51,8 +51,8 @@ class TestTorrentChecking(AbstractServer):
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
 
-        if Session.has_instance():
-            Session.del_instance()
+        #if Session.has_instance():
+        #    Session.del_instance()
 
         TorrentDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
