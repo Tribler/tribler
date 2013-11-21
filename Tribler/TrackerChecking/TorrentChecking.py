@@ -73,7 +73,7 @@ class TorrentChecking(Thread):
         self._torrentdb = TorrentDBHandler.getInstance()
 
         # TODO: make these configurable
-        self._select_timeout = 5
+        self._select_timeout = 2
 
         self._lock = Lock()
         self._session_dict = dict()
