@@ -15,12 +15,13 @@ from Tribler.Test.bak_tribler_sdb import FILES_DIR
 class TestTorrentChecking(AbstractServer):
 
     def setUp(self):
-        self.setUpCleanup()
+        AbstractServer.setUpCleanup(self)
 
-        config = {}
-        config['state_dir'] = self.getStateDir()
-        config['install_dir'] = '.'
-        init_db(config)
+        #config = {}
+        #config['state_dir'] = self.getStateDir()
+        #config['install_dir'] = '.'
+        #init_db(config)
+        init_db(self.getStateDir(), config)
 
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.torrent_dir = FILES_DIR
@@ -50,11 +51,11 @@ class TestTorrentChecking(AbstractServer):
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
 
+        if Session.has_instance():
+            Session.del_instance()
+
         TorrentDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
         NetworkBuzzDBHandler.delInstance()
 
-        if Session.has_instance():
-            Session.del_instance()
-
-        self.tearDownCleanup()
+        AbstractServer.tearDownCleanup(self)
