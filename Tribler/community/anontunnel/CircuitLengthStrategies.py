@@ -13,8 +13,8 @@ class CircuitLengthStrategy(object):
 
 class RandomCircuitLengthStrategy(CircuitLengthStrategy):
     def __init__(self, min, max):
-        self.min = min
-        self.max = max
+        self.min = int(min)
+        self.max = int(max)
 
     def circuit_length(self):
         return random.randrange(self.min, self.max)
@@ -22,7 +22,7 @@ class RandomCircuitLengthStrategy(CircuitLengthStrategy):
 
 class ConstantCircuitLengthStrategy(CircuitLengthStrategy):
     def __init__(self, desired_length):
-        self.desired_length = desired_length
+        self.desired_length = int(desired_length)
 
     def circuit_length(self):
         return self.desired_length

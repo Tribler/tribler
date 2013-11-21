@@ -1,4 +1,5 @@
 import time
+from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
 
 __author__ = 'chris'
 
@@ -14,7 +15,6 @@ from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
 from Tribler.community.anontunnel.Socks5Server import Socks5Server
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import RawserverEndpoint
 from threading import Event, Thread
 
 
@@ -34,13 +34,14 @@ class AnonTunnel(Thread):
 
         self.socks5_server.attach_to(self.raw_server, socks5_port)
 
-        self.endpoint = RawserverEndpoint(self.raw_server, port=10000)
+        self.endpoint = HackyEndpoint(self.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
         self.tunnel = DispersyTunnelProxy(self.raw_server)
         self.socks5_server.tunnel = self.tunnel
 
-        self.command_handler = CommandHandler(self)
-        self.command_handler.attach_to(self.raw_server, cmd_port)
+        if cmd_port:
+            self.command_handler = CommandHandler(self)
+            self.command_handler.attach_to(self.raw_server, cmd_port)
 
         self.community = None
 
@@ -71,13 +72,13 @@ class AnonTunnel(Thread):
             while True:
                 tunnel = self.socks5_server.tunnel
 
-                t2 = time.clock()
+                t2 = time.time()
                 if tunnel and t1 and t2 > t1:
 
 
-                    total_bytes_in_2 = tunnel.stats['bytes_enter'] \
+                    total_bytes_in_2 = tunnel.stats['bytes_enter']  \
                                        + sum([c.bytes_downloaded for c in tunnel.get_circuits()]) \
-                                       + sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
+                                       + sum([r.bytes[1] for r in tunnel.relay_from_to.values()]) # Relay is always downloaded and uploaded
 
                     total_bytes_out_2 = tunnel.stats['bytes_exit'] \
                                         + sum([c.bytes_uploaded for c in tunnel.get_circuits()]) \
@@ -89,7 +90,7 @@ class AnonTunnel(Thread):
                     active_circuits = len(tunnel.active_circuits)
                     num_routes = len(tunnel.relay_from_to) / 2
 
-                    print "\r%s %.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules" % ("ONLINE" if tunnel.online else "OFFLINE", total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes),
+                    print "\r%s %.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules. Average data packet size is %s bytes" % ("ONLINE" if tunnel.online else "OFFLINE", total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes, tunnel.stats['packet_size']),
 
                     total_bytes_out_1 = total_bytes_out_2
                     total_bytes_in_1 = total_bytes_in_2

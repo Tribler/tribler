@@ -8,14 +8,18 @@ from Tribler.dispersy.payload import Payload
 
 class PongPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta):
-            pass
+        def __init__(self, meta, circuit_id):
+            super(PongPayload.Implementation, self).__init__(meta)
+
+            self.circuit_id = circuit_id
 
 
 class PingPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta):
-            pass
+        def __init__(self, meta, circuit_id):
+            super(PingPayload.Implementation, self).__init__(meta)
+
+            self.circuit_id = circuit_id
 
 
 class CreatePayload(Payload):
@@ -131,6 +135,21 @@ class ProxyConversion(BinaryConversion):
             , self._decode_stats
         )
 
+        #self.define_meta_message(
+        #    chr(10),
+        #    community.get_meta_message(u"circuit")
+        #    , self._encode_circuit
+        #    , self._decode_circuit
+        #)
+
+    @staticmethod
+    def _encode_circuit(message):
+        return message.payload.data
+
+    @staticmethod
+    def _decode_circuit(placeholder, offset, data):
+        return offset + len(data), placeholder.meta.payload.implement(data)
+
     @staticmethod
     def _encode_stats(message):
         return encode(message.payload.stats),
@@ -143,11 +162,17 @@ class ProxyConversion(BinaryConversion):
 
     @staticmethod
     def _encode_ping_pong(message):
-        return '',
+        return struct.pack("!L", message.payload.circuit_id),
 
     @staticmethod
     def _decode_ping_pong(placeholder, offset, data):
-        return offset, placeholder.meta.payload.implement()
+        if offset + 4 > len(data):
+            raise DropPacket("Cannot unpack circuit_id, insufficient packet size")
+
+        circuit_id, = struct.unpack_from("!L", data, offset)
+        offset += 4
+
+        return offset, placeholder.meta.payload.implement(circuit_id)
 
     @staticmethod
     def _encode_break(message):

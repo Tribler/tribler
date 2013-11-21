@@ -6,7 +6,12 @@ logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger
 logger = logging.getLogger(__name__)
 
 import threading
-import yappi
+
+try:
+    import yappi
+except:
+    pass
+
 from Tribler.community.anontunnel import DispersyTunnelProxy
 from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
@@ -18,8 +23,8 @@ import sys, argparse
 def main(argv):
     try:
         parser = argparse.ArgumentParser(description = 'Anonymous Tunnel CLI interface')
-        parser.add_argument('-p', '--socks5', nargs=1, help='Socks5 port')
-        parser.add_argument('-y', '--yappi', nargs=1, help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
+        parser.add_argument('-p', '--socks5', help='Socks5 port')
+        parser.add_argument('-y', '--yappi', help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
         parser.add_argument('-c', '--cmd', help='The command UDP port to listen on')
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
         parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
@@ -33,7 +38,7 @@ def main(argv):
         parser.print_help()
         sys.exit(2)
 
-    cmd_port = 1081
+    cmd_port = None
     socks5_port = None
 
     if args.yappi == 'wall':
@@ -92,6 +97,7 @@ def main(argv):
             line = sys.stdin.readline()
         except KeyboardInterrupt:
             anon_tunnel.stop()
+            os._exit(0)
             break
 
         if not line:
@@ -127,16 +133,17 @@ def main(argv):
         elif line == 'c\n':
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tIN (kBps)\tOUT (kBps)"
             for circuit in anon_tunnel.tunnel.circuits.values():
-                print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
-                    circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
-                    circuit.bytes_downloaded / 1024.0 / 1024.0,
-                    circuit.bytes_uploaded / 1024.0 / 1024.0,
-                    circuit.speed_down / 1024.0,
-                    circuit.speed_up / 1024.0
-                )
+                if circuit.created:
+                    print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
+                        circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
+                        circuit.bytes_downloaded / 1024.0 / 1024.0,
+                        circuit.bytes_uploaded / 1024.0 / 1024.0,
+                        circuit.speed_down / 1024.0,
+                        circuit.speed_up / 1024.0
+                    )
 
-                for hop in circuit.hops[1:]:
-                    print "\t%s" % (hop,)
+                    for hop in circuit.hops[1:]:
+                        print "\t%s" % (hop,)
 
         elif cmd_extend_match:
             circuit_id = int(cmd_extend_match.group(1))
@@ -147,6 +154,7 @@ def main(argv):
 
         elif line == 'q\n':
             anon_tunnel.stop()
+            os._exit(0)
             break
 
         elif line == 'r\n':

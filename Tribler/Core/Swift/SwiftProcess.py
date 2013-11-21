@@ -7,15 +7,13 @@ import random
 import binascii
 import urllib
 import json
-import binascii
 from threading import RLock
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from collections import defaultdict
 
 from Tribler.Core.simpledefs import *
 # from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.FastI2I import *
-from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
 
 try:
     WindowsError
@@ -97,7 +95,8 @@ class SwiftProcess:
         startupinfo = None
         if sys.platform == "win32":
             startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            import _subprocess
+            startupinfo.dwFlags |= _subprocess.STARTF_USESHOWWINDOW
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             creationflags = 0
