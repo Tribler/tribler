@@ -31,6 +31,7 @@ class TestTorrentChecking(AbstractServer):
     # ------------------------------------------------------------
     def test_tracker_info_cache(self):
         tracker_info_cache = TrackerInfoCache()
+        sleep(5)
 
         tracker = 'udp://tracker.publicbt.com:80/announce'
         # > subtest 1: update a valid tracker.
