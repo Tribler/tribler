@@ -40,6 +40,9 @@ class AbstractDB(AbstractServer):
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
 
+        if Session.has_instance():
+            Session.del_instance()
+
         self.tearDownCleanup()
 
 
