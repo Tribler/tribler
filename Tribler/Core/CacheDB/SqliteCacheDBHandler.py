@@ -1069,6 +1069,35 @@ class TorrentDBHandler(BasicDBHandler):
 
         return True
 
+    # ------------------------------------------------------------
+    # Gets all tracker information from the TrackerInfo table.
+    # ------------------------------------------------------------
+    def getTrackerInfoList(self):
+        sql = 'SELECT tracker, last_check, failures, is_alive FROM TrackerInfo'
+        tracker_info_list = self._db.fetchall(sql)
+        return [tracker_info for tracker_info in tracker_info_list]
+
+    # ------------------------------------------------------------
+    # Updates a tracker status into the TrackerInfo table.
+    # ------------------------------------------------------------
+    def updateTrackerInfo(self, tracker, last_check, failures, is_alive):
+        sql = 'SELECT * FROM TrackerInfo WHERE tracker = ?'
+        tracker_info_list = self._db.fetchall(sql, (tracker,))
+        if not tracker_info_list:
+            # insert a new record
+            kw = [ (tracker, last_check, failures, is_alive) ]
+            sql = 'INSERT INTO TrackerInfo(tracker, last_check, failures, is_alive)' \
+                 + ' VALUES(?, ?, ?, ?)'
+            self._db.executemany(sql, kw)
+        else:
+            # update the old one
+            kw = dict()
+            kw['last_check'] = last_check
+            kw['failures'] = failures
+            kw['is_alive'] = is_alive
+            where = 'tracker = \'%s\'' % tracker
+            self._db.update('TrackerInfo', where, **kw)
+
     def getTracker(self, infohash, tier=0):
         torrent_id = self._db.getTorrentID(infohash)
         if torrent_id is not None:
