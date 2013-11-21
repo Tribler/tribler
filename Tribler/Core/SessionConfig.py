@@ -175,6 +175,7 @@ class SessionConfigInterface:
         """
         self.sessconfig.set('libtorrent', 'lt_proxytype', ptype)
         self.sessconfig.set('libtorrent', 'lt_proxyserver', server if ptype else None)
+        self.sessconfig.set('libtorrent', 'lt_proxyauth', auth if ptype in [3, 5] else None)
 
     def get_libtorrent_proxy_settings(self):
         """ Returns which proxy LibTorrent is using.
