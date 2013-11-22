@@ -25,8 +25,7 @@ SQLiteCacheDB.DEBUG = False
 DEBUG = False
 
 # ------------------------------------------------------------
-# The global teardown that will only be called once.
-# We add this to delete the Session.
+# The global teardown that will delete the Session.
 # ------------------------------------------------------------
 def teardown():
     if Session.has_instance():
