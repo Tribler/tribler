@@ -6,7 +6,7 @@ from time import time
 from binascii import unhexlify
 from shutil import copy as copyFile
 
-
+from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from bak_tribler_sdb import *
 
@@ -24,6 +24,13 @@ BUSYTIMEOUT = 5000
 SQLiteCacheDB.DEBUG = False
 DEBUG = False
 
+# ------------------------------------------------------------
+# The global teardown that will only be called once.
+# We add this to delete the Session.
+# ------------------------------------------------------------
+def teardown():
+    if Session.has_instance():
+        Session.del_instance()
 
 class AbstractDB(AbstractServer):
 
