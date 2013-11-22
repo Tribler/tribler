@@ -31,24 +31,27 @@ class TestTorrentChecking(AbstractServer):
     # ------------------------------------------------------------
     def test_tracker_info_cache(self):
         tracker_info_cache = TrackerInfoCache()
-        sleep(5)
+        tracker_info_cache.loadCacheFromDb()
+        cache_initialize_timeout = 5
+        cache_initialized = tracker_info_cache.isCacheInitialized(cache_initialize_timeout)
+        assert cache_initialized, 'Failed to initialize within %d seconds' % cache_initialize_timeout
 
         tracker = 'udp://tracker.publicbt.com:80/announce'
         # > subtest 1: update a valid tracker.
         tracker_info_cache.updateTrackerInfo(tracker, success=True)
         do_check_tracker = tracker_info_cache.toCheckTracker(tracker)
-        assert do_check_tracker == True
+        assert do_check_tracker == True, 'Failed to update good tracker'
 
         # > subtest 2: update several failures.
         for i in xrange(10):
             tracker_info_cache.updateTrackerInfo(tracker, success=False)
         do_check_tracker = tracker_info_cache.toCheckTracker(tracker)
-        assert do_check_tracker == False
+        assert do_check_tracker == False, 'Failed to update bad tracker'
 
         # > subtest 3: update a valid check.
         tracker_info_cache.updateTrackerInfo(tracker, success=True)
         do_check_tracker = tracker_info_cache.toCheckTracker(tracker)
-        assert do_check_tracker == True
+        assert do_check_tracker == True, 'Failed to update good tracker again'
 
         del tracker_info_cache
 

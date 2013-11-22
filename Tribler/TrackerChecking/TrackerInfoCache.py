@@ -12,7 +12,7 @@
 
 import sys
 import time
-from threading import Lock
+from threading import Lock, Event
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
@@ -34,7 +34,7 @@ class TrackerInfoCache(object):
 
         self._lock = Lock()
 
-        self._loadCacheFromDb()
+        self._initial_load_complete_event = Event()
 
     # ------------------------------------------------------------
     # Destructor.
@@ -42,12 +42,13 @@ class TrackerInfoCache(object):
     def __del__(self):
         del self._tracker_info_dict
         del self._lock
+        del self._initial_load_complete_event
 
     # ------------------------------------------------------------
     # Loads and initializes the cache from database.
     # ------------------------------------------------------------
     @forceDBThread
-    def _loadCacheFromDb(self):
+    def loadCacheFromDb(self):
         tracker_info_list = self._torrentdb.getTrackerInfoList()
         # update tracker info
         self._lock.acquire()
@@ -60,6 +61,14 @@ class TrackerInfoCache(object):
                 self._tracker_info_dict[tracker]['alive'] = alive
             del tracker_info_list
         self._lock.release()
+
+        self._initial_load_complete_event.set()
+
+    # ------------------------------------------------------------
+    # Check if the cache has been initialized.
+    # ------------------------------------------------------------
+    def isCacheInitialized(self, wait_time):
+        return self._initial_load_complete_event.wait(wait_time)
 
     # ------------------------------------------------------------
     # Updates the tracker status into the DB.

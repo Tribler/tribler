@@ -122,7 +122,9 @@ CREATE TABLE Torrent (
   comment          text,
   dispersy_id      integer,
   swift_hash        text,
-  swift_torrent_hash text
+  swift_torrent_hash text,
+  tracker_check_retries integer DEFAULT 0,
+  last_tracker_check integer DEFAULT 0
 );
 
 CREATE UNIQUE INDEX infohash_idx
@@ -185,6 +187,14 @@ CREATE TABLE TrackerInfo (
   last_check  numeric DEFAULT 0,
   failures    integer DEFAULT 0,
   is_alive    integer DEFAULT 1
+);
+
+CREATE TABLE TorrentTrackerMapping (
+  torrent_id  integer NOT NULL,
+  tracker_id  integer NOT NULL,
+  FOREIGN KEY (torrent_id) REFERENCES Torrent(torrent_id),
+  FOREIGN KEY (tracker_id) REFERENCES TrackerInfo(tracker_id),
+  PRIMARY KEY (torrent_id, tracker_id)
 );
 
 CREATE UNIQUE INDEX torrent_tracker_idx
