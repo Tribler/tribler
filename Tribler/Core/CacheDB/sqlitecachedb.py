@@ -2171,7 +2171,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             self.database_update.release()
 
-        if fromver < 19:
+        tmpfilename4 = os.path.join(state_dir, "upgradingdb4.txt")
+        if fromver < 19 or os.path.exists(tmpfilename4):
             self.database_update.acquire()
 
             self.execute_write(\
@@ -2179,9 +2180,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 commit=False)
             self.execute_write(\
                 "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0",\
-                commit=False)
-            self.execute_write(\
-                "ALTER TABLE Torrent ADD COLUMN trackers text",\
                 commit=False)
 
             create_new_table = """
@@ -2194,7 +2192,100 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 );"""
             self.execute_write(create_new_table, commit=False)
 
+            create_new_table = """
+                CREATE TABLE TorrentTrackerMapping (
+                  torrent_id  integer NOT NULL,
+                  tracker_id  integer NOT NULL,
+                  FOREIGN KEY (torrent_id) REFERENCES Torrent(torrent_id),
+                  FOREIGN KEY (tracker_id) REFERENCES TrackerInfo(tracker_id),
+                  PRIMARY KEY (torrent_id, tracker_id)
+                );"""
+            self.execute_write(create_new_table, commit=False)
+
+            # ensure the temp-file is created, if it is not already
+            try:
+                open(tmpfilename4, "w")
+                print >> sys.stderr, "DB v19 Upgradation: temp-file successfully created", tmpfilename4
+            except:
+                print >> sys.stderr, "DB v19 Upgradation: failed to create temp-file", tmpfilename4
+
+            from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+            from Tribler.Core.TorrentDef import TorrentDef
+
+            def upgradeDBV19():
+                if not (os.path.exists(tmpfilename3) or os.path.exists(tmpfilename2) or os.path.exists(tmpfilename)):
+                    print >> sys.stderr, 'Upgrading DB to v19 ...'
+
+                    if not TEST_OVERRIDE:
+                        sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent LIMIT %d' % UPGRADE_BATCH_SIZE
+                        records = self.fetchall(sql)
+                    else:
+                        records = list()
+
+                    if len(records) == 0:
+                        if os.path.exists(tmpfilename3):
+                            os.remove(tmpfilename3)
+                            print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename3
+
+                        self.database_update.release()
+                        return
+
+                    found_torrent_tracker_map_list = list()
+                    found_tracker_list = list()
+
+                    import binascii
+
+                    for torrent_id, infohash, torrent_filename in records:
+                        if not os.path.isfile(torrent_filename):
+                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
+
+                        # .torrent found, return complete filename
+                        if not os.path.isfile(torrent_filename):
+                            # .torrent not found, use default collected_torrent_filename
+                            torrent_filename = get_collected_torrent_filename(str2bin(infohash))
+                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
+
+                        if os.path.isfile(torrent_filename):
+                            try:
+                                torrent = TorrentDef.load(torrent_filename)
+                                tracker_list = torrent.get_tracker_hierarchy()
+
+                                # things are very tricky here, there are two lists!
+                                if tracker_list:
+                                    for sub_tracker_list in tracker_list:
+                                        for tracker in sub_tracker_list:
+                                            if (torrent_id, tracker) not in found_torrent_tracker_map_list:
+                                                found_torrent_tracker_map_list.append((torrent_id, tracker))
+                                            if tracker not in found_tracker_list:
+                                                found_tracker_list.append((tracker,))
+                            except Exception as e:
+                                # some torrent files may not be loaded correctly
+                                pass
+
+                            # TODO: to be reviewed. Copied from UpdateTorrents3().
+                            #       Don't know why we delete torrent files.
+                            #os.remove(torrent_filename)
+
+                    if found_tracker_list:
+                        print >> sys.stderr, found_tracker_list
+                        insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
+                        self.executemany(insert, found_tracker_list)
+
+                    if found_torrent_tracker_map_list:
+                        print >> sys.stderr, found_torrent_tracker_map_list
+                        insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
+                            + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
+                        self.executemany(insert, found_torrent_tracker_map_list)
+
+            # start the upgradation after 10 seconds
+            if not tqueue:
+                tqueue = TimedTaskQueue('UpgradeDB')
+                tqueue.add_task(kill_threadqueue_if_empty, INITIAL_UPGRADE_PAUSE + 1, 'kill_if_empty')
+            tqueue.add_task(upgradeDBV19, INITIAL_UPGRADE_PAUSE)
+
             self.database_update.release()
+
+        # TODO tell the TrackerCacheInfo that the DB upgrade is complete
 
     def clean_db(self, vacuum=False):
         from time import time
