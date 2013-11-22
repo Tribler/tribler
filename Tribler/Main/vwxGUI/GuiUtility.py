@@ -322,9 +322,10 @@ class GUIUtility:
         return result
 
     def SetColumnInfo(self, itemtype, columns, hide_defaults=[]):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        config = self.utility.config
+
         # Load hidden column info
-        hide_columns = fileconfig.Read("hide_columns")
+        hide_columns = config.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
         hide_columns = hide_columns.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
@@ -334,7 +335,7 @@ class GUIUtility:
                 column['show'] = not (index in hide_defaults)
 
         # Load column width info
-        column_sizes = fileconfig.Read("column_sizes")
+        column_sizes = config.Read("column_sizes")
         column_sizes = json.loads(column_sizes) if column_sizes else {}
         column_sizes = column_sizes.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
@@ -344,8 +345,8 @@ class GUIUtility:
         return columns
 
     def ReadGuiSetting(self, setting_name, default=None, do_json=True):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
-        setting_value = fileconfig.Read(setting_name)
+        config = self.utility.config
+        setting_value = config.Read(setting_name)
         if do_json and setting_value:
             setting_value = json.loads(setting_value)
         elif not setting_value:
@@ -353,9 +354,9 @@ class GUIUtility:
         return setting_value
 
     def WriteGuiSetting(self, setting_name, setting_value, do_json=True):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
-        fileconfig.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
-        fileconfig.Flush()
+        config = self.utility.config
+        config.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
+        config.Flush()
 
     @forceWxThread
     def GoBack(self, scrollTo=None, topage=None):

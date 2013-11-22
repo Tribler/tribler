@@ -20,7 +20,6 @@ class UserCallbackHandler:
     def __init__(self, session):
         self.session = session
         self.sesslock = session.sesslock
-        self.sessconfig = session.sessconfig
 
         # Notifier for callbacks to API user
         self.threadpool = ThreadNoPool()
@@ -86,7 +85,7 @@ class UserCallbackHandler:
                 print >> sys.stderr, "Session: sesscb_removestate: Download is back, restarted? Canceling removal!", repr(infohash)
                 return
 
-            dlpstatedir = os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR)
+            dlpstatedir = os.path.join(self.session.get_state_dir(), STATEDIR_DLPSTATE_DIR)
         finally:
             self.sesslock.release()
 

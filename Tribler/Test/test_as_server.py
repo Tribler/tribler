@@ -29,7 +29,7 @@ DEST_DIR = os.path.join(BASE_DIR, "test_TriblerDownloads")
 FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'data'))
 
 from Tribler.Core import defaults
-defaults.sessdefaults["state_dir"] = STATE_DIR
+defaults.sessdefaults['general']['state_dir'] = STATE_DIR
 defaults.dldefaults["saveas"] = DEST_DIR
 
 DEBUG = False
@@ -157,7 +157,7 @@ class TestAsServer(AbstractServer):
 
         print >> sys.stderr, "test_as_server: Session is shutdown"
 
-    def assert_(self, boolean, reason=None, do_assert = True):
+    def assert_(self, boolean, reason=None, do_assert=True):
         if not boolean:
             self.quit()
             assert boolean, reason
@@ -215,13 +215,13 @@ class TestGuiAsServer(TestAsServer):
         self.asserts = []
         self.annotate(self._testMethodName, start=True)
 
-    def assert_(self, boolean, reason, do_assert = True):
+    def assert_(self, boolean, reason, do_assert=True):
         if not boolean:
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
 
             self.asserts.append((boolean, reason))
-            
+
             if do_assert:
                 assert boolean, reason
 

@@ -63,7 +63,7 @@ class ConfigReader(ConfigParser):
 
         # Arno: Apparently port 6881 is poisoned because ISPs have blocked it.
         # A random port does not work well with Buddycast so, pick a random, fixed one
-        if filename.endswith('abc.conf') and not os.access(filename, os.F_OK):
+        if filename.endswith('tribler.conf') and not os.access(filename, os.F_OK):
             defaults['minport'] = str(DEFAULTPORT)
 
         try:
@@ -208,7 +208,7 @@ class ConfigReader(ConfigParser):
 
         return value
 
-    def ReadDefault(self, param, type="string", section= None):
+    def ReadDefault(self, param, type="string", section=None):
         if section is None:
             section = self.section
 
@@ -222,12 +222,12 @@ class ConfigReader(ConfigParser):
 
         return value
 
-    def Read(self, param, type="string", section= None):
+    def Read(self, param, type="string", section=None):
         if section is None:
             section = self.section
 
         if DEBUG:
-            print >>sys.stderr, "ConfigReader: Read(", param, "type", type, "section", section
+            print >> sys.stderr, "ConfigReader: Read(", param, "type", type, "section", section
 
         if param is None or param == "":
             return ""
@@ -261,7 +261,7 @@ class ConfigReader(ConfigParser):
 #            sys.stderr.write(data.getvalue())
 
         if DEBUG:
-            print >>sys.stderr, "ConfigReader: Read", param, type, section, "got", value
+            print >> sys.stderr, "ConfigReader: Read", param, type, section, "got", value
 
         value = self.StringToValue(value, type)
 
@@ -298,7 +298,7 @@ class ConfigReader(ConfigParser):
             options = []
         return options
 
-    def Write(self, param, value, type="string", section= None):
+    def Write(self, param, value, type="string", section=None):
         if section is None:
             section = self.section
 
