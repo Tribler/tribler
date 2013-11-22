@@ -27,11 +27,7 @@ class TestSqliteCacheDB(AbstractServer):
             SQLiteCacheDB.delInstance()
 
         if Session.has_instance():  # Upgrading will create a session instance
-            self._shutdown_session(Session.get_instance())
             Session.del_instance()
-            time.sleep(10)
-
-        gc.collect()
 
         sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE, sqlitecachedb.TEST_OVERRIDE = self.original_values
         self.tearDownCleanup()
@@ -42,20 +38,3 @@ class TestSqliteCacheDB(AbstractServer):
         self.sqlitedb = SQLiteCacheDB.getInstance()
         self.sqlitedb.initDB(dbpath)
         self.sqlitedb.waitForUpdateComplete()
-
-    # ------------------------------------------------------------
-    # Shutting down a session. (Copied from TestAsServer)
-    # ------------------------------------------------------------
-    def _shutdown_session(self, session):
-        session_shutdown_start = time.time()
-        waittime = 60
-
-        session.shutdown()
-        while not session.has_shutdown():
-            diff = time.time() - session_shutdown_start
-            assert diff < waittime, "test_as_server: took too long for Session to shutdown"
-
-            print >> sys.stderr, "test_as_server: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
-            time.sleep(1)
-
-        print >> sys.stderr, "test_as_server: Session is shutdown"
