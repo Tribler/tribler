@@ -426,7 +426,7 @@ class SQLiteCacheDBBase:
 
         self.db_diff = max(0, curr_ver - db_ver)
         if not self.db_diff:
-            self.db_diff = sum(os.path.exists(os.path.join(config_dir, filename)) if config_dir else 0 for filename in ["upgradingdb.txt", "upgradingdb2.txt", "upgradingdb3.txt"])
+            self.db_diff = sum(os.path.exists(os.path.join(config_dir, filename)) if config_dir else 0 for filename in ["upgradingdb.txt", "upgradingdb2.txt", "upgradingdb3.txt", "upgradingdb4.txt"])
 
         if self.db_diff:
             self.database_update = threading.Semaphore(self.db_diff)
