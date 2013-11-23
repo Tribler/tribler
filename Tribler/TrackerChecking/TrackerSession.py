@@ -43,7 +43,7 @@ class TrackerSession(object):
     def __init__(self, tracker, tracker_type, tracker_address, announce_page,\
             update_result_callback):
         self._tracker         = tracker
-        self._trackerType     = tracker_type
+        self._tracker_type    = tracker_type
         self._tracker_address = tracker_address
         self._announce_page   = announce_page
 
@@ -60,9 +60,7 @@ class TrackerSession(object):
     # Deconstructor.
     # ----------------------------------------
     def __del__(self):
-        if self._socket:
-            self._socket.close()
-            del self._socket
+        self.cleanup()
 
         del self._infohash_list
         del self._initiated
@@ -72,9 +70,16 @@ class TrackerSession(object):
         del self._failed
 
         del self._tracker
-        del self._trackerType
+        del self._tracker_type
         del self._tracker_address
         del self._announce_page
+
+    # ----------------------------------------
+    # Cleans up this tracker session.
+    # ----------------------------------------
+    def cleanup(self):
+        if self._socket:
+            self._socket.close()
 
     # ----------------------------------------
     # A factory method that creates a new session from a given tracker URL.
@@ -138,13 +143,49 @@ class TrackerSession(object):
 
 
     # ----------------------------------------
-    # Handles the request, invoking the corresponding method.
+    # (Public API) Handles the request, invoking the corresponding method.
     # ----------------------------------------
     def handleRequest(self):
-        if self.action == TRACKER_ACTION_CONNECT:
+        if self._action == TRACKER_ACTION_CONNECT:
             return self.handleConnection()
         else:
             return self.handleResponse()
+
+    # ----------------------------------------
+    # (Public API) Gets the socket of this tracker session.
+    # ----------------------------------------
+    def getSocket(self):
+        return self._socket
+
+    # ----------------------------------------
+    # (Public API) Checks if this tracker session has finished.
+    # ----------------------------------------
+    def hasFinished(self):
+        return self._finished
+
+    # ----------------------------------------
+    # (Public API) Checks if this tracker session has failed.
+    # ----------------------------------------
+    def hasFailed(self):
+        return self._failed
+
+    # ----------------------------------------
+    # (Public API) Appends an infohash into the infohash list.
+    # ----------------------------------------
+    def addInfohash(self, infohash):
+        return self._infohash_list.append(infohash)
+
+    # ----------------------------------------
+    # (Public API) Checks if an infohash is in the infohash list.
+    # ----------------------------------------
+    def hasInfohash(self, infohash):
+        return infohash in self._infohash_list
+
+    # ----------------------------------------
+    # (Public API) Gets the infohash list.
+    # ----------------------------------------
+    def getInfohashListSize(self, infohash):
+        return len(self._infohash_list)
 
     # ========================================
     # Abstract methods.
@@ -163,130 +204,6 @@ class TrackerSession(object):
     def handleResponse(self):
         """Does process when a response message is available."""
         pass
-
-    # ========================================
-    # Methods for properties.
-    # ========================================
-    # tracker
-    @property
-    def tracker(self):
-        return self._tracker
-    @tracker.setter
-    def tracker(self, tracker):
-        self._tracker = tracker
-    @tracker.deleter
-    def tracker(self):
-        del self._tracker
-
-    # trackerType
-    @property
-    def trackerType(self):
-        return self._trackerType
-    @trackerType.setter
-    def trackerType(self, trackerType):
-        self._trackerType = trackerType
-    @trackerType.deleter
-    def trackerType(self):
-        del self._trackerType
-
-    # trackerAddress
-    @property
-    def trackerAddress(self):
-        return self._tracker_address
-    @trackerAddress.setter
-    def trackerAddress(self, tracker_address):
-        self._tracker_address = tracker_address
-    @trackerAddress.deleter
-    def trackerAddress(self):
-        del self._tracker_address
-
-    # announcePage
-    @property
-    def announcePage(self):
-        return self._announce_page
-    @announcePage.setter
-    def announcePage(self, announce_page):
-        self._announce_page = announce_page
-    @announcePage.deleter
-    def announcePage(self):
-        del self._announce_page
-
-    # socket
-    @property
-    def socket(self):
-        return self._socket
-    @socket.setter
-    def socket(self, socket):
-        self._socket = socket
-    @socket.deleter
-    def socket(self):
-        del self._socket
-
-    # infohashList
-    @property
-    def infohashList(self):
-        return self._infohash_list
-    @infohashList.setter
-    def infohashList(self, infohash_list):
-        self._infohash_list = infohash_list
-    @infohashList.deleter
-    def infohashList(self):
-        del self._infohash_list
-
-    # initiated
-    @property
-    def initiated(self):
-        return self._initiated
-    @initiated.setter
-    def initiated(self, initiated):
-        self._initiated = initiated
-    @initiated.deleter
-    def initiated(self):
-        del self._initiated
-
-    # action
-    @property
-    def action(self):
-        return self._action
-    @action.setter
-    def action(self, action):
-        self._action = action
-    @action.deleter
-    def action(self):
-        del self._action
-
-    # finished
-    @property
-    def finished(self):
-        return self._finished
-    @finished.setter
-    def finished(self, finished):
-        self._finished = finished
-    @finished.deleter
-    def finished(self):
-        del self._finished
-
-    # failed
-    @property
-    def failed(self):
-        return self._failed
-    @failed.setter
-    def failed(self, failed):
-        self._failed = failed
-    @failed.deleter
-    def failed(self):
-        del self._failed
-
-    # Callback function to update result
-    @property
-    def updateResultCallback(self):
-        return self._update_result_callback
-    @updateResultCallback.setter
-    def updateResultCallback(self, update_result_callback):
-        self._update_result_callback = update_result_callback
-    @updateResultCallback.deleter
-    def updateResultCallback(self):
-        del self._update_result_callback
 
 
 # ============================================================
@@ -330,23 +247,23 @@ class HttpTrackerSession(TrackerSession):
     # Establishes connection.
     # ----------------------------------------
     def establishConnection(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setblocking(0)
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket.setblocking(0)
 
         # an exception may be raised if the socket is non-blocking
         try:
-            self.socket.connect(self.trackerAddress)
+            self._socket.connect(self._tracker_address)
         except Exception as e:
             # Error number 115 means the opertion is in progress.
             if e[0] != 115:
                 if DEBUG:
                     print >> sys.stderr, \
                         '[WARN] Failed to connect to HTTP tracker [%s]: %s' % \
-                        (self.tracker, str(e))
-                self.failed = True
+                        (self._tracker, str(e))
+                self._failed = True
                 return False
 
-        self.action = TRACKER_ACTION_CONNECT
+        self._action = TRACKER_ACTION_CONNECT
         return True
 
     # ----------------------------------------
@@ -359,14 +276,14 @@ class HttpTrackerSession(TrackerSession):
         #       which has some sort of 'key' as parameter, so we need to check
         #       if there is already a parameter available
         message = 'GET '
-        message += '/' + self.announcePage.replace('announce', 'scrape')
+        message += '/' + self._announce_page.replace('announce', 'scrape')
         if message.find('?') == -1:
             message += '?'
         else:
             message += '&'
 
         # append the infohashes as parameters
-        for infohash in self.infohashList:
+        for infohash in self._infohash_list:
             message += 'info_hash='
             message += urllib.quote(infohash)
             message += '&'
@@ -374,17 +291,17 @@ class HttpTrackerSession(TrackerSession):
         message += ' HTTP/1.1\r\n\r\n'
 
         try:
-            self.socket.send(message)
+            self._socket.send(message)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
                     '[WARN] Failed to send HTTP SCRAPE message: ', \
                     e
-            self.failed = True
+            self._failed = True
 
         # no more requests can be appended to this session
-        self.action = TRACKER_ACTION_SCRAPE
-        self.initiated = True
+        self._action = TRACKER_ACTION_SCRAPE
+        self._initiated = True
 
     # ----------------------------------------
     # Handles a scrape response.
@@ -392,46 +309,46 @@ class HttpTrackerSession(TrackerSession):
     def handleResponse(self):
         try:
             # TODO: this buffer size may be changed
-            response = self.socket.recv(8192)
+            response = self._socket.recv(8192)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
                     '[WARN] Failed to receive HTTP SCRAPE response:', \
                     e
-            self.failed = True
+            self._failed = True
             return
 
         # for the header message, we need to parse the content length in case
         # if the HTTP packets are partial.
-        if not self.messageBuffer:
+        if not self._message_buffer:
             # append the header part
-            if not self.headerBuffer:
-                self.headerBuffer = response
+            if not self._header_buffer:
+                self._header_buffer = response
             else:
-                self.headerBuffer += response
+                self._header_buffer += response
 
             # check if the header part is over
-            if self.headerBuffer.find('\r\n\r\n') != -1:
-                self.headerBuffer, self.messageBuffer = \
-                    self.headerBuffer.split('\r\n\r\n', 1)
+            if self._header_buffer.find('\r\n\r\n') != -1:
+                self._header_buffer, self._message_buffer = \
+                    self._header_buffer.split('\r\n\r\n', 1)
 
-                self.receivedLength = len(self.messageBuffer)
+                self._received_length = len(self._message_buffer)
                 self._processHeader()
 
         # the remaining part
         else:
-            self.messageBuffer += response
-            self.receivedLength += len(response)
+            self._message_buffer += response
+            self._received_length += len(response)
 
             # check the read count
-            if self.receivedLength >= self.contentLength:
+            if self._received_length >= self._content_length:
                 # process the retrieved information
                 success = self._processScrapeResponse()
                 if success:
-                    self.finished = True
+                    self._finished = True
                 else:
-                    self.failed = True
-                self.socket.close()
+                    self._failed = True
+                self._socket.close()
 
             # wait for more
             else:
@@ -442,43 +359,43 @@ class HttpTrackerSession(TrackerSession):
     # ----------------------------------------
     def _processHeader(self):
         # get and check HTTP response code
-        protocol, code, msg = self.headerBuffer.split(' ', 2)
+        protocol, code, msg = self._header_buffer.split(' ', 2)
         if code != '200':
             # error response code
             if DEBUG:
                 print >> sys.stderr, \
                 '[WARN] Error HTTP SCRAPE response code [%s, %s].' % \
                 (code, msg)
-            self.failed = True
-            self.socket.close()
+            self._failed = True
+            self._socket.close()
             return
 
         # check the content type
-        idx = self.headerBuffer.find('Content-Encoding: ')
+        idx = self._header_buffer.find('Content-Encoding: ')
         if idx == -1:
             # assuming it is plain text or something similar
-            self.contentEncoding = 'plain'
+            self._content_encoding = 'plain'
         else:
-            encoding = (self.headerBuffer[idx:].split('\r\n')[0]).split(' ')[1]
-            self.contentEncoding = encoding
+            encoding = (self._header_buffer[idx:].split('\r\n')[0]).split(' ')[1]
+            self._content_encoding = encoding
 
         # get the content length
-        idx = self.headerBuffer.find('Content-Length: ')
+        idx = self._header_buffer.find('Content-Length: ')
         if idx == -1:
             # assume that the content is small
 
             # process the retrieved information
             success = self._processScrapeResponse()
             if success:
-                self.finished = True
+                self._finished = True
             else:
-                self.failed = True
-            self.socket.close()
+                self._failed = True
+            self._socket.close()
 
         else:
             idx = idx + len('Content-Length: ')
-            self.contentLength = \
-                int(self.headerBuffer[idx:].split('\r\n', 1)[0].strip())
+            self._content_length = \
+                int(self._header_buffer[idx:].split('\r\n', 1)[0].strip())
 
     # ----------------------------------------
     # Processes the complete received SCRAPE response message.
@@ -486,24 +403,24 @@ class HttpTrackerSession(TrackerSession):
     def _processScrapeResponse(self):
         # parse the retrived results
         try:
-            response_dict = bdecode(self.messageBuffer)
+            response_dict = bdecode(self._message_buffer)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
-                '[WARN] Failed to decode bcode[%s].' % self.messageBuffer
+                '[WARN] Failed to decode bcode[%s].' % self._message_buffer
             return False
 
-        unprocessed_infohash_list = self.infohashList[:]
+        unprocessed_infohash_list = self._infohash_list[:]
         for infohash in response_dict['files'].keys():
             downloaded = response_dict['files'][infohash]['downloaded']
-            complete = response_dict['files'][infohash]['complete']
+            complete   = response_dict['files'][infohash]['complete']
             incomplete = response_dict['files'][infohash]['incomplete']
 
             seeders = downloaded
             leechers = incomplete
 
             # handle the retrieved information
-            self.updateResultCallback(infohash, seeders, leechers)
+            self._update_result_callback(infohash, seeders, leechers)
 
             # remove this infohash in the infohash list of this session
             if infohash in unprocessed_infohash_list:
@@ -514,67 +431,8 @@ class HttpTrackerSession(TrackerSession):
         for infohash in unprocessed_infohash_list:
             seeders, leechers = 0, 0
             # handle the retrieved information
-            self.updateResultCallback(infohash, seeders, leechers)
+            self._update_result_callback(infohash, seeders, leechers)
         return True
-
-    # ========================================
-    # Methods for properties.
-    # ========================================
-    # headerBuffer
-    @property
-    def headerBuffer(self):
-        return self._header_buffer
-    @headerBuffer.setter
-    def headerBuffer(self, header_buffer):
-        self._header_buffer = header_buffer
-    @headerBuffer.deleter
-    def headerBuffer(self):
-        del self._header_buffer
-
-    # messageBuffer
-    @property
-    def messageBuffer(self):
-        return self._message_buffer
-    @messageBuffer.setter
-    def messageBuffer(self, message_buffer):
-        self._message_buffer = message_buffer
-    @messageBuffer.deleter
-    def messageBuffer(self):
-        del self._message_buffer
-
-    # contentEncoding
-    @property
-    def contentEncoding(self):
-        return self._content_encoding
-    @contentEncoding.setter
-    def contentEncoding(self, content_encoding):
-        self._content_encoding = content_encoding
-    @contentEncoding.deleter
-    def contentEncoding(self):
-        del self._content_encoding
-
-    # contentLength
-    @property
-    def contentLength(self):
-        return self._content_length
-    @contentLength.setter
-    def contentLength(self, content_length):
-        self._content_length = content_length
-    @contentLength.deleter
-    def contentLength(self):
-        del self._content_length
-
-    # receivedLength
-    @property
-    def receivedLength(self):
-        return self._received_length
-    @receivedLength.setter
-    def receivedLength(self, received_length):
-        self._received_length = received_length
-    @receivedLength.deleter
-    def receivedLength(self):
-        del self._received_length
-
 
 
 # ============================================================
@@ -631,7 +489,7 @@ class UdpTrackerSession(TrackerSession):
     # Deconstructor.
     # ----------------------------------------
     def __del__(self):
-        UdpTrackerSession.removeTransactionId(self)
+        self.cleanup()
 
         del self._retries
         del self._last_contact
@@ -642,31 +500,38 @@ class UdpTrackerSession(TrackerSession):
         TrackerSession.__del__(self)
 
     # ----------------------------------------
+    # Cleans up this UDP tracker session.
+    # ----------------------------------------
+    def cleanup(self):
+        UdpTrackerSession.removeTransactionId(self)
+        TrackerSession.cleanup(self)
+
+    # ----------------------------------------
     # Establishes connection.
     # ----------------------------------------
     def establishConnection(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.setblocking(0)
-        self.socket.connect(self.trackerAddress)
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket.setblocking(0)
+        self._socket.connect(self._tracker_address)
 
         # prepare connection message
-        self.connectionId = UDP_TRACKER_INIT_CONNECTION_ID
-        self.action = TRACKER_ACTION_CONNECT
+        self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
+        self._action = TRACKER_ACTION_CONNECT
         UdpTrackerSession.generateTransactionId(self)
 
         message = struct.pack('!qii', \
-            self.connectionId, self.action, self.transactionId)
+            self._connection_id, self._action, self._transaction_id)
         try:
-            self.socket.send(message)
+            self._socket.send(message)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
                 '[WARN] Failed to send message to UDP tracker [%s]: %s' % \
-                (self.tracker, str(e))
-            self.failed = True
+                (self._tracker, str(e))
+            self._failed = True
             return False
 
-        self.lastContact = int(time.time())
+        self._last_contact = int(time.time())
         return True
 
     # ----------------------------------------
@@ -674,23 +539,23 @@ class UdpTrackerSession(TrackerSession):
     # ----------------------------------------
     def reestablishConnection(self):
         # prepare connection message
-        self.connectionId = UDP_TRACKER_INIT_CONNECTION_ID
-        self.action = TRACKER_ACTION_CONNECT
+        self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
+        self._action = TRACKER_ACTION_CONNECT
         UdpTrackerSession.generateTransactionId(self)
 
         message = struct.pack('!qii', \
-            self.connectionId, self.action, self.transactionId)
+            self._connection_id, self._action, self._transaction_id)
         try:
-            self.socket.send(message)
+            self._socket.send(message)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
                 '[WARN] Failed to send message to UDP tracker [%s]: %s' % \
-                (self.tracker, str(e))
-            self.failed = True
+                (self._tracker, str(e))
+            self._failed = True
             return False
 
-        self.lastContact = int(time.time())
+        self._last_contact = int(time.time())
         return True
 
     # ----------------------------------------
@@ -699,12 +564,12 @@ class UdpTrackerSession(TrackerSession):
     def handleConnection(self):
         try:
             # TODO: this number may be increased
-            response = self.socket.recv(32)
+            response = self._socket.recv(32)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
                 '[WARN] Failed to receive UDP CONNECT response:', e
-            self.failed = True
+            self._failed = True
             return
 
         # check message size
@@ -712,13 +577,13 @@ class UdpTrackerSession(TrackerSession):
             if DEBUG:
                 print >> sys.stderr, \
                 '[WARN] Invalid response for UDP CONNECT [%s].' % response
-            self.failed = True
+            self._failed = True
             return
 
         # check the response
         action, transaction_id = \
             struct.unpack_from('!ii', response, 0)
-        if action != self.action or transaction_id != self.transactionId:
+        if action != self._action or transaction_id != self._transaction_id:
             # get error message
             errmsg_length = len(response) - 8
             error_message = \
@@ -728,32 +593,32 @@ class UdpTrackerSession(TrackerSession):
                 print >> sys.stderr, \
                 '[WARN] Error response for UDP CONNECT [%s]: %s.' % \
                 (response, error_message)
-            self.failed = True
+            self._failed = True
             return
 
         # update action and IDs
-        self.connectionId = struct.unpack_from('!q', response, 8)[0]
-        self.action = TRACKER_ACTION_SCRAPE
+        self._connection_id = struct.unpack_from('!q', response, 8)[0]
+        self._action = TRACKER_ACTION_SCRAPE
         UdpTrackerSession.generateTransactionId(self)
 
         # pack and send the message
-        format = '!qii' + ('20s' * len(self.infohashList))
+        format = '!qii' + ('20s' * len(self._infohash_list))
         message = struct.pack(format, \
-            self.connectionId, self.action, self.transactionId, \
-            *self.infohashList)
+            self._connection_id, self._action, self._transaction_id, \
+            *self._infohash_list)
 
         try:
-            self.socket.send(message)
+            self._socket.send(message)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
                 '[WARN] Failed to send UDP SCRAPE message:', e
-            self.failed = True
+            self._failed = True
             return
 
         # no more requests can be appended to this session
-        self.initiated = True
-        self.lastContact = int(time.time())
+        self._initiated = True
+        self._last_contact = int(time.time())
 
     # ----------------------------------------
     # Handles a scrape response.
@@ -762,12 +627,12 @@ class UdpTrackerSession(TrackerSession):
         try:
             # 74 infohashes are roughly 896 bytes
             # TODO: the number may be changed
-            response = self.socket.recv(1024)
+            response = self._socket.recv(1024)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
                 '[WARN] Failed to receive UDP SCRAPE response:', e
-            self.failed = True
+            self._failed = True
             return
 
         # check message size
@@ -775,12 +640,12 @@ class UdpTrackerSession(TrackerSession):
             if DEBUG:
                 print >> sys.stderr, \
                 '[WARN] Invalid response for UDP SCRAPE [%s].' % response
-            self.failed = True
+            self._failed = True
             return
 
         # check response
         action, transaction_id = struct.unpack_from('!ii', response, 0)
-        if action != self.action or transaction_id != self.transactionId:
+        if action != self._action or transaction_id != self._transaction_id:
             # get error message
             errmsg_length = len(response) - 8
             error_message = \
@@ -790,67 +655,20 @@ class UdpTrackerSession(TrackerSession):
                 print >> sys.stderr, \
                 '[WARN] Error response for UDP SCRAPE [%s]: [%s].' % \
                 (response, error_message)
-            self.failed = True
+            self._failed = True
             return
 
         # get results
         offset = 8
-        for infohash in self.infohashList:
+        for infohash in self._infohash_list:
             seeders, completed, leechers = \
                 struct.unpack_from('!iii', response, offset)
             offset += 12
 
             # handle the retrieved information
-            self.updateResultCallback(infohash, seeders, leechers)
+            self._update_result_callback(infohash, seeders, leechers)
 
         # close this socket and remove its transaction ID from the list
         UdpTrackerSession.removeTransactionId(self)
-        self.finished = True
-        self.socket.close()
-
-    # ========================================
-    # Methods for properties.
-    # ========================================
-    # connectionId
-    @property
-    def connectionId(self):
-        return self._connection_id
-    @connectionId.setter
-    def connectionId(self, connectionId):
-        self._connection_id = connectionId
-    @connectionId.deleter
-    def connectionId(self):
-        del self._connection_id
-
-    # transactionId
-    @property
-    def transactionId(self):
-        return self._transaction_id
-    @transactionId.setter
-    def transactionId(self, transactionId):
-        self._transaction_id = transactionId
-    @transactionId.deleter
-    def transactionId(self):
-        del self._transaction_id
-
-    # lastContact
-    @property
-    def lastContact(self):
-        return self._last_contact
-    @lastContact.setter
-    def lastContact(self, last_contact):
-        self._last_contact = last_contact
-    @lastContact.deleter
-    def lastContact(self):
-        del self._last_contact
-
-    # retries
-    @property
-    def retries(self):
-        return self._retries
-    @retries.setter
-    def retries(self, retries):
-        self._retries = retries
-    @retries.deleter
-    def retries(self):
-        del self._retries
+        self._finished = True
+        self._socket.close()
