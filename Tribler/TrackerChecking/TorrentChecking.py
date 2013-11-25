@@ -57,7 +57,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     # Intialization.
     # ------------------------------------------------------------
-    def __init__(self):
+    def __init__(self, args):
         if TorrentChecking.__single:
             raise RuntimeError("Torrent Checking is singleton")
         TorrentChecking.__single = self
@@ -101,19 +101,6 @@ class TorrentChecking(Thread):
         self._should_stop = False
 
         self.start()
-
-    # ------------------------------------------------------------
-    # Deconstructor.
-    # ------------------------------------------------------------
-    def __del__(self):
-        self._gui_request_queue
-        self._selected_request_queue
-
-        self._tracker_info_cache
-
-        self._pending_response_dict
-        self._session_dict
-        self._lock
 
     # ------------------------------------------------------------
     # (Public API)
@@ -203,7 +190,7 @@ class TorrentChecking(Thread):
             torrent_id = self._torrentdb.getTorrentID(infohash)
 
         # get torrent's tracker list from DB
-        db_tracker_list = self._getTrackerList(torrent_id, infohash)
+        db_tracker_list = self._getTrackerList(torrent_id)
         for tracker in db_tracker_list:
             if tracker not in tracker_list:
                 tracker_list.append(tracker)
@@ -212,53 +199,49 @@ class TorrentChecking(Thread):
             return
 
         # for each valid tracker, try to create new session or append
-        # the request to 
+        # the request to an existing session
         successful = False
         for tracker_url in tracker_list:
             self._updateTorrentTrackerMapping(torrent_id, tracker_url)
             self._createSessionForRequest(infohash, tracker_url)
 
     # ------------------------------------------------------------
+    # Gets a list of all known trackers of a given torrent.
+    # It checks the TorrentTrackerMapping table and magnet links.
+    # ------------------------------------------------------------
+    def _getTrackerList(self, torrent_id):
+        tracker_list = list()
+
+        # get trackers from DB (TorrentTrackerMapping table)
+        db_tracker_list = self._torrentdb.getTorrentTrackerList(torrent_id)
+        for tracker in db_tracker_list:
+            if tracker not in tracker_list:
+                tracker_list.append(tracker)
+
+        # get trackers from its magnet link
+        source_list = self._torrentdb.getTorrentCollecting(torrent_id)
+        for source, in source_list:
+            if not source.startswith('magnet'):
+                continue
+
+            dn, xt, trackers = parse_magnetlink(source)
+            if not trackers:
+                continue
+            for tracker in trackers:
+                if tracker not in tracker_list:
+                    tracker_list.append(tracker)
+
+        # TODO: also to get trackers from its .torrent file?
+
+        return tracker_list
+
+    # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentTrackerMapping(self, torrent_id, tracker):
-        if torrent_id:
-            self._torrentdb.addTorrentTrackerMapping(torrent_id, tracker)
-
-    # ------------------------------------------------------------
-    # Gets the information of a given torrent. This method first checks
-    # the DB. If there is no tracker in the DB, it then retrieves trackers
-    # from magnet links and gui_torrent's "trackers" field and update the
-    # DB.
-    # ------------------------------------------------------------
-    def _getTrackerList(self, torrent_id, infohash):
-        tracker_list = list()
-
-        # see if we can find anything from DB: TODO
-        torrent = self._torrentdb.getTorrent(infohash)
-        if torrent and 'tracker' in torrent and torrent['tracker']:
-            tracker = torrent['tracker']
-            if tracker not in tracker_list:
-                tracker_list.append(tracker)
-
-        # check its magnet link
-        if torrent_id:
-            source_list = self._torrentdb.getTorrentCollecting(torrent_id)
-            for source, in source_list:
-                if source.startswith('magnet'):
-                    dn, xt, trackers = parse_magnetlink(source)
-                    if not trackers:
-                        continue
-                    for tracker in trackers:
-                        if tracker not in tracker_list:
-                            tracker_list.append(tracker)
-
-        # update the DB with torrent's trackers
-        self._updateTorrentTrackerList(infohash, tracker_list)
-        torrent = self._torrentdb.selectTorrentToCheck(infohash=infohash)
-
-        return tracker_list
+        self._torrentdb.addTrackerInfo(tracker)
+        self._torrentdb.addTorrentTrackerMapping(torrent_id, tracker)
 
     # ------------------------------------------------------------
     # Creates a new session for a request, or append the request to an
@@ -350,26 +333,6 @@ class TorrentChecking(Thread):
             response['seeders'] = seeders
             response['leechers'] = leechers
             response['updated'] = True
-
-    # ------------------------------------------------------------
-    # Updates a torrent's tracker into the database.
-    # ------------------------------------------------------------
-    @forceDBThread
-    def _updateTorrentTrackerList(self, infohash, tracker_list):
-        if not tracker_list:
-            return
-
-        trackers_data = ''
-        for tracker in tracker_list:
-            trackers_data += tracker
-            trackers_data += '\n'
-        trackers_data = trackers_data[:-1]
-
-        kw = {'trackers': trackers_data }
-        try:
-            self._torrentdb.updateTorrent(infohash, **kw)
-        except:
-            pass
 
     # ------------------------------------------------------------
     # Updates result into the database.

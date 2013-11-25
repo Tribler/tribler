@@ -455,20 +455,21 @@ class HttpTrackerSession(TrackerSession):
             return False
 
         unprocessed_infohash_list = self._infohash_list[:]
-        for infohash in response_dict['files'].keys():
-            downloaded = response_dict['files'][infohash]['downloaded']
-            complete   = response_dict['files'][infohash]['complete']
-            incomplete = response_dict['files'][infohash]['incomplete']
+        if 'files' in response_dict['files']:
+            for infohash in response_dict['files'].keys():
+                downloaded = response_dict['files'][infohash]['downloaded']
+                complete   = response_dict['files'][infohash]['complete']
+                incomplete = response_dict['files'][infohash]['incomplete']
 
-            seeders = downloaded
-            leechers = incomplete
+                seeders = downloaded
+                leechers = incomplete
 
-            # handle the retrieved information
-            self._update_result_callback(infohash, seeders, leechers)
+                # handle the retrieved information
+                self._update_result_callback(infohash, seeders, leechers)
 
-            # remove this infohash in the infohash list of this session
-            if infohash in unprocessed_infohash_list:
-                unprocessed_infohash_list.remove(infohash)
+                # remove this infohash in the infohash list of this session
+                if infohash in unprocessed_infohash_list:
+                    unprocessed_infohash_list.remove(infohash)
 
         # handle the infohashes with no result
         # (considers as the torrents with seeders/leechers=0/0)
