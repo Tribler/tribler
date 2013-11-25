@@ -30,6 +30,11 @@ UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 UDP_TRACKER_RECHECK_INTERVAL = 15
 UDP_TRACKER_MAX_RETRIES = 8
 
+MAX_TRACKER_MULTI_SCRAPE = 74
+
+# some settings
+DEBUG = True
+
 # ============================================================
 # The abstract TrackerSession class. It represents a session with a tracker.
 # ============================================================
@@ -152,10 +157,37 @@ class TrackerSession(object):
             return self.handleResponse()
 
     # ----------------------------------------
+    # (Public API) Gets the tracker URL of this tracker session.
+    # ----------------------------------------
+    def getTracker(self):
+        return self._tracker
+
+    # ----------------------------------------
+    # (Public API) Checks if this tracker session is of a specific
+    # tracker type.
+    # ----------------------------------------
+    def isTrackerType(self, tracker_type):
+        return self._tracker_type == tracker_type
+
+    # ----------------------------------------
+    # (Public API) Checks if this tracker session is in a specific
+    # action.
+    # ----------------------------------------
+    def isAction(self, action):
+        return self._action == action
+
+    # ----------------------------------------
     # (Public API) Gets the socket of this tracker session.
     # ----------------------------------------
     def getSocket(self):
         return self._socket
+
+    # ----------------------------------------
+    # (Public API) Checks if this tracker session has initiated
+    # (which means no more infohashes can be appended).
+    # ----------------------------------------
+    def hasInitiated(self):
+        return self._initiated
 
     # ----------------------------------------
     # (Public API) Checks if this tracker session has finished.
@@ -168,6 +200,12 @@ class TrackerSession(object):
     # ----------------------------------------
     def hasFailed(self):
         return self._failed
+
+    # ----------------------------------------
+    # (Public API) Sets the failed flag.
+    # ----------------------------------------
+    def setFailed(self):
+        self._failed = True
 
     # ----------------------------------------
     # (Public API) Appends an infohash into the infohash list.
@@ -184,7 +222,13 @@ class TrackerSession(object):
     # ----------------------------------------
     # (Public API) Gets the infohash list.
     # ----------------------------------------
-    def getInfohashListSize(self, infohash):
+    def getInfohashList(self):
+        return self._infohash_list
+
+    # ----------------------------------------
+    # (Public API) Gets the infohash list size.
+    # ----------------------------------------
+    def getInfohashListSize(self):
         return len(self._infohash_list)
 
     # ========================================
@@ -317,6 +361,10 @@ class HttpTrackerSession(TrackerSession):
                     e
             self._failed = True
             return
+
+        if DEBUG:
+            print >> sys.stderr,\
+            '[DEBUG] HTTP[%s] received: [%s]' % (self._tracker, response)
 
         # for the header message, we need to parse the content length in case
         # if the HTTP packets are partial.
@@ -505,6 +553,24 @@ class UdpTrackerSession(TrackerSession):
     def cleanup(self):
         UdpTrackerSession.removeTransactionId(self)
         TrackerSession.cleanup(self)
+
+    # ----------------------------------------
+    # Gets the retry count.
+    # ----------------------------------------
+    def getRetries(self):
+        return self._retries
+
+    # ----------------------------------------
+    # Increases the retry count by 1.
+    # ----------------------------------------
+    def increaseRetries(self):
+        self._retries += 1
+
+    # ----------------------------------------
+    # Gets the last time this session made a contact with the tracker.
+    # ----------------------------------------
+    def getLastContact(self):
+        return self._last_contact
 
     # ----------------------------------------
     # Establishes connection.

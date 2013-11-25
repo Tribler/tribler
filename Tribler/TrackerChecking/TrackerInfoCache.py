@@ -65,9 +65,9 @@ class TrackerInfoCache(object):
         self._initial_load_complete_event.set()
 
     # ------------------------------------------------------------
-    # Check if the cache has been initialized.
+    # Waits for the cache to be initialized.
     # ------------------------------------------------------------
-    def isCacheInitialized(self, wait_time):
+    def waitForCacheInitialization(self, wait_time=30):
         return self._initial_load_complete_event.wait(wait_time)
 
     # ------------------------------------------------------------
