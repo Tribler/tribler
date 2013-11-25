@@ -59,6 +59,7 @@ class TrackerInfoCache(object):
                 self._tracker_info_dict[tracker]['last_check'] = last_check
                 self._tracker_info_dict[tracker]['failures'] = failures
                 self._tracker_info_dict[tracker]['alive'] = alive
+                self._tracker_info_dict[tracker]['updated'] = False
             del tracker_info_list
         self._lock.release()
 
@@ -69,13 +70,6 @@ class TrackerInfoCache(object):
     # ------------------------------------------------------------
     def waitForCacheInitialization(self, wait_time=30):
         return self._initial_load_complete_event.wait(wait_time)
-
-    # ------------------------------------------------------------
-    # Updates the tracker status into the DB.
-    # ------------------------------------------------------------
-    @forceDBThread
-    def _updateTrackerInfoIntoDb(self, tracker, last_check, failures, alive):
-        self._torrentdb.updateTrackerInfo(tracker, last_check, failures, alive)
 
     # ------------------------------------------------------------
     # (Public API)
@@ -107,9 +101,32 @@ class TrackerInfoCache(object):
 
     # ------------------------------------------------------------
     # (Public API)
-    # Updates or creates a tracker info.
+    # Adds a new tracker into the TrackerInfoCache and the database.
+    # The request will be dropped if the tracker already exists.
     # ------------------------------------------------------------
-    def updateTrackerInfo(self, tracker, success=True):
+    @forceDBThread
+    def addNewTrackerInfo(self, tracker):
+        self._lock.acquire()
+        if tracker in self._tracker_info_dict:
+            self._lock.release()
+            return
+
+        self._tracker_info_dict[tracker] = dict()
+        self._tracker_info_dict[tracker]['last_check'] = 0
+        self._tracker_info_dict[tracker]['failures'] = 0
+        self._tracker_info_dict[tracker]['alive']    = True
+        self._tracker_info_dict[tracker]['updated']  = False
+
+        self._torrentdb.addTrackerInfo(tracker)
+
+        self._lock.release()
+
+    # ------------------------------------------------------------
+    # (Public API)
+    # Updates or a tracker's information. If the tracker does not
+    # exist, it will be created.
+    # ------------------------------------------------------------
+    def updateTrackerInfo(self, tracker, success):
         currentTime = int(time.time())
 
         self._lock.acquire()
@@ -130,19 +147,36 @@ class TrackerInfoCache(object):
 
         # determine if a tracker is alive
         if tracker_info['failures'] >= self._max_tracker_failures:
-            alive = 0
+            alive = False
         else:
-            alive = 1
+            alive = True
         tracker_info['alive'] = alive
 
-        # avoid concurrency problem
-        last_check = tracker_info['last_check']
-        failures   = tracker_info['failures']
-        alive      = tracker_info['alive']
+        self._tracker_info_dict[tracker]['updated'] = True
         self._lock.release()
 
-        # to avoid the concurrency problem of using the TrackerInfo Dict
-        self._updateTrackerInfoIntoDb(tracker, last_check, failures, alive)
+    # ------------------------------------------------------------
+    # (Public API)
+    # Updates the tracker status into the DB in batch.
+    # ------------------------------------------------------------
+    @forceDBThread
+    def updateTrackerInfoIntoDb(self):
+        self._lock.acquire()
+
+        # store all recently updated tracker info into DB
+        update_list = list()
+        for tracker, info in self._tracker_info_dict.items():
+            if not info['updated']:
+                continue
+
+            data = (info['last_check'], info['failures'], info['alive'], tracker)
+            update_list.append(data)
+
+            info['updated'] = False
+
+        self._torrentdb.updateTrackerInfo(update_list)
+
+        self._lock.release()
 
     # ========================================
     # Methods for properties.
