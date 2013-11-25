@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# Updated by Egbert Buoman
+# Updated by Egbert Bouman
 # see LICENSE.txt for license information
 
 from Tribler.Core.SessionConfig import SessionConfigInterface
