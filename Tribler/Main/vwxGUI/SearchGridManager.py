@@ -483,7 +483,7 @@ class TorrentManager:
 
             else:
                 # schedule health check
-                TorrentChecking.getInstance().addTorrentToQueue(hit)
+                TorrentChecking.getInstance().addGuiRequest(hit)
 
         for candidate, torrents in to_be_prefetched.iteritems():
             self.downloadTorrentmessagesFromPeer(candidate, torrents, sesscb_prefetch_done, prio=1)

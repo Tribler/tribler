@@ -804,7 +804,7 @@ class TorrentDetails(AbstractDetails):
                 diff = 1801
 
             if diff > 1800:
-                TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
+                TorrentChecking.getInstance().addGuiRequest(self.torrent)
                 self.ShowHealth(True)
             else:
                 self.ShowHealth(False)
