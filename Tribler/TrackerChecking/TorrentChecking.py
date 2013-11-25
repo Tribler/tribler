@@ -57,7 +57,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     # Intialization.
     # ------------------------------------------------------------
-    def __init__(self, args):
+    def __init__(self):
         if TorrentChecking.__single:
             raise RuntimeError("Torrent Checking is singleton")
         TorrentChecking.__single = self
@@ -106,21 +106,14 @@ class TorrentChecking(Thread):
     # Deconstructor.
     # ------------------------------------------------------------
     def __del__(self):
-        print_stack()
-        if hasattr(self, '_gui_request_queue'):
-            del self._gui_request_queue
-        if hasattr(self, '_selected_request_queue'):
-            del self._selected_request_queue
+        self._gui_request_queue
+        self._selected_request_queue
 
-        if hasattr(self, '_tracker_info_cache'):
-            del self._tracker_info_cache
+        self._tracker_info_cache
 
-        if hasattr(self, '_pending_response_dict'):
-            del self._pending_response_dict
-        if hasattr(self, '_session_dict'):
-            del self._session_dict
-        if hasattr(self, '_lock'):
-            del self._lock
+        self._pending_response_dict
+        self._session_dict
+        self._lock
 
     # ------------------------------------------------------------
     # (Public API)
@@ -184,13 +177,30 @@ class TorrentChecking(Thread):
         return successful
 
     # ------------------------------------------------------------
+    # (For Unit Test ONLY) Adds an infohash request.
+    # ------------------------------------------------------------
+    def addInfohashRequest(self, infohash):
+        try:
+            request = dict()
+            request['infohash'] = infohash
+            request['trackers'] = list()
+            self._gui_request_queue.put_nowait(request)
+            self._new_request_event.set()
+        except Queue.Full:
+            if DEBUG:
+                print >> sys.stderr, '[WARN] GUI request queue is full.'
+
+    # ------------------------------------------------------------
     # Processes a GUI request.
     # ------------------------------------------------------------
     @forceDBThread
     def _processGuiRequest(self, gui_request):
-        torrent_id   = gui_request['torrent_id']
         infohash     = gui_request['infohash']
         tracker_list = gui_request['trackers']
+        if 'torrent_id' in gui_request:
+            torrent_id = gui_request['torrent_id']
+        else:
+            torrent_id = self._torrentdb.getTorrentID(infohash)
 
         # get torrent's tracker list from DB
         db_tracker_list = self._getTrackerList(torrent_id, infohash)
@@ -205,7 +215,16 @@ class TorrentChecking(Thread):
         # the request to 
         successful = False
         for tracker_url in tracker_list:
+            self._updateTorrentTrackerMapping(torrent_id, tracker_url)
             self._createSessionForRequest(infohash, tracker_url)
+
+    # ------------------------------------------------------------
+    # Updates the TorrentTrackerMapping table.
+    # ------------------------------------------------------------
+    @forceDBThread
+    def _updateTorrentTrackerMapping(self, torrent_id, tracker):
+        if torrent_id:
+            self._torrentdb.addTorrentTrackerMapping(torrent_id, tracker)
 
     # ------------------------------------------------------------
     # Gets the information of a given torrent. This method first checks
@@ -214,26 +233,30 @@ class TorrentChecking(Thread):
     # DB.
     # ------------------------------------------------------------
     def _getTrackerList(self, torrent_id, infohash):
-        # see if we can find anything from DB
-        torrent = self._torrentdb.getTorrent(infohash)
-        #if torrent and 'tracker_list' in torrent and torrent['tracker_list']:
-        #    return (retries, last_check, torrent['tracker_list'])
-
-        # no tracker in DB, get torrent's trackers
         tracker_list = list()
+
+        # see if we can find anything from DB: TODO
+        torrent = self._torrentdb.getTorrent(infohash)
+        if torrent and 'tracker' in torrent and torrent['tracker']:
+            tracker = torrent['tracker']
+            if tracker not in tracker_list:
+                tracker_list.append(tracker)
+
         # check its magnet link
-        source_list = self._torrentdb.getTorrentCollecting(torrent_id)
-        for source, in source_list:
-            if source.startswith('magnet'):
-                dn, xt, trackers = parse_magnetlink(source)
-                if not trackers:
-                    continue
-                for tracker in trackers:
-                    if tracker not in tracker_list:
-                        tracker_list.append(tracker)
+        if torrent_id:
+            source_list = self._torrentdb.getTorrentCollecting(torrent_id)
+            for source, in source_list:
+                if source.startswith('magnet'):
+                    dn, xt, trackers = parse_magnetlink(source)
+                    if not trackers:
+                        continue
+                    for tracker in trackers:
+                        if tracker not in tracker_list:
+                            tracker_list.append(tracker)
 
         # update the DB with torrent's trackers
-        #self._updateTorrentTrackerList(infohash, tracker_list)
+        self._updateTorrentTrackerList(infohash, tracker_list)
+        torrent = self._torrentdb.selectTorrentToCheck(infohash=infohash)
 
         return tracker_list
 
@@ -333,9 +356,6 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentTrackerList(self, infohash, tracker_list):
-        if self._should_stop:
-            return
-
         if not tracker_list:
             return
 
@@ -413,22 +433,6 @@ class TorrentChecking(Thread):
             self._torrentdb.updateTorrent(response['infohash'], **kw)
         except:
             pass
-
-    # ------------------------------------------------------------
-    # (Unit test method)
-    # Adds an infohash and the tracker to check
-    # ------------------------------------------------------------
-    def _test_checkInfohash(self, infohash, tracker):
-        self._lock.acquire()
-
-        session = TrackerSession.createSession(tracker,\
-            self.updateResultFromSession)
-        session.establishConnection()
-        session.infohashList.append(infohash)
-        self._session_dict[session.getSocket()] = session
-        self._updatePendingResponseDict(infohash, retries=0, last_check=0)
-
-        self._lock.release()
 
     # ------------------------------------------------------------
     # Selects torrents to check.

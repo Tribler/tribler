@@ -362,10 +362,6 @@ class HttpTrackerSession(TrackerSession):
             self._failed = True
             return
 
-        if DEBUG:
-            print >> sys.stderr,\
-            '[DEBUG] HTTP[%s] received: [%s]' % (self._tracker, response)
-
         # for the header message, we need to parse the content length in case
         # if the HTTP packets are partial.
         if not self._message_buffer:

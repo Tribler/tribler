@@ -39,8 +39,8 @@ class TestTorrentChecking(AbstractServer):
 
         tracker_info_cache = TrackerInfoCache()
         tracker_info_cache.loadCacheFromDb()
-        cache_initialize_timeout = 5
-        cache_initialized = tracker_info_cache.isCacheInitialized(cache_initialize_timeout)
+        cache_initialize_timeout = 30
+        cache_initialized = tracker_info_cache.waitForCacheInitialization(cache_initialize_timeout)
         assert cache_initialized, 'Failed to initialize within %d seconds' % cache_initialize_timeout
 
         tracker = 'udp://tracker.publicbt.com:80/announce'
@@ -66,7 +66,7 @@ class TestTorrentChecking(AbstractServer):
     # Unit Test for TorrentChecking thread.
     # ------------------------------------------------------------
     def test_torrent_checking(self):
-        self.torrentChecking = TorrentChecking()
+        self.torrentChecking = TorrentChecking.getInstance()
         sleep(5)
 
         tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
@@ -74,7 +74,7 @@ class TestTorrentChecking(AbstractServer):
         tdef.metainfo_valid = True
 
         self.tdb.addExternalTorrent(tdef)
-        self.torrentChecking.addToQueue(tdef.get_infohash())
+        self.torrentChecking.addInfohashRequest(tdef.get_infohash())
         sleep(30)
 
         id, num_leechers, num_seeders, last_check = self.tdb.getSwarmInfoByInfohash(tdef.get_infohash())
