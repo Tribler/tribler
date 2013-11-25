@@ -1,5 +1,6 @@
 # Written by Arno Bakker
 # Updated by George Milescu
+# Updated by Egbert Bouman, now using ConfigParser
 # see LICENSE.txt for license information
 """ Controls the operation of a Session """
 
@@ -25,7 +26,7 @@ from Tribler.Core.RawServer.RawServer import autodetect_socket_style
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 
 
-class SessionConfigInterface:
+class SessionConfigInterface(object):
 
     """
     (key,value) pair config of global parameters,
@@ -40,7 +41,7 @@ class SessionConfigInterface:
         to make this a copy constructor.
         """
 
-        self.sessconfig = sessconfig or RawConfigParser()
+        self.sessconfig = sessconfig or CallbackConfigParser()
 
         # Poor man's versioning of SessionConfig, add missing default values.
         for section, sect_dict in sessdefaults.iteritems():
@@ -575,7 +576,7 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         @return SessionStartupConfig object
         """
         # Class method, no locking required
-        sessconfig = RawConfigParser()
+        sessconfig = CallbackConfigParser()
         if not sessconfig.read(filename):
             raise IOError, "Failed to open config file"
 
@@ -605,3 +606,21 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
     def copy(self):
         config = copy.copy(self.sessconfig)
         return SessionStartupConfig(config)
+
+
+class CallbackConfigParser(RawConfigParser):
+
+    def __init__(self, *args, **kwargs):
+        RawConfigParser.__init__(self, *args, **kwargs)
+        self.callback = None
+
+    def set_callback(self, callback):
+        self.callback = callback
+
+    def set(self, section, option, new_value):
+        if self.callback and self.has_section(section) and self.has_option(section, option):
+            old_value = self.get(section, option)
+            if not self.callback(section, option, new_value, old_value):
+                raise OperationNotPossibleAtRuntimeException
+        RawConfigParser.set(self, section, option, new_value)
+

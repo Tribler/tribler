@@ -897,6 +897,25 @@ class TriblerLaunchMany(Thread):
         @return A string. """
         return self.ltmgr.get_external_ip() if self.ltmgr else None
 
+    def config_changed_callback(self, section, name, new_value, old_value):
+        value_changed = new_value != old_value
+        if section == 'libtorrent' and name == 'utp':
+            if self.ltmgr and value_changed:
+                self.ltmgr.set_utp(new_value)
+        elif section == 'libtorrent' and name == 'lt_proxyauth':
+            if self.ltmgr:
+                self.ltmgr.set_proxy_settings(*self.session.get_libtorrent_proxy_settings())
+        elif section == 'torrent_checking' and name == 'torrent_checking_period':
+            if self.rtorrent_handler and value_changed:
+                self.rtorrent_handler.set_max_num_torrents(new_value)
+        elif section == 'general' and name == 'nickname':
+            return True
+        elif section == 'general' and name == 'mugshot':
+            return True
+        else:
+            return False
+        return True
+
 
 def singledownload_size_cmp(x, y):
     """ Method that compares 2 SingleDownload objects based on the size of the
