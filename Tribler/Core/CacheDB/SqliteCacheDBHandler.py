@@ -1096,13 +1096,6 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.execute_write(sql, (tracker,))
 
     # ------------------------------------------------------------
-    # Adds a new tracker into the TrackerInfo table.
-    # ------------------------------------------------------------
-    def addTrackerInfo(self, tracker):
-        sql = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
-        self._db.execute_write(sql, args=(tracker,))
-
-    # ------------------------------------------------------------
     # Gets all tracker information from the TrackerInfo table.
     # ------------------------------------------------------------
     def getTrackerInfoList(self):
