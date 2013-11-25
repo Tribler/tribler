@@ -1075,21 +1075,54 @@ class TorrentDBHandler(BasicDBHandler):
     def addTorrentTrackerMapping(self, torrent_id, tracker):
         sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
             + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
-        kw = [ (torrent_id, tracker) ]
-        self._db.executemany(sql, kw)
+        self._db.execute_write(sql, (torrent_id, tracker))
 
     # ------------------------------------------------------------
     # Gets a list of trackers of a given torrent.
     # (from TorrentTrackerMapping table)
     # ------------------------------------------------------------
-    def getTorrentTrackerList(self, infohash):
-        torrent_id = self._db.getTorrentID(infohash)
+    def getTorrentTrackerList(self, torrent_id):
         sql = 'SELECT TR.tracker FROM TrackerInfo TR, TorrentTrackerMapping MP'\
-            + ' WHERE MP.torrent_id == %d AND'\
-            + ' TR.tracker_id == MP.tracker_id'\
-            % torrent_id
-        tracker_list = self._db.fetchall(sql)
-        return [ tracker for tracker in tracker_list ]
+            + ' WHERE MP.torrent_id = ? AND'\
+            + ' TR.tracker_id = MP.tracker_id'
+        tracker_list = self._db.fetchall(sql, (torrent_id,))
+        return [ tracker[0] for tracker in tracker_list ]
+
+    # ------------------------------------------------------------
+    # Adds a new tracker into the TrackerInfo table.
+    # ------------------------------------------------------------
+    def addTrackerInfo(self, tracker):
+        sql = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
+        self._db.execute_write(sql, (tracker,))
+
+    # ------------------------------------------------------------
+    # Updates a tracker with good response.
+    # ------------------------------------------------------------
+    def updateGoodTrackerInfo(self, tracker, last_check):
+        sql = 'UPDATE OR IGNORE TrackerInfo'\
+            + ' SET is_alive = 1, failures = 0, last_check = ?'\
+            + ' WHERE tracker = ?'
+        self._db.execute_write(sql, (last_check, tracker))
+
+    # ------------------------------------------------------------
+    # Updates a tracker with bad response.
+    # ------------------------------------------------------------
+    def updateBadTrackerInfo(self, tracker, last_check, max_failures):
+        sql = 'UPDATE OR IGNORE TrackerInfo'\
+            + ' SET failures = failures + 1, last_check = ?'\
+            + ' WHERE tracker = ?'
+        self._db.execute_write(sql, (last_check, tracker))
+
+        sql = 'UPDATE TrackerInfo'\
+            + ' SET is_alive = 0 WHERE failures >= ?'
+        self._db.execute_write(sql, (max_failures,))
+
+    # ------------------------------------------------------------
+    # Adds a new tracker into the TrackerInfo table.
+    # ------------------------------------------------------------
+    def addTrackerInfo(self, tracker):
+        sql = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
+        self._db.execute_write(sql, args=(tracker,))
 
     # ------------------------------------------------------------
     # Gets all tracker information from the TrackerInfo table.
