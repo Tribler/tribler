@@ -1070,6 +1070,28 @@ class TorrentDBHandler(BasicDBHandler):
         return True
 
     # ------------------------------------------------------------
+    # Updates the TorrentTrackerMapping table.
+    # ------------------------------------------------------------
+    def addTorrentTrackerMapping(self, torrent_id, tracker):
+        sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
+            + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
+        kw = [ (torrent_id, tracker) ]
+        self._db.executemany(sql, kw)
+
+    # ------------------------------------------------------------
+    # Gets a list of trackers of a given torrent.
+    # (from TorrentTrackerMapping table)
+    # ------------------------------------------------------------
+    def getTorrentTrackerList(self, infohash):
+        torrent_id = self._db.getTorrentID(infohash)
+        sql = 'SELECT TR.tracker FROM TrackerInfo TR, TorrentTrackerMapping MP'\
+            + ' WHERE MP.torrent_id == %d AND'\
+            + ' TR.tracker_id == MP.tracker_id'\
+            % torrent_id
+        tracker_list = self._db.fetchall(sql)
+        return [ tracker for tracker in tracker_list ]
+
+    # ------------------------------------------------------------
     # Gets all tracker information from the TrackerInfo table.
     # ------------------------------------------------------------
     def getTrackerInfoList(self):
