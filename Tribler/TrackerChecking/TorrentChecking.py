@@ -202,6 +202,7 @@ class TorrentChecking(Thread):
         # the request to an existing session
         successful = False
         for tracker_url in tracker_list:
+            self._tracker_info_cache.addNewTrackerInfo(tracker_url)
             self._updateTorrentTrackerMapping(torrent_id, tracker_url)
             self._createSessionForRequest(infohash, tracker_url)
 
@@ -240,7 +241,6 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentTrackerMapping(self, torrent_id, tracker):
-        self._torrentdb.addTrackerInfo(tracker)
         self._torrentdb.addTorrentTrackerMapping(torrent_id, tracker)
 
     # ------------------------------------------------------------
@@ -635,6 +635,9 @@ class TorrentChecking(Thread):
                         session.reestablishConnection()
                         print >> sys.stderr, \
                         '[DEBUG] Tracker[%s] retry, %d.' % (session.getTracker(), session.getRetries())
+
+                # update tracker info cache
+                self._tracker_info_cache.updateTrackerInfoIntoDb()
 
             # All kinds of unexpected exceptions
             except Exception as err:

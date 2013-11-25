@@ -1096,28 +1096,6 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.execute_write(sql, (tracker,))
 
     # ------------------------------------------------------------
-    # Updates a tracker with good response.
-    # ------------------------------------------------------------
-    def updateGoodTrackerInfo(self, tracker, last_check):
-        sql = 'UPDATE OR IGNORE TrackerInfo'\
-            + ' SET is_alive = 1, failures = 0, last_check = ?'\
-            + ' WHERE tracker = ?'
-        self._db.execute_write(sql, (last_check, tracker))
-
-    # ------------------------------------------------------------
-    # Updates a tracker with bad response.
-    # ------------------------------------------------------------
-    def updateBadTrackerInfo(self, tracker, last_check, max_failures):
-        sql = 'UPDATE OR IGNORE TrackerInfo'\
-            + ' SET failures = failures + 1, last_check = ?'\
-            + ' WHERE tracker = ?'
-        self._db.execute_write(sql, (last_check, tracker))
-
-        sql = 'UPDATE TrackerInfo'\
-            + ' SET is_alive = 0 WHERE failures >= ?'
-        self._db.execute_write(sql, (max_failures,))
-
-    # ------------------------------------------------------------
     # Adds a new tracker into the TrackerInfo table.
     # ------------------------------------------------------------
     def addTrackerInfo(self, tracker):
@@ -1133,25 +1111,14 @@ class TorrentDBHandler(BasicDBHandler):
         return [tracker_info for tracker_info in tracker_info_list]
 
     # ------------------------------------------------------------
-    # Updates a tracker status into the TrackerInfo table.
+    # Updates a list of tracker status into the TrackerInfo table.
     # ------------------------------------------------------------
-    def updateTrackerInfo(self, tracker, last_check, failures, is_alive):
-        sql = 'SELECT * FROM TrackerInfo WHERE tracker = ?'
-        tracker_info_list = self._db.fetchall(sql, (tracker,))
-        if not tracker_info_list:
-            # insert a new record
-            kw = [ (tracker, last_check, failures, is_alive) ]
-            sql = 'INSERT INTO TrackerInfo(tracker, last_check, failures, is_alive)' \
-                 + ' VALUES(?, ?, ?, ?)'
-            self._db.executemany(sql, kw)
-        else:
-            # update the old one
-            kw = dict()
-            kw['last_check'] = last_check
-            kw['failures'] = failures
-            kw['is_alive'] = is_alive
-            where = 'tracker = \'%s\'' % tracker
-            self._db.update('TrackerInfo', where, **kw)
+    def updateTrackerInfo(self, args):
+        sql = 'UPDATE TrackerInfo SET'\
+            + ' last_check = ?, failures = ?, is_alive = ?'\
+            + ' WHERE tracker = ?'
+        self._db.executemany(sql, args)
+
 
     def getTracker(self, infohash, tier=0):
         torrent_id = self._db.getTorrentID(infohash)
