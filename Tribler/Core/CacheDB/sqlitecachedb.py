@@ -2203,8 +2203,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write(create_new_table, commit=False)
 
             insert_dht_tracker = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
-            dht_list = [ ('DHT',) ]
-            self.execute_write(insert_dht_tracker, dht_list, commit=False)
+            dht = ('DHT',)
+            self.execute_write(insert_dht_tracker, dht, commit=False)
 
             # ensure the temp-file is created, if it is not already
             try:
