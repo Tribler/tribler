@@ -55,7 +55,8 @@ class SettingsDialog(wx.Dialog):
                              'lt_proxyserver',
                              'lt_proxyport',
                              'lt_proxyusername',
-                             'lt_proxypassword']
+                             'lt_proxypassword',
+                             'enable_utp']
 
         self.myname = None
         self.elements = {}
@@ -201,6 +202,8 @@ class SettingsDialog(wx.Dialog):
             self.elements['lt_proxypassword'].SetValue(auth[1])
         self.ProxyTypeChanged()
 
+        self.elements['enable_utp'].SetValue(self.utility.session.get_libtorrent_utp())
+
         wx.CallAfter(self.Refresh)
 
     def OnSelectionChanging(self, event):
@@ -317,8 +320,7 @@ class SettingsDialog(wx.Dialog):
             self.utility.setMaxUp(valup)
 
             if valport != self.currentPortValue:
-                self.utility.config.Write('minport', valport)
-                self.utility.config.Write('maxport', int(valport) + 10)
+                scfg.set_listen_port(int(valport))
 
                 scfg.set_dispersy_port(int(valport) - 1)
                 self.saveDefaultDownloadConfig(scfg)
@@ -413,6 +415,11 @@ class SettingsDialog(wx.Dialog):
             if old_ptype != new_ptype or old_server != new_server or old_auth != new_auth:
                 self.utility.session.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
                 scfg.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
+
+            enable_utp = self.elements['enable_utp'].GetValue()
+            if enable_utp != self.utility.session.get_libtorrent_utp():
+                self.utility.session.set_libtorrent_utp(enable_utp)
+                scfg.set_libtorrent_utp(enable_utp)
 
             scfg.save(cfgfilename)
 
