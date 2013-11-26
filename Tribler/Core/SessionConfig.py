@@ -57,7 +57,7 @@ class SessionConfigInterface:
         if sys.platform == 'win32':
             ffmpegname = "ffmpeg.exe"
         else:
-            ffmpegname = "ffmpeg"
+            ffmpegname = "avconv"
 
         ffmpegpath = find_prog_in_PATH(ffmpegname)
         if ffmpegpath is None:
