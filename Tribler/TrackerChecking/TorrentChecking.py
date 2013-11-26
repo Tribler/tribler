@@ -252,11 +252,14 @@ class TorrentChecking(Thread):
                 if os.path.isfile(torrent_filename):
                     result = torrent_filename
         if result:
-            torrent = TorrentDef.load(result)
-            torrent_tracker_tuple = torrent.get_trackers_as_single_tuple()
-            for tracker in torrent_tracker_tuple:
-                if tracker not in tracker_list:
-                    tracker_list.append(tracker)
+            try:
+                torrent = TorrentDef.load(result)
+                torrent_tracker_tuple = torrent.get_trackers_as_single_tuple()
+                for tracker in torrent_tracker_tuple:
+                    if tracker not in tracker_list:
+                        tracker_list.append(tracker)
+            except:
+                pass
 
         return tracker_list
 
@@ -431,22 +434,20 @@ class TorrentChecking(Thread):
 
         current_time = int(time.time())
         while True:
-            if self._tracker_selection_idx >= len(self._tracker_info_cache.trackerInfoDict):
+            if self._tracker_selection_idx >= self._tracker_info_cache.getTrackerInfoListSize():
                 return
 
             tracker, _ = \
-                self._tracker_info_cache.trackerInfoDict.items()[self._tracker_selection_idx]
+                self._tracker_info_cache.getTrackerInfo(self._tracker_selection_idx)
             # skip the dead trackers
             if not self._tracker_info_cache.toCheckTracker(tracker):
                 self._tracker_selection_idx += 1
-                if self._tracker_selection_idx >= len(self._tracker_info_cache.trackerInfoDict):
+                if self._tracker_selection_idx >= self._tracker_info_cache.getTrackerInfoListSize():
                     self._tracker_selection_idx = 0
                 continue
 
             # get all the torrents on this tracker
             try:
-                if self._should_stop:
-                    return
                 all_torrent_list = self._torrentdb.getTorrentsOnTracker(tracker)
             except:
                 return
@@ -473,7 +474,7 @@ class TorrentChecking(Thread):
                 retries = torrent[1]
                 last_check = torrent[2]
 
-                self._addInfohashToQueue(infohash, retries, last_check, tracker)
+                self._createSessionForRequest(infohash, tracker)
 
             del check_torrent_list
             del all_torrent_list
@@ -482,7 +483,7 @@ class TorrentChecking(Thread):
 
         # update the tracker index
         self._tracker_selection_idx += 1
-        if self._tracker_selection_idx >= len(self._tracker_info_cache.trackerInfoDict):
+        if self._tracker_selection_idx >= self._tracker_info_cache.getTrackerInfoListSize():
             self._tracker_selection_idx = 0
 
     # ------------------------------------------------------------
@@ -515,15 +516,12 @@ class TorrentChecking(Thread):
                 print >> sys.stderr,\
                 '[WARN] Unexpected error while handling GUI requests:', e
 
-            # handle selected requests TODO
-
             # torrent selection
             this_time = int(time.time())
             if this_time - last_time_select_torrent > self._torrent_select_interval:
                 self._lock.acquire()
                 try:
-                    #self._selectTorrentsToCheck()
-                    pass
+                    self._selectTorrentsToCheck()
                 except Exception as e:
                     print >> sys.stderr, \
                     '[WARN] Unexpected error during TorrentSelection: ', e

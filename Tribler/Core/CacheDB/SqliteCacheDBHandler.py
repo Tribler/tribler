@@ -1130,6 +1130,17 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, new_mapping_list)
 
     # ------------------------------------------------------------
+    # Gets all the torrents that has a specific tracker.
+    # ------------------------------------------------------------
+    def getTorrentsOnTracker(self, tracker):
+        sql = 'SELECT T.infohash, T.tracker_check_retries, T.last_tracker_check'\
+            + ' FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM'\
+            + ' WHERE TI.tracker = ?'\
+            + ' AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id'
+        infohash_list = self._db.fetchall(sql, (tracker,))
+        return infohash_list
+
+    # ------------------------------------------------------------
     # Gets a list of trackers of a given torrent.
     # (from TorrentTrackerMapping table)
     # ------------------------------------------------------------

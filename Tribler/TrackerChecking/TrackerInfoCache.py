@@ -178,16 +178,16 @@ class TrackerInfoCache(object):
 
         self._lock.release()
 
-    # ========================================
-    # Methods for properties.
-    # ========================================
-    # trackerInfoDict
-    @property
-    def trackerInfoDict(self):
-        return self._tracker_info_dict
-    @trackerInfoDict.setter
-    def trackerInfoDict(self, tracker_info_dict):
-        self._tracker_info_dict = tracker_info_dict
-    @trackerInfoDict.deleter
-    def trackerInfoDict(self):
-        del self._tracker_info_dict
+    # ------------------------------------------------------------
+    # Gets the size of the tracker info list.
+    # ------------------------------------------------------------
+    def getTrackerInfoListSize(self):
+        with self._lock:
+            return len(self._tracker_info_dict.keys())
+
+    # ------------------------------------------------------------
+    # Gets the a specific tracker info.
+    # ------------------------------------------------------------
+    def getTrackerInfo(self, index):
+        with self._lock:
+            return self._tracker_info_dict.items()[index]
