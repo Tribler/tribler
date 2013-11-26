@@ -12,9 +12,12 @@
 
 import sys
 import time
-from threading import Lock, Event
+from threading import Lock
 
-from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+
+from Tribler.Core.Session import Session
+from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forceAndReturnDBThread
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 # ============================================================
@@ -34,20 +37,13 @@ class TrackerInfoCache(object):
 
         self._lock = Lock()
 
-        self._initial_load_complete_event = Event()
-
-    # ------------------------------------------------------------
-    # Destructor.
-    # ------------------------------------------------------------
-    def __del__(self):
-        del self._tracker_info_dict
-        del self._lock
-        del self._initial_load_complete_event
+        session = Session.get_instance()
+        session.add_observer(self.newTrackerCallback, NTFY_TRACKERINFO, [NTFY_INSERT,])
 
     # ------------------------------------------------------------
     # Loads and initializes the cache from database.
     # ------------------------------------------------------------
-    @forceDBThread
+    @forceAndReturnDBThread
     def loadCacheFromDb(self):
         tracker_info_list = self._torrentdb.getTrackerInfoList()
         # update tracker info
@@ -60,10 +56,25 @@ class TrackerInfoCache(object):
                 self._tracker_info_dict[tracker]['failures'] = failures
                 self._tracker_info_dict[tracker]['alive'] = alive
                 self._tracker_info_dict[tracker]['updated'] = False
-            del tracker_info_list
+
         self._lock.release()
 
-        self._initial_load_complete_event.set()
+    # ------------------------------------------------------------
+    # The callback function when a new tracker has been inserted.
+    # ------------------------------------------------------------
+    def newTrackerCallback(self, subject, changeType, objectID, *args):
+        if not objectID:
+            return
+
+        # create new trackers
+        self._lock.acquire()
+        for tracker in objectID:
+            self._tracker_info_dict[tracker] = dict()
+            self._tracker_info_dict[tracker]['last_check'] = 0
+            self._tracker_info_dict[tracker]['failures'] = 0
+            self._tracker_info_dict[tracker]['alive'] = True
+            self._tracker_info_dict[tracker]['updated'] = False
+        self._lock.release()
 
     # ------------------------------------------------------------
     # Waits for the cache to be initialized.
@@ -78,26 +89,18 @@ class TrackerInfoCache(object):
     def toCheckTracker(self, tracker):
         currentTime = int(time.time())
 
-        self._lock.acquire()
-        if not tracker in self._tracker_info_dict:
-            self._lock.release()
-            return True
+        with self._lock:
+            if not tracker in self._tracker_info_dict:
+                return True
 
-        alive = self._tracker_info_dict[tracker]['alive']
-        if alive:
-            self._lock.release()
-            return True
+            alive = self._tracker_info_dict[tracker]['alive']
+            if alive:
+                return True
 
-        # check the last time we check this 'dead' tracker
-        last_check = self._tracker_info_dict[tracker]['last_check']
-        interval = currentTime - last_check
-        if interval >= self._dead_tracker_recheck_Interval:
-            result = True
-        else:
-            result = False
-        self._lock.release()
-
-        return result
+            # check the last time we check this 'dead' tracker
+            last_check = self._tracker_info_dict[tracker]['last_check']
+            interval = currentTime - last_check
+            return interval >= self._dead_tracker_recheck_Interval
 
     # ------------------------------------------------------------
     # (Public API)
@@ -106,20 +109,17 @@ class TrackerInfoCache(object):
     # ------------------------------------------------------------
     @forceDBThread
     def addNewTrackerInfo(self, tracker):
-        self._lock.acquire()
-        if tracker in self._tracker_info_dict:
-            self._lock.release()
-            return
+        with self._lock:
+            if tracker in self._tracker_info_dict:
+                return
 
-        self._tracker_info_dict[tracker] = dict()
-        self._tracker_info_dict[tracker]['last_check'] = 0
-        self._tracker_info_dict[tracker]['failures'] = 0
-        self._tracker_info_dict[tracker]['alive']    = True
-        self._tracker_info_dict[tracker]['updated']  = False
+            self._tracker_info_dict[tracker] = dict()
+            self._tracker_info_dict[tracker]['last_check'] = 0
+            self._tracker_info_dict[tracker]['failures'] = 0
+            self._tracker_info_dict[tracker]['alive']    = True
+            self._tracker_info_dict[tracker]['updated']  = False
 
-        self._torrentdb.addTrackerInfo(tracker)
-
-        self._lock.release()
+            self._torrentdb.addTrackerInfo(tracker, False)
 
     # ------------------------------------------------------------
     # (Public API)

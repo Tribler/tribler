@@ -7,6 +7,7 @@
 # TODO: add comments
 # ============================================================
 import sys
+import os
 import binascii
 import time
 
@@ -18,6 +19,10 @@ from threading import Thread, Lock, Event
 import Queue
 
 from traceback import print_exc, print_stack
+
+from Tribler.Core.Session import Session
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Swift.SwiftDef import SwiftDef
 
 try:
     prctlimported = True
@@ -83,7 +88,6 @@ class TorrentChecking(Thread):
 
         # initialize a tracker status cache, TODO: add parameters
         self._tracker_info_cache = TrackerInfoCache()
-        self._tracker_info_cache.loadCacheFromDb()
 
         self._tracker_selection_idx = 0
         self._torrent_select_interval = 60
@@ -99,6 +103,8 @@ class TorrentChecking(Thread):
         self._selected_request_queue = Queue.Queue(self._max_selected_requests)
 
         self._should_stop = False
+
+        self._tor_col_dir = Session.get_instance().get_torrent_collecting_dir()
 
         self.start()
 
@@ -190,7 +196,7 @@ class TorrentChecking(Thread):
             torrent_id = self._torrentdb.getTorrentID(infohash)
 
         # get torrent's tracker list from DB
-        db_tracker_list = self._getTrackerList(torrent_id)
+        db_tracker_list = self._getTrackerList(torrent_id, infohash)
         for tracker in db_tracker_list:
             if tracker not in tracker_list:
                 tracker_list.append(tracker)
@@ -210,7 +216,7 @@ class TorrentChecking(Thread):
     # Gets a list of all known trackers of a given torrent.
     # It checks the TorrentTrackerMapping table and magnet links.
     # ------------------------------------------------------------
-    def _getTrackerList(self, torrent_id):
+    def _getTrackerList(self, torrent_id, infohash):
         tracker_list = list()
 
         # get trackers from DB (TorrentTrackerMapping table)
@@ -233,6 +239,24 @@ class TorrentChecking(Thread):
                     tracker_list.append(tracker)
 
         # TODO: also to get trackers from its .torrent file?
+        result = None
+        torrent = self._torrentdb.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
+        if torrent:
+            if torrent.get('torrent_file_name', False) and os.path.isfile(torrent['torrent_file_name']):
+                result = torrent['torrent_file_name']
+
+            elif torrent.get('swift_torrent_hash', False):
+                sdef = SwiftDef(torrent['swift_torrent_hash'])
+                torrent_filename = os.path.join(self._tor_col_dir, sdef.get_roothash_as_hex())
+
+                if os.path.isfile(torrent_filename):
+                    result = torrent_filename
+        if result:
+            torrent = TorrentDef.load(result)
+            torrent_tracker_tuple = torrent.get_trackers_as_single_tuple()
+            for tracker in torrent_tracker_tuple:
+                if tracker not in tracker_list:
+                    tracker_list.append(tracker)
 
         return tracker_list
 
@@ -470,10 +494,10 @@ class TorrentChecking(Thread):
             prctl.set_name("Tribler" + currentThread().getName())
 
         # wait for the tracker info cache to be initialized
-        if not self._tracker_info_cache.waitForCacheInitialization(30):
-            if DEBUG:
-                print >> sys.stderr,\
-                '[WARN] Failed to initialize TrackerInfoCache within 30 seconds.'
+        if DEBUG:
+            print >> sys.stderr,\
+            '[DEBUG] Start initializing TrackerInfoCache...'
+        self._tracker_info_cache.loadCacheFromDb()
         if DEBUG:
             print >> sys.stderr,\
             '[DEBUG] TrackerInfoCache initialized.'
@@ -598,8 +622,10 @@ class TorrentChecking(Thread):
                     del session
 
                 # >> Step 3. check and update new results
+                new_result_list = list()
                 for infohash, response in self._pending_response_dict.items():
                     if response['updated']:
+                        new_result_list
                         self._updateTorrentResult(response)
                         response['updated'] = False
 

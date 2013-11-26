@@ -2202,6 +2202,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 );"""
             self.execute_write(create_new_table, commit=False)
 
+            insert_dht_tracker = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
+            dht_list = [ ('DHT',) ]
+            self.execute_write(insert_dht_tracker, dht_list, commit=False)
+
             # ensure the temp-file is created, if it is not already
             try:
                 open(tmpfilename4, "w")
@@ -2217,7 +2221,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     print >> sys.stderr, 'Upgrading DB to v19 ...'
 
                     if not TEST_OVERRIDE:
-                        sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent LIMIT %d' % UPGRADE_BATCH_SIZE
+                        sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent'\
+                            + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM TorrentTrackerMapping)'\
+                            + ' AND torrent_file_name IS NOT NULL'\
+                            + ' LIMIT %d' % UPGRADE_BATCH_SIZE
                         records = self.fetchall(sql)
                     else:
                         records = list()
@@ -2228,14 +2235,23 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename3
 
                         self.database_update.release()
+
+                        from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
+
+                        notifier = Notifier.get_instance()
+                        notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT)
                         return
 
                     found_torrent_tracker_map_list = list()
                     found_tracker_list = list()
+                    not_found_torrent_file_list = list()
+                    all_torrent_list = list()
 
                     import binascii
 
                     for torrent_id, infohash, torrent_filename in records:
+                        all_torrent_list.append((torrent_id,))
+
                         if not os.path.isfile(torrent_filename):
                             torrent_filename = os.path.join(torrent_dir, torrent_filename)
 
@@ -2258,24 +2274,37 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                                 found_torrent_tracker_map_list.append((torrent_id, tracker))
                                             if tracker not in found_tracker_list:
                                                 found_tracker_list.append((tracker,))
+
+                                else:
+                                    not_found_torrent_file_list.append((torrent_id,))
+
                             except Exception as e:
                                 # some torrent files may not be loaded correctly
                                 pass
 
-                            # TODO: to be reviewed. Copied from UpdateTorrents3().
-                            #       Don't know why we delete torrent files.
-                            #os.remove(torrent_filename)
+                        else:
+                            not_found_torrent_file_list.append((torrent_id,))
+
+                    if all_torrent_list:
+                        update_dht = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
+                            + ' VALUES(? , (SELECT tracker_id FROM TrackerInfo WHERE tracker = \'DHT\')'
+                        self.executemany(update_dht, all_torrent_list)
+
+                    if not_found_torrent_file_list:
+                        remove = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
+                        self.executemany(remove, not_found_torrent_file_list)
 
                     if found_tracker_list:
-                        print >> sys.stderr, found_tracker_list
                         insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
                         self.executemany(insert, found_tracker_list)
 
                     if found_torrent_tracker_map_list:
-                        print >> sys.stderr, found_torrent_tracker_map_list
                         insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
                             + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
                         self.executemany(insert, found_torrent_tracker_map_list)
+
+                # upgradation not yet complete; comeback after 5 sec
+                tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
 
             # start the upgradation after 10 seconds
             if not tqueue:
@@ -2365,7 +2394,7 @@ def forceDBThread(func):
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
                 callerstr = ""
-                for i in range(1, min(4, len(stack))):
+                for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
@@ -2384,7 +2413,7 @@ def forcePrioDBThread(func):
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
                 callerstr = ""
-                for i in range(1, min(4, len(stack))):
+                for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
@@ -2405,7 +2434,7 @@ def forceAndReturnDBThread(func):
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
                 callerstr = ""
-                for i in range(1, min(4, len(stack))):
+                for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s" % (caller[3], caller[1], caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
