@@ -1,4 +1,4 @@
-#Written by Niels Zeilemaker
+# Written by Niels Zeilemaker
 
 from threading import Thread, RLock, Event
 import os
@@ -17,10 +17,11 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from urlparse import urlparse
+from urllib2 import URLError
 
-URLHIST_TIMEOUT = 7*24*3600.0   # Don't revisit links for this time
-RSS_RELOAD_FREQUENCY = 30*60    # reload a rss source every n seconds
-RSS_CHECK_FREQUENCY = 2         # test a potential .torrent in a rss source every n seconds
+URLHIST_TIMEOUT = 7 * 24 * 3600.0  # Don't revisit links for this time
+RSS_RELOAD_FREQUENCY = 30 * 60  # reload a rss source every n seconds
+RSS_CHECK_FREQUENCY = 2  # test a potential .torrent in a rss source every n seconds
 
 DEBUG = False
 
@@ -33,7 +34,7 @@ class RssParser(Thread):
         RssParser.__single = self
 
         Thread.__init__(self)
-        self.setName( "RssParser"+self.getName())
+        self.setName("RssParser" + self.getName())
         self.setDaemon(True)
 
         self.key_url_lock = RLock()
@@ -68,19 +69,19 @@ class RssParser(Thread):
             print >> sys.stderr, "RssParser is already registered, ignoring"
 
     def getdir(self):
-        return os.path.join(self.session.get_state_dir(),"subscriptions")
+        return os.path.join(self.session.get_state_dir(), "subscriptions")
 
     def getfilename(self):
-        return os.path.join(self.getdir(),"subscriptions.txt")
+        return os.path.join(self.getdir(), "subscriptions.txt")
 
     def gethistfilename(self, url, key):
         h = sha.sha(url).hexdigest()
 
-        histfile = os.path.join(self.getdir(),"%s-%s.txt"%(h, key))
-        oldhistfile = os.path.join(self.getdir(),h+'.txt')
+        histfile = os.path.join(self.getdir(), "%s-%s.txt" % (h, key))
+        oldhistfile = os.path.join(self.getdir(), h + '.txt')
 
         if not os.path.exists(histfile):
-            #upgrade...
+            # upgrade...
             if os.path.exists(oldhistfile):
                 copyfile(oldhistfile, histfile)
 
@@ -89,7 +90,7 @@ class RssParser(Thread):
     def readfile(self):
         try:
             filename = self.getfilename()
-            f = open(filename,"rb")
+            f = open(filename, "rb")
             for line in f.readlines():
 
                 parts = line.split()
@@ -105,19 +106,19 @@ class RssParser(Thread):
                     if state == 'active':
                         self.addURL(url, key, dowrite=False)
                 else:
-                    print >> sys.stderr,"RssParser: Ignoring line", line
+                    print >> sys.stderr, "RssParser: Ignoring line", line
             f.close()
         except:
             if DEBUG:
-                print >>sys.stderr, "RssParser: subscriptions.txt does not yet exist"
+                print >> sys.stderr, "RssParser: subscriptions.txt does not yet exist"
 
     def writefile(self):
         filename = self.getfilename()
-        f = open(filename,"wb")
+        f = open(filename, "wb")
 
         for channel_id, urls in self.key_url.iteritems():
             for url in urls:
-                f.write('active %s %d\r\n'%(url, channel_id))
+                f.write('active %s %d\r\n' % (url, channel_id))
         f.close()
 
     def addURL(self, url, key, dowrite=True):
@@ -175,7 +176,7 @@ class RssParser(Thread):
             self.urls_changed.set()
 
     def run(self):
-        self.urls_changed.wait(60) # Let other Tribler components, in particular, Session startup
+        self.urls_changed.wait(60)  # Let other Tribler components, in particular, Session startup
 
         while self.isRegistered and len(self.key_url) and len(self.key_callbacks):
             if DEBUG:
@@ -225,7 +226,7 @@ class RssParser(Thread):
                                         print >> sys.stderr, "RssParser: trying", new_url
 
                                     referer = urlparse(new_url)
-                                    referer = referer.scheme+"://"+referer.netloc+"/"
+                                    referer = referer.scheme + "://" + referer.netloc + "/"
                                     stream = urlOpenTimeout(new_url, referer=referer)
                                     bdata = stream.read()
                                     stream.close()
@@ -236,12 +237,12 @@ class RssParser(Thread):
                                     def processCallbacks(key):
                                         for callback in self.key_callbacks[key]:
                                             try:
-                                                callback(key, torrent, extraInfo = {'title':title, 'description': description, 'thumbnail': thumbnail})
+                                                callback(key, torrent, extraInfo={'title':title, 'description': description, 'thumbnail': thumbnail})
                                             except:
                                                 print_exc()
 
                                     if self.remote_th.is_registered():
-                                        callback = lambda key=key: processCallbacks(key)
+                                        callback = lambda key = key: processCallbacks(key)
                                         self.remote_th.save_torrent(torrent, callback)
                                     else:
                                         processCallbacks(key)
@@ -259,43 +260,47 @@ class RssParser(Thread):
 
         newItems = []
 
-        feedparser._HTMLSanitizer.acceptable_elements = ['p','br']
-        d = feedparser.parse(url)
-        for entry in d.entries:
-            title = entry.title
+        try:
+            feedparser._HTMLSanitizer.acceptable_elements = ['p', 'br']
+            d = feedparser.parse(url)
+            for entry in d.entries:
+                title = entry.title
 
-            discovered_links = set()
-            for link in entry.links:
-                discovered_links.add(link['href'])
+                discovered_links = set()
+                for link in entry.links:
+                    discovered_links.add(link['href'])
 
-            for enclosure in entry.enclosures:
-                discovered_links.add(enclosure['href'])
+                for enclosure in entry.enclosures:
+                    discovered_links.add(enclosure['href'])
 
-            try:
-                for content in entry.media_content:
-                    discovered_links.add(content['url'])
-            except:
-                pass
+                try:
+                    for content in entry.media_content:
+                        discovered_links.add(content['url'])
+                except:
+                    pass
 
-            description = ''
-            if getattr(entry, 'summary', False):
-                description = entry.summary
-                if description:
-                    description = re.sub("<.*?>", "\n", description)
-                    description = re.sub("\n+", "\n", description)
+                description = ''
+                if getattr(entry, 'summary', False):
+                    description = entry.summary
+                    if description:
+                        description = re.sub("<.*?>", "\n", description)
+                        description = re.sub("\n+", "\n", description)
 
-            try:
-                thumbnail = entry.media_thumbnail[0]['url']
-            except:
-                thumbnail = None
+                try:
+                    thumbnail = entry.media_thumbnail[0]['url']
+                except:
+                    thumbnail = None
 
-            new_urls = [discovered_url for discovered_url in discovered_links if not urls_already_seen.contains(discovered_url)]
+                new_urls = [discovered_url for discovered_url in discovered_links if not urls_already_seen.contains(discovered_url)]
 
-            if len(new_urls) > 0:
-                newItems.append((title, new_urls, description, thumbnail))
+                if len(new_urls) > 0:
+                    newItems.append((title, new_urls, description, thumbnail))
+
+        except URLError:
+            if DEBUG:
+                print >> sys.stderr, "RssParser: could not open url", url
 
         return newItems
-
 
 if __name__ == '__main__':
     DEBUG = True
