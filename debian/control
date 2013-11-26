@@ -12,7 +12,7 @@ Homepage: http://www.tribler.org/
 
 Package: tribler
 Architecture: all
-Depends: ffmpeg,
+Depends: libav-tools,
          libjs-mootools,
          python-apsw,
          python-feedparser,
