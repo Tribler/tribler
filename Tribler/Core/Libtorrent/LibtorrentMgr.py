@@ -69,6 +69,8 @@ class LibtorrentMgr:
         # Load proxy settings
         self.set_proxy_settings(*self.trsession.get_libtorrent_proxy_settings())
 
+        self.set_utp(self.trsession.get_libtorrent_utp())
+
         self.external_ip = None
 
         self.torlock = NoDispersyRLock()
@@ -119,6 +121,12 @@ class LibtorrentMgr:
         self.ltsession.set_web_seed_proxy(proxy_settings)
         self.ltsession.set_tracker_proxy(proxy_settings)
         self.ltsession.set_dht_proxy(proxy_settings)
+
+    def set_utp(self, enable):
+        settings = self.ltsession.settings()
+        settings.enable_outgoing_utp = enable
+        settings.enable_incoming_utp = enable
+        self.ltsession.set_settings(settings)
 
     def set_max_connections(self, conns):
         self.ltsession.set_max_connections(conns)
