@@ -908,9 +908,12 @@ class TriblerLaunchMany(Thread):
         elif section == 'torrent_checking' and name == 'torrent_checking_period':
             if self.rtorrent_handler and value_changed:
                 self.rtorrent_handler.set_max_num_torrents(new_value)
-        elif section == 'general' and name == 'nickname':
-            return True
-        elif section == 'general' and name == 'mugshot':
+        # Return True/False, depending on whether or not the config value can be changed at runtime.
+        elif (section == 'general' and name in ['nickname', 'mugshot', 'timeout_check_interval', 'timeout', 'ipv6_enabled', 'videoanalyserpath']) or \
+             (section == 'libtorrent' and name in ['enabled', 'lt_proxytype', 'lt_proxyserver']) or \
+             (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
+             (section == 'dispersy' and name in ['enabled', 'dispersy-tunnel-over-swift', 'dispersy_port']) or \
+             (section == 'swift' and name in ['swiftworkingdir', 'swiftmetadir', 'swifttunnellistenport', 'swifttunnelcmdgwlistenport', 'swifttunnelhttpgwlistenport']):
             return True
         else:
             return False
