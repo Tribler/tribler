@@ -2230,15 +2230,15 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         records = list()
 
                     if len(records) == 0:
-                        if os.path.exists(tmpfilename3):
-                            os.remove(tmpfilename3)
+                        if os.path.exists(tmpfilename4):
+                            os.remove(tmpfilename4)
                             print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename3
 
                         self.database_update.release()
 
                         from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
 
-                        notifier = Notifier.get_instance()
+                        notifier = Notifier.getInstance()
                         notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT)
                         return
 

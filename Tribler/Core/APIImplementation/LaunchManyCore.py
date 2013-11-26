@@ -147,6 +147,7 @@ class TriblerLaunchMany(Thread):
                     def __init__(self):
                         from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
                         self.queue = TimedTaskQueue("FakeCallback")
+                        self.is_running = True
 
                     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", callback=None, callback_args=(), callback_kargs=None, include_id=False):
                         def do_task():
@@ -161,6 +162,26 @@ class TriblerLaunchMany(Thread):
                                 else:
                                     callback(*callback_args)
                         self.queue.add_task(do_task, t=delay)
+
+                    def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", include_id=False, timeout = 0.0, default = None):
+                        event = Event()
+                        container = [default,]
+
+                        def do_task():
+                            if kargs:
+                                container[0] = call(*args, **kargs)
+                            else:
+                                container[0] = call(*args)
+
+                            event.set()
+
+                        if currentThread().getName().startswith('FakeCallback'):
+                            do_task()
+                        else:
+                            self.queue.add_task(do_task, t=delay)
+
+                        event.wait(None if timeout == 0.0 else timeout)
+                        return container[0]
 
                     def shutdown(self, immediately=False):
                         self.queue.shutdown(immediately)
