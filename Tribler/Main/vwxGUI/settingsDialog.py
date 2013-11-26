@@ -320,8 +320,7 @@ class SettingsDialog(wx.Dialog):
             self.utility.setMaxUp(valup)
 
             if valport != self.currentPortValue:
-                self.utility.config.Write('minport', valport)
-                self.utility.config.Write('maxport', int(valport) + 10)
+                scfg.set_listen_port(int(valport))
 
                 scfg.set_dispersy_port(int(valport) - 1)
                 self.saveDefaultDownloadConfig(scfg)
