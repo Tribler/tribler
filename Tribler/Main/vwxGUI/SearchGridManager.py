@@ -11,7 +11,7 @@ from time import time
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, NULL, forceAndReturnDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, NULL, forceAndReturnDBThread, forceDBThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Main.globals import DefaultDownloadStartupConfig
@@ -117,11 +117,15 @@ class TorrentManager:
             if os.path.isfile(torrent_filename):
                 try:
                     tdef = TorrentDef.load(torrent_filename)
-                    if self.torrent_db.hasTorrent(torrent.infohash):
-                        self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
-                    else:
-                        self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
 
+                    @forceDBThread
+                    def do_db():
+                        if self.torrent_db.hasTorrent(torrent.infohash):
+                            self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
+                        else:
+                            self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
+
+                    do_db()
                     return torrent_filename
 
                 except ValueError:

@@ -798,9 +798,13 @@ class TorrentDBHandler(BasicDBHandler):
         VALUES (?,?,?, ?,?,?)
         """
 
+        new_tracker_list = list()
+
         values = []
         if announce != None:
             values.append((torrent_id, announce, 1, ignore_number, retry_number, last_check_time))
+
+            new_tracker_list.append(announce)
 
         # each torrent only has one announce with tier number 1
         tier_num = 2
@@ -815,8 +819,15 @@ class TorrentDBHandler(BasicDBHandler):
                     trackers[tracker] = None
                 tier_num += 1
 
+                # TODO: a limited tracker list
+                if len(new_tracker_list) < 25:
+                    new_tracker_list.append(announce)
+
         if len(values) > 0:
             self._db.executemany(sql_insert_torrent_tracker, values, commit=commit)
+
+        # New method
+        self.addTorrentTrackerMappingBatched(torrent_id, new_tracker_list)
 
     def updateTorrent(self, infohash, commit=True, notify=True, **kw):  # watch the schema of database
         if 'category' in kw:
@@ -1070,12 +1081,53 @@ class TorrentDBHandler(BasicDBHandler):
         return True
 
     # ------------------------------------------------------------
+    # Updates the Torrent checking results in batch
+    # ------------------------------------------------------------
+    def updateTorrentCheckingResults(self, result_list, commit=True, notify=True):
+        sql = 'UPDATE OR IGNORE Torrent'\
+            + ' SET num_seeders = ?, num_leechers = ?, status = ?, last_tracker_check = ?'\
+            + ' WHERE infohash = ?'
+
+        if commit:
+            self.commit()
+
+        if notify:
+            self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
+
+    # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
     # ------------------------------------------------------------
     def addTorrentTrackerMapping(self, torrent_id, tracker):
         sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
             + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
         self._db.execute_write(sql, (torrent_id, tracker))
+
+    # ------------------------------------------------------------
+    # Updates the TorrentTrackerMapping table in batch.
+    # ------------------------------------------------------------
+    def addTorrentTrackerMappingBatched(self, torrent_id, tracker_list):
+        if not tracker_list:
+            return
+
+        parameters = '?,' * len(tracker_list)
+        sql = 'SELECT tracker_id, tracker FROM TrackerInfo WHERE tracker IN (' + parameters[:-1] + ')'
+        found_tracker_list = self._db.fetchall(sql, tuple(tracker_list))
+
+        found_tracker_dict = dict()
+        for tracker_id, tracker in found_tracker_list:
+            found_tracker_dict[tracker] = tracker_id
+
+        # update tracker info
+        not_found_tracker_list = [tracker for tracker in tracker_list if tracker not in found_tracker_list]
+        if not_found_tracker_list:
+            self.addTrackerInfoBatched(not_found_tracker_list)
+
+        # update torrent-tracker mapping
+        sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
+            + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
+        new_mapping_list = [(torrent_id, tracker) for tracker in tracker_list]
+        if new_mapping_list:
+            self._db.executemany(sql, new_mapping_list)
 
     # ------------------------------------------------------------
     # Gets a list of trackers of a given torrent.
@@ -1091,9 +1143,28 @@ class TorrentDBHandler(BasicDBHandler):
     # ------------------------------------------------------------
     # Adds a new tracker into the TrackerInfo table.
     # ------------------------------------------------------------
-    def addTrackerInfo(self, tracker):
-        sql = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
-        self._db.execute_write(sql, (tracker,))
+    def addTrackerInfo(self, tracker, to_notify=True):
+        try:
+            sql = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
+            self._db.execute_write(sql, (tracker,))
+
+            if to_notify:
+                self.notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, [tracker,])
+        except:
+            pass
+
+    # ------------------------------------------------------------
+    # Adds a new trackers in batch into the TrackerInfo table.
+    # ------------------------------------------------------------
+    def addTrackerInfoBatched(self, tracker_list, to_notify=True):
+        try:
+            sql = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
+            self._db.executemany(sql, [(tracker,) for tracker in tracker_list])
+
+            if to_notify:
+                self.notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, tracker_list)
+        except:
+            pass
 
     # ------------------------------------------------------------
     # Gets all tracker information from the TrackerInfo table.
