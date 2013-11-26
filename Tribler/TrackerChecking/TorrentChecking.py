@@ -62,7 +62,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     # Intialization.
     # ------------------------------------------------------------
-    def __init__(self, args):
+    def __init__(self, args=None):
         if TorrentChecking.__single:
             raise RuntimeError("Torrent Checking is singleton")
         TorrentChecking.__single = self
