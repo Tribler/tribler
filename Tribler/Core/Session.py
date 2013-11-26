@@ -326,6 +326,7 @@ class Session(SessionRuntimeConfig):
         self.sesslock.acquire()
         try:
             sessconfig = copy.copy(self.sessconfig)
+            sessconfig.set_callback(None)
             return SessionStartupConfig(sessconfig=sessconfig)
         finally:
             self.sesslock.release()
