@@ -268,19 +268,23 @@ class LibtorrentMgr:
         else:
             self.trsession.lm.rawserver.add_task(self.reachability_check, 10)
 
-    def monitor_dht(self):
+    def monitor_dht(self, chances_remaining=1):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
         if self.ltsession:
             if self.get_dht_nodes() <= 25:
-                print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d)" % self.ltsession.status().dht_nodes
-                self.ltsession.start_dht(None)
-
+                if self.get_dht_nodes() >= 5 and chances_remaining:
+                    print >> sys.stderr, "LibtorrentMgr: giving the dht a chance (%d, %d)" % (self.ltsession.status().dht_nodes, chances_remaining)
+                    self.trsession.lm.rawserver.add_task(lambda: self.monitor_dht(chances_remaining - 1), 5)
+                else:
+                    print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d, %d)" % (self.ltsession.status().dht_nodes, chances_remaining)
+                    self.ltsession.start_dht(None)
+                    self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
             else:
                 print >> sys.stderr, "LibtorrentMgr: dht is working enough nodes are found (%d)" % self.ltsession.status().dht_nodes
                 self.dht_ready = True
                 return
-
-        self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
+        else:
+            self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
 
     def get_peers(self, infohash, callback, timeout=30):
         def on_metainfo_retrieved(metainfo, infohash=infohash, callback=callback):
