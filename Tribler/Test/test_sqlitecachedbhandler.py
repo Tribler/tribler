@@ -3,7 +3,7 @@ import sys
 import unittest
 
 from time import time
-from binascii import unhexlify
+from binascii import unhexlify, hexlify
 from shutil import copy as copyFile
 
 from Tribler.Core.Session import Session
@@ -428,7 +428,7 @@ class TestTorrentDBHandler(AbstractDB):
     def addTorrent(self):
         old_size = self.tdb.size()
         old_src_size = self.tdb._db.size('TorrentSource')
-        old_tracker_size = self.tdb._db.size('TorrentTracker')
+        old_tracker_size = self.tdb._db.size('TrackerInfo')
 
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
@@ -461,7 +461,8 @@ class TestTorrentDBHandler(AbstractDB):
 
         assert self.tdb.size() == old_size + 2, old_size - self.tdb.size()
         assert old_src_size + 1 == self.tdb._db.size('TorrentSource')
-        assert old_tracker_size + 2 == self.tdb._db.size('TorrentTracker'), self.tdb._db.size('TorrentTracker') - old_tracker_size
+        new_tracker_table_size = self.tdb._db.size('TrackerInfo')
+        assert old_tracker_size + 2 == new_tracker_table_size, new_tracker_table_size - old_tracker_size
 
         sname = self.tdb.getOne('name', torrent_id=single_torrent_id)
         assert sname == single_name, (sname, single_name)
@@ -492,7 +493,7 @@ class TestTorrentDBHandler(AbstractDB):
         comments = 'something not inside'
         assert m_comment.find(comments) == -1
 
-        m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)  # db._db.getAll('TorrentTracker', 'tracker', 'torrent_id=%d'%multiple_torrent_id)
+        m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
         assert len(m_trackers) == 1
         assert 'http://tpb.tracker.thepiratebay.org/announce' in m_trackers, m_trackers
 
@@ -500,14 +501,14 @@ class TestTorrentDBHandler(AbstractDB):
         m_torrent = self.tdb.getTorrent(m_infohash)
         assert s_torrent['name'] == 'Tribler_4.1.7_src.zip', s_torrent['name']
         assert m_torrent['name'] == 'Tribler_4.1.7_src', m_torrent['name']
-        assert m_torrent['last_check_time'] == 0
+        assert m_torrent['last_tracker_check'] == 0
 
     def updateTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
         self.tdb.updateTorrent(m_infohash, relevance=3.1415926, category=['Videoclips'],
                          status='good', progress=23.5, seeder=123, leecher=321,
-                         last_check_time=1234567, ignore_number=1, retry_number=2,
+                         last_check_time=1234567, retry_number=2,
                          other_key1='abcd', other_key2=123)
         multiple_torrent_id = self.tdb._db.getTorrentID(m_infohash)
         res_r = self.tdb.getOne('relevance', torrent_id=multiple_torrent_id)
@@ -525,12 +526,10 @@ class TestTorrentDBHandler(AbstractDB):
         assert seeder == 123
         leecher = self.tdb.getOne('num_leechers', torrent_id=multiple_torrent_id)
         assert leecher == 321
-        last_check_time = self.tdb._db.getOne('TorrentTracker', 'last_check', announce_tier=1, torrent_id=multiple_torrent_id)
-        assert last_check_time == 1234567, last_check_time
-        ignore_number = self.tdb._db.getOne('TorrentTracker', 'ignored_times', announce_tier=1, torrent_id=multiple_torrent_id)
-        assert ignore_number == 1
-        retry_number = self.tdb._db.getOne('TorrentTracker', 'retried_times', announce_tier=1, torrent_id=multiple_torrent_id)
-        assert retry_number == 2
+        #last_check_time = self.tdb._db.getOne('TorrentTracker', 'last_check', announce_tier=1, torrent_id=multiple_torrent_id)
+        #assert last_check_time == 1234567, last_check_time
+        #retry_number = self.tdb._db.getOne('TorrentTracker', 'retried_times', announce_tier=1, torrent_id=multiple_torrent_id)
+        #assert retry_number == 2
 
     def deleteTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')

@@ -53,21 +53,3 @@ class TestTorrentChecking(TestAsServer):
 
         id, num_leechers, num_seeders, last_check = self.tdb.getSwarmInfoByInfohash(tdef.get_infohash())
         assert num_leechers >= 0 or num_seeders >= 0, (num_leechers, num_seeders)
-
-    """
-    def tearDown(self):
-        if SQLiteCacheDB.hasInstance():
-            SQLiteCacheDB.getInstance().close_all()
-            SQLiteCacheDB.delInstance()
-
-        if Session.has_instance():
-            Session.del_instance()
-
-        TorrentDBHandler.delInstance()
-        MyPreferenceDBHandler.delInstance()
-        NetworkBuzzDBHandler.delInstance()
-
-        self.tearDownCleanup()
-
-        TestAsServer.tearDown()
-    """

@@ -172,15 +172,6 @@ CREATE TABLE TorrentStatus (
 
 ----------------------------------------
 
-CREATE TABLE TorrentTracker (
-  torrent_id   integer NOT NULL,
-  tracker      text NOT NULL,
-  announce_tier    integer,
-  ignored_times    integer,
-  retried_times    integer,
-  last_check       numeric
-);
-
 CREATE TABLE TrackerInfo (
   tracker_id  integer PRIMARY KEY AUTOINCREMENT,
   tracker     text    UNIQUE NOT NULL,
