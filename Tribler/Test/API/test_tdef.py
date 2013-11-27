@@ -89,6 +89,16 @@ class TestTorrentDef(unittest.TestCase):
         t2 = TorrentDef.load(filename)
         self.assert_(t2.get_metadata() == dummydata)
 
+    def test_is_private(self):
+        privatefn = os.path.join(BASE_DIR, "data", "private.torrent")
+        publicfn = os.path.join(BASE_DIR, "data", "bak_single.torrent")
+
+        t1 = TorrentDef.load(privatefn)
+        t2 = TorrentDef.load(publicfn)
+
+        self.assert_(t1.is_private() == True)
+        self.assert_(t2.is_private() == False)
+
     def subtest_add_content_file(self, merkle=True):
         """ Add a single file to a TorrentDef """
         t = TorrentDef()
