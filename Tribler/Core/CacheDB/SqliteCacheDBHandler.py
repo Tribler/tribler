@@ -845,9 +845,6 @@ class TorrentDBHandler(BasicDBHandler):
             kw['num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
             kw['num_leechers'] = kw.pop('leecher')
-        if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw \
-          or 'retried_times' in kw or 'ignored_times' in kw:
-            self.updateTracker(infohash, kw, commit=False)
 
         if 'swift_hash' in kw:
             kw['swift_hash'] = bin2str(kw['swift_hash'])
@@ -1007,29 +1004,6 @@ class TorrentDBHandler(BasicDBHandler):
         for torrent_id, swarmname in to_be_indexed:
             self._indexTorrent(torrent_id, swarmname, [], False)
 
-    def updateTracker(self, infohash, kw, tier=1, tracker=None, commit=True):
-        torrent_id = self._db.getTorrentID(infohash)
-        if torrent_id is None:
-            return
-        update = {}
-        assert isinstance(kw, dict) and kw, 'updateTracker error: kw should be filled dict, but is: %s' % kw
-        if 'last_check_time' in kw:
-            update['last_check'] = kw.pop('last_check_time')
-        if 'ignore_number' in kw:
-            update['ignored_times'] = kw.pop('ignore_number')
-        if 'ignored_times' in kw:
-            update['ignored_times'] = kw.pop('ignored_times')
-        if 'retry_number' in kw:
-            update['retried_times'] = kw.pop('retry_number')
-        if 'retried_times' in kw:
-            update['retried_times'] = kw.pop('retried_times')
-
-        if tracker is None:
-            where = 'torrent_id=%d AND announce_tier=%d' % (torrent_id, tier)
-        else:
-            where = 'torrent_id=%d AND tracker=%s' % (torrent_id, repr(tracker))
-        self._db.update('TorrentTracker', where, commit=commit, **update)
-
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
         if not self.hasTorrent(infohash):
             return False
@@ -1060,7 +1034,8 @@ class TorrentDBHandler(BasicDBHandler):
                 self._nb.deleteTorrent(torrent_id, commit)
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
-            self._db.delete('TorrentTracker', commit=commit, torrent_id=torrent_id)
+
+            self._db.delete('TorrentTrackerMapping', commit=commit, torrent_id=torrent_id)
             # print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
 
     def eraseTorrentFile(self, infohash):
@@ -1192,10 +1167,14 @@ class TorrentDBHandler(BasicDBHandler):
             + ' WHERE tracker = ?'
         self._db.executemany(sql, args)
 
-    def getPopularTrackers(self, limit=10):
-        sql = "SELECT DISTINCT tracker FROM torrenttracker WHERE ignored_times = 0 ORDER BY last_check DESC LIMIT ?"
+    # ------------------------------------------------------------
+    # Gets a list of trackers that have been checked to be alive recently.
+    # ------------------------------------------------------------
+    def getRecentlyAliveTrackers(self, limit=10):
+        sql = 'SELECT DISTINCT tracker FROM TrackerInfo'\
+            + ' WHERE is_alive = 1 ORDER BY last_check DESC LIMIT ?'
         trackers = self._db.fetchall(sql, (limit,))
-        return [tracker for tracker, in trackers]
+        return [tracker[0] for tracker in trackers]
 
     def getSwarmInfoByInfohash(self, infohash):
         sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id = tr.torrent_id AND t.infohash  = ?"
