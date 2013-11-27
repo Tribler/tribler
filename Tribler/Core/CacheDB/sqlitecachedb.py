@@ -2239,7 +2239,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
 
                         notifier = Notifier.getInstance()
-                        notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT)
+                        notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, None)
                         return
 
                     found_torrent_tracker_map_list = list()

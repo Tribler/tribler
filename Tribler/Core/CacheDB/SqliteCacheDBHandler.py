@@ -1081,20 +1081,6 @@ class TorrentDBHandler(BasicDBHandler):
         return True
 
     # ------------------------------------------------------------
-    # Updates the Torrent checking results in batch
-    # ------------------------------------------------------------
-    def updateTorrentCheckingResults(self, result_list, commit=True, notify=True):
-        sql = 'UPDATE OR IGNORE Torrent'\
-            + ' SET num_seeders = ?, num_leechers = ?, status = ?, last_tracker_check = ?'\
-            + ' WHERE infohash = ?'
-
-        if commit:
-            self.commit()
-
-        if notify:
-            self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
-
-    # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
     # ------------------------------------------------------------
     def addTorrentTrackerMapping(self, torrent_id, tracker):
