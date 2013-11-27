@@ -1189,11 +1189,6 @@ class TorrentDBHandler(BasicDBHandler):
                 sql += " AND announce_tier<=%d" % tier
             return self._db.fetchall(sql)
 
-    def getTorrentsFromTracker(self, tracker, max_last_check, limit):
-        sql = "SELECT infohash FROM TorrentTracker, Torrent WHERE Torrent.torrent_id = TorrentTracker.torrent_id AND tracker = ? AND last_check < ? ORDER BY RANDOM() LIMIT ?"
-        infohashes = self._db.fetchall(sql, (tracker, max_last_check, limit))
-        return [str2bin(infohash) for infohash, in infohashes]
-
     def getPopularTrackers(self, limit=10):
         sql = "SELECT DISTINCT tracker FROM torrenttracker WHERE ignored_times = 0 ORDER BY last_check DESC LIMIT ?"
         trackers = self._db.fetchall(sql, (limit,))
@@ -1893,79 +1888,6 @@ class TorrentDBHandler(BasicDBHandler):
                 res.extend([infohash for infohash, in self._db.fetchall(sql, (list_size - len(res),))])
 
         return [str2bin(infohash) for infohash in res if not infohash is None]
-
-    def selectTorrentToCheck(self, policy='random', infohash=None):  # for tracker checking
-        """ select a torrent to update tracker info (number of seeders and leechers)
-        based on the torrent checking policy.
-        RETURN: a dictionary containing all useful info.
-
-        Policy 1: Random [policy='random']
-           Randomly select a torrent to collect (last_check < 5 min ago)
-
-        Policy 2: Oldest (unknown) first [policy='oldest']
-           Select the non-dead torrent which was not been checked for the longest time (last_check < 5 min ago)
-
-        Policy 3: Popular first [policy='popular']
-           Select the non-dead most popular (3*num_seeders+num_leechers) one which has not been checked in last N seconds
-           (The default N = 4 hours, so at most 4h/torrentchecking_interval popular peers)
-        """
-
-        # import threading
-        # print >> sys.stderr, "****** selectTorrentToCheck", threading.currentThread().getName()
-
-        if infohash is None:
-            # create a view?
-            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check, tracker
-                     from CollectedTorrent T, TorrentTracker TT
-                     where TT.torrent_id=T.torrent_id and announce_tier=1 """
-            if policy.lower() == 'random':
-                ntorrents = self.getNumberCollectedTorrents()
-                if ntorrents == 0:
-                    rand_pos = 0
-                else:
-                    rand_pos = randint(0, ntorrents - 1)
-                last_check_threshold = int(time()) - 300
-                sql += """and last_check < %d
-                        limit 1 offset %d """ % (last_check_threshold, rand_pos)
-            elif policy.lower() == 'oldest':
-                last_check_threshold = int(time()) - 300
-                sql += """ and last_check < %d and status_id <> 2
-                         order by last_check
-                         limit 1 """ % last_check_threshold
-            elif policy.lower() == 'popular':
-                last_check_threshold = int(time()) - 4 * 60 * 60
-                sql += """ and last_check < %d and status_id <> 2
-                         order by 3*num_seeders+num_leechers desc
-                         limit 1 """ % last_check_threshold
-            res = self._db.fetchone(sql)
-        else:
-            # Niels: If we specifiy a particular torrent, allow for non-collected torrents (ie torrent from channels can have trackers before the .torrent is collected)
-            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check, tracker
-                     from Torrent T, TorrentTracker TT
-                     where TT.torrent_id=T.torrent_id and announce_tier=1
-                     and infohash=?
-                  """
-            infohash_str = bin2str(infohash)
-            res = self._db.fetchone(sql, (infohash_str,))
-
-        if res:
-            torrent_file_name = res[3]
-            if torrent_file_name:
-                torrent_dir = self.getTorrentDir()
-                torrent_path = os.path.join(torrent_dir, torrent_file_name)
-            else:
-                torrent_path = None
-
-            res = {'torrent_id': res[0],
-                   'ignored_times': res[1],
-                   'retried_times': res[2],
-                   'torrent_path': torrent_path,
-                   'infohash': str2bin(res[4]),
-                   'status': self.id2status[res[5]],
-                   'last_check': res[8],
-                   'trackers': [res[9]],
-                  }
-            return res
 
     def getTorrentsFromSource(self, source):
         """ Get all torrents from the specified Subscription source.
