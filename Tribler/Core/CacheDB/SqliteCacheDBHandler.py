@@ -1192,15 +1192,6 @@ class TorrentDBHandler(BasicDBHandler):
             + ' WHERE tracker = ?'
         self._db.executemany(sql, args)
 
-
-    def getTracker(self, infohash, tier=0):
-        torrent_id = self._db.getTorrentID(infohash)
-        if torrent_id is not None:
-            sql = "SELECT tracker, announce_tier FROM TorrentTracker WHERE torrent_id==%d" % torrent_id
-            if tier > 0:
-                sql += " AND announce_tier<=%d" % tier
-            return self._db.fetchall(sql)
-
     def getPopularTrackers(self, limit=10):
         sql = "SELECT DISTINCT tracker FROM torrenttracker WHERE ignored_times = 0 ORDER BY last_check DESC LIMIT ?"
         trackers = self._db.fetchall(sql, (limit,))
