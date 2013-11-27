@@ -1,8 +1,9 @@
-# Written by Arno Bakker
+# Written by Egbert Bouman, based on SwiftDownloadRuntimeConfig.py by Arno Bakker
 # see LICENSE.txt for license information
 
 import sys
 
+from Tribler.Core.simpledefs import UPLOAD
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 DEBUG = False
@@ -15,7 +16,7 @@ DEBUG = False
 # pylint: disable-msg=E1101
 
 
-class SwiftDownloadRuntimeConfig(DownloadConfigInterface):
+class LibtorrentDownloadRuntimeConfig(DownloadConfigInterface):
 
     """
     Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface
@@ -43,20 +44,18 @@ class SwiftDownloadRuntimeConfig(DownloadConfigInterface):
 
     def set_max_speed(self, direct, speed):
         if DEBUG:
-            print >> sys.stderr, "SwiftDownload: set_max_speed", self.get_def().get_name(), direct, speed
-        # print_stack()
+            print >> sys.stderr, "Download: set_max_speed", repr(self.get_def().get_metainfo()['info']['name']), direct, speed
 
         self.dllock.acquire()
         try:
-            # Don't need to throw an exception when stopped, we then just
-            # save the new value and use it at (re)startup.
-            if self.sp is not None:
-
-                cur = self.get_max_speed(direct)
-                # Arno, 2012-07-31: Don't send message when no change, i2i comm
-                # non-zero cost.
-                if cur != speed:
-                    self.sp.set_max_speed(self, direct, speed)
+            # Don't need to throw an exception when stopped, we then just save the new value and
+            # use it at (re)startup.
+            if self.handle is not None:
+                if direct == UPLOAD:
+                    set_max_speed_lambda = lambda: self.handle is not None and self.handle.set_upload_limit(int(speed * 1024))
+                else:
+                    set_max_speed_lambda = lambda: self.handle is not None and self.handle.set_download_limit(int(speed * 1024))
+                self.session.lm.rawserver.add_task(set_max_speed_lambda, 0)
 
             # At the moment we can't catch any errors in the engine that this
             # causes, so just assume it always works.
