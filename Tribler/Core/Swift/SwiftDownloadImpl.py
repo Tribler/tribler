@@ -158,7 +158,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
-        move_files = ('swiftmetadir' not in self.dlconfig) and not os.path.isdir(self.get_dest_dir())
+        move_files = (not self.dlconfig.has_option('swift', 'swiftmetadir')) and not os.path.isdir(self.get_dest_dir())
 
         metadir = self.get_swift_meta_dir()
         if not metadir:
@@ -176,7 +176,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             try:
                 if is_multifile:
                     shutil.move(path_old, path_new + '.mfspec')
-                    self.dlconfig['saveas'] = os.path.split(self.get_dest_dir())[0]
+                    self.set_dest_dir(os.path.split(self.get_dest_dir())[0])
                 shutil.move(path_old + '.mhash', path_new + '.mhash')
                 shutil.move(path_old + '.mbinmap', path_new + '.mbinmap')
             except:
@@ -238,7 +238,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 if duration is not None:
                     httpurl += '@' + duration
 
-                vod_usercallback_wrapper = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
+                vod_usercallback_wrapper = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.get_video_event_callback(), event, params)
                 videoinfo = {}
                 videoinfo['usercallback'] = vod_usercallback_wrapper
 
@@ -595,17 +595,18 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate = {}
         pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
         pstate['metainfo'] = self.sdef.get_url_with_meta()  # assumed immutable
-        dlconfig = copy.copy(self.dlconfig)
-        dlconfig['name'] = self.sdef.get_name()
+
+        dscfg = DownloadStartupConfig(copy.copy(self.dlconfig))
+        dscfg.set_swift_name(self.sdef.get_name())
         # Reset unpicklable params
-        dlconfig['vod_usercallback'] = None
-        dlconfig['mode'] = DLMODE_NORMAL  # no callback, no VOD
+        dscfg.set_video_event_callback(None)
+        dscfg.set_mode(DLMODE_NORMAL)  # no callback, no VOD
 
         # Reset default metadatadir
         if self.get_swift_meta_dir() == self.old_metadir:
-            dlconfig['swiftmetadir'] = None
+            dscfg.set_swift_meta_dir('swiftmetadir')
 
-        pstate['dlconfig'] = dlconfig
+        pstate['dlconfig'] = dscfg.dlconfig
 
         pstate['dlstate'] = {}
         ds = self.network_get_state(None, False, sessioncalling=True)

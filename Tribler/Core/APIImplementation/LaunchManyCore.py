@@ -563,10 +563,10 @@ class TriblerLaunchMany(Thread):
                 tdef = TorrentDef.load_from_dict(pstate['metainfo'])
 
             dlconfig = pstate['dlconfig']
-            if isinstance(dlconfig['saveas'], tuple):
-                dlconfig['saveas'] = dlconfig['saveas'][-1]
+            if dlconfig.has_option('general', 'saveas') and isinstance(dlconfig.get('general', 'saveas'), tuple):
+                dlconfig.set('general', 'saveas', dlconfig.get('saveas')[-1])
 
-            if sdef and 'name' in dlconfig and isinstance(dlconfig['name'], basestring):
+            if dlconfig.has_option('swift', 'name') and isinstance(dlconfig.get('swift', 'name'), basestring):
                 sdef.set_name(dlconfig['name'])
             if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
                 current_port = int(sdef.get_tracker().split(":")[1])
@@ -928,7 +928,7 @@ class TriblerLaunchMany(Thread):
         @return A string. """
         return self.ltmgr.get_external_ip() if self.ltmgr else None
 
-    def config_changed_callback(self, section, name, new_value, old_value):
+    def sessconfig_changed_callback(self, section, name, new_value, old_value):
         value_changed = new_value != old_value
         if section == 'libtorrent' and name == 'utp':
             if self.ltmgr and value_changed:
@@ -947,6 +947,9 @@ class TriblerLaunchMany(Thread):
             return True
         else:
             return False
+        return True
+
+    def dlconfig_changed_callback(self, section, name, new_value, old_value):
         return True
 
 

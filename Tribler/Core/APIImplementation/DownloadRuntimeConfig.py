@@ -1,15 +1,8 @@
 # Written by Arno Bakker
-# Updated by George Milescu
+# Updated by Egbert Bouman
 # see LICENSE.txt for license information
 
-import sys
-
-from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
-from Tribler.Core.APIImplementation.DownloadRuntimeConfigBaseImpl import DownloadRuntimeConfigBaseImpl
-from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
-
-DEBUG = False
 
 # 10/02/10 Boudewijn: pylint points out that member variables used in
 # DownloadRuntimeConfig do not exist.  This is because they are set in
@@ -19,7 +12,7 @@ DEBUG = False
 # pylint: disable-msg=E1101
 
 
-class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
+class DownloadRuntimeConfig(DownloadConfigInterface):
 
     """
     Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface
@@ -29,70 +22,18 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
 
     DownloadConfigInterface: All methods called by any thread
     """
-    def set_max_speed(self, direct, speed):
-        if DEBUG:
-            print >> sys.stderr, "Download: set_max_speed", repr(self.get_def().get_metainfo()['info']['name']), direct, speed
-        # print_stack()
 
-        self.dllock.acquire()
-        try:
-            # Don't need to throw an exception when stopped, we then just save the new value and
-            # use it at (re)startup.
-            if self.handle is not None:
-                if direct == UPLOAD:
-                    set_max_speed_lambda = lambda: self.handle is not None and self.handle.set_upload_limit(int(speed * 1024))
-                else:
-                    set_max_speed_lambda = lambda: self.handle is not None and self.handle.set_download_limit(int(speed * 1024))
-                self.session.lm.rawserver.add_task(set_max_speed_lambda, 0)
+    def set_config_callback(self, callback):
+        self.dlconfig.set_callback(callback)
 
-            # At the moment we can't catch any errors in the engine that this
-            # causes, so just assume it always works.
-            DownloadConfigInterface.set_max_speed(self, direct, speed)
-        finally:
-            self.dllock.release()
+    def _execute_with_sesslock(self, f, *args, **kwargs):
+        with self.dllock:
+            return f(*args, **kwargs)
 
-    def get_max_speed(self, direct):
-        self.dllock.acquire()
-        try:
-            return DownloadConfigInterface.get_max_speed(self, direct)
-        finally:
-            self.dllock.release()
-
-    def set_dest_dir(self, path):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def set_corrected_filename(self, path):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def set_video_event_callback(self, usercallback):
-        """ Note: this currently works only when the download is stopped. """
-        self.dllock.acquire()
-        try:
-            DownloadConfigInterface.set_video_event_callback(self, usercallback)
-        finally:
-            self.dllock.release()
-
-    def set_video_events(self, events):
-        """ Note: this currently works only when the download is stopped. """
-        self.dllock.acquire()
-        try:
-            DownloadConfigInterface.set_video_events(self, events)
-        finally:
-            self.dllock.release()
-
-    def set_mode(self, mode):
-        """ Note: this currently works only when the download is stopped. """
-        self.dllock.acquire()
-        try:
-            DownloadConfigInterface.set_mode(self, mode)
-        finally:
-            self.dllock.release()
-
-    def set_selected_files(self, files):
-        """ Note: this currently works only when the download is stopped. """
-        self.dllock.acquire()
-        try:
-            DownloadConfigInterface.set_selected_files(self, files)
-            self.set_filepieceranges(self.tdef.get_metainfo())
-        finally:
-            self.dllock.release()
+    def __getattribute__(self, name):
+        attr = DownloadConfigInterface.__getattribute__(self, name)
+        if name in dir(DownloadConfigInterface):
+            if name.startswith('get_') or name.startswith('set_'):
+                if hasattr(attr, '__call__'):
+                    return lambda *args, **kwargs: self._execute_with_sesslock(attr, *args, **kwargs)
+        return attr

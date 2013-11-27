@@ -447,7 +447,7 @@ class Session(SessionRuntimeConfig):
         self.lm.register(self, self.sesslock)
         self.lm.start()
 
-        self.set_config_callback(self.lm.config_changed_callback)
+        self.set_config_callback(self.lm.sessconfig_changed_callback)
 
     def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.

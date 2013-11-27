@@ -3,10 +3,7 @@
 
 import sys
 
-from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
-from Tribler.Core.APIImplementation.DownloadRuntimeConfigBaseImpl import DownloadRuntimeConfigBaseImpl
-from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 
 DEBUG = False
 
@@ -18,7 +15,7 @@ DEBUG = False
 # pylint: disable-msg=E1101
 
 
-class SwiftDownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
+class SwiftDownloadRuntimeConfig(DownloadConfigInterface):
 
     """
     Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface
@@ -30,7 +27,7 @@ class SwiftDownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     """
     def set_max_speed(self, direct, speed):
         if DEBUG:
-            print >>sys.stderr, "SwiftDownload: set_max_speed", self.get_def().get_name(), direct, speed
+            print >> sys.stderr, "SwiftDownload: set_max_speed", self.get_def().get_name(), direct, speed
         # print_stack()
 
         self.dllock.acquire()
