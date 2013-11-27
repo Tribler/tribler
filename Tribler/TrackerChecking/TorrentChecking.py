@@ -220,7 +220,7 @@ class TorrentChecking(Thread):
         tracker_list = list()
 
         # get trackers from DB (TorrentTrackerMapping table)
-        db_tracker_list = self._torrentdb.getTorrentTrackerList(torrent_id)
+        db_tracker_list = self._torrentdb.getTrackerListByTorrentID(torrent_id)
         for tracker in db_tracker_list:
             if tracker not in tracker_list:
                 tracker_list.append(tracker)
