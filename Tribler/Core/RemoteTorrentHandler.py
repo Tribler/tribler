@@ -704,8 +704,8 @@ class MagnetRequester(Requester):
 
             if self.remote_th.torrent_db:
                 # see if we know any trackers for this magnet
-                trackers = self.remote_th.torrent_db.getTracker(infohash)
-                for tracker, _ in trackers:
+                trackers = self.remote_th.torrent_db.getTrackerListByInfohash(infohash)
+                for tracker in trackers:
                     magnetlink += "&tr=" + urllib.quote_plus(tracker)
 
             if DEBUG:
