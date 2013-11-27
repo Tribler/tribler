@@ -1148,9 +1148,8 @@ class TorrentDBHandler(BasicDBHandler):
         return [tracker[0] for tracker in trackers]
 
     def getSwarmInfoByInfohash(self, infohash):
-        sql = 'SELECT T.torrent_id, T.num_seeders, T.num_leechers, max(TTM.last_check)'\
-            + ' FROM Torrent T, TorrentTrackerMapping TTM'\
-            + ' WHERE T.torrent_id = TTM.torrent_id AND T.infohash = ?'
+        sql = 'SELECT torrent_id, num_seeders, num_leechers, max(last_tracker_check)'\
+            + ' FROM Torrent WHERE infohash = ?'
         return self._db.fetchone(sql, (bin2str(infohash),))
 
     def getSwarmInfo(self, torrent_id):
@@ -1175,11 +1174,11 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id_list = [torrent_id for torrent_id in torrent_id_list if torrent_id]
 
         results = {}
-        sql = 'SELECT T.torrent_id, T.num_seeders, T.num_leechers, max(TTM.last_check)'\
-            + ' FROM Torrent T, TorrentTrackerMapping TTM'\
-            + ' WHERE T.torrent_id IN ('
+        sql = 'SELECT torrent_id, num_seeders, num_leechers, max(last_tracker_check)'\
+            + ' FROM Torrent'\
+            + ' WHERE torrent_id IN ('
         sql += ','.join(map(str, torrent_id_list))
-        sql += ') AND T.torrent_id = TTM.torrent_id GROUP BY T.torrent_id'
+        sql += ') GROUP BY torrent_id'
 
         rows = self._db.fetchall(sql)
         for row in rows:
@@ -1457,7 +1456,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def getRandomlyCollectedSwiftHashes(self, insert_time, limit=50):
         sql = "SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_check"\
-            + " FROM Torrent T, CollectedTorrent CT "\"
+            + " FROM Torrent T, CollectedTorrent CT"\
             + " WHERE CT.torrent_id = T.torrent_id"\
             + " AND CT.insert_time < ?"\
             + " AND CT.swift_torrent_hash IS NOT NULL"\
