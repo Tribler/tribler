@@ -677,7 +677,7 @@ class TorrentDBHandler(BasicDBHandler):
                 "num_files": len(torrentdef.get_files()),
                 "thumbnail": bool(thumb),
                 "insert_time": long(time()),
-                "secret": 0,  # todo: check if torrent is secret
+                "secret": 1 if torrentdef.is_private() else 0,
                 "relevance": 0.0,
                 "source_id": self._getSourceID(source),
                 # todo: the category_id is calculated directly from
