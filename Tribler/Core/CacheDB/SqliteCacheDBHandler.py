@@ -1127,14 +1127,26 @@ class TorrentDBHandler(BasicDBHandler):
         return infohash_list
 
     # ------------------------------------------------------------
-    # Gets a list of trackers of a given torrent.
+    # Gets a list of trackers of a given torrent ID.
     # (from TorrentTrackerMapping table)
     # ------------------------------------------------------------
-    def getTorrentTrackerList(self, torrent_id):
+    def getTrackerListByTorrentID(self, torrent_id):
         sql = 'SELECT TR.tracker FROM TrackerInfo TR, TorrentTrackerMapping MP'\
-            + ' WHERE MP.torrent_id = ? AND'\
-            + ' TR.tracker_id = MP.tracker_id'
+            + ' WHERE MP.torrent_id = ?'\
+            + ' AND TR.tracker_id = MP.tracker_id'
         tracker_list = self._db.fetchall(sql, (torrent_id,))
+        return [ tracker[0] for tracker in tracker_list ]
+
+    # ------------------------------------------------------------
+    # Gets a list of trackers of a given infohash.
+    # (from TorrentTrackerMapping table)
+    # ------------------------------------------------------------
+    def getTrackerListByInfohash(self, infohash):
+        sql = 'SELECT TR.tracker FROM Torrent T, TrackerInfo TR, TorrentTrackerMapping MP'\
+            + ' WHERE T.infohash = ?'\
+            + ' AND T.torrent_id = MP.torrent_id'\
+            + ' AND TR.tracker_id = MP.tracker_id'
+        tracker_list = self._db.fetchall(sql, (infohash,))
         return [ tracker[0] for tracker in tracker_list ]
 
     # ------------------------------------------------------------
