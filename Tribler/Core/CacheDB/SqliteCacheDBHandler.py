@@ -1447,7 +1447,9 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
 
     def getRecentlyCollectedSwiftHashes(self, limit=50):
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check, insert_time FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' AND CollectedTorrent.secret is not 1 ORDER BY insert_time DESC LIMIT ?"
+        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check, insert_time FROM CollectedTorrent"\
+            + " WHERE swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> ''"\
+            + " AND CollectedTorrent.secret is not 1 ORDER BY insert_time DESC LIMIT ?"
         results = self._db.fetchall(sql, (limit,))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
 
