@@ -1447,14 +1447,22 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
 
     def getRecentlyCollectedSwiftHashes(self, limit=50):
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check, insert_time FROM CollectedTorrent"\
-            + " WHERE swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> ''"\
-            + " AND CollectedTorrent.secret is not 1 ORDER BY insert_time DESC LIMIT ?"
+        sql = "SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time"\
+            + " FROM Torrent T, CollectedTorrent CT"\
+            + " WHERE CT.torrent_id = T.torrent_id"\
+            + " AND CT.swift_torrent_hash IS NOT NULL AND CT.swift_torrent_hash <> ''"\
+            + " AND CollectedTorrent.secret is not 1 ORDER BY CT.insert_time DESC LIMIT ?"
         results = self._db.fetchall(sql, (limit,))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
 
     def getRandomlyCollectedSwiftHashes(self, insert_time, limit=50):
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' AND CollectedTorrent.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?"
+        sql = "SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_check"\
+            + " FROM Torrent T, CollectedTorrent CT "\"
+            + " WHERE CT.torrent_id = T.torrent_id"\
+            + " AND CT.insert_time < ?"\
+            + " AND CT.swift_torrent_hash IS NOT NULL"\
+            + " AND CT.swift_torrent_hash <> ''"\
+            + " AND CollectedTorrent.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?"
         results = self._db.fetchall(sql, (insert_time, limit))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0] for result in results]
 
