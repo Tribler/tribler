@@ -57,6 +57,8 @@ class SessionConfigInterface(object):
         # Set video_analyser_path
         if sys.platform == 'win32':
             ffmpegname = "ffmpeg.exe"
+        elif sys.platform == 'darwin':
+            ffmpegname = "ffmpeg"
         else:
             ffmpegname = "avconv"
 
