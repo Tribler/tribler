@@ -562,12 +562,18 @@ class TriblerLaunchMany(Thread):
             else:
                 tdef = TorrentDef.load_from_dict(pstate['metainfo'])
 
-            dlconfig = pstate['dlconfig']
+            dlconfig_dict = pstate['dlconfig']
+            from Tribler.Core.SessionConfig import CallbackConfigParser
+            dlconfig = CallbackConfigParser()
+            for section, sect_dict in dlconfig_dict.iteritems():
+                dlconfig.add_section(section)
+                for k, v in sect_dict.iteritems():
+                    dlconfig.set(section, k, v)
             if dlconfig.has_option('general', 'saveas') and isinstance(dlconfig.get('general', 'saveas'), tuple):
                 dlconfig.set('general', 'saveas', dlconfig.get('saveas')[-1])
 
-            if dlconfig.has_option('swift', 'name') and isinstance(dlconfig.get('swift', 'name'), basestring):
-                sdef.set_name(dlconfig['name'])
+            if dlconfig.get('swift', 'name'):
+                sdef.set_name(dlconfig.get('swift', 'name'))
             if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
                 current_port = int(sdef.get_tracker().split(":")[1])
                 if current_port != self.session.get_swift_dht_listen_port():
