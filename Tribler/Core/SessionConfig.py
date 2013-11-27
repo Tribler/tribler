@@ -578,7 +578,7 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         # Class method, no locking required
         sessconfig = CallbackConfigParser()
         if not sessconfig.read(filename):
-            raise IOError, "Failed to open config file"
+            raise IOError, "Failed to open session config file"
 
         for sect_dict in sessconfig._sections.values():
             for k, v in sect_dict.iteritems():

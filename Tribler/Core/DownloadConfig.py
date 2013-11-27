@@ -1,6 +1,8 @@
 # Written by Arno Bakker
 # Updated by George Milescu
+# Updated by Egbert Bouman, now using ConfigParser
 # see LICENSE.txt for license information
+
 """ Controls how a TorrentDef is downloaded (rate, where on disk, etc.) """
 
 #
@@ -12,23 +14,19 @@
 #
 #
 
-import sys
-import os
-# import time
+import ast
 import copy
-import pickle
+
 from types import StringType
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
-from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
-from Tribler.Core.APIImplementation.miscutils import *
+from Tribler.Core.osutils import get_desktop_dir
+from Tribler.Core.SessionConfig import CallbackConfigParser
 
-from Tribler.Core.osutils import getfreespace, get_desktop_dir
 
-
-class DownloadConfigInterface:
+class DownloadConfigInterface(object):
 
     """
     (key,value) pair config of per-torrent runtime parameters,
@@ -42,76 +40,60 @@ class DownloadConfigInterface:
     """
     def __init__(self, dlconfig=None):
 
-        if dlconfig is not None:  # copy constructor
+        self.dlconfig = dlconfig or CallbackConfigParser()
 
-            # modify/fix incorrectly saved dlconfigs
-            if isinstance(dlconfig['saveas'], tuple):
-                dlconfig['saveas'] = dlconfig['saveas'][-1]
+        # Poor man's versioning of DownloadConfig, add missing default values.
+        for section, sect_dict in dldefaults.iteritems():
+            if not self.dlconfig.has_section(section):
+                self.dlconfig.add_section(section)
+            for k, v in sect_dict.iteritems():
+                if not self.dlconfig.has_option(section, k):
+                    self.dlconfig.set(section, k, v)
 
-            self.dlconfig = dlconfig
+        if not dlconfig:
             return
 
-        self.dlconfig = {}
-
-        # Define the built-in default here
-        self.dlconfig.update(dldefaults)
+        # modify/fix incorrectly saved dlconfigs
+        if dlconfig.has_option('general', 'saveas') and isinstance(dlconfig.get('general', 'saveas'), tuple):
+            dlconfig.set('general', 'saveas', dlconfig.get('saveas')[-1])
 
         if not self.get_dest_dir():
             self.set_dest_dir(get_default_dest_dir())
-
-    def updateToCurrentVersion(self):
-        """ Will update this DownloadConfig to the latest version
-        @return list of added field if update was necessary
-        @return None if version was current
-        """
-
-        oldver = self.dlconfig['version']
-        if oldver != DLDEFAULTS_VERSION:
-            updatedFields = []
-
-            for key in dldefaults.keys():
-                if key not in self.dlconfig:
-                    self.dlconfig[key] = dldefaults[key]
-                    updatedFields.append(key)
-            self.dlconfig['version'] = DLDEFAULTS_VERSION
-
-            return updatedFields
-        return None
 
     def set_dest_dir(self, path):
         """ Sets the directory where to save this Download.
         @param path A path of a directory.
         """
         assert isinstance(path, basestring), path
-        self.dlconfig['saveas'] = path
+        self.dlconfig.set('general', 'saveas', path)
 
     def get_dest_dir(self):
         """ Gets the directory where to save this Download.
         """
-        return self.dlconfig['saveas']
+        return self.dlconfig.get('general', 'saveas')
 
     # LAYERVIOLATION: Core has nothing to do with GUI dialogs
     def get_show_saveas(self):
         """ Gets the boolean indicating if we should show a dialog where to save a torrent
         """
-        return self.dlconfig['showsaveas']
+        return self.dlconfig.get('general', 'showsaveas')
 
     def set_show_saveas(self, show):
         """ Sets the boolean indicating if we should show a dialog where to save a torrent
         @param show Boolean to show a dialog
         """
-        self.dlconfig['showsaveas'] = show
+        self.dlconfig.set('general', 'showsaveas', show)
 
     def get_corrected_filename(self):
         """ Gets the directory name where to save this torrent
         """
-        return self.dlconfig['correctedfilename']
+        return self.dlconfig.get('general', 'correctedfilename')
 
     def set_corrected_filename(self, correctedfilename):
         """ Sets the directory name where to save this torrent
         @param correctedfilename name for multifile directory
         """
-        self.dlconfig['correctedfilename'] = correctedfilename
+        self.dlconfig.set('general', 'correctedfilename', correctedfilename)
 
     def set_video_event_callback(self, usercallback):
         """ Download the torrent in Video-On-Demand mode or as live stream.
@@ -169,7 +151,7 @@ class DownloadConfigInterface:
 
         @param usercallback  A function with the above signature.
         """
-        self.dlconfig['vod_usercallback'] = usercallback
+        self.dlconfig.set('vod', 'vod_usercallback', usercallback)
 
     def set_video_events(self, events=[]):
         """ Sets which events will be supported with the usercallback set
@@ -180,7 +162,7 @@ class DownloadConfigInterface:
         """
 
         # create a copy to avoid loosing the info
-        self.dlconfig['vod_userevents'] = events[:]
+        self.dlconfig.set('vod', 'vod_userevents', events[:])
 
     def set_video_source(self, videosource, authconfig=None, restartstatefilename=None):
         """ Provides the live video source for this torrent from an external
@@ -193,13 +175,13 @@ class DownloadConfigInterface:
         @param restartstatefilename A filename to read/write state needed for a
         graceful restart of the source.
         """
-        self.dlconfig['video_source'] = videosource
+        self.dlconfig.set('vod', 'video_source', videosource)
         if authconfig is None:
             from Tribler.Core.LiveSourceAuthConfig import LiveSourceAuthConfig
 
             authconfig = LiveSourceAuthConfig(LIVE_AUTHMETHOD_NONE)
-        self.dlconfig['video_source_authconfig'] = authconfig
-        self.dlconfig['video_source_restartstatefilename'] = restartstatefilename
+        self.dlconfig.set('vod', 'video_source_authconfig', authconfig)
+        self.dlconfig.set('vod', 'video_source_restartstatefilename', restartstatefilename)
 
     def set_video_ratelimit(self, ratelimit):
         """ Sets a limit on the speed at which the video stream is to be read.
@@ -208,54 +190,41 @@ class DownloadConfigInterface:
 
         @param ratelimit    The maximum speed at which to read from the stream (bps)
         """
-        self.dlconfig['video_ratelimit'] = ratelimit
+        self.dlconfig.set('vod', 'video_ratelimit', ratelimit)
 
     def set_mode(self, mode):
         """ Sets the mode of this download.
         @param mode DLMODE_NORMAL/DLMODE_VOD """
-        self.dlconfig['mode'] = mode
-
-    def set_live_aux_seeders(self, seeders):
-        """ Sets a number of live seeders, auxiliary servers that
-        get high priority at the source server to distribute its content
-        to others.
-        @param seeders A list of [IP address,port] lists.
-        """
-        self.dlconfig['live_aux_seeders'] = seeders
+        self.dlconfig.set('general', 'mode', mode)
 
     def get_mode(self):
         """ Returns the mode of this download.
         @return DLMODE_NORMAL/DLMODE_VOD """
-        return self.dlconfig['mode']
+        return self.dlconfig.get('general', 'mode')
 
     def get_video_event_callback(self):
         """ Returns the function that was passed to set_video_event_callback().
         @return A function.
         """
-        return self.dlconfig['vod_usercallback']
+        return self.dlconfig.get('vod', 'vod_usercallback')
 
     def get_video_events(self):
         """ Returns the function that was passed to set_video_events().
         @return A list of events.
         """
-        return self.dlconfig['vod_userevents']
+        return self.dlconfig.get('vod', 'vod_userevents')
 
     def get_video_source(self):
         """ Returns the object that was passed to set_video_source().
         @return A file-like object.
         """
-        return self.dlconfig['video_source']
+        return self.dlconfig.get('vod', 'video_source')
 
     def get_video_ratelimit(self):
         """ Returns the speed at which the video stream is read (bps).
         @return An integer.
         """
-        return self.dlconfig['video_ratelimit']
-
-    def get_live_aux_seeders(self):
-        """ Returns the aux. live seeders set.
-        @return A list of [IP address,port] lists. """
-        return self.dlconfig['live_aux_seeders']
+        return self.dlconfig.get('vod', 'video_ratelimit')
 
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must
@@ -275,19 +244,19 @@ class DownloadConfigInterface:
         if isinstance(files, StringType):  # convenience
             files = [files]
 
-        if self.dlconfig['mode'] == DLMODE_VOD and len(files) > 1:
+        if self.get_mode() == DLMODE_VOD and len(files) > 1:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
 
         # Ric: added svc case
-        elif self.dlconfig['mode'] == DLMODE_SVC and len(files) < 2:
+        elif self.get_mode() == DLMODE_SVC and len(files) < 2:
             raise ValueError("In SVC Video-On-Demand mode at least 2 files have to be selected for download")
 
-        self.dlconfig['selected_files'] = files
+        self.dlconfig.set('general', 'selected_files', files)
 
     def get_selected_files(self):
         """ Returns the list of files selected for download.
         @return A list of strings. """
-        return self.dlconfig['selected_files']
+        return self.dlconfig.get('general', 'selected_files')
 
     def set_max_speed(self, direct, speed):
         """ Sets the maximum upload or download speed for this Download.
@@ -295,17 +264,17 @@ class DownloadConfigInterface:
         @param speed The speed in KB/s.
         """
         if direct == UPLOAD:
-            self.dlconfig['max_upload_rate'] = speed
+            self.dlconfig.set('general', 'max_upload_rate', speed)
         else:
-            self.dlconfig['max_download_rate'] = speed
+            self.dlconfig.set('general', 'max_download_rate', speed)
 
     def get_max_speed(self, direct):
         """ Returns the configured maximum speed.
         Returns the speed in KB/s. """
         if direct == UPLOAD:
-            return self.dlconfig['max_upload_rate']
+            return self.dlconfig.get('general', 'max_upload_rate')
         else:
-            return self.dlconfig['max_download_rate']
+            return self.dlconfig.get('general', 'max_download_rate')
 
     def set_alloc_type(self, value):
         """ Set disk-allocation type:
@@ -318,25 +287,25 @@ class DownloadConfigInterface:
         </pre>
         @param value A DISKALLOC_* policy.
         """
-        self.dlconfig['alloc_type'] = value
+        self.dlconfig.set('general', 'alloc_type', value)
 
     def get_alloc_type(self):
         """ Returns the disk-allocation policy.
         @return DISKALLOC_*
         """
-        return self.dlconfig['alloc_type']
+        return self.dlconfig.get('general', 'alloc_type')
 
     def set_super_seeder(self, value):
         """ whether to use special upload-efficiency-maximizing routines (only
         for dedicated seeds).
         @param value Boolean
         """
-        self.dlconfig['super_seeder'] = value
+        self.dlconfig.set('general', 'super_seeder', value)
 
     def get_super_seeder(self):
         """ Returns hether super seeding is enabled.
         @return Boolean. """
-        return self.dlconfig['super_seeder']
+        return self.dlconfig.get('general', 'super_seeder')
 
     # SWIFTPROC
     def set_swift_listen_port(self, port):
@@ -344,52 +313,58 @@ class DownloadConfigInterface:
         (download-to-process mapping permitting).
         @param port A port number.
         """
-        self.dlconfig['swiftlistenport'] = port
+        self.dlconfig.set('swift', 'swiftlistenport', port)
 
     def get_swift_listen_port(self):
         """ Returns the UDP port of the swift process.
 
         @return Port number. """
-        return self.dlconfig['swiftlistenport']
+        return self.dlconfig.get('swift', 'swiftlistenport')
 
     def set_swift_cmdgw_listen_port(self, port):
         """ Set the TCP listen port for the CMDGW of the swift process
         (download-to-process mapping permitting).
         @param port A port number.
         """
-        self.dlconfig['swiftcmdgwlistenport'] = port
+        self.dlconfig.set('swift', 'swiftcmdgwlistenport', port)
 
     def get_swift_cmdgw_listen_port(self):
         """ Returns the TCP listen port for the CMDGW of the swift process
         (download-to-process mapping permitting).
 
         @return Port number. """
-        return self.dlconfig['swiftcmdgwlistenport']
+        return self.dlconfig.get('swift', 'swiftcmdgwlistenport')
 
     def set_swift_httpgw_listen_port(self, port):
         """ Set the TCP listen port for the CMDGW of the swift process
         (download-to-process mapping permitting).
         @param port A port number.
         """
-        self.dlconfig['swifthttpgwlistenport'] = port
+        self.dlconfig.set('swift', 'swifthttpgwlistenport', port)
 
     def get_swift_httpgw_listen_port(self):
         """ Returns the TCP listen port for the CMDGW of the swift process.
 
         @return Port number. """
-        return self.dlconfig['swifthttpgwlistenport']
+        return self.dlconfig.get('swift', 'swifthttpgwlistenport')
 
     def set_swift_meta_dir(self, value):
         """ Set the metadir for storing .m* files of this Download.
         @param value An absolutepath.
         """
-        self.dlconfig['swiftmetadir'] = value
+        self.dlconfig.set('swift', 'swiftmetadir', value)
 
     def get_swift_meta_dir(self):
         """ Return the metadir for storing .m* files of this Download.
         @return An absolutepath.
         """
-        return self.dlconfig['swiftmetadir']
+        return self.dlconfig.get('swift', 'swiftmetadir')
+
+    def set_swift_name(self, value):
+        self.dlconfig.set('swift', 'name', value)
+
+    def get_swift_name(self):
+        return self.dlconfig.get('swift', 'name')
 
 
 class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
@@ -417,11 +392,19 @@ class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
         @return DownloadStartupConfig object
         """
         # Class method, no locking required
-        f = open(filename, "rb")
-        dlconfig = pickle.load(f)
-        dscfg = DownloadStartupConfig(dlconfig)
-        f.close()
-        return dscfg
+        dlconfig = CallbackConfigParser()
+        if not dlconfig.read(filename):
+            raise IOError, "Failed to open download config file"
+
+        for sect_dict in dlconfig._sections.values():
+            for k, v in sect_dict.iteritems():
+                if k != '__name__':
+                    try:
+                        sect_dict[k] = ast.literal_eval(v)
+                    except:
+                        pass
+        return DownloadStartupConfig(dlconfig)
+
     load = staticmethod(load)
 
     def save(self, filename):
@@ -429,9 +412,9 @@ class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
         @param filename  An absolute Unicode filename
         """
         # Called by any thread
-        f = open(filename, "wb")
-        pickle.dump(self.dlconfig, f)
-        f.close()
+        config_file = open(filename, "wb")
+        self.dlconfig.write(config_file)
+        config_file.close()
 
     #
     # Copyable interface

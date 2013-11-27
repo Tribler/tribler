@@ -116,26 +116,36 @@ sessdefaults['dispersy']['dispersy_port'] = DEFAULTPORT - 1
 #  Version 8: deleted many of the old params that were not used anymore (due to the switch to libtorrent)
 
 DLDEFAULTS_VERSION = 8
-dldefaults = {}
-dldefaults['version'] = DLDEFAULTS_VERSION
-dldefaults['saveas'] = None  # Set to get_default_destdir()
-dldefaults['showsaveas'] = True  # Allow users to choose directory for every new download
-dldefaults['max_upload_rate'] = 0
-dldefaults['max_download_rate'] = 0
-dldefaults['alloc_type'] = DISKALLOC_NORMAL if sys.platform == 'win32' else DISKALLOC_SPARSE
-dldefaults['super_seeder'] = 0
-dldefaults['mode'] = 0
-dldefaults['vod_usercallback'] = None
-dldefaults['vod_userevents'] = []
-dldefaults['video_source'] = None
-dldefaults['video_ratelimit'] = 0
-dldefaults['video_source_authconfig'] = None
-dldefaults['selected_files'] = []
-dldefaults['correctedfilename'] = None
-dldefaults['swiftlistenport'] = None
-dldefaults['swiftcmdgwlistenport'] = None
-dldefaults['swifthttpgwlistenport'] = None
-dldefaults['swiftmetadir'] = None
+dldefaults = OrderedDict()
+
+# General download settings
+dldefaults['general'] = OrderedDict()
+dldefaults['general']['version'] = DLDEFAULTS_VERSION
+dldefaults['general']['saveas'] = None  # Set to get_default_destdir()
+dldefaults['general']['showsaveas'] = True  # Allow users to choose directory for every new download
+dldefaults['general']['max_upload_rate'] = 0
+dldefaults['general']['max_download_rate'] = 0
+dldefaults['general']['alloc_type'] = DISKALLOC_NORMAL if sys.platform == 'win32' else DISKALLOC_SPARSE
+dldefaults['general']['super_seeder'] = 0
+dldefaults['general']['mode'] = 0
+dldefaults['general']['selected_files'] = []
+dldefaults['general']['correctedfilename'] = None
+
+# VOD config
+dldefaults['vod'] = OrderedDict()
+dldefaults['vod']['vod_usercallback'] = None
+dldefaults['vod']['vod_userevents'] = []
+dldefaults['vod']['video_source'] = None
+dldefaults['vod']['video_ratelimit'] = 0
+dldefaults['vod']['video_source_authconfig'] = None
+
+# Swift config
+dldefaults['swift'] = OrderedDict()
+dldefaults['swift']['swiftlistenport'] = None
+dldefaults['swift']['swiftcmdgwlistenport'] = None
+dldefaults['swift']['swifthttpgwlistenport'] = None
+dldefaults['swift']['swiftmetadir'] = None
+dldefaults['swift']['name'] = None
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None
