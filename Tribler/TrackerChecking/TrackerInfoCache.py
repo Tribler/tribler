@@ -44,10 +44,13 @@ class TrackerInfoCache(object):
     # Loads and initializes the cache from database.
     # ------------------------------------------------------------
     @forceAndReturnDBThread
-    def loadCacheFromDb(self):
+    def loadCacheFromDb(self, to_lock=True):
         tracker_info_list = self._torrentdb.getTrackerInfoList()
+
+        # no need to use the lock when reloading
+        if to_lock:
+            self._lock.acquire()
         # update tracker info
-        self._lock.acquire()
         if self._tracker_info_dict:
             for tracker_info in tracker_info_list:
                 tracker, alive, last_check, failures = tracker_info
@@ -56,8 +59,8 @@ class TrackerInfoCache(object):
                 self._tracker_info_dict[tracker]['failures'] = failures
                 self._tracker_info_dict[tracker]['alive'] = alive
                 self._tracker_info_dict[tracker]['updated'] = False
-
-        self._lock.release()
+        if to_lock:
+            self._lock.release()
 
     # ------------------------------------------------------------
     # The callback function when a new tracker has been inserted.
@@ -67,14 +70,19 @@ class TrackerInfoCache(object):
             return
 
         # create new trackers
-        self._lock.acquire()
-        for tracker in objectID:
-            self._tracker_info_dict[tracker] = dict()
-            self._tracker_info_dict[tracker]['last_check'] = 0
-            self._tracker_info_dict[tracker]['failures'] = 0
-            self._tracker_info_dict[tracker]['alive'] = True
-            self._tracker_info_dict[tracker]['updated'] = False
-        self._lock.release()
+        with self._lock:
+            # DB upgrade complete, reload everthing from DB
+            if not objectID:
+                self.loadCacheFromDb(to_lock=False)
+                return
+
+            # new tracker insertion callback
+            for tracker in objectID:
+                self._tracker_info_dict[tracker] = dict()
+                self._tracker_info_dict[tracker]['last_check'] = 0
+                self._tracker_info_dict[tracker]['failures'] = 0
+                self._tracker_info_dict[tracker]['alive'] = True
+                self._tracker_info_dict[tracker]['updated'] = False
 
     # ------------------------------------------------------------
     # Waits for the cache to be initialized.

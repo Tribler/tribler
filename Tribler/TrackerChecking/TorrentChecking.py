@@ -366,9 +366,6 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentResult(self, response):
-        if self._should_stop:
-            return
-
         seeders  = response['seeders']
         leechers = response['leechers']
         last_check = response['last_check']
@@ -397,9 +394,6 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _checkResponseFinal(self, response):
-        if self._should_stop:
-            return
-
         seeders  = response['seeders']
         leechers = response['leechers']
 
