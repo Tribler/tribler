@@ -2203,8 +2203,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write(create_new_table, commit=False)
 
             insert_dht_tracker = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
-            dht = ('DHT',)
-            self.execute_write(insert_dht_tracker, dht, commit=False)
+            dht = [ ('DHT',), ]
+            self.executemany(insert_dht_tracker, dht, commit=False)
 
             # ensure the temp-file is created, if it is not already
             try:
@@ -2216,30 +2216,80 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
             from Tribler.Core.TorrentDef import TorrentDef
 
+            #global import_tracker_list_complete, import_torrenttracker_map_complete
+            #import_tracker_list_complete = False
+            #import_torrenttracker_map_complete = False
             def upgradeDBV19():
+                global import_tracker_list_complete, import_torrenttracker_map_complete
                 if not (os.path.exists(tmpfilename3) or os.path.exists(tmpfilename2) or os.path.exists(tmpfilename)):
                     print >> sys.stderr, 'Upgrading DB to v19 ...'
 
                     if not TEST_OVERRIDE:
+                        """
+                        if not import_tracker_list_complete:
+                            # import trackers from TorrentTracker table
+                            sql = 'SELECT DISTINCT tracker FROM TorrentTracker'\
+                                + ' WHERE tracker NOT IN (SELECT tracker FROM TrackerInfo)'\
+                                + ' LIMIT %d' % UPGRADE_BATCH_SIZE
+                            tracker_list = self.fetchall(sql)
+                            if tracker_list:
+                                insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
+                                self.executemany(insert, tracker_list)
+
+                                # upgradation not yet complete; comeback after 5 sec
+                                tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
+                                return
+                            else:
+                                import_tracker_list_complete = True
+
+                        # import torrent-tracker mapping
+                        if not import_torrenttracker_map_complete:
+                            sql = 'SELECT TT.torrent_id, TI.tracker_id'\
+                                + ' FROM TorrentTracker TT, TrackerInfo TI'\
+                                + ' WHERE (TT.torrent_id, TI.tracker_id) NOT IN (SELECT torrent_id, tracker_id FROM TorrentTrackerMapping)'\
+                                + ' LIMIT %d' % UPGRADE_BATCH_SIZE
+                            mapping_list = self.fetchall(sql)
+                            if mapping_list:
+                                print >> sys.stderr, '[!!!!] Doing 2...'
+                                insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
+                                    + ' VALUES(?, ?)'
+                                self.executemany(insert, mapping_list)
+
+                                # upgradation not yet complete; comeback after 5 sec
+                                tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
+                                return
+                            else:
+                                import_torrenttracker_map_complete = True
+                        """
+
+                        """
+                        # import from CollectedTorrent table
                         sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent'\
                             + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM TorrentTrackerMapping)'\
                             + ' AND torrent_file_name IS NOT NULL'\
                             + ' LIMIT %d' % UPGRADE_BATCH_SIZE
                         records = self.fetchall(sql)
+                        """
+                        records = list()
                     else:
                         records = list()
 
                     if len(records) == 0:
+                        self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
+
                         if os.path.exists(tmpfilename4):
                             os.remove(tmpfilename4)
-                            print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename3
+                            print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename4
 
-                        self.database_update.release()
+                        print >> sys.stderr, 'DB v19 upgrade complete.'
+                        #from time import sleep
+                        #sleep(10000)
 
                         from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
-
                         notifier = Notifier.getInstance()
                         notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, None)
+
+                        self.database_update.release()
                         return
 
                     found_torrent_tracker_map_list = list()
@@ -2287,7 +2337,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
                     if all_torrent_list:
                         update_dht = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
-                            + ' VALUES(? , (SELECT tracker_id FROM TrackerInfo WHERE tracker = \'DHT\')'
+                            + ' VALUES(? , (SELECT tracker_id FROM TrackerInfo WHERE tracker = \'DHT\'))'
                         self.executemany(update_dht, all_torrent_list)
 
                     if not_found_torrent_file_list:
@@ -2311,10 +2361,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 tqueue = TimedTaskQueue('UpgradeDB')
                 tqueue.add_task(kill_threadqueue_if_empty, INITIAL_UPGRADE_PAUSE + 1, 'kill_if_empty')
             tqueue.add_task(upgradeDBV19, INITIAL_UPGRADE_PAUSE)
-
-            self.database_update.release()
-
-        # TODO tell the TrackerCacheInfo that the DB upgrade is complete
 
     def clean_db(self, vacuum=False):
         from time import time
