@@ -12,8 +12,8 @@ import logging
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Libtorrent.LibtorrentDownloadRuntimeConfig import LibtorrentDownloadRuntimeConfig
 from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
@@ -154,7 +154,7 @@ class VODFile(object):
         self._file.close(*args)
 
 
-class LibtorrentDownloadImpl(DownloadRuntimeConfig):
+class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
@@ -682,7 +682,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if selected_files is None:
                     selected_files = self.get_selected_files()
                 else:
-                    DownloadRuntimeConfig.set_selected_files(selected_files)
+                    LibtorrentDownloadRuntimeConfig.set_selected_files(selected_files)
 
                 is_multifile = len(self.tdef.get_files_as_unicode()) > 1
                 commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
@@ -1080,7 +1080,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         # Reset unpicklable params
         dscfg.set_video_event_callback(None)
         dscfg.set_mode(DLMODE_NORMAL)
-        pstate['dlconfig'] = dscfg.dlconfig
+        pstate['dlconfig'] = dscfg.dlconfig._sections
 
         pstate['dlstate'] = {}
         ds = self.network_get_state(None, False, sessioncalling=True)

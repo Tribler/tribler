@@ -598,7 +598,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if self.get_swift_meta_dir() == self.old_metadir:
             dscfg.set_swift_meta_dir('swiftmetadir')
 
-        pstate['dlconfig'] = dscfg.dlconfig
+        pstate['dlconfig'] = dscfg.dlconfig._sections
 
         pstate['dlstate'] = {}
         ds = self.network_get_state(None, False, sessioncalling=True)

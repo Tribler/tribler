@@ -27,6 +27,22 @@ class SwiftDownloadRuntimeConfig(DownloadConfigInterface):
 
     DownloadConfigInterface: All methods called by any thread
     """
+
+    def set_config_callback(self, callback):
+        self.dlconfig.set_callback(callback)
+
+    def _execute_with_sesslock(self, f, *args, **kwargs):
+        with self.dllock:
+            return f(*args, **kwargs)
+
+    def __getattribute__(self, name):
+        attr = DownloadConfigInterface.__getattribute__(self, name)
+        if name in dir(DownloadConfigInterface):
+            if name.startswith('get_') or name.startswith('set_'):
+                if hasattr(attr, '__call__'):
+                    return lambda *args, **kwargs: self._execute_with_sesslock(attr, *args, **kwargs)
+        return attr
+
     def set_max_speed(self, direct, speed):
         self._logger.debug("SwiftDownload: set_max_speed %s %s %s", self.get_def().get_name(), direct, speed)
         # print_stack()
@@ -46,13 +62,5 @@ class SwiftDownloadRuntimeConfig(DownloadConfigInterface):
             # At the moment we can't catch any errors in the engine that this
             # causes, so just assume it always works.
             DownloadConfigInterface.set_max_speed(self, direct, speed)
-        finally:
-            self.dllock.release()
-
-    def set_mode(self, mode):
-        """ Note: this has no effect, swift currently doesn't have DL modes """
-        self.dllock.acquire()
-        try:
-            DownloadConfigInterface.set_mode(self, mode)
         finally:
             self.dllock.release()
