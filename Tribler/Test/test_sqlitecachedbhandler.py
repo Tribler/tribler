@@ -493,9 +493,9 @@ class TestTorrentDBHandler(AbstractDB):
         comments = 'something not inside'
         assert m_comment.find(comments) == -1
 
-        m_trackers = self.tdb.getTracker(m_infohash, 0)  # db._db.getAll('TorrentTracker', 'tracker', 'torrent_id=%d'%multiple_torrent_id)
+        m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)  # db._db.getAll('TorrentTracker', 'tracker', 'torrent_id=%d'%multiple_torrent_id)
         assert len(m_trackers) == 1
-        assert ('http://tpb.tracker.thepiratebay.org/announce', 1) in m_trackers, m_trackers
+        assert 'http://tpb.tracker.thepiratebay.org/announce' in m_trackers, m_trackers
 
         s_torrent = self.tdb.getTorrent(s_infohash)
         m_torrent = self.tdb.getTorrent(m_infohash)
@@ -543,7 +543,7 @@ class TestTorrentDBHandler(AbstractDB):
         assert not self.tdb.hasTorrent(s_infohash)
         assert not self.tdb.hasTorrent(m_infohash)
         assert not os.path.isfile(os.path.join(self.getStateDir(), 'single.torrent'))
-        m_trackers = self.tdb.getTracker(m_infohash, 0)
+        m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
         assert len(m_trackers) == 0
 
         # fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
