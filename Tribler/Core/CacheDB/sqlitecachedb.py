@@ -2276,6 +2276,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
                     if len(records) == 0:
                         self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
+                        self.execute_write('DROP INDEX IF EXISTS torrent_tracker_idx')
+                        self.execute_write('DROP INDEX IF EXISTS torrent_tracker_last_idx')
 
                         if os.path.exists(tmpfilename4):
                             os.remove(tmpfilename4)
