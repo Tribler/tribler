@@ -918,6 +918,28 @@ class TriblerLaunchMany(Thread):
         @return A string. """
         return self.ltmgr.get_external_ip() if self.ltmgr else None
 
+    def config_changed_callback(self, section, name, new_value, old_value):
+        value_changed = new_value != old_value
+        if section == 'libtorrent' and name == 'utp':
+            if self.ltmgr and value_changed:
+                self.ltmgr.set_utp(new_value)
+        elif section == 'libtorrent' and name == 'lt_proxyauth':
+            if self.ltmgr:
+                self.ltmgr.set_proxy_settings(*self.session.get_libtorrent_proxy_settings())
+        elif section == 'torrent_checking' and name == 'torrent_checking_period':
+            if self.rtorrent_handler and value_changed:
+                self.rtorrent_handler.set_max_num_torrents(new_value)
+        # Return True/False, depending on whether or not the config value can be changed at runtime.
+        elif (section == 'general' and name in ['nickname', 'mugshot', 'timeout_check_interval', 'timeout', 'ipv6_enabled', 'videoanalyserpath']) or \
+             (section == 'libtorrent' and name in ['enabled', 'lt_proxytype', 'lt_proxyserver']) or \
+             (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
+             (section == 'dispersy' and name in ['enabled', 'dispersy-tunnel-over-swift', 'dispersy_port']) or \
+             (section == 'swift' and name in ['swiftworkingdir', 'swiftmetadir', 'swifttunnellistenport', 'swifttunnelcmdgwlistenport', 'swifttunnelhttpgwlistenport']):
+            return True
+        else:
+            return False
+        return True
+
 
 def singledownload_size_cmp(x, y):
     """ Method that compares 2 SingleDownload objects based on the size of the

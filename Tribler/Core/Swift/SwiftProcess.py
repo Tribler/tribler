@@ -401,7 +401,7 @@ class SwiftProcess:
         else:
             return
 
-        if self.popen is not None:
+        if self.fastconn:
             # Tell engine to shutdown so it can deregister dls from tracker
             print >> sys.stderr, "sp: Telling process to shutdown"
             self.send_shutdown()
@@ -412,8 +412,6 @@ class SwiftProcess:
             self.donestate = DONE_STATE_SHUTDOWN
         else:
             return
-
-        # could do fastconn.close() here
 
         if self.popen is not None:
             try:

@@ -77,6 +77,7 @@ sessdefaults['libtorrent']['enabled'] = True
 sessdefaults['libtorrent']['lt_proxytype'] = 0  # no proxy server is used by default
 sessdefaults['libtorrent']['lt_proxyserver'] = None
 sessdefaults['libtorrent']['lt_proxyauth'] = None
+sessdefaults['libtorrent']['utp'] = True
 
 # SWIFTPROC config
 sessdefaults['swift'] = OrderedDict()

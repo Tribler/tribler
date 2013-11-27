@@ -145,7 +145,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
                     videofiles.append(filename)
 
             playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
-            self.CallConditional(1, lambda: len(playlist.links) == len(videofiles), take_screenshot)
+            self.CallConditional(10, lambda: len(playlist.links) == len(videofiles), take_screenshot, "lists did not match length")
 
         def do_monitor():
             from Tribler.Video.VideoPlayer import VideoPlayer
