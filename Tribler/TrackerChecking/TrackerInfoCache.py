@@ -12,7 +12,7 @@
 
 import sys
 import time
-from threading import Lock
+from threading import RLock
 
 
 from Tribler.Core.Session import Session
@@ -35,7 +35,7 @@ class TrackerInfoCache(object):
         self._max_tracker_failures = max_failures
         self._dead_tracker_recheck_Interval = dead_tracker_recheck_interval
 
-        self._lock = Lock()
+        self._lock = RLock()
 
         session = Session.get_instance()
         session.add_observer(self.newTrackerCallback, NTFY_TRACKERINFO, [NTFY_INSERT,])
@@ -44,12 +44,11 @@ class TrackerInfoCache(object):
     # Loads and initializes the cache from database.
     # ------------------------------------------------------------
     @forceAndReturnDBThread
-    def loadCacheFromDb(self, to_lock=True):
+    def loadCacheFromDb(self):
         tracker_info_list = self._torrentdb.getTrackerInfoList()
 
         # no need to use the lock when reloading
-        if to_lock:
-            self._lock.acquire()
+        self._lock.acquire()
         # update tracker info
         if self._tracker_info_dict:
             for tracker_info in tracker_info_list:
@@ -59,8 +58,7 @@ class TrackerInfoCache(object):
                 self._tracker_info_dict[tracker]['failures'] = failures
                 self._tracker_info_dict[tracker]['alive'] = alive
                 self._tracker_info_dict[tracker]['updated'] = False
-        if to_lock:
-            self._lock.release()
+        self._lock.release()
 
     # ------------------------------------------------------------
     # The callback function when a new tracker has been inserted.
@@ -73,7 +71,7 @@ class TrackerInfoCache(object):
         with self._lock:
             # DB upgrade complete, reload everthing from DB
             if not objectID:
-                self.loadCacheFromDb(to_lock=False)
+                self.loadCacheFromDb()
                 return
 
             # new tracker insertion callback
