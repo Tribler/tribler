@@ -1075,6 +1075,14 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         else:
             raise TorrentDefNotFinalizedException()
 
+    def is_private(self):
+        """ Returns whether this TorrentDef is a private torrent. 
+        @return Boolean """
+        if not self.metainfo_valid:
+            raise NotYetImplementedException()
+
+        return int(self.metainfo['info'].get('private', 0)) == 1
+
     def get_url(self):
         """ Returns the URL representation of this TorrentDef. The TorrentDef
         must be a Merkle or live torrent and must be set to URL-compatible

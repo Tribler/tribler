@@ -678,7 +678,7 @@ class TorrentDBHandler(BasicDBHandler):
                 "num_files": len(torrentdef.get_files()),
                 "thumbnail": bool(thumb),
                 "insert_time": long(time()),
-                "secret": 0,  # todo: check if torrent is secret
+                "secret": 1 if torrentdef.is_private() else 0,
                 "relevance": 0.0,
                 "source_id": self._getSourceID(source),
                 # todo: the category_id is calculated directly from
@@ -1447,12 +1447,12 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
 
     def getRecentlyCollectedSwiftHashes(self, limit=50):
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check, insert_time FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' ORDER BY insert_time DESC LIMIT ?"
+        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check, insert_time FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' AND CollectedTorrent.secret is not 1 ORDER BY insert_time DESC LIMIT ?"
         results = self._db.fetchall(sql, (limit,))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
 
     def getRandomlyCollectedSwiftHashes(self, insert_time, limit=50):
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' ORDER BY RANDOM() DESC LIMIT ?"
+        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' AND CollectedTorrent.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?"
         results = self._db.fetchall(sql, (insert_time, limit))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0] for result in results]
 
@@ -1604,7 +1604,7 @@ class TorrentDBHandler(BasicDBHandler):
                     """
 
         if not local:
-            mainsql += " LIMIT 250"
+            mainsql += "AND T.secret is not 1 LIMIT 250"
 
         query = " ".join(filter_keywords(kws))
         not_negated = [kw for kw in filter_keywords(kws) if kw[0] != '-']

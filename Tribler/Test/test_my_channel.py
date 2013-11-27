@@ -78,7 +78,7 @@ class TestMyChannel(TestGuiAsServer):
                     if modification.name == 'video-info' and modification.value:
                         videoinfo_dict = json.loads(modification.value)
                         if videoinfo_dict['duration'] and videoinfo_dict['resolution']:
-                            videoinfo_valid = True
+                            videoinfo_valid = (videoinfo_dict['resolution'] == [640, 480]) and (videoinfo_dict['duration'] == 6)
 
                 return videoinfo_valid and swiftthumbnails_valid
             self.CallConditional(10, check_for_modifications, do_overview, 'No valid channel modifications received')
