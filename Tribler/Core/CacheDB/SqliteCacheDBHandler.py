@@ -1450,7 +1450,7 @@ class TorrentDBHandler(BasicDBHandler):
             + " FROM Torrent T, CollectedTorrent CT"\
             + " WHERE CT.torrent_id = T.torrent_id"\
             + " AND CT.swift_torrent_hash IS NOT NULL AND CT.swift_torrent_hash <> ''"\
-            + " AND CollectedTorrent.secret is not 1 ORDER BY CT.insert_time DESC LIMIT ?"
+            + " AND T.secret is not 1 ORDER BY CT.insert_time DESC LIMIT ?"
         results = self._db.fetchall(sql, (limit,))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
 
@@ -1461,7 +1461,7 @@ class TorrentDBHandler(BasicDBHandler):
             + " AND CT.insert_time < ?"\
             + " AND CT.swift_torrent_hash IS NOT NULL"\
             + " AND CT.swift_torrent_hash <> ''"\
-            + " AND CollectedTorrent.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?"
+            + " AND T.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?"
         results = self._db.fetchall(sql, (insert_time, limit))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0] for result in results]
 
