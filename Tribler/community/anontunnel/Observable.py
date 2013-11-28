@@ -25,9 +25,21 @@ class Observable(object):
     def __init__(self):
         self.callbacks = defaultdict(list)
         self.trigger_on_subscribe = {}
-        self.only_once = {}
 
-    def subscribe(self, event, callback, once=False):
+    def unsubscribe(self, event, callback):
+        self.callbacks[event].remove(callback)
+
+    def once(self, event, callback):
+        def _once(callback):
+            def caller(event_obj, **kwargs):
+                callback(event_obj, **kwargs)
+                self.unsubscribe(event, caller)
+
+            return caller
+
+        self.subscribe(event, _once(callback))
+
+    def subscribe(self, event, callback):
         """
         Subscribe to an event by attaching an event handler
         :param event: the event to listen to
@@ -36,44 +48,24 @@ class Observable(object):
         """
 
         if event in self.trigger_on_subscribe:
-            callback(Event)
-            if once:
-                return
+            args, kwargs = self.trigger_on_subscribe[event]
+            callback(*args,**kwargs)
 
         self.callbacks[event].append(callback)
 
-        if once:
-            self.only_once[(event, callback)] = True
-
-
-
-    def fire(self, event_name, trigger_on_subscribe=False, **event_parameter_dictionary):
+    def fire(self, event, trigger_on_subscribe=False, *args, **kwargs):
         """
         Fire an event by name
-        :param event_name: the event to fire
+        :param event: the event to fire
         :param event_parameter_dictionary: a dictionary containing parameters for the Event object
         :return: None
         """
 
-        if trigger_on_subscribe:
-            self.trigger_on_subscribe[event_name] = True
-
-        if not event_name in self.callbacks:
+        if not event in self.callbacks:
             return
 
-        event_parameter = Event()
-        event_parameter.source = self
-        for attribute_key, attribute_value in event_parameter_dictionary.iteritems():
-            setattr(event_parameter, attribute_key, attribute_value)
+        if trigger_on_subscribe:
+            self.trigger_on_subscribe[event] = (args, kwargs)
 
-        delete = []
-        for handler in self.callbacks[event_name]:
-            handler(event_parameter, **event_parameter_dictionary)
-
-            if (event_name, handler) in self.only_once:
-                delete.append(handler)
-                del self.only_once[(event_name, handler)]
-
-        for handler in delete:
-            self.callbacks[event_name].remove(handler)
-
+        for handler in self.callbacks[event]:
+            handler(*args, **kwargs)

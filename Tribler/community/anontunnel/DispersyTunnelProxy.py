@@ -349,7 +349,7 @@ class DispersyTunnelProxy(Observable):
             self.break_circuit(circuit_id)
 
 
-    def on_create(self, event, circuit_id, candidate, message):
+    def on_create(self, circuit_id, candidate, message):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
         address = candidate
 
@@ -360,7 +360,7 @@ class DispersyTunnelProxy(Observable):
         with self.lock:
             self.joined.add((address, circuit_id))
 
-    def on_created(self, event, circuit_id, candidate, message):
+    def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
         with self.lock:
             if circuit_id in self.circuits:
@@ -402,7 +402,7 @@ class DispersyTunnelProxy(Observable):
                 self.fire("circuit_extended_for", extended_for=(created_for.candidate, created_for.circuit_id),
                           extended_with=(extended_with, circuit_id))
 
-    def on_data(self, event, circuit_id, candidate, message):
+    def on_data(self, circuit_id, candidate, message):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
 
         direct_sender_address = candidate.sock_addr
@@ -458,7 +458,7 @@ class DispersyTunnelProxy(Observable):
 
         return self._exit_sockets[circuit_id]
 
-    def on_extend(self, event, circuit_id, candidate, message):
+    def on_extend(self, circuit_id, candidate, message):
         """ Upon reception of a EXTEND message the message
             is forwarded over the Circuit if possible. At the end of
             the circuit a CREATE request is send to the Proxy to
@@ -520,7 +520,7 @@ class DispersyTunnelProxy(Observable):
                       extend_with=(to_candidate, new_circuit_id))
 
 
-    def on_extended(self, event, circuit_id, candidate, message):
+    def on_extended(self, circuit_id, candidate, message):
         """ A circuit has been extended, forward the acknowledgment back
             to the origin of the EXTEND. If we are the origin update
             our records. """
@@ -633,7 +633,7 @@ class DispersyTunnelProxy(Observable):
 
         return stats
 
-    def on_member_heartbeat(self, event, candidate):
+    def on_member_heartbeat(self, candidate):
         with self.lock:
             self.member_heartbeat[candidate] = time.time()
 

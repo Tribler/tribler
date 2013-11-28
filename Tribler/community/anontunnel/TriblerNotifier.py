@@ -9,11 +9,11 @@ class TriblerNotifier(object):
         community.subscribe("circuit_extended_for", self.on_circuit_extended_for)
         community.subscribe("circuit_extended", self.on_circuit_extended)
 
-    def on_circuit_created(self, event, circuit):
+    def on_circuit_created(self, circuit):
         self.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, circuit)
 
-    def on_circuit_extended(self, event, circuit):
+    def on_circuit_extended(self, circuit):
         self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit)
 
-    def on_circuit_extended_for(self, event, extended_for, extended_with):
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED_FOR, event.extended_for, event.extended_with)
+    def on_circuit_extended_for(self, extended_for, extended_with):
+        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED_FOR, extended_for, extended_with)

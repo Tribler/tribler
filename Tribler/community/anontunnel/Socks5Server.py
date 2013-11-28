@@ -8,6 +8,7 @@ import logging
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
 from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
 from Tribler.community.anontunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
+from Tribler.community.anontunnel.Observable import Observable
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 import Socks5.structs
 
 
-class Socks5Server(object):
+class Socks5Server(Observable):
     @property
     def accept_incoming(self):
         return self._accept_incoming
@@ -53,17 +54,17 @@ class Socks5Server(object):
             self.bind_events()
 
     def bind_events(self):
-        def accept_incoming(event):
+        def accept_incoming():
             self.accept_incoming = True
 
-        def disconnect_socks(event):
+        def disconnect_socks():
                 self.accept_incoming = False
 
         self._tunnel.subscribe("on_ready", accept_incoming)
         self._tunnel.subscribe("on_down", disconnect_socks)
 
-
-    def __init__(self, ):
+    def __init__(self):
+        Observable.__init__(self);
         self._tunnel = None
 
         self._accept_incoming = False
@@ -77,9 +78,6 @@ class Socks5Server(object):
 
         self.routes = {}
         self.udp_relays = {}
-
-        self.toggle_recording_on_first_enter = False
-
 
     def attach_to(self, raw_server, socks5_port=1080):
         self.socks5_port = socks5_port
@@ -118,7 +116,7 @@ class Socks5Server(object):
 
         return udp_relay_socket
 
-    def on_tunnel_data(self, event, data, sender=None):
+    def on_tunnel_data(self, data, sender=None):
         # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
 
         # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP
@@ -216,8 +214,7 @@ class Socks5Server(object):
             tcp_connection.shutdown()
 
     def enter_tunnel_data(self, ultimate_destination, payload):
-        if self.toggle_recording_on_first_enter:
-            self.tunnel.record_stats = True
+        self.fire("enter_tunnel_head", ultimate_destination, payload)
 
         self.tunnel.send_data(
             ultimate_destination=ultimate_destination,

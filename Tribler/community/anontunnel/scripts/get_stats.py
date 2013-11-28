@@ -4,7 +4,7 @@ from Tribler.community.anontunnel.TunnelCommander import TunnelCommander
 __author__ = 'Chris'
 
 
-def on_stats(event, stats):
+def on_stats(stats):
     print json.dumps(stats)
     tc.stop()   # Stop the TunnelCommander and its thread
 
