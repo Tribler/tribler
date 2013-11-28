@@ -1402,7 +1402,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def getRecentlyCollectedSwiftHashes(self, limit=50):
         sql = """
-            SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time"\
+            SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time
              FROM Torrent T, CollectedTorrent CT
              WHERE CT.torrent_id = T.torrent_id
              AND CT.swift_torrent_hash IS NOT NULL AND CT.swift_torrent_hash <> ''
