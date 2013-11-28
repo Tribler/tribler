@@ -791,14 +791,15 @@ class TorrentDBHandler(BasicDBHandler):
         new_tracker_list = list()
         if announce:
             new_tracker_list.append(announce)
-        for tier in announce_list:
-            for tracker in tier:
-                if tracker in new_tracker_list:
-                    continue
-                # TODO: a limited tracker list
-                if len(new_tracker_list) >= 25:
-                    break
-                new_tracker_list.append(tracker)
+        if announce_list:
+            for tier in announce_list:
+                for tracker in tier:
+                    if tracker in new_tracker_list:
+                        continue
+                    # TODO: a limited tracker list
+                    if len(new_tracker_list) >= 25:
+                        break
+                    new_tracker_list.append(tracker)
 
         # add trackers in batch
         self.addTorrentTrackerMappingBatched(torrent_id, new_tracker_list)
@@ -1154,40 +1155,23 @@ class TorrentDBHandler(BasicDBHandler):
         returns info about swarm size from Torrent and TorrentTrackerMapping tables.
         @author: Rahim
         @param torrentId: The index of the torrent.
-        @return: A list of the form: [torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo]
+        @return: A list of the form: [num_seeders, num_leechers, last_check]
         """
-        if torrent_id is not None:
-            dict = self.getSwarmInfos([torrent_id])
-            if torrent_id in dict:
-                return dict[torrent_id]
+        if not torrent_id:
+            return None
 
-    def getSwarmInfos(self, torrent_id_list):
-        """
-        returns infos about swarm size from Torrent and TorrentTrackerMapping tables.
-        @author: Niels, Lipu
-        @param torrent_id_list: a list containing torrent_ids
-        @return: A dictionary of lists of the form: torrent_id => [torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo]
-        """
-        torrent_id_list = [torrent_id for torrent_id in torrent_id_list if torrent_id]
-
-        results = {}
+        result = None
         sql = """
-            SELECT torrent_id, num_seeders, num_leechers, last_tracker_check
-              FROM Torrent
-              WHERE torrent_id IN (
+            SELECT num_seeders, num_leechers, last_tracker_check
+            FROM Torrent WHERE torrent_id = ?
             """
-        sql += ','.join(map(str, torrent_id_list))
-        sql += ')'
-
-        rows = self._db.fetchall(sql)
-        for row in rows:
-            torrent_id = row[0]
-            num_seeders = row[1]
-            num_leechers = row[2]
-            last_check = row[3]
-            results[torrent_id] = [torrent_id, num_seeders, num_leechers, last_check, -1, row]
-
-        return results
+        row = self._db.fetchone(sql, (torrent_id,))
+        if row:
+            num_seeders = row[0]
+            num_leechers = row[1]
+            last_check = row[2]
+            result = [num_seeders, num_leechers, last_check]
+        return result
 
     def getLargestSourcesSeen(self, torrent_id, timeNow, freshness= -1):
         """
