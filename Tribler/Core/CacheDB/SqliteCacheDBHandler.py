@@ -722,7 +722,7 @@ class TorrentDBHandler(BasicDBHandler):
             swarmname, _ = os.path.splitext(swarmname)
         self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode(), source in ['BC', 'SWIFT', 'DISP_SC'])
 
-        self._addTorrentTracker(torrent_id, torrentdef, extra_info, commit=False)
+        self._addTorrentTracker(torrent_id, torrentdef, extra_info)
         if commit:
             self.commit()
         return torrent_id
@@ -779,12 +779,8 @@ class TorrentDBHandler(BasicDBHandler):
 
     # ------------------------------------------------------------
     # Adds the trackers of a given torrent into the database.
-    # TODO: Someone please check this.
-    #       We may remove the "add_all" parameter because no invokers sets it.
-    #       This method is invoked ONLY by _addTorrentToDB() with "add_all"
-    #       unset.
     # ------------------------------------------------------------
-    def _addTorrentTracker(self, torrent_id, torrentdef, extra_info={}, add_all=False, commit=True):
+    def _addTorrentTracker(self, torrent_id, torrentdef, extra_info={}):
         # Set add_all to True if you want to put all multi-trackers into db.
         # In the current version (4.2) only the main tracker is used.
 
@@ -795,15 +791,14 @@ class TorrentDBHandler(BasicDBHandler):
         new_tracker_list = list()
         if announce:
             new_tracker_list.append(announce)
-        if add_all:
-            for tier in announce_list:
-                for tracker in tier:
-                    if tracker in new_tracker_list:
-                        continue
-                    # TODO: a limited tracker list
-                    if len(new_tracker_list) >= 25:
-                        break
-                    new_tracker_list.append(tracker)
+        for tier in announce_list:
+            for tracker in tier:
+                if tracker in new_tracker_list:
+                    continue
+                # TODO: a limited tracker list
+                if len(new_tracker_list) >= 25:
+                    break
+                new_tracker_list.append(tracker)
 
         # add trackers in batch
         self.addTorrentTrackerMappingBatched(torrent_id, new_tracker_list)
@@ -1148,8 +1143,10 @@ class TorrentDBHandler(BasicDBHandler):
         return [tracker[0] for tracker in trackers]
 
     def getSwarmInfoByInfohash(self, infohash):
-        sql = 'SELECT torrent_id, num_seeders, num_leechers, max(last_tracker_check)'\
-            + ' FROM Torrent WHERE infohash = ?'
+        sql = """
+            SELECT torrent_id, num_seeders, num_leechers, last_tracker_check
+              FROM Torrent WHERE infohash = ?
+            """
         return self._db.fetchone(sql, (bin2str(infohash),))
 
     def getSwarmInfo(self, torrent_id):
@@ -1174,11 +1171,13 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id_list = [torrent_id for torrent_id in torrent_id_list if torrent_id]
 
         results = {}
-        sql = 'SELECT torrent_id, num_seeders, num_leechers, max(last_tracker_check)'\
-            + ' FROM Torrent'\
-            + ' WHERE torrent_id IN ('
+        sql = """
+            SELECT torrent_id, num_seeders, num_leechers, last_tracker_check
+              FROM Torrent
+              WHERE torrent_id IN (
+            """
         sql += ','.join(map(str, torrent_id_list))
-        sql += ') GROUP BY torrent_id'
+        sql += ')'
 
         rows = self._db.fetchall(sql)
         for row in rows:
@@ -1272,8 +1271,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent['infohash'] = infohash
 
-        if 'last_check' in torrent:
-            torrent['last_check_time'] = torrent['last_check']
+        if 'last_tracker_check' in torrent:
+            torrent['last_check_time'] = torrent['last_tracker_check']
 
         if include_mypref:
             tid = torrent['C.torrent_id']
@@ -1446,22 +1445,26 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
 
     def getRecentlyCollectedSwiftHashes(self, limit=50):
-        sql = "SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time"\
-            + " FROM Torrent T, CollectedTorrent CT"\
-            + " WHERE CT.torrent_id = T.torrent_id"\
-            + " AND CT.swift_torrent_hash IS NOT NULL AND CT.swift_torrent_hash <> ''"\
-            + " AND T.secret is not 1 ORDER BY CT.insert_time DESC LIMIT ?"
+        sql = """
+            SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time"\
+             FROM Torrent T, CollectedTorrent CT
+             WHERE CT.torrent_id = T.torrent_id
+             AND CT.swift_torrent_hash IS NOT NULL AND CT.swift_torrent_hash <> ''
+             AND T.secret is not 1 ORDER BY CT.insert_time DESC LIMIT ?
+             """
         results = self._db.fetchall(sql, (limit,))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
 
     def getRandomlyCollectedSwiftHashes(self, insert_time, limit=50):
-        sql = "SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_check"\
-            + " FROM Torrent T, CollectedTorrent CT"\
-            + " WHERE CT.torrent_id = T.torrent_id"\
-            + " AND CT.insert_time < ?"\
-            + " AND CT.swift_torrent_hash IS NOT NULL"\
-            + " AND CT.swift_torrent_hash <> ''"\
-            + " AND T.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?"
+        sql = """
+            SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check
+             FROM Torrent T, CollectedTorrent CT
+             WHERE CT.torrent_id = T.torrent_id
+             AND CT.insert_time < ?
+             AND CT.swift_torrent_hash IS NOT NULL
+             AND CT.swift_torrent_hash <> ''
+             AND T.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?
+            """
         results = self._db.fetchall(sql, (insert_time, limit))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0] for result in results]
 
