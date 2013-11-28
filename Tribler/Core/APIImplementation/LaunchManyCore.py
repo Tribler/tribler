@@ -357,6 +357,41 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
 
+    def update_trackers(self, id, trackers):
+        """ Update the trackers for a download.
+        @param id ID of the download for which the trackers need to be updated
+        @param trackers A list of tracker urls.
+        """
+        dl = self.get_download(id)
+        old_def = dl.get_def() if dl else None
+
+        if old_def and old_def.get_def_type() == 'torrent':
+            old_trackers = old_def.get_trackers_as_single_tuple()
+            new_trackers = list(set(trackers) - set(old_trackers))
+            all_trackers = list(old_trackers) + new_trackers
+
+            if new_trackers:
+                # Add new trackers to the download
+                dl.add_trackers(new_trackers)
+
+                # Create a new TorrentDef
+                metainfo = old_def.get_metainfo()
+                if len(all_trackers) > 1:
+                    metainfo["announce-list"] = [all_trackers]
+                else:
+                    metainfo["announce"] = all_trackers[0]
+                new_def = TorrentDef.load_from_dict(metainfo)
+
+                # Set TorrentDef + checkpoint
+                dl.set_def(new_def)
+                dl.checkpoint()
+
+                if self.rtorrent_handler:
+                    # Update collected torrents
+                    self.rtorrent_handler._save_torrent(new_def)
+                else:
+                    self.session.uch.notify(NTFY_TORRENTS, NTFY_UPDATE, id)
+
     def rawserver_fatalerrorfunc(self, e):
         """ Called by network thread """
         if DEBUG:
@@ -860,6 +895,12 @@ class TriblerLaunchMany(Thread):
 
         if not hidden and self.session.get_megacache():
             self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash), priority=1024)
+
+    def get_external_ip(self):
+        """ Returns the external IP address of this Session, i.e., by which
+        it is reachable from the Internet. This address is determined by libtorrent.
+        @return A string. """
+        return self.ltmgr.get_external_ip() if self.ltmgr else None
 
 
 def singledownload_size_cmp(x, y):

@@ -13,6 +13,13 @@
 #
 
 import sys
+import logging.config
+try:
+    logging.config.fileConfig("logger.conf")
+except:
+    print >> sys.stderr, "Unable to load logging config from 'logger.conf' file."
+logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
@@ -412,7 +419,7 @@ class ABCApp():
         if sys.platform == "darwin":
             if not os.path.exists(swiftbinpath):
                 swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
-        self.sconfig.set_swift_path(swiftbinpath)
+                self.sconfig.set_swift_path(swiftbinpath)
 
         progress('Loading downloadconfig')
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
@@ -785,6 +792,19 @@ class ABCApp():
 
                 manager = self.frame.librarylist.GetManager()
                 manager.torrentsUpdated(infohashes)
+
+            from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
+
+            if self.frame.torrentdetailspanel.torrent and self.frame.torrentdetailspanel.torrent.infohash in infohashes:
+                # If an updated torrent is being shown in the detailspanel, make sure the information gets refreshed.
+                t = self.frame.torrentdetailspanel.torrent
+                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
+                self.frame.torrentdetailspanel.setTorrent(torrent)
+
+            if self.frame.librarydetailspanel.torrent and self.frame.librarydetailspanel.torrent.infohash in infohashes:
+                t = self.frame.librarydetailspanel.torrent
+                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
+                self.frame.librarydetailspanel.setTorrent(torrent)
 
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading. Now seeding." % args[0], icon='seed')

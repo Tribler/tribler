@@ -17,6 +17,7 @@ from Tribler import LIBRARYNAME
 
 from Tribler.Main.vwxGUI.list_body import *
 from Tribler.Main.vwxGUI.list_details import *
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 
 class ColumnsManager:
@@ -904,7 +905,7 @@ class ActivityListItem(ListItem):
 
     def AddComponents(self, leftSpacer, rightSpacer):
         ListItem.AddComponents(self, leftSpacer, rightSpacer)
-        if self.data[0] in ['Results', 'Channels', 'Downloads']:
+        if self.data[0] in ['Results', 'Channels', 'Downloads', 'Videoplayer']:
             self.num_items = TagText(self, -1, label='0', fill_colour=GRADIENT_DGREY, edge_colour=SEPARATOR_GREY)
             self.hSizer.Add(self.num_items, 0, wx.CENTER | wx.RIGHT, 5)
             self.hSizer.Layout()
