@@ -26,7 +26,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, LIST_BLUE
@@ -1119,7 +1119,7 @@ class Anonymity(wx.Panel):
 
         self.last_keyframe = 0
         self.time_step = 5.0
-        self.radius = 16
+        self.radius = 32
 
         self.layout_busy = False
         self.new_data = False
@@ -1139,7 +1139,8 @@ class Anonymity(wx.Panel):
 
         self.lock = threading.RLock()
 
-        self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED])
+        self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
+        self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
 
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
@@ -1247,6 +1248,12 @@ class Anonymity(wx.Panel):
             self.log_text.AppendText("Created circuit %s with %s:%d\n" % (circuit.id, circuit.hops[-1][0], circuit.hops[-1][1]))
         if changeType == NTFY_EXTENDED:
             self.log_text.AppendText("Extended circuit %s with %s:%d\n" % (circuit.id, circuit.hops[-1][0], circuit.hops[-1][1]))
+        if changeType == NTFY_BROKEN:
+            self.log_text.AppendText("Circuit %d has been broken\n" % circuit)
+
+    @forceWxThread
+    def OnSelect(self, subject, changeType, circuit, address):
+        self.log_text.AppendText("Circuit %d has been selected for destination %s\n" % (circuit, address))
 
     def AddEdge(self, from_addr, to_addr):
         with self.lock:
@@ -1395,7 +1402,7 @@ class Anonymity(wx.Panel):
                         if set([vertexid1, vertexid2]) in self.selected_edges:
                             gc.SetPen(wx.Pen(wx.BLUE))
                         else:
-                            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229)))
+                            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229),4))
                         x1, y1 = int_points[vertexid1]
                         x2, y2 = int_points[vertexid2]
                         gc.DrawLines([(x1, y1), (x2, y2)])
