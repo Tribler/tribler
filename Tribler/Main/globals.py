@@ -2,9 +2,8 @@
 # see LICENSE.txt for license information
 
 import os
-import pickle
 
-STATEDIR_DLCONFIG = "dlconfig.pickle"
+STATEDIR_DLCONFIG = "dlconfig.conf"
 
 # Global variable containing the DownloadStartupConfig to use for creating downloads
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -29,25 +28,6 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
     def delInstance(*args, **kw):
         DefaultDownloadStartupConfig.__single = None
     delInstance = staticmethod(delInstance)
-
-    #
-    # Class method
-    #
-
-    def load(filename):
-        """
-        Load a saved DownloadStartupConfig from disk.
-
-        @param filename  An absolute Unicode filename
-        @return DefaultDownloadStartupConfig object
-        """
-        # Class method, no locking required
-        f = open(filename, "rb")
-        dlconfig = pickle.load(f)
-        dscfg = DefaultDownloadStartupConfig(None)
-        f.close()
-        return dscfg
-    load = staticmethod(load)
 
 
 def get_default_dscfg_filename(state_dir):
