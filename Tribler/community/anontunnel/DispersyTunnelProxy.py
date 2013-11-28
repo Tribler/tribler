@@ -7,6 +7,7 @@ from Tribler.community.anontunnel import ProxyMessage
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.community.anontunnel.SelectionStrategies import LengthSelectionStrategy
+from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
@@ -50,7 +51,7 @@ class Circuit(object):
         self.created = False
         self.id = circuit_id
         self.candidate = candidate
-        self.hops = [candidate] if candidate else []
+        self.hops = [candidate.sock_addr] if candidate else []
         self.goal_hops = 0
 
         self.state = CIRCUIT_STATE_CREATING
@@ -174,8 +175,8 @@ class DispersyTunnelProxy(Observable):
         self.relay_from_to = {}
         self.circuit_tag = {}
 
-        self.circuit_length_strategy = ConstantCircuitLengthStrategy(2)# RandomCircuitLengthStrategy(1,4)
-        self.circuit_selection_strategy = LengthSelectionStrategy(1,2)# (min_population_size=4)
+        self.circuit_length_strategy = ConstantCircuitLengthStrategy(4)# RandomCircuitLengthStrategy(1,4)
+        self.circuit_selection_strategy = LengthSelectionStrategy(1,4)# (min_population_size=4)
 
         self.message_observer = Observable()
 
@@ -261,6 +262,8 @@ class DispersyTunnelProxy(Observable):
         self.message_observer.subscribe(ProxyMessage.MESSAGE_EXTENDED, self.on_extended)
         self.message_observer.subscribe(ProxyMessage.MESSAGE_DATA, self.on_data)
         self.message_observer.subscribe(ProxyMessage.MESSAGE_BREAK, self.on_break)
+
+        TriblerNotifier(self)
 
         community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
 
@@ -656,6 +659,8 @@ class DispersyTunnelProxy(Observable):
                         circuit_id = self.circuit_selection_strategy.select(self.active_circuits).id
                         self.destination_circuit[ultimate_destination] = circuit_id
                         logger.warning("SELECT %d for %s", circuit_id, ultimate_destination)
+                        self.fire("circuit_select", destination=ultimate_destination, circuit_id=circuit_id)
+
 
                 # If chosen the 0-hop circuit OR if there are no other circuits act as EXIT node ourselves
                 if circuit_id == 0:
@@ -686,6 +691,8 @@ class DispersyTunnelProxy(Observable):
         with self.lock:
             # Give other members possibility to clean up
             logger.error("Breaking circuit %d", circuit_id)
+
+            self.fire("circuit_broken", circuit_id=circuit_id)
 
             # Delete from data structures
             if circuit_id in self.circuits:

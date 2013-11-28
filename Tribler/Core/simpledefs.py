@@ -98,6 +98,8 @@ NTFY_MAGNET_CLOSE = 'magnet_close'
 NTFY_CREATED = 'created'
 NTFY_EXTENDED = 'extended'
 NTFY_EXTENDED_FOR = 'extended_for'
+NTFY_BROKEN = 'broken'
+NTFY_SELECT = 'select'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0
