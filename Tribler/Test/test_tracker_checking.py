@@ -30,6 +30,8 @@ class TestTorrentChecking(TestAsServer):
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
         self.tdb._nb = NetworkBuzzDBHandler.getInstance()
+        
+        self.torrentChecking = TorrentChecking.getInstance()
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
@@ -40,9 +42,6 @@ class TestTorrentChecking(TestAsServer):
     # Unit Test for TorrentChecking thread.
     # ------------------------------------------------------------
     def test_torrent_checking(self):
-        self.torrentChecking = TorrentChecking.getInstance()
-        sleep(5)
-
         tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
         tdef.set_tracker("http://95.211.198.141:2710/announce")
         tdef.metainfo_valid = True
@@ -51,5 +50,7 @@ class TestTorrentChecking(TestAsServer):
         self.torrentChecking.addInfohashRequest(tdef.get_infohash())
         sleep(30)
 
-        id, num_leechers, num_seeders, last_check = self.tdb.getSwarmInfoByInfohash(tdef.get_infohash())
+        torrent = self.tdb.getTorrent(tdef.get_infohash())
+        num_seeders = torrent['num_seeders']
+        num_leechers = torrent['num_leechers']
         assert num_leechers >= 0 or num_seeders >= 0, (num_leechers, num_seeders)
