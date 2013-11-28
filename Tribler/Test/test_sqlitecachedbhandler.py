@@ -463,7 +463,7 @@ class TestTorrentDBHandler(AbstractDB):
         assert self.tdb.size() == old_size + 2, old_size - self.tdb.size()
         assert old_src_size + 1 == self.tdb._db.size('TorrentSource')
         new_tracker_table_size = self.tdb._db.size('TrackerInfo')
-        assert old_tracker_size + 2 == new_tracker_table_size, new_tracker_table_size - old_tracker_size
+        assert old_tracker_size < new_tracker_table_size, new_tracker_table_size - old_tracker_size
 
         sname = self.tdb.getOne('name', torrent_id=single_torrent_id)
         assert sname == single_name, (sname, single_name)
