@@ -83,12 +83,6 @@ class TrackerInfoCache(object):
                 self._tracker_info_dict[tracker]['updated'] = False
 
     # ------------------------------------------------------------
-    # Waits for the cache to be initialized.
-    # ------------------------------------------------------------
-    def waitForCacheInitialization(self, wait_time=30):
-        return self._initial_load_complete_event.wait(wait_time)
-
-    # ------------------------------------------------------------
     # (Public API)
     # Checks if a tracker is worth checking now.
     # ------------------------------------------------------------

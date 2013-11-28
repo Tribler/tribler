@@ -802,7 +802,7 @@ class TorrentDBHandler(BasicDBHandler):
                     new_tracker_list.append(tracker)
 
         # add trackers in batch
-        self.addTorrentTrackerMappingBatched(torrent_id, new_tracker_list)
+        self.addTorrentTrackerMappingInBatch(torrent_id, new_tracker_list)
 
     def updateTorrent(self, infohash, commit=True, notify=True, **kw):  # watch the schema of database
         if 'category' in kw:
@@ -1031,6 +1031,24 @@ class TorrentDBHandler(BasicDBHandler):
         return True
 
     # ------------------------------------------------------------
+    # Sets all good torrent's tracker-checking-retry count to 0.
+    # ------------------------------------------------------------
+    def updateGoodTorrentByInfohash(self, infohash):
+        torrent_id = self._db.getTorrentID(infohash)
+        sql = 'UPDATE Torrent SET tracker_check_retries = 0 WHERE torrent_id = ?'
+        self._db.execute_write(sql, (torrent_id,))
+
+    # ------------------------------------------------------------
+    # Increases all dead torrent's tracker-checking-retry count.
+    # ------------------------------------------------------------
+    def updateDeadTorrentByInfohash(self, infohash, max_retry_count=5):
+        torrent_id = self._db.getTorrentID(infohash)
+        sql = 'UPDATE Torrent SET tracker_check_retries = tracker_check_retries + 1'\
+            + ' WHERE torrent_id = ? AND tracker_check_retries < %d'\
+            % max_retry_count
+        self._db.execute_write(sql, (torrent_id,))
+
+    # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
     # ------------------------------------------------------------
     def addTorrentTrackerMapping(self, torrent_id, tracker):
@@ -1041,7 +1059,7 @@ class TorrentDBHandler(BasicDBHandler):
     # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table in batch.
     # ------------------------------------------------------------
-    def addTorrentTrackerMappingBatched(self, torrent_id, tracker_list):
+    def addTorrentTrackerMappingInBatch(self, torrent_id, tracker_list):
         if not tracker_list:
             return
 
@@ -1052,7 +1070,7 @@ class TorrentDBHandler(BasicDBHandler):
         # update tracker info
         not_found_tracker_list = [tracker for tracker in tracker_list if tracker not in found_tracker_list]
         if not_found_tracker_list:
-            self.addTrackerInfoBatched(not_found_tracker_list)
+            self.addTrackerInfoInBatch(not_found_tracker_list)
 
         # update torrent-tracker mapping
         sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
@@ -1065,10 +1083,12 @@ class TorrentDBHandler(BasicDBHandler):
     # Gets all the torrents that has a specific tracker.
     # ------------------------------------------------------------
     def getTorrentsOnTracker(self, tracker):
-        sql = 'SELECT T.infohash, T.tracker_check_retries, T.last_tracker_check'\
-            + ' FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM'\
-            + ' WHERE TI.tracker = ?'\
-            + ' AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id'
+        sql = """
+            SELECT T.infohash, T.tracker_check_retries, T.last_tracker_check
+              FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM
+              WHERE TI.tracker = ?
+              AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id
+            """
         infohash_list = self._db.fetchall(sql, (tracker,))
         return infohash_list
 
@@ -1095,12 +1115,12 @@ class TorrentDBHandler(BasicDBHandler):
     # Adds a new tracker into the TrackerInfo table.
     # ------------------------------------------------------------
     def addTrackerInfo(self, tracker, to_notify=True):
-        self.addTrackerInfoBatched([tracker,])
+        self.addTrackerInfoInBatch([tracker,])
 
     # ------------------------------------------------------------
     # Adds a new trackers in batch into the TrackerInfo table.
     # ------------------------------------------------------------
-    def addTrackerInfoBatched(self, tracker_list, to_notify=True):
+    def addTrackerInfoInBatch(self, tracker_list, to_notify=True):
         try:
             sql = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
             self._db.executemany(sql, [(tracker,) for tracker in tracker_list])
@@ -1328,7 +1348,6 @@ class TorrentDBHandler(BasicDBHandler):
         return fixed
 
     def valuelist2torrentlist(self, value_name, res_list, ranks, mypref_stats):
-
         torrent_list = []
         for item in res_list:
             value_name[0] = 'torrent_id'
