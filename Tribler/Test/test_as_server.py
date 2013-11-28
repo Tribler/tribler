@@ -13,14 +13,15 @@ import time
 import gc
 import wx
 import Image
-from traceback import print_exc
+import re
 
+from traceback import print_exc
 from threading import enumerate as enumerate_threads
 
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-import re
+from Tribler.Main import tribler
 from Tribler.Utilities import LinuxSingleInstanceChecker
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -30,10 +31,16 @@ FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'data'))
 
 from Tribler.Core import defaults
 defaults.sessdefaults['general']['state_dir'] = STATE_DIR
+defaults.sessdefaults['general']['minport'] = -1
+defaults.sessdefaults['general']['maxport'] = -1
+defaults.sessdefaults['swift']['swifttunnellistenport'] = -1
+defaults.sessdefaults['dispersy']['dispersy_port'] = -1
+
 defaults.dldefaults["saveas"] = DEST_DIR
 
-DEBUG = False
+tribler.ALLOW_MULTIPLE = True
 
+DEBUG = False
 
 class AbstractServer(unittest.TestCase):
 
