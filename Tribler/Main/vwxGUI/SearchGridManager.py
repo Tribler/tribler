@@ -311,9 +311,6 @@ class TorrentManager:
         else:
             return torrent
 
-    def getSwarmInfo(self, infohash):
-        return self.torrent_db.getSwarmInfoByInfohash(infohash)
-
     def getTorrentByInfohash(self, infohash):
         dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
         if dict:

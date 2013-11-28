@@ -1123,7 +1123,7 @@ class TorrentDBHandler(BasicDBHandler):
     def getTrackerInfoList(self):
         sql = 'SELECT tracker, last_check, failures, is_alive FROM TrackerInfo'
         tracker_info_list = self._db.fetchall(sql)
-        return [tracker_info for tracker_info in tracker_info_list]
+        return tracker_info_list
 
     # ------------------------------------------------------------
     # Updates a list of tracker status into the TrackerInfo table.
@@ -1142,13 +1142,6 @@ class TorrentDBHandler(BasicDBHandler):
             + ' WHERE is_alive = 1 ORDER BY last_check DESC LIMIT ?'
         trackers = self._db.fetchall(sql, (limit,))
         return [tracker[0] for tracker in trackers]
-
-    def getSwarmInfoByInfohash(self, infohash):
-        sql = """
-            SELECT torrent_id, num_seeders, num_leechers, last_tracker_check
-              FROM Torrent WHERE infohash = ?
-            """
-        return self._db.fetchone(sql, (bin2str(infohash),))
 
     def getSwarmInfo(self, torrent_id):
         """
@@ -1172,27 +1165,6 @@ class TorrentDBHandler(BasicDBHandler):
             last_check = row[2]
             result = [num_seeders, num_leechers, last_check]
         return result
-
-    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness= -1):
-        """
-        Returns the largest number of the sources that have seen the torrent.
-        @author: Rahim
-        @param torrent_id: the id of the torrent.
-        @param freshness: A parameter that filters old records. The assumption is that those popularity reports that are
-        older than a rate are not reliable
-        @return: The largest number of the torrents that have seen the torrent.
-        """
-
-        if freshness == -1:
-            sql2 = """SELECT MAX(num_of_sources) FROM Popularity WHERE torrent_id=%d""" % torrent_id
-        else:
-            latestValidTime = timeNow - freshness
-            sql2 = """SELECT MAX(num_of_sources) FROM Popularity WHERE torrent_id=%d AND msg_receive_time > %d""" % (torrent_id, latestValidTime)
-
-        othersSeenSources = self._db.fetchone(sql2)
-        if othersSeenSources is None:
-            othersSeenSources = 0
-        return othersSeenSources
 
     def getTorrentDir(self):
         return self.torrent_dir
