@@ -62,24 +62,6 @@ class TrackerSession(object):
         self._failed   = False
 
     # ----------------------------------------
-    # Deconstructor.
-    # ----------------------------------------
-    def __del__(self):
-        self.cleanup()
-
-        del self._infohash_list
-        del self._initiated
-        del self._action
-
-        del self._finished
-        del self._failed
-
-        del self._tracker
-        del self._tracker_type
-        del self._tracker_address
-        del self._announce_page
-
-    # ----------------------------------------
     # Cleans up this tracker session.
     # ----------------------------------------
     def cleanup(self):
@@ -274,18 +256,6 @@ class HttpTrackerSession(TrackerSession):
         self._content_encoding = None
         self._content_length = None
         self._received_length = None
-
-    # ----------------------------------------
-    # Deconstructor.
-    # ----------------------------------------
-    def __del__(self):
-        del self._received_length
-        del self._content_length
-        del self._content_encoding
-        del self._message_buffer
-        del self._header_buffer
-
-        TrackerSession.__del__(self)
 
     # ----------------------------------------
     # Establishes connection.
@@ -529,20 +499,6 @@ class UdpTrackerSession(TrackerSession):
 
         self._last_contact = 0
         self._retries = 0
-
-    # ----------------------------------------
-    # Deconstructor.
-    # ----------------------------------------
-    def __del__(self):
-        self.cleanup()
-
-        del self._retries
-        del self._last_contact
-
-        del self._connection_id
-        del self._transaction_id
-
-        TrackerSession.__del__(self)
 
     # ----------------------------------------
     # Cleans up this UDP tracker session.
