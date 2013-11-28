@@ -64,36 +64,30 @@ class AnonTunnel(Thread):
 
         def speed_stats():
             print
-
             t1 = None
-            total_bytes_in_1 = 0
-            total_bytes_out_1 = 0
+            bytes_exit = 0
+            bytes_enter = 0
+            bytes_relay = 0
 
             while True:
                 tunnel = self.socks5_server.tunnel
 
                 t2 = time.time()
                 if tunnel and t1 and t2 > t1:
+                    speed_exit = (tunnel.stats['bytes_exit'] - bytes_exit) / (t2 - t1)
+                    bytes_exit = tunnel.stats['bytes_exit']
 
+                    speed_enter = (tunnel.stats['bytes_enter'] - bytes_enter) / (t2 - t1)
+                    bytes_enter = tunnel.stats['bytes_enter']
 
-                    total_bytes_in_2 = tunnel.stats['bytes_enter']  \
-                                       + sum([c.bytes_downloaded for c in tunnel.get_circuits()]) \
-                                       + sum([r.bytes[1] for r in tunnel.relay_from_to.values()]) # Relay is always downloaded and uploaded
+                    relay_2 = sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
 
-                    total_bytes_out_2 = tunnel.stats['bytes_exit'] \
-                                        + sum([c.bytes_uploaded for c in tunnel.get_circuits()]) \
-                                        + sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
-
-                    total_speed_in = (total_bytes_in_2 - total_bytes_in_1) / (t2 - t1)
-                    total_speed_out = (total_bytes_out_2 - total_bytes_out_1) / (t2 - t1)
-
+                    speed_relay = (relay_2 - bytes_relay) / (t2 - t1)
+                    bytes_relay = relay_2
                     active_circuits = len(tunnel.active_circuits)
                     num_routes = len(tunnel.relay_from_to) / 2
 
-                    print "\r%s %.2f KB/s down %.2f KB/s up using %d circuits and %d duplex routing rules. Average data packet size is %s bytes" % ("ONLINE" if tunnel.online else "OFFLINE", total_speed_in / 1024.0, total_speed_out / 1024.0, active_circuits, num_routes, tunnel.stats['packet_size']),
-
-                    total_bytes_out_1 = total_bytes_out_2
-                    total_bytes_in_1 = total_bytes_in_2
+                    print "\r%s EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s using %d circuits and %d duplex routing rules. Average data packet size is %s bytes" % ("ONLINE" if tunnel.online else "OFFLINE", speed_exit / 1024.0, speed_enter/ 1024.0, speed_relay / 1024.0, active_circuits, num_routes, tunnel.stats['packet_size']),
 
                 t1 = t2
                 yield 1.0

@@ -175,8 +175,8 @@ class DispersyTunnelProxy(Observable):
         self.relay_from_to = {}
         self.circuit_tag = {}
 
-        self.circuit_length_strategy = ConstantCircuitLengthStrategy(4)# RandomCircuitLengthStrategy(1,4)
-        self.circuit_selection_strategy = LengthSelectionStrategy(1,4)# (min_population_size=4)
+        self.circuit_length_strategy = ConstantCircuitLengthStrategy(2)# RandomCircuitLengthStrategy(1,4)
+        self.circuit_selection_strategy = LengthSelectionStrategy(2,2)# (min_population_size=4)
 
         self.message_observer = Observable()
 
@@ -237,9 +237,10 @@ class DispersyTunnelProxy(Observable):
 
         if relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
             relay = self.relay_from_to[relay_key]
-            new_packet = ProxyMessage.change_circuit(buffer, relay.circuit_id)
+            new_packet = self.prefix + ProxyMessage.change_circuit(buffer, relay.circuit_id)
 
-            self.community.dispersy.endpoint.send([relay.candidate], [self.prefix + new_packet])
+            relay.bytes[1] += len(new_packet)
+            self.community.dispersy.endpoint.send([relay.candidate], [new_packet])
 
             if ProxyMessage.get_type(packet) == ProxyMessage.MESSAGE_BREAK:
                 # Route is dead :(
@@ -340,7 +341,7 @@ class DispersyTunnelProxy(Observable):
         callback.register(check_ready)
 
 
-    def on_break(self, event, circuit_id, candidate, message):
+    def on_break(self, circuit_id, candidate, message):
         address = candidate
         assert isinstance(message, ProxyMessage.BreakMessage)
 
@@ -539,7 +540,7 @@ class DispersyTunnelProxy(Observable):
                 circuit = self.circuits[circuit_id]
                 circuit.last_incoming = time.time()
 
-                addresses_in_use = [self.community.dispersy.wan_address]
+                addresses_in_use = [self.community.dispersy.wan_address, self.community.dispersy.lan_address]
                 addresses_in_use.extend([
                     x.sock_addr if isinstance(x, Candidate) else x
                     for x in circuit.hops
