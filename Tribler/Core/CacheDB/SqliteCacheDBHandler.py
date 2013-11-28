@@ -801,7 +801,7 @@ class TorrentDBHandler(BasicDBHandler):
             for tier in announce_list:
                 for tracker in tier:
                     # TODO: check this. a limited tracker list
-                    if len(new_tracker_list) >= 25:
+                    if len(new_tracker_set) >= 25:
                         break
                     new_tracker_set.add(tracker)
 
@@ -1073,8 +1073,9 @@ class TorrentDBHandler(BasicDBHandler):
             return
 
         parameters = '?,' * len(tracker_list)
-        sql = 'SELECT tracker_id, tracker FROM TrackerInfo WHERE tracker IN (' + parameters[:-1] + ')'
+        sql = 'SELECT tracker FROM TrackerInfo WHERE tracker IN (' + parameters[:-1] + ')'
         found_tracker_list = self._db.fetchall(sql, tuple(tracker_list))
+        found_tracker_list = [ tracker[0] for tracker in found_tracker_list ]
 
         # update tracker info
         not_found_tracker_list = [tracker for tracker in tracker_list if tracker not in found_tracker_list]
@@ -1146,6 +1147,14 @@ class TorrentDBHandler(BasicDBHandler):
         sql = 'SELECT tracker, last_check, failures, is_alive FROM TrackerInfo'
         tracker_info_list = self._db.fetchall(sql)
         return tracker_info_list
+
+    # ------------------------------------------------------------
+    # Gets a tracker's ID.
+    # ------------------------------------------------------------
+    def getTrackerID(self, tracker):
+        sql = 'SELECT tracker_id FROM TrackerInfo WHERE tracker = ?'
+        tracker_id = self._db.fetchone(sql)
+        return tracker_id
 
     # ------------------------------------------------------------
     # Updates a list of tracker status into the TrackerInfo table.

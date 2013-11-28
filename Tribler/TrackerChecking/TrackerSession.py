@@ -332,6 +332,10 @@ class HttpTrackerSession(TrackerSession):
             self._failed = True
             return
 
+        if not response:
+            self._failed = True
+            return
+
         # for the header message, we need to parse the content length in case
         # if the HTTP packets are partial.
         if not self._message_buffer:

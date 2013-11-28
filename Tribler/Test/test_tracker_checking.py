@@ -12,7 +12,7 @@ from Tribler.TrackerChecking.TrackerSession import TrackerSession
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Session import Session
-from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, SQLiteCacheDB
+from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, SQLiteCacheDB, forceAndReturnDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler,\
     MyPreferenceDBHandler, NetworkBuzzDBHandler
 
