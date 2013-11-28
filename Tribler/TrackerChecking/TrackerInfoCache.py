@@ -14,7 +14,6 @@ import sys
 import time
 from threading import RLock
 
-
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forceAndReturnDBThread

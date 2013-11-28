@@ -2203,8 +2203,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write(create_new_table, commit=False)
 
             insert_dht_tracker = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
-            dht = [ ('DHT',), ]
-            self.executemany(insert_dht_tracker, dht, commit=False)
+            default_tracker_list = [ ('no-DHT',), ('DHT',) ]
+            self.executemany(insert_dht_tracker, default_tracker_list, commit=False)
 
             # ensure the temp-file is created, if it is not already
             try:
@@ -2216,9 +2216,22 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
             from Tribler.Core.TorrentDef import TorrentDef
 
-            #global import_tracker_list_complete, import_torrenttracker_map_complete
-            #import_tracker_list_complete = False
-            #import_torrenttracker_map_complete = False
+            # some variables the upgrade function uses
+            global import_tracker_list_complete, import_torrenttracker_map_complete
+            import_tracker_list_complete = False
+            import_torrenttracker_map_complete = False
+
+            # known trackers and their IDs to accelerate DB upgrade
+            global all_found_tracker_dict
+            all_found_tracker_dict = dict()
+
+            def getTrackerID(tracker):
+                sql = 'SELECT tracker_id FROM TrackerInfo WHERE tracker = ?'
+                return self.fetchone(sql, (tracker,))
+
+            all_found_tracker_dict['no-DHT'] = getTrackerID('no-DHT')
+            all_found_tracker_dict['DHT'] = getTrackerID('DHT')
+
             def upgradeDBV19():
                 global import_tracker_list_complete, import_torrenttracker_map_complete
                 if not (os.path.exists(tmpfilename3) or os.path.exists(tmpfilename2) or os.path.exists(tmpfilename)):
@@ -2263,7 +2276,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         """
 
                         """
-                        # import from CollectedTorrent table
+                         import from CollectedTorrent table
                         sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent'\
                             + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM TorrentTrackerMapping)'\
                             + ' AND torrent_file_name IS NOT NULL'\
@@ -2295,15 +2308,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         return
 
                     found_torrent_tracker_map_list = list()
-                    found_tracker_list = list()
+                    newly_found_tracker_list = list()
                     not_found_torrent_file_list = list()
-                    all_torrent_list = list()
-
-                    import binascii
 
                     for torrent_id, infohash, torrent_filename in records:
-                        all_torrent_list.append((torrent_id,))
-
                         if not os.path.isfile(torrent_filename):
                             torrent_filename = os.path.join(torrent_dir, torrent_filename)
 
@@ -2316,16 +2324,21 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         if os.path.isfile(torrent_filename):
                             try:
                                 torrent = TorrentDef.load(torrent_filename)
-                                tracker_list = torrent.get_tracker_hierarchy()
 
-                                # things are very tricky here, there are two lists!
-                                if tracker_list:
-                                    for sub_tracker_list in tracker_list:
-                                        for tracker in sub_tracker_list:
-                                            if (torrent_id, tracker) not in found_torrent_tracker_map_list:
-                                                found_torrent_tracker_map_list.append((torrent_id, tracker))
-                                            if tracker not in found_tracker_list:
-                                                found_tracker_list.append((tracker,))
+                                # check DHT
+                                if torrent.is_private():
+                                    dht_pair = (torrent_id, 'no-DHT')
+                                else:
+                                    dht_pair = (torrent_id, 'DHT')
+                                found_torrent_tracker_map_list.append(dht_pair)
+
+                                # check trackers
+                                tracker_tuple = torrent.get_trackers_as_single_tuple()
+                                for tracker in tracker_tuple:
+                                    if (torrent_id, tracker) not in found_torrent_tracker_map_list:
+                                        found_torrent_tracker_map_list.append((torrent_id, tracker))
+                                    if tracker not in newly_found_tracker_list:
+                                        newly_found_tracker_list.append((tracker,))
 
                                 else:
                                     not_found_torrent_file_list.append((torrent_id,))
@@ -2337,18 +2350,17 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         else:
                             not_found_torrent_file_list.append((torrent_id,))
 
-                    if all_torrent_list:
-                        update_dht = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
-                            + ' VALUES(? , (SELECT tracker_id FROM TrackerInfo WHERE tracker = \'DHT\'))'
-                        self.executemany(update_dht, all_torrent_list)
-
                     if not_found_torrent_file_list:
                         remove = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
                         self.executemany(remove, not_found_torrent_file_list)
 
-                    if found_tracker_list:
+                    if newly_found_tracker_list:
                         insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
-                        self.executemany(insert, found_tracker_list)
+                        self.executemany(insert, newly_found_tracker_list)
+
+                    # load tracker dictionary
+                    for tracker in newly_found_tracker_list:
+                        all_found_tracker_dict[tracker] = getTrackerID(tracker)
 
                     if found_torrent_tracker_map_list:
                         insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\

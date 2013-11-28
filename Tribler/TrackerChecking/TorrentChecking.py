@@ -90,7 +90,7 @@ class TorrentChecking(Thread):
         self._tracker_info_cache = TrackerInfoCache()
 
         self._tracker_selection_idx = 0
-        self._torrent_select_interval = 30
+        self._torrent_select_interval = 10
         self._torrent_check_interval = 60
         self._torrent_check_max_retries = 5
 
@@ -153,11 +153,10 @@ class TorrentChecking(Thread):
             gui_request = dict()
             gui_request['torrent_id'] = gui_torrent.torrent_id
             gui_request['infohash']   = gui_torrent.infohash
-            gui_request['trackers']   = list()
+            gui_request['trackers']   = set()
             if 'trackers' in gui_torrent:
                 for tracker in gui_torrent.trackers:
-                    if not tracker in gui_request['trackers']:
-                        gui_request['trackers'].append(tracker)
+                    gui_request['trackers'].add(tracker)
             self._gui_request_queue.put_nowait(gui_request)
             self._new_request_event.set()
         except Queue.Full:
@@ -177,7 +176,7 @@ class TorrentChecking(Thread):
         try:
             request = dict()
             request['infohash'] = infohash
-            request['trackers'] = list()
+            request['trackers'] = set()
             self._gui_request_queue.put_nowait(request)
             self._new_request_event.set()
         except Queue.Full:
@@ -189,8 +188,8 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _processGuiRequest(self, gui_request):
-        infohash     = gui_request['infohash']
-        tracker_list = gui_request['trackers']
+        infohash    = gui_request['infohash']
+        tracker_set = gui_request['trackers']
         if 'torrent_id' in gui_request:
             torrent_id = gui_request['torrent_id']
         else:
@@ -199,16 +198,15 @@ class TorrentChecking(Thread):
         # get torrent's tracker list from DB
         db_tracker_list = self._getTrackerList(torrent_id, infohash)
         for tracker in db_tracker_list:
-            if tracker not in tracker_list:
-                tracker_list.append(tracker)
-        if not tracker_list:
+            tracker_set.add(tracker)
+        if not tracker_set:
             # TODO: add method to handle torrents with no tracker
             return
 
         # for each valid tracker, try to create new session or append
         # the request to an existing session
         successful = False
-        for tracker_url in tracker_list:
+        for tracker_url in tracker_set:
             self._tracker_info_cache.addNewTrackerInfo(tracker_url)
             self._updateTorrentTrackerMapping(torrent_id, tracker_url)
             self._createSessionForRequest(infohash, tracker_url)
@@ -218,13 +216,12 @@ class TorrentChecking(Thread):
     # It checks the TorrentTrackerMapping table and magnet links.
     # ------------------------------------------------------------
     def _getTrackerList(self, torrent_id, infohash):
-        tracker_list = list()
+        tracker_set = set()
 
         # get trackers from DB (TorrentTrackerMapping table)
         db_tracker_list = self._torrentdb.getTrackerListByTorrentID(torrent_id)
         for tracker in db_tracker_list:
-            if tracker not in tracker_list:
-                tracker_list.append(tracker)
+            tracker_set.add(tracker)
 
         # get trackers from its magnet link
         source_list = self._torrentdb.getTorrentCollecting(torrent_id)
@@ -236,10 +233,9 @@ class TorrentChecking(Thread):
             if not trackers:
                 continue
             for tracker in trackers:
-                if tracker not in tracker_list:
-                    tracker_list.append(tracker)
+                tracker_set.add(tracker)
 
-        # TODO: also to get trackers from its .torrent file?
+        # get trackers from its .torrent file
         result = None
         torrent = self._torrentdb.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
         if torrent:
@@ -255,14 +251,20 @@ class TorrentChecking(Thread):
         if result:
             try:
                 torrent = TorrentDef.load(result)
+                # check DHT
+                if torrent.is_private():
+                    dht = 'no-DHT'
+                else:
+                    dht = 'DHT'
+                tracker_set.add(dht)
+
                 torrent_tracker_tuple = torrent.get_trackers_as_single_tuple()
                 for tracker in torrent_tracker_tuple:
-                    if tracker not in tracker_list:
-                        tracker_list.append(tracker)
+                    tracker_set.add(tracker)
             except:
                 pass
 
-        return tracker_list
+        return list(tracker_set)
 
     # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
@@ -276,6 +278,9 @@ class TorrentChecking(Thread):
     # existings tracker session.
     # ------------------------------------------------------------
     def _createSessionForRequest(self, infohash, tracker_url):
+        # skip DHT
+        if tracker_url == 'no-DHT' or tracker_url == 'DHT':
+            return
         # check if this tracker is worth checking
         if not self._tracker_info_cache.toCheckTracker(tracker_url):
             return
@@ -304,6 +309,9 @@ class TorrentChecking(Thread):
                     break
         self._lock.release()
         if request_handled:
+            if DEBUG:
+                print >> sys.stderr,\
+                '[DEBUG] Session [%s] appended.' % binascii.b2a_hex(infohash)
             return
 
         # >> Step 2: No session to append to, create a new one
@@ -323,6 +331,9 @@ class TorrentChecking(Thread):
             # update the number of responses this torrent is expecting
             self._updatePendingResponseDict(infohash)
 
+            if DEBUG:
+                print >> sys.stderr,\
+                '[DEBUG] Session [%s] created.' % binascii.b2a_hex(infohash)
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
@@ -410,9 +421,6 @@ class TorrentChecking(Thread):
         elif seeders == 0:
             status = 'dead'
 
-        #if status != 'good':
-        #    retries += 1
-
         kw = {'seeder': seeders, 'leecher': leechers, 'status': status,\
               'last_tracker_check': last_check}
         try:
@@ -424,24 +432,33 @@ class TorrentChecking(Thread):
     # Selects torrents to check.
     # This method selects trackers in Round-Robin fashion.
     # ------------------------------------------------------------
-    @forceDBThreadReturn
+    @forceDBThread
     def _selectTorrentsToCheck(self):
         tracker = None
         check_torrent_list = list()
 
         current_time = int(time.time())
-        while True:
+        checked_count = 0
+        while checked_count < self._tracker_info_cache.getTrackerInfoListSize():
             if self._tracker_selection_idx >= self._tracker_info_cache.getTrackerInfoListSize():
                 return
 
             tracker, _ = \
                 self._tracker_info_cache.getTrackerInfo(self._tracker_selection_idx)
+            if tracker == 'no-DHT' or tracker == 'DHT':
+                checked_count += 1
+                continue
             # skip the dead trackers
             if not self._tracker_info_cache.toCheckTracker(tracker):
                 self._tracker_selection_idx += 1
                 if self._tracker_selection_idx >= self._tracker_info_cache.getTrackerInfoListSize():
                     self._tracker_selection_idx = 0
+                checked_count += 1
                 continue
+
+            if DEBUG:
+                print >> sys.stderr,\
+                '[DEBUG] Selecting torrents to check on tracker[%s].' % tracker
 
             # get all the torrents on this tracker
             try:
@@ -471,10 +488,6 @@ class TorrentChecking(Thread):
                 last_check = torrent[2]
 
                 self._createSessionForRequest(infohash, tracker)
-
-            del check_torrent_list
-            del all_torrent_list
-
             break
 
         # update the tracker index
@@ -515,7 +528,6 @@ class TorrentChecking(Thread):
             # torrent selection
             this_time = int(time.time())
             if this_time - last_time_select_torrent > self._torrent_select_interval:
-                self._lock.acquire()
                 try:
                     self._selectTorrentsToCheck()
                 except Exception as e:
@@ -523,7 +535,6 @@ class TorrentChecking(Thread):
                     '[WARN] Unexpected error during TorrentSelection: ', e
                     print_exc()
                     print_stack()
-                self._lock.release()
                 last_time_select_torrent = this_time
 
             # sleep if no existing session and no request
@@ -535,7 +546,7 @@ class TorrentChecking(Thread):
             self._lock.release()
             if not has_session:
                 # TODO: make this configurable
-                self._new_request_event.wait(10)
+                self._new_request_event.wait(5)
                 self._new_request_event.clear()
                 continue
 
@@ -669,20 +680,13 @@ class TorrentChecking(Thread):
 
             if DEBUG:
                 print >> sys.stderr,\
-                '[+++] sessions:  %d' % len(self._session_dict)
+                '[DEBUG] sessions:  %d' % len(self._session_dict)
                 for _, session in self._session_dict.items():
-                    print >> sys.stderr, '[+++] session[%s], finished=%d, failed=%d' %\
+                    print >> sys.stderr, '[DEBUG] session[%s], finished=%d, failed=%d' %\
                     (session.getTracker(), session.hasFinished(), session.hasFailed())
 
             self._lock.release()
 
         # the thread is shutting down, kill all the tracker sessions
-        for sock, session in self._session_dict.items():
+        for _, session in self._session_dict.items():
             session.cleanup()
-            del session
-        del self._session_dict
-
-        del self._tracker_info_cache
-
-        del self._gui_request_queue
-        del self._selected_request_queue
