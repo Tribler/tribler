@@ -17,6 +17,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
+from Tribler.Core.Utilities.utilities import isInteger
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
@@ -263,7 +264,7 @@ class SettingsDialog(wx.Dialog):
             errors['uploadCtrl'] = 'Value must be a digit'
 
         valport = self.elements['firewallValue'].GetValue().strip()
-        if not valport.isdigit():
+        if not isInteger(valport):
             errors['firewallValue'] = 'Value must be a digit'
 
         valdir = self.elements['diskLocationCtrl'].GetValue().strip()
@@ -302,7 +303,7 @@ class SettingsDialog(wx.Dialog):
                         self.elements['g2g2text'].SetValue('')
 
         valwebuiport = self.elements['webui_port'].GetValue().strip()
-        if not valwebuiport.isdigit():
+        if not isInteger(valwebuiport):
             errors['webui_port'] = 'Value must be a digit'
 
         valltproxyport = self.elements['lt_proxyport'].GetValue().strip()
