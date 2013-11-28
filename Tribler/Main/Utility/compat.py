@@ -12,7 +12,9 @@ import cPickle
 import StringIO
 
 from ConfigParser import RawConfigParser
+
 from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 
 def convertSessionConfig(oldfilename, newfilename):
@@ -25,7 +27,7 @@ def convertSessionConfig(oldfilename, newfilename):
     # Upgrade to new config
     sconfig = SessionStartupConfig()
     for key, value in sessconfig.iteritems():
-        if key in ['version', 'state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled', \
+        if key in ['state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled', \
                    'ipv6_binds_v4', 'timeout', 'timeout_check_interval', 'eckeypairfilename', 'megacache', \
                    'nickname', 'mugshot', 'videoanalyserpath', 'peer_icon_path', 'live_aux_seeders']:
             sconfig.sessconfig.set('general', key, value)
@@ -93,3 +95,26 @@ def convertMainConfig(state_dir, oldfilename, newfilename):
     with open(newfilename, "wb") as f:
         config.write(f)
     os.remove(oldfilename)
+
+def convertDefaultDownloadConfig(oldfilename, newfilename):
+    # Convert tribler <= 6.2 default download config file to tribler 6.3
+
+    # We assume oldfilename exists
+    with open(oldfilename, "rb") as f:
+        dlconfig = pickle.load(f)
+
+    # Upgrade to new config
+    ddsconfig = DefaultDownloadStartupConfig()
+    for key, value in dlconfig.iteritems():
+        if key in ['saveas', 'showsaveas', 'max_upload_rate', 'max_download_rate', 'alloc_type', \
+                   'super_seeder', 'mode', 'selected_files', 'correctedfilename']:
+            ddsconfig.dlconfig.set('general', key, value)
+        if key in ['vod_usercallback', 'vod_userevents', 'video_source', 'video_ratelimit', 'video_source_authconfig']:
+            ddsconfig.dlconfig.set('vod', key, value)
+        if key in ['swiftlistenport', 'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
+            ddsconfig.dlconfig.set('swift', key, value)
+
+    # Save the new file, remove the old one
+    ddsconfig.save(newfilename)
+    os.remove(oldfilename)
+    return ddsconfig

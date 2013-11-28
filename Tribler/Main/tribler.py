@@ -14,7 +14,7 @@
 
 import sys
 import logging.config
-from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig
 try:
     logging.config.fileConfig("logger.conf")
 except:
@@ -433,7 +433,10 @@ class ABCApp():
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            try:
+                defaultDLConfig = convertDefaultDownloadConfig(os.path.join(state_dir, 'dlconfig.pickle'), dlcfgfilename)
+            except:
+                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
