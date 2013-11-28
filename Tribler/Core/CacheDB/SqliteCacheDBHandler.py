@@ -1095,14 +1095,7 @@ class TorrentDBHandler(BasicDBHandler):
     # Adds a new tracker into the TrackerInfo table.
     # ------------------------------------------------------------
     def addTrackerInfo(self, tracker, to_notify=True):
-        try:
-            sql = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
-            self._db.execute_write(sql, (tracker,))
-
-            if to_notify:
-                self.notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, [tracker,])
-        except:
-            pass
+        self.addTrackerInfoBatched([tracker,])
 
     # ------------------------------------------------------------
     # Adds a new trackers in batch into the TrackerInfo table.
