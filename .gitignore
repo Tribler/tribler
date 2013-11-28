@@ -8,3 +8,5 @@
 /swift
 /swift.exe
 \#*\#
+/.project
+/.pydevproject
