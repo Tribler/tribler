@@ -144,14 +144,14 @@ class TorrentChecking(Thread):
     # So you need to get the TorrentDef to access more information
     # ------------------------------------------------------------
     def addGuiRequest(self, gui_torrent):
-        if gui_torrent._torrent_id == -1:
+        if gui_torrent.torrent_id == -1:
             return False
 
         # enqueue a new GUI request
         successful = True
         try:
             gui_request = dict()
-            gui_request['torrent_id'] = gui_torrent._torrent_id
+            gui_request['torrent_id'] = gui_torrent.torrent_id
             gui_request['infohash']   = gui_torrent.infohash
             gui_request['trackers']   = list()
             if 'trackers' in gui_torrent:
@@ -378,13 +378,11 @@ class TorrentChecking(Thread):
         elif seeders == 0:
             status = 'dead'
 
-        #if status != 'good':
-        #    retries += 1
-
+        # only use updateTorrent() to update results and status
         kw = {'seeder': seeders, 'leecher': leechers, 'status': status,\
             'last_tracker_check': last_check}
-
         self._torrentdb.updateTorrent(response['infohash'], **kw)
+
         if status == 'good':
             self._torrentdb.updateGoodTorrentByInfohash(response['infohash'])
         else:
@@ -426,6 +424,7 @@ class TorrentChecking(Thread):
     # Selects torrents to check.
     # This method selects trackers in Round-Robin fashion.
     # ------------------------------------------------------------
+    @forceDBThreadReturn
     def _selectTorrentsToCheck(self):
         tracker = None
         check_torrent_list = list()

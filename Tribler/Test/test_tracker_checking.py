@@ -30,7 +30,7 @@ class TestTorrentChecking(TestAsServer):
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
         self.tdb._nb = NetworkBuzzDBHandler.getInstance()
-        
+
         self.torrentChecking = TorrentChecking.getInstance()
 
     def setUpPreSession(self):

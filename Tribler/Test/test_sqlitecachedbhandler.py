@@ -495,7 +495,7 @@ class TestTorrentDBHandler(AbstractDB):
         assert m_comment.find(comments) == -1
 
         m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
-        assert len(m_trackers) == 1
+        assert len(m_trackers) == 10
         assert 'http://tpb.tracker.thepiratebay.org/announce' in m_trackers, m_trackers
 
         s_torrent = self.tdb.getTorrent(s_infohash)
@@ -527,10 +527,10 @@ class TestTorrentDBHandler(AbstractDB):
         assert seeder == 123
         leecher = self.tdb.getOne('num_leechers', torrent_id=multiple_torrent_id)
         assert leecher == 321
-        #last_check_time = self.tdb._db.getOne('TorrentTracker', 'last_check', announce_tier=1, torrent_id=multiple_torrent_id)
-        #assert last_check_time == 1234567, last_check_time
-        #retry_number = self.tdb._db.getOne('TorrentTracker', 'retried_times', announce_tier=1, torrent_id=multiple_torrent_id)
-        #assert retry_number == 2
+        last_check_time = self.tdb.getOne('last_tracker_check', torrent_id=multiple_torrent_id)
+        assert last_check_time == 1234567, last_check_time
+        retry_number = self.tdb.getOne('tracker_check_retries', torrent_id=multiple_torrent_id)
+        assert retry_number == 2
 
     def deleteTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')

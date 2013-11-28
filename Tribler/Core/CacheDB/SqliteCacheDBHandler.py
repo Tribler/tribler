@@ -787,22 +787,26 @@ class TorrentDBHandler(BasicDBHandler):
         announce = torrentdef.get_tracker()
         announce_list = torrentdef.get_tracker_hierarchy()
 
+        # check if to use DHT
+        new_tracker_set = set()
+        if torrentdef.is_private():
+            new_tracker_set.add('no-DHT')
+        else:
+            new_tracker_set.add('DHT')
+
         # prepare the tracker list to add
-        new_tracker_list = list()
         if announce:
-            new_tracker_list.append(announce)
+            new_tracker_set.add(announce)
         if announce_list:
             for tier in announce_list:
                 for tracker in tier:
-                    if tracker in new_tracker_list:
-                        continue
-                    # TODO: a limited tracker list
+                    # TODO: check this. a limited tracker list
                     if len(new_tracker_list) >= 25:
                         break
-                    new_tracker_list.append(tracker)
+                    new_tracker_set.add(tracker)
 
         # add trackers in batch
-        self.addTorrentTrackerMappingInBatch(torrent_id, new_tracker_list)
+        self.addTorrentTrackerMappingInBatch(torrent_id, list(new_tracker_set))
 
     def updateTorrent(self, infohash, commit=True, notify=True, **kw):  # watch the schema of database
         if 'category' in kw:
@@ -826,6 +830,11 @@ class TorrentDBHandler(BasicDBHandler):
 
         if 'swift_torrent_hash' in kw:
             kw['swift_torrent_hash'] = bin2str(kw['swift_torrent_hash'])
+
+        if 'last_check_time' in kw:
+            kw['last_tracker_check'] = kw.pop('last_check_time')
+        if 'retry_number' in kw:
+            kw['tracker_check_retries'] = kw.pop('retry_number')
 
         for key in kw.keys():
             if key not in self.keys:
@@ -1365,8 +1374,8 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['simRank'] = ranksfind(ranks, torrent['infohash'])
             torrent['infohash'] = str2bin(torrent['infohash'])
             # torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers']
-            #torrent['last_check_time'] = torrent['last_check']
-            #del torrent['last_check']
+            torrent['last_check_time'] = torrent['last_tracker_check']
+            del torrent['last_tracker_check']
             del torrent['source_id']
 
             # Niels: we now convert category and status in gui
