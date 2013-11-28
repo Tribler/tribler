@@ -421,6 +421,8 @@ class TorrentChecking(Thread):
         elif seeders == 0:
             status = 'dead'
 
+        seeders = 0
+        leechers = 0
         kw = {'seeder': seeders, 'leecher': leechers, 'status': status,\
               'last_tracker_check': last_check}
         try:
