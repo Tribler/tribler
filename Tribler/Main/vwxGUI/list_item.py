@@ -504,7 +504,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
             magnetlink = "magnet:?xt=urn:btih:" + binascii.hexlify(torrent.infohash)
-            trackers = self.guiutility.channelsearch_manager.torrent_db.getTrackerListByInfohash(torrent.infohash)
+            trackers = self.guiutility.channelsearch_manager.torrent_db.getTrackerListByTorrentID(torrent.torrent_id)
             if trackers:
                 for tracker in trackers:
                     magnetlink += "&tr=" + urllib.quote_plus(tracker)
