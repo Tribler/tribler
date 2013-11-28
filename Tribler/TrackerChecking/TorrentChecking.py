@@ -90,8 +90,9 @@ class TorrentChecking(Thread):
         self._tracker_info_cache = TrackerInfoCache()
 
         self._tracker_selection_idx = 0
-        self._torrent_select_interval = 60
-        self._torrent_check_interval = 30
+        self._torrent_select_interval = 30
+        self._torrent_check_interval = 60
+        self._torrent_check_max_retries = 5
 
         # request queues
         self._new_request_event = Event()
@@ -382,10 +383,13 @@ class TorrentChecking(Thread):
 
         kw = {'seeder': seeders, 'leecher': leechers, 'status': status,\
             'last_tracker_check': last_check}
-        try:
-            self._torrentdb.updateTorrent(response['infohash'], **kw)
-        except:
-            pass
+
+        self._torrentdb.updateTorrent(response['infohash'], **kw)
+        if status == 'good':
+            self._torrentdb.updateGoodTorrentByInfohash(response['infohash'])
+        else:
+            self._torrentdb.updateDeadTorrentByInfohash(response['infohash'],\
+                self._torrent_check_max_retries)
 
     # ------------------------------------------------------------
     # Updates the check result into the database
@@ -463,7 +467,6 @@ class TorrentChecking(Thread):
 
             # create sessions for the torrents that need to be checked
             for torrent in check_torrent_list:
-                # TODO
                 infohash = str2bin(torrent[0])
                 retries = torrent[1]
                 last_check = torrent[2]
