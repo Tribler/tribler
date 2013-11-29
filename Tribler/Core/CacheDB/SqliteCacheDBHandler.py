@@ -1150,7 +1150,7 @@ class TorrentDBHandler(BasicDBHandler):
         sql = """
             SELECT DISTINCT tracker FROM TrackerInfo
               WHERE is_alive = 1
-              AND tracker != 'no-DHT' AND tracker != 'no-DHT'
+              AND tracker != 'no-DHT' AND tracker != 'DHT'
               ORDER BY last_check DESC LIMIT ?
             """
         trackers = self._db.fetchall(sql, (limit,))
