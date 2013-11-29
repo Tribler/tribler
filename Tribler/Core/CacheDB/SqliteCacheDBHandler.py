@@ -487,15 +487,19 @@ class TorrentDBHandler(BasicDBHandler):
                 'length', 'creation_date', 'num_files', 'thumbnail',
                 'insert_time', 'secret', 'relevance',
                 'source_id', 'category_id', 'status_id',
-                'num_seeders', 'num_leechers', 'comment', 'swift_hash', 'swift_torrent_hash']
+                'num_seeders', 'num_leechers', 'comment', 'swift_hash', 'swift_torrent_hash',
+                'last_tracker_check']
         self.existed_torrents = set()
 
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                       'num_leechers', 'num_seeders', 'length',
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash', 'tracker', 'last_check']
+                      'relevance', 'infohash', 'last_tracker_check']
 
-        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
+        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name',
+                'torrent_file_name', 'length', 'creation_date', 'num_files',
+                'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id',
+                'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
         self.category = Category.getInstance()
 
         self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
@@ -721,7 +725,7 @@ class TorrentDBHandler(BasicDBHandler):
             swarmname, _ = os.path.splitext(swarmname)
         self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode(), source in ['BC', 'SWIFT', 'DISP_SC'])
 
-        self._addTorrentTracker(torrent_id, torrentdef, extra_info, commit=False)
+        self._addTorrentTracker(torrent_id, torrentdef, extra_info)
         if commit:
             self.commit()
         return torrent_id
@@ -776,47 +780,42 @@ class TorrentDBHandler(BasicDBHandler):
         src_id = self._db.getOne('TorrentSource', 'source_id', name=src)
         return src_id
 
-    def _addTorrentTracker(self, torrent_id, torrentdef, extra_info={}, add_all=False, commit=True):
+    # ------------------------------------------------------------
+    # Adds the trackers of a given torrent into the database.
+    # ------------------------------------------------------------
+    def _addTorrentTracker(self, torrent_id, torrentdef, extra_info={}):
         # Set add_all to True if you want to put all multi-trackers into db.
         # In the current version (4.2) only the main tracker is used.
 
         announce = torrentdef.get_tracker()
         announce_list = torrentdef.get_tracker_hierarchy()
-        self._addTorrentTrackerList(torrent_id, announce, announce_list, extra_info, add_all, commit)
 
-    def _addTorrentTrackerList(self, torrent_id, announce, announce_list, extra_info={}, add_all=False, commit=True):
-        ignore_number = 0
-        retry_number = 0
-        last_check_time = 0
-        if "last_check_time" in extra_info:
-            last_check_time = int(time() - extra_info["last_check_time"])
+        # check if to use DHT
+        new_tracker_set = set()
+        if torrentdef.is_private():
+            new_tracker_set.add('no-DHT')
+        else:
+            new_tracker_set.add('DHT')
 
-        sql_insert_torrent_tracker = """
-        INSERT OR IGNORE INTO TorrentTracker
-        (torrent_id, tracker, announce_tier,
-        ignored_times, retried_times, last_check)
-        VALUES (?,?,?, ?,?,?)
-        """
-
-        values = []
-        if announce != None:
-            values.append((torrent_id, announce, 1, ignore_number, retry_number, last_check_time))
-
-        # each torrent only has one announce with tier number 1
-        tier_num = 2
-        trackers = {announce: None}
-        if add_all:
+        # get rid of junk trackers
+        from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
+        # prepare the tracker list to add
+        if announce:
+            tracker_url = getUniformedURL(announce)
+            if tracker_url:
+                new_tracker_set.add(tracker_url)
+        if announce_list:
             for tier in announce_list:
                 for tracker in tier:
-                    if tracker in trackers:
-                        continue
-                    value = (torrent_id, tracker, tier_num, 0, 0, 0)
-                    values.append(value)
-                    trackers[tracker] = None
-                tier_num += 1
+                    # TODO: check this. a limited tracker list
+                    if len(new_tracker_set) >= 25:
+                        break
+                    tracker_url = getUniformedURL(tracker)
+                    if tracker_url:
+                        new_tracker_set.add(tracker_url)
 
-        if len(values) > 0:
-            self._db.executemany(sql_insert_torrent_tracker, values, commit=commit)
+        # add trackers in batch
+        self.addTorrentTrackerMappingInBatch(torrent_id, list(new_tracker_set))
 
     def updateTorrent(self, infohash, commit=True, notify=True, **kw):  # watch the schema of database
         if 'category' in kw:
@@ -834,15 +833,17 @@ class TorrentDBHandler(BasicDBHandler):
             kw['num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
             kw['num_leechers'] = kw.pop('leecher')
-        if 'last_check_time' in kw or 'ignore_number' in kw or 'retry_number' in kw \
-          or 'retried_times' in kw or 'ignored_times' in kw:
-            self.updateTracker(infohash, kw, commit=False)
 
         if 'swift_hash' in kw:
             kw['swift_hash'] = bin2str(kw['swift_hash'])
 
         if 'swift_torrent_hash' in kw:
             kw['swift_torrent_hash'] = bin2str(kw['swift_torrent_hash'])
+
+        if 'last_check_time' in kw:
+            kw['last_tracker_check'] = kw.pop('last_check_time')
+        if 'retry_number' in kw:
+            kw['tracker_check_retries'] = kw.pop('retry_number')
 
         for key in kw.keys():
             if key not in self.keys:
@@ -996,29 +997,6 @@ class TorrentDBHandler(BasicDBHandler):
         for torrent_id, swarmname in to_be_indexed:
             self._indexTorrent(torrent_id, swarmname, [], False)
 
-    def updateTracker(self, infohash, kw, tier=1, tracker=None, commit=True):
-        torrent_id = self._db.getTorrentID(infohash)
-        if torrent_id is None:
-            return
-        update = {}
-        assert isinstance(kw, dict) and kw, 'updateTracker error: kw should be filled dict, but is: %s' % kw
-        if 'last_check_time' in kw:
-            update['last_check'] = kw.pop('last_check_time')
-        if 'ignore_number' in kw:
-            update['ignored_times'] = kw.pop('ignore_number')
-        if 'ignored_times' in kw:
-            update['ignored_times'] = kw.pop('ignored_times')
-        if 'retry_number' in kw:
-            update['retried_times'] = kw.pop('retry_number')
-        if 'retried_times' in kw:
-            update['retried_times'] = kw.pop('retried_times')
-
-        if tracker is None:
-            where = 'torrent_id=%d AND announce_tier=%d' % (torrent_id, tier)
-        else:
-            where = 'torrent_id=%d AND tracker=%s' % (torrent_id, repr(tracker))
-        self._db.update('TorrentTracker', where, commit=commit, **update)
-
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
         if not self.hasTorrent(infohash):
             return False
@@ -1049,7 +1027,8 @@ class TorrentDBHandler(BasicDBHandler):
                 self._nb.deleteTorrent(torrent_id, commit)
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
-            self._db.delete('TorrentTracker', commit=commit, torrent_id=torrent_id)
+
+            self._db.delete('TorrentTrackerMapping', commit=commit, torrent_id=torrent_id)
             # print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
 
     def eraseTorrentFile(self, infohash):
@@ -1069,84 +1048,136 @@ class TorrentDBHandler(BasicDBHandler):
 
         return True
 
-    def getTracker(self, infohash, tier=0):
+    # ------------------------------------------------------------
+    # Updates the TorrentTrackerMapping table.
+    # ------------------------------------------------------------
+    def addTorrentTrackerMapping(self, torrent_id, tracker):
+        self.addTorrentTrackerMappingInBatch(torrent_id, [tracker,])
+
+    # ------------------------------------------------------------
+    # Updates the TorrentTrackerMapping table in batch.
+    # ------------------------------------------------------------
+    def addTorrentTrackerMappingInBatch(self, torrent_id, tracker_list):
+        if not tracker_list:
+            return
+
+        parameters = '?,' * len(tracker_list)
+        sql = 'SELECT tracker FROM TrackerInfo WHERE tracker IN (' + parameters[:-1] + ')'
+        found_tracker_list = self._db.fetchall(sql, tuple(tracker_list))
+        found_tracker_list = [ tracker[0] for tracker in found_tracker_list ]
+
+        # update tracker info
+        not_found_tracker_list = [tracker for tracker in tracker_list if tracker not in found_tracker_list]
+        if not_found_tracker_list:
+            self.addTrackerInfoInBatch(not_found_tracker_list)
+
+        # update torrent-tracker mapping
+        sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
+            + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
+        new_mapping_list = [(torrent_id, tracker) for tracker in tracker_list]
+        if new_mapping_list:
+            self._db.executemany(sql, new_mapping_list)
+
+    # ------------------------------------------------------------
+    # Gets all the torrents that has a specific tracker.
+    # ------------------------------------------------------------
+    def getTorrentsOnTracker(self, tracker):
+        sql = """
+            SELECT T.infohash, T.last_tracker_check
+              FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM
+              WHERE TI.tracker = ?
+              AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id
+            """
+        infohash_list = self._db.fetchall(sql, (tracker,))
+        return infohash_list
+
+    # ------------------------------------------------------------
+    # Gets a list of trackers of a given torrent ID.
+    # (from TorrentTrackerMapping table)
+    # ------------------------------------------------------------
+    def getTrackerListByTorrentID(self, torrent_id):
+        sql = 'SELECT TR.tracker FROM TrackerInfo TR, TorrentTrackerMapping MP'\
+            + ' WHERE MP.torrent_id = ?'\
+            + ' AND TR.tracker_id = MP.tracker_id'
+        tracker_list = self._db.fetchall(sql, (torrent_id,))
+        return [ tracker[0] for tracker in tracker_list ]
+
+    # ------------------------------------------------------------
+    # Gets a list of trackers of a given infohash.
+    # (from TorrentTrackerMapping table)
+    # ------------------------------------------------------------
+    def getTrackerListByInfohash(self, infohash):
         torrent_id = self._db.getTorrentID(infohash)
-        if torrent_id is not None:
-            sql = "SELECT tracker, announce_tier FROM TorrentTracker WHERE torrent_id==%d" % torrent_id
-            if tier > 0:
-                sql += " AND announce_tier<=%d" % tier
-            return self._db.fetchall(sql)
+        return self.getTrackerListByTorrentID(torrent_id)
 
-    def getTorrentsFromTracker(self, tracker, max_last_check, limit):
-        sql = "SELECT infohash FROM TorrentTracker, Torrent WHERE Torrent.torrent_id = TorrentTracker.torrent_id AND tracker = ? AND last_check < ? ORDER BY RANDOM() LIMIT ?"
-        infohashes = self._db.fetchall(sql, (tracker, max_last_check, limit))
-        return [str2bin(infohash) for infohash, in infohashes]
+    # ------------------------------------------------------------
+    # Adds a new tracker into the TrackerInfo table.
+    # ------------------------------------------------------------
+    def addTrackerInfo(self, tracker, to_notify=True):
+        self.addTrackerInfoInBatch([tracker,], to_notify)
 
-    def getPopularTrackers(self, limit=10):
-        sql = "SELECT DISTINCT tracker FROM torrenttracker WHERE ignored_times = 0 ORDER BY last_check DESC LIMIT ?"
+    # ------------------------------------------------------------
+    # Adds a new trackers in batch into the TrackerInfo table.
+    # ------------------------------------------------------------
+    def addTrackerInfoInBatch(self, tracker_list, to_notify=True):
+        sql = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
+        self._db.executemany(sql, [(tracker,) for tracker in tracker_list])
+
+        if to_notify:
+            self.notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, tracker_list)
+
+    # ------------------------------------------------------------
+    # Gets all tracker information from the TrackerInfo table.
+    # ------------------------------------------------------------
+    def getTrackerInfoList(self):
+        sql = 'SELECT tracker, last_check, failures, is_alive FROM TrackerInfo'
+        tracker_info_list = self._db.fetchall(sql)
+        return tracker_info_list
+
+    # ------------------------------------------------------------
+    # Updates a list of tracker status into the TrackerInfo table.
+    # ------------------------------------------------------------
+    def updateTrackerInfo(self, args):
+        sql = 'UPDATE TrackerInfo SET'\
+            + ' last_check = ?, failures = ?, is_alive = ?'\
+            + ' WHERE tracker = ?'
+        self._db.executemany(sql, args)
+
+    # ------------------------------------------------------------
+    # Gets a list of trackers that have been checked to be alive recently.
+    # ------------------------------------------------------------
+    def getRecentlyAliveTrackers(self, limit=10):
+        sql = """
+            SELECT DISTINCT tracker FROM TrackerInfo
+              WHERE is_alive = 1
+              AND tracker != 'no-DHT' AND tracker != 'DHT'
+              ORDER BY last_check DESC LIMIT ?
+            """
         trackers = self._db.fetchall(sql, (limit,))
-        return [tracker for tracker, in trackers]
-
-    def getSwarmInfoByInfohash(self, infohash):
-        sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id = tr.torrent_id AND t.infohash  = ?"
-        return self._db.fetchone(sql, (bin2str(infohash),))
+        return [tracker[0] for tracker in trackers]
 
     def getSwarmInfo(self, torrent_id):
         """
-        returns info about swarm size from Torrent and TorrentTracker tables.
+        returns info about swarm size from Torrent and TorrentTrackerMapping tables.
         @author: Rahim
         @param torrentId: The index of the torrent.
-        @return: A list of the form: [torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo]
+        @return: A list of the form: [num_seeders, num_leechers, last_check]
         """
-        if torrent_id is not None:
-            dict = self.getSwarmInfos([torrent_id])
-            if torrent_id in dict:
-                return dict[torrent_id]
+        if not torrent_id:
+            return None
 
-    def getSwarmInfos(self, torrent_id_list):
-        """
-        returns infos about swarm size from Torrent and TorrentTracker tables.
-        @author: Niels
-        @param torrent_id_list: a list containing torrent_ids
-        @return: A dictionary of lists of the form: torrent_id => [torrent_id, num_seeders, num_leechers, last_check, num_sources_seen, sizeInfo]
-        """
-        torrent_id_list = [torrent_id for torrent_id in torrent_id_list if torrent_id]
-
-        results = {}
-        sql = "SELECT t.torrent_id, t.num_seeders, t.num_leechers, max(last_check) FROM Torrent t, TorrentTracker tr WHERE t.torrent_id in ("
-        sql += ','.join(map(str, torrent_id_list))
-        sql += ") AND t.torrent_id = tr.torrent_id GROUP BY t.torrent_id"
-
-        rows = self._db.fetchall(sql)
-        for row in rows:
-            torrent_id = row[0]
-            num_seeders = row[1]
-            num_leechers = row[2]
-            last_check = row[3]
-            results[torrent_id] = [torrent_id, num_seeders, num_leechers, last_check, -1, row]
-
-        return results
-
-    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness= -1):
-        """
-        Returns the largest number of the sources that have seen the torrent.
-        @author: Rahim
-        @param torrent_id: the id of the torrent.
-        @param freshness: A parameter that filters old records. The assumption is that those popularity reports that are
-        older than a rate are not reliable
-        @return: The largest number of the torrents that have seen the torrent.
-        """
-
-        if freshness == -1:
-            sql2 = """SELECT MAX(num_of_sources) FROM Popularity WHERE torrent_id=%d""" % torrent_id
-        else:
-            latestValidTime = timeNow - freshness
-            sql2 = """SELECT MAX(num_of_sources) FROM Popularity WHERE torrent_id=%d AND msg_receive_time > %d""" % (torrent_id, latestValidTime)
-
-        othersSeenSources = self._db.fetchone(sql2)
-        if othersSeenSources is None:
-            othersSeenSources = 0
-        return othersSeenSources
+        result = None
+        sql = """
+            SELECT num_seeders, num_leechers, last_tracker_check
+            FROM Torrent WHERE torrent_id = ?
+            """
+        row = self._db.fetchone(sql, (torrent_id,))
+        if row:
+            num_seeders = row[0]
+            num_leechers = row[1]
+            last_check = row[2]
+            result = [num_seeders, num_leechers, last_check]
+        return result
 
     def getTorrentDir(self):
         return self.torrent_dir
@@ -1180,12 +1211,14 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             keys = list(keys)
 
-        tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
-        tracker_keys = [key for key in tracker_keys if key in keys]
-        if len(tracker_keys) > 0:
-            res = self._db.getOne('Torrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
-        else:
-            res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
+        #tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
+        #tracker_keys = [key for key in tracker_keys if key in keys]
+        #if len(tracker_keys) > 0:
+        #    sql = 'Torrent C LEFT OUTER JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'\
+        #        + ' LEFT OUTER JOIN TrackerInfo TI ON TTM.tracker_id = TI.tracker_id'
+        #    res = self._db.getOne(sql, keys, infohash=bin2str(infohash))
+        #else:
+        res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
 
         if not res:
             return None
@@ -1207,8 +1240,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent['infohash'] = infohash
 
-        if 'last_check' in torrent:
-            torrent['last_check_time'] = torrent['last_check']
+        if 'last_tracker_check' in torrent:
+            torrent['last_check_time'] = torrent['last_tracker_check']
 
         if include_mypref:
             tid = torrent['C.torrent_id']
@@ -1263,7 +1296,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         value_name = deepcopy(self.value_name)
         sql = 'Select ' + ','.join(value_name)
-        sql += ' From CollectedTorrent C Left Join TorrentTracker T ON C.torrent_id = T.torrent_id'
+        sql += ' From CollectedTorrent C'
+        #sql += ' From CollectedTorrent C LEFT JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'
 
         where = ''
         if category_name != 'all':
@@ -1314,7 +1348,6 @@ class TorrentDBHandler(BasicDBHandler):
         return fixed
 
     def valuelist2torrentlist(self, value_name, res_list, ranks, mypref_stats):
-
         torrent_list = []
         for item in res_list:
             value_name[0] = 'torrent_id'
@@ -1332,8 +1365,8 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['simRank'] = ranksfind(ranks, torrent['infohash'])
             torrent['infohash'] = str2bin(torrent['infohash'])
             # torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers']
-            torrent['last_check_time'] = torrent['last_check']
-            del torrent['last_check']
+            torrent['last_check_time'] = torrent['last_tracker_check']
+            del torrent['last_tracker_check']
             del torrent['source_id']
 
             # Niels: we now convert category and status in gui
@@ -1380,12 +1413,26 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
 
     def getRecentlyCollectedSwiftHashes(self, limit=50):
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check, insert_time FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' AND CollectedTorrent.secret is not 1 ORDER BY insert_time DESC LIMIT ?"
+        sql = """
+            SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time
+             FROM Torrent T, CollectedTorrent CT
+             WHERE CT.torrent_id = T.torrent_id
+             AND CT.swift_torrent_hash IS NOT NULL AND CT.swift_torrent_hash <> ''
+             AND T.secret is not 1 ORDER BY CT.insert_time DESC LIMIT ?
+             """
         results = self._db.fetchall(sql, (limit,))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
 
     def getRandomlyCollectedSwiftHashes(self, insert_time, limit=50):
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' AND CollectedTorrent.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?"
+        sql = """
+            SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check
+             FROM Torrent T, CollectedTorrent CT
+             WHERE CT.torrent_id = T.torrent_id
+             AND CT.insert_time < ?
+             AND CT.swift_torrent_hash IS NOT NULL
+             AND CT.swift_torrent_hash <> ''
+             AND T.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?
+            """
         results = self._db.fetchall(sql, (insert_time, limit))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0] for result in results]
 
@@ -1781,79 +1828,6 @@ class TorrentDBHandler(BasicDBHandler):
                 res.extend([infohash for infohash, in self._db.fetchall(sql, (list_size - len(res),))])
 
         return [str2bin(infohash) for infohash in res if not infohash is None]
-
-    def selectTorrentToCheck(self, policy='random', infohash=None):  # for tracker checking
-        """ select a torrent to update tracker info (number of seeders and leechers)
-        based on the torrent checking policy.
-        RETURN: a dictionary containing all useful info.
-
-        Policy 1: Random [policy='random']
-           Randomly select a torrent to collect (last_check < 5 min ago)
-
-        Policy 2: Oldest (unknown) first [policy='oldest']
-           Select the non-dead torrent which was not been checked for the longest time (last_check < 5 min ago)
-
-        Policy 3: Popular first [policy='popular']
-           Select the non-dead most popular (3*num_seeders+num_leechers) one which has not been checked in last N seconds
-           (The default N = 4 hours, so at most 4h/torrentchecking_interval popular peers)
-        """
-
-        # import threading
-        # print >> sys.stderr, "****** selectTorrentToCheck", threading.currentThread().getName()
-
-        if infohash is None:
-            # create a view?
-            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check, tracker
-                     from CollectedTorrent T, TorrentTracker TT
-                     where TT.torrent_id=T.torrent_id and announce_tier=1 """
-            if policy.lower() == 'random':
-                ntorrents = self.getNumberCollectedTorrents()
-                if ntorrents == 0:
-                    rand_pos = 0
-                else:
-                    rand_pos = randint(0, ntorrents - 1)
-                last_check_threshold = int(time()) - 300
-                sql += """and last_check < %d
-                        limit 1 offset %d """ % (last_check_threshold, rand_pos)
-            elif policy.lower() == 'oldest':
-                last_check_threshold = int(time()) - 300
-                sql += """ and last_check < %d and status_id <> 2
-                         order by last_check
-                         limit 1 """ % last_check_threshold
-            elif policy.lower() == 'popular':
-                last_check_threshold = int(time()) - 4 * 60 * 60
-                sql += """ and last_check < %d and status_id <> 2
-                         order by 3*num_seeders+num_leechers desc
-                         limit 1 """ % last_check_threshold
-            res = self._db.fetchone(sql)
-        else:
-            # Niels: If we specifiy a particular torrent, allow for non-collected torrents (ie torrent from channels can have trackers before the .torrent is collected)
-            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check, tracker
-                     from Torrent T, TorrentTracker TT
-                     where TT.torrent_id=T.torrent_id and announce_tier=1
-                     and infohash=?
-                  """
-            infohash_str = bin2str(infohash)
-            res = self._db.fetchone(sql, (infohash_str,))
-
-        if res:
-            torrent_file_name = res[3]
-            if torrent_file_name:
-                torrent_dir = self.getTorrentDir()
-                torrent_path = os.path.join(torrent_dir, torrent_file_name)
-            else:
-                torrent_path = None
-
-            res = {'torrent_id': res[0],
-                   'ignored_times': res[1],
-                   'retried_times': res[2],
-                   'torrent_path': torrent_path,
-                   'infohash': str2bin(res[4]),
-                   'status': self.id2status[res[5]],
-                   'last_check': res[8],
-                   'trackers': [res[9]],
-                  }
-            return res
 
     def getTorrentsFromSource(self, source):
         """ Get all torrents from the specified Subscription source.

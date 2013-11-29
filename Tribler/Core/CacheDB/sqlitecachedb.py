@@ -50,7 +50,7 @@ except ImportError:
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is
 # written to the DB in the schema_sdb_v*.sql file!!!
-CURRENT_MAIN_DB_VERSION = 18
+CURRENT_MAIN_DB_VERSION = 19
 
 config_dir = None
 CREATE_SQL_FILE = None
@@ -426,7 +426,7 @@ class SQLiteCacheDBBase:
 
         self.db_diff = max(0, curr_ver - db_ver)
         if not self.db_diff:
-            self.db_diff = sum(os.path.exists(os.path.join(config_dir, filename)) if config_dir else 0 for filename in ["upgradingdb.txt", "upgradingdb2.txt", "upgradingdb3.txt"])
+            self.db_diff = sum(os.path.exists(os.path.join(config_dir, filename)) if config_dir else 0 for filename in ["upgradingdb.txt", "upgradingdb2.txt", "upgradingdb3.txt", "upgradingdb4.txt"])
 
         if self.db_diff:
             self.database_update = threading.Semaphore(self.db_diff)
@@ -2171,6 +2171,222 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             self.database_update.release()
 
+        tmpfilename4 = os.path.join(state_dir, "upgradingdb4.txt")
+        if fromver < 19 or os.path.exists(tmpfilename4):
+            self.database_update.acquire()
+
+            self.execute_write(\
+                "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0",\
+                commit=False)
+
+            create_new_table = """
+                CREATE TABLE TrackerInfo (
+                  tracker_id  integer PRIMARY KEY AUTOINCREMENT,
+                  tracker     text    UNIQUE NOT NULL,
+                  last_check  numeric DEFAULT 0,
+                  failures    integer DEFAULT 0,
+                  is_alive    integer DEFAULT 1
+                );"""
+            self.execute_write(create_new_table, commit=False)
+
+            create_new_table = """
+                CREATE TABLE TorrentTrackerMapping (
+                  torrent_id  integer NOT NULL,
+                  tracker_id  integer NOT NULL,
+                  FOREIGN KEY (torrent_id) REFERENCES Torrent(torrent_id),
+                  FOREIGN KEY (tracker_id) REFERENCES TrackerInfo(tracker_id),
+                  PRIMARY KEY (torrent_id, tracker_id)
+                );"""
+            self.execute_write(create_new_table, commit=False)
+
+            insert_dht_tracker = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
+            default_tracker_list = [ ('no-DHT',), ('DHT',) ]
+            self.executemany(insert_dht_tracker, default_tracker_list, commit=False)
+
+            # ensure the temp-file is created, if it is not already
+            try:
+                open(tmpfilename4, "w")
+                print >> sys.stderr, "DB v19 Upgradation: temp-file successfully created", tmpfilename4
+            except:
+                print >> sys.stderr, "DB v19 Upgradation: failed to create temp-file", tmpfilename4
+
+            from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+            from Tribler.Core.TorrentDef import TorrentDef
+
+            # some variables the upgrade function uses
+            global import_torrenttracker_complete
+            import_torrenttracker_complete = False
+
+            # known trackers and their IDs to accelerate DB upgrade
+            global all_found_tracker_dict
+            all_found_tracker_dict = dict()
+
+            def getTrackerID(tracker):
+                sql = 'SELECT tracker_id FROM TrackerInfo WHERE tracker = ?'
+                return self.fetchone(sql, (tracker,))
+
+            all_found_tracker_dict['no-DHT'] = getTrackerID('no-DHT')
+            all_found_tracker_dict['DHT'] = getTrackerID('DHT')
+
+            def upgradeDBV19():
+                global import_torrenttracker_complete
+                if not (os.path.exists(tmpfilename3) or os.path.exists(tmpfilename2) or os.path.exists(tmpfilename)):
+                    print >> sys.stderr, 'Upgrading DB to v19 ...'
+
+                    if not TEST_OVERRIDE:
+                        #"""
+                        if not import_torrenttracker_complete:
+                            print >> sys.stderr, 'Importing information from TorrentTracker ...'
+                            sql = 'SELECT torrent_id, tracker FROM TorrentTracker'\
+                                + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)'
+                            raw_mapping_list = list()
+                            try:
+                                raw_mapping_cur = self.execute_read(sql)
+                                for row in raw_mapping_cur:
+                                    raw_mapping_list.append(row)
+                            except Exception as e:
+                                print >> sys.stderr, '[ERROR] fetching tracker from TorrentTracker', e
+                            self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
+
+                            if raw_mapping_list:
+                                # insert tracker list
+                                print >> sys.stderr, 'Preparing data ...'
+                                insert_tracker_set = set()
+                                insert_mapping_set = set()
+                                for torrent_id, tracker in raw_mapping_list:
+                                    from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
+                                    tracker_url = getUniformedURL(tracker)
+                                    if tracker_url:
+                                        insert_tracker_set.add((tracker_url,))
+                                        insert_mapping_set.add((torrent_id, tracker_url))
+
+                                insert = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
+                                self.executemany(insert, list(insert_tracker_set))
+                                from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
+                                notifier = Notifier.getInstance()
+                                notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT,\
+                                    [tracker for tracker, in insert_tracker_set])
+
+                                # get tracker IDs
+                                for tracker, in insert_tracker_set:
+                                    all_found_tracker_dict[tracker] = getTrackerID(tracker)
+
+                                # insert mapping
+                                insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
+                                    + ' VALUES(?, ?)'
+                                mapping_set = set()
+                                for torrent_id, tracker in insert_mapping_set:
+                                    mapping_set.add((torrent_id, all_found_tracker_dict[tracker]))
+                                self.executemany(insert, list(mapping_set))
+
+                            import_torrenttracker_complete = True
+                            # upgradation not yet complete; comeback after 5 sec
+                            tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
+                            return
+
+                        print >> sys.stderr, 'Importing information from CollectedTorrent ...'
+                        sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent'\
+                            + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM TorrentTrackerMapping)'\
+                            + ' AND torrent_file_name IS NOT NULL'\
+                            + ' LIMIT %d' % UPGRADE_BATCH_SIZE
+                        records = self.fetchall(sql)
+                        #"""
+                        #records = None
+                    else:
+                        records = None
+
+                    if not records:
+                        self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
+                        self.execute_write('DROP INDEX IF EXISTS torrent_tracker_idx')
+                        self.execute_write('DROP INDEX IF EXISTS torrent_tracker_last_idx')
+
+                        if os.path.exists(tmpfilename4):
+                            os.remove(tmpfilename4)
+                            print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename4
+
+                        print >> sys.stderr, 'DB v19 upgrade complete.'
+
+                        self.database_update.release()
+                        return
+
+                    found_torrent_tracker_map_set = set()
+                    newly_found_tracker_set = set()
+                    not_found_torrent_file_set = set()
+
+                    for torrent_id, infohash, torrent_filename in records:
+                        if not os.path.isfile(torrent_filename):
+                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
+
+                        # .torrent found, return complete filename
+                        if not os.path.isfile(torrent_filename):
+                            # .torrent not found, use default collected_torrent_filename
+                            torrent_filename = get_collected_torrent_filename(str2bin(infohash))
+                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
+
+                        if os.path.isfile(torrent_filename):
+                            try:
+                                torrent = TorrentDef.load(torrent_filename)
+
+                                # check DHT
+                                if torrent.is_private():
+                                    dht_pair = (torrent_id, 'no-DHT')
+                                else:
+                                    dht_pair = (torrent_id, 'DHT')
+                                found_torrent_tracker_map_set.add(dht_pair)
+
+                                # check trackers
+                                tracker_tuple = torrent.get_trackers_as_single_tuple()
+                                for tracker in tracker_tuple:
+                                    from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
+                                    tracker_url = getUniformedURL(tracker)
+                                    if tracker_url:
+                                        if tracker_url not in all_found_tracker_dict:
+                                            newly_found_tracker_set.add((tracker_url,))
+                                        found_torrent_tracker_map_set.add((torrent_id, tracker_url))
+
+                                else:
+                                    not_found_torrent_file_set.add((torrent_id,))
+
+                            except Exception as e:
+                                # some torrent files may not be loaded correctly
+                                pass
+
+                        else:
+                            not_found_torrent_file_set.add((torrent_id,))
+
+                    if not_found_torrent_file_set:
+                        remove = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
+                        self.executemany(remove, list(not_found_torrent_file_set))
+
+                    if newly_found_tracker_set:
+                        insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
+                        self.executemany(insert, list(newly_found_tracker_set))
+                        from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
+                        notifier = Notifier.getInstance()
+                        notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT,\
+                            [tracker for tracker, in newly_found_tracker_set])
+
+                    # load tracker dictionary
+                    for tracker in newly_found_tracker_set:
+                        all_found_tracker_dict[tracker] = getTrackerID(tracker)
+
+                    if found_torrent_tracker_map_set:
+                        insert_list = list()
+                        for torrent_id, tracker in found_torrent_tracker_map_set:
+                            insert_list.append((torrent_id, all_found_tracker_dict[tracker]))
+                        insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
+                            + ' VALUES(?, ?)'
+                        self.executemany(insert, insert_list)
+
+                # upgradation not yet complete; comeback after 5 sec
+                tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
+
+            # start the upgradation after 10 seconds
+            if not tqueue:
+                tqueue = TimedTaskQueue('UpgradeDB')
+                tqueue.add_task(kill_threadqueue_if_empty, INITIAL_UPGRADE_PAUSE + 1, 'kill_if_empty')
+            tqueue.add_task(upgradeDBV19, INITIAL_UPGRADE_PAUSE)
+
     def clean_db(self, vacuum=False):
         from time import time
 
@@ -2249,7 +2465,7 @@ def forceDBThread(func):
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
                 callerstr = ""
-                for i in range(1, min(4, len(stack))):
+                for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
@@ -2268,7 +2484,7 @@ def forcePrioDBThread(func):
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
                 callerstr = ""
-                for i in range(1, min(4, len(stack))):
+                for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
@@ -2289,7 +2505,7 @@ def forceAndReturnDBThread(func):
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
                 callerstr = ""
-                for i in range(1, min(4, len(stack))):
+                for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s" % (caller[3], caller[1], caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
