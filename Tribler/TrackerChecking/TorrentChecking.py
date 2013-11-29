@@ -257,7 +257,6 @@ class TorrentChecking(Thread):
             except:
                 pass
 
-        """
         checked_tracker_set = set()
         for tracker in tracker_set:
             if tracker == 'no-DHT' or tracker == 'DHT':
@@ -265,10 +264,8 @@ class TorrentChecking(Thread):
             tracker_url = getUniformedURL(tracker)
             if tracker_url:
                 checked_tracker_set.add(tracker_url)
-        """
 
-        #return list(checked_tracker_set)
-        return list(tracker_set)
+        return list(checked_tracker_set)
 
     # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
