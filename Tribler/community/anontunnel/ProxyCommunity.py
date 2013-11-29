@@ -55,8 +55,6 @@ class ProxyCommunity(Community, Observable):
 
         Community.__init__(self, dispersy, master_member)
 
-        dispersy.endpoint.bypass_community = self
-
         if onready:
             onready(self)
 

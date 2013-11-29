@@ -1,5 +1,8 @@
 import os
 import logging.config
+from Tribler.community.anontunnel import ProxyMessage
+from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
+
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
 
@@ -30,7 +33,11 @@ class StatsCrawler(Thread):
 
         self.callback = Callback()
 
-        self.endpoint = RawserverEndpoint(self.raw_server, port=10000)
+        self.endpoint = HackyEndpoint(self.raw_server, port=10000)
+        self.prefix = 'f'*22 + 'e'
+        self.endpoint.bypass_community = self
+        self.endpoint.bypass_prefix = self.prefix
+        
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
 
         self.first = True
@@ -40,12 +47,24 @@ class StatsCrawler(Thread):
         self.fout = open(self.filename, 'w')
         self.fout.write("[")
 
-    def run(self):
+    def on_bypass_message(self, sock_addr, packet):
+        buffer = packet[len(self.prefix):]
 
+        circuit_id, data = ProxyMessage.get_circuit_and_data(buffer)
+
+        if circuit_id != 0:
+            return
+
+        type, payload = ProxyMessage.parse_payload(data)
+
+        if type == ProxyMessage.MESSAGE_STATS:
+            self.on_stats(sock_addr, payload)
+
+
+    def run(self):
         def on_ready(community):
             logger.error("Community has been loaded")
             self.community = community
-            self.community.subscribe("on_stats", self.on_stats)
 
         def join_overlay(dispersy):
             dispersy.define_auto_load(ProxyCommunity,
@@ -60,11 +79,9 @@ class StatsCrawler(Thread):
     def stats_to_txt(stats):
         return json.dumps(stats)
 
-    def on_stats(self, event, message):
-        candidate = message.candidate
-
+    def on_stats(self, sock_addr, stats):
         # Do not store if we have received a STATS message from the same client before
-        if candidate in self.stored_candidates:
+        if sock_addr in self.stored_candidates:
             return
 
         if not self.first:
@@ -72,11 +89,10 @@ class StatsCrawler(Thread):
         else:
             self.first = False
 
-        stats = message.payload.stats
-        stats['candidate'] = candidate.sock_addr
+        stats['candidate'] = sock_addr
 
         self.fout.write(self.stats_to_txt(stats))
-        self.stored_candidates[candidate] = True
+        self.stored_candidates[sock_addr] = True
 
     def finalize_file(self):
         self.fout.write("]")

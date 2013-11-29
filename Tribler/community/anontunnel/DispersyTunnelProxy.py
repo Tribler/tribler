@@ -287,8 +287,6 @@ class DispersyTunnelProxy(Observable):
         self.message_observer.subscribe(ProxyMessage.MESSAGE_BREAK, self.on_break)
         self.message_observer.subscribe(ProxyMessage.MESSAGE_PUNCTURE, self.on_puncture)
 
-        TriblerNotifier(self)
-
         community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
 
         self.setup_keep_alive()
@@ -689,7 +687,9 @@ class DispersyTunnelProxy(Observable):
 
             # Delete from data structures
             if circuit_id in self.circuits:
-                self.circuits[circuit_id].extend_strategy.stop()
+                if self.circuits[circuit_id].extend_strategy:
+                    self.circuits[circuit_id].extend_strategy.stop()
+
                 del self.circuits[circuit_id]
 
             tunnels_going_down = len(self.active_circuits) == 1 # Don't count the 0-hop tunnel
