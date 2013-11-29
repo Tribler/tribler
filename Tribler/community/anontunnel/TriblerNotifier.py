@@ -1,5 +1,5 @@
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED, NTFY_CREATED, NTFY_EXTENDED_FOR, NTFY_BROKEN, NTFY_SELECT
+from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED, NTFY_CREATED, NTFY_EXTENDED_FOR, NTFY_BROKEN, NTFY_SELECT, NTFY_PUNCTURE, NTFY_JOINED
 
 
 class TriblerNotifier(object):
@@ -10,6 +10,8 @@ class TriblerNotifier(object):
         community.subscribe("circuit_extended", self.on_circuit_extended)
         community.subscribe("circuit_broken", self.on_circuit_broken)
         community.subscribe("circuit_select", self.on_circuit_select)
+        community.subscribe("puncture", self.on_puncture)
+        community.subscribe("joined", self.on_joined)
 
     def on_circuit_select(self, circuit_id, destination):
         self.notifier.notify(NTFY_ANONTUNNEL, NTFY_SELECT, circuit_id, destination)
@@ -25,3 +27,9 @@ class TriblerNotifier(object):
 
     def on_circuit_extended_for(self, extended_for, extended_with):
         self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED_FOR, extended_for, extended_with)
+
+    def on_puncture(self, address):
+        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_PUNCTURE, address)
+
+    def on_joined(self, address, circuit_id):
+        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, address, circuit_id)

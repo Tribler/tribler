@@ -100,6 +100,8 @@ NTFY_EXTENDED = 'extended'
 NTFY_EXTENDED_FOR = 'extended_for'
 NTFY_BROKEN = 'broken'
 NTFY_SELECT = 'select'
+NTFY_PUNCTURE = 'puncture'
+NTFY_JOINED = 'joined'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0

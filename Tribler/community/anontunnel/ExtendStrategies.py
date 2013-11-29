@@ -24,7 +24,10 @@ class TrustThyNeighbour:
 
         #circuit.subscribe("created", self.extend)
         #circuit.subscribe("extended", self.extend)
-        proxy.callback.register(_timer)
+        self.__timer = proxy.callback.register(_timer)
+
+    def stop(self):
+        self.proxy.callback.unregister(self.__timer)
 
     def extend(self):
         if not self.circuit.created or self.circuit.state == CIRCUIT_STATE_BROKEN or self.circuit.goal_hops <= len(self.circuit.hops):
@@ -50,11 +53,16 @@ class RandomAPriori:
         self.desired_hops = None
         self.punctured_until = 0
 
-        def _timer():
+        def __timer():
             while True:
                 yield self.extend()
 
-        proxy.callback.register(_timer)
+        self.__timer = proxy.callback.register(__timer)
+
+
+    def stop(self):
+        self.proxy.callback.unregister(self.__timer)
+
 
     def extend(self):
         if not self.circuit.created or self.circuit.state == CIRCUIT_STATE_BROKEN or self.circuit.goal_hops <= len(self.circuit.hops):

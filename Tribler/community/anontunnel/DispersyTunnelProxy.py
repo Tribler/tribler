@@ -63,6 +63,8 @@ class Circuit(Observable):
 
         self.state = CIRCUIT_STATE_CREATING
 
+        self.extend_strategy = None
+
         self.timestamp = None
 
         self.times = []
@@ -268,6 +270,7 @@ class DispersyTunnelProxy(Observable):
 
         self.community.dispersy.endpoint.send([introduced], [puncture_message.packet])
         logger.warning("We are puncturing our NAT to %s:%d" % message.sock_addr)
+        self.fire("puncture", False, introduced.sock_addr)
 
     def start(self, callback, community):
         self.community = community
@@ -372,6 +375,8 @@ class DispersyTunnelProxy(Observable):
         with self.lock:
             self.joined.add((address, circuit_id))
 
+        self.fire("joined", False, address, circuit_id)
+
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
         with self.lock:
@@ -382,7 +387,7 @@ class DispersyTunnelProxy(Observable):
                 logger.warning('Circuit %d has been created', circuit_id)
 
                 # Instantiate extend strategy
-                self.extend_strategy(self, circuit)
+                circuit.extend_strategy = self.extend_strategy(self, circuit)
 
                 self.fire("circuit_created", circuit=circuit)
                 circuit.fire("created")
@@ -684,7 +689,8 @@ class DispersyTunnelProxy(Observable):
 
             # Delete from data structures
             if circuit_id in self.circuits:
-                self.circuits[circuit_id].state = CIRCUIT_STATE_BROKEN
+                self.circuits[circuit_id].extend_strategy.stop()
+                del self.circuits[circuit_id]
 
             tunnels_going_down = len(self.active_circuits) == 1 # Don't count the 0-hop tunnel
             # Delete any ultimate destinations mapped to this circuit

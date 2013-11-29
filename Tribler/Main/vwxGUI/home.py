@@ -26,7 +26,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_PUNCTURE, NTFY_JOINED, NTFY_EXTENDED_FOR
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, LIST_BLUE
@@ -1141,6 +1141,9 @@ class Anonymity(wx.Panel):
 
         self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
         self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
+        self.session.add_observer(self.OnPuncture, NTFY_ANONTUNNEL, [NTFY_PUNCTURE])
+        self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
+        self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
 
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
@@ -1254,6 +1257,20 @@ class Anonymity(wx.Panel):
     @forceWxThread
     def OnSelect(self, subject, changeType, circuit, address):
         self.log_text.AppendText("Circuit %d has been selected for destination %s\n" % (circuit, address))
+
+    @forceWxThread
+    def OnPuncture(self, subject, changeType, address):
+        self.log_text.AppendText("We will puncture our NAT to %s:%d\n" % address)
+
+    @forceWxThread
+    def OnJoined(self, subject, changeType, address, circuit_id):
+        self.log_text.AppendText("Joined an external circuit %d with %s:%d\n" % (circuit_id, address.sock_addr[0], address.sock_addr[1]))
+
+    @forceWxThread
+    def OnExtendedFor(self, subject, changeType, extended_for, extended_with):
+        self.log_text.AppendText("Extended an external circuit (%s:%d, %d) with (%s:%d, %d)\n" % (
+            extended_for[0].sock_addr[0], extended_for[0].sock_addr[1], extended_for[1], extended_with[0].sock_addr[0],
+            extended_with[0].sock_addr[1], extended_with[1]))
 
     def AddEdge(self, from_addr, to_addr):
         with self.lock:
