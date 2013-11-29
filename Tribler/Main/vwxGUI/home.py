@@ -1210,7 +1210,7 @@ class Anonymity(wx.Panel):
             else:
                 pos = self.circuit_to_listindex[circuit_id]
             self.circuit_list.SetStringItem(pos, 1, str(circuit.online))
-            self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)))
+            self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)) + "/" + str(circuit.goal_hops))
             self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(circuit.bytes_uploaded))
             self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(circuit.bytes_downloaded))
 

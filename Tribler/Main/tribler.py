@@ -17,6 +17,7 @@ import sys
 import logging.config
 import time
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
+from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
 
 try:
@@ -544,6 +545,7 @@ class ABCApp():
         socks_server.tunnel = tunnel
         socks_server.start()
 
+        TriblerNotifier(tunnel)
 
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
