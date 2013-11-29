@@ -2234,7 +2234,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     print >> sys.stderr, 'Upgrading DB to v19 ...'
 
                     if not TEST_OVERRIDE:
-                        """
+                        #"""
                         if not import_torrenttracker_complete:
                             print >> sys.stderr, 'Importing information from TorrentTracker ...'
                             sql = 'SELECT torrent_id, tracker FROM TorrentTracker'\
@@ -2260,9 +2260,12 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                         insert_tracker_set.add((tracker_url,))
                                         insert_mapping_set.add((torrent_id, tracker_url))
 
-                                #self.execute_write("BEGIN")
                                 insert = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
                                 self.executemany(insert, list(insert_tracker_set))
+                                from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
+                                notifier = Notifier.getInstance()
+                                notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT,\
+                                    [tracker for tracker, in insert_tracker_set])
 
                                 # get tracker IDs
                                 for tracker, in insert_tracker_set:
@@ -2276,44 +2279,32 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     mapping_set.add((torrent_id, all_found_tracker_dict[tracker]))
                                 self.executemany(insert, list(mapping_set))
 
-                                #self.execute_write("COMMIT")
-
-                            print >> sys.stderr, 'TorrentTracker imported ...'
                             import_torrenttracker_complete = True
                             # upgradation not yet complete; comeback after 5 sec
                             tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
                             return
 
-                        upgrade_batch_size = UPGRADE_BATCH_SIZE
-                        if UPGRADE_BATCH_SIZE < 5000:
-                            upgrade_batch_size = 5000
                         print >> sys.stderr, 'Importing information from CollectedTorrent ...'
                         sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent'\
                             + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM TorrentTrackerMapping)'\
                             + ' AND torrent_file_name IS NOT NULL'\
-                            + ' LIMIT %d' % upgrade_batch_size
+                            + ' LIMIT %d' % UPGRADE_BATCH_SIZE
                         records = self.fetchall(sql)
-                        """
-                        records = None
+                        #"""
+                        #records = None
                     else:
                         records = None
 
                     if not records:
-                        #self.execute_write("BEGIN")
                         self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
                         self.execute_write('DROP INDEX IF EXISTS torrent_tracker_idx')
                         self.execute_write('DROP INDEX IF EXISTS torrent_tracker_last_idx')
-                        #self.execute_write("COMMIT")
 
                         if os.path.exists(tmpfilename4):
                             os.remove(tmpfilename4)
                             print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename4
 
                         print >> sys.stderr, 'DB v19 upgrade complete.'
-
-                        from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
-                        notifier = Notifier.getInstance()
-                        notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, None)
 
                         self.database_update.release()
                         return
@@ -2346,13 +2337,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 # check trackers
                                 tracker_tuple = torrent.get_trackers_as_single_tuple()
                                 for tracker in tracker_tuple:
-                                    if tracker not in newly_found_tracker_list:
-                                        from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
-                                        tracker_url = getUniformedURL(tracker)
-                                        if tracker_url:
-                                            if tracker_url not in all_found_tracker_dict:
-                                                newly_found_tracker_set.add((tracker_url,))
-                                            found_torrent_tracker_map_set.add((torrent_id, tracker_url))
+                                    from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
+                                    tracker_url = getUniformedURL(tracker)
+                                    print >> sys.stderr, 'tracker-url: old[%s], new[%s]' % (tracker, tracker_url)
+                                    if tracker_url:
+                                        if tracker_url not in all_found_tracker_dict:
+                                            newly_found_tracker_set.add((tracker_url,))
+                                        found_torrent_tracker_map_set.add((torrent_id, tracker_url))
 
                                 else:
                                     not_found_torrent_file_set.add((torrent_id,))
@@ -2364,15 +2355,18 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         else:
                             not_found_torrent_file_set.add((torrent_id,))
 
-                    #self.execute_write("BEGIN")
-
                     if not_found_torrent_file_set:
                         remove = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
                         self.executemany(remove, list(not_found_torrent_file_set))
 
                     if newly_found_tracker_set:
+                        print >> sys.stderr, '>>>> Adding new trackers ...'
                         insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
                         self.executemany(insert, list(newly_found_tracker_set))
+                        from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
+                        notifier = Notifier.getInstance()
+                        notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT,\
+                            [tracker for tracker, in newly_found_tracker_set])
 
                     # load tracker dictionary
                     for tracker in newly_found_tracker_set:
@@ -2383,10 +2377,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         for torrent_id, tracker in found_torrent_tracker_map_set:
                             insert_list.append((torrent_id, all_found_tracker_dict[tracker]))
                         insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
-                            + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
+                            + ' VALUES(?, ?)'
                         self.executemany(insert, insert_list)
-
-                    #self.execute_write("COMMIT")
 
                 # upgradation not yet complete; comeback after 5 sec
                 tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
