@@ -487,6 +487,7 @@ INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');
 INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails');
 INSERT INTO MetaDataTypes ('name') VALUES ('video-info');
 
+INSERT INTO TrackerInfo (tracker) VALUES ('no-DHT');
 INSERT INTO TrackerInfo (tracker) VALUES ('DHT');
 
 COMMIT TRANSACTION init_values;
