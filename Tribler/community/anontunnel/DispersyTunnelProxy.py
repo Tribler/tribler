@@ -18,7 +18,6 @@ from Tribler.community.anontunnel import ProxyMessage, ExtendStrategies
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
 from Tribler.community.anontunnel.SelectionStrategies import LengthSelectionStrategy
-from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
@@ -242,7 +241,7 @@ class DispersyTunnelProxy(Observable):
 
         if circuit_id > 0:
             with self.lock:
-                if circuit_id in self.circuits:
+                if circuit_id in self.circuits and self.circuits[circuit_id].state == CIRCUIT_STATE_READY:
                     self.circuits[circuit_id].last_incoming = time.time()
 
         relay_key = (candidate, circuit_id)

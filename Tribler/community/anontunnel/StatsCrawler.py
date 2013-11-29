@@ -82,6 +82,7 @@ class StatsCrawler(Thread):
     def on_stats(self, sock_addr, stats):
         # Do not store if we have received a STATS message from the same client before
         if sock_addr in self.stored_candidates:
+            logger.info("Got STATS from %s:%d" % sock_addr)
             return
 
         if not self.first:
@@ -89,6 +90,7 @@ class StatsCrawler(Thread):
         else:
             self.first = False
 
+        logger.info("Writing STATS from %s:%d to file" % sock_addr)
         stats['candidate'] = sock_addr
 
         self.fout.write(self.stats_to_txt(stats))
