@@ -19,6 +19,14 @@ from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forceAndReturnDBThread
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
+# some default configurations
+DEBUG = False
+
+DEFAULT_MAX_TRACKER_FAILURES        = 5 # A tracker that have failed for this
+                                        # times will be regarded as "dead"
+DEFAULT_DEAD_TRACKER_RETRY_INTERVAL = 60 # A "dead" tracker will be retired
+                                         # every 60 seconds
+
 # ============================================================
 # This class maintains the tracker infomation cache.
 # ============================================================
@@ -27,9 +35,13 @@ class TrackerInfoCache(object):
     # ------------------------------------------------------------
     # Initialization.
     # ------------------------------------------------------------
-    def __init__(self, max_failures=5, dead_tracker_recheck_interval=60):
+    def __init__(self,\
+            max_failures=DEFAULT_MAX_TRACKER_FAILURES,\
+            dead_tracker_recheck_interval=60):
         self._torrentdb = TorrentDBHandler.getInstance()
         self._tracker_info_dict = dict()
+
+        self._tracker_update_request_dict = dict()
 
         self._max_tracker_failures = max_failures
         self._dead_tracker_recheck_Interval = dead_tracker_recheck_interval
@@ -75,11 +87,24 @@ class TrackerInfoCache(object):
 
             # new tracker insertion callback
             for tracker in objectID:
+                if DEBUG:
+                    print >> sys.stderr, '[D] New tracker[%s].' % tracker
                 self._tracker_info_dict[tracker] = dict()
                 self._tracker_info_dict[tracker]['last_check'] = 0
                 self._tracker_info_dict[tracker]['failures'] = 0
                 self._tracker_info_dict[tracker]['alive'] = True
                 self._tracker_info_dict[tracker]['updated'] = False
+
+                # check all the pending update requests
+                if tracker not in self._tracker_update_request_dict:
+                    continue
+
+                for request in self._tracker_update_request_dict[tracker]:
+                    if DEBUG:
+                        print >> sys.stderr,\
+                        '[D] Handling new tracker[%s] request: %s' % request
+                    self.updateTrackerInfo(tracker, request)
+                del self._tracker_update_request_dict[tracker]
 
     # ------------------------------------------------------------
     # (Public API)
@@ -103,25 +128,6 @@ class TrackerInfoCache(object):
 
     # ------------------------------------------------------------
     # (Public API)
-    # Adds a new tracker into the TrackerInfoCache and the database.
-    # The request will be dropped if the tracker already exists.
-    # ------------------------------------------------------------
-    @forceDBThread
-    def addNewTrackerInfo(self, tracker):
-        with self._lock:
-            if tracker in self._tracker_info_dict:
-                return
-
-            self._tracker_info_dict[tracker] = dict()
-            self._tracker_info_dict[tracker]['last_check'] = 0
-            self._tracker_info_dict[tracker]['failures'] = 0
-            self._tracker_info_dict[tracker]['alive']    = True
-            self._tracker_info_dict[tracker]['updated']  = False
-
-            self._torrentdb.addTrackerInfo(tracker, False)
-
-    # ------------------------------------------------------------
-    # (Public API)
     # Updates or a tracker's information. If the tracker does not
     # exist, it will be created.
     # ------------------------------------------------------------
@@ -129,13 +135,17 @@ class TrackerInfoCache(object):
         currentTime = int(time.time())
 
         self._lock.acquire()
-        # create a new record if doesn't exist
-        if not tracker in self._tracker_info_dict:
-            self._tracker_info_dict[tracker] = dict()
-            self._tracker_info_dict[tracker]['failures'] = 0
+        if tracker in self._tracker_info_dict:
             tracker_info = self._tracker_info_dict[tracker]
         else:
-            tracker_info = self._tracker_info_dict[tracker]
+            # put into a request queue and update after the tracker has been
+            # added by the DB thread.
+            if tracker not in self._tracker_update_request_dict:
+                self._tracker_update_request_dict[tracker] = list()
+            self._tracker_update_request_dict[tracker].append(success)
+
+            self._lock.release()
+            return
 
         tracker_info['last_check'] = currentTime
         # reset the failures count if successful
