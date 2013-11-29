@@ -2339,7 +2339,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 for tracker in tracker_tuple:
                                     from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
                                     tracker_url = getUniformedURL(tracker)
-                                    print >> sys.stderr, 'tracker-url: old[%s], new[%s]' % (tracker, tracker_url)
                                     if tracker_url:
                                         if tracker_url not in all_found_tracker_dict:
                                             newly_found_tracker_set.add((tracker_url,))
@@ -2360,7 +2359,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         self.executemany(remove, list(not_found_torrent_file_set))
 
                     if newly_found_tracker_set:
-                        print >> sys.stderr, '>>>> Adding new trackers ...'
                         insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
                         self.executemany(insert, list(newly_found_tracker_set))
                         from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
