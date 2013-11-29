@@ -13,6 +13,7 @@ except:
     pass
 
 from Tribler.community.anontunnel import DispersyTunnelProxy
+from Tribler.community.anontunnel.ExtendStrategies import RandomAPriori, TrustThyNeighbour
 from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
 from Tribler.community.anontunnel.AnonTunnel import AnonTunnel
@@ -28,6 +29,7 @@ def main(argv):
         parser.add_argument('-c', '--cmd', help='The command UDP port to listen on')
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
         parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
+        parser.add_argument('-e', '--extend-strategy', default='upfront', help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_argument('--record-on-incoming', help='Record stats from the moment the first data enters the tunnel')
 
@@ -68,6 +70,16 @@ def main(argv):
         def on_enter_tunnel_data_head(ultimate_destination, payload):
             anon_tunnel.tunnel.record_stats = True
         anon_tunnel.socks5_server.once("enter_tunnel_data", on_enter_tunnel_data_head)
+
+    # Set extend strategy
+    if args.extend_strategy == 'upfront':
+        anon_tunnel.tunnel.extend_strategy = RandomAPriori
+        logger.error("EXTEND STRATEGY UPFRONT: We will decide with whom created circuits are extended upfront")
+    elif args.extend_strategy == 'delegate':
+        logger.error("EXTEND STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
+        anon_tunnel.tunnel.extend_strategy = TrustThyNeighbour
+    else:
+        raise ValueError("extend_strategy must be either random or delegate")
 
     # Circuit length strategy
     if args.length_strategy[:1] == ['random']:
