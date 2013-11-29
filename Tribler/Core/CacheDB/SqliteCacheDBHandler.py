@@ -1135,14 +1135,6 @@ class TorrentDBHandler(BasicDBHandler):
         return tracker_info_list
 
     # ------------------------------------------------------------
-    # Gets a tracker's ID.
-    # ------------------------------------------------------------
-    def getTrackerID(self, tracker):
-        sql = 'SELECT tracker_id FROM TrackerInfo WHERE tracker = ?'
-        tracker_id = self._db.fetchone(sql)
-        return tracker_id
-
-    # ------------------------------------------------------------
     # Updates a list of tracker status into the TrackerInfo table.
     # ------------------------------------------------------------
     def updateTrackerInfo(self, args):
