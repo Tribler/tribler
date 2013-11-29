@@ -2176,9 +2176,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.database_update.acquire()
 
             self.execute_write(\
-                "ALTER TABLE Torrent ADD COLUMN tracker_check_retries integer DEFAULT 0",\
-                commit=False)
-            self.execute_write(\
                 "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0",\
                 commit=False)
 
@@ -2217,9 +2214,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             from Tribler.Core.TorrentDef import TorrentDef
 
             # some variables the upgrade function uses
-            global import_tracker_list_complete, import_torrenttracker_map_complete
-            import_tracker_list_complete = False
-            import_torrenttracker_map_complete = False
+            global import_torrenttracker_complete
+            import_torrenttracker_complete = False
 
             # known trackers and their IDs to accelerate DB upgrade
             global all_found_tracker_dict
@@ -2233,61 +2229,73 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             all_found_tracker_dict['DHT'] = getTrackerID('DHT')
 
             def upgradeDBV19():
-                global import_tracker_list_complete, import_torrenttracker_map_complete
+                global import_torrenttracker_complete
                 if not (os.path.exists(tmpfilename3) or os.path.exists(tmpfilename2) or os.path.exists(tmpfilename)):
                     print >> sys.stderr, 'Upgrading DB to v19 ...'
 
                     if not TEST_OVERRIDE:
                         """
-                        if not import_tracker_list_complete:
-                            # import trackers from TorrentTracker table
-                            sql = 'SELECT DISTINCT tracker FROM TorrentTracker'\
-                                + ' WHERE tracker NOT IN (SELECT tracker FROM TrackerInfo)'\
-                                + ' LIMIT %d' % UPGRADE_BATCH_SIZE
-                            tracker_list = self.fetchall(sql)
-                            if tracker_list:
-                                insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
-                                self.executemany(insert, tracker_list)
+                        if not import_torrenttracker_complete:
+                            print >> sys.stderr, 'Importing information from TorrentTracker ...'
+                            sql = 'SELECT torrent_id, tracker FROM TorrentTracker'\
+                                + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)'
+                            raw_mapping_list = list()
+                            try:
+                                raw_mapping_cur = self.execute_read(sql)
+                                for row in raw_mapping_cur:
+                                    raw_mapping_list.append(row)
+                            except Exception as e:
+                                print >> sys.stderr, '[ERROR] fetching tracker from TorrentTracker', e
+                            self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
 
-                                # upgradation not yet complete; comeback after 5 sec
-                                tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
-                                return
-                            else:
-                                import_tracker_list_complete = True
+                            if raw_mapping_list:
+                                # insert tracker list
+                                print >> sys.stderr, 'Preparing data ...'
+                                insert_tracker_set = set()
+                                insert_mapping_set = set()
+                                for torrent_id, tracker in raw_mapping_list:
+                                    from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
+                                    tracker_url = getUniformedURL(tracker)
+                                    if tracker_url:
+                                        insert_tracker_set.add((tracker_url,))
+                                        insert_mapping_set.add((torrent_id, tracker_url))
 
-                        # import torrent-tracker mapping
-                        if not import_torrenttracker_map_complete:
-                            sql = 'SELECT TT.torrent_id, TI.tracker_id'\
-                                + ' FROM TorrentTracker TT, TrackerInfo TI'\
-                                + ' WHERE (TT.torrent_id, TI.tracker_id) NOT IN (SELECT torrent_id, tracker_id FROM TorrentTrackerMapping)'\
-                                + ' LIMIT %d' % UPGRADE_BATCH_SIZE
-                            mapping_list = self.fetchall(sql)
-                            if mapping_list:
-                                print >> sys.stderr, '[!!!!] Doing 2...'
+                                self.execute_write("BEGIN")
+                                insert = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
+                                self.executemany(insert, list(insert_tracker_set))
+
+                                # get tracker IDs
+                                for tracker, in insert_tracker_set:
+                                    all_found_tracker_dict[tracker] = getTrackerID(tracker)
+
+                                # insert mapping
                                 insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
                                     + ' VALUES(?, ?)'
-                                self.executemany(insert, mapping_list)
+                                mapping_set = set()
+                                for torrent_id, tracker in insert_mapping_set:
+                                    mapping_set.add((torrent_id, all_found_tracker_dict[tracker]))
+                                self.executemany(insert, list(mapping_set))
 
-                                # upgradation not yet complete; comeback after 5 sec
-                                tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
-                                return
-                            else:
-                                import_torrenttracker_map_complete = True
-                        """
+                                self.execute_write("COMMIT")
 
-                        """
-                         import from CollectedTorrent table
+                            print >> sys.stderr, 'TorrentTracker imported ...'
+                            import_torrenttracker_complete = True
+                            # upgradation not yet complete; comeback after 5 sec
+                            tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
+                            return
+
+                        print >> sys.stderr, 'Importing information from CollectedTorrent ...'
                         sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent'\
                             + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM TorrentTrackerMapping)'\
                             + ' AND torrent_file_name IS NOT NULL'\
                             + ' LIMIT %d' % UPGRADE_BATCH_SIZE
                         records = self.fetchall(sql)
                         """
-                        records = list()
+                        records = None
                     else:
-                        records = list()
+                        records = None
 
-                    if len(records) == 0:
+                    if not records:
                         self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
                         self.execute_write('DROP INDEX IF EXISTS torrent_tracker_idx')
                         self.execute_write('DROP INDEX IF EXISTS torrent_tracker_last_idx')
@@ -2307,9 +2315,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         self.database_update.release()
                         return
 
-                    found_torrent_tracker_map_list = list()
-                    newly_found_tracker_list = list()
-                    not_found_torrent_file_list = list()
+                    found_torrent_tracker_map_set = set()
+                    newly_found_tracker_set = set()
+                    not_found_torrent_file_set = set()
 
                     for torrent_id, infohash, torrent_filename in records:
                         if not os.path.isfile(torrent_filename):
@@ -2330,42 +2338,52 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     dht_pair = (torrent_id, 'no-DHT')
                                 else:
                                     dht_pair = (torrent_id, 'DHT')
-                                found_torrent_tracker_map_list.append(dht_pair)
+                                found_torrent_tracker_map_set.add(dht_pair)
 
                                 # check trackers
                                 tracker_tuple = torrent.get_trackers_as_single_tuple()
                                 for tracker in tracker_tuple:
-                                    if (torrent_id, tracker) not in found_torrent_tracker_map_list:
-                                        found_torrent_tracker_map_list.append((torrent_id, tracker))
                                     if tracker not in newly_found_tracker_list:
-                                        newly_found_tracker_list.append((tracker,))
+                                        from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
+                                        tracker_url = getUniformedURL(tracker)
+                                        if tracker_url:
+                                            if tracker_url not in all_found_tracker_dict:
+                                                newly_found_tracker_set.add((tracker_url,))
+                                            found_torrent_tracker_map_set.add((torrent_id, tracker_url))
 
                                 else:
-                                    not_found_torrent_file_list.append((torrent_id,))
+                                    not_found_torrent_file_set.add((torrent_id,))
 
                             except Exception as e:
                                 # some torrent files may not be loaded correctly
                                 pass
 
                         else:
-                            not_found_torrent_file_list.append((torrent_id,))
+                            not_found_torrent_file_set.add((torrent_id,))
 
-                    if not_found_torrent_file_list:
+                    self.execute_write("BEGIN")
+
+                    if not_found_torrent_file_set:
                         remove = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
-                        self.executemany(remove, not_found_torrent_file_list)
+                        self.executemany(remove, list(not_found_torrent_file_set))
 
-                    if newly_found_tracker_list:
+                    if newly_found_tracker_set:
                         insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
-                        self.executemany(insert, newly_found_tracker_list)
+                        self.executemany(insert, list(newly_found_tracker_set))
 
                     # load tracker dictionary
-                    for tracker in newly_found_tracker_list:
+                    for tracker in newly_found_tracker_set:
                         all_found_tracker_dict[tracker] = getTrackerID(tracker)
 
-                    if found_torrent_tracker_map_list:
+                    if found_torrent_tracker_map_set:
+                        insert_list = list()
+                        for torrent_id, tracker in found_torrent_tracker_map_set:
+                            insert_list.append((torrent_id, all_found_tracker_dict[tracker]))
                         insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
                             + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
-                        self.executemany(insert, found_torrent_tracker_map_list)
+                        self.executemany(insert, insert_list)
+
+                    self.execute_write("COMMIT")
 
                 # upgradation not yet complete; comeback after 5 sec
                 tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)

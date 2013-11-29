@@ -83,7 +83,6 @@ class TrackerSession(object):
             session = HttpTrackerSession(tracker_url, tracker_address,\
                 announce_page, update_result_callback)
         return session
-        
 
     # ----------------------------------------
     # Parses a tracker URL to retrieve (1) the tracker type (HTTP or UDP),
@@ -127,7 +126,6 @@ class TrackerSession(object):
             raise RuntimeError('Cannot resolve tracker URL.')
 
         return tracker_type, (hostname, port), announce_page
-
 
     # ----------------------------------------
     # (Public API) Handles the request, invoking the corresponding method.

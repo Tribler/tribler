@@ -123,7 +123,6 @@ CREATE TABLE Torrent (
   dispersy_id      integer,
   swift_hash        text,
   swift_torrent_hash text,
-  tracker_check_retries integer DEFAULT 0,
   last_tracker_check integer DEFAULT 0
 );
 
