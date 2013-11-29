@@ -48,7 +48,7 @@ from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChe
 
 
 # some settings
-DEBUG = True
+DEBUG = False
 
 DEFAULT_MAX_GUI_REQUESTS = 1000
 DEFAULT_MAX_SELECTED_REQUESTS = 2000
