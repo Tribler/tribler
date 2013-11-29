@@ -201,7 +201,6 @@ class TorrentChecking(Thread):
         # the request to an existing session
         successful = False
         for tracker_url in tracker_set:
-            #self._tracker_info_cache.addNewTrackerInfo(tracker_url)
             self._updateTorrentTrackerMapping(torrent_id, tracker_url)
             self._createSessionForRequest(infohash, tracker_url)
 

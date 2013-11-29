@@ -2260,7 +2260,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                         insert_tracker_set.add((tracker_url,))
                                         insert_mapping_set.add((torrent_id, tracker_url))
 
-                                self.execute_write("BEGIN")
+                                #self.execute_write("BEGIN")
                                 insert = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
                                 self.executemany(insert, list(insert_tracker_set))
 
@@ -2276,7 +2276,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     mapping_set.add((torrent_id, all_found_tracker_dict[tracker]))
                                 self.executemany(insert, list(mapping_set))
 
-                                self.execute_write("COMMIT")
+                                #self.execute_write("COMMIT")
 
                             print >> sys.stderr, 'TorrentTracker imported ...'
                             import_torrenttracker_complete = True
@@ -2284,11 +2284,14 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
                             return
 
+                        upgrade_batch_size = UPGRADE_BATCH_SIZE
+                        if UPGRADE_BATCH_SIZE < 5000:
+                            upgrade_batch_size = 5000
                         print >> sys.stderr, 'Importing information from CollectedTorrent ...'
                         sql = 'SELECT torrent_id, infohash, torrent_file_name FROM CollectedTorrent'\
                             + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM TorrentTrackerMapping)'\
                             + ' AND torrent_file_name IS NOT NULL'\
-                            + ' LIMIT %d' % UPGRADE_BATCH_SIZE
+                            + ' LIMIT %d' % upgrade_batch_size
                         records = self.fetchall(sql)
                         """
                         records = None
@@ -2296,19 +2299,17 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         records = None
 
                     if not records:
-                        self.execute_write("BEGIN")
+                        #self.execute_write("BEGIN")
                         self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
                         self.execute_write('DROP INDEX IF EXISTS torrent_tracker_idx')
                         self.execute_write('DROP INDEX IF EXISTS torrent_tracker_last_idx')
-                        self.execute_write("COMMIT")
+                        #self.execute_write("COMMIT")
 
                         if os.path.exists(tmpfilename4):
                             os.remove(tmpfilename4)
                             print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename4
 
                         print >> sys.stderr, 'DB v19 upgrade complete.'
-                        #from time import sleep
-                        #sleep(10000)
 
                         from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
                         notifier = Notifier.getInstance()
@@ -2363,7 +2364,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         else:
                             not_found_torrent_file_set.add((torrent_id,))
 
-                    self.execute_write("BEGIN")
+                    #self.execute_write("BEGIN")
 
                     if not_found_torrent_file_set:
                         remove = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
@@ -2385,7 +2386,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
                         self.executemany(insert, insert_list)
 
-                    self.execute_write("COMMIT")
+                    #self.execute_write("COMMIT")
 
                 # upgradation not yet complete; comeback after 5 sec
                 tqueue.add_task(upgradeDBV19, SUCCESIVE_UPGRADE_PAUSE)
