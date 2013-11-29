@@ -488,7 +488,7 @@ class TorrentDBHandler(BasicDBHandler):
                 'insert_time', 'secret', 'relevance',
                 'source_id', 'category_id', 'status_id',
                 'num_seeders', 'num_leechers', 'comment', 'swift_hash', 'swift_torrent_hash',
-                'tracker_check_retries', 'last_tracker_check']
+                'last_tracker_check']
         self.existed_torrents = set()
 
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
@@ -496,7 +496,10 @@ class TorrentDBHandler(BasicDBHandler):
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
                       'relevance', 'infohash', 'last_tracker_check']
 
-        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
+        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name',
+                'torrent_file_name', 'length', 'creation_date', 'num_files',
+                'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id',
+                'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
         self.category = Category.getInstance()
 
         self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
@@ -794,16 +797,22 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             new_tracker_set.add('DHT')
 
+        # get rid of junk trackers
+        from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
         # prepare the tracker list to add
         if announce:
-            new_tracker_set.add(announce)
+            tracker_url = getUniformedURL(announce)
+            if tracker_url:
+                new_tracker_set.add(tracker_url)
         if announce_list:
             for tier in announce_list:
                 for tracker in tier:
                     # TODO: check this. a limited tracker list
                     if len(new_tracker_set) >= 25:
                         break
-                    new_tracker_set.add(tracker)
+                    tracker_url = getUniformedURL(tracker)
+                    if tracker_url:
+                        new_tracker_set.add(tracker_url)
 
         # add trackers in batch
         self.addTorrentTrackerMappingInBatch(torrent_id, list(new_tracker_set))
@@ -1040,24 +1049,6 @@ class TorrentDBHandler(BasicDBHandler):
         return True
 
     # ------------------------------------------------------------
-    # Sets all good torrent's tracker-checking-retry count to 0.
-    # ------------------------------------------------------------
-    def updateGoodTorrentByInfohash(self, infohash):
-        torrent_id = self._db.getTorrentID(infohash)
-        sql = 'UPDATE Torrent SET tracker_check_retries = 0 WHERE torrent_id = ?'
-        self._db.execute_write(sql, (torrent_id,))
-
-    # ------------------------------------------------------------
-    # Increases all dead torrent's tracker-checking-retry count.
-    # ------------------------------------------------------------
-    def updateDeadTorrentByInfohash(self, infohash, max_retry_count=5):
-        torrent_id = self._db.getTorrentID(infohash)
-        sql = 'UPDATE Torrent SET tracker_check_retries = tracker_check_retries + 1'\
-            + ' WHERE torrent_id = ? AND tracker_check_retries < %d'\
-            % max_retry_count
-        self._db.execute_write(sql, (torrent_id,))
-
-    # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
     # ------------------------------------------------------------
     def addTorrentTrackerMapping(self, torrent_id, tracker):
@@ -1094,7 +1085,7 @@ class TorrentDBHandler(BasicDBHandler):
     # ------------------------------------------------------------
     def getTorrentsOnTracker(self, tracker):
         sql = """
-            SELECT T.infohash, T.tracker_check_retries, T.last_tracker_check
+            SELECT T.infohash, T.last_tracker_check
               FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM
               WHERE TI.tracker = ?
               AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id
@@ -1169,8 +1160,12 @@ class TorrentDBHandler(BasicDBHandler):
     # Gets a list of trackers that have been checked to be alive recently.
     # ------------------------------------------------------------
     def getRecentlyAliveTrackers(self, limit=10):
-        sql = 'SELECT DISTINCT tracker FROM TrackerInfo'\
-            + ' WHERE is_alive = 1 ORDER BY last_check DESC LIMIT ?'
+        sql = """
+            SELECT DISTINCT tracker FROM TrackerInfo
+              WHERE is_alive = 1
+              AND tracker != 'no-DHT' AND tracker != 'no-DHT'
+              ORDER BY last_check DESC LIMIT ?
+            """
         trackers = self._db.fetchall(sql, (limit,))
         return [tracker[0] for tracker in trackers]
 

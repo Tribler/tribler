@@ -30,6 +30,7 @@ try:
 except ImportError as e:
     prctlimported = False
 
+from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 from Tribler.TrackerChecking.TrackerInfoCache import TrackerInfoCache
 from Tribler.TrackerChecking.TrackerSession import TrackerSession
 from Tribler.TrackerChecking.TrackerSession import\
@@ -264,7 +265,15 @@ class TorrentChecking(Thread):
             except:
                 pass
 
-        return list(tracker_set)
+        checked_tracker_set = set()
+        for tracker in tracker_set:
+            if tracker == 'no-DHT' or tracker == 'DHT':
+                continue
+            tracker_url = getUniformedURL(tracker)
+            if tracker_url:
+                checked_tracker_set.add(tracker_url)
+
+        return list(checked_tracker_set)
 
     # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
@@ -394,12 +403,6 @@ class TorrentChecking(Thread):
             'last_tracker_check': last_check}
         self._torrentdb.updateTorrent(response['infohash'], **kw)
 
-        if status == 'good':
-            self._torrentdb.updateGoodTorrentByInfohash(response['infohash'])
-        else:
-            self._torrentdb.updateDeadTorrentByInfohash(response['infohash'],\
-                self._torrent_check_max_retries)
-
     # ------------------------------------------------------------
     # Updates the check result into the database
     # This is for the torrents whose checks have failed and the results
@@ -425,10 +428,7 @@ class TorrentChecking(Thread):
         leechers = 0
         kw = {'seeder': seeders, 'leecher': leechers, 'status': status,\
               'last_tracker_check': last_check}
-        try:
-            self._torrentdb.updateTorrent(response['infohash'], **kw)
-        except:
-            pass
+        self._torrentdb.updateTorrent(response['infohash'], **kw)
 
     # ------------------------------------------------------------
     # Selects torrents to check.
@@ -473,12 +473,11 @@ class TorrentChecking(Thread):
             # get the torrents that should be checked
             for torrent in all_torrent_list:
                 # check interval
-                retries = torrent[1]
-                last_check = torrent[2]
+                last_check = torrent[1]
                 interval = current_time - last_check
 
                 # recheck interval is: interval * 2^(retries)
-                if interval < self._torrent_check_interval**retries:
+                if interval < self._torrent_check_interval:
                     continue
 
                 check_torrent_list.append(torrent)
@@ -486,8 +485,6 @@ class TorrentChecking(Thread):
             # create sessions for the torrents that need to be checked
             for torrent in check_torrent_list:
                 infohash = str2bin(torrent[0])
-                retries = torrent[1]
-                last_check = torrent[2]
 
                 self._createSessionForRequest(infohash, tracker)
             break

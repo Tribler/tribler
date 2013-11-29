@@ -494,21 +494,21 @@ class TestTorrentDBHandler(AbstractDB):
         assert m_comment.find(comments) == -1
 
         m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
-        assert len(m_trackers) == 11
-        assert 'http://tpb.tracker.thepiratebay.org/announce' in m_trackers, m_trackers
+        assert len(m_trackers) == 6
+        assert 'http://tpb.tracker.thepiratebay.org:80/announce' in m_trackers, m_trackers
 
         s_torrent = self.tdb.getTorrent(s_infohash)
         m_torrent = self.tdb.getTorrent(m_infohash)
         assert s_torrent['name'] == 'Tribler_4.1.7_src.zip', s_torrent['name']
         assert m_torrent['name'] == 'Tribler_4.1.7_src', m_torrent['name']
-        assert m_torrent['last_tracker_check'] == 0
+        assert m_torrent['last_check_time'] == 0
 
     def updateTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
         self.tdb.updateTorrent(m_infohash, relevance=3.1415926, category=['Videoclips'],
                          status='good', progress=23.5, seeder=123, leecher=321,
-                         last_check_time=1234567, retry_number=2,
+                         last_check_time=1234567,
                          other_key1='abcd', other_key2=123)
         multiple_torrent_id = self.tdb._db.getTorrentID(m_infohash)
         res_r = self.tdb.getOne('relevance', torrent_id=multiple_torrent_id)
@@ -528,8 +528,6 @@ class TestTorrentDBHandler(AbstractDB):
         assert leecher == 321
         last_check_time = self.tdb.getOne('last_tracker_check', torrent_id=multiple_torrent_id)
         assert last_check_time == 1234567, last_check_time
-        retry_number = self.tdb.getOne('tracker_check_retries', torrent_id=multiple_torrent_id)
-        assert retry_number == 2
 
     def deleteTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
