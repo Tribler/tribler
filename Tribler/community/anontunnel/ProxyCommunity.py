@@ -2,8 +2,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from Tribler.community.anontunnel.ProxyConversion import BreakPayload, PingPayload, PongPayload, StatsPayload
-
 from Tribler.dispersy.candidate import BootstrapCandidate, WalkCandidate
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
@@ -13,7 +11,6 @@ from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 
-from ProxyConversion import CreatePayload, ProxyConversion, ExtendedPayload, DataPayload, ExtendPayload
 from Observable import Observable
 import functools
 
@@ -70,51 +67,10 @@ class ProxyCommunity(Community, Observable):
 
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), ProxyConversion(self)]
+        return [DefaultConversion(self)]
 
     def initiate_meta_messages(self):
-        def yield_all(messages):
-            for msg in messages:
-                yield msg
-
-        def trigger_event(messages, event_name):
-            for msg in messages:
-                self.fire("on_member_heartbeat", candidate=msg.candidate)
-                self.fire(event_name, message=msg)
-
-        event_messages_def = {
-            u"create": CreatePayload(),
-            u"created": CreatePayload(),
-            u"extend": ExtendPayload(),
-            u"extended": ExtendedPayload(),
-            u"data": DataPayload(),
-            u"break": BreakPayload(),
-            u"pong": PongPayload(),
-            u"ping": PingPayload(),
-            u"stats": StatsPayload()
-        }
-
-        event_messages = [
-            Message(self,
-                message_key,
-                NoAuthentication(),
-                PublicResolution(),
-                DirectDistribution(),
-                CandidateDestination(),
-                payload,
-                yield_all,
-                functools.partial(trigger_event, event_name="on_"+message_key))
-
-            for message_key, payload in event_messages_def.items()
-        ]
-
-        return event_messages
-
-    def send_data(self, candidate, payload):
-        #payload = Mock(circuit_id=123, destination=("8.8.8.8", 80), data="TEST", origin=("127.0.0.1", 1234))
-
-        data = self.dispersy.endpoint.bypass_prefix + ''.join(s for s in ProxyConversion._encode_data(Mock(payload=payload)))
-        self.dispersy.endpoint.send([candidate], [data])
+        return []
 
     def _initialize_meta_messages(self):
         super(ProxyCommunity, self)._initialize_meta_messages()

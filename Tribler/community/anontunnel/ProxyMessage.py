@@ -11,7 +11,8 @@ MESSAGE_DATA = chr(5)
 MESSAGE_BREAK = chr(6)
 MESSAGE_PING = chr(7)
 MESSAGE_PONG = chr(8)
-MESSAGE_STATS = chr(8)
+MESSAGE_PUNCTURE = chr(9)
+MESSAGE_STATS = chr(10)
 
 encode_functions = {}
 decode_functions = {}
@@ -20,17 +21,35 @@ decode_functions = {}
 class CreateMessage:
     pass
 
+
 class BreakMessage:
     pass
+
 
 class PingMessage:
     pass
 
+
 class CreatedMessage:
     pass
 
+
 class ExtendMessage:
-    pass
+    @property
+    def host(self):
+        return self.extend_with[0] if self.extend_with else None
+
+    @property
+    def port(self):
+        return self.extend_with[1] if self.extend_with else None
+
+    def __init__(self, extend_with):
+        self.extend_with = extend_with
+
+
+class PunctureMessage:
+    def __init__(self, sock_addr):
+        self.sock_addr = sock_addr
 
 class ExtendedWithMessage:
     @property
@@ -44,23 +63,28 @@ class ExtendedWithMessage:
     def __init__(self, extended_with):
         self.extended_with = extended_with
 
+
 class DataMessage:
     def __init__(self, destination, data, origin=None):
         self.destination = destination
         self.data = data
         self.origin = origin
 
+
 def serialize(circuit_id, type, message):
     return struct.pack("!L", circuit_id) + type + encode_functions[type](message)
 
+
 def change_circuit(buffer, new_id):
     return struct.pack("!L", new_id) + buffer[4:]
+
 
 def get_circuit_and_data(buffer, offset=0):
     circuit_id, = struct.unpack_from("!L", buffer, offset)
     offset += 4
 
     return circuit_id, buffer[offset:]
+
 
 def parse_payload(buffer, offset=0):
     message_type = buffer[offset]
@@ -69,6 +93,29 @@ def parse_payload(buffer, offset=0):
 
 def get_type(buffer):
     return buffer[5]
+
+def __decode_extend(buffer, offset=0):
+    if len(buffer) < offset + 8:
+        raise ValueError("Cannot unpack HostLength/Port, insufficient packet size")
+    host_length, port = struct.unpack_from("!LL", buffer, offset)
+    offset += 8
+
+    if len(buffer) < offset + host_length:
+        raise ValueError("Cannot unpack Host, insufficient packet size")
+    host = buffer[offset:offset + host_length]
+    offset += host_length
+
+    extended_with = (host, port) if host and port else None
+
+    return ExtendMessage(extended_with)
+
+
+def __encode_extend(extend_message):
+    host = extend_message.host if extend_message.host else ''
+    port = extend_message.port if extend_message.port else 0
+
+    data = struct.pack("!LL", len(host), port) + host
+    return data
 
 
 def __decode_extended(buffer, offset=0):
@@ -85,6 +132,7 @@ def __decode_extended(buffer, offset=0):
     extended_with = (host, port)
 
     return ExtendedWithMessage(extended_with)
+
 
 def __encode_extended(extended_with_message):
     data = struct.pack("!LL", len(extended_with_message.host), extended_with_message.port) + extended_with_message.host
@@ -122,6 +170,24 @@ def __decode_data(buffer, offset=0):
 
     return DataMessage(destination, payload, origin)
 
+def __decode_puncture(buffer, offset=0):
+    host_length, port = struct.unpack_from("!LL", buffer, offset)
+    offset += 8
+
+    if len(buffer) < offset + host_length:
+            raise ValueError("Cannot unpack Host, insufficient packet size")
+    host = buffer[offset:offset + host_length]
+    offset += host_length
+
+    destination = (host, port)
+
+    return PunctureMessage(destination)
+
+
+def __encode_puncture(puncture_message):
+    return struct.pack("!LL", len(puncture_message.sock_addr[0]), puncture_message.sock_addr[1]) + puncture_message.sock_addr[0]
+
+
 def __encode_data(data_message):
     if data_message.destination is None:
         (host, port) = ("0.0.0.0", 0)
@@ -148,8 +214,8 @@ encode_functions[MESSAGE_CREATE] = empty_string_lambda
 decode_functions[MESSAGE_CREATED] = lambda buffer, offset: CreatedMessage()
 encode_functions[MESSAGE_CREATED] = empty_string_lambda
 
-decode_functions[MESSAGE_EXTEND] = lambda buffer, offset: ExtendMessage()
-encode_functions[MESSAGE_EXTEND] = empty_string_lambda
+decode_functions[MESSAGE_EXTEND] = __decode_extend
+encode_functions[MESSAGE_EXTEND] = __encode_extend
 
 decode_functions[MESSAGE_EXTENDED] = __decode_extended
 encode_functions[MESSAGE_EXTENDED] = __encode_extended
@@ -162,6 +228,9 @@ encode_functions[MESSAGE_BREAK] = empty_string_lambda
 
 decode_functions[MESSAGE_PING] = lambda buffer, offset: PingMessage()
 encode_functions[MESSAGE_PING] = empty_string_lambda
+
+decode_functions[MESSAGE_PUNCTURE] = __decode_puncture
+encode_functions[MESSAGE_PUNCTURE] = __encode_puncture
 
 decode_functions[MESSAGE_STATS] = lambda buffer, offset: decode(buffer[offset:])[1]
 encode_functions[MESSAGE_STATS] = lambda stats: encode(stats)
