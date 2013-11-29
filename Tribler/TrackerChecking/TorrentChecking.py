@@ -15,7 +15,7 @@ import select
 import socket
 
 import threading
-from threading import Thread, Lock, Event
+from threading import Thread, RLock, Event
 import Queue
 
 from traceback import print_exc, print_stack
@@ -50,8 +50,10 @@ from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChe
 # some settings
 DEBUG = False
 
-DEFAULT_MAX_GUI_REQUESTS = 1000
-DEFAULT_MAX_SELECTED_REQUESTS = 2000
+DEFAULT_MAX_GUI_REQUESTS = 5000
+
+DEFAULT_TORRENT_SELECTION_INTERVAL = 20 # every 20 seconds, the thread will select torrents to check
+DEFAULT_TORRENT_CHECK_INTERVAL     = 60 # a torrent will only be checked every 60 seconds
 
 # ============================================================
 # This is the single-threaded tracker checking class.
@@ -63,7 +65,9 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     # Intialization.
     # ------------------------------------------------------------
-    def __init__(self, args=None):
+    def __init__(self,\
+            torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL,\
+            torrent_check_interval=DEFAULT_TORRENT_CHECK_INTERVAL):
         if TorrentChecking.__single:
             raise RuntimeError("Torrent Checking is singleton")
         TorrentChecking.__single = self
@@ -83,7 +87,7 @@ class TorrentChecking(Thread):
         # TODO: make these configurable
         self._select_timeout = 2
 
-        self._lock = Lock()
+        self._lock = RLock()
         self._session_dict = dict()
         self._pending_response_dict = dict()
 
@@ -91,18 +95,14 @@ class TorrentChecking(Thread):
         self._tracker_info_cache = TrackerInfoCache()
 
         self._tracker_selection_idx = 0
-        self._torrent_select_interval = 10
-        self._torrent_check_interval = 60
-        self._torrent_check_max_retries = 5
+        self._torrent_select_interval = torrent_select_interval
+        self._torrent_check_interval = torrent_check_interval
 
         # request queues
         self._new_request_event = Event()
 
-        self._max_gui_requests = DEFAULT_MAX_GUI_REQUESTS
-        self._max_selected_requests = DEFAULT_MAX_SELECTED_REQUESTS
-
-        self._gui_request_queue = Queue.Queue(self._max_gui_requests)
-        self._selected_request_queue = Queue.Queue(self._max_selected_requests)
+        #self._max_gui_requests = DEFAULT_MAX_GUI_REQUESTS
+        self._gui_request_queue = Queue.Queue()
 
         self._should_stop = False
 
@@ -127,6 +127,13 @@ class TorrentChecking(Thread):
     @staticmethod
     def delInstance():
         TorrentChecking.__single = None
+
+    # ------------------------------------------------------------
+    # (Public API)
+    # Sets the automatic torrent selection interval.
+    # ------------------------------------------------------------
+    def setTorrentSelectionInterval(self, interval):
+        self._torrent_select_interval = interval
 
     # ------------------------------------------------------------
     # (Public API)
@@ -171,20 +178,6 @@ class TorrentChecking(Thread):
         return successful
 
     # ------------------------------------------------------------
-    # (For Unit Test ONLY) Adds an infohash request.
-    # ------------------------------------------------------------
-    def addInfohashRequest(self, infohash):
-        try:
-            request = dict()
-            request['infohash'] = infohash
-            request['trackers'] = set()
-            self._gui_request_queue.put_nowait(request)
-            self._new_request_event.set()
-        except Queue.Full:
-            if DEBUG:
-                print >> sys.stderr, '[WARN] GUI request queue is full.'
-
-    # ------------------------------------------------------------
     # Processes a GUI request.
     # ------------------------------------------------------------
     @forceDBThread
@@ -208,7 +201,7 @@ class TorrentChecking(Thread):
         # the request to an existing session
         successful = False
         for tracker_url in tracker_set:
-            self._tracker_info_cache.addNewTrackerInfo(tracker_url)
+            #self._tracker_info_cache.addNewTrackerInfo(tracker_url)
             self._updateTorrentTrackerMapping(torrent_id, tracker_url)
             self._createSessionForRequest(infohash, tracker_url)
 
@@ -265,6 +258,7 @@ class TorrentChecking(Thread):
             except:
                 pass
 
+        """
         checked_tracker_set = set()
         for tracker in tracker_set:
             if tracker == 'no-DHT' or tracker == 'DHT':
@@ -272,8 +266,10 @@ class TorrentChecking(Thread):
             tracker_url = getUniformedURL(tracker)
             if tracker_url:
                 checked_tracker_set.add(tracker_url)
+        """
 
-        return list(checked_tracker_set)
+        #return list(checked_tracker_set)
+        return list(tracker_set)
 
     # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.

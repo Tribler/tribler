@@ -25,13 +25,12 @@ class TestTorrentChecking(TestAsServer):
     def setUp(self):
         TestAsServer.setUp(self)
 
-        #init_db(self.getStateDir(), '.')
-
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
         self.tdb._nb = NetworkBuzzDBHandler.getInstance()
 
         self.torrentChecking = TorrentChecking.getInstance()
+        self.torrentChecking.setTorrentSelectionInterval(5)
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
@@ -47,7 +46,6 @@ class TestTorrentChecking(TestAsServer):
         tdef.metainfo_valid = True
 
         self.tdb.addExternalTorrent(tdef)
-        self.torrentChecking.addInfohashRequest(tdef.get_infohash())
         sleep(30)
 
         torrent = self.tdb.getTorrent(tdef.get_infohash())

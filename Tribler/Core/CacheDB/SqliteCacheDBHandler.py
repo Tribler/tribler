@@ -1052,9 +1052,7 @@ class TorrentDBHandler(BasicDBHandler):
     # Updates the TorrentTrackerMapping table.
     # ------------------------------------------------------------
     def addTorrentTrackerMapping(self, torrent_id, tracker):
-        sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
-            + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
-        self._db.execute_write(sql, (torrent_id, tracker))
+        self.addTorrentTrackerMappingInBatch(torrent_id, [tracker,])
 
     # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table in batch.
@@ -1116,20 +1114,17 @@ class TorrentDBHandler(BasicDBHandler):
     # Adds a new tracker into the TrackerInfo table.
     # ------------------------------------------------------------
     def addTrackerInfo(self, tracker, to_notify=True):
-        self.addTrackerInfoInBatch([tracker,])
+        self.addTrackerInfoInBatch([tracker,], to_notify)
 
     # ------------------------------------------------------------
     # Adds a new trackers in batch into the TrackerInfo table.
     # ------------------------------------------------------------
     def addTrackerInfoInBatch(self, tracker_list, to_notify=True):
-        try:
-            sql = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
-            self._db.executemany(sql, [(tracker,) for tracker in tracker_list])
+        sql = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
+        self._db.executemany(sql, [(tracker,) for tracker in tracker_list])
 
-            if to_notify:
-                self.notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, tracker_list)
-        except:
-            pass
+        if to_notify:
+            self.notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, tracker_list)
 
     # ------------------------------------------------------------
     # Gets all tracker information from the TrackerInfo table.

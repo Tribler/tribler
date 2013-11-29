@@ -14,7 +14,7 @@ import urllib
 import time
 
 import socket
-from threading import Lock
+from threading import RLock
 
 from Tribler.Core.Utilities.bencode import bdecode
 
@@ -461,7 +461,7 @@ class UdpTrackerSession(TrackerSession):
     # A list of transaction IDs that have been used
     # in order to avoid conflict.
     __active_session_dict = dict()
-    __lock = Lock()
+    __lock = RLock()
 
     # ----------------------------------------
     # Generates a new transaction ID for a given session.
