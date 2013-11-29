@@ -418,14 +418,26 @@ class ABCApp():
         if not self.tunnel or not self.frame:
             return
 
-        def state_call(ds):
-            if ds.get_status() == DLSTATUS_DOWNLOADING:
-                self.tunnel.record_stats = True
-            elif ds.get_status() == DLSTATUS_SEEDING:
-                self.tunnel.record_stats = False
-                self.tunnel.share_stats = True
+        @forceWxThread
+        def thank_you():
+            wx.MessageBox('Thank you for participating in the Anonymous downloading test', 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
-            return (1.0, False)
+
+        def state_call(download):
+            def _callback(ds):
+                if ds.get_status() == DLSTATUS_DOWNLOADING:
+                    self.tunnel.record_stats = True
+                elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
+                    _callback.download_completed = True
+                    self.tunnel.record_stats = False
+                    self.tunnel.share_stats = True
+                    thank_you()
+
+                return (1.0, False)
+
+            _callback.download_completed = False
+
+            return _callback
 
         host = "95.211.198.140:21000"
         root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
@@ -453,7 +465,7 @@ class ABCApp():
         sdef.set_name("AnonTunnel test (1024MB)")
 
         result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
-        result.set_state_callback(state_call, delay=1)
+        result.set_state_callback(state_call(result), delay=1)
 
     def startAPI(self, progress):
         # Start Tribler Session
