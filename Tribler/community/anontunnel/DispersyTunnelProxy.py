@@ -477,20 +477,17 @@ class DispersyTunnelProxy(Observable):
 
         relay_key = (candidate, circuit_id)
         community = self.community
+        extend_with = self.community.get_candidate(message.extend_with) or Candidate(message.extend_with, False) if message.extend_with else None
 
-        # If we can forward it along the chain, do so!
-        if relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
-            relay = self.relay_from_to[relay_key]
+        if extend_with:
+            logger.warning("We might be sending a CREATE to someone we don't know, sending to %s:%d!", message.host, message.port)
 
-            self.send_message(relay.candidate, relay.circuit_id, ProxyMessage.MESSAGE_EXTEND, ProxyMessage.ExtendMessage())
-            return
-        else:  # We are responsible for EXTENDING the circuit
-            self.extend_for(candidate, circuit_id)
+        self.extend_for(candidate, circuit_id, extend_with)
 
     def send_message(self, destination, circuit_id, type, message):
         self.community.dispersy.endpoint.send([destination],[self.prefix + ProxyMessage.serialize(circuit_id, type, message)])
 
-    def extend_for(self, from_candidate, from_circuit_id):
+    def extend_for(self, from_candidate, from_circuit_id, to_candidate=None):
         from_key = (from_candidate, from_circuit_id)
 
         if from_key in self.relay_from_to:
@@ -504,13 +501,13 @@ class DispersyTunnelProxy(Observable):
                 del self.relay_from_to[old_to_key]
                 del self.relay_from_to[from_key]
 
-
-        # Payload contains the address we want to invite to the circuit
-        to_candidate = next(
-            (x for x in self.community.dispersy_yield_verified_candidates()
-             if x and x != from_candidate),
-            None
-        )
+        if not to_candidate:
+            # Payload contains the address we want to invite to the circuit
+            to_candidate = next(
+                (x for x in self.community.dispersy_yield_verified_candidates()
+                 if x and x != from_candidate),
+                None
+            )
 
         if to_candidate:
             to_candidate = to_candidate
