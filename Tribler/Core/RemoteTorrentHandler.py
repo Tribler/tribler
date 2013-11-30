@@ -281,9 +281,15 @@ class RemoteTorrentHandler:
             # add this new torrent to db
             infohash = tdef.get_infohash()
             if self.torrent_db.hasTorrent(infohash):
-                self.torrent_db.updateTorrent(infohash, swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
+                if sdef:
+                    self.torrent_db.updateTorrent(infohash, swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
+                else:
+                    self.torrent_db.updateTorrent(infohash, torrent_file_name=swiftpath)
             else:
-                self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'swift_torrent_hash': sdef.get_roothash(), 'status': 'good'})
+                if sdef:
+                    self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'swift_torrent_hash': sdef.get_roothash(), 'status': 'good'})
+                else:
+                    self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'status': 'good'})
 
             # notify all
             self.notify_possible_torrent_infohash(infohash, True)
@@ -296,29 +302,36 @@ class RemoteTorrentHandler:
             callback()
 
     def _write_to_collected(self, filename):
-        # calculate root-hash
-        sdef = SwiftDef()
-        sdef.add_content(filename)
-        sdef.finalize(self.session.get_swift_path(), destdir=self.session.get_torrent_collecting_dir())
-
-        mfpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
-        if not os.path.exists(mfpath):
-            download = self.session.get_download(sdef.get_roothash())
-            if download:
-                self.session.remove_download(download, removestate=True)
-                sleep(1)
-            elif os.path.exists(mfpath + ".mhash"):  # indicating failed swift download
-                os.remove(mfpath + ".mhash")
-
-            try:
-                shutil.copy(filename, mfpath)
-                shutil.move(filename + '.mhash', mfpath + '.mhash')
-                shutil.move(filename + '.mbinmap', mfpath + '.mbinmap')
-
-            except:
-                print_exc()
-
-        return sdef, mfpath
+        # if we don't have swift, write to collected using infohash as name
+        if os.path.isfile(self.session.get_swift_path()):
+            # calculate root-hash
+            sdef = SwiftDef()
+            sdef.add_content(filename)
+            sdef.finalize(self.session.get_swift_path(), destdir=self.session.get_torrent_collecting_dir())
+    
+            mfpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
+            if not os.path.exists(mfpath):
+                download = self.session.get_download(sdef.get_roothash())
+                if download:
+                    self.session.remove_download(download, removestate=True)
+                    sleep(1)
+                elif os.path.exists(mfpath + ".mhash"):  # indicating failed swift download
+                    os.remove(mfpath + ".mhash")
+    
+                try:
+                    shutil.copy(filename, mfpath)
+                    shutil.move(filename + '.mhash', mfpath + '.mhash')
+                    shutil.move(filename + '.mbinmap', mfpath + '.mbinmap')
+    
+                except:
+                    print_exc()
+    
+            return sdef, mfpath
+        
+        tdef = TorrentDef.load(filename)
+        mfpath = os.path.join(self.session.get_torrent_collecting_dir(), get_collected_torrent_filename(tdef.get_infohash()))
+        shutil.copyfile(filename, mfpath)
+        return None, mfpath
 
     def notify_possible_torrent_roothash(self, roothash):
         keys = self.callbacks.keys()

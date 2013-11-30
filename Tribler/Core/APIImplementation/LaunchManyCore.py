@@ -830,12 +830,11 @@ class TriblerLaunchMany(Thread):
             print_exc()
 
     def update_torrent_checking_period(self):
-        # dynamically change the interval: update at least once per day
+        # dynamically change the interval: update at least every 2h
         if self.rtorrent_handler:
             ntorrents = self.rtorrent_handler.num_torrents
             if ntorrents > 0:
-                self.torrent_checking_period = min(max(86400 / ntorrents, 30), 300)
-
+                self.torrent_checking_period = min(max(7200 / ntorrents, 10), 100)
         # print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
 
     def run_torrent_check(self):
