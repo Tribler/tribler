@@ -61,14 +61,13 @@ class TrackerInfoCache(object):
         # no need to use the lock when reloading
         self._lock.acquire()
         # update tracker info
-        if self._tracker_info_dict:
-            for tracker_info in tracker_info_list:
-                tracker, alive, last_check, failures = tracker_info
-                self._tracker_info_dict[tracker] = dict()
-                self._tracker_info_dict[tracker]['last_check'] = last_check
-                self._tracker_info_dict[tracker]['failures'] = failures
-                self._tracker_info_dict[tracker]['alive'] = alive
-                self._tracker_info_dict[tracker]['updated'] = False
+        for tracker_info in tracker_info_list:
+            tracker, alive, last_check, failures = tracker_info
+            self._tracker_info_dict[tracker] = dict()
+            self._tracker_info_dict[tracker]['last_check'] = last_check
+            self._tracker_info_dict[tracker]['failures'] = failures
+            self._tracker_info_dict[tracker]['alive'] = alive
+            self._tracker_info_dict[tracker]['updated'] = False
         self._lock.release()
 
     # ------------------------------------------------------------
