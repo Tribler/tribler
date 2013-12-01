@@ -196,7 +196,8 @@ class TorrentChecking(Thread):
             db_tracker_list = self._getTrackerList(torrent_id, infohash)
             for tracker in db_tracker_list:
                 tracker_set.add(tracker)
-            
+        
+        if not tracker_set:    
             if DEBUG:
                 print >> sys.stderr, "TorrentChecking: ignoring gui request, no trackers"
             # TODO: add method to handle torrents with no tracker
