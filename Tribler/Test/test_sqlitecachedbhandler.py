@@ -494,7 +494,7 @@ class TestTorrentDBHandler(AbstractDB):
         assert m_comment.find(comments) == -1
 
         m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
-        assert len(m_trackers) == 6
+        assert len(m_trackers) == 8
         assert 'http://tpb.tracker.thepiratebay.org:80/announce' in m_trackers, m_trackers
 
         s_torrent = self.tdb.getTorrent(s_infohash)
