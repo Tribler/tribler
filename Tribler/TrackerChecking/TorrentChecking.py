@@ -86,7 +86,7 @@ class TorrentChecking(Thread):
         self._interrupt_socket = InterruptSocket()
 
         self._lock = RLock()
-        self._session_dict = dict()
+        self._session_list = []
         self._pending_response_dict = dict()
 
         # initialize a tracker status cache, TODO: add parameters
@@ -121,6 +121,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @staticmethod
     def delInstance():
+        TorrentChecking.__single.shutdown()
         TorrentChecking.__single = None
 
     # ------------------------------------------------------------
@@ -135,8 +136,10 @@ class TorrentChecking(Thread):
     # The public interface to shutdown the thread.
     # ------------------------------------------------------------
     def shutdown(self):
-        self._should_stop = True
-        self._interrupt_socket.interrupt()
+        if not self._should_stop:
+            self._should_stop = True
+            self._interrupt_socket.interrupt()
+            self._interrupt_socket.close()
 
     # ------------------------------------------------------------
     # (Public API)
@@ -292,7 +295,7 @@ class TorrentChecking(Thread):
         # check there is any existing session that scrapes this torrent
         request_handled = False
         with self._lock:
-            for session in self._session_dict.values():
+            for session in self._session_list:
                 if session.getTracker() != tracker_url or session.hasFailed():
                     continue
 
@@ -327,7 +330,7 @@ class TorrentChecking(Thread):
             session.addInfohash(infohash)
             
             with self._lock:
-                self._session_dict[session.getSocket()] = session
+                self._session_list.append(session)
                 self._interrupt_socket.interrupt()
             
             # update the number of responses this torrent is expecting
@@ -350,16 +353,12 @@ class TorrentChecking(Thread):
     # Updates the pending response dictionary.
     # ------------------------------------------------------------
     def _updatePendingResponseDict(self, infohash):
+        
         if infohash in self._pending_response_dict:
             self._pending_response_dict[infohash]['remainingResponses'] += 1
             self._pending_response_dict[infohash]['updated'] = False
         else:
-            self._pending_response_dict[infohash] = dict()
-            self._pending_response_dict[infohash]['infohash'] = infohash
-            self._pending_response_dict[infohash]['remainingResponses'] = 1
-            self._pending_response_dict[infohash]['seeders'] = -2
-            self._pending_response_dict[infohash]['leechers'] = -2
-            self._pending_response_dict[infohash]['updated'] = False
+            self._pending_response_dict[infohash] = {'infohash': infohash, 'remainingResponses': 1, 'seeders': -2, 'leechers': -2, 'updated': False}
 
     # ------------------------------------------------------------
     # Updates the result of a pending request.
@@ -516,8 +515,8 @@ class TorrentChecking(Thread):
                 print >> sys.stderr, 'TorrentChecking: Unexpected error while handling GUI requests:', e
 
             # torrent selection
-            this_time = int(time.time())
-            time_remaining = max(0, self._torrent_select_interval - (this_time - last_time_select_torrent))
+            current_time = int(time.time())
+            time_remaining = max(0, self._torrent_select_interval - (current_time - last_time_select_torrent))
             if time_remaining == 0:
                 if DEBUG: 
                     print >> sys.stderr, 'TorrentChecking: Selecting new torrent'
@@ -529,7 +528,7 @@ class TorrentChecking(Thread):
                     print >> sys.stderr, 'TorrentChecking: Unexpected error during TorrentSelection: ', e
                     print_exc()
                     
-                last_time_select_torrent = this_time
+                last_time_select_torrent = current_time
                 time_remaining = self._torrent_select_interval
 
             # create read and write socket check list
@@ -537,17 +536,21 @@ class TorrentChecking(Thread):
             # check UDP and TCP response sockets if they are readable
             check_read_socket_list = [self._interrupt_socket.get_socket()]
             check_write_socket_list = []
-
-            # items call is threadsafe, not need for a lock
-            for sock, session in self._session_dict.items():
+            
+            session_dict = {}
+            with self._lock:
+                for session in self._session_list:
+                    session_dict[session.getSocket()] = session
+            
+            for session_socket, session in session_dict.iteritems():
                 if session.isTrackerType('UDP'):
-                    check_read_socket_list.append(sock)
+                    check_read_socket_list.append(session_socket)
                 else:
                     if session.isAction(TRACKER_ACTION_CONNECT):
-                        check_write_socket_list.append(sock)
+                        check_write_socket_list.append(session_socket)
                     else:
-                        check_read_socket_list.append(sock)
-
+                        check_read_socket_list.append(session_socket)
+            
             # select
             try:
                 read_socket_list, write_socket_list, error_socket_list = \
@@ -563,34 +566,24 @@ class TorrentChecking(Thread):
             # we don't want any unexpected exception to break the loop
             try:
                 # >> Step 1: Check the sockets
-                with self._lock:
-                    # check writable sockets (TCP connections)
-                    if DEBUG:
-                        print >> sys.stderr, 'TorrentChecking: got %d writable sockets'%len(write_socket_list)
+                # check writable sockets (TCP connections)
+                if DEBUG:
+                    print >> sys.stderr, 'TorrentChecking: got %d writable sockets'%len(write_socket_list)
+                for write_socket in write_socket_list:
+                    session = session_dict[write_socket]
+                    session.handleRequest()
 
-                    for write_socket in write_socket_list:
-                        session = self._session_dict[write_socket]
-                        session.handleRequest()
-    
-                    # check readable sockets
-                    if DEBUG:
-                        print >> sys.stderr, 'TorrentChecking: got %d readable sockets'%(len(read_socket_list) - 1)
-                    for read_socket in read_socket_list:
-                        if read_socket != self._interrupt_socket.get_socket():
-                            session = self._session_dict[read_socket]
-                            session.handleRequest()
-                        else:
-                            read_socket.recv(1)
+                # check readable sockets
+                if DEBUG:
+                    print >> sys.stderr, 'TorrentChecking: got %d readable sockets'%(len(read_socket_list) - 1)
+                for read_socket in read_socket_list:
+                    session = session_dict.get(read_socket, self._interrupt_socket)
+                    session.handleRequest()
                             
                 # >> Step 2: Handle timedout UDP sessions
-                for session in self._session_dict.values():
+                for session in session_dict.values():
                     diff = current_time - session.getLastContact()
-                    if session.isTrackerType('UDP'):
-                        interval = UDP_TRACKER_RECHECK_INTERVAL * (2**session.getRetries())
-                    else:
-                        interval = 60
-                        
-                    if diff > interval:
+                    if diff > session.getRetryInterval():
                         session.increaseRetries()
                             
                         if session.getRetries() > session.getMaxRetries():
@@ -604,16 +597,19 @@ class TorrentChecking(Thread):
                                 print >> sys.stderr, 'TorrentChecking: Tracker[%s] retry, %d.' % (session.getTracker(), session.getRetries())
                 
                 # >> Step 3: Remove completed sessions
-                for session_key, session in self._session_dict.items():
-                    if session.hasFailed() or session.hasFinished():
-                        self._tracker_info_cache.updateTrackerInfo(session.getTracker(), session.hasFailed())
+                with self._lock:
+                    for i in range(len(self._session_list) -1, -1, -1):
+                        session = self._session_list[i]
+                        
+                        if session.hasFailed() or session.hasFinished():
+                            self._tracker_info_cache.updateTrackerInfo(session.getTracker(), session.hasFailed())
 
-                        # set torrent remaining responses
-                        for infohash in session.getInfohashList():
-                            self._pending_response_dict[infohash]['remainingResponses'] -= 1
-                        session.cleanup()
-                    
-                        del self._session_dict[session_key]
+                            # set torrent remaining responses
+                            for infohash in session.getInfohashList():
+                                self._pending_response_dict[infohash]['remainingResponses'] -= 1
+                        
+                            session.cleanup()
+                            self._session_list.pop(i)
 
                 # >> Step 4. check and update new results
                 for infohash, response in self._pending_response_dict.items():
@@ -634,13 +630,13 @@ class TorrentChecking(Thread):
                 print_exc()
                 
             if DEBUG:
-                print >> sys.stderr, 'TorrentChecking: sessions: %d' % len(self._session_dict)
-                for session in self._session_dict.values():
+                print >> sys.stderr, 'TorrentChecking: sessions: %d' % len(self._session_list)
+                for session in self._session_list:
                     print >> sys.stderr, 'TorrentChecking: session[%s], finished=%d, failed=%d' %\
                     (session.getTracker(), session.hasFinished(), session.hasFailed())
 
         # the thread is shutting down, kill all the tracker sessions
-        for session in self._session_dict.values():
+        for session in self._session_list:
             session.cleanup()
             
         if DEBUG:
@@ -671,6 +667,16 @@ class InterruptSocket:
 
     def interrupt(self):
         self.interrupt_socket.sendto("+", (self.ip, self.port))
+    
+    def handleRequest(self):
+        try:
+            self.socket.recv(1024)
+        except:
+            pass
+        
+    def close(self):
+        self.interrupt_socket.close()
+        self.socket.close()
 
     def get_ip(self):
         return self.ip

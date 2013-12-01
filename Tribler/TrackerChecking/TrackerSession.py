@@ -17,6 +17,7 @@ import socket
 from threading import RLock
 
 from Tribler.Core.Utilities.bencode import bdecode
+from traceback import print_exc
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -29,6 +30,9 @@ MAX_INT32 = 2**16-1
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 UDP_TRACKER_RECHECK_INTERVAL = 15
 UDP_TRACKER_MAX_RETRIES = 8
+
+HTTP_TRACKER_RECHECK_INTERVAL = 60
+HTTP_TRACKER_MAX_RETRIES = 0
 
 MAX_TRACKER_MULTI_SCRAPE = 74
 
@@ -176,6 +180,13 @@ class TrackerSession(object):
     # ----------------------------------------
     def hasFinished(self):
         return self._finished
+    
+    # ----------------------------------------
+    # (Public API) Sets the finished flag and closes the socket.
+    # ----------------------------------------
+    def setFinished(self):
+        self._socket.close()
+        self._finished = True
 
     # ----------------------------------------
     # (Public API) Checks if this tracker session has failed.
@@ -187,6 +198,7 @@ class TrackerSession(object):
     # (Public API) Sets the failed flag.
     # ----------------------------------------
     def setFailed(self):
+        self._socket.close()
         self._failed = True
 
     # ----------------------------------------
@@ -238,6 +250,11 @@ class TrackerSession(object):
     def establishConnection(self):
         """Establishes a connection to the tracker."""
         pass
+    
+    @abstractmethod
+    def reestablishConnection(self):
+        """Re-Establishes a connection to the tracker."""
+        pass
 
     @abstractmethod
     def handleConnection(self):
@@ -251,6 +268,12 @@ class TrackerSession(object):
     
     @abstractmethod
     def getMaxRetries(self):
+        """Nr of retries before a session is marked as failed"""
+        pass
+    
+    @abstractmethod
+    def getRetryInterval(self):
+        """Interval between retries"""
         pass
 
 # ============================================================
@@ -282,7 +305,13 @@ class HttpTrackerSession(TrackerSession):
     # Gets the max retry count.
     # ----------------------------------------
     def getMaxRetries(self):
-        return 0
+        return HTTP_TRACKER_MAX_RETRIES
+
+    # ----------------------------------------
+    # Gets interval between retries, in seconds.
+    # ----------------------------------------    
+    def getRetryInterval(self):
+        return HTTP_TRACKER_RECHECK_INTERVAL
 
     # ----------------------------------------
     # Establishes connection.
@@ -291,6 +320,12 @@ class HttpTrackerSession(TrackerSession):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.setblocking(0)
 
+        return self.reestablishConnection()
+    
+    # ----------------------------------------
+    # Re-establishes connection.
+    # ----------------------------------------
+    def reestablishConnection(self):
         # an exception may be raised if the socket is non-blocking
         try:
             self._socket.connect(self._tracker_address)
@@ -302,7 +337,7 @@ class HttpTrackerSession(TrackerSession):
                     print >> sys.stderr, \
                         'TrackerSession: Failed to connect to HTTP tracker [%s,%s]: %s' % \
                         (self._tracker, self._tracker_address, str(e))
-                self._failed = True
+                self.setFailed()
                 return False
 
         self._action = TRACKER_ACTION_CONNECT
@@ -342,7 +377,7 @@ class HttpTrackerSession(TrackerSession):
                 print >> sys.stderr, \
                     'TrackerSession: Failed to send HTTP SCRAPE message:', \
                     e
-            self._failed = True
+            self.setFailed()
             
         if DEBUG:
             print >> sys.stderr, \
@@ -365,7 +400,7 @@ class HttpTrackerSession(TrackerSession):
                 print >> sys.stderr, \
                     'TrackerSession: Failed to receive HTTP SCRAPE response:', \
                     e
-            self._failed = True
+            self.setFailed()
             return
         
         if DEBUG:
@@ -373,7 +408,7 @@ class HttpTrackerSession(TrackerSession):
                 'TrackerSession: Got [%s] as a response'%response
 
         if not response:
-            self._failed = True
+            self.setFailed()
             return
 
         # for the header message, we need to parse the content length in case
@@ -404,11 +439,10 @@ class HttpTrackerSession(TrackerSession):
             # process the retrieved information
             success = self._processScrapeResponse()
             if success:
-                self._finished = True
+                self.setFinished()
             else:
-                self._failed = True
-            self._socket.close()
-
+                self.setFailed()
+                
         # wait for more
         else:
             pass
@@ -422,17 +456,29 @@ class HttpTrackerSession(TrackerSession):
         if code == '301' or code == '302':
             idx = self._header_buffer.find('Location: ')
             if idx == -1:
-                self._failed = True
-                self._socket.close()
+                self.setFailed()
             else:
                 new_location = (self._header_buffer[idx:].split('\r\n')[0]).split(' ')[1]
+                try:
+                    tracker_type, tracker_address, announce_page = TrackerSession.parseTrackerUrl(new_location)
+                    if tracker_type != self._tracker_type:
+                        raise RuntimeError('cannot redirect to different trackertype')
+                    
+                    else:
+                        if DEBUG:
+                            print >> sys.stderr, 'TrackerSession: we are being redirected', new_location
+                    
+                        self._tracker_address = tracker_address
+                        self._announce_page = announce_page
+                        self._socket.close()
+                        
+                        self.reestablishConnection()
                 
-                if DEBUG:
-                    print >> sys.stderr, 'TrackerSession: we are being redirected', new_location
-                
-                #TODO ask lipu
-                self._failed = True
-                self._socket.close()
+                except:
+                    if DEBUG:
+                        print >> sys.stderr, 'TrackerSession: cannot redirect trackertype changed', new_location
+                    print_exc()
+                    self.setFailed()
             return
                 
         if code != '200':
@@ -441,8 +487,7 @@ class HttpTrackerSession(TrackerSession):
                 print >> sys.stderr, \
                 'TrackerSession: Error HTTP SCRAPE response code [%s, %s].' % \
                 (code, msg)
-            self._failed = True
-            self._socket.close()
+            self.setFailed()
             return
 
         # check the content type
@@ -462,11 +507,10 @@ class HttpTrackerSession(TrackerSession):
             # process the retrieved information
             success = self._processScrapeResponse()
             if success:
-                self._finished = True
+                self.setFinished()
             else:
-                self._failed = True
-            self._socket.close()
-
+                self.setFailed()
+                
         else:
             idx = idx + len('Content-Length: ')
             self._content_length = \
@@ -577,6 +621,12 @@ class UdpTrackerSession(TrackerSession):
     # ----------------------------------------
     def getMaxRetries(self):
         return UDP_TRACKER_MAX_RETRIES
+    
+    # ----------------------------------------
+    # Gets interval between retries, in seconds.
+    # ----------------------------------------  
+    def getRetryInterval(self):
+        return UDP_TRACKER_RECHECK_INTERVAL * (2**self.getRetries())
 
     # ----------------------------------------
     # Establishes connection.
@@ -586,26 +636,8 @@ class UdpTrackerSession(TrackerSession):
         self._socket.setblocking(0)
         self._socket.connect(self._tracker_address)
 
-        # prepare connection message
-        self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
-        self._action = TRACKER_ACTION_CONNECT
-        UdpTrackerSession.generateTransactionId(self)
-
-        message = struct.pack('!qii', \
-            self._connection_id, self._action, self._transaction_id)
-        try:
-            self._socket.send(message)
-        except Exception as e:
-            if DEBUG:
-                print >> sys.stderr, \
-                'TrackerSession: Failed to send message to UDP tracker [%s]: %s' % \
-                (self._tracker, str(e))
-            self._failed = True
-            return False
-
-        self._last_contact = int(time.time())
-        return True
-
+        return self.reestablishConnection()
+        
     # ----------------------------------------
     # Re-establishes connection.
     # ----------------------------------------
@@ -624,7 +656,7 @@ class UdpTrackerSession(TrackerSession):
                 print >> sys.stderr, \
                 'TrackerSession: Failed to send message to UDP tracker [%s]: %s' % \
                 (self._tracker, str(e))
-            self._failed = True
+            self.setFailed()
             return False
 
         self._last_contact = int(time.time())
@@ -641,7 +673,7 @@ class UdpTrackerSession(TrackerSession):
             if DEBUG:
                 print >> sys.stderr, \
                 'TrackerSession: Failed to receive UDP CONNECT response:', e
-            self._failed = True
+            self.setFailed()
             return
 
         # check message size
@@ -649,7 +681,7 @@ class UdpTrackerSession(TrackerSession):
             if DEBUG:
                 print >> sys.stderr, \
                 'TrackerSession: Invalid response for UDP CONNECT [%s].' % response
-            self._failed = True
+            self.setFailed()
             return
 
         # check the response
@@ -665,7 +697,7 @@ class UdpTrackerSession(TrackerSession):
                 print >> sys.stderr, \
                 'TrackerSession: Error response for UDP CONNECT [%s]: %s.' % \
                 (response, error_message)
-            self._failed = True
+            self.setFailed()
             return
 
         # update action and IDs
@@ -685,7 +717,7 @@ class UdpTrackerSession(TrackerSession):
             if DEBUG:
                 print >> sys.stderr, \
                 'TrackerSession: Failed to send UDP SCRAPE message:', e
-            self._failed = True
+            self.setFailed()
             return
 
         # no more requests can be appended to this session
@@ -704,7 +736,7 @@ class UdpTrackerSession(TrackerSession):
             if DEBUG:
                 print >> sys.stderr, \
                 'TrackerSession: Failed to receive UDP SCRAPE response:', e
-            self._failed = True
+            self.setFailed()
             return
 
         # check message size
@@ -712,7 +744,7 @@ class UdpTrackerSession(TrackerSession):
             if DEBUG:
                 print >> sys.stderr, \
                 'TrackerSession: Invalid response for UDP SCRAPE [%s].' % response
-            self._failed = True
+            self.setFailed()
             return
 
         # check response
@@ -727,7 +759,7 @@ class UdpTrackerSession(TrackerSession):
                 print >> sys.stderr, \
                 'TrackerSession: Error response for UDP SCRAPE [%s]: [%s].' % \
                 (response, error_message)
-            self._failed = True
+            self.setFailed()
             return
 
         # get results
@@ -742,5 +774,4 @@ class UdpTrackerSession(TrackerSession):
 
         # close this socket and remove its transaction ID from the list
         UdpTrackerSession.removeTransactionId(self)
-        self._finished = True
-        self._socket.close()
+        self.setFinished()
