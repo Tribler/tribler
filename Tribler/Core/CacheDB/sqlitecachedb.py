@@ -2182,6 +2182,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             # only perform these changes once
             if fromver < 19:
+                self.database_update.acquire()
+
                 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 
                 self.execute_write(\
@@ -2245,6 +2247,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 self.executemany(insert, list(mapping_set))
 
                 self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
+
+                self.database_update.release()
 
             all_found_tracker_dict['no-DHT'] = getTrackerID('no-DHT')
             all_found_tracker_dict['DHT'] = getTrackerID('DHT')
