@@ -61,6 +61,7 @@ def cacheProperty(func):
             return self._cache[key]
 
         except AttributeError:
+            self._cache = {}
             x = self._cache[key] = func(self)
             return x
 
