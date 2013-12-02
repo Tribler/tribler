@@ -443,6 +443,9 @@ class ABCApp():
         host = "95.211.198.140:21000"
         root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
 
+        host = "asmat.tribler.org:21000"
+        root_hash = "dfe61ceb7efaf7d1801df0af3ab5f2d816ba1120"
+
         #host = "devristo.dyndns.org:20001"
         #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
 
@@ -463,7 +466,7 @@ class ABCApp():
             print_exc()
 
         sdef = SwiftDef.load_from_url("tswift://" + host + "/" + root_hash)
-        sdef.set_name("AnonTunnel test (1024MB)")
+        sdef.set_name("AnonTunnel test (50 MB)")
 
         result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
         result.set_state_callback(state_call(result), delay=1)
