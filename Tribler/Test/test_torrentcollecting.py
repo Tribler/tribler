@@ -38,20 +38,8 @@ class TestTorrentCollecting(TestAsServer):
         self.config.set_torrent_collecting(True)
         self.config.set_mainline_dht(True)
 
-        self.config.set_swift_tunnel_listen_port(self.config.get_listen_port() + 2)
-        self.config.set_swift_dht_listen_port(self.config.get_listen_port() + 3)
-        self.config.set_swift_tunnel_httpgw_listen_port(self.config.get_listen_port() + 4)
-        self.config.set_swift_tunnel_cmdgw_listen_port(self.config.get_listen_port() + 5)
-        self.config.set_mainline_dht_listen_port(self.config.get_listen_port() + 6)
-
         self.config2 = self.config.copy()  # not really necess
         self.config2.set_state_dir(self.getStateDir(2))
-        self.config2.set_listen_port(self.config.get_listen_port() + 10)
-        self.config2.set_swift_tunnel_listen_port(self.config2.get_listen_port() + 2)
-        self.config2.set_swift_dht_listen_port(self.config2.get_listen_port() + 3)
-        self.config2.set_swift_tunnel_httpgw_listen_port(self.config2.get_listen_port() + 4)
-        self.config2.set_swift_tunnel_cmdgw_listen_port(self.config2.get_listen_port() + 5)
-        self.config2.set_mainline_dht_listen_port(self.config2.get_listen_port() + 6)
 
     def tearDown(self):
         if self.session2:
