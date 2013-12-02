@@ -20,7 +20,8 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
-    forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread
+    forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread, \
+    onDispersyThread
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename, parse_magnetlink
 from Tribler.Core.Session import Session
@@ -123,9 +124,10 @@ class TorrentManager:
                         if self.torrent_db.hasTorrent(torrent.infohash):
                             self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
                         else:
-                            self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
-
+                            torrent.update_torrent_id(self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True))
                     do_db()
+
+                    torrent.torrent_file_name = torrent_filename
                     return torrent_filename
 
                 except ValueError:

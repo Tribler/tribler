@@ -55,9 +55,12 @@ def register_task(*args, **kwargs):
     assert _register_task, "_REGISTER_TASK must have been set"
     return _register_task(*args, **kwargs)
 
+def onDispersyThread():
+    return currentThread().getName() == 'Dispersy'
+
 def forceDispersyThread(func):
     def invoke_func(*args, **kwargs):
-        if not currentThread().getName() == 'Dispersy':
+        if not onDispersyThread():
             def dispersy_thread():
                 func(*args, **kwargs)
             dispersy_thread.__name__ = func.__name__
@@ -70,7 +73,7 @@ def forceDispersyThread(func):
 
 def forcePrioDispersyThread(func):
     def invoke_func(*args, **kwargs):
-        if not currentThread().getName() == 'Dispersy':
+        if not onDispersyThread():
             def dispersy_thread():
                 func(*args, **kwargs)
             dispersy_thread.__name__ = func.__name__
@@ -83,7 +86,7 @@ def forcePrioDispersyThread(func):
 
 def forceAndReturnDispersyThread(func):
     def invoke_func(*args, **kwargs):
-        if not currentThread().getName() == 'Dispersy':
+        if not onDispersyThread():
             event = Event()
 
             result = [None]
