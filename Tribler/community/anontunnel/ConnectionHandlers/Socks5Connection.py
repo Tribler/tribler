@@ -69,7 +69,7 @@ class Socks5Connection(object):
         assert isinstance(request, structs.MethodRequest)
 
         # Only accept NO AUTH
-        if request.version != 0x05 or len({0x00, 0x01, 0x02}.difference(request.methods)) == 2:
+        if request.version != 0x05 or len(set([0x00, 0x01, 0x02]).difference(request.methods)) == 2:
             logger.info("Client has sent INVALID METHOD REQUEST")
             self.buffer = ''
             self.close()
