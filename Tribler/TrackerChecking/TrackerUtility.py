@@ -18,7 +18,8 @@ url_regex = re.compile(
 # Convert a given tracker's URL into a uniformed version:
 #    <type>://<host>:<port>/<page>
 # For example:
-#    udp://tracker.openbittorrent.com:80/announce
+#    udp://tracker.openbittorrent.com:80
+#    http://tracker.openbittorrent.com:80/announce
 # ------------------------------------------------------------
 def getUniformedURL(tracker_url):
     tracker_url = tracker_url.strip()
