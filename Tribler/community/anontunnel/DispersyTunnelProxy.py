@@ -93,6 +93,9 @@ class RelayRoute(object):
 
         self.online = False
 
+        self.last_incoming = time.time()
+
+
 class DispersyTunnelProxy(Observable):
     @property
     def online(self):
@@ -152,7 +155,7 @@ class DispersyTunnelProxy(Observable):
             the Proxy Overlay. """
         Observable.__init__(self)
 
-        self.prefix = 'f'*22 + 'e'
+        self.prefix = 'f' * 22 + 'e'
 
         self.__online = False
         self.share_stats = False
@@ -184,7 +187,7 @@ class DispersyTunnelProxy(Observable):
         self.circuit_tag = {}
 
         self.circuit_length_strategy = ConstantCircuitLengthStrategy(2)# RandomCircuitLengthStrategy(1,4)
-        self.circuit_selection_strategy = LengthSelectionStrategy(2,2)# (min_population_size=4)
+        self.circuit_selection_strategy = LengthSelectionStrategy(2, 2)# (min_population_size=4)
 
         self.extend_strategy = ExtendStrategies.RandomAPriori
 
@@ -210,17 +213,32 @@ class DispersyTunnelProxy(Observable):
                     with self.lock:
                         for circuit in self.circuits.values():
                             if circuit.candidate:
-                                self.send_message(circuit.candidate, circuit.id, ProxyMessage.MESSAGE_PING, ProxyMessage.PingMessage())
+                                self.send_message(circuit.candidate, circuit.id, ProxyMessage.MESSAGE_PING,
+                                                  ProxyMessage.PingMessage())
 
                         for address, circuit_id in self.joined:
-                            self.send_message(address, circuit_id, ProxyMessage.MESSAGE_PING, ProxyMessage.PingMessage())
+                            self.send_message(address, circuit_id, ProxyMessage.MESSAGE_PING,
+                                              ProxyMessage.PingMessage())
 
                         for relay in self.relay_from_to.values():
-                            self.send_message(relay.candidate, relay.circuit_id, ProxyMessage.MESSAGE_PING, ProxyMessage.PingMessage())
+                            self.send_message(relay.candidate, relay.circuit_id, ProxyMessage.MESSAGE_PING,
+                                              ProxyMessage.PingMessage())
 
                         timeout = 10.0
 
-                        dead_circuits = [c for c in self.circuits.values() if c.goal_hops > 0 and c.state is not CIRCUIT_STATE_BROKEN and c.last_incoming < time.time() - timeout]
+                        dead_circuits = [c for c in self.circuits.values()
+                                         if c.goal_hops > 0
+                            and (c.state is CIRCUIT_STATE_READY
+                                 and c.last_incoming < time.time() - timeout
+                                 or c.state in [CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_CREATING]
+                                 and c.last_incoming < time.time() - 6 * timeout
+                                            )
+                        ]
+
+                        dead_relays = [r for r in self.relay_from_to.keys() if self.relay_from_to[r].last_incoming < time.time() - timeout]
+
+                        for relay in dead_relays:
+                            self.break_relay(relay)
 
                         for circuit in dead_circuits:
                             self.break_circuit(circuit.id)
@@ -249,7 +267,7 @@ class DispersyTunnelProxy(Observable):
         if circuit_id > 0 and relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
             relay = self.relay_from_to[relay_key]
             new_packet = self.prefix + ProxyMessage.change_circuit(buffer, relay.circuit_id)
-
+            relay.last_incoming = time.time()
             relay.bytes[1] += len(new_packet)
             self.community.dispersy.endpoint.send([relay.candidate], [new_packet])
 
@@ -265,7 +283,9 @@ class DispersyTunnelProxy(Observable):
         assert isinstance(message, PunctureMessage)
         meta_puncture_request = self.community.get_meta_message(u"dispersy-puncture-request")
         introduced = Candidate(message.sock_addr, False)
-        puncture_message = meta_puncture_request.impl(distribution=(self.community.global_time,), destination=(introduced,), payload=(message.sock_addr, message.sock_addr, random.randint(0, 2**16)))
+        puncture_message = meta_puncture_request.impl(distribution=(self.community.global_time,),
+                                                      destination=(introduced,), payload=(
+            message.sock_addr, message.sock_addr, random.randint(0, 2 ** 16)))
 
         self.community.dispersy.endpoint.send([introduced], [puncture_message.packet])
         logger.warning("We are puncturing our NAT to %s:%d" % message.sock_addr)
@@ -286,9 +306,19 @@ class DispersyTunnelProxy(Observable):
         self.message_observer.subscribe(ProxyMessage.MESSAGE_BREAK, self.on_break)
         self.message_observer.subscribe(ProxyMessage.MESSAGE_PUNCTURE, self.on_puncture)
 
-        community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
+        #community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
 
         self.setup_keep_alive()
+
+        def find_circuit_candidate():
+            while True:
+                try:
+                    candidate = next(self.community.dispersy_yield_verified_candidates(), None)
+
+                    if candidate:
+                        self.on_member_heartbeat(candidate)
+                finally:
+                    yield 5.0
 
         def check_ready():
             while True:
@@ -308,13 +338,15 @@ class DispersyTunnelProxy(Observable):
                         c.timestamp = time.time()
                     elif c.timestamp < t2:
 
-                        if self.record_stats and (len(c.bytes_up_list) == 0 or c.bytes_up[-1] != c.bytes_up_list[-1] and c.bytes_down[-1] != c.bytes_down_list[-1]):
+                        if self.record_stats and (
+                                len(c.bytes_up_list) == 0 or c.bytes_up[-1] != c.bytes_up_list[-1] and c.bytes_down[
+                            -1] != c.bytes_down_list[-1]):
                             c.bytes_up_list.append(c.bytes_up[-1])
                             c.bytes_down_list.append(c.bytes_down[-1])
                             c.times.append(t2)
 
-                        c.speed_up = 1.0*(c.bytes_up[1]-c.bytes_up[0]) / (t2 - c.timestamp)
-                        c.speed_down = 1.0*(c.bytes_down[1]-c.bytes_down[0]) / (t2 - c.timestamp)
+                        c.speed_up = 1.0 * (c.bytes_up[1] - c.bytes_up[0]) / (t2 - c.timestamp)
+                        c.speed_down = 1.0 * (c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp)
 
                         c.timestamp = t2
                         c.bytes_up = [c.bytes_up[1], c.bytes_up[1]]
@@ -329,7 +361,7 @@ class DispersyTunnelProxy(Observable):
                             r.bytes_list.append(r.bytes[-1])
                             r.times.append(t2)
 
-                        r.speed = 1.0*(r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
+                        r.speed = 1.0 * (r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
                         r.timestamp = t2
                         r.bytes = [r.bytes[1], r.bytes[1]]
 
@@ -347,6 +379,7 @@ class DispersyTunnelProxy(Observable):
         callback.register(calc_speeds, priority=-10)
         callback.register(share_stats, priority=-10)
         callback.register(check_ready)
+        callback.register(find_circuit_candidate)
 
 
     def on_break(self, circuit_id, candidate, message):
@@ -400,7 +433,8 @@ class DispersyTunnelProxy(Observable):
 
                 extended_with = candidate
 
-                self.send_message(created_for.candidate, created_for.circuit_id, ProxyMessage.MESSAGE_EXTENDED, ProxyMessage.ExtendedWithMessage(extended_with.sock_addr))
+                self.send_message(created_for.candidate, created_for.circuit_id, ProxyMessage.MESSAGE_EXTENDED,
+                                  ProxyMessage.ExtendedWithMessage(extended_with.sock_addr))
 
                 logger.warning('We have extended circuit (%s, %d) with (%s,%d)',
                                created_for.candidate,
@@ -418,7 +452,7 @@ class DispersyTunnelProxy(Observable):
         direct_sender_address = candidate.sock_addr
         assert isinstance(message, ProxyMessage.DataMessage)
 
-        self.stats['packet_size'] = 0.8*self.stats['packet_size'] + 0.2*len(message.data)
+        self.stats['packet_size'] = 0.8 * self.stats['packet_size'] + 0.2 * len(message.data)
 
         relay_key = (candidate, circuit_id)
         if circuit_id in self.circuits \
@@ -479,15 +513,18 @@ class DispersyTunnelProxy(Observable):
 
         relay_key = (candidate, circuit_id)
         community = self.community
-        extend_with = self.community.get_candidate(message.extend_with) or Candidate(message.extend_with, False) if message.extend_with else None
+        extend_with = self.community.get_candidate(message.extend_with) or Candidate(message.extend_with,
+                                                                                     False) if message.extend_with else None
 
         if extend_with:
-            logger.warning("We might be sending a CREATE to someone we don't know, sending to %s:%d!", message.host, message.port)
+            logger.warning("We might be sending a CREATE to someone we don't know, sending to %s:%d!", message.host,
+                           message.port)
 
         self.extend_for(candidate, circuit_id, extend_with)
 
     def send_message(self, destination, circuit_id, type, message):
-        self.community.dispersy.endpoint.send([destination],[self.prefix + ProxyMessage.serialize(circuit_id, type, message)])
+        self.community.dispersy.endpoint.send([destination],
+                                              [self.prefix + ProxyMessage.serialize(circuit_id, type, message)])
 
     def extend_for(self, from_candidate, from_circuit_id, to_candidate=None):
         from_key = (from_candidate, from_circuit_id)
@@ -566,7 +603,8 @@ class DispersyTunnelProxy(Observable):
                 if circuit.goal_hops == len(circuit.hops):
                     circuit.state = CIRCUIT_STATE_READY
 
-                logger.warning('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
+                logger.warning('Circuit %d has been extended with node at address %s and contains now %d hops',
+                               circuit_id,
                                extended_with, len(self.circuits[circuit_id].hops))
 
                 self.fire("circuit_extended", circuit=circuit)
@@ -630,7 +668,8 @@ class DispersyTunnelProxy(Observable):
         with self.lock:
             self.member_heartbeat[candidate] = time.time()
 
-            if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in [c.candidate for c in self.circuits.values()]:
+            if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in [c.candidate for c in
+                                                                                 self.circuits.values()]:
                 self.create_circuit(candidate)
 
     def send_data(self, payload, circuit_id=None, address=None, ultimate_destination=None, origin=None):
@@ -666,7 +705,8 @@ class DispersyTunnelProxy(Observable):
                         logger.warning("Dropping packets from unknown / broken circuit")
                         return
 
-                self.send_message(address, circuit_id, ProxyMessage.MESSAGE_DATA, ProxyMessage.DataMessage(ultimate_destination, payload, origin))
+                self.send_message(address, circuit_id, ProxyMessage.MESSAGE_DATA,
+                                  ProxyMessage.DataMessage(ultimate_destination, payload, origin))
 
                 if origin is None:
                     self.circuits[circuit_id].bytes_up[1] += len(payload)
@@ -676,6 +716,27 @@ class DispersyTunnelProxy(Observable):
                                 origin, address, circuit_id, ultimate_destination)
             except Exception, e:
                 logger.exception(e)
+
+    def break_relay(self, relay_key):
+        if relay_key in self.relay_from_to:
+            with self.lock:
+                relay = self.relay_from_to[relay_key]
+
+                # Give other members possibility to clean up
+                logger.error("Breaking relay")
+                self.fire("relay_broken", relay=relay)
+
+                # Notify both ways
+                self.send_message(relay_key[0], relay_key[1], ProxyMessage.MESSAGE_BREAK,
+                                          ProxyMessage.BreakMessage())
+
+                self.send_message(relay.candidate, relay.circuit_id, ProxyMessage.MESSAGE_BREAK,
+                                          ProxyMessage.BreakMessage())
+
+                # And delete from routing table, this will stop us from sending PING as well
+                del self.relay_from_to[(relay.candidate, relay.circuit_id)]
+                del self.relay_from_to[relay_key]
+
 
     def break_circuit(self, circuit_id):
         with self.lock:
@@ -716,12 +777,14 @@ class DispersyTunnelProxy(Observable):
 
                 if relay_key[0] == candidate:
                     logger.error("Sending BREAK to (%s, %d)", relay.candidate, relay.circuit_id)
-                    self.send_message(relay.candidate, relay.circuit_id, ProxyMessage.MESSAGE_BREAK, ProxyMessage.BreakMessage())
+                    self.send_message(relay.candidate, relay.circuit_id, ProxyMessage.MESSAGE_BREAK,
+                                      ProxyMessage.BreakMessage())
                     del self.relay_from_to[relay_key]
 
                 elif relay.candidate == candidate:
                     logger.error("Sending BREAK to (%s, %d)", relay_key[0], relay_key[1])
-                    self.send_message(relay_key[0], relay_key[1], ProxyMessage.MESSAGE_BREAK, ProxyMessage.BreakMessage())
+                    self.send_message(relay_key[0], relay_key[1], ProxyMessage.MESSAGE_BREAK,
+                                      ProxyMessage.BreakMessage())
                     del self.relay_from_to[relay_key]
         except BaseException, e:
             logger.exception(e)
