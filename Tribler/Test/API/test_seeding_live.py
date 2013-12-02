@@ -43,7 +43,7 @@ class TestSeeding(TestAsServer):
         self.config.set_overlay(False)
         self.config.set_internal_tracker(True)
 
-        self.config2 = self.config.copy()  # not really necess
+        self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
 
     def setUpPostSession(self):
