@@ -123,10 +123,10 @@ class TorrentManager:
                     def do_db():
                         torrent_id = self.torrent_db.getTorrentID(torrent.infohash)
                         if torrent_id:
-                            torrent.update_torrent_id(torrent_id)
                             self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
                         else:
-                            torrent.update_torrent_id(self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True))
+                            torrent_id = self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
+                        torrent.update_torrent_id(torrent_id)
                     do_db()
 
                     torrent.torrent_file_name = torrent_filename
