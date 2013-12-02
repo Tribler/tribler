@@ -174,8 +174,10 @@ class TestMyChannel(TestGuiAsServer):
 
         self.setUpPreSession()
         self.config.set_libtorrent(True)
+        
+        self.config2 = self.config.copy()
 
-        self.session2 = Session(self.config, ignore_singleton=True)
+        self.session2 = Session(self.config2, ignore_singleton=True)
         self.session2.start()
 
         tdef = TorrentDef()
