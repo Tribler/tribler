@@ -239,7 +239,7 @@ class TTLSearchCommunity(Community):
         if identifier == None:
             identifier = self._dispersy.request_cache.generate_identifier()
             if self.log_searches:
-                log("dispersy.log", "search-statistics", identifier=identifier, keywords=keywords, created_by_me=True)
+                self.log_searches("search-statistics", identifier=identifier, keywords=keywords, created_by_me=True)
 
         if ttl == None:
             if isinstance(self.ttl, tuple):
@@ -323,7 +323,7 @@ class TTLSearchCommunity(Community):
     def on_search(self, messages):
         for message in messages:
             if self.log_searches:
-                log("dispersy.log", "search-statistics", identifier=message.payload.identifier, cycle=self._dispersy.request_cache.has(message.payload.identifier, SearchCommunity.SearchRequest))
+                self.log_searches("search-statistics", identifier=message.payload.identifier, cycle=self._dispersy.request_cache.has(message.payload.identifier, SearchCommunity.SearchRequest))
 
             identifier = message.payload.identifier
             keywords = message.payload.keywords
@@ -363,8 +363,8 @@ class TTLSearchCommunity(Community):
                     forward_message = False
 
             # temp fake immediate response of peers
-            if results:
-                log("dispersy.log", "search-response", identifier=message.payload.identifier)
+            if results and self.log_searches:
+                self.log_searches("search-response", identifier=message.payload.identifier)
 
             if forward_message:
                 if DEBUG:
