@@ -31,7 +31,6 @@ from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.script import assert_
 
 from Tribler.community.privatesemantic.community import PForwardCommunity, \
@@ -455,8 +454,8 @@ class TTLSearchCommunity(Community):
             # fetch callback using identifier
             search_request = self._dispersy.request_cache.get(message.payload.identifier, TTLSearchCommunity.SearchRequest)
             if search_request:
-                if search_request.created_by_me and message.payload.results:
-                    log("dispersy.log", "search-response", identifier=message.payload.identifier)
+                if search_request.created_by_me and message.payload.results and self.log_searches:
+                    self.log_searches("search-response", identifier=message.payload.identifier)
 
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
