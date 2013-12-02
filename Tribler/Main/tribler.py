@@ -427,6 +427,12 @@ class ABCApp():
         def state_call(download):
             def _callback(ds):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
+
+                    if not _callback.peer_added:
+                        _callback.peer_added = True
+                        result.add_peer(("pygmee.tribler.org", 21000))
+                        result.add_peer(("asmat.tribler.org", 21000))
+
                     self.tunnel.record_stats = True
                 elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
                     _callback.download_completed = True
@@ -437,11 +443,12 @@ class ABCApp():
                 return (1.0, False)
 
             _callback.download_completed = False
+            _callback.peer_added = False
 
             return _callback
 
-        host = "95.211.198.140:21000"
-        root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
+        #host = "95.211.198.140:21000"
+        #root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
 
         host = "asmat.tribler.org:21000"
         root_hash = "dfe61ceb7efaf7d1801df0af3ab5f2d816ba1120"
@@ -466,6 +473,7 @@ class ABCApp():
             print_exc()
 
         sdef = SwiftDef.load_from_url("tswift://" + host + "/" + root_hash)
+
         sdef.set_name("AnonTunnel test (50 MB)")
 
         result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())

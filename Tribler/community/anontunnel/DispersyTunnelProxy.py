@@ -17,7 +17,7 @@ from traceback import print_exc
 from Tribler.community.anontunnel import ProxyMessage, ExtendStrategies
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
-from Tribler.community.anontunnel.SelectionStrategies import LengthSelectionStrategy
+from Tribler.community.anontunnel.SelectionStrategies import LengthSelectionStrategy, RandomSelectionStrategy
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
@@ -187,7 +187,7 @@ class DispersyTunnelProxy(Observable):
         self.circuit_tag = {}
 
         self.circuit_length_strategy = ConstantCircuitLengthStrategy(2)# RandomCircuitLengthStrategy(1,4)
-        self.circuit_selection_strategy = LengthSelectionStrategy(2, 2)# (min_population_size=4)
+        self.circuit_selection_strategy = RandomSelectionStrategy(min_population_size=6)
 
         self.extend_strategy = ExtendStrategies.RandomAPriori
 
@@ -313,17 +313,18 @@ class DispersyTunnelProxy(Observable):
         def find_circuit_candidate():
             while True:
                 try:
-                    candidate = next(self.community.dispersy_yield_verified_candidates(), None)
+                    for i in range(1, 5):
+                        candidate = next(self.community.dispersy_yield_verified_candidates(), None)
 
-                    if candidate:
-                        self.on_member_heartbeat(candidate)
+                        if candidate:
+                            self.on_member_heartbeat(candidate)
                 finally:
                     yield 5.0
 
         def check_ready():
             while True:
                 try:
-                    self.circuit_selection_strategy.select(self.active_circuits)
+                    self.circuit_selection_strategy.try_select(self.active_circuits)
                     self.online = True
                 except BaseException:
                     self.online = False
