@@ -187,7 +187,7 @@ class DispersyTunnelProxy(Observable):
         self.circuit_tag = {}
 
         self.circuit_length_strategy = ConstantCircuitLengthStrategy(2)# RandomCircuitLengthStrategy(1,4)
-        self.circuit_selection_strategy = RandomSelectionStrategy(min_population_size=6)
+        self.circuit_selection_strategy = RandomSelectionStrategy(min_population_size=3)
 
         self.extend_strategy = ExtendStrategies.RandomAPriori
 

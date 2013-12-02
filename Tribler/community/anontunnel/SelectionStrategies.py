@@ -1,4 +1,6 @@
-from random import choice
+import random
+
+r = random.Random(500)
 
 __author__ = 'chris'
 
@@ -25,10 +27,10 @@ class RandomSelectionStrategy(SelectionStrategy):
         if len(circuits_to_select_from) < self.min_population_size:
             raise ValueError("At least %d circuits are needed before we select a tunnel" % (self.min_population_size,))
 
-        circuit = choice(circuits_to_select_from)
+        circuit = r.choice(circuits_to_select_from)
 
         while circuit is self.previous:
-            circuit = choice(circuits_to_select_from)
+            circuit = r.choice(circuits_to_select_from)
 
         self.previous = circuit
 
@@ -52,6 +54,6 @@ class LengthSelectionStrategy(SelectionStrategy):
         candidates = [c for c in circuits_to_select_from if self.min <= len(c.hops) <= self.max]
 
         if self.random:
-            return choice(candidates)
+            return r.choice(candidates)
         else:
             return candidates[0]
