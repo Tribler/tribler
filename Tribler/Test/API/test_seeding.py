@@ -39,7 +39,6 @@ class TestSeeding(TestAsServer):
 
         self.config2 = self.config.copy()  # not really necess
         self.config2.set_state_dir(self.getStateDir(2))
-        self.config2.set_listen_port(4810)
 
         self.dscfg2 = DownloadStartupConfig()
         self.dscfg2.set_dest_dir(self.getDestDir(2))
@@ -96,7 +95,7 @@ class TestSeeding(TestAsServer):
 
     def subtest_is_seeding(self):
         infohash = self.tdef.get_infohash()
-        s = BTConnection('localhost', self.hisport, user_infohash=infohash)
+        s = BTConnection('localhost', self.session.get_listen_port(), user_infohash=infohash)
         s.read_handshake_medium_rare()
 
         s.send(CHOKE)
@@ -124,7 +123,7 @@ class TestSeeding(TestAsServer):
 
         time.sleep(5)
 
-        d.add_peer(("127.0.0.1", self.hisport))
+        d.add_peer(("127.0.0.1", self.session.get_listen_port()))
         assert self.downloading_event.wait(60)
 
     def downloader_state_callback(self, ds):
