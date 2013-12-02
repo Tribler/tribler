@@ -672,6 +672,10 @@ class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
     def initiate_meta_messages(self):
         return HForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
 
+    def unload_community(self):
+        HForwardCommunity.unload_community(self)
+        TTLSearchCommunity.unload_community(self)
+
 class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
 
     @classmethod
@@ -694,6 +698,10 @@ class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
     def initiate_meta_messages(self):
         return PForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
 
+    def unload_community(self):
+        PForwardCommunity.unload_community(self)
+        TTLSearchCommunity.unload_community(self)
+
 class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
 
     @classmethod
@@ -715,6 +723,10 @@ class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
 
     def initiate_meta_messages(self):
         return HForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
+
+    def unload_community(self):
+        HForwardCommunity.unload_community(self)
+        TTLSearchCommunity.unload_community(self)
 
 class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
 
@@ -741,6 +753,9 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
     def initiate_meta_messages(self):
         return PoliForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
 
+    def unload_community(self):
+        PoliForwardCommunity.unload_community(self)
+        TTLSearchCommunity.unload_community(self)
 
 class Das4DBStub():
 
