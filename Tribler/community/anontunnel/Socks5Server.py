@@ -116,7 +116,7 @@ class Socks5Server(Observable):
 
         return udp_relay_socket
 
-    def on_tunnel_data(self, data, sender=None):
+    def on_tunnel_data(self, data):
         # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
 
         # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP

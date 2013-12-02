@@ -416,6 +416,9 @@ class DispersyTunnelProxy(Observable):
                 circuit.created = True
                 logger.warning('Circuit %d has been created', circuit_id)
 
+                if circuit.goal_hops == len(circuit.hops):
+                    circuit.state = CIRCUIT_STATE_READY
+
                 # Instantiate extend strategy
                 circuit.extend_strategy = self.extend_strategy(self, circuit)
 
@@ -448,13 +451,10 @@ class DispersyTunnelProxy(Observable):
 
     def on_data(self, circuit_id, candidate, message):
         """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
-
-        direct_sender_address = candidate.sock_addr
         assert isinstance(message, ProxyMessage.DataMessage)
 
         self.stats['packet_size'] = 0.8 * self.stats['packet_size'] + 0.2 * len(message.data)
 
-        relay_key = (candidate, circuit_id)
         if circuit_id in self.circuits \
             and message.destination == ("0.0.0.0", 0) \
             and candidate == self.circuits[circuit_id].candidate:
@@ -462,7 +462,7 @@ class DispersyTunnelProxy(Observable):
             self.circuits[circuit_id].last_incoming = time.time()
             self.circuits[circuit_id].bytes_down[1] += len(message.data)
             self.stats['bytes_returned'] += len(message.data)
-            self.fire("on_data", data=message, sender=direct_sender_address)
+            self.fire("on_data", False, message)
 
         # If it is not ours and we have nowhere to forward to then act as exit node
         elif message.destination != ('0.0.0.0', 0):

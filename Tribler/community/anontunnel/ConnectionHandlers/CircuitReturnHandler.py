@@ -1,3 +1,5 @@
+from Tribler.community.anontunnel import ProxyMessage
+
 __author__ = 'Chris'
 
 import logging
@@ -80,10 +82,6 @@ class ShortCircuitReturnHandler(object):
             self.proxy.stats['bytes_enter'] += len(packet)
             self.proxy.circuits[0].bytes_down[1] += len(packet)
 
-            meta = self.proxy.community.get_meta_message(u"data")
-            message = meta.impl(
-                distribution=(self.proxy.community.global_time,),
-                payload=(0, self.destination_address, packet, source_address))
-
-            self.proxy.fire("on_data", data=message.payload)
+            message = ProxyMessage.DataMessage(("0.0.0.0",0), packet, source_address)
+            self.proxy.on_data(0, None, message)
 
