@@ -21,11 +21,11 @@ from traceback import print_exc
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
-TRACKER_ACTION_CONNECT  = 0
+TRACKER_ACTION_CONNECT = 0
 TRACKER_ACTION_ANNOUNCE = 1
-TRACKER_ACTION_SCRAPE   = 2
+TRACKER_ACTION_SCRAPE = 2
 
-MAX_INT32 = 2**16-1
+MAX_INT32 = 2 ** 16 - 1
 
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 UDP_TRACKER_RECHECK_INTERVAL = 15
@@ -49,12 +49,12 @@ class TrackerSession(object):
     # ----------------------------------------
     # Initializes a TrackerSession.
     # ----------------------------------------
-    def __init__(self, tracker, tracker_type, tracker_address, announce_page,\
+    def __init__(self, tracker, tracker_type, tracker_address, announce_page, \
             update_result_callback):
-        self._tracker         = tracker
-        self._tracker_type    = tracker_type
+        self._tracker = tracker
+        self._tracker_type = tracker_type
         self._tracker_address = tracker_address
-        self._announce_page   = announce_page
+        self._announce_page = announce_page
 
         self._socket = None
         self._infohash_list = list()
@@ -63,7 +63,7 @@ class TrackerSession(object):
         self._update_result_callback = update_result_callback
 
         self._finished = False
-        self._failed   = False
+        self._failed = False
         self._retries = 0
         self._last_contact = 0
 
@@ -79,14 +79,14 @@ class TrackerSession(object):
     # ----------------------------------------
     @staticmethod
     def createSession(tracker_url, update_result_callback):
-        tracker_type, tracker_address, announce_page =\
+        tracker_type, tracker_address, announce_page = \
            TrackerSession.parseTrackerUrl(tracker_url)
 
         if tracker_type == 'UDP':
-            session = UdpTrackerSession(tracker_url, tracker_address,\
+            session = UdpTrackerSession(tracker_url, tracker_address, \
                 announce_page, update_result_callback)
         else:
-            session = HttpTrackerSession(tracker_url, tracker_address,\
+            session = HttpTrackerSession(tracker_url, tracker_address, \
                 announce_page, update_result_callback)
         return session
 
@@ -114,7 +114,7 @@ class TrackerSession(object):
                 hostname_part = url_fields
                 announce_page = None
             else:
-                raise RuntimeError('Invalid tracker URL.')
+                raise RuntimeError('Invalid tracker URL (%s).' % tracker_url)
         else:
             hostname_part, announce_page = url_fields.split('/', 1)
 
@@ -180,7 +180,7 @@ class TrackerSession(object):
     # ----------------------------------------
     def hasFinished(self):
         return self._finished
-    
+
     # ----------------------------------------
     # (Public API) Sets the finished flag and closes the socket.
     # ----------------------------------------
@@ -224,19 +224,19 @@ class TrackerSession(object):
     # ----------------------------------------
     def getInfohashListSize(self):
         return len(self._infohash_list)
-    
+
     # ----------------------------------------
     # Gets the last time this session made a contact with the tracker.
     # ----------------------------------------
     def getLastContact(self):
         return self._last_contact
-    
+
     # ----------------------------------------
     # Gets the retry count.
     # ----------------------------------------
     def getRetries(self):
         return self._retries
-    
+
     # ----------------------------------------
     # Increases the retry count by 1.
     # ----------------------------------------
@@ -250,7 +250,7 @@ class TrackerSession(object):
     def establishConnection(self):
         """Establishes a connection to the tracker."""
         pass
-    
+
     @abstractmethod
     def reestablishConnection(self):
         """Re-Establishes a connection to the tracker."""
@@ -265,12 +265,12 @@ class TrackerSession(object):
     def handleResponse(self):
         """Does process when a response message is available."""
         pass
-    
+
     @abstractmethod
     def getMaxRetries(self):
         """Nr of retries before a session is marked as failed"""
         pass
-    
+
     @abstractmethod
     def getRetryInterval(self):
         """Interval between retries"""
@@ -289,10 +289,10 @@ class HttpTrackerSession(TrackerSession):
     # ----------------------------------------
     # Initializes a UDPTrackerSession.
     # ----------------------------------------
-    def __init__(self, tracker, tracker_address, announce_page,\
+    def __init__(self, tracker, tracker_address, announce_page, \
             update_result_callback):
-        TrackerSession.__init__(self, tracker,\
-            'HTTP', tracker_address, announce_page,\
+        TrackerSession.__init__(self, tracker, \
+            'HTTP', tracker_address, announce_page, \
             update_result_callback)
 
         self._header_buffer = None
@@ -300,7 +300,7 @@ class HttpTrackerSession(TrackerSession):
         self._content_encoding = None
         self._content_length = None
         self._received_length = None
-        
+
     # ----------------------------------------
     # Gets the max retry count.
     # ----------------------------------------
@@ -309,7 +309,7 @@ class HttpTrackerSession(TrackerSession):
 
     # ----------------------------------------
     # Gets interval between retries, in seconds.
-    # ----------------------------------------    
+    # ----------------------------------------
     def getRetryInterval(self):
         return HTTP_TRACKER_RECHECK_INTERVAL
 
@@ -321,7 +321,7 @@ class HttpTrackerSession(TrackerSession):
         self._socket.setblocking(0)
 
         return self.reestablishConnection()
-    
+
     # ----------------------------------------
     # Re-establishes connection.
     # ----------------------------------------
@@ -329,7 +329,7 @@ class HttpTrackerSession(TrackerSession):
         # an exception may be raised if the socket is non-blocking
         try:
             self._socket.connect(self._tracker_address)
-            
+
         except Exception as e:
             # Error number 115 means the opertion is in progress.
             if e[0] not in [115, 10035]:
@@ -365,20 +365,20 @@ class HttpTrackerSession(TrackerSession):
             message += 'info_hash='
             message += urllib.quote(infohash)
             message += '&'
-        message = message[:-1] # remove the last AND '&'
+        message = message[:-1]  # remove the last AND '&'
         message += ' HTTP/1.1\r\n'
         message += '\r\n'
 
         try:
             self._socket.sendall(message)
-            
+
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
                     'TrackerSession: Failed to send HTTP SCRAPE message:', \
                     e
             self.setFailed()
-            
+
         if DEBUG:
             print >> sys.stderr, \
                 'TrackerSession: send', message
@@ -394,7 +394,7 @@ class HttpTrackerSession(TrackerSession):
         try:
             # TODO: this buffer size may be changed
             response = self._socket.recv(8192)
-            
+
         except Exception as e:
             if DEBUG:
                 print >> sys.stderr, \
@@ -402,10 +402,10 @@ class HttpTrackerSession(TrackerSession):
                     e
             self.setFailed()
             return
-        
+
         if DEBUG:
             print >> sys.stderr, \
-                'TrackerSession: Got [%s] as a response'%response
+                'TrackerSession: Got [%s] as a response' % response
 
         if not response:
             self.setFailed()
@@ -432,7 +432,7 @@ class HttpTrackerSession(TrackerSession):
         else:
             self._message_buffer += response
             self._received_length += len(response)
-            
+
 
         # check the read count
         if self._received_length >= self._content_length:
@@ -442,7 +442,7 @@ class HttpTrackerSession(TrackerSession):
                 self.setFinished()
             else:
                 self.setFailed()
-                
+
         # wait for more
         else:
             pass
@@ -463,24 +463,24 @@ class HttpTrackerSession(TrackerSession):
                     tracker_type, tracker_address, announce_page = TrackerSession.parseTrackerUrl(new_location)
                     if tracker_type != self._tracker_type:
                         raise RuntimeError('cannot redirect to different trackertype')
-                    
+
                     else:
                         if DEBUG:
                             print >> sys.stderr, 'TrackerSession: we are being redirected', new_location
-                    
+
                         self._tracker_address = tracker_address
                         self._announce_page = announce_page
                         self._socket.close()
-                        
+
                         self.reestablishConnection()
-                
+
                 except:
                     if DEBUG:
                         print >> sys.stderr, 'TrackerSession: cannot redirect trackertype changed', new_location
                     print_exc()
                     self.setFailed()
             return
-                
+
         if code != '200':
             # error response code
             if DEBUG:
@@ -510,7 +510,7 @@ class HttpTrackerSession(TrackerSession):
                 self.setFinished()
             else:
                 self.setFailed()
-                
+
         else:
             idx = idx + len('Content-Length: ')
             self._content_length = \
@@ -533,7 +533,7 @@ class HttpTrackerSession(TrackerSession):
         if 'files' in response_dict:
             for infohash in response_dict['files'].keys():
                 downloaded = response_dict['files'][infohash]['downloaded']
-                complete   = response_dict['files'][infohash]['complete']
+                complete = response_dict['files'][infohash]['complete']
                 incomplete = response_dict['files'][infohash]['incomplete']
 
                 seeders = downloaded
@@ -545,13 +545,13 @@ class HttpTrackerSession(TrackerSession):
                 # remove this infohash in the infohash list of this session
                 if infohash in unprocessed_infohash_list:
                     unprocessed_infohash_list.remove(infohash)
-        
+
         elif 'failure reason' in response_dict:
             if DEBUG:
                 print >> sys.stderr, \
                 'TrackerSession: Failure as reported by tracker [%s]' % response_dict['failure reason']
-            
-            return False 
+
+            return False
 
         # handle the infohashes with no result
         # (considers as the torrents with seeders/leechers=0/0)
@@ -601,9 +601,9 @@ class UdpTrackerSession(TrackerSession):
     # ----------------------------------------
     # Initializes a UdpTrackerSession.
     # ----------------------------------------
-    def __init__(self, tracker, tracker_address, announce_page,\
+    def __init__(self, tracker, tracker_address, announce_page, \
             update_result_callback):
-        TrackerSession.__init__(self, tracker,\
+        TrackerSession.__init__(self, tracker, \
             'UDP', tracker_address, announce_page, update_result_callback)
 
         self._connection_id = 0
@@ -615,18 +615,18 @@ class UdpTrackerSession(TrackerSession):
     def cleanup(self):
         UdpTrackerSession.removeTransactionId(self)
         TrackerSession.cleanup(self)
-    
+
     # ----------------------------------------
     # Gets the max retry count.
     # ----------------------------------------
     def getMaxRetries(self):
         return UDP_TRACKER_MAX_RETRIES
-    
+
     # ----------------------------------------
     # Gets interval between retries, in seconds.
-    # ----------------------------------------  
+    # ----------------------------------------
     def getRetryInterval(self):
-        return UDP_TRACKER_RECHECK_INTERVAL * (2**self.getRetries())
+        return UDP_TRACKER_RECHECK_INTERVAL * (2 ** self.getRetries())
 
     # ----------------------------------------
     # Establishes connection.
@@ -637,7 +637,7 @@ class UdpTrackerSession(TrackerSession):
         self._socket.connect(self._tracker_address)
 
         return self.reestablishConnection()
-        
+
     # ----------------------------------------
     # Re-establishes connection.
     # ----------------------------------------

@@ -2175,17 +2175,17 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if fromver < 19 or os.path.exists(tmpfilename4):
             self.database_update.acquire()
 
-            all_found_tracker_dict = dict()            
+            all_found_tracker_dict = dict()
             def getTrackerID(tracker):
                 sql = 'SELECT tracker_id FROM TrackerInfo WHERE tracker = ?'
                 return self.fetchone(sql, [tracker, ])
 
-            #only perform these changes once
+            # only perform these changes once
             if fromver < 19:
                 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
-                
+
                 self.execute_write(\
-                    "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0",\
+                    "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0", \
                     commit=False)
 
                 create_new_table = """
@@ -2197,7 +2197,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                       is_alive    integer DEFAULT 1
                     );"""
                 self.execute_write(create_new_table, commit=False)
-    
+
                 create_new_table = """
                     CREATE TABLE TorrentTrackerMapping (
                       torrent_id  integer NOT NULL,
@@ -2207,15 +2207,15 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                       PRIMARY KEY (torrent_id, tracker_id)
                     );"""
                 self.execute_write(create_new_table, commit=False)
-    
+
                 insert_dht_tracker = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
                 default_tracker_list = [ ('no-DHT',), ('DHT',) ]
                 self.executemany(insert_dht_tracker, default_tracker_list, commit=False)
-                
+
                 print >> sys.stderr, 'Importing information from TorrentTracker ...'
                 sql = 'SELECT torrent_id, tracker FROM TorrentTracker'\
                     + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)'
-                
+
                 insert_tracker_set = set()
                 insert_mapping_set = set()
                 try:
@@ -2225,13 +2225,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         if tracker_url:
                             insert_tracker_set.add((tracker_url,))
                             insert_mapping_set.add((torrent_id, tracker_url))
-                    
+
                 except Exception as e:
                     print >> sys.stderr, '[ERROR] fetching tracker from TorrentTracker', e
-                    
+
                 insert = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
                 self.executemany(insert, list(insert_tracker_set))
-                
+
                 # get tracker IDs
                 for tracker, in insert_tracker_set:
                     all_found_tracker_dict[tracker] = getTrackerID(tracker)
@@ -2240,10 +2240,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 mapping_set = set()
                 for torrent_id, tracker in insert_mapping_set:
                     mapping_set.add((torrent_id, all_found_tracker_dict[tracker]))
-                
-                insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id) VALUES(?, ?)'    
+
+                insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id) VALUES(?, ?)'
                 self.executemany(insert, list(mapping_set))
-                    
+
                 self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
 
             all_found_tracker_dict['no-DHT'] = getTrackerID('no-DHT')
@@ -2270,7 +2270,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             + ' WHERE torrent_id NOT IN (SELECT torrent_id FROM TorrentTrackerMapping)'\
                             + ' AND torrent_file_name IS NOT NULL'\
                             + ' LIMIT %d' % UPGRADE_BATCH_SIZE
-                            
+
                         records = self.fetchall(sql)
                     else:
                         records = None
@@ -2283,7 +2283,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         if os.path.exists(tmpfilename4):
                             os.remove(tmpfilename4)
                             print >> sys.stderr, 'DB v19 Upgrade: temp-file deleted', tmpfilename4
-                    
+
                         print >> sys.stderr, 'DB v19 upgrade complete.'
                         self.database_update.release()
                         return
@@ -2337,7 +2337,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     if not_found_torrent_file_set:
                         remove = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
                         self.executemany(remove, list(not_found_torrent_file_set))
-                        
+
                     if update_secret_set:
                         update_secret = 'UPDATE Torrent SET secret = ? WHERE torrent_id = ?'
                         self.executemany(update_secret, list(update_secret_set))
@@ -2345,7 +2345,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     if newly_found_tracker_set:
                         insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
                         self.executemany(insert, list(newly_found_tracker_set))
-                        
+
                         from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
                         notifier = Notifier.getInstance()
                         notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, list(newly_found_tracker_set))
