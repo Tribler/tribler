@@ -145,7 +145,7 @@ class SessionConfigInterface(object):
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.
         @return Port number. """
-        return self.sessconfig.get('general', 'minport')
+        return self._obtain_port('general', 'minport')
 
     def set_timeout_check_interval(self, timeout):
         self.sessconfig.set('general', 'timeout_check_interval', timeout)
