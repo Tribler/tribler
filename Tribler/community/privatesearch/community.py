@@ -61,7 +61,7 @@ class TTLSearchCommunity(Community):
         self.ttl = ttl
         self.neighbors = neighbors
         self.fneighbors = fneighbors
-        self.log_searches = bool(log_searches)
+        self.log_searches = log_searches
         self.use_megacache = bool(use_megacache)
         self.prob = prob
         self.fprob = FPROB
