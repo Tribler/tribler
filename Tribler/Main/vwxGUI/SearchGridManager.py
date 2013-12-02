@@ -121,7 +121,9 @@ class TorrentManager:
 
                     @forceDBThread
                     def do_db():
-                        if self.torrent_db.hasTorrent(torrent.infohash):
+                        torrent_id = self.torrent_db.getTorrentID(torrent.infohash)
+                        if torrent_id:
+                            torrent.update_torrent_id(torrent_id)
                             self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
                         else:
                             torrent.update_torrent_id(self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True))
