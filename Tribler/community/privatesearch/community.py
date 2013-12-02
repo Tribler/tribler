@@ -524,7 +524,7 @@ class TTLSearchCommunity(Community):
 
     def get_connections(self, nr=10, ignore_candidate=None):
         # use taste buddies and fill with random candidates
-        candidates = set(self.yield_taste_buddies(ignore_candidate))
+        candidates = set(self.yield_taste_buddies_candidates(ignore_candidate))
         if len(candidates) < nr:
             sock_addresses = set(candidate.sock_addr for candidate in candidates)
             if ignore_candidate:
@@ -544,7 +544,7 @@ class TTLSearchCommunity(Community):
         return candidates
 
     def get_randompeers_tastebuddies(self, ignore_candidates=set()):
-        taste_buddies = list(self.yield_taste_buddies())
+        taste_buddies = list(self.yield_taste_buddies_candidates())
 
         random_peers = []
         sock_addresses = set(candidate.sock_addr for candidate in taste_buddies)
