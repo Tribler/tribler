@@ -797,6 +797,7 @@ class Das4DBStub():
 
         self.myMegaCache = OrderedDict()
         self.myTorrentCache = {}
+        self.id2category = {1:u''}
 
     def searchNames(self, keywords, local=True, keys=[]):
         my_preferences = {}
