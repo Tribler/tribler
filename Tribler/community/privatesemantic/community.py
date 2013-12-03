@@ -1176,7 +1176,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
             # partition the infohashes
             partitionmask = (2 ** 32) - 1
-            myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
+            myPreferences = [(int(val >> 32), val & partitionmask) for val in myPreferences]
 
             partitions = {}
             for partition, g in groupby(myPreferences, lambda x: x[0]):
@@ -1299,7 +1299,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
         # partition the infohashes
         partitionmask = (2 ** 32) - 1
-        myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
+        myPreferences = [(int(val >> 32), val & partitionmask) for val in myPreferences]
 
         for message in messages:
             _myPreferences = [(partition, val) for partition, val in myPreferences if partition in message.payload.coefficients]
