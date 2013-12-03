@@ -2325,7 +2325,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     tracker_url = getUniformedURL(tracker)
                                     if tracker_url:
                                         if tracker_url not in all_found_tracker_dict:
-                                            newly_found_tracker_set.add([tracker_url, ])
+                                            newly_found_tracker_set.add((tracker_url,))
                                         found_torrent_tracker_map_set.add((torrent_id, tracker_url))
 
                                 else:
