@@ -506,7 +506,7 @@ class ForwardCommunity():
                         print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
                     self.community.request_cache.pop(self.identifier)
-                    return self.community.send_msimilarity_response(self.requesting_candidate, self.identifier, self.my_response, self.received_lists)
+                    return self.community.send_msimilarity_response(self.requesting_candidate, self.number, self.my_response, self.received_lists)
 
                 for response in self.received_lists:
                     self.community.process_similarity_response(response[0], response[1], response[2])
@@ -515,7 +515,7 @@ class ForwardCommunity():
         def on_timeout(self):
             if not self.isProcessed:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: timeout MSimilarityRequest", self.identifier, len(self.received_lists), len(self.requested_candidates), str(self.requested_candidates[0])
+                    print >> sys.stderr, long(time()), "ForwardCommunity: timeout MSimilarityRequest", self.number, len(self.received_lists), len(self.requested_candidates), str(self.requested_candidates[0])
 
                 self.process()
 
