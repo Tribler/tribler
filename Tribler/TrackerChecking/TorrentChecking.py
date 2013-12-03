@@ -103,8 +103,6 @@ class TorrentChecking(Thread):
 
         self._tor_col_dir = Session.get_instance().get_torrent_collecting_dir()
 
-        self.start()
-
     # ------------------------------------------------------------
     # (Public API)
     # The public interface to initialize and get the single instance.
