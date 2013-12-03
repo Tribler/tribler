@@ -762,9 +762,6 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        import sys
-        print >> sys.stderr, type(cls), cls
-
         dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
@@ -792,9 +789,6 @@ class Das4DBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
 
-        self.myPreferences = set()
-        self.myTestPreferences = set()
-
         try:
             # python 2.7 only...
             from collections import OrderedDict
@@ -802,30 +796,16 @@ class Das4DBStub():
             from python27_ordereddict import OrderedDict
 
         self.myMegaCache = OrderedDict()
-        self.id2category = {1:u''}
-
-    def addMyPreference(self, torrent_id, data):
-        infohash = str(torrent_id)
-        self.myPreferences.add(infohash)
-
-    def addTestPreference(self, torrent_id):
-        infohash = str(torrent_id)
-        self.myTestPreferences.add(infohash)
-
-    def getMyPrefListInfohash(self, limit=None, local=True):
-        preferences = self.myPreferences
-        if not local:
-            preferences = preferences | self.myTestPreferences
-        preferences = list(preferences)
-
-        if limit:
-            return preferences[:limit]
-        return preferences
+        self.myTorrentCache = {}
 
     def searchNames(self, keywords, local=True, keys=[]):
         my_preferences = {}
-        for infohash in self.getMyPrefListInfohash(local=local):
+
+        for infohash, is_local in self.myTorrentCache.iteritems():
+            if local and not is_local:
+                continue
             my_preferences[infohash] = unicode(self._dispersy._lan_address)
+
         for infohash, results in self.myMegaCache.iteritems():
             if infohash not in my_preferences:
                 my_preferences[infohash] = results[1]
@@ -842,6 +822,9 @@ class Das4DBStub():
             if result[0] not in self.myMegaCache:
                 self.myMegaCache[result[0]] = (result[0], result[1], 0, 0, 0, time())
         return len(self.myMegaCache)
+
+    def addTorrent(self, infohash, local=True):
+        self.myTorrentCache[infohash] = local
 
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
         if infohash in self.myMegaCache:
