@@ -181,16 +181,14 @@ class ForwardCommunity():
         self.reply_packet_size = 0
 
         if self.integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyPreferenceDBHandler
             from Tribler.Core.CacheDB.Notifier import Notifier
 
             # tribler channelcast database
-            self._torrent_db = TorrentDBHandler.getInstance()
             self._mypref_db = MyPreferenceDBHandler.getInstance()
             self._notifier = Notifier.getInstance()
-            self._peercache = None
         else:
-            self._mypref_db = self._torrent_db = Das4DBStub(self._dispersy)
+            self._mypref_db = Das4DBStub(self._dispersy)
             self._notifier = None
 
         self._peercache = SemanticDatabase(self._dispersy)
@@ -1397,7 +1395,6 @@ class Das4DBStub():
         except ImportError:
             from python27_ordereddict import OrderedDict
 
-        self.myMegaCache = OrderedDict()
         self.id2category = {1:u''}
 
     def addMyPreference(self, preference, data):

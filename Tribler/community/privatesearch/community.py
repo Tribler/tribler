@@ -28,7 +28,6 @@ from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.script import assert_
 
 from Tribler.community.privatesemantic.community import PForwardCommunity, \
@@ -53,13 +52,13 @@ class TTLSearchCommunity(Community):
         return [master]
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True):
-        Community.__init__(self, dispersy, master)
+        super(TTLSearchCommunity, self).__init__(dispersy, master)
 
         self.integrate_with_tribler = integrate_with_tribler
         self.ttl = ttl
         self.neighbors = neighbors
         self.fneighbors = fneighbors
-        self.log_searches = bool(log_searches)
+        self.log_searches = log_searches
         self.use_megacache = bool(use_megacache)
         self.prob = prob
         self.fprob = FPROB
@@ -80,13 +79,12 @@ class TTLSearchCommunity(Community):
             # tribler channelcast database
             self._channelcast_db = ChannelCastDBHandler.getInstance()
             self._torrent_db = TorrentDBHandler.getInstance()
-            self._mypref_db = MyPreferenceDBHandler.getInstance()
             self._notifier = Notifier.getInstance()
 
             # fast connecting
             self.dispersy.callback.register(self.fast_walker)
         else:
-            self._mypref_db = self._torrent_db = self._channelcast_db = Das4DBStub(self._dispersy)
+            self._torrent_db = self._channelcast_db = Das4DBStub(self._dispersy)
             self._notifier = None
 
     def fast_walker(self):
@@ -327,7 +325,7 @@ class TTLSearchCommunity(Community):
         if candidates:
             if prev_mrequest:
                 assert prev_mrequest.keywords == keywords
-                this_request = SearchCommunity.SearchRequest(self, prev_mrequest.identifier, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
+                this_request = TTLSearchCommunity.SearchRequest(self, prev_mrequest.identifier, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
                 this_mrequest = prev_mrequest
                 this_mrequest.add_request(this_request)
 
@@ -335,11 +333,11 @@ class TTLSearchCommunity(Community):
                 if identifier is None:
                     this_mrequest_number, this_mrequest_identifier = TTLSearchCommunity.MSearchRequest.find_unclaimed_identifier(self._request_cache)
                     if self.log_searches:
-                        log("dispersy.log", "search-statistics", identifier=this_mrequest_number, keywords=keywords, created_by_me=True)
+                        self.log_searches("search-statistics", identifier=this_mrequest_number, keywords=keywords, created_by_me=True)
                 else:
                     this_mrequest_number = identifier
                     this_mrequest_identifier = TTLSearchCommunity.MSearchRequest.create_identifier(this_mrequest_number)
-                this_request = SearchCommunity.SearchRequest(self, this_mrequest_identifier, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
+                this_request = TTLSearchCommunity.SearchRequest(self, this_mrequest_identifier, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
                 this_mrequest = self._request_cache.add(TTLSearchCommunity.MSearchRequest(this_mrequest_number, this_mrequest_identifier, this_request))
 
             # create request message
@@ -358,7 +356,7 @@ class TTLSearchCommunity(Community):
     def on_search(self, messages):
         for message in messages:
             if self.log_searches:
-                log("dispersy.log", "search-statistics", identifier=message.payload.identifier, cycle=self._request_cache.has(SearchCommunity.MSearchRequest.create_identifier(message.payload.identifier)))
+                self.log_searches("search-statistics", identifier=message.payload.identifier, cycle=self._request_cache.has(TTLSearchCommunity.MSearchRequest.create_identifier(message.payload.identifier)))
 
             identifier = message.payload.identifier
             keywords = message.payload.keywords
@@ -397,8 +395,8 @@ class TTLSearchCommunity(Community):
                     print >> sys.stderr, long(time()), "TTLSearchCommunity: no results"
 
             # temp fake immediate response of peers
-            if results:
-                log("dispersy.log", "search-response", identifier=message.payload.identifier)
+            if results and self.log_searches:
+                self.log_searches("search-response", identifier=message.payload.identifier)
 
             if forward_message:
                 if DEBUG:
@@ -489,8 +487,8 @@ class TTLSearchCommunity(Community):
             # fetch callback using identifier
             search_request = self._request_cache.get(TTLSearchCommunity.MSearchRequest.create_identifier(message.payload.identifier))
             if search_request:
-                if search_request.created_by_me and message.payload.results:
-                    log("dispersy.log", "search-response", identifier=message.payload.identifier)
+                if search_request.created_by_me and message.payload.results and self.log_searches:
+                    self.log_searches("search-response", identifier=message.payload.identifier)
 
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
@@ -558,7 +556,7 @@ class TTLSearchCommunity(Community):
 
     def get_connections(self, nr=10, ignore_candidate=None):
         # use taste buddies and fill with random candidates
-        candidates = set(self.yield_taste_buddies(ignore_candidate))
+        candidates = set(self.yield_taste_buddies_candidates(ignore_candidate))
         if len(candidates) < nr:
             sock_addresses = set(candidate.sock_addr for candidate in candidates)
             if ignore_candidate:
@@ -578,7 +576,7 @@ class TTLSearchCommunity(Community):
         return candidates
 
     def get_randompeers_tastebuddies(self, ignore_candidates=set()):
-        taste_buddies = list(self.yield_taste_buddies())
+        taste_buddies = list(self.yield_taste_buddies_candidates())
 
         random_peers = []
         sock_addresses = set(candidate.sock_addr for candidate in taste_buddies)
