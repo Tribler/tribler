@@ -421,11 +421,7 @@ class ForwardCommunity():
 
         send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination):
-            cache = self._request_cache.add(ForwardCommunity.SimilarityAttempt(self, destination))
-            send = self.send_msimilarity_request(destination, cache.number)
-
-            if not send:
-                self._request_cache.pop(cache.identifier)
+            send = self.send_msimilarity_request(destination)
 
         if not send:
             self.send_introduction_request(destination)
@@ -442,26 +438,24 @@ class ForwardCommunity():
         if DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: sending msimilarity request to", destination
 
-        identifier = self._dispersy.request_cache.claim(ForwardCommunity.SimilarityAttempt(self, destination))
-
         payload = self.create_similarity_payload()
         if payload:
-            self.send_msimilarity_request(destination, identifier, payload)
+            cache = self._request_cache.add(ForwardCommunity.SimilarityAttempt(self, destination))
+            self.send_msimilarity_request(destination, cache.number, payload)
             return True
 
-        self._dispersy.request_cache.pop(identifier, ForwardCommunity.SimilarityAttempt)
         return False
 
-    def send_msimilarity_request(self, destination, indentifier, payload):
+    def send_msimilarity_request(self, destination, identifier, payload):
         assert isinstance(identifier, int), type(identifier)
         raise NotImplementedError()
 
     class MSimilarityRequest(NumberCache):
         @staticmethod
-        def create_identifier(number, force_number=-1):
+        def create_identifier(number, force_number= -1):
             return u"request-cache:m-similarity-request:%d" % (force_number if force_number >= 0 else number,)
 
-        def __init__(self, community, requesting_candidate, requested_candidates, force_number=-1):
+        def __init__(self, community, requesting_candidate, requested_candidates, force_number= -1):
             NumberCache.__init__(self, community.request_cache, force_number)
             self.community = community
 
@@ -471,7 +465,7 @@ class ForwardCommunity():
             self.received_candidates = set()
             self.received_lists = []
             self.isProcessed = False
-            
+
         @property
         def timeout_delay(self):
             return 7.0
@@ -594,7 +588,7 @@ class ForwardCommunity():
             if not accepted:
                 yield DelayMessageByProof(message)
                 continue
-            
+
             request = self._request_cache.get(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier))
             if not request:
                 yield DropMessage(message, "unknown identifier")
@@ -663,7 +657,7 @@ class ForwardCommunity():
 
         cache = self._request_cache.add(IntroductionRequestCache(self, destination))
         destination.walk(time(), cache.timeout_delay)
-        
+
         if allow_sync:
             sync = self.dispersy_claim_sync_bloom_filter(cache)
         else:
