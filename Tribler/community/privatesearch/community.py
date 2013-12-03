@@ -440,7 +440,7 @@ class TTLSearchCommunity(Community):
                 yield DelayMessageByProof(message)
                 continue
 
-            if not self._dispersy.request_cache.has(message.payload.identifier, TTLSearchCommunity.MSearchRequest):
+            if not self._dispersy.request_cache.has(message.payload.identifier, TTLSearchCommunity.SearchRequest):
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: got search response identifier not found", message.payload.identifier
 
