@@ -137,7 +137,6 @@ class TorrentChecking(Thread):
         if not self._should_stop:
             self._should_stop = True
             self._interrupt_socket.interrupt()
-            self._interrupt_socket.close()
 
     # ------------------------------------------------------------
     # (Public API)
@@ -637,6 +636,7 @@ class TorrentChecking(Thread):
         for session in self._session_list:
             session.cleanup()
 
+        self._interrupt_socket.close()
         print >> sys.stderr, 'TorrentChecking: shutdown'
 
 class InterruptSocket:
