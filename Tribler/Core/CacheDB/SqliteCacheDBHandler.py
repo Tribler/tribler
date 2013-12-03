@@ -184,15 +184,15 @@ class PeerDBHandler(BasicDBHandler):
         return to_return
 
     def addOrGetPeerID(self, permid):
-        peer_id = self._db.getPeerID(permid)
+        peer_id = self.getPeerID(permid)
         if peer_id is None:
             self.addPeer(permid, {})
-            peer_id = self._db.getPeerID(permid)
+            peer_id = self.getPeerID(permid)
 
         return peer_id
 
     def addOrGetPeerIDS(self, permids):
-        peer_ids = self._db.getPeerIDS(permids)
+        peer_ids = self.getPeerIDS(permids)
 
         to_be_inserted = []
         for i, peer_id in enumerate(peer_ids):
@@ -201,7 +201,7 @@ class PeerDBHandler(BasicDBHandler):
 
         sql = "INSERT OR IGNORE INTO Peer (permid) VALUES (?)"
         self._db.executemany(sql, [(bin2str(permid),) for permid in to_be_inserted])
-        return self._db.getPeerIDS(permids)
+        return self.getPeerIDS(permids)
 
     def getPeer(self, permid, keys=None):
         if keys is not None:
@@ -337,7 +337,7 @@ class PeerDBHandler(BasicDBHandler):
         if 'connected_times' in value:
             self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
 
-        # print >>sys.stderr,"sqldbhand: addPeer",`permid`,self._db.getPeerID(permid),`value`
+        # print >>sys.stderr,"sqldbhand: addPeer",`permid`,self.getPeerID(permid),`value`
         # print_stack()
 
     def hasPeer(self, permid, check_db=False):
