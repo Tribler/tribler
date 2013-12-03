@@ -729,30 +729,6 @@ class SQLiteCacheDBBase:
     # ----- Tribler DB operations ----
 
     #------------- useful functions for multiple handlers ----------
-    def insertInfohash(self, infohash, check_dup=False, commit=True):
-        """ Insert an infohash. infohash is binary """
-        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        if infohash in self.infohash_id:
-            if check_dup:
-                print >> sys.stderr, 'sqldb: infohash to insert already exists', repr(infohash)
-            return
-
-        infohash_str = bin2str(infohash)
-        sql_insert_torrent = "INSERT INTO Torrent (infohash) VALUES (?)"
-        self.execute_write(sql_insert_torrent, (infohash_str,), commit)
-
-    def deleteInfohash(self, infohash=None, torrent_id=None, commit=True):
-        assert infohash is None or isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-        assert infohash is None or len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        if torrent_id is None:
-            torrent_id = self.getTorrentID(infohash)
-
-        if torrent_id != None:
-            self.delete('Torrent', torrent_id=torrent_id, commit=commit)
-            if infohash in self.infohash_id:
-                self.infohash_id.pop(infohash)
-
     def getTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
