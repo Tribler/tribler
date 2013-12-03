@@ -510,7 +510,10 @@ class TorrentDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, db, 'Torrent')  # # self,db,torrent
 
         self.status_table = {'good': 1, 'unknown': 0, 'dead': 2}
-        self.status_table.update(self._db.getTorrentStatusTable())
+        sql = 'SELECT lower(name), status_id FROM TorrentStatus'
+        st = self._db.fetchall(sql)
+        self.status_table.update(dict(st))
+
         self.id2status = dict([(x, y) for (y, x) in self.status_table.items()])
         self.id2status[None] = 'unknown'
         self.torrent_dir = None
@@ -526,7 +529,9 @@ class TorrentDBHandler(BasicDBHandler):
                                 u'Picture': 6,
                                 u'xxx': 7,
                                 u'other': 8, }
-        self.category_table.update(self._db.getTorrentCategoryTable())
+        sql = 'SELECT lower(name), category_id FROM Category'
+        ct = self._db.fetchall(sql)
+        self.category_table.update(dict(ct))
         self.category_table[u'unknown'] = 0
 
         self.id2category = dict([(x, y) for (y, x) in self.category_table.items()])
@@ -1934,7 +1939,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, db, 'MyPreference')  # # self,db,'MyPreference'
 
         self.status_table = {'good': 1, 'unknown': 0, 'dead': 2}
-        self.status_table.update(self._db.getTorrentStatusTable())
+        sql = 'SELECT lower(name), status_id FROM TorrentStatus'
+        st = self._db.fetchall(sql)
+        self.status_table.update(dict(st))
+
         self.status_good = self.status_table['good']
         self.rlock = threading.RLock()
         self.loadData()

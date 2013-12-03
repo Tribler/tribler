@@ -184,7 +184,6 @@ class SQLiteCacheDBBase:
 
         # TODO: All global variables must be protected to be thread safe?
         self.status_table = None
-        self.category_table = None
         self.src_table = None
         self.applied_pragma = False
         self.database_update = None
@@ -787,19 +786,6 @@ class SQLiteCacheDBBase:
         if ret:
             ret = str2bin(ret)
         return ret
-
-    def getTorrentStatusTable(self):
-        if self.status_table is None:
-            st = self.getAll('TorrentStatus', ('lower(name)', 'status_id'))
-            self.status_table = dict(st)
-        return self.status_table
-
-    def getTorrentCategoryTable(self):
-        # The key is in lower case
-        if self.category_table is None:
-            ct = self.getAll('Category', ('lower(name)', 'category_id'))
-            self.category_table = dict(ct)
-        return self.category_table
 
     def getTorrentSourceTable(self):
         # Don't use lower case because some URLs are case sensitive
