@@ -137,10 +137,11 @@ class TestSqlitePeerDBHandler(AbstractDB):
         self.p1 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr')
         self.p2 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAABo69alKy95H7RHzvDCsolAurKyrVvtDdT9/DzNAGvky6YejcK4GWQXBkIoQGQgxVEgIn8dwaR9B+3U')
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        hp = self.sqlitedb.hasPeer(fake_permid_x)
-        assert not hp
 
         self.pdb = PeerDBHandler.getInstance()
+
+        hp = self.pdb.hasPeer(fake_permid_x)
+        assert not hp
 
     def tearDown(self):
         PeerDBHandler.delInstance()
@@ -248,7 +249,7 @@ class TestSqlitePeerDBHandler(AbstractDB):
         assert p['ip'] == '1.2.3.5'
         assert p['port'] == 236
 
-        self.pdb._db.deletePeer(fake_permid_x, force=True)
+        self.pdb.deletePeer(fake_permid_x, force=True)
         p = self.pdb.getPeer(fake_permid_x)
         assert p == None
         assert self.pdb.size() == oldsize
@@ -290,7 +291,7 @@ class TestSqlitePeerDBHandler(AbstractDB):
         assert p['port'] == 432
         assert p['last_seen'] == 1234567
 
-        self.pdb._db.deletePeer(fake_permid_x, force=True)
+        self.pdb.deletePeer(fake_permid_x, force=True)
         p = self.pdb.getPeer(fake_permid_x)
         assert p == None
         assert self.pdb.size() == oldsize

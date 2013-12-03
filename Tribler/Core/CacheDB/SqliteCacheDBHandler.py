@@ -38,6 +38,8 @@ from threading import currentThread, RLock, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 import binascii
 
+from Tribler.Core.CacheDB.sqlitecachedb import LimitedOrderedDict
+
 try:
     WindowsError
 except NameError:
@@ -138,14 +140,48 @@ class PeerDBHandler(BasicDBHandler):
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'Peer')  # # self, db ,'Peer'
 
+        self.permid_id = LimitedOrderedDict(1024 * 5)
+
     def __len__(self):
         return self.size()
 
     def getPeerID(self, permid):
-        return self._db.getPeerID(permid)
+        assert isinstance(permid, str), permid
+        # permid must be binary
+        peer_id = self.permid_id.get(permid, None)
+        if peer_id is not None:
+            return peer_id
+
+        sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
+        peer_id = self._db.fetchone(sql_get_peer_id, (bin2str(permid),))
+        if peer_id != None:
+            self.permid_id[permid] = peer_id
+
+        return peer_id
 
     def getPeerIDS(self, permids):
-        return self._db.getPeerIDS(permids)
+        to_select = []
+
+        for permid in permids:
+            assert isinstance(permid, str), permid
+
+            if permid not in self.permid_id:
+                to_select.append(bin2str(permid))
+
+        if len(to_select) > 0:
+            parameters = ", ".join('?' * len(to_select))
+            sql_get_peer_ids = "SELECT peer_id, permid FROM Peer WHERE permid IN (" + parameters + ")"
+            peerids = self._db.fetchall(sql_get_peer_ids, to_select)
+            for peer_id, permid in peerids:
+                self.permid_id[str2bin(permid)] = peer_id
+
+        to_return = []
+        for permid in permids:
+            if permid in self.permid_id:
+                to_return.append(self.permid_id[permid])
+            else:
+                to_return.append(None)
+        return to_return
 
     def addOrGetPeerID(self, permid):
         peer_id = self._db.getPeerID(permid)
@@ -275,7 +311,16 @@ class PeerDBHandler(BasicDBHandler):
             else:
                 value['connected_times'] = old_connected + 1
 
-        peer_existed = self._db.insertPeer(permid, commit=commit, **value)
+        peer_id = self.getPeerID(permid)
+        peer_existed = False
+        if 'name' in value:
+            value['name'] = dunno2unicode(value['name'])
+        if peer_id != None:
+            peer_existed = True
+            where = u'peer_id=%d' % peer_id
+            self._db.update('Peer', where, commit=commit, **value)
+        else:
+            self._db.insert_or_ignore('Peer', permid=bin2str(permid), commit=commit, **value)
 
         if _permid is not None:
             value['permid'] = permid
@@ -295,8 +340,17 @@ class PeerDBHandler(BasicDBHandler):
         # print >>sys.stderr,"sqldbhand: addPeer",`permid`,self._db.getPeerID(permid),`value`
         # print_stack()
 
-    def hasPeer(self, permid):
-        return self._db.hasPeer(permid)
+    def hasPeer(self, permid, check_db=False):
+        if not check_db:
+            return bool(self.getPeerID(permid))
+        else:
+            permid_str = bin2str(permid)
+            sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
+            peer_id = self._db.fetchone(sql_get_peer_id, (permid_str,))
+            if peer_id is None:
+                return False
+            else:
+                return True
 
     def findPeers(self, key, value):
         # only used by Connecter
@@ -328,10 +382,20 @@ class PeerDBHandler(BasicDBHandler):
     def deletePeer(self, permid=None, peer_id=None, force=False, commit=True):
         # don't delete friend of superpeers, except that force is True
         if peer_id is None:
-            peer_id = self._db.getPeerID(permid)
+            peer_id = self.getPeerID(permid)
         if peer_id is None:
             return
-        deleted = self._db.deletePeer(permid=permid, peer_id=peer_id, force=force, commit=commit)
+
+        deleted = False
+        if peer_id != None:
+            if force:
+                self._db.delete('Peer', peer_id=peer_id, commit=commit)
+            else:
+                self._db.delete('Peer', peer_id=peer_id, friend=0, superpeer=0, commit=commit)
+            deleted = not self.hasPeer(permid, check_db=True)
+            if deleted and permid in self.permid_id:
+                self.permid_id.pop(permid)
+
         self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
 
     def updateTimes(self, permid, key, change=1, commit=True):
