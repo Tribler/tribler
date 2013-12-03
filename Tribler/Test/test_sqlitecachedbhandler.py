@@ -608,7 +608,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
     def test_addMyPreference_deletePreference(self):
         p = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
         torrent_id = p[0]
-        infohash = self.mdb._db.getInfohash(torrent_id)
+        infohash = self.mdb.getInfohash(torrent_id)
         destpath = p[1]
         progress = p[2]
         creation_time = p[3]

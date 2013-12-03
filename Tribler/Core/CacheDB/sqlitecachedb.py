@@ -771,29 +771,6 @@ class SQLiteCacheDBBase:
                 to_return.append(None)
         return to_return
 
-    def getTorrentIDRoot(self, roothash):
-        assert isinstance(roothash, str), "roothash has invalid type: %s" % type(roothash)
-        assert len(roothash) == INFOHASH_LENGTH, "roothash has invalid length: %d" % len(roothash)
-
-        sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE swift_hash==?"
-        tid = self.fetchone(sql_get_torrent_id, (bin2str(roothash),))
-        return tid
-
-    def getInfohash(self, torrent_id):
-        sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
-        arg = (torrent_id,)
-        ret = self.fetchone(sql_get_infohash, arg)
-        if ret:
-            ret = str2bin(ret)
-        return ret
-
-    def getTorrentSourceTable(self):
-        # Don't use lower case because some URLs are case sensitive
-        if self.src_table is None:
-            st = self.getAll('TorrentSource', ('name', 'source_id'))
-            self.src_table = dict(st)
-        return self.src_table
-
     def test(self):
         res1 = self.getAll('Category', '*')
         res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))
