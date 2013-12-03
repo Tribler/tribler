@@ -421,7 +421,7 @@ class ForwardCommunity():
 
         send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination):
-            send = self.send_msimilarity_request(destination)
+            send = self.create_msimilarity_request(destination)
 
         if not send:
             self.send_introduction_request(destination)
