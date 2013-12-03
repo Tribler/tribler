@@ -345,6 +345,9 @@ class Torrent(Helper):
                 statedict[key] = getattr(self, key, None)
         return statedict
 
+    @staticmethod
+    def fromTorrentDef(tdef):
+        return Torrent(-1, tdef.get_infohash(), None, None, tdef.get_name(), None, tdef.get_length(), None, None, 0, 0, False)
 
 class RemoteTorrent(Torrent):
     __slots__ = ()
@@ -458,6 +461,8 @@ class NotCollectedTorrent(CollectedTorrent):
         self.files = files
         self.last_check = -1
 
+        if self.torrent_id <= 0:
+            raise RuntimeError("self.torrent_id is too low, %d %s" % (self.torrent_id, self.torrent_file_name))
 
 class LibraryTorrent(Torrent):
     __slots__ = ()

@@ -537,9 +537,9 @@ class HttpTrackerSession(TrackerSession):
         unprocessed_infohash_list = self._infohash_list[:]
         if 'files' in response_dict:
             for infohash in response_dict['files'].keys():
-                downloaded = response_dict['files'][infohash]['downloaded']
-                complete = response_dict['files'][infohash]['complete']
-                incomplete = response_dict['files'][infohash]['incomplete']
+                downloaded = response_dict['files'][infohash].get('downloaded', 0)
+                complete = response_dict['files'][infohash].get('complete', 0)
+                incomplete = response_dict['files'][infohash].get('incomplete', 0)
 
                 seeders = downloaded
                 leechers = incomplete

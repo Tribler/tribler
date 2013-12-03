@@ -2234,24 +2234,19 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.fileindex = 0
         self.UpdateComponents()
 
-        if not isinstance(self.torrent, NotCollectedTorrent):
-            self.library_manager.playTorrent(self.torrent, self.torrent.files[self.links[0].fileindex][0])
+        if isinstance(self.torrent, NotCollectedTorrent):
+            torrent = self.torrent.torrent
+            def load_torrent():
+                self.torrentsearch_manager.loadTorrent(torrent, callback=self.SetTorrent)
+
+            filename = self.torrentsearch_manager.getCollectedFilename(torrent, retried=True)
+            if filename:
+                load_torrent()
+            else:
+                self.torrentsearch_manager.getTorrent(torrent, load_torrent)
 
         else:
-            filename = self.torrentsearch_manager.getCollectedFilename(self.torrent, retried=True)
-            if filename:
-                self.torrentsearch_manager.loadTorrent(self.torrent, callback=self.SetTorrent)
-            else:
-                def do_collect():
-                    torrent = self.torrent.torrent
-                    if torrent:
-                        def callback():
-                            from Tribler.Core.TorrentDef import TorrentDef
-                            torrent_filename = self.torrentsearch_manager.getCollectedFilename(torrent)
-                            tdef = TorrentDef.load(torrent_filename)
-                            self.SetTorrent(CollectedTorrent(torrent, tdef))
-                        self.torrentsearch_manager.getTorrent(torrent, callback)
-                startWorker(None, do_collect, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            self.library_manager.playTorrent(self.torrent, self.torrent.files[self.links[0].fileindex][0])
 
     def RemoveFileindex(self, fileindex):
         for index, link in enumerate(self.links):

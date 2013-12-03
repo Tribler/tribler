@@ -121,12 +121,10 @@ class TorrentManager:
 
                     @forceDBThread
                     def do_db():
-                        torrent_id = self.torrent_db.getTorrentID(torrent.infohash)
-                        if torrent_id:
+                        if self.torrent_db.hasTorrent(torrent.infohash):
                             self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
                         else:
-                            torrent_id = self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
-                        torrent.update_torrent_id(torrent_id)
+                            self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
                     do_db()
 
                     torrent.torrent_file_name = torrent_filename
@@ -137,8 +135,9 @@ class TorrentManager:
 
         if not retried:
             # reload torrent to see if database contains any changes
-            dict = self.torrent_db.getTorrent(torrent.infohash, keys=['swift_torrent_hash', 'torrent_file_name'], include_mypref=False)
+            dict = self.torrent_db.getTorrent(torrent.infohash, keys=['torrent_id', 'swift_torrent_hash', 'torrent_file_name'], include_mypref=False)
             if dict:
+                torrent.update_torrent_id(dict['torrent_id'])
                 torrent.swift_torrent_hash = dict['swift_torrent_hash']
                 torrent.torrent_file_name = dict['torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
@@ -160,16 +159,11 @@ class TorrentManager:
         describing if the torrent is requested
         """
 
-        torrent_filename = self.getCollectedFilename(torrent)
-        if torrent_filename:
-            return torrent_filename
-
         if self.downloadTorrentfileFromPeers(torrent, callback, duplicate=True, prio=prio):
             candidates = torrent.query_candidates
             if candidates and len(candidates) > 0:
                 return (True, "from peers")
             return (True, "from the dht")
-
         return False
 
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio=0):
@@ -260,7 +254,6 @@ class TorrentManager:
 
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):
-
             torrent_filename = self.getCollectedFilename(torrent)
             if not torrent_filename:
                 files = []
