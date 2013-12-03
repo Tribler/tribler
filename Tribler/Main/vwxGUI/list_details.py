@@ -2315,11 +2315,8 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def OnVideoStarted(self, subject, changeType, torrent_tuple):
         infohash, fileindex = torrent_tuple
         if not self.torrent or self.torrent.infohash != infohash:
-            from Tribler.Core.DownloadState import DownloadState
-            d = self.guiutility.utility.session.get_download(infohash)
-            t = Torrent(0, infohash, 0, 0, '', '', 0, 0, 0, 0, 0, None)
-            t.addDs(DownloadState(d, d.get_status(), None, d.get_progress()))
-            self.SetTorrent(NotCollectedTorrent(t, d.get_def().get_files(), []))
+            torrent = Torrent(0, infohash, 0, 0, '', '', 0, 0, 0, 0, 0, None)
+            self.torrentsearch_manager.loadTorrent(torrent, callback=self.SetTorrent)
             return
 
         for control in self.links:
