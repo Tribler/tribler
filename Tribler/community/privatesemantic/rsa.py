@@ -15,8 +15,6 @@ from random import randint, choice
 from collections import namedtuple
 from struct import pack, unpack, unpack_from
 import json
-from numpy.oldnumeric.random_array import random
-
 
 def encrypt_str(encrypt_method, key, plain_str):
     aes_key = StrongRandom().getrandbits(128)
