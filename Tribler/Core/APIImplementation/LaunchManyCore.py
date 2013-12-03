@@ -163,9 +163,9 @@ class TriblerLaunchMany(Thread):
                                     callback(*callback_args)
                         self.queue.add_task(do_task, t=delay)
 
-                    def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", include_id=False, timeout = 0.0, default = None):
+                    def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", include_id=False, timeout=0.0, default=None):
                         event = Event()
-                        container = [default,]
+                        container = [default, ]
 
                         def do_task():
                             if kargs:
@@ -254,9 +254,10 @@ class TriblerLaunchMany(Thread):
                 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
                 self.torrent_checking_period = self.session.get_torrent_checking_period()
                 self.torrent_checking = TorrentChecking.getInstance(self.torrent_checking_period)
+                self.torrent_checking.start()
                 self.run_torrent_check()
             except:
-                print_exc
+                print_exc()
 
         if self.rtorrent_handler:
             self.rtorrent_handler.register(self.dispersy, self.database_thread, self.session, self.session.get_torrent_collecting_max_torrents())
