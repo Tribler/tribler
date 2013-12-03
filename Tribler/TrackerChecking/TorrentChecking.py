@@ -495,6 +495,7 @@ class TorrentChecking(Thread):
 
         if DEBUG:
             print >> sys.stderr, 'TorrentChecking: TrackerInfoCache initialized.'
+        print >> sys.stderr, 'TorrentChecking: initialized.'
 
         last_time_select_torrent = 0
         while not self._should_stop:
