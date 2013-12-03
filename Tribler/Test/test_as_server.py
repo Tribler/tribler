@@ -21,7 +21,6 @@ from threading import enumerate as enumerate_threads
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.Main import tribler
 from Tribler.Utilities import LinuxSingleInstanceChecker
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -37,8 +36,6 @@ defaults.sessdefaults['swift']['swifttunnellistenport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
 defaults.dldefaults["saveas"] = DEST_DIR
-
-tribler.ALLOW_MULTIPLE = True
 
 DEBUG = False
 
@@ -233,7 +230,9 @@ class TestGuiAsServer(TestAsServer):
 
     def startTest(self, callback, min_timeout=5):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        from Tribler.Main.tribler import run
+        from Tribler.Main.tribler import run, ALLOW_MULTIPLE
+
+        ALLOW_MULTIPLE = True
 
         self.hadSession = False
         starttime = time.time()

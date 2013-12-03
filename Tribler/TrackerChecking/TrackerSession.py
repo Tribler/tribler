@@ -121,13 +121,18 @@ class TrackerSession(object):
         # get port number if exists, otherwise, use HTTP default 80
         if hostname_part.find(':') != -1:
             hostname, port = hostname_part.split(':', 1)
-        else:
+            try:
+                port = int(port)
+            except:
+                raise RuntimeError('Invalid port number.')
+        elif tracker_type == 'HTTP':
             hostname = hostname_part
             port = 80
+        else:
+            raise RuntimeError('No port number for UDP tracker URL.')
 
         try:
             hostname = socket.gethostbyname(hostname)
-            port = int(port)
         except:
             raise RuntimeError('Cannot resolve tracker URL.')
 

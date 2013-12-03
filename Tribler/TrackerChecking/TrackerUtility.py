@@ -18,11 +18,15 @@ url_regex = re.compile(
 # Convert a given tracker's URL into a uniformed version:
 #    <type>://<host>:<port>/<page>
 # For example:
-#    udp://tracker.openbittorrent.com:80/announce
+#    udp://tracker.openbittorrent.com:80
+#    http://tracker.openbittorrent.com:80/announce
 # ------------------------------------------------------------
 def getUniformedURL(tracker_url):
-    # get tracker type
     tracker_url = tracker_url.strip()
+    if tracker_url.endswith('/'):
+        tracker_url = tracker_url[:-1]
+
+    # get tracker type
     if tracker_url.startswith('http://'):
         tracker_type = 'http'
         remaning_part = tracker_url[7:]
@@ -34,27 +38,33 @@ def getUniformedURL(tracker_url):
 
     # host, port, and page
     if remaning_part.find('/') == -1:
-        return None
+        if tracker_type == 'http':
+            return None
+        host_part = remaning_part
+        page_part = None
+    else:
+        host_part, page_part = remaning_part.split('/', 1)
 
-    host_part, page_part = remaning_part.split('/', 1)
     if host_part.find(':') == -1:
         if tracker_type == 'udp':
             return None
         else:
-            return
+            host = host_part
+            port = 80
     else:
         host, port = host_part.split(':', 1)
-        try:
-            port = int(port)
-        except:
-            return None
 
-    if page_part.endswith('/'):
-        page = page_part[:-1]
+    try:
+        port = int(port)
+    except:
+        return None
+
+    page = page_part
+
+    if tracker_type == 'http':
+        uniformed_url = '%s://%s:%d/%s' % (tracker_type, host, port, page)
     else:
-        page = page_part
-
-    uniformed_url = '%s://%s:%d/%s' % (tracker_type, host, port, page)
+        uniformed_url = '%s://%s:%d' % (tracker_type, host, port)
 
     if url_regex.match(uniformed_url) == 0:
         return None
