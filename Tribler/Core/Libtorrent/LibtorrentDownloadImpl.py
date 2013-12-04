@@ -223,7 +223,7 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
                     cdcfg = DownloadStartupConfig()
                 else:
                     cdcfg = dcfg
-                self.dlconfig = copy.copy(cdcfg.dlconfig)
+                self.dlconfig = cdcfg.dlconfig.copy()
 
                 # Things that only exist at runtime
                 self.dlruntimeconfig = {}
