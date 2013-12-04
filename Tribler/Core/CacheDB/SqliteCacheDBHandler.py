@@ -1643,88 +1643,6 @@ class TorrentDBHandler(BasicDBHandler):
         connection.createcollation("leven", None)
         return result
 
-    def selectTorrentsToCollect(self, permid, candidate_list=None, similarity_list_size=50, list_size=1):
-        # Niels: no more preference table, hence this method does not work
-        raise NotImplementedError('preference table is gone')
-        """
-        select a torrent to collect from a given candidate list
-        If candidate_list is not present or None, all torrents of
-        this peer will be used for sampling.
-        Return: the infohashed of selected torrent
-        """
-
-        if candidate_list is None:
-            sql = """SELECT similarity, infohash FROM Peer, Preference, Torrent
-                     WHERE Peer.peer_id = Preference.peer_id
-                     AND Torrent.torrent_id = Preference.torrent_id
-                     AND Peer.peer_id IN(Select peer_id from Peer WHERE similarity > 0 ORDER By similarity DESC,last_connected DESC Limit ?)
-                     AND Preference.torrent_id IN(Select torrent_id from Peer, Preference WHERE Peer.peer_id = Preference.peer_id AND Peer.permid = ?)
-                     AND torrent_file_name is NULL
-                  """
-            permid_str = bin2str(permid)
-            results = self._db.fetchall(sql, (similarity_list_size, permid_str))
-        else:
-            # print >>sys.stderr,"torrentdb: selectTorrentToCollect: cands",`candidate_list`
-
-            cand_str = [bin2str(infohash) for infohash in candidate_list]
-            s = repr(cand_str).replace('[', '(').replace(']', ')')
-            sql = """SELECT similarity, infohash FROM Peer, Preference, Torrent
-                     WHERE Peer.peer_id = Preference.peer_id
-                     AND Torrent.torrent_id = Preference.torrent_id
-                     AND Peer.peer_id IN(Select peer_id from Peer WHERE similarity > 0 ORDER By similarity DESC Limit ?)
-                     AND infohash in """ + s + """
-                     AND torrent_file_name is NULL
-                  """
-            results = self._db.fetchall(sql, (similarity_list_size,))
-
-        # convert top-x similarities into item recommendations
-        infohashes = {}
-        for sim, infohash in results:
-            infohashes[infohash] = infohashes.get(infohash, 0) + sim
-
-        res = []
-        keys = infohashes.keys()
-        if len(keys) > 0:
-            keys.sort(lambda a, b: cmp(infohashes[b], infohashes[a]))
-
-            # add all items with highest relevance to candidate_list
-            candidate_list = []
-            for infohash in keys:
-                if infohashes[infohash] == infohashes[keys[0]]:
-                    candidate_list.append(str2bin(infohash))
-
-            # if only 1 candidate use that as result
-            if len(candidate_list) <= list_size:
-                res = filter(lambda x: not x is None, keys[:list_size])
-                candidate_list = None
-
-        # No torrent found with relevance, fallback to most downloaded torrent
-        if len(res) < list_size:
-            if candidate_list is None or len(candidate_list) == 0:
-                sql = """SELECT infohash FROM Torrent, Peer, Preference
-                         WHERE Peer.permid == ?
-                         AND Peer.peer_id == Preference.peer_id
-                         AND Torrent.torrent_id == Preference.torrent_id
-                         AND torrent_file_name is NULL
-                         GROUP BY Preference.torrent_id
-                         ORDER BY Count(Preference.torrent_id) DESC
-                         LIMIT ?"""
-                permid_str = bin2str(permid)
-                res.extend([infohash for infohash, in self._db.fetchall(sql, (permid_str, list_size - len(res)))])
-            else:
-                cand_str = [bin2str(infohash) for infohash in candidate_list]
-                s = repr(cand_str).replace('[', '(').replace(']', ')')
-                sql = """SELECT infohash FROM Torrent, Preference
-                         WHERE Torrent.torrent_id == Preference.torrent_id
-                         AND torrent_file_name is NULL
-                         AND infohash IN """ + s + """
-                         GROUP BY Preference.torrent_id
-                         ORDER BY Count(Preference.torrent_id) DESC
-                         LIMIT ?"""
-                res.extend([infohash for infohash, in self._db.fetchall(sql, (list_size - len(res),))])
-
-        return [str2bin(infohash) for infohash in res if not infohash is None]
-
     def getTorrentsFromSource(self, source):
         """ Get all torrents from the specified Subscription source.
         Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
@@ -2775,16 +2693,6 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def on_dynamic_settings(self, channel_id):
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_STATE, channel_id)
-
-    def selectTorrentsToCollect(self, channel_id=None):
-        if channel_id:
-            sql = 'Select infohash From ChannelTorrents, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND channel_id = ? and ChannelTorrents.torrent_id not in (Select torrent_id From CollectedTorrent)'
-            records = self._db.fetchall(sql, (channel_id,))
-        else:
-            sql = 'Select infohash From ChannelTorrents, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND ChannelTorrents.torrent_id not in (Select torrent_id From CollectedTorrent)'
-            records = self._db.fetchall(sql)
-
-        return [str2bin(infohash) for infohash, in records]
 
     def getNrTorrentsDownloaded(self, channel_id):
         sql = "select count(*) from MyPreference, ChannelTorrents where MyPreference.torrent_id = ChannelTorrents.torrent_id and ChannelTorrents.channel_id = ? LIMIT 1"
