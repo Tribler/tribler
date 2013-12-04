@@ -158,36 +158,6 @@ class TestSqlitePeerDBHandler(AbstractDB):
         assert p1['port'] == 1
         assert p2['port'] == 2
 
-    def test_getPeerSim(self):
-        permid_str = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEACPJqLjmKeMNRwkCNKkPH51gjQ5e7u4s2vWv9I/AALXtpf+bFPtY8cyFv6OCzisYDo+brgqOxAtuNZwP'
-        permid = str2bin(permid_str)
-        sim = self.pdb.getPeerSim(permid)
-        # 03/02/10 Boudewijn: In contrast to the content of the
-        # database, the similarity value is not 5.82119645394964 but 0
-        # because it is reset as the database is upgraded.
-        assert sim == 0
-
-        permid_str = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAB0XbUrw5b8CrTrMZST1SPyrzjgSzIE6ynALtlZASGAb+figVXRRGpKW6MSal3KnEm1/q0P3JPWrhCE'
-        permid = str2bin(permid_str)
-        sim = self.pdb.getPeerSim(permid)
-        assert sim == 0
-
-    def test_getPeerList(self):
-        peerlist = self.pdb.getPeerList()
-        assert len(peerlist) == 3987
-        peerlist.sort()
-        assert bin2str(peerlist[345]) == 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEACxVRvG/Gr19EAPJru2Z5gjctEzv973/PJCQIua2ATMP6euq+Kf4gYpdKbsB/PWqJnfY/wSKPHHfIByV'
-
-    def test_getPeers(self):
-        peerlist = sorted(self.pdb.getPeerList())
-        pl = peerlist[:10]
-        peers = self.pdb.getPeers(pl, ['permid', 'peer_id', 'ip', 'port', 'name'])
-        # for p in peers: print p
-        assert peers[7]['name'] == 'Peer 7'
-        assert peers[8]['name'] == 'Peer 8'
-        assert peers[1]['ip'] == '1.1.1.1'
-        assert peers[3]['peer_id'] == 3
-
     def test_addPeer(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
@@ -260,17 +230,6 @@ class TestSqlitePeerDBHandler(AbstractDB):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         assert not self.pdb.hasPeer(fake_permid_x)
 
-    def test_findPeers(self):
-        find_list = self.pdb.findPeers('ip', '88.88.88.88')
-        assert len(find_list) == 16
-
-        find_list = self.pdb.findPeers('ip', '1.2.3.4')
-        assert len(find_list) == 0
-
-        self.pdb = PeerDBHandler.getInstance()
-        find_list = self.pdb.findPeers('permid', self.p1)
-        assert len(find_list) == 1 and find_list[0]['permid'] == self.p1
-
     def test_updatePeer(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
@@ -327,55 +286,6 @@ class TestSqlitePeerDBHandler(AbstractDB):
         assert p == None, p
 
         self.pdb.deletePeer(fake_permid_x, force=True)
-        assert self.pdb.size() == oldsize
-
-    def test_updateTimes(self):
-        fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
-                  'name': 'fake peer x', 'last_seen': 12345, 'connected_times': 3}
-        oldsize = self.pdb.size()
-        p = self.pdb.getPeer(fake_permid_x)
-        assert p == None, p
-
-        self.pdb.addPeer(fake_permid_x, peer_x)
-        assert self.pdb.hasPeer(fake_permid_x)
-        assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
-
-        self.pdb.updateTimes(fake_permid_x, 'connected_times')
-        sql = 'select connected_times from Peer where permid=' + repr(bin2str(fake_permid_x))
-        ct = self.pdb._db.fetchone(sql)
-        assert ct == 4, ct
-
-        self.pdb.updateTimes(fake_permid_x, 'buddycast_times')
-        sql = 'select buddycast_times from Peer where permid=' + repr(bin2str(fake_permid_x))
-        ct = self.pdb._db.fetchone(sql)
-        assert ct == 1, ct
-
-        self.pdb.updateTimes(fake_permid_x, 'buddycast_times', 3)
-        sql = 'select buddycast_times from Peer where permid=' + repr(bin2str(fake_permid_x))
-        ct = self.pdb._db.fetchone(sql)
-        assert ct == 4, ct
-
-        self.pdb.deletePeer(fake_permid_x, force=True)
-        assert not self.pdb.hasPeer(fake_permid_x)
-
-    def test_getPermIDByIP(self):
-        fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
-                  'name': 'fake peer x', 'last_seen': 12345, 'connected_times': 3}
-        oldsize = self.pdb.size()
-        p = self.pdb.getPeer(fake_permid_x)
-        assert p == None, p
-
-        self.pdb.addPeer(fake_permid_x, peer_x)
-        assert self.pdb.hasPeer(fake_permid_x)
-        assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
-
-        permid = self.pdb.getPermIDByIP('1.2.3.4')
-        assert bin2str(permid) == bin2str(fake_permid_x)
-
-        self.pdb.deletePeer(fake_permid_x, force=True)
-        assert not self.pdb.hasPeer(fake_permid_x)
         assert self.pdb.size() == oldsize
 
 

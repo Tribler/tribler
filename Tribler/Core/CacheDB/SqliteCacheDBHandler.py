@@ -146,18 +146,7 @@ class PeerDBHandler(BasicDBHandler):
         return self.size()
 
     def getPeerID(self, permid):
-        assert isinstance(permid, str), permid
-        # permid must be binary
-        peer_id = self.permid_id.get(permid, None)
-        if peer_id is not None:
-            return peer_id
-
-        sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
-        peer_id = self._db.fetchone(sql_get_peer_id, (bin2str(permid),))
-        if peer_id != None:
-            self.permid_id[permid] = peer_id
-
-        return peer_id
+        return self.getPeerIDS([permid,])[0]
 
     def getPeerIDS(self, permids):
         to_select = []
@@ -191,18 +180,6 @@ class PeerDBHandler(BasicDBHandler):
 
         return peer_id
 
-    def addOrGetPeerIDS(self, permids):
-        peer_ids = self.getPeerIDS(permids)
-
-        to_be_inserted = []
-        for i, peer_id in enumerate(peer_ids):
-            if peer_id is None:
-                to_be_inserted.append(permids[i])
-
-        sql = "INSERT OR IGNORE INTO Peer (permid) VALUES (?)"
-        self._db.executemany(sql, [(bin2str(permid),) for permid in to_be_inserted])
-        return self.getPeerIDS(permids)
-
     def getPeer(self, permid, keys=None):
         if keys is not None:
             res = self.getOne(keys, permid=bin2str(permid))
@@ -220,74 +197,6 @@ class PeerDBHandler(BasicDBHandler):
             peer = dict(zip(value_name, item))
             peer['permid'] = str2bin(peer['permid'])
             return peer
-
-    def getPeerSim(self, permid):
-        permid_str = bin2str(permid)
-        sim = self.getOne('similarity', permid=permid_str)
-        if sim is None:
-            sim = 0
-        return sim
-
-    # ProxyService_
-    #
-    def getPeerServices(self, permid):
-        permid_str = bin2str(permid)
-        services = self.getOne('services', permid=permid_str)
-        if services is None:
-            services = 0
-        return services
-    #
-    # _ProxyService
-
-    def getPeerList(self, peerids=None):  # get the list of all peers' permid
-        if peerids is None:
-            permid_strs = self.getAll('permid')
-            return [str2bin(permid_str[0]) for permid_str in permid_strs]
-        else:
-            if not peerids:
-                return []
-            s = str(peerids).replace('[', '(').replace(']', ')')
-#            if len(peerids) == 1:
-# s = '(' + str(peerids[0]) + ')'    # tuple([1]) = (1,), syntax error for sql
-#            else:
-#                s = str(tuple(peerids))
-            sql = 'select permid from Peer where peer_id in ' + s
-            permid_strs = self._db.fetchall(sql)
-            return [str2bin(permid_str[0]) for permid_str in permid_strs]
-
-    def getPeers(self, peer_list, keys):  # get a list of dictionaries given peer list
-        # BUG: keys must contain 2 entries, otherwise the records in all are single values??
-        value_names = ",".join(keys)
-        sql = 'select %s from Peer where permid=?;' % value_names
-        all = []
-        for permid in peer_list:
-            permid_str = bin2str(permid)
-            p = self._db.fetchone(sql, (permid_str,))
-            all.append(p)
-
-        peers = []
-        for i in range(len(all)):
-            p = all[i]
-            peer = dict(zip(keys, p))
-            peer['permid'] = peer_list[i]
-            peers.append(peer)
-
-        return peers
-
-    def getLocalPeerList(self, max_peers, minoversion=None):  # return a list of peer_ids
-        """Return a list of peerids for local nodes, then random local nodes"""
-
-        sql = 'select permid from Peer where is_local=1 '
-        if minoversion is not None:
-            sql += 'and oversion >= ' + str(minoversion) + ' '
-        # sql += 'ORDER BY friend DESC, random() limit %d'%max_peers
-        sql += 'ORDER BY random() limit %d' % max_peers
-
-        list = []
-        for row in self._db.fetchall(sql):
-            list.append(base64.b64decode(row[0]))
-
-        return list
 
     def addPeer(self, permid, value, update_dns=True, update_connected=False, commit=True):
         # add or update a peer
@@ -337,9 +246,6 @@ class PeerDBHandler(BasicDBHandler):
         if 'connected_times' in value:
             self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
 
-        # print >>sys.stderr,"sqldbhand: addPeer",`permid`,self.getPeerID(permid),`value`
-        # print_stack()
-
     def hasPeer(self, permid, check_db=False):
         if not check_db:
             return bool(self.getPeerID(permid))
@@ -352,32 +258,9 @@ class PeerDBHandler(BasicDBHandler):
             else:
                 return True
 
-    def findPeers(self, key, value):
-        # only used by Connecter
-        if key == 'permid':
-            value = bin2str(value)
-        res = self.getAll('permid', **{key: value})
-        if not res:
-            return []
-        ret = []
-        for p in res:
-            ret.append({'permid': str2bin(p[0])})
-        return ret
-
-    def setPeerLocalFlag(self, permid, is_local, commit=True):
-        # argv = {"is_local":int(is_local)}
-        # updated = self._db.update(self.table_name, 'permid='+repr(bin2str(permid)), **argv)
-        # if commit:
-        #     self.commit()
-        # return updated
-        self._db.update(self.table_name, 'permid=' + repr(bin2str(permid)), commit=commit, is_local=int(is_local))
-
     def updatePeer(self, permid, commit=True, **argv):
         self._db.update(self.table_name, 'permid=' + repr(bin2str(permid)), commit=commit, **argv)
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
-
-        # print >>sys.stderr,"sqldbhand: updatePeer",`permid`,argv
-        # print_stack()
 
     def deletePeer(self, permid=None, peer_id=None, force=False, commit=True):
         # don't delete friend of superpeers, except that force is True
@@ -398,68 +281,12 @@ class PeerDBHandler(BasicDBHandler):
 
         self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
 
-    def updateTimes(self, permid, key, change=1, commit=True):
-        permid_str = bin2str(permid)
-        sql = "SELECT peer_id,%s FROM Peer WHERE permid==?" % key
-        find = self._db.fetchone(sql, (permid_str,))
-        if find:
-            peer_id, value = find
-            if value is None:
-                value = 1
-            else:
-                value += change
-            sql_update_peer = "UPDATE Peer SET %s=? WHERE peer_id=?" % key
-            self._db.execute_write(sql_update_peer, (value, peer_id), commit=commit)
-        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
-
-    def updatePeerSims(self, sim_list, commit=True):
-        sql_update_sims = 'UPDATE Peer SET similarity=? WHERE peer_id=?'
-        s = time()
-        self._db.executemany(sql_update_sims, sim_list, commit=commit)
-
-    def getPermIDByIP(self, ip):
-        permid = self.getOne('permid', ip=ip)
-        if permid is not None:
-            return str2bin(permid)
-        else:
-            return None
-
     def getPermid(self, peer_id):
         permid = self.getOne('permid', peer_id=peer_id)
         if permid is not None:
             return str2bin(permid)
         else:
             return None
-
-    def getPermids(self, peer_ids):
-        parameters = '?,' * len(peer_ids)
-        sql = "SELECT permid, peer_id FROM Peer WHERE peer_id IN (" + parameters[:-1] + ")"
-
-        results = {}
-        for permid, peer_id in self._db.fetchall(sql, peer_ids):
-            results[peer_id] = str2bin(permid)
-
-        to_return = []
-        for peer_id in peer_ids:
-            if peer_id in results:
-                to_return.append(results[peer_id])
-            else:
-                to_return.append(None)
-        return to_return
-
-    def getNumberPeers(self, category_name='all'):
-        # 28/07/08 boudewijn: counting the union from two seperate
-        # select statements is faster than using a single select
-        # statement with an OR in the WHERE clause. Note that UNION
-        # returns a distinct list of peer_id's.
-        if category_name == 'friend':
-            sql = 'SELECT COUNT(peer_id) FROM Peer WHERE last_connected > 0 AND friend = 1'
-        else:
-            sql = 'SELECT COUNT(peer_id) FROM (SELECT peer_id FROM Peer WHERE last_connected > 0 UNION SELECT peer_id FROM Peer WHERE friend = 1)'
-        res = self._db.fetchone(sql)
-        if not res:
-            res = 0
-        return res
 
     def getRanks(self):
         value_name = 'permid'
@@ -472,22 +299,12 @@ class PeerDBHandler(BasicDBHandler):
     def registerConnectionUpdater(self, session):
         pass
 
-    def updatePeerIcon(self, permid, icontype, icondata, commit=True):
-        # save thumb in db
-        self.updatePeer(permid, thumbnail=bin2str(icondata))
-        # if self.mm is not None:
-        #    self.mm.save_data(permid, icontype, icondata)
-
     def getPeerIcon(self, permid):
         item = self.getOne('thumbnail', permid=bin2str(permid))
         if item:
             return NETW_MIME_TYPE, str2bin(item)
         else:
             return None, None
-        # if self.mm is not None:
-        #    return self.mm.load_data(permid)
-        # 3else:
-        #    return None
 
     def getPeerIconByPeerId(self, peerid):
         item = self.getOne('thumbnail', peer_id=peerid)
