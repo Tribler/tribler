@@ -1198,6 +1198,9 @@ class PoliForwardCommunity(ForwardCommunity):
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
+        if DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "PoliSearchCommunity: got simi response from", candidate
+
         overlap = self.compute_overlap(payload.my_response)
         self.add_taste_buddies([ActualTasteBuddy(overlap, time(), candidate)])
 
@@ -1216,6 +1219,9 @@ class PoliForwardCommunity(ForwardCommunity):
         return overlap
 
     def compute_overlap(self, evaluated_polynomial):
+        if DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "PoliSearchCommunity: determining overlap", evaluated_polynomial
+
         t1 = time()
 
         if self.use_cardinality:
@@ -1334,7 +1340,7 @@ class PoliForwardCommunity(ForwardCommunity):
                 self.reply_packet_size += len(resp_message.packet)
 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "PoliSearchCommunity: sending similarity-response to", message.payload.identifier, message.candidate
+                    print >> sys.stderr, long(time()), "PoliSearchCommunity: sending similarity-response to", message.payload.identifier, message.candidate, results
             else:
                 self.receive_time_encryption += time() - t1
                 return results
