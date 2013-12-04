@@ -368,6 +368,8 @@ class ForwardCommunity():
 
     # connect to first nr peers in peercache
     def connect_to_peercache(self, nr=10):
+        tmpcache = IntroductionRequestCache(u'')
+
         payload = self.create_similarity_payload()
         if payload:
             tbs = self.get_tbs_from_peercache(nr)
@@ -378,7 +380,7 @@ class ForwardCommunity():
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
                     self.create_similarity_request(candidate, payload)
 
-                    yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
+                    yield tmpcache.timeout_delay + tmpcache.cleanup_delay
                     attempts -= 1
 
             for i, tb in enumerate(tbs):
