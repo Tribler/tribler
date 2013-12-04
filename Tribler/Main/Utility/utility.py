@@ -50,53 +50,54 @@ class Utility:
         self.abcquitting = False
 
     def setupConfig(self):
-        defaults = {'language_file': 'english.lang',
-                    'confirmonclose': 1,
-                    # RateLimitPanel
-                    'maxuploadrate': 0,
-                    'maxdownloadrate': 0,
-                    'maxseeduploadrate': 0,
-                    # VideoPanel
-                    'videoplaybackmode': 0,
-                    # Misc
-                    'torrentassociationwarned': 0,
-                    # GUI
-                    'window_width': 1024,
-                    'window_height': 670,
-                    'sash_position':-185,
-                    't4t_option': 0, # Seeding items added by Boxun
-                    't4t_ratio': 100, # T4T seeding ratio added by Niels
-                    't4t_hours': 0,
-                    't4t_mins': 30,
-                    'g2g_option': 1,
-                    'g2g_ratio': 75,
-                    'g2g_hours': 0,
-                    'g2g_mins': 30,
-                    'family_filter': 1,
-                    'window_x': "",
-                    'window_y': "",
-                    'use_bundle_magic': 0,
-                    # WebUI
-                    'use_webui': 0,
-                    'webui_port': 8080,
-                    # Swift reseed
-                    'swiftreseed': 1}
+        tribler_defaults = {'language_file': 'english.lang',
+                            'confirmonclose': 1,
+                            # RateLimitPanel
+                            'maxuploadrate': 0,
+                            'maxdownloadrate': 0,
+                            'maxseeduploadrate': 0,
+                            # VideoPanel
+                            'videoplaybackmode': 0,
+                            # Misc
+                            'torrentassociationwarned': 0,
+                            # GUI
+                            'window_width': 1024,
+                            'window_height': 670,
+                            'sash_position':-185,
+                            't4t_option': 0, # Seeding items added by Boxun
+                            't4t_ratio': 100, # T4T seeding ratio added by Niels
+                            't4t_hours': 0,
+                            't4t_mins': 30,
+                            'g2g_option': 1,
+                            'g2g_ratio': 75,
+                            'g2g_hours': 0,
+                            'g2g_mins': 30,
+                            'family_filter': 1,
+                            'window_x': "",
+                            'window_y': "",
+                            'use_bundle_magic': 0,
+                            # WebUI
+                            'use_webui': 0,
+                            'webui_port': 8080,
+                            # Swift reseed
+                            'swiftreseed': 1}
 
         if sys.platform == 'win32':
-            defaults['mintray'] = '2'
-            defaults['videoplayerpath'] = os.path.expandvars('${PROGRAMFILES}') + '\\Windows Media Player\\wmplayer.exe'
-            defaults['videoanalyserpath'] = self.getPath() + '\\ffmpeg.exe'
+            tribler_defaults['mintray'] = '2'
+            tribler_defaults['videoplayerpath'] = os.path.expandvars('${PROGRAMFILES}') + '\\Windows Media Player\\wmplayer.exe'
+            tribler_defaults['videoanalyserpath'] = self.getPath() + '\\ffmpeg.exe'
         elif sys.platform == 'darwin':
-            defaults['mintray'] = '0'  # tray doesn't make sense on Mac
-            defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or ("/Applications/VLC.app" if os.path.exists("/Applications/VLC.app") else None) or "/Applications/QuickTime Player.app"
-            defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "vlc/ffmpeg"
+            tribler_defaults['mintray'] = '0'  # tray doesn't make sense on Mac
+            tribler_defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or ("/Applications/VLC.app" if os.path.exists("/Applications/VLC.app") else None) or "/Applications/QuickTime Player.app"
+            tribler_defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "vlc/ffmpeg"
         else:
-            defaults['mintray'] = '0'  # Still crashes on Linux sometimes
-            defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or "vlc"
-            defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "ffmpeg"
+            tribler_defaults['mintray'] = '0'  # Still crashes on Linux sometimes
+            tribler_defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or "vlc"
+            tribler_defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "ffmpeg"
 
+        self.defaults = {'Tribler': tribler_defaults}
         self.configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")
-        self.config = CallbackConfigParser(defaults)
+        self.config = CallbackConfigParser()
 
         # Load the config file.
         self.config.read(self.configfilepath)
@@ -149,7 +150,7 @@ class Utility:
 
     def read_config(self, option, section='Tribler', literal_eval=True):
         if not self.config.has_option(section, option):
-            return None
+            return self.defaults.get(section, {}).get(option, None)
 
         value = self.config.get(section, option)
         if literal_eval:
