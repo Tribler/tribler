@@ -271,7 +271,7 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
 
-        resume_data = pstate.get('engineresumedata', None) if pstate else None
+        resume_data = pstate.get('state', 'engineresumedata') if pstate else None
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             metainfo = self.tdef.get_metainfo()
             torrentinfo = lt.torrent_info(metainfo)
@@ -943,7 +943,7 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
                 else:
                     self.set_vod_mode(False)
                     self.handle.pause()
-                    pstate['engineresumedata'] = self.handle.write_resume_data() if isinstance(self.tdef, TorrentDef) else None
+                    pstate.set('state', 'engineresumedata', self.handle.write_resume_data() if isinstance(self.tdef, TorrentDef) else None)
                 self.pstate_for_restart = pstate
             else:
                 # This method is also called at Session shutdown, where one may
@@ -958,7 +958,7 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
                     # now, at shutdown. In other words, it was never active
                     # in this session and the pstate_for_restart still says
                     # HASHCHECK.
-                    pstate['engineresumedata'] = self.pstate_for_restart['engineresumedata']
+                    pstate.set('state', 'engineresumedata', self.pstate_for_restart.get('state', 'engineresumedata'))
                 else:
                     self._logger.debug("LibtorrentDownloadImpl: network_stop: Could not reuse engineresumedata as pstart_for_restart is None")
 
@@ -1061,36 +1061,37 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
             resdata = None
             if self.handle == None:
                 if self.pstate_for_restart is not None:
-                    resdata = self.pstate_for_restart['engineresumedata']
+                    resdata = self.pstate_for_restart.get('state', 'engineresumedata')
             elif isinstance(self.tdef, TorrentDef):
                 resdata = self.handle.write_resume_data()
-            pstate['engineresumedata'] = resdata
+            pstate.set('state', 'engineresumedata', resdata)
             return (self.tdef.get_infohash(), pstate)
 
     def network_get_persistent_state(self):
         # Assume sessionlock is held
-        pstate = {}
-        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
-        if isinstance(self.tdef, TorrentDefNoMetainfo):
-            pstate['metainfo'] = {'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode()}
-        else:
-            pstate['metainfo'] = self.tdef.get_metainfo()
 
-        dscfg = DownloadStartupConfig(copy.copy(self.dlconfig))
+        pstate = self.dlconfig.copy()
+
         # Reset unpicklable params
-        dscfg.set_video_event_callback(None)
-        dscfg.set_mode(DLMODE_NORMAL)
-        pstate['dlconfig'] = dscfg.dlconfig._sections
+        pstate.set('downloadconfig', 'vod_usercallback', None)
+        pstate.set('downloadconfig', 'mode', DLMODE_NORMAL)
 
-        pstate['dlstate'] = {}
+        # Add state stuff
+        if not pstate.has_section('state'):
+            pstate.add_section('state')
+        pstate.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
+        if isinstance(self.tdef, TorrentDefNoMetainfo):
+            pstate.set('state', 'metainfo', {'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode()})
+        else:
+            pstate.set('state', 'metainfo', self.tdef.get_metainfo())
+
         ds = self.network_get_state(None, False, sessioncalling=True)
-        pstate['dlstate']['status'] = ds.get_status()
-        pstate['dlstate']['progress'] = ds.get_progress()
-        pstate['dlstate']['swarmcache'] = None
+        dlstate = {'status': ds.get_status(), 'progress': ds.get_progress(), 'swarmcache': None}
+        pstate.set('state', 'dlstate', dlstate)
 
         self._logger.debug("LibtorrentDownloadImpl: network_get_persistent_state: status %s progress %s", dlstatus_strings[ds.get_status()], ds.get_progress())
 
-        pstate['engineresumedata'] = None
+        pstate.set('state', 'engineresumedata', None)
         return pstate
 
     def get_coopdl_role_object(self, role):

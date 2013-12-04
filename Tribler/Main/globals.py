@@ -3,11 +3,13 @@
 
 import os
 import logging
+import copy
 
-STATEDIR_DLCONFIG = "dlconfig.conf"
-
-# Global variable containing the DownloadStartupConfig to use for creating downloads
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.SessionConfig import CallbackConfigParser
+
+STATEDIR_DLCONFIG = "tribler.conf"
+
 
 class DefaultDownloadStartupConfig(DownloadStartupConfig):
     __single = None
@@ -32,6 +34,10 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         DefaultDownloadStartupConfig.__single = None
     delInstance = staticmethod(delInstance)
 
+    def copy(self):
+        config = CallbackConfigParser()
+        config._sections = {'downloadconfig': copy.deepcopy(self.dlconfig._sections['downloadconfig'])}
+        return DownloadStartupConfig(config)
 
 def get_default_dscfg_filename(state_dir):
     return os.path.join(state_dir, STATEDIR_DLCONFIG)
