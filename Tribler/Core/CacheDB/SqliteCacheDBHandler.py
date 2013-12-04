@@ -1643,25 +1643,6 @@ class TorrentDBHandler(BasicDBHandler):
         connection.createcollation("leven", None)
         return result
 
-    def getTorrentsFromSource(self, source):
-        """ Get all torrents from the specified Subscription source.
-        Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
-        """
-        id = self._getSourceID(source)
-
-        where = 'C.source_id = %d and C.torrent_id = T.torrent_id and announce_tier=1' % (id)
-        # add familyfilter
-        where += self.category.get_family_filter_sql(self._getCategoryID)
-
-        value_name = deepcopy(self.value_name)
-
-        res_list = self._db.getAll('Torrent C, TorrentTracker T', value_name, where)
-
-        torrent_list = self.valuelist2torrentlist(value_name, res_list, None, None)
-        del res_list
-
-        return torrent_list
-
     def getTorrentFiles(self, torrent_id):
         sql = "SELECT path, length FROM TorrentFiles WHERE torrent_id = ?"
         return self._db.fetchall(sql, (torrent_id,))
@@ -1738,14 +1719,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if torrent_id is not None:
             return self.getMyPrefStats(torrent_id)[torrent_id]
 
-    def getCreationTime(self, infohash):
-        torrent_id = self._torrent_db.getTorrentID(infohash)
-        if torrent_id is not None:
-            ct = self.getOne('creation_time', torrent_id=torrent_id)
-            return ct
-        else:
-            return None
-
     def getRecentLivePrefListWithClicklog(self, num=0):
         """returns OL 8 style preference list: a list of lists, with each of the inner lists
            containing infohash, search terms, click position, and reranking strategy"""
@@ -1761,27 +1734,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return self.recent_preflist_with_clicklog[:num]
         else:
             return self.recent_preflist_with_clicklog
-
-    def getRecentLivePrefListOL11(self, num=0):
-        """
-        Returns OL 11 style preference list. It contains all info from previous
-        versions like clickLog info and some additional info related to swarm size.
-        @author: Rahim
-        @param num: if num be equal to zero the lenghth of the return list is unlimited, otherwise it's maximum lenght will be num.
-        @return: a list of lists. Each inner list is like:
-        [previous info , num_seeders, num_leechers, swarm_size_calc_age, number_of_sources]
-        """
-        if self.recent_preflist_with_swarmsize is None:
-            self.rlock.acquire()
-            try:
-                # if self.recent_preflist_with_swarmsize is None:
-                self.recent_preflist_with_swarmsize = self._getRecentLivePrefListOL11()
-            finally:
-                self.rlock.release()
-        if num > 0:
-            return self.recent_preflist_with_swarmsize[:num]
-        else:
-            return self.recent_preflist_with_swarmsize
 
     def getRecentLivePrefList(self, num=0):
         if self.recent_preflist is None:
@@ -1861,13 +1813,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
             pref[1] = search_terms
         return recent_preflist_with_clicklog
 
-    def searchterms2utf8pref(self, termdb, search_terms):
-        terms = [termdb.getTerm(search_term) for search_term in search_terms]
-        eterms = []
-        for term in terms:
-            eterms.append(term.encode("UTF-8"))
-        return eterms
-
     def _getRecentLivePrefList(self, num=0):  # num = 0: all files
         # get recent and live torrents
         sql = """
@@ -1945,23 +1890,11 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if torrent_id:
             self.updateProgress(torrent_id, progress, commit=commit)
 
-    def getAllEntries(self):
-        """use with caution,- for testing purposes"""
-        return self.getAll("torrent_id, click_position, reranking_strategy", order_by="torrent_id")
-
     def updateDestDir(self, torrent_id, destdir, commit=True):
         if not isinstance(destdir, basestring):
             print >> sys.stderr, 'DESTDIR IS NOT STRING:', destdir
             return
         self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, commit=commit, destination_path=destdir)
-
-    def updateDestDirByHash(self, hash, destdir, commit=True):
-        torrent_id = self._torrent_db.getTorrentID(hash)
-        if not torrent_id:
-            torrent_id = self.getTorrentIDRoot(hash)
-
-        if torrent_id:
-            self.updateDestDir(torrent_id, destdir, commit=commit)
 
 
 class VoteCastDBHandler(BasicDBHandler):

@@ -482,12 +482,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         pl = self.mdb.getMyPrefListInfohash()
         assert len(pl) == 24
 
-    def test_getCreationTime(self):
-        infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
-        infohash = str2bin(infohash_str_126)
-        ct = self.mdb.getCreationTime(infohash)
-        assert ct == 1194966300, ct
-
     def test_getRecentLivePrefList(self):
         pl = self.mdb.getRecentLivePrefList()
         assert len(pl) == 11, (len(pl), pl)
