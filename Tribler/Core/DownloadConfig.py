@@ -153,17 +153,6 @@ class DownloadConfigInterface(object):
         """
         self.dlconfig.set('downloadconfig', 'vod_usercallback', usercallback)
 
-    def set_video_events(self, events=[]):
-        """ Sets which events will be supported with the usercallback set
-        by set_video_event_callback. Supporting the VODEVENT_START event is
-        mandatory, and can therefore be omitted from the list.
-
-        @param events        A list of supported VODEVENT_* events.
-        """
-
-        # create a copy to avoid loosing the info
-        self.dlconfig.set('downloadconfig', 'vod_userevents', events[:])
-
     def set_mode(self, mode):
         """ Sets the mode of this download.
         @param mode DLMODE_NORMAL/DLMODE_VOD """
@@ -179,12 +168,6 @@ class DownloadConfigInterface(object):
         @return A function.
         """
         return self.dlconfig.get('downloadconfig', 'vod_usercallback')
-
-    def get_video_events(self):
-        """ Returns the function that was passed to set_video_events().
-        @return A list of events.
-        """
-        return self.dlconfig.get('downloadconfig', 'vod_userevents')
 
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must

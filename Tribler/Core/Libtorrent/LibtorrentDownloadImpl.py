@@ -353,7 +353,6 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
             self.videoinfo['outpath'] = self.files[self.videoinfo['index']]
             self.videoinfo['mimetype'] = self.get_mimetype(filename)
             self.videoinfo['usercallback'] = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.get_video_event_callback(), event, params)
-            self.videoinfo['userevents'] = self.get_video_events()[:]
             # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
             self.videoinfo['status'] = None
 
