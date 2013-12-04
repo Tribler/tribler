@@ -315,15 +315,9 @@ class TestTorrentDBHandler(AbstractDB):
         assert self.tdb.hasTorrent(fake_infoahsh) == False
         assert self.tdb.hasMetaData(fake_infoahsh) == False
 
-    def test_count(self):
-        num = self.tdb.getNumberTorrents()
-        assert num == 4483, num
-
     def test_loadTorrents(self):
-        torrent_size = self.tdb.getNumberTorrents()
         res = self.tdb.getTorrents()  # only returns good torrents
 
-        assert len(res) == torrent_size, (len(res), torrent_size)
         data = res[0]
         # print data
         assert data['category'][0] in self.tdb.category_table.keys(), data['category']
@@ -422,11 +416,6 @@ class TestTorrentDBHandler(AbstractDB):
                          last_check_time=1234567,
                          other_key1='abcd', other_key2=123)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
-        res_r = self.tdb.getOne('relevance', torrent_id=multiple_torrent_id)
-        # assert 3.1415926 == res_r
-        self.tdb.updateTorrentRelevance(m_infohash, 1.41421)
-        res_r = self.tdb.getOne('relevance', torrent_id=multiple_torrent_id)
-        # assert 1.41421 == res_r
         cid = self.tdb.getOne('category_id', torrent_id=multiple_torrent_id)
         # assert cid == 2, cid
         sid = self.tdb.getOne('status_id', torrent_id=multiple_torrent_id)

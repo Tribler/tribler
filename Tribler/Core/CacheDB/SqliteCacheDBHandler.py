@@ -698,11 +698,6 @@ class TorrentDBHandler(BasicDBHandler):
         # vliegendhart: extract terms and bi-term phrase from Torrent and store it
         self._nb.addTorrent(torrent_id, swarmname, collected=collected, commit=False)
 
-    def getInfohashFromTorrentName(self, name):  # #
-        sql = "select infohash from Torrent where name='" + str2bin(name) + "'"
-        infohash = self._db.fetchone(sql)
-        return infohash
-
     def _insertNewSrc(self, src, commit=True):
         desc = ''
         if src.startswith('http') and src.endswith('xml'):
@@ -1087,6 +1082,7 @@ class TorrentDBHandler(BasicDBHandler):
         trackers = self._db.fetchall(sql, (limit,))
         return [tracker[0] for tracker in trackers]
 
+    # TODO: remove this method after we have improved GuiDBTuples
     def getSwarmInfo(self, torrent_id):
         """
         returns info about swarm size from Torrent and TorrentTrackerMapping tables.
@@ -1187,25 +1183,6 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['myDownloadHistory'] = False
 
         return torrent
-
-    def getNumberTorrents(self, category_name='all', library=False):
-        table = 'CollectedTorrent'
-        value = 'count(torrent_id)'
-        where = '1 '
-
-        if category_name != 'all':
-            where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1)  # unkown category_name returns no torrents
-        if library:
-            where += ' and torrent_id in (select torrent_id from MyPreference where destination_path != "")'
-        else:
-            where += ' and status_id=%d ' % self.status_table['good']
-            # add familyfilter
-            where += self.category.get_family_filter_sql(self._getCategoryID)
-
-        number = self._db.getOne(table, value, where)
-        if not number:
-            number = 0
-        return number
 
     def getTorrents(self, category_name='all', range=None, library=False, sort=None, reverse=False):
         """
@@ -1472,18 +1449,6 @@ class TorrentDBHandler(BasicDBHandler):
 
     def hasMetaData(self, infohash):
         return self.hasTorrent(infohash)
-
-    def getTorrentRelevances(self, tids):
-        sql = 'SELECT torrent_id, relevance from Torrent WHERE torrent_id in ' + str(tuple(tids))
-        return self._db.fetchall(sql)
-
-    def updateTorrentRelevance(self, infohash, relevance):
-        self.updateTorrent(infohash, relevance=relevance)
-
-    def updateTorrentRelevances(self, tid_rel_pairs, commit=True):
-        if len(tid_rel_pairs) > 0:
-            sql_update_sims = 'UPDATE Torrent SET relevance=? WHERE torrent_id=?'
-            self._db.executemany(sql_update_sims, tid_rel_pairs, commit=commit)
 
     def searchNames(self, kws, local=True, keys=['torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'insert_time', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'dispersy_id', 'swift_hash', 'swift_torrent_hash'], doSort=True):
         #        if local:
