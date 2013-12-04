@@ -681,7 +681,7 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
                 if selected_files is None:
                     selected_files = self.get_selected_files()
                 else:
-                    LibtorrentDownloadRuntimeConfig.set_selected_files(selected_files)
+                    LibtorrentDownloadRuntimeConfig.set_selected_files(self, selected_files)
 
                 is_multifile = len(self.tdef.get_files_as_unicode()) > 1
                 commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
