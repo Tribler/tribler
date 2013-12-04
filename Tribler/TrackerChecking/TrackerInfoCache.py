@@ -18,6 +18,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forceAndReturnDBThread
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core import NoDispersyRLock
 
 # some default configurations
 DEBUG = False
@@ -46,7 +47,7 @@ class TrackerInfoCache(object):
         self._max_tracker_failures = max_failures
         self._dead_tracker_recheck_Interval = dead_tracker_recheck_interval
 
-        self._lock = RLock()
+        self._lock = NoDispersyRLock()
 
         session = Session.get_instance()
         session.add_observer(self.newTrackerCallback, NTFY_TRACKERINFO, [NTFY_INSERT, ])
@@ -54,9 +55,12 @@ class TrackerInfoCache(object):
     # ------------------------------------------------------------
     # Loads and initializes the cache from database.
     # ------------------------------------------------------------
-    @forceAndReturnDBThread
     def loadCacheFromDb(self):
-        tracker_info_list = self._torrentdb.getTrackerInfoList()
+        @forceAndReturnDBThread
+        def do_db():
+            return self._torrentdb.getTrackerInfoList()
+
+        tracker_info_list = do_db()
 
         # no need to use the lock when reloading
         self._lock.acquire()

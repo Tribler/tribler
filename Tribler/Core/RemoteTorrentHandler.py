@@ -14,7 +14,7 @@ from binascii import hexlify
 from time import sleep, time
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 import shutil
@@ -712,20 +712,23 @@ class MagnetRequester(Requester):
             self.requests_on_disk += 1
 
         else:
-            # try magnet link
-            magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
+            @forceDBThread
+            def construct_magnet():
+                # try magnet link
+                magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
 
-            if self.remote_th.torrent_db:
-                # see if we know any trackers for this magnet
-                trackers = self.remote_th.torrent_db.getTrackerListByInfohash(infohash)
-                for tracker in trackers:
-                    if tracker != 'no-DHT' and tracker != 'DHT':
-                        magnetlink += "&tr=" + urllib.quote_plus(tracker)
+                if self.remote_th.torrent_db:
+                    # see if we know any trackers for this magnet
+                    trackers = self.remote_th.torrent_db.getTrackerListByInfohash(infohash)
+                    for tracker in trackers:
+                        if tracker != 'no-DHT' and tracker != 'DHT':
+                            magnetlink += "&tr=" + urllib.quote_plus(tracker)
 
-            if DEBUG:
-                print >> sys.stderr, long(time()), 'rtorrent: requesting magnet', bin2str(infohash), self.prio, magnetlink, len(self.requestedInfohashes)
+                if DEBUG:
+                    print >> sys.stderr, long(time()), 'rtorrent: requesting magnet', bin2str(infohash), self.prio, magnetlink, len(self.requestedInfohashes)
 
-            TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections=30 if self.prio == 0 else 10)
+                TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections=30 if self.prio == 0 else 10)
+            construct_magnet()
 
             failed_lambda = lambda infohash = infohash: self.__torrentdef_failed(infohash)
             self.scheduletask(failed_lambda, t=self.MAGNET_RETRIEVE_TIMEOUT)

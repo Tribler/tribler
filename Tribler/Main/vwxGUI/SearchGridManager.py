@@ -20,8 +20,8 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
-    forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread, \
-    onDispersyThread
+    forceDispersyThread, forcePrioDispersyThread, \
+    onDispersyThread, warnDispersyThread
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename, parse_magnetlink
 from Tribler.Core.Session import Session
@@ -345,7 +345,7 @@ class TorrentManager:
     def getSearchSuggestion(self, keywords, limit=1):
         return self.torrent_db.getSearchSuggestion(keywords, limit)
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def searchDispersy(self):
         nr_requests_made = 0
         if self.dispersy:
@@ -1570,7 +1570,7 @@ class ChannelManager:
 
         return filter(torrentFilter, hits)
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def _disp_get_community_from_channel_id(self, channel_id):
         if not channel_id:
             channel_id = self.channelcast_db.getMyChannelId()
@@ -1584,7 +1584,7 @@ class ChannelManager:
 
         print >> sys.stderr, "Could not find channel", channel_id
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def _disp_get_community_from_cid(self, dispersy_cid):
         try:
             community = self.dispersy.get_community(dispersy_cid)
@@ -1894,7 +1894,7 @@ class ChannelManager:
         else:
             return [len(self.hits), hitsUpdated, self.hits]
 
-    @forceDispersyThread
+    @warnDispersyThread
     def searchDispersy(self):
         nr_requests_made = 0
         if self.dispersy:

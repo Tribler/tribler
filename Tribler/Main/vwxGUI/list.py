@@ -1573,41 +1573,18 @@ class SearchList(GenericSearchList):
 
     @forceWxThread
     def SetMaxResults(self, max, keywords):
-        self.Freeze()
-        self.guiutility.frame.top_bg.go.SetRange(max + 16)
-        self.guiutility.frame.top_bg.go.SetValue(0)
-        self.guiutility.frame.top_bg.ag.Play()
-        self.guiutility.frame.top_bg.ag.Show()
-        self.Thaw()
+        self.guiutility.frame.top_bg.ShowSearching(max)
         wx.CallLater(10000, self.SetFinished, keywords)
-        wx.CallLater(250, self.FakeResult)
-
-    @forceWxThread
-    def FakeResult(self, times=1):
-        maxValue = self.guiutility.frame.top_bg.go.GetRange()
-        newValue = min(self.guiutility.frame.top_bg.go.GetValue() + 1, maxValue)
-        if times < 16:
-            self.guiutility.frame.top_bg.go.SetValue(newValue)
-            wx.CallLater(250, self.FakeResult, times + 1)
 
     @forceWxThread
     def NewResult(self):
-        maxValue = self.guiutility.frame.top_bg.go.GetRange()
-        newValue = min(self.guiutility.frame.top_bg.go.GetValue() + 1, maxValue)
-        if newValue == maxValue:
+        if self.guiutility.frame.top_bg.NewResult():
             self.SetFinished(None)
-        else:
-            self.guiutility.frame.top_bg.go.SetValue(newValue)
 
     def SetFinished(self, keywords):
         curkeywords, hits, filtered = self.guiutility.torrentsearch_manager.getSearchKeywords()
         if not keywords or curkeywords == keywords:
-            self.Freeze()
-            self.guiutility.frame.top_bg.ag.Stop()
-            self.guiutility.frame.top_bg.ag.Hide()
-            self.guiutility.frame.top_bg.go.SetValue(self.guiutility.frame.top_bg.go.GetRange())
-            self.Layout()
-            self.Thaw()
+            self.guiutility.frame.top_bg.SetFinished()
 
             def db_callback(keywords):
                 self.uelog.addEvent(message="Search: nothing found for query: " + " ".join(keywords), type=2)

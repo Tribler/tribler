@@ -23,6 +23,8 @@ from traceback import print_exc, print_stack
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
+from Tribler.Core import NoDispersyRLock
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     prctlimported = True
@@ -85,7 +87,7 @@ class TorrentChecking(Thread):
         self._torrentdb = TorrentDBHandler.getInstance()
         self._interrupt_socket = InterruptSocket()
 
-        self._lock = RLock()
+        self._lock = NoDispersyRLock()
         self._session_list = []
         self._pending_response_dict = dict()
 
@@ -98,6 +100,7 @@ class TorrentChecking(Thread):
 
         # self._max_gui_requests = DEFAULT_MAX_GUI_REQUESTS
         self._gui_request_queue = Queue.Queue()
+        self._processed_gui_request_queue = Queue.Queue()
 
         self._should_stop = False
 
@@ -177,37 +180,42 @@ class TorrentChecking(Thread):
     # Processes a GUI request.
     # ------------------------------------------------------------
     @forceDBThread
-    def _processGuiRequest(self, gui_request):
-        infohash = gui_request['infohash']
-        tracker_set = gui_request['trackers']
-        if 'torrent_id' in gui_request:
-            torrent_id = gui_request['torrent_id']
-        else:
-            torrent_id = self._torrentdb.getTorrentID(infohash)
+    def _processGuiRequests(self, gui_requests):
+        for gui_request in gui_requests:
+            infohash = gui_request['infohash']
+            tracker_set = gui_request['trackers']
+            if 'torrent_id' in gui_request:
+                torrent_id = gui_request['torrent_id']
+            else:
+                torrent_id = self._torrentdb.getTorrentID(infohash)
 
-        if torrent_id <= 0:
-            if DEBUG:
-                print >> sys.stderr, "TorrentChecking: ignoring gui request, no torrent_id"
+            if torrent_id <= 0:
+                if DEBUG:
+                    print >> sys.stderr, "TorrentChecking: ignoring gui request, no torrent_id"
+                continue
 
-            return
+            if not tracker_set:
+                # get torrent's tracker list from DB
+                db_tracker_list = self._getTrackerList(torrent_id, infohash)
+                for tracker in db_tracker_list:
+                    tracker_set.add(tracker)
 
-        if not tracker_set:
-            # get torrent's tracker list from DB
-            db_tracker_list = self._getTrackerList(torrent_id, infohash)
-            for tracker in db_tracker_list:
-                tracker_set.add(tracker)
+            if not tracker_set:
+                if DEBUG:
+                    print >> sys.stderr, "TorrentChecking: ignoring gui request, no trackers"
+                # TODO: add method to handle torrents with no tracker
+                continue
 
-        if not tracker_set:
-            if DEBUG:
-                print >> sys.stderr, "TorrentChecking: ignoring gui request, no trackers"
-            # TODO: add method to handle torrents with no tracker
-            return
+            self._processed_gui_request_queue.put((torrent_id, infohash, tracker_set))
+            self._interrupt_socket.interrupt()
 
+    def _onProcessedGuiRequests(self, gui_requests):
         # for each valid tracker, try to create new session or append
         # the request to an existing session
-        for tracker_url in tracker_set:
-            self._updateTorrentTrackerMapping(torrent_id, tracker_url)
-            self._createSessionForRequest(infohash, tracker_url)
+        for torrent_id, infohash, tracker_set in gui_requests:
+            for tracker_url in tracker_set:
+                self._updateTorrentTrackerMapping(torrent_id, tracker_url)
+                self._createSessionForRequest(infohash, tracker_url)
 
     # ------------------------------------------------------------
     # Gets a list of all known trackers of a given torrent.
@@ -498,17 +506,25 @@ class TorrentChecking(Thread):
 
         last_time_select_torrent = 0
         while not self._should_stop:
-            # handle GUI requests
-            try:
-                while True:
-                    gui_request = self._gui_request_queue.get_nowait()
-                    self._processGuiRequest(gui_request)
+            def process_queue(queue, callback):
+                requests = []
 
-            except Queue.Empty:
-                pass
+                try:
+                    while True:
+                        requests.append(queue.get_nowait())
 
-            except Exception as e:
-                print >> sys.stderr, 'TorrentChecking: Unexpected error while handling GUI requests:', e
+                except Queue.Empty:
+                    pass
+
+                except Exception as e:
+                    print >> sys.stderr, 'TorrentChecking: Unexpected error while handling requests'
+                    print_exc()
+
+                if requests:
+                    callback(requests)
+
+            process_queue(self._gui_request_queue, self._processGuiRequests)
+            process_queue(self._processed_gui_request_queue, self._onProcessedGuiRequests)
 
             # torrent selection
             current_time = int(time.time())

@@ -18,6 +18,7 @@ from threading import RLock
 
 from Tribler.Core.Utilities.bencode import bdecode
 from traceback import print_exc
+from Tribler.Core import NoDispersyRLock
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -583,7 +584,7 @@ class UdpTrackerSession(TrackerSession):
     # A list of transaction IDs that have been used
     # in order to avoid conflict.
     __active_session_dict = dict()
-    __lock = RLock()
+    __lock = NoDispersyRLock()
 
     # ----------------------------------------
     # Generates a new transaction ID for a given session.
