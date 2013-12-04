@@ -154,6 +154,7 @@ class TorrentManager:
 
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
+        As a first argument the filename of the torrent is passed
 
         Returns a boolean + request_type
         describing if the torrent is requested
@@ -173,6 +174,7 @@ class TorrentManager:
 
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
+        As a first argument the filename of the torrent is passed
 
         DUPLICATE can be True: the file will be downloaded from peers
         regardless of a previous/current download attempt (returns
@@ -280,7 +282,7 @@ class TorrentManager:
 
                     torrent = NotCollectedTorrent(torrent, files, trackers)
                 else:
-                    torrent_callback = lambda: self.loadTorrent(torrent, callback)
+                    torrent_callback = lambda torfilename: self.loadTorrent(torrent, callback)
                     torrent_filename = self.getTorrent(torrent, torrent_callback)
 
                     if torrent_filename[0]:
@@ -959,7 +961,7 @@ class LibraryManager:
 
             else:
                 print >> sys.stderr, ".TORRENT MISSING REQUESTING FROM PEERS"
-                callback = lambda: self.playTorrent(torrent, selectedinfilename)
+                callback = lambda torrentfilename: self.playTorrent(torrent, selectedinfilename)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
         else:
             videoplayer.play(ds, selectedinfilename)
@@ -998,7 +1000,7 @@ class LibraryManager:
                     destdir = destdir[-1]
                 self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
             else:
-                callback = lambda: self.resumeTorrent(torrent)
+                callback = lambda torrentfilename: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
 
     def stopTorrent(self, torrent):

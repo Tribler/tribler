@@ -2236,7 +2236,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         if isinstance(self.torrent, NotCollectedTorrent):
             torrent = self.torrent.torrent
-            def load_torrent():
+            def load_torrent(torrentfilename):
                 self.torrentsearch_manager.loadTorrent(torrent, callback=self.SetTorrent)
 
             filename = self.torrentsearch_manager.getCollectedFilename(torrent, retried=True)

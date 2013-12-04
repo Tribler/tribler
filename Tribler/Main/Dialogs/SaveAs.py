@@ -93,8 +93,7 @@ class SaveAs(wx.Dialog):
             torrent = Torrent.fromTorrentDef(tdef)
             torrentsearch_manager = self.guiutility.torrentsearch_manager
 
-            def callback():
-                torrent_filename = torrentsearch_manager.getCollectedFilename(torrent, retried=True)
+            def callback(torrent_filename):
                 tdef = TorrentDef.load(torrent_filename)
                 wx.CallAfter(self.SetCollected, tdef)
 

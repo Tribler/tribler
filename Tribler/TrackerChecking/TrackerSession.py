@@ -465,12 +465,19 @@ class HttpTrackerSession(TrackerSession):
             else:
                 new_location = (self._header_buffer[idx:].split('\r\n')[0]).split(' ')[1]
                 try:
+                    idx = new_location.find('info_hash=')
+                    if idx != -1:
+                        new_location = new_location[:idx]
+                    if new_location[-1] != '/':
+                        new_location += "/"
+                    new_location += "announce"
+
                     tracker_type, tracker_address, announce_page = TrackerSession.parseTrackerUrl(new_location)
                     if tracker_type != self._tracker_type:
                         raise RuntimeError('cannot redirect to different trackertype')
 
                     else:
-                        if DEBUG:
+                        if True or DEBUG:
                             print >> sys.stderr, 'TrackerSession: we are being redirected', new_location
 
                         self._tracker_address = tracker_address

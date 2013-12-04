@@ -292,7 +292,7 @@ class RemoteTorrentHandler:
                     self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'status': 'good'})
 
             # notify all
-            self.notify_possible_torrent_infohash(infohash, True)
+            self.notify_possible_torrent_infohash(infohash, swiftpath)
             if callback:
                 callback()
 
@@ -308,7 +308,7 @@ class RemoteTorrentHandler:
             sdef = SwiftDef()
             sdef.add_content(filename)
             sdef.finalize(self.session.get_swift_path(), destdir=self.session.get_torrent_collecting_dir())
-    
+
             mfpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
             if not os.path.exists(mfpath):
                 download = self.session.get_download(sdef.get_roothash())
@@ -317,17 +317,17 @@ class RemoteTorrentHandler:
                     sleep(1)
                 elif os.path.exists(mfpath + ".mhash"):  # indicating failed swift download
                     os.remove(mfpath + ".mhash")
-    
+
                 try:
                     shutil.copy(filename, mfpath)
                     shutil.move(filename + '.mhash', mfpath + '.mhash')
                     shutil.move(filename + '.mbinmap', mfpath + '.mbinmap')
-    
+
                 except:
                     print_exc()
-    
+
             return sdef, mfpath
-        
+
         tdef = TorrentDef.load(filename)
         mfpath = os.path.join(self.session.get_torrent_collecting_dir(), get_collected_torrent_filename(tdef.get_infohash()))
         shutil.copyfile(filename, mfpath)
@@ -378,7 +378,7 @@ class RemoteTorrentHandler:
 
         if key in self.callbacks:
             for usercallback in self.callbacks[key]:
-                self.session.uch.perform_usercallback(usercallback)
+                self.session.uch.perform_usercallback(lambda usercallback=usercallback: usercallback(torrent))
 
             del self.callbacks[key]
 
@@ -553,8 +553,8 @@ class TorrentRequester(Requester):
         attempting_download = False
 
         if filename:
-            self.remote_th.notify_possible_torrent_infohash(infohash, True)
-            self.remote_th.notify_possible_torrent_infohash(hash, True)
+            self.remote_th.notify_possible_torrent_infohash(infohash, filename)
+            self.remote_th.notify_possible_torrent_infohash(hash, filename)
 
             self.requests_on_disk += 1
 
@@ -708,7 +708,7 @@ class MagnetRequester(Requester):
             if infohash in self.requestedInfohashes:
                 self.requestedInfohashes.remove(infohash)
 
-            self.remote_th.notify_possible_torrent_infohash(infohash, True)
+            self.remote_th.notify_possible_torrent_infohash(infohash, filename)
             self.requests_on_disk += 1
 
         else:
