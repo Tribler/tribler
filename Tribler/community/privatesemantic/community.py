@@ -42,7 +42,9 @@ from Tribler.community.privatesemantic.conversion import bytes_to_long, \
 DEBUG = False
 DEBUG_VERBOSE = False
 ENCRYPTION = True
+
 PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
+TIME_BETWEEN_CONNECTION_ATTEMPTS = 15.0
 
 class TasteBuddy():
     def __init__(self, overlap, sock_addr):
@@ -368,8 +370,6 @@ class ForwardCommunity():
 
     # connect to first nr peers in peercache
     def connect_to_peercache(self, nr=10):
-        tmpcache = IntroductionRequestCache(u'')
-
         payload = self.create_similarity_payload()
         if payload:
             tbs = self.get_tbs_from_peercache(nr)
@@ -380,7 +380,7 @@ class ForwardCommunity():
                 while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
                     self.create_similarity_request(candidate, payload)
 
-                    yield tmpcache.timeout_delay + tmpcache.cleanup_delay
+                    yield TIME_BETWEEN_CONNECTION_ATTEMPTS
                     attempts -= 1
 
             for i, tb in enumerate(tbs):
