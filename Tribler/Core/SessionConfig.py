@@ -650,5 +650,8 @@ class CallbackConfigParser(RawConfigParser):
 
     def copy(self):
         copied_config = CallbackConfigParser()
-        copied_config._sections = self._sections
+        for section in self.sections():
+            copied_config.add_section(section)
+            for option, value in self.items(section):
+                copied_config.set(section, option, value)
         return copied_config
