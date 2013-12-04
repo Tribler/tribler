@@ -90,7 +90,6 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
             self.screenshot('After resuming a libtorrent download')
 
-            self.frame.librarylist.list.Select(infohash)
             self.frame.top_bg.OnDelete(silent=True)
             self.Call(10, do_final)
 
@@ -99,7 +98,6 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
             self.screenshot('After stopping a libtorrent download')
 
-            self.frame.librarylist.list.Select(infohash)
             self.frame.top_bg.OnResume()
             self.Call(5, do_deletedownload)
 
