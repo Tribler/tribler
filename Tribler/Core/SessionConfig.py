@@ -603,13 +603,6 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         if not sessconfig.read(filename):
             raise IOError, "Failed to open session config file"
 
-        for sect_dict in sessconfig._sections.values():
-            for k, v in sect_dict.iteritems():
-                if k != '__name__':
-                    try:
-                        sect_dict[k] = ast.literal_eval(v)
-                    except:
-                        pass
         return SessionStartupConfig(sessconfig)
 
     load = staticmethod(load)
@@ -627,8 +620,7 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
     # Copyable interface
     #
     def copy(self):
-        config = copy.copy(self.sessconfig)
-        return SessionStartupConfig(config)
+        return SessionStartupConfig(self.sessconfig.copy())
 
 
 class CallbackConfigParser(RawConfigParser):
@@ -646,3 +638,17 @@ class CallbackConfigParser(RawConfigParser):
             if not self.callback(section, option, new_value, old_value):
                 raise OperationNotPossibleAtRuntimeException
         RawConfigParser.set(self, section, option, new_value)
+
+    def get(self, section, option, literal_eval=True):
+        value = RawConfigParser.get(self, section, option) if RawConfigParser.has_option(self, section, option) else None
+        if literal_eval:
+            try:
+                value = ast.literal_eval(value)
+            except:
+                pass
+        return value
+
+    def copy(self):
+        copied_config = CallbackConfigParser()
+        copied_config._sections = self._sections
+        return copied_config

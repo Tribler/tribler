@@ -12,6 +12,7 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from traceback import print_exc, print_stack
 import traceback
 from Tribler.Core.ServerPortHandler import MultiHandler
+from Tribler.Core.SessionConfig import CallbackConfigParser
 
 try:
     prctlimported = True
@@ -555,32 +556,26 @@ class TriblerLaunchMany(Thread):
             pstate = self.load_download_pstate(filename)
 
             # SWIFTPROC
-            if SwiftDef.is_swift_url(pstate['metainfo']):
-                sdef = SwiftDef.load_from_url(pstate['metainfo'])
-            elif 'infohash' in pstate['metainfo']:
-                tdef = TorrentDefNoMetainfo(pstate['metainfo']['infohash'], pstate['metainfo']['name'])
+            metainfo = pstate.get('state', 'metainfo')
+            if SwiftDef.is_swift_url(metainfo):
+                sdef = SwiftDef.load_from_url(metainfo)
+            elif 'infohash' in metainfo:
+                tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'])
             else:
-                tdef = TorrentDef.load_from_dict(pstate['metainfo'])
+                tdef = TorrentDef.load_from_dict(metainfo)
 
-            dlconfig_dict = pstate['dlconfig']
-            from Tribler.Core.SessionConfig import CallbackConfigParser
-            dlconfig = CallbackConfigParser()
-            for section, sect_dict in dlconfig_dict.iteritems():
-                dlconfig.add_section(section)
-                for k, v in sect_dict.iteritems():
-                    dlconfig.set(section, k, v)
-            if dlconfig.has_option('general', 'saveas') and isinstance(dlconfig.get('general', 'saveas'), tuple):
-                dlconfig.set('general', 'saveas', dlconfig.get('saveas')[-1])
+            if pstate.has_option('downloadconfig', 'saveas') and isinstance(pstate.get('downloadconfig', 'saveas'), tuple):
+                pstate.set('downloadconfig', 'saveas', pstate.get('downloadconfig', 'saveas')[-1])
 
-            if dlconfig.get('swift', 'name'):
-                sdef.set_name(dlconfig.get('swift', 'name'))
+            if pstate.get('downloadconfig', 'name'):
+                sdef.set_name(pstate.get('downloadconfig', 'name'))
             if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
                 current_port = int(sdef.get_tracker().split(":")[1])
                 if current_port != self.session.get_swift_dht_listen_port():
                     print >> sys.stderr, "Modified SwiftDef to new tracker port"
                     sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
 
-            dscfg = DownloadStartupConfig(dlconfig)
+            dscfg = DownloadStartupConfig(pstate)
 
         except:
             print_exc()
@@ -782,15 +777,15 @@ class TriblerLaunchMany(Thread):
 
         if DEBUG:
             print >> sys.stderr, "tlm: network checkpointing: to file", filename
-        f = open(filename, "wb")
-        pickle.dump(pstate, f)
-        f.close()
+
+        with open(filename, "wb") as f:
+            pstate.write(f)
 
     def load_download_pstate(self, filename):
         """ Called by any thread """
-        f = open(filename, "rb")
-        pstate = pickle.load(f)
-        f.close()
+
+        pstate = CallbackConfigParser()
+        pstate.read(filename)
         return pstate
 
     def run(self):

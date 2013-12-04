@@ -712,10 +712,10 @@ class ABCApp():
         for file in filelist:
             try:
                 pstate = self.utility.session.lm.load_download_pstate(file)
-                dlconfig = pstate['dlconfig']
 
-                if dlconfig.get('saveas', ''):
-                    destdir = os.path.basename(dlconfig['saveas'])
+                saveas = pstate.get('downloadconfig', 'saveas')
+                if saveas:
+                    destdir = os.path.basename(saveas)
                     if destdir == coldir:
                         os.remove(file)
             except:
