@@ -40,7 +40,7 @@ from Tribler.community.privatesemantic.conversion import bytes_to_long, \
     long_to_bytes
 
 DEBUG = True
-DEBUG_VERBOSE = True
+DEBUG_VERBOSE = False
 ENCRYPTION = True
 PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
 
