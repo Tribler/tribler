@@ -603,7 +603,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
         # Reset default metadatadir
         if self.get_swift_meta_dir() == self.old_metadir:
-            pstate('downloadconfig', 'swiftmetadir', None)
+            pstate.set('downloadconfig', 'swiftmetadir', None)
 
         # Add state stuff
         if not pstate.has_section('state'):
