@@ -108,8 +108,7 @@ def convertDefaultDownloadConfig(oldfilename, newfilename):
     for key, value in dlconfig.iteritems():
         if key in ['saveas', 'showsaveas', 'max_upload_rate', 'max_download_rate', \
                    'super_seeder', 'mode', 'selected_files', 'correctedfilename', 'vod_usercallback', \
-                   'vod_userevents', 'swiftlistenport', 'swiftcmdgwlistenport', 'swifthttpgwlistenport', \
-                   'swiftmetadir', 'name']:
+                   'swiftlistenport', 'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
             ddsconfig.dlconfig.set('downloadconfig', key, value)
 
     # Save the new file, remove the old one
