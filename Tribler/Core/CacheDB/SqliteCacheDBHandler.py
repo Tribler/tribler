@@ -23,7 +23,6 @@ import re
 from sets import Set
 from struct import unpack_from
 
-from maxflow import Network
 from math import atan, pi
 
 from Tribler.Core.Utilities.bencode import bencode, bdecode
@@ -48,10 +47,6 @@ try:
     WindowsError
 except NameError:
     WindowsError = Exception
-
-# maxflow constants
-MAXFLOW_DISTANCE = 2
-ALPHA = float(1) / 30000
 
 DEBUG = False
 SHOW_ERROR = False
