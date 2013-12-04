@@ -722,6 +722,11 @@ class ForwardCommunity():
         return Community.dispersy_get_introduce_candidate(self, exclude_candidate)
 
     class PingRequestCache(IntroductionRequestCache):
+        @staticmethod
+        def create_identifier(number):
+            assert isinstance(number, (int, long)), type(number)
+            return u"request-cache:ping-request:%d" % (number,)
+        
         def __init__(self, community, requested_candidates):
             IntroductionRequestCache.__init__(self, community, None)
             self.requested_candidates = requested_candidates
