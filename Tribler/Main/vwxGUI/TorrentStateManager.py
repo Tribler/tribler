@@ -1,5 +1,4 @@
-from Tribler.community.channel.community import ChannelCommunity, \
-    forceDispersyThread
+from Tribler.community.channel.community import ChannelCommunity
 
 import os
 import sys
@@ -42,7 +41,6 @@ class TorrentStateManager:
         self.library_manager = library_manager
         self.channelsearch_manager = channelsearch_manager
 
-    @forceDispersyThread
     def torrentFinished(self, infohash):
         _, _, torrents = self.channelsearch_manager.getChannnelTorrents(infohash)
 

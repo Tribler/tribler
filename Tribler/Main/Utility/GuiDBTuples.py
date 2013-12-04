@@ -12,7 +12,8 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, \
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
-from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.channel.community import ChannelCommunity, \
+    forceAndReturnDispersyThread
 from Tribler.Core.Search.SearchManager import split_into_keywords
 import binascii
 
@@ -574,15 +575,18 @@ class Channel(Helper):
     @cache
     def getState(self):
         if self.isDispersy():
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            @forceAndReturnDispersyThread
+            def do_dispersy():
+                from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-            if DEBUGDB:
-                print >> sys.stderr, "Channel: fetching getChannelStateByCID from DB", self
+                if DEBUGDB:
+                    print >> sys.stderr, "Channel: fetching getChannelStateByCID from DB", self
 
-            searchManager = ChannelManager.getInstance()
-            result = searchManager.getChannelStateByCID(self.dispersy_cid)
-            if result:
+                searchManager = ChannelManager.getInstance()
+                result = searchManager.getChannelStateByCID(self.dispersy_cid)
                 return result
+
+            return do_dispersy()
 
         return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
 
