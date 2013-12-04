@@ -373,7 +373,7 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             tbs = self.get_tbs_from_peercache(nr)
-            if DEBUG:
+            if True or DEBUG:
                 print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
 
             def attempt_to_connect(candidate, attempts):
