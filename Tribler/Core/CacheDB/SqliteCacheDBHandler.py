@@ -1083,13 +1083,13 @@ class TorrentDBHandler(BasicDBHandler):
     # ------------------------------------------------------------
     def getTorrentsOnTracker(self, tracker):
         sql = """
-            SELECT T.infohash, T.last_tracker_check
+            SELECT T.torrent_id, T.infohash, T.last_tracker_check
               FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM
               WHERE TI.tracker = ?
               AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id
             """
         infohash_list = self._db.fetchall(sql, (tracker,))
-        return infohash_list
+        return [(torrent_id, str2bin(infohash), last_tracker_check) for torrent_id, infohash, last_tracker_check in infohash_list]
 
     # ------------------------------------------------------------
     # Gets a list of trackers of a given torrent ID.

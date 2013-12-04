@@ -460,27 +460,22 @@ class TorrentChecking(Thread):
                 return
 
             # get the torrents that should be checked
-            check_torrent_list = list()
-            for torrent in all_torrent_list:
+            scheduled_torrents = 0
+            for torrent_id, infohash, last_check in all_torrent_list:
                 # check interval
-                last_check = torrent[1]
                 interval = current_time - last_check
 
                 # recheck interval is: interval * 2^(retries)
                 if interval < self._torrent_check_interval:
                     continue
 
-                check_torrent_list.append(torrent)
+                self._processed_gui_request_queue.put((torrent_id, infohash, [tracker, ]))
+                scheduled_torrents += 1
 
-            if check_torrent_list:
+            if scheduled_torrents:
+                self._interrupt_socket.interrupt()
                 if DEBUG:
-                    print >> sys.stderr, 'TorrentChecking: Selected %d torrents to check on tracker[%s].' % (len(check_torrent_list), tracker)
-
-                # create sessions for the torrents that need to be checked
-                for torrent in check_torrent_list:
-                    infohash = str2bin(torrent[0])
-                    self._createSessionForRequest(infohash, tracker)
-
+                    print >> sys.stderr, 'TorrentChecking: Selected %d torrents to check on tracker[%s].' % (scheduled_torrents, tracker)
                 break
 
             elif DEBUG:

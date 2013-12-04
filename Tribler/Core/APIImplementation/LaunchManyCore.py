@@ -225,8 +225,11 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                 self.rtorrent_handler = RemoteTorrentHandler()
 
+            self.mainline_dht = None
+            self.ltmgr = None
+            self.torrent_checking = None
+
     def init(self):
-        self.mainline_dht = None
         if self.session.get_mainline_dht():
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             try:
@@ -235,13 +238,12 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc()
 
-        self.ltmgr = None
+
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
 
         # add task for tracker checking
-        self.torrent_checking = None
         if self.session.get_torrent_checking():
             if self.session.get_mainline_dht():
                 # Create torrent-liveliness checker based on DHT
