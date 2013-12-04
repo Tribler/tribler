@@ -127,7 +127,6 @@ dldefaults['downloadconfig']['mode'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
 dldefaults['downloadconfig']['vod_usercallback'] = None
-dldefaults['downloadconfig']['vod_userevents'] = []
 dldefaults['downloadconfig']['swiftlistenport'] = None
 dldefaults['downloadconfig']['swiftcmdgwlistenport'] = None
 dldefaults['downloadconfig']['swifthttpgwlistenport'] = None
