@@ -722,12 +722,14 @@ class ForwardCommunity():
         return Community.dispersy_get_introduce_candidate(self, exclude_candidate)
 
     class PingRequestCache(IntroductionRequestCache):
-        cleanup_delay = 0.0
-
         def __init__(self, community, requested_candidates):
             IntroductionRequestCache.__init__(self, community, None)
             self.requested_candidates = requested_candidates
             self.received_candidates = set()
+            
+        @property
+        def cleanup_delay(self):
+            return 0.0
 
         def on_success(self, candidate):
             if self.did_request(candidate):

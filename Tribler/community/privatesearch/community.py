@@ -395,8 +395,8 @@ class TTLSearchCommunity(Community):
                     print >> sys.stderr, long(time()), "TTLSearchCommunity: no results"
 
             # temp fake immediate response of peers
-            if results and self.log_searches:
-                self.log_searches("search-response", identifier=message.payload.identifier)
+            # if results and self.log_searches:
+            #     self.log_searches("search-response", identifier=message.payload.identifier)
 
             if forward_message:
                 if DEBUG:
