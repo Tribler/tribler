@@ -417,18 +417,7 @@ class TorrentDBHandler(BasicDBHandler):
         self._nb = NetworkBuzzDBHandler.getInstance()
 
     def getTorrentID(self, infohash):
-        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-
-        tid = self.infohash_id.get(infohash, None)
-        if tid is not None:
-            return tid
-
-        sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE infohash==?"
-        tid = self._db.fetchone(sql_get_torrent_id, (bin2str(infohash),))
-        if tid != None:
-            self.infohash_id[infohash] = tid
-        return tid
+        return self.getTorrentIDS([infohash,])[0]
 
     def getTorrentIDS(self, infohashes):
         to_select = []
