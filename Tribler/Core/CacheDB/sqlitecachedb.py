@@ -20,12 +20,6 @@ from threading import currentThread, Event, RLock, Lock
 import inspect
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 
-try:
-    # python 2.7 only...
-    from collections import OrderedDict
-except ImportError:
-    from Tribler.dispersy.python27_ordereddict import OrderedDict
-
 # support_version = (3,5,9)
 # support_version = (3,3,13)
 # apsw_version = tuple([int(r) for r in apsw.apswversion().split('-')[0].split('.')])
@@ -86,18 +80,6 @@ if __DEBUG_QUERIES__:
 
 class Warning(Exception):
     pass
-
-
-class LimitedOrderedDict(OrderedDict):
-
-    def __init__(self, limit, *args, **kargs):
-        super(LimitedOrderedDict, self).__init__(*args, **kargs)
-        self._limit = limit
-
-    def __setitem__(self, *args, **kargs):
-        super(LimitedOrderedDict, self).__setitem__(*args, **kargs)
-        if len(self) > self._limit:
-            self.popitem(last=False)
 
 
 def init(state_dir, install_dir, db_exception_handler=None):
@@ -179,7 +161,6 @@ class SQLiteCacheDBBase:
         # Arno, 2012-08-02: As there is just Dispersy thread here, removing
         # safe_dict() here
         # 24/09/12 Boudewijn: changed into LimitedOrderedDict to limit memory consumption
-        self.infohash_id = LimitedOrderedDict(1024 * 5)
         self.show_execute = False
 
         # TODO: All global variables must be protected to be thread safe?
@@ -728,49 +709,6 @@ class SQLiteCacheDBBase:
     # ----- Tribler DB operations ----
 
     #------------- useful functions for multiple handlers ----------
-    def getTorrentID(self, infohash):
-        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-
-        tid = self.infohash_id.get(infohash, None)
-        if tid is not None:
-            return tid
-
-        sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE infohash==?"
-        tid = self.fetchone(sql_get_torrent_id, (bin2str(infohash),))
-        if tid != None:
-            self.infohash_id[infohash] = tid
-        return tid
-
-    def getTorrentIDS(self, infohashes):
-        to_select = []
-
-        for infohash in infohashes:
-            assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-            assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-
-            if not infohash in self.infohash_id:
-                to_select.append(bin2str(infohash))
-
-        while len(to_select) > 0:
-            nrToQuery = min(len(to_select), 50)
-            parameters = '?,' * nrToQuery
-            sql_get_torrent_ids = "SELECT torrent_id, infohash FROM Torrent WHERE infohash IN (" + parameters[:-1] + ")"
-
-            torrents = self.fetchall(sql_get_torrent_ids, to_select[:nrToQuery])
-            for torrent_id, infohash in torrents:
-                self.infohash_id[str2bin(infohash)] = torrent_id
-
-            to_select = to_select[nrToQuery:]
-
-        to_return = []
-        for infohash in infohashes:
-            if infohash in self.infohash_id:
-                to_return.append(self.infohash_id[infohash])
-            else:
-                to_return.append(None)
-        return to_return
-
     def test(self):
         res1 = self.getAll('Category', '*')
         res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))

@@ -344,8 +344,8 @@ class TestTorrentDBHandler(AbstractDB):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
 
-        sid = self.tdb._db.getTorrentID(s_infohash)
-        mid = self.tdb._db.getTorrentID(m_infohash)
+        sid = self.tdb.getTorrentID(s_infohash)
+        mid = self.tdb.getTorrentID(m_infohash)
 
         single_torrent_file_path = os.path.join(self.getStateDir(), 'single.torrent')
         multiple_torrent_file_path = os.path.join(self.getStateDir(), 'multiple.torrent')
@@ -362,8 +362,8 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb.addExternalTorrent(single_tdef, extra_info={'filename': single_torrent_file_path})
         self.tdb.addExternalTorrent(multiple_tdef, source=src, extra_info={'filename': multiple_torrent_file_path})
 
-        single_torrent_id = self.tdb._db.getTorrentID(s_infohash)
-        multiple_torrent_id = self.tdb._db.getTorrentID(m_infohash)
+        single_torrent_id = self.tdb.getTorrentID(s_infohash)
+        multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
 
         assert self.tdb.getInfohash(single_torrent_id) == s_infohash
 
@@ -421,7 +421,7 @@ class TestTorrentDBHandler(AbstractDB):
                          status='good', progress=23.5, seeder=123, leecher=321,
                          last_check_time=1234567,
                          other_key1='abcd', other_key2=123)
-        multiple_torrent_id = self.tdb._db.getTorrentID(m_infohash)
+        multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
         res_r = self.tdb.getOne('relevance', torrent_id=multiple_torrent_id)
         # assert 3.1415926 == res_r
         self.tdb.updateTorrentRelevance(m_infohash, 1.41421)
@@ -481,9 +481,11 @@ class TestMyPreferenceDBHandler(AbstractDB):
 
         self.mdb = MyPreferenceDBHandler.getInstance()
         self.mdb.loadData()
+        self.tdb = TorrentDBHandler.getInstance()
 
     def tearDown(self):
         MyPreferenceDBHandler.delInstance()
+        TorrentDBHandler.delInstance()
 
         AbstractDB.tearDown(self)
 
@@ -518,7 +520,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
     def test_addMyPreference_deletePreference(self):
         p = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
         torrent_id = p[0]
-        infohash = self.mdb.getInfohash(torrent_id)
+        infohash = self.tdb.getInfohash(torrent_id)
         destpath = p[1]
         progress = p[2]
         creation_time = p[3]
@@ -545,7 +547,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
     def test_updateProgress(self):
         infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
         infohash = str2bin(infohash_str_126)
-        torrent_id = self.mdb._db.getTorrentID(infohash)
+        torrent_id = self.tdb.getTorrentID(infohash)
         assert torrent_id == 126
         assert self.mdb.hasMyPreference(torrent_id)
         self.mdb.updateProgress(torrent_id, 3.14)
