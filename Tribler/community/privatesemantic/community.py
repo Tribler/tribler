@@ -553,11 +553,8 @@ class ForwardCommunity():
                 request.process()
 
     def create_similarity_request(self, destination, payload):
-        identifier = self._dispersy.request_cache.claim(ForwardCommunity.MSimilarityRequest(self, None, [destination]))
-
-        if DEBUG:
-            print >> sys.stderr, long(time()), "SearchCommunity: sending similarity request to", str(destination), identifier
-        self.send_similarity_request([destination], identifier, payload)
+        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination]))
+        self.send_similarity_request([destination], cache.number, payload)
 
     def send_similarity_request(self, candidates, identifier, payload):
         raise NotImplementedError()
@@ -873,8 +870,13 @@ class PForwardCommunity(ForwardCommunity):
                                 destination=(destination,),
                                 payload=(identifier, payload.key_n, payload.preference_list, payload.global_vector))
 
-        self._dispersy._forward([request])
-        self.send_packet_size += len(request.packet)
+        if self._dispersy._forward([request]):
+            self.send_packet_size += len(request.packet)
+
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "PSearchCommunity: sending msimilarity request to", destination, "containing", len(payload.preference_list), "hashes"
+            return True
+        return False
 
     def send_similarity_request(self, candidates, identifier, payload):
         # forward it to others
@@ -885,6 +887,9 @@ class PForwardCommunity(ForwardCommunity):
 
         if self._dispersy._send(candidates, [request]):
             self.forward_packet_size += len(request.packet) * len(candidates)
+
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "PSearchCommunity: sending similarity request to", map(str, candidates), "containing", len(payload.preference_list), "hashes"
             return True
         return False
 
@@ -1049,16 +1054,19 @@ class HForwardCommunity(ForwardCommunity):
         return overlap
 
     def send_msimilarity_request(self, destination, identifier, payload):
-        if DEBUG_VERBOSE:
-            print >> sys.stderr, long(time()), "HSearchCommunity: sending similarity request to", destination, "containing", len(payload.preference_list), "hashes"
-
         meta_request = self.get_meta_message(u"msimilarity-request")
         request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
                                 destination=(destination,),
                                 payload=(identifier, payload.key_n, payload.preference_list))
 
-        self._dispersy._forward([request])
+        if self._dispersy._forward([request]):
+            self.send_packet_size += len(request.packet)
+
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "HSearchCommunity: sending msimilarity request to", destination, "containing", len(payload.preference_list), "hashes"
+            return True
+        return False
 
     def send_similarity_request(self, candidates, identifier, payload):
         # forward it to others
@@ -1069,6 +1077,10 @@ class HForwardCommunity(ForwardCommunity):
 
         if self._dispersy._send(candidates, [request]):
             self.forward_packet_size += len(request.packet) * len(candidates)
+
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "PoliSearchCommunity: sending similarity request to", map(str, candidates), "containing", len(payload.preference_list), "hashes"
+
             return True
         return False
 
@@ -1257,17 +1269,20 @@ class PoliForwardCommunity(ForwardCommunity):
         return overlap
 
     def send_msimilarity_request(self, destination, identifier, payload):
-        if DEBUG_VERBOSE:
-            print >> sys.stderr, long(time()), "PoliSearchCommunity: sending similarity request to", destination, "containing", len(payload.coefficients), "partitions and", sum(len(coeffs) for coeffs in payload.coefficients.itervalues()), "coefficients"
-
         meta_request = self.get_meta_message(u"msimilarity-request")
         request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
                                 destination=(destination,),
                                 payload=(identifier, payload.key_n, payload.key_g, payload.coefficients))
 
-        self._dispersy._forward([request])
-        self.send_packet_size += len(request.packet)
+        if self._dispersy._forward([request]):
+            self.send_packet_size += len(request.packet)
+
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "PoliSearchCommunity: sending msimilarity request to", destination, "containing", len(payload.coefficients), "partitions and", sum(len(coeffs) for coeffs in payload.coefficients.itervalues()), "coefficients"
+
+            return True
+        return False
 
     def send_similarity_request(self, candidates, identifier, payload):
         coefficients = payload.coefficients.copy()
@@ -1289,6 +1304,9 @@ class PoliForwardCommunity(ForwardCommunity):
 
         if self._dispersy._send(candidates, [request]):
             self.forward_packet_size += len(request.packet) * len(candidates)
+
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "PoliSearchCommunity: sending similarity request to", map(str, candidates), "containing", len(coefficients), "partitions and", sum(len(coeffs) for coeffs in coefficients.itervalues()), "coefficients"
             return True
         return False
 
