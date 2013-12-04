@@ -81,11 +81,6 @@ class TestSeeding(TestAsServer):
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(self.getDestDir())
 
-        # File source
-        source = InfiniteSource(piecesize)
-        self.dscfg.set_video_ratelimit(self.bitrate)
-        self.dscfg.set_video_source(source)
-
         d = self.session.start_download(self.tdef, self.dscfg)
 
         d.set_state_callback(self.seeder_state_callback)

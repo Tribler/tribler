@@ -124,8 +124,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.dlruntimeconfig['max_desired_upload_rate'] = 0
             self.dlruntimeconfig['max_desired_download_rate'] = 0
 
-            if pstate and 'dlstate' in pstate:
-                dlstate = pstate['dlstate']
+            if pstate and pstate.has_option('state', 'dlstate'):
+                dlstate = pstate.get('state', 'dlstate')
                 if 'time_seeding' in dlstate:
                     self.time_seeding = [dlstate['time_seeding'], None]
                 if 'total_up' in dlstate:
@@ -591,34 +591,35 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
     def network_get_persistent_state(self):
         """ Assume dllock already held """
-        pstate = {}
-        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
-        pstate['metainfo'] = self.sdef.get_url_with_meta()  # assumed immutable
 
-        dscfg = DownloadStartupConfig(copy.copy(self.dlconfig))
-        dscfg.set_swift_name(self.sdef.get_name())
+        pstate = self.dlconfig.copy()
+
+        pstate.set('downloadconfig', 'name', self.sdef.get_name())
+
         # Reset unpicklable params
-        dscfg.set_video_event_callback(None)
-        dscfg.set_mode(DLMODE_NORMAL)  # no callback, no VOD
+        pstate.set('downloadconfig', 'vod_usercallback', None)
+        pstate.set('downloadconfig', 'mode', DLMODE_NORMAL)
 
         # Reset default metadatadir
         if self.get_swift_meta_dir() == self.old_metadir:
-            dscfg.set_swift_meta_dir('swiftmetadir')
+            pstate('downloadconfig', 'swiftmetadir', None)
 
-        pstate['dlconfig'] = dscfg.dlconfig._sections
+        # Add state stuff
+        if not pstate.has_section('state'):
+            pstate.add_section('state')
+        pstate.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
+        pstate.set('state', 'metainfo', self.sdef.get_url_with_meta())  # assumed immutable
 
-        pstate['dlstate'] = {}
         ds = self.network_get_state(None, False, sessioncalling=True)
-        pstate['dlstate']['status'] = ds.get_status()
-        pstate['dlstate']['progress'] = ds.get_progress()
-        pstate['dlstate']['swarmcache'] = None
-        pstate['dlstate'].update(ds.get_seeding_statistics())
+        dlstate = {'status': ds.get_status(), 'progress': ds.get_progress(), 'swarmcache': None}
+        dlstate.update(ds.get_seeding_statistics())
+        pstate.set('state', 'dlstate', dlstate)
 
         if DEBUG:
             print >> sys.stderr, "SwiftDownloadImpl: netw_get_pers_state: status", dlstatus_strings[ds.get_status()], "progress", ds.get_progress()
 
         # Swift stores own state in .mhash and .mbinmap file
-        pstate['engineresumedata'] = None
+        pstate.set('state', 'engineresumedata', None)
         return pstate
 
     #

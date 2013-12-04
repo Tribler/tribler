@@ -6,8 +6,8 @@ import os
 execpath = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), '..', '..')
 sys.path.append(execpath)
 # print sys.path
-from Utility.utility import getMetainfo
 from Tribler.Category.Category import Category
+from libtorrent import bdecode
 
 DEBUG = False
 
@@ -43,7 +43,7 @@ def testFilter(catfilename, torrentpath):
     Correct filtered: %(good)d
     False negatives:  %(fn)d
     False positives:  %(fp)d
-    """ % {'total': total, 'porn': porn, 'fn': fn,'fp':fp,'good':total-fn-fp}
+    """ % {'total': total, 'porn': porn, 'fn': fn, 'fp':fp, 'good':total - fn - fp}
 
 
 def readCategorisationFile(filename):
@@ -61,7 +61,7 @@ def readCategorisationFile(filename):
         print 'No file %s found, starting with empty file' % filename
 
 
-def getTorrentData(path, max_num=-1):
+def getTorrentData(path, max_num= -1):
     torrents = []
     i = 0
     for fname in os.listdir(path):
@@ -75,6 +75,10 @@ def getTorrentData(path, max_num=-1):
     print 'Loaded %d torrents' % len(torrents)
     return torrents
 
+def getMetainfo(filename):
+    if os.path.exists(filename):
+        with open(filename, "rb") as f:
+            return bdecode(f.read())
 
 def showTorrent(path):
     torrent = getMetainfo(os.path.join(path))

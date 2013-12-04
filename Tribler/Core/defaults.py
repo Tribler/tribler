@@ -1,6 +1,6 @@
 # Written by Arno Bakker and Bram Cohen
 # Updated by George Milescu
-# Updated by Egbert Bouman, added subsection names + using OrderedDict + cleanup 
+# Updated by Egbert Bouman, added subsection names + using OrderedDict + cleanup
 # see LICENSE.txt for license information
 
 """ Default values for all configurarable parameters of the Core"""
@@ -19,11 +19,7 @@
 #    disk that does not have your new fields.
 #
 
-import sys
-
 from collections import OrderedDict
-
-from Tribler.Core.simpledefs import DISKALLOC_NORMAL, DISKALLOC_SPARSE
 
 DEFAULTPORT = 7760
 
@@ -32,9 +28,10 @@ DEFAULTPORT = 7760
 #
 # History:
 #  Version 2: as released in Tribler 4.5.0
+#  Version 3: cleanup unused params
 #
 
-SESSDEFAULTS_VERSION = 2
+SESSDEFAULTS_VERSION = 3
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -119,33 +116,23 @@ DLDEFAULTS_VERSION = 8
 dldefaults = OrderedDict()
 
 # General download settings
-dldefaults['general'] = OrderedDict()
-dldefaults['general']['version'] = DLDEFAULTS_VERSION
-dldefaults['general']['saveas'] = None  # Set to get_default_destdir()
-dldefaults['general']['showsaveas'] = True  # Allow users to choose directory for every new download
-dldefaults['general']['max_upload_rate'] = 0
-dldefaults['general']['max_download_rate'] = 0
-dldefaults['general']['alloc_type'] = DISKALLOC_NORMAL if sys.platform == 'win32' else DISKALLOC_SPARSE
-dldefaults['general']['super_seeder'] = 0
-dldefaults['general']['mode'] = 0
-dldefaults['general']['selected_files'] = []
-dldefaults['general']['correctedfilename'] = None
-
-# VOD config
-dldefaults['vod'] = OrderedDict()
-dldefaults['vod']['vod_usercallback'] = None
-dldefaults['vod']['vod_userevents'] = []
-dldefaults['vod']['video_source'] = None
-dldefaults['vod']['video_ratelimit'] = 0
-dldefaults['vod']['video_source_authconfig'] = None
-
-# Swift config
-dldefaults['swift'] = OrderedDict()
-dldefaults['swift']['swiftlistenport'] = None
-dldefaults['swift']['swiftcmdgwlistenport'] = None
-dldefaults['swift']['swifthttpgwlistenport'] = None
-dldefaults['swift']['swiftmetadir'] = None
-dldefaults['swift']['name'] = None
+dldefaults['downloadconfig'] = OrderedDict()
+dldefaults['downloadconfig']['version'] = DLDEFAULTS_VERSION
+dldefaults['downloadconfig']['saveas'] = None  # Set to get_default_destdir()
+dldefaults['downloadconfig']['showsaveas'] = True  # Allow users to choose directory for every new download
+dldefaults['downloadconfig']['max_upload_rate'] = 0
+dldefaults['downloadconfig']['max_download_rate'] = 0
+dldefaults['downloadconfig']['super_seeder'] = 0
+dldefaults['downloadconfig']['mode'] = 0
+dldefaults['downloadconfig']['selected_files'] = []
+dldefaults['downloadconfig']['correctedfilename'] = None
+dldefaults['downloadconfig']['vod_usercallback'] = None
+dldefaults['downloadconfig']['vod_userevents'] = []
+dldefaults['downloadconfig']['swiftlistenport'] = None
+dldefaults['downloadconfig']['swiftcmdgwlistenport'] = None
+dldefaults['downloadconfig']['swifthttpgwlistenport'] = None
+dldefaults['downloadconfig']['swiftmetadir'] = None
+dldefaults['downloadconfig']['name'] = None
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

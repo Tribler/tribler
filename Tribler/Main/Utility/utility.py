@@ -162,13 +162,7 @@ class Utility:
         if not self.config.has_option(section, option):
             return self.defaults.get(section, {}).get(option, None)
 
-        value = self.config.get(section, option)
-        if literal_eval:
-            try:
-                return ast.literal_eval(value)
-            except:
-                pass
-        return value
+        return self.config.get(section, option, literal_eval=literal_eval)
 
     def write_config(self, option, value, section='Tribler', flush=False):
         self.config.set(section, option, value)

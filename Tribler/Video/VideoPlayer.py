@@ -506,7 +506,7 @@ class VideoPlayer:
 
     def get_video_player(self, ext, videourl, mimetype=None):
 
-        video_player_path = self.utility.config.Read('videoplayerpath')
+        video_player_path = self.utility.read_config('videoplayerpath')
         if DEBUG:
             print >> sys.stderr, "videoplay: Default player is", video_player_path
 
