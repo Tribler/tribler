@@ -108,8 +108,7 @@ class Utility:
         if not self.config.has_section('downloadconfig'):
             self.config.add_section('downloadconfig')
         for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
-            if not self.config.has_option('downloadconfig', k):
-                self.config.set('downloadconfig', k, v)
+            self.config.set('downloadconfig', k, v)
 
         # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
         DefaultDownloadStartupConfig.getInstance().dlconfig = self.config

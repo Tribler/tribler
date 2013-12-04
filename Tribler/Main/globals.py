@@ -31,6 +31,13 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         DefaultDownloadStartupConfig.__single = None
     delInstance = staticmethod(delInstance)
 
+    def load(filename):
+        dlconfig = CallbackConfigParser()
+        if not dlconfig.read(filename):
+            raise IOError, "Failed to open download config file"
+        return DefaultDownloadStartupConfig(dlconfig)
+    load = staticmethod(load)
+
     def copy(self):
         config = CallbackConfigParser()
         config._sections = {'downloadconfig': copy.deepcopy(self.dlconfig._sections['downloadconfig'])}
