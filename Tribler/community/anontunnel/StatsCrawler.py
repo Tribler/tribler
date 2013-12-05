@@ -54,6 +54,8 @@ class StatsCrawler(Thread):
                 CREATE TABLE IF NOT EXISTS result(
                     result_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     session_id GUID UNIQUE,
+                    host,
+                    port,
                     swift_size,
                     swift_time,
                     bytes_enter,
@@ -123,9 +125,10 @@ class StatsCrawler(Thread):
         try:
 
             cursor.execute('''INSERT OR FAIL INTO result
-                                (session_id, swift_size, swift_time, bytes_enter, bytes_exit, bytes_returned)
+                                (session_id, host, port, swift_size, swift_time, bytes_enter, bytes_exit, bytes_returned)
                                 VALUES (?,?,?,?,?,?)''',
                               [uuid.UUID(stats['uuid']),
+                               sock_addr[0], sock_addr[1],
                               stats['swift']['size'],
                               stats['swift']['download_time'],
                               stats['bytes_enter'],
