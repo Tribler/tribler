@@ -66,7 +66,7 @@ def getUniformedURL(tracker_url):
     else:
         uniformed_url = '%s://%s:%d' % (tracker_type, host, port)
 
-    if url_regex.match(uniformed_url) == 0:
+    if not url_regex.match(uniformed_url):
         return None
     else:
         return uniformed_url

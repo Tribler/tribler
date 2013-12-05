@@ -205,7 +205,6 @@ class TriblerLaunchMany(Thread):
                 self.term = TermExtraction.getInstance(self.session.get_install_dir())
 
                 self.peer_db = PeerDBHandler.getInstance()
-                self.peer_db.registerConnectionUpdater(self.session)
 
                 self.torrent_db = TorrentDBHandler.getInstance()
                 self.torrent_db.register(os.path.abspath(self.session.get_torrent_collecting_dir()))

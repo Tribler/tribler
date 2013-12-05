@@ -1539,7 +1539,7 @@ class ChannelManager:
         return returnList
 
     def getMyVote(self, channel):
-        return self.votecastdb.getVote(channel.id, None)
+        return self.votecastdb.getVoteOnChannel(channel.id, None)
 
     def getSubscribersCount(self, channel):
         return self.channelcast_db.getSubscribersCount(channel.id)

@@ -399,6 +399,7 @@ class CollectedTorrent(Helper):
         if DEBUGDB:
             print >> sys.stderr, "CollectedTorrent: fetching getSwarmInfo from DB", self
 
+        # TODO: use getTorrent instead
         swarminfo = self.torrent_db.getSwarmInfo(self.torrent_id)
         if swarminfo:
             self.torrent.num_seeders = swarminfo[0] or 0
