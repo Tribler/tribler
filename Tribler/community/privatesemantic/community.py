@@ -1418,9 +1418,11 @@ class Das4DBStub():
         self.id2category = {1:u''}
 
     def addMyPreference(self, preference, data):
+        assert isinstance(preference, long), type(preference)
         self.myPreferences.add(preference)
 
     def addTestPreference(self, preference):
+        assert isinstance(preference, long), type(preference)
         self.myTestPreferences.add(preference)
 
     def getMyPrefListInfohash(self, limit=None, local=True):

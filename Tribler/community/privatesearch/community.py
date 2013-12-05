@@ -395,8 +395,8 @@ class TTLSearchCommunity(Community):
                     print >> sys.stderr, long(time()), "TTLSearchCommunity: no results"
 
             # temp fake immediate response of peers
-            if results and self.log_searches:
-                self.log_searches("search-response", identifier=message.payload.identifier)
+            # if results and self.log_searches:
+            #    self.log_searches("search-response", identifier=message.payload.identifier)
 
             if forward_message:
                 if DEBUG:
@@ -813,40 +813,22 @@ class Das4DBStub():
 
         results = []
         for keyword in keywords:
-            infohash = str(keyword)
-            if infohash in my_preferences:
-                results.append((infohash, my_preferences[infohash], 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
+            if keyword in my_preferences:
+                results.append((keyword, my_preferences[keyword], 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
         return results
 
     def on_search_response(self, results):
         for result in results:
+            assert isinstance(result[0], str), type(result[0])
             if result[0] not in self.myMegaCache:
                 self.myMegaCache[result[0]] = (result[0], result[1], 0, 0, 0, time())
         return len(self.myMegaCache)
 
     def addTorrent(self, infohash, local=True):
+        assert isinstance(infohash, str), type(infohash)
         self.myTorrentCache[infohash] = local
 
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
+        assert isinstance(infohash, str), type(infohash)
         if infohash in self.myMegaCache:
             del self.myMegaCache[infohash]
-
-    def on_pingpong(self, torrents):
-        unknown_torrents = [[infohash, ] for infohash, _, _, _, _ in torrents if infohash not in self.myMegaCache]
-        if len(unknown_torrents) > 5:
-            unknown_torrents = sample(unknown_torrents, 5)
-        return self.on_search_response(unknown_torrents)
-
-    def getRecentlyCollectedSwiftHashes(self, limit=None):
-        megaCache = self.myMegaCache.values()
-        if limit:
-            return megaCache[-limit:]
-        return megaCache
-
-    def getRandomlyCollectedSwiftHashes(self, leastRecent=0, limit=None):
-        megaCache = self.myMegaCache.values()
-        shuffle(megaCache)
-
-        if limit:
-            return megaCache[:limit]
-        return megaCache
