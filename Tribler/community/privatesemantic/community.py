@@ -1222,6 +1222,8 @@ class PoliForwardCommunity(ForwardCommunity):
 
                 if self.encryption:
                     coeffs = [paillier_encrypt(self.key, coeff) for coeff in coeffs]
+                else:
+                    coeffs = [long(coeff) for coeff in coeffs]
 
                 partitions[partition] = coeffs
 
