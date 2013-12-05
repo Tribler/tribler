@@ -2034,8 +2034,6 @@ class VoteCastDBHandler(BasicDBHandler):
         return self.my_votes
 
 
-# end votes
-
 class ChannelCastDBHandler(BasicDBHandler):
 
     def __init__(self):
@@ -2131,11 +2129,6 @@ class ChannelCastDBHandler(BasicDBHandler):
 
         sql = "DELETE FROM _ChannelTorrents WHERE dipsersy_id > ?"
         self._db.execute_write(sql, (dispersy_id), commit=self.shouldCommit)
-
-    # dispersy modifying and receiving channels
-    def on_channel_from_channelcast(self, publisher_permid, name):
-        peer_id = self.peer_db.addOrGetPeerID(publisher_permid)
-        return self.on_channel_from_dispersy(-1, peer_id, name, '')
 
     def on_channel_from_dispersy(self, dispersy_cid, peer_id, name, description):
         if isinstance(dispersy_cid, (str)):
@@ -2291,55 +2284,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if playlisttorrent_id:
             return True
         return False
-
-    # Old code used by channelcast
-    def on_torrents_from_channelcast(self, torrents):
-        # torrents is a list of tuples (channel_id, channel_name, infohash, time_stamp
-        select_max = "SELECT max(time_stamp) FROM ChannelTorrents WHERE channel_id = ?"
-
-        update_name = "UPDATE _Channels SET name = ?, modified = ?, nr_torrents = ? WHERE id = ?"
-        update_channel = "UPDATE _Channels SET modified = ?, nr_torrents = ? WHERE id = ?"
-        select_torrent = "SELECT torrent_id FROM ChannelTorrents WHERE torrent_id = ? AND channel_id = ?"
-        insert_torrent = "INSERT INTO _ChannelTorrents (dispersy_id, torrent_id, channel_id, time_stamp) VALUES (?,?,?,?)"
-
-        max_update = {}
-        latest_update = {}
-
-        # batch fetch torrent_ids:
-        infohashes = [infohash for channel_id, channel_name, infohash, name, timestamp in torrents]
-        torrent_ids = self.torrent_db.addOrGetTorrentIDS(infohashes)
-
-        for i, torrent in enumerate(torrents):
-            channel_id, channel_name, infohash, name, timestamp = torrent
-            torrent_id = torrent_ids[i]
-
-            present = self._db.fetchone(select_torrent, (torrent_id, channel_id))
-            if present == None:
-                if not channel_id in max_update:
-                    max_update[channel_id] = self._db.fetchone(select_max, (channel_id,))
-
-                if timestamp > max_update[channel_id]:
-                    # possible name change
-                    latest_update[channel_id] = max((timestamp, channel_name), latest_update.get(channel_id, None))
-
-                self._db.execute_write(insert_torrent, (-1, torrent_id, channel_id, timestamp), commit=False)
-
-        for channel_id in max_update.keys():
-            modified, nrTorrents = self.getLatestUpdateNrTorrentsInChannel(channel_id, collected=True)
-
-            if channel_id in latest_update:
-                new_name = latest_update[channel_id][1][:40]
-                self._db.execute_write(update_name, (new_name, modified, nrTorrents, channel_id), commit=False)
-            else:
-                self._db.execute_write(update_channel, (modified, nrTorrents, channel_id), commit=False)
-
-        if self.shouldCommit:
-            self._db.commit()
-
-    def deleteTorrentFromChannel(self, channel_id):
-        # remove all non-dispersy torrents
-        sql = "DELETE FROM _ChannelTorrents WHERE channel_id = ? AND dispersy_id = ?"
-        self._db.execute_write(sql, (channel_id, -1), commit=self.shouldCommit)
 
     # dispersy receiving comments
     def on_comment_from_dispersy(self, channel_id, dispersy_id, mid_global_time, peer_id, comment, timestamp, reply_to, reply_after, playlist_dispersy_id, infohash):
@@ -2549,20 +2493,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select count(*) from MyPreference, ChannelTorrents where MyPreference.torrent_id = ChannelTorrents.torrent_id and ChannelTorrents.channel_id = ? LIMIT 1"
         return self._db.fetchone(sql, (channel_id,))
 
-    def getNrTorrentsInChannel(self, channel_id, collected=False):
-        if collected:
-            sql = "select count(ChannelTorrents.torrent_id) from ChannelTorrents, CollectedTorrent where ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND channel_id==? LIMIT 1"
-        else:
-            sql = "select count(ChannelTorrents.torrent_id) from ChannelTorrents where channel_id==? LIMIT 1"
-        return self._db.fetchone(sql, (channel_id,))
-
-    def getLatestUpdateNrTorrentsInChannel(self, channel_id, collected=False):
-        if collected:
-            sql = "select max(ChannelTorrents.time_stamp), count(ChannelTorrents.torrent_id) from ChannelTorrents, CollectedTorrent where ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND channel_id==? LIMIT 1"
-        else:
-            sql = "select max(ChannelTorrents.time_stamp), count(ChannelTorrents.torrent_id) from ChannelTorrents where channel_id==? LIMIT 1"
-        return self._db.fetchone(sql, (channel_id,))
-
     def getChannelNrTorrents(self, limit=None):
         if limit:
             sql = "select count(torrent_id), channel_id from Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id AND dispersy_cid <>  -1 GROUP BY channel_id ORDER BY RANDOM() LIMIT ?"
@@ -2586,41 +2516,6 @@ class ChannelCastDBHandler(BasicDBHandler):
     def getPermidForChannel(self, channel_id):
         sql = "SELECT permid FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id AND Channels.id = ?"
         return self._db.fetchone(sql, (channel_id,))
-
-    def getPermidForChannels(self, channel_ids):
-        if len(channel_ids) == 1:
-            return self.getPermidForChannel(channel_ids[0])
-
-        sql = "SELECT permid FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id AND Channels.id in ("
-        sql += ','.join(channel_ids)
-        sql += ")"
-        return self._db.fetchall(sql)
-
-    def getPermChannelIdDict(self, binary=False):
-        returndict = {}
-
-        sql = "SELECT permid, Channels.id FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id GROUP BY permid"
-        results = self._db.fetchall(sql)
-        for permid, channel_id in results:
-            if binary:
-                returndict[str2bin(permid)] = channel_id
-            else:
-                returndict[permid] = channel_id
-
-        return returndict
-
-    def getPermidForChannelsDict(self, channel_ids=None):
-        if len(channel_ids) == 1:
-            channel_ids = list(channel_ids)
-            return {channel_ids[0]: self.getPermidForChannel(channel_ids[0])}
-
-        returndict = {}
-
-        sql = "SELECT Channels.id, permid FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id GROUP BY permid"
-        results = self._db.fetchall(sql)
-        for channel_id, permid in results:
-            returndict[channel_id] = permid
-        return returndict
 
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
@@ -2973,19 +2868,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = sql[:-3]
         return self._getChannels(sql)
 
-    def getChannelNames(self, permids):
-        names = {}
-
-        publishers = "','".join(permids)
-        sqla = "Select publisher_id, max(ChannelCast.time_stamp) FROM ChannelCast WHERE publisher_id IN ('" + publishers + "') GROUP BY publisher_id"
-        sqlb = "Select publisher_name From ChannelCast Where publisher_id = ? And time_stamp = ? LIMIT 1"
-
-        results = self._db.fetchall(sqla)
-        for publisher_id, timestamp in results:
-            result = self._db.fetchone(sqlb, (publisher_id, timestamp))
-            names[publisher_id] = result
-        return names
-
     def getChannel(self, channel_id):
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels WHERE id = ?"
         channels = self._getChannels(sql, (channel_id,))
@@ -3099,9 +2981,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         channels.sort(cmpF)
         return channels
 
-    def getMySubscribersCount(self):
-        return self.getSubscribersCount(self._channel_id)
-
     def getMyChannelId(self):
         if self._channel_id:
             return self._channel_id
@@ -3112,10 +2991,6 @@ class ChannelCastDBHandler(BasicDBHandler):
 
         nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(channel_id)
         return nr_favorites
-
-    def getTimeframeForChannel(self, channel_id):
-        sql = 'Select min(time_stamp), max(time_stamp), count(distinct torrent_id) From ChannelTorrents Where channel_id = ?'
-        return self._db.fetchone(sql, (channel_id,))
 
     def getTorrentMarkings(self, channeltorrent_id):
         counts = {}
