@@ -164,8 +164,6 @@ class SQLiteCacheDBBase:
         self.show_execute = False
 
         # TODO: All global variables must be protected to be thread safe?
-        self.status_table = None
-        self.src_table = None
         self.applied_pragma = False
         self.database_update = None
 
@@ -705,14 +703,6 @@ class SQLiteCacheDBBase:
             print >> sys.stderr, "sqldb: Wrong getAll sql statement:", sql
             print_exc()
             raise Exception(msg)
-
-    # ----- Tribler DB operations ----
-
-    #------------- useful functions for multiple handlers ----------
-    def test(self):
-        res1 = self.getAll('Category', '*')
-        res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))
-        return (res1, res2)
 
 
 class SQLiteCacheDBV5(SQLiteCacheDBBase):
