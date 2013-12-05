@@ -1059,7 +1059,8 @@ class AbstractListBody():
                         self.vSizer.Add(self.items[key], 0, wx.EXPAND | wx.BOTTOM, 1)
 
                     self.OnChange()
-                    break
+                    return True
+        return False
 
     @warnWxThread
     def CreateItems(self, nr_items_to_create=LIST_ITEM_BATCH_SIZE, nr_items_to_add=None):
@@ -1228,19 +1229,20 @@ class AbstractListBody():
 
     @warnWxThread
     def Select(self, key, raise_event=True):
-        if self.singleExpanded:
-            self.DeselectAll()
-
         # check if we need to create this item on the spot
         if not key in self.items:
             self.CreateItem(key)
 
         if key in self.items:
-            if raise_event:
-                self.items[key].OnClick(None)
-            else:
-                self.items[key].expanded = True
-                self.cur_expanded = self.items[key]
+            if not self.items[key].expanded:
+                if self.singleExpanded:
+                    self.DeselectAll()
+
+                if raise_event:
+                    self.items[key].OnClick(None)
+                else:
+                    self.items[key].expanded = True
+                    self.cur_expanded = self.items[key]
 
             self.items[key].ShowSelected()
 
