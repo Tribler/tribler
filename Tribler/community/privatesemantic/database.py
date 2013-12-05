@@ -63,9 +63,14 @@ class SemanticDatabase(Database):
 
 
     def add_peer(self, overlap, ip, port, last_connected=None):
+        assert isinstance(overlap, (list, int, long, float)), type(overlap)
+        if isinstance(overlap, list):
+            assert all(isinstance(cur_overlap, (int, long, float)) for cur_overlap in overlap)
+            
         if isinstance(overlap, list):
             overlap = ",".join(map(str, overlap))
             overlap = buffer(overlap)
+            
         try:
             self.execute(u"INSERT INTO peercache (ip, port, overlap, last_connected) VALUES (?,?,?,?)", (unicode(ip), port, overlap, last_connected or time()))
         except:
@@ -77,6 +82,8 @@ class SemanticDatabase(Database):
             peers[i] = list(peers[i])
             if isinstance(peers[i][0], buffer):
                 peers[i][0] = [long(overlap) for overlap in str(peers[i][0]).split(",") if overlap]
+            else:
+                peers[i][0] = float(peers[i][0])
             peers[i][1] = str(peers[i][1])
         
         peers.sort(reverse = True)
