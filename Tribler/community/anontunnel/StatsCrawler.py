@@ -126,7 +126,7 @@ class StatsCrawler(Thread):
 
             cursor.execute('''INSERT OR FAIL INTO result
                                 (session_id, host, port, swift_size, swift_time, bytes_enter, bytes_exit, bytes_returned)
-                                VALUES (?,?,?,?,?,?)''',
+                                VALUES (?,?,?,?,?,?,?,?)''',
                               [uuid.UUID(stats['uuid']),
                                sock_addr[0], sock_addr[1],
                               stats['swift']['size'],
