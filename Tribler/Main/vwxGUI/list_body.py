@@ -1228,21 +1228,21 @@ class AbstractListBody():
 
     @warnWxThread
     def Select(self, key, raise_event=True):
-        if self.singleExpanded:
-            self.DeselectAll()
-
         # check if we need to create this item on the spot
         if not key in self.items:
             self.CreateItem(key)
 
-        if key in self.items:
+        if not self.items[key].expanded:
+            if self.singleExpanded:
+                self.DeselectAll()
+
             if raise_event:
                 self.items[key].OnClick(None)
             else:
                 self.items[key].expanded = True
                 self.cur_expanded = self.items[key]
 
-            self.items[key].ShowSelected()
+        self.items[key].ShowSelected()
 
     @warnWxThread
     def SelectNextItem(self, next=True):
