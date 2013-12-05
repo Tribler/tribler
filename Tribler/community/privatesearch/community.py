@@ -813,8 +813,9 @@ class Das4DBStub():
 
         results = []
         for keyword in keywords:
+            keyword = str(keyword)
             if keyword in my_preferences:
-                results.append((keyword, my_preferences[keyword], 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
+                results.append((keyword, unicode(my_preferences[keyword]), 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
         return results
 
     def on_search_response(self, results):
@@ -825,10 +826,10 @@ class Das4DBStub():
         return len(self.myMegaCache)
 
     def addTorrent(self, infohash, local=True):
-        assert isinstance(infohash, unicode), type(infohash)
+        assert isinstance(infohash, str), type(infohash)
         self.myTorrentCache[infohash] = local
 
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
-        assert isinstance(infohash, unicode), type(infohash)
+        assert isinstance(infohash, str), type(infohash)
         if infohash in self.myMegaCache:
             del self.myMegaCache[infohash]
