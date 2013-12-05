@@ -819,16 +819,16 @@ class Das4DBStub():
 
     def on_search_response(self, results):
         for result in results:
-            assert isinstance(result[0], str), type(result[0])
+            assert isinstance(result[0], unicode), type(result[0])
             if result[0] not in self.myMegaCache:
                 self.myMegaCache[result[0]] = (result[0], result[1], 0, 0, 0, time())
         return len(self.myMegaCache)
 
     def addTorrent(self, infohash, local=True):
-        assert isinstance(infohash, str), type(infohash)
+        assert isinstance(infohash, unicode), type(infohash)
         self.myTorrentCache[infohash] = local
 
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
-        assert isinstance(infohash, str), type(infohash)
+        assert isinstance(infohash, unicode), type(infohash)
         if infohash in self.myMegaCache:
             del self.myMegaCache[infohash]
