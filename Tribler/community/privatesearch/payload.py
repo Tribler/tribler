@@ -57,7 +57,7 @@ class SearchResponsePayload(Payload):
 
                     infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, swift_hash, swift_torrent_hash, cid = result[:11]
                     assert isinstance(infohash, str), type(infohash)
-                    assert len(infohash) == 20
+                    assert len(infohash) == 20, len(infohash)
                     assert isinstance(swarmname, unicode), type(swarmname)
                     assert isinstance(length, long), type(length)
                     assert isinstance(nrfiles, int), type(nrfiles)
