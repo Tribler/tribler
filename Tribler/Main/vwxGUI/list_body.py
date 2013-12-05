@@ -1160,6 +1160,9 @@ class AbstractListBody():
         if DEBUG:
             print >> sys.stderr, "List created", len(self.vSizer.GetChildren()), "rows of", len(self.data), "took", time() - t1, "done:", self.done, time()
 
+    def HasItem(self, key):
+        return key in self.items
+
     def GetItem(self, key):
         return self.items[key]
 
