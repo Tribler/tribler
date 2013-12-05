@@ -500,8 +500,9 @@ class SQLiteCacheDBBase:
         self._execute(sql, args)
 
     def executemany(self, sql, args, commit=True):
-        self.__executemany(sql, args)
+        self._executemany(sql, args)
 
+    # TODO: may remove this, no one uses it.
     def insert_or_replace(self, table_name, commit=True, **argv):
         if len(argv) == 1:
             sql = 'INSERT OR REPLACE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
@@ -526,6 +527,7 @@ class SQLiteCacheDBBase:
             sql = 'INSERT INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
         self.execute_write(sql, argv.values(), commit)
 
+    # TODO: may remove this, only used by test_sqlitecachedb.py
     def insertMany(self, table_name, values, keys=None, commit=True):
         """ values must be a list of tuples """
 
@@ -2169,7 +2171,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if vacuum:
             self.execute_read("VACUUM")
 
-_cacheCommit = False
 _shouldCommit = False
 
 _callback = None
@@ -2305,7 +2306,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
     @forceDBThread
     def initialBegin(self):
-        global _cacheCommit, _shouldCommit
+        global _shouldCommit
         try:
             print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: BEGIN"
             self._execute("BEGIN;")
@@ -2313,13 +2314,12 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         except:
             print >> sys.stderr, "INITIAL BEGIN FAILED"
             raise
-        _cacheCommit = True
         _shouldCommit = True
 
     @forceDBThread
     def commitNow(self, vacuum=False, exiting=False):
-        global _shouldCommit, _cacheCommit
-        if _cacheCommit and _shouldCommit and onDBThread():
+        global _shouldCommit
+        if _shouldCommit and onDBThread():
             try:
                 if DEBUG:
                     print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
@@ -2349,15 +2349,15 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             self._execute("VACUUM;")
 
     def execute_write(self, sql, args=None, commit=True):
-        global _shouldCommit, _cacheCommit
-        if _cacheCommit and not _shouldCommit:
+        global _shouldCommit
+        if not _shouldCommit:
             _shouldCommit = True
 
         self._execute(sql, args)
 
     def executemany(self, sql, args, commit=True):
-        global _shouldCommit, _cacheCommit
-        if _cacheCommit and not _shouldCommit:
+        global _shouldCommit
+        if not _shouldCommit:
             _shouldCommit = True
 
         return self._executemany(sql, args)
