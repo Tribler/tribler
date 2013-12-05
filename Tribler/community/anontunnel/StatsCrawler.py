@@ -1,5 +1,7 @@
 import os
 import logging.config
+import uuid
+import signal
 from Tribler.community.anontunnel import ProxyMessage
 from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
 
@@ -7,22 +9,19 @@ logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger
 logger = logging.getLogger(__name__)
 
 import json
-import sys
 from threading import Thread, Event
-from time import sleep
-from datetime import datetime
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import RawserverEndpoint
+import sqlite3
 
+sqlite3.register_converter('GUID', lambda b: uuid.UUID(bytes_le=b))
+sqlite3.register_adapter(uuid.UUID, lambda u: buffer(u.bytes_le))
 
 class StatsCrawler(Thread):
     def __init__(self):
         Thread.__init__(self)
-
-        self.stored_candidates = {}
         self.community = None
 
         self.server_done_flag = Event()
@@ -43,15 +42,54 @@ class StatsCrawler(Thread):
         self.first = True
         self.community = None
 
-        self.filename = datetime.now().strftime("%Y%m%d-%H%M%S.json")
-        self.fout = open(self.filename, 'w')
-        self.fout.write("[")
+        self.conn = None
+
+        def close_sql(*args, **kwargs):
+            self.raw_server.add_task(self.stop)
+
+        def init_sql():
+            self.conn = sqlite3.connect("results.db")
+
+            self.conn.execute('''
+                CREATE TABLE IF NOT EXISTS result(
+                    result_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id GUID UNIQUE,
+                    swift_size,
+                    swift_time,
+                    bytes_enter,
+                    bytes_exit,
+                    bytes_returned
+                )
+             ''')
+
+            self.conn.execute('''
+                CREATE TABLE IF NOT EXISTS result_circuit (
+                    result_circuit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    result_id,
+                    hops,
+                    bytes_up,
+                    bytes_down,
+                    time
+                )
+            ''')
+
+            self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS result_relay(
+                result_relay_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                result_id,
+                bytes,
+                time
+            )
+            ''')
+
+        self.raw_server.add_task(init_sql)
+        signal.signal(signal.SIGINT, close_sql)
+
 
     def on_bypass_message(self, sock_addr, packet):
         buffer = packet[len(self.prefix):]
 
         circuit_id, data = ProxyMessage.get_circuit_and_data(buffer)
-
         if circuit_id != 0:
             return
 
@@ -80,53 +118,54 @@ class StatsCrawler(Thread):
         return json.dumps(stats)
 
     def on_stats(self, sock_addr, stats):
-        # Do not store if we have received a STATS message from the same client before
-        if sock_addr in self.stored_candidates:
-            logger.info("Got STATS from %s:%d" % sock_addr)
-            return
+        cursor = self.conn.cursor()
 
-        if not self.first:
-            self.fout.write(",")
-        else:
-            self.first = False
+        try:
 
-        logger.info("Writing STATS from %s:%d to file" % sock_addr)
-        stats['candidate'] = sock_addr
+            cursor.execute('''INSERT OR FAIL INTO result
+                                (session_id, swift_size, swift_time, bytes_enter, bytes_exit, bytes_returned)
+                                VALUES (?,?,?,?,?,?)''',
+                              [uuid.UUID(stats['uuid']),
+                              stats['swift']['size'],
+                              stats['swift']['download_time'],
+                              stats['bytes_enter'],
+                              stats['bytes_exit'],
+                              stats['bytes_return']]
+                )
 
-        self.fout.write(self.stats_to_txt(stats))
-        self.stored_candidates[sock_addr] = True
+            result_id = cursor.lastrowid
 
-    def finalize_file(self):
-        self.fout.write("]")
-        self.fout.close()
+            for c in stats['circuits']:
+                cursor.execute('''
+                    INSERT INTO result_circuit (result_id, hops, bytes_up, bytes_down, time)
+                        VALUES (?, ?, ?, ?, ?)
+                ''', [result_id, c['hops'], c['bytes_up'], c['bytes_down'], c['time']])
 
-    def __del__(self):
-        self.finalize_file()
+            for c in stats['relays']:
+                cursor.execute('''
+                    INSERT INTO result_relay (result_id, bytes, time)
+                        VALUES (?, ?, ?)
+                ''', [result_id, c['bytes'], c['time']])
+
+            self.conn.commit()
+        except sqlite3.IntegrityError:
+            logger.info("Already stored this stat")
+        except BaseException as e:
+            logger.exception(e)
+
+        cursor.close()
 
     def stop(self):
+        logger.error("Stopping crawler")
+        self.conn.close()
         self.dispersy.stop()
-        self.finalize_file()
         self.server_done_flag.set()
         self.raw_server.shutdown()
 
 
 def main():
     stats_crawler = StatsCrawler()
-    stats_crawler.start()
-
-    while 1:
-        try:
-            line = sys.stdin.readline()
-        except KeyboardInterrupt:
-            stats_crawler.stop()
-            break
-
-        if not line:
-            break
-
-        if line == 'q\n':
-            stats_crawler.stop()
-            break
+    stats_crawler.run()
 
 if __name__ == "__main__":
     main()

@@ -12,7 +12,6 @@ class SelectionStrategy:
     def select(self, circuits_to_select_from):
         pass
 
-
 class RandomSelectionStrategy(SelectionStrategy):
     def __init__(self, min_population_size):
         SelectionStrategy.__init__(self)

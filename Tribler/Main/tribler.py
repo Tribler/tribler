@@ -15,7 +15,7 @@ import glob
 
 import sys
 import logging.config
-import time
+#import time
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
@@ -415,7 +415,7 @@ class ABCApp():
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
 
                     if not _callback.download_started_at:
-                        _callback.download_started_at = time()
+                        _callback.download_started_at = time.time()
 
                     if not _callback.peer_added:
                         _callback.peer_added = True
@@ -424,8 +424,13 @@ class ABCApp():
 
                     self.tunnel.record_stats = True
                 elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
-                    _callback.download_finished_at = time()
+                    _callback.download_finished_at = time.time()
                     _callback.download_completed = True
+                    self.tunnel.download_stats = {
+                        'size': 50 * 1024**2,
+                        'download_time': _callback.download_finished_at - _callback.download_started_at
+                    }
+
                     self.tunnel.record_stats = False
                     self.tunnel.share_stats = True
                     thank_you(50 * 1024**2, _callback.download_started_at, _callback.download_finished_at)

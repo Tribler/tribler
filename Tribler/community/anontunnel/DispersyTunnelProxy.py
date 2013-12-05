@@ -1,3 +1,4 @@
+import uuid
 from Tribler.community.anontunnel.ProxyMessage import PunctureMessage
 
 MAX_CIRCUITS_TO_CREATE = 1
@@ -173,6 +174,7 @@ class DispersyTunnelProxy(Observable):
 
         self.member_heartbeat = {}
 
+        self.download_stats = None
 
 
         self.joined = set()
@@ -209,6 +211,8 @@ class DispersyTunnelProxy(Observable):
             'dropped_exit': 0,
             'packet_size': 0
         }
+
+        self.session_id = uuid.uuid4()
 
     def clear_state(self):
         self.destination_circuit.clear()
@@ -649,24 +653,28 @@ class DispersyTunnelProxy(Observable):
 
     def _create_stats(self):
         stats = {
+            'uuid': str(self.session_id),
+            'swift': self.download_stats,
             'bytes_enter': self.stats['bytes_enter'],
             'bytes_exit': self.stats['bytes_exit'],
             'bytes_return': self.stats['bytes_returned'],
             'circuits': [
                 {
-                    'bytes_down_list': c.bytes_down_list[::5],
-                    'bytes_up_list': c.bytes_up_list[::5],
-                    'times': c.times[::5],
-                    'hops': len(c.hops)
+                    'hops': len(c.hops),
+                    'bytes_down': c.bytes_down_list[-1] - c.bytes_down_list[0],
+                    'bytes_up': c.bytes_up_list[-1] - c.bytes_up_list[0],
+                    'time': c.times[-1] - c.times[0]
                 }
                 for c in self.get_circuits()
+                if len(c.times) >= 2
             ],
             'relays': [
                 {
-                    'bytes_list': r.bytes_list[::5],
-                    'times': r.times[::5],
+                    'bytes': r.bytes_list[-1],
+                    'time': r.times[-1] - r.times[0]
                 }
                 for r in self.get_relays()
+                if len(r.times) >= 2
             ]
         }
 
