@@ -12,7 +12,7 @@ from bak_tribler_sdb import *
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler,\
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler, \
     VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Test.test_as_server import AbstractServer
@@ -25,7 +25,8 @@ SQLiteCacheDB.DEBUG = False
 DEBUG = False
 
 # ------------------------------------------------------------
-# The global teardown that will delete the Session.
+# The global teardown that will only be called once.
+# We add this to delete the Session.
 # ------------------------------------------------------------
 def teardown():
     if Session.has_instance():

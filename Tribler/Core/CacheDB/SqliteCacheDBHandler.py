@@ -973,7 +973,7 @@ class TorrentDBHandler(BasicDBHandler):
     # Updates the TorrentTrackerMapping table.
     # ------------------------------------------------------------
     def addTorrentTrackerMapping(self, torrent_id, tracker):
-        self.addTorrentTrackerMappingInBatch(torrent_id, [tracker,])
+        self.addTorrentTrackerMappingInBatch(torrent_id, [tracker, ])
 
     # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table in batch.
@@ -1004,13 +1004,13 @@ class TorrentDBHandler(BasicDBHandler):
     # ------------------------------------------------------------
     def getTorrentsOnTracker(self, tracker):
         sql = """
-            SELECT T.infohash, T.last_tracker_check
+            SELECT T.torrent_id, T.infohash, T.last_tracker_check
               FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM
               WHERE TI.tracker = ?
               AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id
             """
         infohash_list = self._db.fetchall(sql, (tracker,))
-        return infohash_list
+        return [(torrent_id, str2bin(infohash), last_tracker_check) for torrent_id, infohash, last_tracker_check in infohash_list]
 
     # ------------------------------------------------------------
     # Gets a list of trackers of a given torrent ID.
@@ -1035,7 +1035,7 @@ class TorrentDBHandler(BasicDBHandler):
     # Adds a new tracker into the TrackerInfo table.
     # ------------------------------------------------------------
     def addTrackerInfo(self, tracker, to_notify=True):
-        self.addTrackerInfoInBatch([tracker,], to_notify)
+        self.addTrackerInfoInBatch([tracker, ], to_notify)
 
     # ------------------------------------------------------------
     # Adds a new trackers in batch into the TrackerInfo table.
@@ -1085,21 +1085,12 @@ class TorrentDBHandler(BasicDBHandler):
         @param torrentId: The index of the torrent.
         @return: A list of the form: [num_seeders, num_leechers, last_check]
         """
-        if not torrent_id:
-            return None
-
-        result = None
         sql = """
             SELECT num_seeders, num_leechers, last_tracker_check
             FROM Torrent WHERE torrent_id = ?
             """
         row = self._db.fetchone(sql, (torrent_id,))
-        if row:
-            num_seeders = row[0]
-            num_leechers = row[1]
-            last_check = row[2]
-            result = [num_seeders, num_leechers, last_check]
-        return result
+        return row[0], row[1], row[2]
 
     def getTorrentDir(self):
         return self.torrent_dir
@@ -1133,13 +1124,13 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             keys = list(keys)
 
-        #tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
-        #tracker_keys = [key for key in tracker_keys if key in keys]
-        #if len(tracker_keys) > 0:
+        # tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
+        # tracker_keys = [key for key in tracker_keys if key in keys]
+        # if len(tracker_keys) > 0:
         #    sql = 'Torrent C LEFT OUTER JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'\
         #        + ' LEFT OUTER JOIN TrackerInfo TI ON TTM.tracker_id = TI.tracker_id'
         #    res = self._db.getOne(sql, keys, infohash=bin2str(infohash))
-        #else:
+        # else:
         res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
 
         if not res:
@@ -1200,7 +1191,7 @@ class TorrentDBHandler(BasicDBHandler):
         value_name = deepcopy(self.value_name)
         sql = 'Select ' + ','.join(value_name)
         sql += ' From CollectedTorrent C'
-        #sql += ' From CollectedTorrent C LEFT JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'
+        # sql += ' From CollectedTorrent C LEFT JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'
 
         where = ''
         if category_name != 'all':

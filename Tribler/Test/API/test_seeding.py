@@ -53,12 +53,11 @@ class TestSeeding(TestAsServer):
 
         TestAsServer.tearDown(self)
 
-    def setup_seeder(self, merkle, filename='file.wmv'):
+    def setup_seeder(self, filename='file.wmv'):
         self.tdef = TorrentDef()
         self.sourcefn = os.path.join(BASE_DIR, "API", filename)
         self.tdef.add_content(self.sourcefn)
         self.tdef.set_tracker("http://fake.net/announce")
-        self.tdef.set_create_merkle_torrent(merkle)
         self.tdef.finalize()
 
         self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
@@ -84,14 +83,9 @@ class TestSeeding(TestAsServer):
         return (1.0, False)
 
     def test_normal_torrent(self):
-        self.setup_seeder(False)
+        self.setup_seeder()
         self.subtest_is_seeding()
         self.subtest_download()
-
-#     def test_merkle_torrent(self):
-#         self.setup_seeder(True)
-#         self.subtest_is_seeding()
-#         self.subtest_download()
 
     def subtest_is_seeding(self):
         infohash = self.tdef.get_infohash()

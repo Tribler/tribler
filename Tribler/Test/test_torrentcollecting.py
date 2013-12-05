@@ -73,7 +73,7 @@ class TestTorrentCollecting(TestAsServer):
 
         event = threading.Event()
         starttime = time.time()
-        self.session2.lm.rtorrent_handler.download_torrent(candidate, infohash3, roothash3, lambda: event.set(), prio=1, timeout=60)
+        self.session2.lm.rtorrent_handler.download_torrent(candidate, infohash3, roothash3, lambda filename: event.set(), prio=1, timeout=60)
         assert event.wait(60)
         print >> sys.stderr, "took", time.time() - starttime
 

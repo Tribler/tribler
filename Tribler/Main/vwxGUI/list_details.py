@@ -183,7 +183,7 @@ class TorrentDetails(AbstractDetails):
                     self.messageGauge.Show(False)
                     self.messageButton.Show(True)
                     self.messagePanel.Layout()
-                startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs=(self.torrent,), wkwargs={'callback': self.showTorrent}, priority=GUI_PRI_DISPERSY)
+                startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs=(self.torrent,), wkwargs={'callback': self.showTorrent}, workerType="guiTaskQueue")
 
     @forceWxThread
     def showTorrent(self, torrent, showTab=None):
@@ -761,9 +761,8 @@ class TorrentDetails(AbstractDetails):
         if curTorrent.infohash != newTorrent.infohash:
             return
 
-        if hasattr(self.torrent, 'swarminfo'):
-            # remove cached swarminfo
-            del self.torrent.swarminfo
+        self.torrent.updateSwarminfo(newTorrent.swarminfo)
+        self.torrent.update_torrent_id(newTorrent.torrent_id)
         del self.torrent.status
 
         if not curTorrent.exactCopy(newTorrent):
@@ -796,12 +795,8 @@ class TorrentDetails(AbstractDetails):
     def UpdateHealth(self):
         if getattr(self.torrent, 'trackers', None) and len(self.torrent.trackers) > 0:
             # touch swarminfo property
-            swarmInfo = self.torrent.swarminfo
-
-            if swarmInfo:
-                diff = time() - self.torrent.last_check
-            else:
-                diff = 1801
+            _, _, last_check = self.torrent.swarminfo
+            diff = time() - last_check
 
             if diff > 1800:
                 TorrentChecking.getInstance().addGuiRequest(self.torrent)
@@ -816,21 +811,23 @@ class TorrentDetails(AbstractDetails):
         if isinstance(self.torrent, CollectedTorrent):
             updating = ', updating now' if updating else no_update_reason
 
-            diff = time() - self.torrent.last_check
-            if self.torrent.num_seeders < 0 and self.torrent.num_leechers < 0:
+            num_seeders, num_leechers, last_check = self.torrent.swarminfo
+            diff = time() - last_check
+
+            if num_seeders < 0 and num_leechers < 0:
                 if self.torrent.status == 'good':
                     self.health.SetLabel("Unknown, but found peers in the DHT")
                 else:
                     self.health.SetLabel("Unknown" + updating)
             else:
                 if diff < 5:
-                    self.health.SetLabel("%s seeders, %s leechers (current)" % (self.torrent.num_seeders, self.torrent.num_leechers))
+                    self.health.SetLabel("%s seeders, %s leechers (current)" % (num_seeders, num_leechers))
                 else:
                     updated = self.guiutility.utility.eta_value(diff, 2)
                     if updated == '<unknown>':
-                        self.health.SetLabel("%s seeders, %s leechers" % (self.torrent.num_seeders, self.torrent.num_leechers) + updating)
+                        self.health.SetLabel("%s seeders, %s leechers" % (num_seeders, num_leechers) + updating)
                     else:
-                        self.health.SetLabel("%s seeders, %s leechers (updated %s ago%s)" % (self.torrent.num_seeders, self.torrent.num_leechers, updated, updating))
+                        self.health.SetLabel("%s seeders, %s leechers (updated %s ago%s)" % (num_seeders, num_leechers, updated, updating))
 
     def OnRefresh(self, dslist, magnetlist):
         found = False
@@ -2237,24 +2234,19 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.fileindex = 0
         self.UpdateComponents()
 
-        if not isinstance(self.torrent, NotCollectedTorrent):
-            self.library_manager.playTorrent(self.torrent, self.torrent.files[self.links[0].fileindex][0])
+        if isinstance(self.torrent, NotCollectedTorrent):
+            torrent = self.torrent.torrent
+            def load_torrent(torrentfilename):
+                self.torrentsearch_manager.loadTorrent(torrent, callback=self.SetTorrent)
+
+            filename = self.torrentsearch_manager.getCollectedFilename(torrent, retried=True)
+            if filename:
+                load_torrent()
+            else:
+                self.torrentsearch_manager.getTorrent(torrent, load_torrent)
 
         else:
-            filename = self.torrentsearch_manager.getCollectedFilename(self.torrent, retried=True)
-            if filename:
-                self.torrentsearch_manager.loadTorrent(self.torrent, callback=self.SetTorrent)
-            else:
-                def do_collect():
-                    torrent = self.torrent.torrent
-                    if torrent:
-                        def callback():
-                            from Tribler.Core.TorrentDef import TorrentDef
-                            torrent_filename = self.torrentsearch_manager.getCollectedFilename(torrent)
-                            tdef = TorrentDef.load(torrent_filename)
-                            self.SetTorrent(CollectedTorrent(torrent, tdef))
-                        self.torrentsearch_manager.getTorrent(torrent, callback)
-                startWorker(None, do_collect, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            self.library_manager.playTorrent(self.torrent, self.torrent.files[self.links[0].fileindex][0])
 
     def RemoveFileindex(self, fileindex):
         for index, link in enumerate(self.links):
@@ -2323,11 +2315,8 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def OnVideoStarted(self, subject, changeType, torrent_tuple):
         infohash, fileindex = torrent_tuple
         if not self.torrent or self.torrent.infohash != infohash:
-            from Tribler.Core.DownloadState import DownloadState
-            d = self.guiutility.utility.session.get_download(infohash)
-            t = Torrent(0, infohash, 0, 0, '', '', 0, 0, 0, 0, 0, None)
-            t.addDs(DownloadState(d, d.get_status(), None, d.get_progress()))
-            self.SetTorrent(NotCollectedTorrent(t, d.get_def().get_files(), []))
+            torrent = Torrent(0, infohash, 0, 0, '', '', 0, 0, 0, 0, 0, None)
+            self.torrentsearch_manager.loadTorrent(torrent, callback=self.SetTorrent)
             return
 
         for control in self.links:
