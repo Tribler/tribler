@@ -39,14 +39,11 @@ logger = logging.getLogger(__name__)
 #
 import urllib
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
 original_open_https = urllib.URLopener.open_https
-import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
 # modify the sys.stderr and sys.stdout for safe output
-import Tribler.Debug.console
 
 import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
@@ -57,7 +54,7 @@ from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIG
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import current_thread, currentThread, Lock
+from threading import currentThread
 
 try:
     prctlimported = True
@@ -79,7 +76,6 @@ except:
     pass
 
 import wx
-from wx import xrc
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
@@ -88,18 +84,16 @@ from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from traceback import print_exc
 import urllib2
 import tempfile
-import thread
 
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame, VideoMacFrame
+from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 # from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 
 from Tribler.Main.Utility.utility import Utility
-from Tribler.Main.Utility.constants import *
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
 from Tribler.Category.Category import Category
@@ -110,28 +104,18 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
-from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
-from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoServer import SimpleServer
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
-import Tribler.Core.DecentralizedTracking.pymdht.core
-import Tribler.Core.DecentralizedTracking.pymdht.core.identifier
-import Tribler.Core.DecentralizedTracking.pymdht.core.message
-import Tribler.Core.DecentralizedTracking.pymdht.core.node
-import Tribler.Core.DecentralizedTracking.pymdht.core.ptime
-import Tribler.Core.DecentralizedTracking.pymdht.core.routing_table
-import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
-from time import time, sleep
+from time import sleep
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6875
@@ -420,13 +404,18 @@ class ABCApp():
             return
 
         @forceWxThread
-        def thank_you():
-            wx.MessageBox('Thank you for participating in the Anonymous downloading test', 'Download Completed', wx.OK | wx.ICON_INFORMATION)
+        def thank_you(file_size, start_time, end_time ):
+            avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
+
+            wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
 
         def state_call(download):
             def _callback(ds):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
+
+                    if not _callback.download_started_at:
+                        _callback.download_started_at = time()
 
                     if not _callback.peer_added:
                         _callback.peer_added = True
@@ -435,14 +424,16 @@ class ABCApp():
 
                     self.tunnel.record_stats = True
                 elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
+                    _callback.download_finished_at = time()
                     _callback.download_completed = True
                     self.tunnel.record_stats = False
                     self.tunnel.share_stats = True
-                    thank_you()
+                    thank_you(50 * 1024**2, _callback.download_started_at, _callback.download_finished_at)
 
                 return (1.0, False)
 
             _callback.download_completed = False
+            _callback.download_started_at = None
             _callback.peer_added = False
 
             return _callback
@@ -559,11 +550,6 @@ class ABCApp():
         TriblerNotifier(tunnel)
 
         def define_communities():
-            from Tribler.community.search.community import SearchCommunity
-            from Tribler.community.allchannel.community import AllChannelCommunity
-            from Tribler.community.bartercast3.community import BarterCommunity
-            from Tribler.community.channel.community import ChannelCommunity
-            from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
 
             # must be called on the Dispersy thread

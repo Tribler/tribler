@@ -1,6 +1,6 @@
 from Tribler.community.anontunnel.ProxyMessage import PunctureMessage
 
-MAX_CIRCUITS_TO_CREATE = 10
+MAX_CIRCUITS_TO_CREATE = 1
 
 CIRCUIT_STATE_READY = 'READY'
 CIRCUIT_STATE_CREATING = 'CREATING'
@@ -17,7 +17,7 @@ from traceback import print_exc
 from Tribler.community.anontunnel import ProxyMessage, ExtendStrategies
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import CircuitReturnHandler, ShortCircuitReturnHandler
-from Tribler.community.anontunnel.SelectionStrategies import LengthSelectionStrategy, RandomSelectionStrategy
+from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'Chris'
@@ -151,6 +151,8 @@ class DispersyTunnelProxy(Observable):
         return self.relay_from_to.values()
 
     def __init__(self, raw_server):
+        global MAX_CIRCUITS_TO_CREATE
+
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
         Observable.__init__(self)
@@ -171,9 +173,7 @@ class DispersyTunnelProxy(Observable):
 
         self.member_heartbeat = {}
 
-        # Add 0-hop circuit
-        self.circuits[0] = Circuit(0)
-        self.circuits[0].state = CIRCUIT_STATE_READY
+
 
         self.joined = set()
 
@@ -186,8 +186,16 @@ class DispersyTunnelProxy(Observable):
         self.relay_from_to = {}
         self.circuit_tag = {}
 
-        self.circuit_length_strategy = ConstantCircuitLengthStrategy(2)# RandomCircuitLengthStrategy(1,4)
-        self.circuit_selection_strategy = RandomSelectionStrategy(min_population_size=3)
+        length = random.randrange(0, 4)
+
+        if length == 0:
+            # Add 0-hop circuit
+            self.circuits[0] = Circuit(0)
+            self.circuits[0].state = CIRCUIT_STATE_READY
+
+
+        self.circuit_length_strategy = ConstantCircuitLengthStrategy(length)
+        self.circuit_selection_strategy = RandomSelectionStrategy(1)
 
         self.extend_strategy = ExtendStrategies.RandomAPriori
 
@@ -473,7 +481,6 @@ class DispersyTunnelProxy(Observable):
         if __debug__:
             logger.info("EXIT DATA packet to %s", destination)
 
-        self.circuits[0].bytes_up[1] += len(data)
         self.stats['bytes_exit'] += len(data)
 
         try:

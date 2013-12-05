@@ -17,7 +17,6 @@ class RandomSelectionStrategy(SelectionStrategy):
     def __init__(self, min_population_size):
         SelectionStrategy.__init__(self)
         self.min_population_size = min_population_size
-        self.previous = None
 
     def try_select(self, circuits_to_select_from):
         if len(circuits_to_select_from) < self.min_population_size:
@@ -28,12 +27,6 @@ class RandomSelectionStrategy(SelectionStrategy):
             raise ValueError("At least %d circuits are needed before we select a tunnel" % (self.min_population_size,))
 
         circuit = r.choice(circuits_to_select_from)
-
-        while circuit is self.previous:
-            circuit = r.choice(circuits_to_select_from)
-
-        self.previous = circuit
-
         return circuit
 
 
