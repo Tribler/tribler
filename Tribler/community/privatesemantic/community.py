@@ -48,9 +48,9 @@ TIME_BETWEEN_CONNECTION_ATTEMPTS = 15.0
 
 class TasteBuddy():
     def __init__(self, overlap, sock_addr):
-        assert isinstance(self.overlap, (list, int, long, float)), type(self.overlap)
-        if isinstance(self.overlap, list):
-            assert all(isinstance(overlap, (int, long, float)) for overlap in self.overlap)
+        assert isinstance(overlap, (list, int, long, float)), type(overlap)
+        if isinstance(overlap, list):
+            assert all(isinstance(cur_overlap, (int, long, float)) for cur_overlap in overlap)
         
         self.overlap = overlap
         self.sock_addr = sock_addr
