@@ -215,8 +215,14 @@ class ForwardCommunity():
 
     def add_taste_buddies(self, new_taste_buddies):
         for new_taste_buddy in new_taste_buddies:
+            if True or DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy?", new_taste_buddy   
+            
             for taste_buddy in self.taste_buddies:
                 if new_taste_buddy == taste_buddy:
+                    if True or DEBUG_VERBOSE:
+                        print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no equal to", new_taste_buddy, taste_buddy
+                    
                     taste_buddy.update_overlap(new_taste_buddy)
                     new_taste_buddies.remove(new_taste_buddy)
                     break
@@ -224,8 +230,14 @@ class ForwardCommunity():
             # new peer
             else:
                 if len(self.taste_buddies) < self.max_taste_buddies or new_taste_buddy > self.taste_buddies[-1]:
+                    if True or DEBUG_VERBOSE:
+                        print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? yes adding to list"
+                    
                     self.taste_buddies.append(new_taste_buddy)
                     self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_requests, delay=new_taste_buddy.time_remaining() - 5.0)
+                    
+                elif True or DEBUG_VERBOSE:
+                    print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no smaller than", new_taste_buddy, self.taste_buddies[-1]
 
                 # if we have any similarity, cache peer
                 if new_taste_buddy.overlap and new_taste_buddy.should_cache():
@@ -234,7 +246,7 @@ class ForwardCommunity():
         self.taste_buddies.sort(reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
-        if DEBUG_VERBOSE:
+        if True or DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "ForwardCommunity: current tastebuddy list", len(self.taste_buddies), map(str, self.taste_buddies)
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: current tastebuddy list", len(self.taste_buddies)
