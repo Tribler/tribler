@@ -153,13 +153,12 @@ class DoubleLineListItem(ListItem):
                             self.columns[column_index]['width'] += self.descrSizer.GetChildren()[index - 1].GetSize().x
                         break
 
-            config = self.guiutility.utility.config
-            column_sizes = config.Read("column_sizes")
+            column_sizes = self.guiutility.utility.read_config("column_sizes")
             column_sizes = json.loads(column_sizes) if column_sizes else {}
             column_sizes[type(self).__name__] = column_sizes.get(type(self).__name__, {})
             column_sizes[type(self).__name__].update({self.columns[column_index]['name']: self.columns[column_index]['width']})
-            config.Write("column_sizes", json.dumps(column_sizes))
-            config.Flush()
+            self.guiutility.utility.write_config("column_sizes", json.dumps(column_sizes))
+            self.guiutility.utility.flush_config()
 
             def rebuild():
                 if hasattr(self.parent_list.parent_list, 'oldDS'):
@@ -222,15 +221,13 @@ class DoubleLineListItem(ListItem):
     def OnShowColumn(self, event, index):
         self.columns[index]['show'] = not self.columns[index].get('show', True)
 
-        config = self.guiutility.utility.config
-
-        hide_columns = config.Read("hide_columns")
+        hide_columns = self.guiutility.utility.read_config("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
         hide_columns[type(self).__name__] = hide_columns.get(type(self).__name__, {})
         hide_columns[type(self).__name__].update({self.columns[index]['name']: self.columns[index]['show']})
 
-        config.Write("hide_columns", json.dumps(hide_columns))
-        config.Flush()
+        self.guiutility.utility.write_config("hide_columns", json.dumps(hide_columns))
+        self.guiutility.utility.flush_config()
 
         if getattr(self.parent_list.parent_list, 'ResetBottomWindow', False):
             self.parent_list.parent_list.ResetBottomWindow()

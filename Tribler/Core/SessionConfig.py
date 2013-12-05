@@ -646,3 +646,12 @@ class CallbackConfigParser(RawConfigParser):
             if not self.callback(section, option, new_value, old_value):
                 raise OperationNotPossibleAtRuntimeException
         RawConfigParser.set(self, section, option, new_value)
+
+    def get(self, section, option, literal_eval=True):
+        value = RawConfigParser.get(self, section, option) if RawConfigParser.has_option(self, section, option) else None
+        if literal_eval:
+            try:
+                value = ast.literal_eval(value)
+            except:
+                pass
+        return value

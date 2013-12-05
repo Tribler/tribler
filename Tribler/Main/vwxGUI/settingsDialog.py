@@ -152,7 +152,7 @@ class SettingsDialog(wx.Dialog):
         self.elements['diskLocationChoice'].SetValue(self.defaultDLConfig.get_show_saveas())
 
         if sys.platform != "darwin":
-            min_to_tray = self.utility.config.Read('mintray', "int") == 1
+            min_to_tray = self.utility.read_config('mintray') == 1
             self.elements['minimize_to_tray'].SetValue(min_to_tray)
         else:
             self.elements['minimize_to_tray'].Enable(False)
@@ -168,30 +168,30 @@ class SettingsDialog(wx.Dialog):
         self.elements['g2g2'].SetLabel(self.utility.lang.get('seed_sometime'))
         self.elements['g2g3'].SetLabel(self.utility.lang.get('no_seeding'))
 
-        t4t_option = self.utility.config.Read('t4t_option', 'int')
+        t4t_option = self.utility.read_config('t4t_option')
         self.elements['t4t%d' % t4t_option].SetValue(True)
-        t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
+        t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
         index = self.elements['t4t0choice'].FindString(str(t4t_ratio))
         if index != wx.NOT_FOUND:
             self.elements['t4t0choice'].Select(index)
 
-        t4t_hours = self.utility.config.Read('t4t_hours', 'int')
-        t4t_minutes = self.utility.config.Read('t4t_mins', 'int')
+        t4t_hours = self.utility.read_config('t4t_hours')
+        t4t_minutes = self.utility.read_config('t4t_mins')
         self.elements['t4t2text'].SetLabel("%d:%d" % (t4t_hours, t4t_minutes))
 
-        g2g_option = self.utility.config.Read('g2g_option', 'int')
+        g2g_option = self.utility.read_config('g2g_option')
         self.elements['g2g%d' % g2g_option].SetValue(True)
-        g2g_ratio = self.utility.config.Read('g2g_ratio', 'int') / 100.0
+        g2g_ratio = self.utility.read_config('g2g_ratio') / 100.0
         index = self.elements['g2g0choice'].FindString(str(g2g_ratio))
         if index != wx.NOT_FOUND:
             self.elements['g2g0choice'].Select(index)
 
-        g2g_hours = self.utility.config.Read('g2g_hours', 'int')
-        g2g_mins = self.utility.config.Read('g2g_mins', 'int')
+        g2g_hours = self.utility.read_config('g2g_hours')
+        g2g_mins = self.utility.read_config('g2g_mins')
         self.elements['g2g2text'].SetLabel("%d:%d" % (g2g_hours, g2g_mins))
 
-        self.elements['use_webui'].SetValue(self.utility.config.Read('use_webui', "boolean"))
-        self.elements['webui_port'].SetValue(str(self.utility.config.Read('webui_port', "int")))
+        self.elements['use_webui'].SetValue(self.utility.read_config('use_webui'))
+        self.elements['webui_port'].SetValue(str(self.utility.read_config('webui_port')))
 
         ptype, server, auth = self.utility.session.get_libtorrent_proxy_settings()
         self.elements['lt_proxytype'].SetSelection(ptype)
@@ -342,18 +342,18 @@ class SettingsDialog(wx.Dialog):
                 restart = True
 
             useWebUI = self.elements['use_webui'].IsChecked()
-            if useWebUI != self.utility.config.Read('use_webui', "boolean"):
-                self.utility.config.Write('use_webui', useWebUI, "boolean")
+            if useWebUI != self.utility.read_config('use_webui'):
+                self.utility.write_config('use_webui', useWebUI)
                 restart = True
 
-            if valwebuiport != str(self.utility.config.Read('webui_port', "int")):
-                self.utility.config.Write('webui_port', valwebuiport, "int")
+            if valwebuiport != str(self.utility.read_config('webui_port')):
+                self.utility.write_config('webui_port', valwebuiport)
                 restart = True
 
-            curMintray = self.utility.config.Read('mintray', "int")
+            curMintray = self.utility.read_config('mintray')
             minimizeToTray = 1 if self.elements['minimize_to_tray'].IsChecked() else 0
             if minimizeToTray != curMintray:
-                self.utility.config.Write('mintray', minimizeToTray, "int")
+                self.utility.write_config('mintray', minimizeToTray)
 
             for target in [scfg, self.utility.session]:
                 try:
@@ -364,49 +364,49 @@ class SettingsDialog(wx.Dialog):
                     print_exc()
 
             # tit-4-tat
-            t4t_option = self.utility.config.Read('t4t_option', 'int')
+            t4t_option = self.utility.read_config('t4t_option')
             for i in range(4):
                 if self.elements['t4t%d' % i].GetValue():
-                    self.utility.config.Write('t4t_option', i)
+                    self.utility.write_config('t4t_option', i)
 
                     if i != t4t_option:
                         restart = True
 
                     break
             t4t_ratio = int(float(self.elements['t4t0choice'].GetStringSelection()) * 100)
-            self.utility.config.Write("t4t_ratio", t4t_ratio)
+            self.utility.write_config("t4t_ratio", t4t_ratio)
 
             hours_min = self.elements['t4t2text'].GetValue()
             hours_min = hours_min.split(':')
             if len(hours_min) > 0:
                 if len(hours_min) > 1:
-                    self.utility.config.Write("t4t_hours", hours_min[0])
-                    self.utility.config.Write("t4t_mins", hours_min[1])
+                    self.utility.write_config("t4t_hours", hours_min[0])
+                    self.utility.write_config("t4t_mins", hours_min[1])
                 else:
-                    self.utility.config.Write("t4t_hours", hours_min[0])
-                    self.utility.config.Write("t4t_mins", 0)
+                    self.utility.write_config("t4t_hours", hours_min[0])
+                    self.utility.write_config("t4t_mins", 0)
 
             # give-2-get
-            g2g_option = self.utility.config.Read('g2g_option', 'int')
+            g2g_option = self.utility.read_config('g2g_option')
             for i in range(4):
                 if self.elements['g2g%d' % i].GetValue():
-                    self.utility.config.Write("g2g_option", i)
+                    self.utility.write_config("g2g_option", i)
 
                     if i != g2g_option:
                         restart = True
                     break
             g2g_ratio = int(float(self.elements['g2g0choice'].GetStringSelection()) * 100)
-            self.utility.config.Write("g2g_ratio", g2g_ratio)
+            self.utility.write_config("g2g_ratio", g2g_ratio)
 
             hours_min = self.elements['g2g2text'].GetValue()
             hours_min = hours_min.split(':')
             if len(hours_min) > 0:
                 if len(hours_min) > 1:
-                    self.utility.config.Write("g2g_hours", hours_min[0])
-                    self.utility.config.Write("g2g_mins", hours_min[1])
+                    self.utility.write_config("g2g_hours", hours_min[0])
+                    self.utility.write_config("g2g_mins", hours_min[1])
                 else:
-                    self.utility.config.Write("g2g_hours", hours_min[0])
-                    self.utility.config.Write("g2g_mins", 0)
+                    self.utility.write_config("g2g_hours", hours_min[0])
+                    self.utility.write_config("g2g_mins", 0)
 
             # Proxy settings
             old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
@@ -424,7 +424,7 @@ class SettingsDialog(wx.Dialog):
 
             scfg.save(cfgfilename)
 
-            self.utility.config.Flush()
+            self.utility.flush_config()
 
             if restart:
                 dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?", "Restart required", wx.ICON_QUESTION | wx.YES_NO | wx.YES_DEFAULT)

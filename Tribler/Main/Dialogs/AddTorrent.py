@@ -214,8 +214,9 @@ class AddTorrent(wx.Dialog):
             tdef = TorrentDef.load(torrentfilename)
         if torrenturl:
             tdef = TorrentDef.load_from_url(torrenturl)
+
         if tdef:
-            dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None, self.guiutility.utility.config)
+            dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None)
             id = dlg.ShowModal()
 
             if id == wx.ID_OK:

@@ -30,7 +30,7 @@ class Lang:
     def __init__(self, utility):
         self.utility = utility
 
-        filename = self.utility.config.Read('language_file')
+        filename = self.utility.read_config('language_file')
         langpath = os.path.join(self.utility.getPath(), LIBRARYNAME, "Lang")
 
         sys.stdout.write("Setting up languages\n")

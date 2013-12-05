@@ -78,8 +78,8 @@ class SRstatusbar(wx.StatusBar):
         self.SetTransferSpeeds(total_down * 1024, total_up * 1024)
 
     def SetTransferSpeeds(self, down, up):
-        self.speed_down.SetLabel(self.utility.speed_format_new(down))
-        self.speed_up.SetLabel(self.utility.speed_format_new(up))
+        self.speed_down.SetLabel(self.utility.speed_format(down))
+        self.speed_up.SetLabel(self.utility.speed_format(up))
         self.Reposition()
 
     def SetGlobalMaxSpeed(self, direction, value):

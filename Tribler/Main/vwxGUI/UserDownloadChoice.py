@@ -22,19 +22,19 @@ class UserDownloadChoice:
                 cls._singleton_lock.release()
         return cls._singleton
 
-    def __init__(self, config=None):
+    def __init__(self, utility=None):
         assert self._singleton is None
-        self._config = None
+        self._utility = None
         self._choices = {"download_state": {}}
 
-        if config:
-            self.set_config(config)
+        if utility:
+            self.set_utility(utility)
 
-    def set_config(self, config, state_dir):
-        self._config = config
+    def set_utility(self, utility, state_dir):
+        self._utility = utility
 
         try:
-            self._choices = json.loads(config.Read("user_download_choice"))
+            self._choices = json.loads(utility.read_config("user_download_choice"))
         except:
             self._choices = {}
 
@@ -44,10 +44,10 @@ class UserDownloadChoice:
             self._choices["download_state"] = {}
 
     def flush(self):
-        if self._config:
+        if self._utility:
             if DEBUG:
                 print >> sys.stderr, "UserDownloadChoice: saving to config file"
-            self._config.Write("user_download_choice", json.dumps(self._choices))
+            self._utility.write_config("user_download_choice", json.dumps(self._choices), flush=True)
 
     def set_download_state(self, infohash, choice, flush=True):
         infohash = infohash.encode('hex')
