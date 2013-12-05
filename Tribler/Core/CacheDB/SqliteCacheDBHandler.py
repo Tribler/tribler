@@ -1913,16 +1913,6 @@ class VoteCastDBHandler(BasicDBHandler):
         self.peer_db = PeerDBHandler.getInstance()
         self.channelcast_db = ChannelCastDBHandler.getInstance()
 
-    def on_vote_from_dispersy(self, channel_id, voter_id, dispersy_id, vote, timestamp):
-        if not voter_id:
-            self.removeVote(channel_id, voter_id)  # sqlite constraint does not work for NULL values
-
-        insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
-        self._db.execute_write(insert_vote, (channel_id, voter_id, dispersy_id, vote, timestamp))
-
-        self._updateChannelVotes(channel_id)
-        self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)
-
     def on_votes_from_dispersy(self, votes):
         removeVotes = [(channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes if not voter_id]
         self.removeVotes(removeVotes, updateVotes=False, commit=False)
@@ -1971,38 +1961,6 @@ class VoteCastDBHandler(BasicDBHandler):
             return result
         return 0, 0
 
-    def getAllPosNegVotes(self, channel_ids=None):
-        if channel_ids:
-            channel_ids = " WHERE id IN ('" + "' ,'".join(map(str, channel_ids)) + "') "
-        else:
-            channel_ids = ''
-
-        votes = {}
-
-        sql = 'select id, nr_favorite, nr_spam from Channels' + channel_ids
-        records = self._db.fetchall(sql)
-        for channel_id, nr_favorite, nr_spam in records:
-            votes[channel_id] = (nr_favorite or 0, nr_spam or 0)
-
-        return votes
-
-    def addVote(self, vote):
-        sql = "INSERT OR IGNORE INTO _ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
-        self._db.execute_write(sql, vote)
-        self._updateChannelVotes(vote[0])
-
-        if vote[1] == None:
-            self.my_votes = None
-
-    def addVotes(self, votes):
-        sql = "INSERT OR IGNORE INTO _ChannelVotes (channel_id, voter_id, vote, time_stamp) VALUES (?,?,?,?)"
-        self._db.executemany(sql, votes)
-
-        channels = set()
-        for vote in votes:
-            channels.add(vote[0])
-        self._updateChannelsVotes(channels)
-
     def removeVote(self, channel_id, voter_id, commit=True):
         if voter_id:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id = ?"
@@ -2048,7 +2006,7 @@ class VoteCastDBHandler(BasicDBHandler):
         updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
         self._db.executemany("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates, commit=commit)
 
-    def getVote(self, channel_id, voter_id):
+    def getVoteOnChannel(self, channel_id, voter_id):
         """ return the vote status if such record exists, otherwise None  """
         if voter_id:
             sql = "select vote from ChannelVotes where channel_id = ? and voter_id = ?"
@@ -2057,7 +2015,7 @@ class VoteCastDBHandler(BasicDBHandler):
         return self._db.fetchone(sql, (channel_id,))
 
     def getVoteForMyChannel(self, voter_id):
-        return self.getVote(self.channelcast_db._channel_id, voter_id)
+        return self.getVoteOnChannel(self.channelcast_db._channel_id, voter_id)
 
     def getDispersyId(self, channel_id, voter_id):
         """ return the dispersy_id for this vote """
@@ -2074,32 +2032,6 @@ class VoteCastDBHandler(BasicDBHandler):
             return self._db.fetchone(sql, (channel_id, voter_id))
         sql = "select time_stamp from ChannelVotes where channel_id = ? and voter_id ISNULL"
         return self._db.fetchone(sql, (channel_id,))
-
-    def getChannelsWithNegVote(self, voter_id):
-        ''' return the channel_ids having a negative vote from voter_id '''
-        if voter_id:
-            sql = "select channel_id from ChannelVotes where voter_id = ? and vote = -1"
-            return self._db.fetchall(sql, (voter_id,))
-
-        sql = "select channel_id from ChannelVotes where voter_id ISNULL and vote = -1"
-        return self._db.fetchall(sql)
-
-    def getChannelsWithPosVote(self, voter_id):
-        ''' return the publisher_ids having a negative vote from subscriber_id '''
-        if voter_id:
-            sql = "select channel_id from ChannelVotes where voter_id = ? and vote = 2"
-            return self._db.fetchall(sql, (voter_id,))
-        sql = "select channel_id from ChannelVotes where voter_id ISNULL and vote = 2"
-        return self._db.fetchall(sql)
-
-    def getEffectiveVote(self, channel_id):
-        """ returns positive - negative votes """
-        pos_votes, neg_votes = self.getPosNegVotes(channel_id)
-        return pos_votes
-
-    def getEffectiveVoteFromPermid(self, channel_permid):
-        channel_id = self.peer_db.getPeerID(channel_permid)
-        return self.getEffectiveVote(channel_id)
 
     def getMyVotes(self):
         if not self.my_votes:
