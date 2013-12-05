@@ -760,7 +760,7 @@ class ForwardCommunity():
         while True:
             tbs = [tb.candidate for tb in self.yield_taste_buddies() if tb.time_remaining() < PING_INTERVAL]
 
-            cache = ForwardCommunity.PingRequestCache(self, tbs)
+            cache = self._request_cache.add(ForwardCommunity.PingRequestCache(self, tbs))
             self._create_pingpong(u"ping", tbs, cache.number)
 
             yield PING_INTERVAL

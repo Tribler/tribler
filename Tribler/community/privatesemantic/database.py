@@ -78,4 +78,6 @@ class SemanticDatabase(Database):
             if isinstance(peers[i][0], buffer):
                 peers[i][0] = [long(overlap) for overlap in str(peers[i][0]).split(",") if overlap]
             peers[i][1] = str(peers[i][1])
+        
+        peers.sort(reverse = True)
         return peers
