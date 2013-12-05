@@ -163,9 +163,9 @@ class TriblerLaunchMany(Thread):
                                     callback(*callback_args)
                         self.queue.add_task(do_task, t=delay)
 
-                    def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", include_id=False, timeout = 0.0, default = None):
+                    def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", include_id=False, timeout=0.0, default=None):
                         event = Event()
-                        container = [default,]
+                        container = [default, ]
 
                         def do_task():
                             if kargs:
@@ -225,8 +225,11 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                 self.rtorrent_handler = RemoteTorrentHandler()
 
+            self.mainline_dht = None
+            self.ltmgr = None
+            self.torrent_checking = None
+
     def init(self):
-        self.mainline_dht = None
         if self.session.get_mainline_dht():
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             try:
@@ -235,13 +238,12 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc()
 
-        self.ltmgr = None
+
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
 
         # add task for tracker checking
-        self.torrent_checking = None
         if self.session.get_torrent_checking():
             if self.session.get_mainline_dht():
                 # Create torrent-liveliness checker based on DHT
@@ -254,9 +256,10 @@ class TriblerLaunchMany(Thread):
                 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
                 self.torrent_checking_period = self.session.get_torrent_checking_period()
                 self.torrent_checking = TorrentChecking.getInstance(self.torrent_checking_period)
+                self.torrent_checking.start()
                 self.run_torrent_check()
             except:
-                print_exc
+                print_exc()
 
         if self.rtorrent_handler:
             self.rtorrent_handler.register(self.dispersy, self.database_thread, self.session, self.session.get_torrent_collecting_max_torrents())
@@ -830,12 +833,11 @@ class TriblerLaunchMany(Thread):
             print_exc()
 
     def update_torrent_checking_period(self):
-        # dynamically change the interval: update at least once per day
+        # dynamically change the interval: update at least every 2h
         if self.rtorrent_handler:
             ntorrents = self.rtorrent_handler.num_torrents
             if ntorrents > 0:
-                self.torrent_checking_period = min(max(86400 / ntorrents, 30), 300)
-
+                self.torrent_checking_period = min(max(7200 / ntorrents, 10), 100)
         # print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
 
     def run_torrent_check(self):

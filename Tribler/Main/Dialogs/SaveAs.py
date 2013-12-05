@@ -12,6 +12,8 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
+from Tribler.Main.Utility.GuiDBTuples import Torrent
+from Tribler.Main.vwxGUI import forceWxThread
 
 
 class SaveAs(wx.Dialog):
@@ -73,6 +75,7 @@ class SaveAs(wx.Dialog):
 
         if tdef and tdef.get_files():
             self.AddFileList(tdef, selectedFiles, vSizer, len(vSizer.GetChildren()))
+
         elif isinstance(tdef, TorrentDefNoMetainfo):
             text = wx.StaticText(self, -1, "Attempting to retrieve .torrent...")
             _set_font(text, size_increment=1)
@@ -86,25 +89,15 @@ class SaveAs(wx.Dialog):
             vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
             self.SetSize((600, 150))
 
-            url = tdef.get_url()
-            if url and url.startswith("magnet:"):
-                retrieve_from_magnet = lambda: TorrentDef.retrieve_from_magnet(url, lambda tdef: wx.CallAfter(self.SetCollected, tdef), timeout=300)
-                startWorker(None, retrieve_from_magnet, retryOnBusy=True, workerType="guiTaskQueue")
-            else:
-                torrentsearch_manager = self.guiutility.torrentsearch_manager
+            # convert tdef into guidbtuple, and collect it using torrentsearch_manager.getTorrent
+            torrent = Torrent.fromTorrentDef(tdef)
+            torrentsearch_manager = self.guiutility.torrentsearch_manager
 
-                def do_collect(delayedResult):
-                    torrent = delayedResult.get()
-                    if torrent:
-                        def callback():
-                            torrent_filename = torrentsearch_manager.getCollectedFilename(torrent)
-                            tdef = TorrentDef.load(torrent_filename)
-                            wx.CallAfter(self.SetCollected, tdef)
-                        torrentsearch_manager.getTorrent(torrent, callback)
+            def callback(torrent_filename):
+                tdef = TorrentDef.load(torrent_filename)
+                wx.CallAfter(self.SetCollected, tdef)
 
-                def do_db():
-                    return torrentsearch_manager.getTorrentByInfohash(tdef.get_infohash())
-                startWorker(do_collect, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            torrentsearch_manager.getTorrent(torrent, callback)
 
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)

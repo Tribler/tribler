@@ -96,6 +96,10 @@ class LibtorrentMgr:
         del LibtorrentMgr.__single
         LibtorrentMgr.__single = None
     delInstance = staticmethod(delInstance)
+    
+    def hasInstance():
+        return LibtorrentMgr.__single != None
+    hasInstance = staticmethod(hasInstance)
 
     def shutdown(self):
         # Save DHT state

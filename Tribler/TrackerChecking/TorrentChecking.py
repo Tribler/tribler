@@ -23,6 +23,8 @@ from traceback import print_exc, print_stack
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
+from Tribler.Core import NoDispersyRLock
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     prctlimported = True
@@ -41,7 +43,7 @@ from Tribler.TrackerChecking.TrackerSession import\
     MAX_TRACKER_MULTI_SCRAPE
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
-from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, bin2str
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
@@ -52,8 +54,8 @@ DEBUG = False
 
 DEFAULT_MAX_GUI_REQUESTS = 5000
 
-DEFAULT_TORRENT_SELECTION_INTERVAL = 20 # every 20 seconds, the thread will select torrents to check
-DEFAULT_TORRENT_CHECK_INTERVAL     = 60 # a torrent will only be checked every 60 seconds
+DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
+DEFAULT_TORRENT_CHECK_INTERVAL = 60  # a torrent will only be checked every 60 seconds
 
 # ============================================================
 # This is the single-threaded tracker checking class.
@@ -65,8 +67,8 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     # Intialization.
     # ------------------------------------------------------------
-    def __init__(self,\
-            torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL,\
+    def __init__(self, \
+            torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL, \
             torrent_check_interval=DEFAULT_TORRENT_CHECK_INTERVAL):
         if TorrentChecking.__single:
             raise RuntimeError("Torrent Checking is singleton")
@@ -83,12 +85,10 @@ class TorrentChecking(Thread):
 
         self._mldhtchecker = mainlineDHTChecker.getInstance()
         self._torrentdb = TorrentDBHandler.getInstance()
+        self._interrupt_socket = InterruptSocket()
 
-        # TODO: make these configurable
-        self._select_timeout = 2
-
-        self._lock = RLock()
-        self._session_dict = dict()
+        self._lock = NoDispersyRLock()
+        self._session_list = []
         self._pending_response_dict = dict()
 
         # initialize a tracker status cache, TODO: add parameters
@@ -98,17 +98,13 @@ class TorrentChecking(Thread):
         self._torrent_select_interval = torrent_select_interval
         self._torrent_check_interval = torrent_check_interval
 
-        # request queues
-        self._new_request_event = Event()
-
-        #self._max_gui_requests = DEFAULT_MAX_GUI_REQUESTS
+        # self._max_gui_requests = DEFAULT_MAX_GUI_REQUESTS
         self._gui_request_queue = Queue.Queue()
+        self._processed_gui_request_queue = Queue.Queue()
 
         self._should_stop = False
 
         self._tor_col_dir = Session.get_instance().get_torrent_collecting_dir()
-
-        self.start()
 
     # ------------------------------------------------------------
     # (Public API)
@@ -126,6 +122,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @staticmethod
     def delInstance():
+        TorrentChecking.__single.shutdown()
         TorrentChecking.__single = None
 
     # ------------------------------------------------------------
@@ -140,8 +137,9 @@ class TorrentChecking(Thread):
     # The public interface to shutdown the thread.
     # ------------------------------------------------------------
     def shutdown(self):
-        self._should_stop = True
-        self._new_request_event.set()
+        if not self._should_stop:
+            self._should_stop = True
+            self._interrupt_socket.interrupt()
 
     # ------------------------------------------------------------
     # (Public API)
@@ -152,57 +150,72 @@ class TorrentChecking(Thread):
     # So you need to get the TorrentDef to access more information
     # ------------------------------------------------------------
     def addGuiRequest(self, gui_torrent):
-        if gui_torrent.torrent_id == -1:
-            return False
-
         # enqueue a new GUI request
         successful = True
         try:
             gui_request = dict()
-            gui_request['torrent_id'] = gui_torrent.torrent_id
-            gui_request['infohash']   = gui_torrent.infohash
-            gui_request['trackers']   = set()
+            if gui_torrent.torrent_id > 0:
+                gui_request['torrent_id'] = gui_torrent.torrent_id
+            gui_request['infohash'] = gui_torrent.infohash
+            gui_request['trackers'] = set()
             if 'trackers' in gui_torrent:
                 for tracker in gui_torrent.trackers:
                     gui_request['trackers'].add(tracker)
+
             self._gui_request_queue.put_nowait(gui_request)
-            self._new_request_event.set()
+            self._interrupt_socket.interrupt()
+
         except Queue.Full:
             if DEBUG:
-                print >> sys.stderr, '[WARN] GUI request queue is full.'
+                print >> sys.stderr, 'TorrentChecking: GUI request queue is full.'
             successful = False
+
         except Exception as e:
-            print >> sys.stderr,\
-                '[WARN] Unexpected error while adding GUI request:', e
+            print >> sys.stderr, 'TorrentChecking: Unexpected error while adding GUI request:', e
             successful = False
+
         return successful
 
     # ------------------------------------------------------------
     # Processes a GUI request.
     # ------------------------------------------------------------
     @forceDBThread
-    def _processGuiRequest(self, gui_request):
-        infohash    = gui_request['infohash']
-        tracker_set = gui_request['trackers']
-        if 'torrent_id' in gui_request:
-            torrent_id = gui_request['torrent_id']
-        else:
-            torrent_id = self._torrentdb.getTorrentID(infohash)
+    def _processGuiRequests(self, gui_requests):
+        for gui_request in gui_requests:
+            infohash = gui_request['infohash']
+            tracker_set = gui_request['trackers']
+            if 'torrent_id' in gui_request:
+                torrent_id = gui_request['torrent_id']
+            else:
+                torrent_id = self._torrentdb.getTorrentID(infohash)
 
-        # get torrent's tracker list from DB
-        db_tracker_list = self._getTrackerList(torrent_id, infohash)
-        for tracker in db_tracker_list:
-            tracker_set.add(tracker)
-        if not tracker_set:
-            # TODO: add method to handle torrents with no tracker
-            return
+            if torrent_id <= 0:
+                if DEBUG:
+                    print >> sys.stderr, "TorrentChecking: ignoring gui request, no torrent_id"
+                continue
 
+            if not tracker_set:
+                # get torrent's tracker list from DB
+                db_tracker_list = self._getTrackerList(torrent_id, infohash)
+                for tracker in db_tracker_list:
+                    tracker_set.add(tracker)
+
+            if not tracker_set:
+                if DEBUG:
+                    print >> sys.stderr, "TorrentChecking: ignoring gui request, no trackers"
+                # TODO: add method to handle torrents with no tracker
+                continue
+
+            self._processed_gui_request_queue.put((torrent_id, infohash, tracker_set))
+            self._interrupt_socket.interrupt()
+
+    def _onProcessedGuiRequests(self, gui_requests):
         # for each valid tracker, try to create new session or append
         # the request to an existing session
-        successful = False
-        for tracker_url in tracker_set:
-            self._updateTorrentTrackerMapping(torrent_id, tracker_url)
-            self._createSessionForRequest(infohash, tracker_url)
+        for torrent_id, infohash, tracker_set in gui_requests:
+            for tracker_url in tracker_set:
+                self._updateTorrentTrackerMapping(torrent_id, tracker_url)
+                self._createSessionForRequest(infohash, tracker_url)
 
     # ------------------------------------------------------------
     # Gets a list of all known trackers of a given torrent.
@@ -279,87 +292,78 @@ class TorrentChecking(Thread):
     # existings tracker session.
     # ------------------------------------------------------------
     def _createSessionForRequest(self, infohash, tracker_url):
-        # skip DHT
+        # skip DHT, for now
         if tracker_url == 'no-DHT' or tracker_url == 'DHT':
-            return
-        # check if this tracker is worth checking
-        if not self._tracker_info_cache.toCheckTracker(tracker_url):
             return
 
         # >> Step 1: Try to append the request to an existing session
         # check there is any existing session that scrapes this torrent
-        self._lock.acquire()
         request_handled = False
-        for _, session in self._session_dict.items():
-            if session.getTracker() != tracker_url:
-                continue
-            if session.hasFailed():
-                continue
+        with self._lock:
+            for session in self._session_list:
+                if session.getTracker() != tracker_url or session.hasFailed():
+                    continue
 
-            if session.hasInfohash(infohash):
-                # a torrent check is already there, ignore this request
-                request_handled = True
-                break
-
-            if not session.hasInitiated():
-                # only append when the request is less than 74
-                if session.getInfohashListSize() < MAX_TRACKER_MULTI_SCRAPE:
-                    session.addInfohash(infohash)
-                    self._updatePendingResponseDict(infohash)
+                if session.hasInfohash(infohash):
+                    # a torrent check is already there, ignore this request
                     request_handled = True
                     break
-        self._lock.release()
+
+                if not session.hasInitiated():
+                    # only append when the request is less than 74
+                    if session.getInfohashListSize() < MAX_TRACKER_MULTI_SCRAPE:
+                        session.addInfohash(infohash)
+                        self._updatePendingResponseDict(infohash)
+                        request_handled = True
+                        break
+
         if request_handled:
             if DEBUG:
-                print >> sys.stderr,\
-                '[DEBUG] Session [%s] appended.' % binascii.b2a_hex(infohash)
+                print >> sys.stderr, 'TorrentChecking: Session [%s] appended.' % binascii.b2a_hex(infohash)
             return
 
         # >> Step 2: No session to append to, create a new one
         # create a new session for this request
-        self._lock.acquire()
         session = None
         try:
-            session = TrackerSession.createSession(tracker_url,\
-                self.updateResultFromSession)
+            session = TrackerSession.createSession(tracker_url, self.updateResultFromSession)
 
             connectionEstablished = session.establishConnection()
             if not connectionEstablished:
                 raise RuntimeError('Cannot establish connection.')
 
             session.addInfohash(infohash)
-            self._session_dict[session.getSocket()] = session
+
+            with self._lock:
+                self._session_list.append(session)
+                self._interrupt_socket.interrupt()
+
             # update the number of responses this torrent is expecting
             self._updatePendingResponseDict(infohash)
 
             if DEBUG:
-                print >> sys.stderr,\
-                '[DEBUG] Session [%s] created.' % binascii.b2a_hex(infohash)
+                print >> sys.stderr, 'TorrentChecking: Session [%s] created.' % binascii.b2a_hex(infohash)
+
         except Exception as e:
             if DEBUG:
-                print >> sys.stderr, \
-                '[WARN] Failed to create session for tracker[%s]: %s' % \
+                print >> sys.stderr, 'TorrentChecking: Failed to create session for tracker[%s]: %s' % \
                 (tracker_url, e)
+
             if session:
                 session.cleanup()
-                del session
+
             self._tracker_info_cache.updateTrackerInfo(tracker_url, False)
-        self._lock.release()
 
     # ------------------------------------------------------------
     # Updates the pending response dictionary.
     # ------------------------------------------------------------
     def _updatePendingResponseDict(self, infohash):
+
         if infohash in self._pending_response_dict:
             self._pending_response_dict[infohash]['remainingResponses'] += 1
             self._pending_response_dict[infohash]['updated'] = False
         else:
-            self._pending_response_dict[infohash] = dict()
-            self._pending_response_dict[infohash]['infohash'] = infohash
-            self._pending_response_dict[infohash]['remainingResponses'] = 1
-            self._pending_response_dict[infohash]['seeders'] = -2
-            self._pending_response_dict[infohash]['leechers'] = -2
-            self._pending_response_dict[infohash]['updated'] = False
+            self._pending_response_dict[infohash] = {'infohash': infohash, 'remainingResponses': 1, 'seeders':-2, 'leechers':-2, 'updated': False}
 
     # ------------------------------------------------------------
     # Updates the result of a pending request.
@@ -379,7 +383,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentResult(self, response):
-        seeders  = response['seeders']
+        seeders = response['seeders']
         leechers = response['leechers']
         last_check = response['last_check']
 
@@ -387,11 +391,12 @@ class TorrentChecking(Thread):
         status = 'unknown'
         if seeders > 0:
             status = 'good'
-        elif seeders == 0:
-            status = 'dead'
+
+        if DEBUG:
+            print >> sys.stderr, "TorrentChecking: updateresult %d/%d status %s for %s" % (seeders, leechers, status, bin2str(response['infohash']))
 
         # only use updateTorrent() to update results and status
-        kw = {'seeder': seeders, 'leecher': leechers, 'status': status,\
+        kw = {'seeder': seeders, 'leecher': leechers, 'status': status, \
             'last_tracker_check': last_check}
         self._torrentdb.updateTorrent(response['infohash'], **kw)
 
@@ -402,7 +407,7 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _checkResponseFinal(self, response):
-        seeders  = response['seeders']
+        seeders = response['seeders']
         leechers = response['leechers']
 
         if seeders >= 0 and leechers >= 0:
@@ -418,7 +423,11 @@ class TorrentChecking(Thread):
 
         seeders = 0
         leechers = 0
-        kw = {'seeder': seeders, 'leecher': leechers, 'status': status,\
+
+        if DEBUG:
+            print >> sys.stderr, "TorrentChecking: finalresult %d/%d status %s for %s" % (seeders, leechers, status, bin2str(response['infohash']))
+
+        kw = {'seeder': seeders, 'leecher': leechers, 'status': status, \
               'last_tracker_check': last_check}
         self._torrentdb.updateTorrent(response['infohash'], **kw)
 
@@ -428,63 +437,49 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _selectTorrentsToCheck(self):
-        tracker = None
-        check_torrent_list = list()
-
         current_time = int(time.time())
-        checked_count = 0
-        while checked_count < self._tracker_info_cache.getTrackerInfoListSize():
-            if self._tracker_selection_idx >= self._tracker_info_cache.getTrackerInfoListSize():
-                return
+        for _ in range(self._tracker_info_cache.getTrackerInfoListSize()):
+            # update the new tracker index
+            self._tracker_selection_idx = (self._tracker_selection_idx + 1) % self._tracker_info_cache.getTrackerInfoListSize()
 
-            tracker, _ = \
-                self._tracker_info_cache.getTrackerInfo(self._tracker_selection_idx)
-            if tracker == 'no-DHT' or tracker == 'DHT':
-                checked_count += 1
-                continue
-            # skip the dead trackers
-            if not self._tracker_info_cache.toCheckTracker(tracker):
-                self._tracker_selection_idx += 1
-                if self._tracker_selection_idx >= self._tracker_info_cache.getTrackerInfoListSize():
-                    self._tracker_selection_idx = 0
-                checked_count += 1
+            tracker, _ = self._tracker_info_cache.getTrackerInfo(self._tracker_selection_idx)
+            if DEBUG:
+                print >> sys.stderr, 'TorrentChecking: Should we check tracker[%s].' % tracker
+
+            if tracker == 'no-DHT' or tracker == 'DHT' or not self._tracker_info_cache.toCheckTracker(tracker):
                 continue
 
             if DEBUG:
-                print >> sys.stderr,\
-                '[DEBUG] Selecting torrents to check on tracker[%s].' % tracker
+                print >> sys.stderr, 'TorrentChecking: Selecting torrents to check on tracker[%s].' % tracker
 
             # get all the torrents on this tracker
             try:
                 all_torrent_list = self._torrentdb.getTorrentsOnTracker(tracker)
             except:
+                print_exc()
                 return
-            if not all_torrent_list:
-                break
 
             # get the torrents that should be checked
-            for torrent in all_torrent_list:
+            scheduled_torrents = 0
+            for torrent_id, infohash, last_check in all_torrent_list:
                 # check interval
-                last_check = torrent[1]
                 interval = current_time - last_check
 
                 # recheck interval is: interval * 2^(retries)
                 if interval < self._torrent_check_interval:
                     continue
 
-                check_torrent_list.append(torrent)
+                self._processed_gui_request_queue.put((torrent_id, infohash, [tracker, ]))
+                scheduled_torrents += 1
 
-            # create sessions for the torrents that need to be checked
-            for torrent in check_torrent_list:
-                infohash = str2bin(torrent[0])
+            if scheduled_torrents:
+                self._interrupt_socket.interrupt()
+                if DEBUG:
+                    print >> sys.stderr, 'TorrentChecking: Selected %d torrents to check on tracker[%s].' % (scheduled_torrents, tracker)
+                break
 
-                self._createSessionForRequest(infohash, tracker)
-            break
-
-        # update the tracker index
-        self._tracker_selection_idx += 1
-        if self._tracker_selection_idx >= self._tracker_info_cache.getTrackerInfoListSize():
-            self._tracker_selection_idx = 0
+            elif DEBUG:
+                print >> sys.stderr, 'TorrentChecking: Selected 0 torrents to check on tracker[%s].' % (tracker)
 
     # ------------------------------------------------------------
     # The thread function.
@@ -496,188 +491,206 @@ class TorrentChecking(Thread):
 
         # wait for the tracker info cache to be initialized
         if DEBUG:
-            print >> sys.stderr,\
-            '[DEBUG] Start initializing TrackerInfoCache...'
+            print >> sys.stderr, 'TorrentChecking: Start initializing TrackerInfoCache...'
+
         self._tracker_info_cache.loadCacheFromDb()
+
         if DEBUG:
-            print >> sys.stderr,\
-            '[DEBUG] TrackerInfoCache initialized.'
+            print >> sys.stderr, 'TorrentChecking: TrackerInfoCache initialized.'
+        print >> sys.stderr, 'TorrentChecking: initialized.'
 
         last_time_select_torrent = 0
         while not self._should_stop:
-            # handle GUI requests
-            try:
-                while True:
-                    gui_request = self._gui_request_queue.get_nowait()
-                    self._processGuiRequest(gui_request)
-            except Queue.Empty:
-                pass
-            except Exception as e:
-                print >> sys.stderr,\
-                '[WARN] Unexpected error while handling GUI requests:', e
+            def process_queue(queue, callback):
+                requests = []
+
+                try:
+                    while True:
+                        requests.append(queue.get_nowait())
+
+                except Queue.Empty:
+                    pass
+
+                except Exception as e:
+                    print >> sys.stderr, 'TorrentChecking: Unexpected error while handling requests'
+                    print_exc()
+
+                if requests:
+                    callback(requests)
+
+            process_queue(self._gui_request_queue, self._processGuiRequests)
+            process_queue(self._processed_gui_request_queue, self._onProcessedGuiRequests)
 
             # torrent selection
-            this_time = int(time.time())
-            if this_time - last_time_select_torrent > self._torrent_select_interval:
+            current_time = int(time.time())
+            time_remaining = max(0, self._torrent_select_interval - (current_time - last_time_select_torrent))
+            if time_remaining == 0:
+                if DEBUG:
+                    print >> sys.stderr, 'TorrentChecking: Selecting new torrent'
+
                 try:
                     self._selectTorrentsToCheck()
-                except Exception as e:
-                    print >> sys.stderr, \
-                    '[WARN] Unexpected error during TorrentSelection: ', e
-                    print_exc()
-                    print_stack()
-                last_time_select_torrent = this_time
 
-            # sleep if no existing session and no request
-            self._lock.acquire()
-            if self._session_dict:
-                has_session = True
-            else:
-                has_session = False
-            self._lock.release()
-            if not has_session:
-                # TODO: make this configurable
-                self._new_request_event.wait(5)
-                self._new_request_event.clear()
-                continue
+                except Exception as e:
+                    print >> sys.stderr, 'TorrentChecking: Unexpected error during TorrentSelection: ', e
+                    print_exc()
+
+                last_time_select_torrent = current_time
+                time_remaining = self._torrent_select_interval
 
             # create read and write socket check list
             # check non-blocking connection TCP sockets if they are writable
             # check UDP and TCP response sockets if they are readable
-            check_read_socket_list = []
+            check_read_socket_list = [self._interrupt_socket.get_socket()]
             check_write_socket_list = []
 
-            # all finished or failed sessions will be handled later
-            completed_session_list = []
+            session_dict = {}
+            with self._lock:
+                for session in self._session_list:
+                    session_dict[session.getSocket()] = session
 
-            self._lock.acquire()
-            for sock, session in self._session_dict.items():
-                if session.hasFailed() or session.hasFinished():
-                    completed_session_list.append(session)
-                    continue
-
+            for session_socket, session in session_dict.iteritems():
                 if session.isTrackerType('UDP'):
-                    check_read_socket_list.append(sock)
+                    check_read_socket_list.append(session_socket)
                 else:
                     if session.isAction(TRACKER_ACTION_CONNECT):
-                        check_write_socket_list.append(sock)
+                        check_write_socket_list.append(session_socket)
                     else:
-                        check_read_socket_list.append(sock)
-            self._lock.release()
+                        check_read_socket_list.append(session_socket)
 
             # select
             try:
                 read_socket_list, write_socket_list, error_socket_list = \
-                    select.select( \
+                    select.select(\
                     check_read_socket_list, check_write_socket_list, [], \
-                    self._select_timeout)
+                    time_remaining)
+
             except Exception as e:
                 if DEBUG:
-                    print >> sys.stderr, \
-                    '[WARN] Error while selecting: ', e
+                    print >> sys.stderr, 'TorrentChecking: Error while selecting: ', e
 
-            current_time = int(time.time())
-            self._lock.acquire()
-            # we don't want any unexpected exception to break the loop
-            try:
-                # >> Step 1: Check the sockets
-                # check writable sockets (TCP connections)
-                for write_socket in write_socket_list:
-                    session = self._session_dict[write_socket]
-                    session.handleRequest()
-                    if session.hasFailed() or session.hasFinished():
-                        completed_session_list.append(session)
+            if not self._should_stop:
+                current_time = int(time.time())
+                # we don't want any unexpected exception to break the loop
+                try:
+                    # >> Step 1: Check the sockets
+                    # check writable sockets (TCP connections)
+                    if DEBUG:
+                        print >> sys.stderr, 'TorrentChecking: got %d writable sockets' % len(write_socket_list)
+                    for write_socket in write_socket_list:
+                        session = session_dict[write_socket]
+                        session.handleRequest()
 
-                # check readable sockets
-                for read_socket in read_socket_list:
-                    session = self._session_dict[read_socket]
-                    session.handleRequest()
-                    if session.hasFailed() or session.hasFinished():
-                        completed_session_list.append(session)
+                    # check readable sockets
+                    if DEBUG:
+                        print >> sys.stderr, 'TorrentChecking: got %d readable sockets' % (len(read_socket_list) - 1)
+                    for read_socket in read_socket_list:
+                        session = session_dict.get(read_socket, self._interrupt_socket)
+                        session.handleRequest()
 
-                # >> Step 2: Handles the completed sessions
-                for session in completed_session_list:
-                    if session.hasFailed():
-                        success = False
-                    elif session.hasFinished():
-                        success = True
-                    else:
-                        raise RuntimeError('This should not happen.', session)
+                    # >> Step 2: Handle timedout UDP sessions
+                    for session in session_dict.values():
+                        diff = current_time - session.getLastContact()
+                        if diff > session.getRetryInterval():
+                            session.increaseRetries()
 
-                    # set torrent remaining responses
-                    for infohash in session.getInfohashList():
-                        self._pending_response_dict[infohash]['remainingResponses'] -= 1
+                            if session.getRetries() > session.getMaxRetries():
+                                session.setFailed()
+                                if DEBUG:
+                                    print >> sys.stderr, 'TorrentChecking: Tracker[%s] retried out.' % session.getTracker()
+                            else:
+                                # re-establish the connection
+                                session.reestablishConnection()
+                                if DEBUG:
+                                    print >> sys.stderr, 'TorrentChecking: Tracker[%s] retry, %d.' % (session.getTracker(), session.getRetries())
 
-                    # update the Tracker Status Cache
-                    self._tracker_info_cache.updateTrackerInfo( \
-                        session.getTracker(), success)
+                    # >> Step 3: Remove completed sessions
+                    with self._lock:
+                        for i in range(len(self._session_list) - 1, -1, -1):
+                            session = self._session_list[i]
 
-                    # cleanup
-                    del self._session_dict[session.getSocket()]
-                    session.cleanup()
-                    del session
+                            if session.hasFailed() or session.hasFinished():
+                                self._tracker_info_cache.updateTrackerInfo(session.getTracker(), session.hasFailed())
 
-                # >> Step 3. check and update new results
-                new_result_list = list()
-                for infohash, response in self._pending_response_dict.items():
-                    if response['updated']:
-                        new_result_list
-                        self._updateTorrentResult(response)
-                        response['updated'] = False
+                                # set torrent remaining responses
+                                for infohash in session.getInfohashList():
+                                    self._pending_response_dict[infohash]['remainingResponses'] -= 1
 
-                # >> Step 4. check and clean up the finished requests
-                obsolete_list = list()
-                for infohash in self._pending_response_dict:
-                    if self._pending_response_dict[infohash]['remainingResponses'] == 0:
-                        obsolete_list.append(infohash)
-                # can not do it in the previous loop because it will change the
-                # dictionary and hence cause error in the iteration.
-                for infohash in obsolete_list:
-                    self._checkResponseFinal(self._pending_response_dict[infohash])
-                    del self._pending_response_dict[infohash]
-                del obsolete_list
+                                session.cleanup()
+                                self._session_list.pop(i)
 
-                # >> Last Step. check and handle timed out UDP sessions
-                for _, session in self._session_dict.items():
-                    if not session.isTrackerType('UDP'):
-                        continue
+                    # >> Step 4. check and update new results
+                    for infohash, response in self._pending_response_dict.items():
+                        if response['updated']:
+                            response['updated'] = False
+                            self._updateTorrentResult(response)
 
-                    interval = UDP_TRACKER_RECHECK_INTERVAL * (2**session.getRetries())
-                    if current_time - session.getLastContact() < interval:
-                        continue
+                        if self._pending_response_dict[infohash]['remainingResponses'] == 0:
+                            self._checkResponseFinal(response)
+                            del self._pending_response_dict[infohash]
 
-                    session.increaseRetries()
-                    if session.getRetries() > UDP_TRACKER_MAX_RETRIES:
-                        session.setFailed()
-                        session.cleanup()
-                        print >> sys.stderr, \
-                        '[DEBUG] Tracker[%s] retried out.' % session.getTracker()
-                    else:
-                        # re-establish the connection
-                        session.reestablishConnection()
-                        print >> sys.stderr, \
-                        '[DEBUG] Tracker[%s] retry, %d.' % (session.getTracker(), session.getRetries())
+                    # update tracker info cache
+                    self._tracker_info_cache.updateTrackerInfoIntoDb()
 
-                # update tracker info cache
-                self._tracker_info_cache.updateTrackerInfoIntoDb()
+                # All kinds of unexpected exceptions
+                except Exception as err:
+                    print >> sys.stderr, 'TorrentChecking: Unexpected exception: ', err
+                    print_exc()
 
-            # All kinds of unexpected exceptions
-            except Exception as err:
-                print >> sys.stderr, \
-                '[FATAL] Unexpected exception: ', err
-                print_exc()
-                print_stack()
-                time.sleep(1000)
-
-            if DEBUG:
-                print >> sys.stderr,\
-                '[DEBUG] sessions:  %d' % len(self._session_dict)
-                for _, session in self._session_dict.items():
-                    print >> sys.stderr, '[DEBUG] session[%s], finished=%d, failed=%d' %\
-                    (session.getTracker(), session.hasFinished(), session.hasFailed())
-
-            self._lock.release()
+                if DEBUG:
+                    print >> sys.stderr, 'TorrentChecking: sessions: %d' % len(self._session_list)
+                    for session in self._session_list:
+                        print >> sys.stderr, 'TorrentChecking: session[%s], finished=%d, failed=%d' % \
+                        (session.getTracker(), session.hasFinished(), session.hasFailed())
 
         # the thread is shutting down, kill all the tracker sessions
-        for _, session in self._session_dict.items():
+        for session in self._session_list:
             session.cleanup()
+
+        self._interrupt_socket.close()
+        print >> sys.stderr, 'TorrentChecking: shutdown'
+
+class InterruptSocket:
+
+    """
+    When we need the poll to return before the timeout expires, we
+    will send some data to the InterruptSocket and discard the data.
+    """
+
+    def __init__(self):
+        self.ip = "127.0.0.1"
+        self.port = None
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # we assume that one port in the range below is free
+        for self.port in xrange(10000, 12345):
+            try:
+                if DEBUG:
+                    print >> sys.stderr, "InterruptSocket: Trying to start InterruptSocket on port", self.port
+                self.socket.bind((self.ip, self.port))
+                break
+            except:
+                pass
+
+    def interrupt(self):
+        self.interrupt_socket.sendto("+", (self.ip, self.port))
+
+    def handleRequest(self):
+        try:
+            self.socket.recv(1024)
+        except:
+            pass
+
+    def close(self):
+        self.interrupt_socket.close()
+        self.socket.close()
+
+    def get_ip(self):
+        return self.ip
+
+    def get_port(self):
+        return self.port
+
+    def get_socket(self):
+        return self.socket

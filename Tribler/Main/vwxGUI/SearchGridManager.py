@@ -20,7 +20,8 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
-    forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread
+    forceDispersyThread, forcePrioDispersyThread, \
+    onDispersyThread, warnDispersyThread
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename, parse_magnetlink
 from Tribler.Core.Session import Session
@@ -124,8 +125,9 @@ class TorrentManager:
                             self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
                         else:
                             self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
-
                     do_db()
+
+                    torrent.torrent_file_name = torrent_filename
                     return torrent_filename
 
                 except ValueError:
@@ -133,8 +135,9 @@ class TorrentManager:
 
         if not retried:
             # reload torrent to see if database contains any changes
-            dict = self.torrent_db.getTorrent(torrent.infohash, keys=['swift_torrent_hash', 'torrent_file_name'], include_mypref=False)
+            dict = self.torrent_db.getTorrent(torrent.infohash, keys=['torrent_id', 'swift_torrent_hash', 'torrent_file_name'], include_mypref=False)
             if dict:
+                torrent.update_torrent_id(dict['torrent_id'])
                 torrent.swift_torrent_hash = dict['swift_torrent_hash']
                 torrent.torrent_file_name = dict['torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
@@ -151,21 +154,17 @@ class TorrentManager:
 
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
+        As a first argument the filename of the torrent is passed
 
         Returns a boolean + request_type
         describing if the torrent is requested
         """
-
-        torrent_filename = self.getCollectedFilename(torrent)
-        if torrent_filename:
-            return torrent_filename
 
         if self.downloadTorrentfileFromPeers(torrent, callback, duplicate=True, prio=prio):
             candidates = torrent.query_candidates
             if candidates and len(candidates) > 0:
                 return (True, "from peers")
             return (True, "from the dht")
-
         return False
 
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio=0):
@@ -175,6 +174,7 @@ class TorrentManager:
 
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
+        As a first argument the filename of the torrent is passed
 
         DUPLICATE can be True: the file will be downloaded from peers
         regardless of a previous/current download attempt (returns
@@ -256,7 +256,6 @@ class TorrentManager:
 
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):
-
             torrent_filename = self.getCollectedFilename(torrent)
             if not torrent_filename:
                 files = []
@@ -283,7 +282,7 @@ class TorrentManager:
 
                     torrent = NotCollectedTorrent(torrent, files, trackers)
                 else:
-                    torrent_callback = lambda: self.loadTorrent(torrent, callback)
+                    torrent_callback = lambda torfilename: self.loadTorrent(torrent, callback)
                     torrent_filename = self.getTorrent(torrent, torrent_callback)
 
                     if torrent_filename[0]:
@@ -346,7 +345,7 @@ class TorrentManager:
     def getSearchSuggestion(self, keywords, limit=1):
         return self.torrent_db.getSearchSuggestion(keywords, limit)
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def searchDispersy(self):
         nr_requests_made = 0
         if self.dispersy:
@@ -962,7 +961,7 @@ class LibraryManager:
 
             else:
                 print >> sys.stderr, ".TORRENT MISSING REQUESTING FROM PEERS"
-                callback = lambda: self.playTorrent(torrent, selectedinfilename)
+                callback = lambda torrentfilename: self.playTorrent(torrent, selectedinfilename)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
         else:
             videoplayer.play(ds, selectedinfilename)
@@ -1001,7 +1000,7 @@ class LibraryManager:
                     destdir = destdir[-1]
                 self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
             else:
-                callback = lambda: self.resumeTorrent(torrent)
+                callback = lambda torrentfilename: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
 
     def stopTorrent(self, torrent):
@@ -1571,7 +1570,7 @@ class ChannelManager:
 
         return filter(torrentFilter, hits)
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def _disp_get_community_from_channel_id(self, channel_id):
         if not channel_id:
             channel_id = self.channelcast_db.getMyChannelId()
@@ -1585,7 +1584,7 @@ class ChannelManager:
 
         print >> sys.stderr, "Could not find channel", channel_id
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def _disp_get_community_from_cid(self, dispersy_cid):
         try:
             community = self.dispersy.get_community(dispersy_cid)
@@ -1895,7 +1894,7 @@ class ChannelManager:
         else:
             return [len(self.hits), hitsUpdated, self.hits]
 
-    @forceDispersyThread
+    @warnDispersyThread
     def searchDispersy(self):
         nr_requests_made = 0
         if self.dispersy:

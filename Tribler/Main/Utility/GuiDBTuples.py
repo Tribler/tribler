@@ -12,7 +12,8 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, \
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
-from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.channel.community import ChannelCommunity, \
+    forceAndReturnDispersyThread
 from Tribler.Core.Search.SearchManager import split_into_keywords
 import binascii
 
@@ -82,6 +83,9 @@ def cacheProperty(func):
 class Helper(object):
     __slots__ = ('_cache')
 
+    def __init__(self):
+        self._cache = {}
+
     def get(self, key, default=None):
         return getattr(self, key, default)
 
@@ -146,10 +150,11 @@ class MergedDs:
 
 
 class Torrent(Helper):
-    __slots__ = ('_torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', '_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db', 'dslist', '_progress', 'relevance_score', 'query_candidates', 'magnetstatus')
+    __slots__ = ('infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', '_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db', 'dslist', '_progress', 'relevance_score', 'query_candidates', 'magnetstatus')
 
     def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
-        self._torrent_id = torrent_id
+        Helper.__init__(self)
+
         self.infohash = infohash
         self.swift_hash = swift_hash
         self.swift_torrent_hash = swift_torrent_hash
@@ -162,7 +167,8 @@ class Torrent(Helper):
         self.num_seeders = num_seeders or 0
         self.num_leechers = num_leechers or 0
 
-        self._channel = channel
+        self.update_torrent_id(torrent_id)
+        self.updateChannel(channel)
 
         self.channeltorrents_id = None
         self.torrent_db = None
@@ -186,11 +192,12 @@ class Torrent(Helper):
 
     @cacheProperty
     def torrent_id(self):
-        if not self._torrent_id:
-            if DEBUGDB:
-                print >> sys.stderr, "Torrent: fetching getTorrentID from DB", self
-            self._torrent_id = self.torrent_db.getTorrentID(self.infohash)
-        return self._torrent_id
+        if DEBUGDB:
+            print >> sys.stderr, "Torrent: fetching getTorrentID from DB", self
+        return self.torrent_db.getTorrentID(self.infohash)
+
+    def update_torrent_id(self, torrent_id):
+        self._cache['torrent_id'] = torrent_id
 
     @cacheProperty
     def infohash_as_hex(self):
@@ -198,9 +205,6 @@ class Torrent(Helper):
 
     @cacheProperty
     def channel(self):
-        if self._channel is not None:
-            return self._channel
-
         if DEBUGDB:
             print >> sys.stderr, "Torrent: fetching getMostPopularChannelFromTorrent from DB", self
 
@@ -208,17 +212,19 @@ class Torrent(Helper):
         if channel:
             self.channeltorrents_id = channel[-1]
             return Channel(*channel[:-1])
-        return False
 
     def updateChannel(self, c):
-        self._channel = c
-        try:
-            del self._cache['channel']
-        except:
-            pass
+        self._cache['channel'] = c
 
     def hasChannel(self):
         return self.channel
+
+    @property
+    def swarminfo(self):
+        return self.num_seeders, self.num_leechers, sys.maxint
+
+    def updateSwarminfo(self, swarminfo):
+        self.num_seeders, self.num_leechers, _ = swarminfo
 
     @property
     def state(self):
@@ -318,9 +324,10 @@ class Torrent(Helper):
 
     def exactCopy(self, other):
         if other and isinstance(other, Torrent):
+            ids = self.torrent_id == other.torrent_id
             hashes = self.infohash == other.infohash and (other.swift_hash and (self.swift_hash == other.swift_hash))
             readableProps = self.name == other.name and self.length == other.length and self.category_id == other.category_id
-            return hashes and readableProps
+            return ids and hashes and readableProps
         return False
 
     def __eq__(self, other):
@@ -339,6 +346,9 @@ class Torrent(Helper):
                 statedict[key] = getattr(self, key, None)
         return statedict
 
+    @staticmethod
+    def fromTorrentDef(tdef):
+        return Torrent(-1, tdef.get_infohash(), None, None, tdef.get_name(), None, tdef.get_length(), None, None, 0, 0, False)
 
 class RemoteTorrent(Torrent):
     __slots__ = ()
@@ -355,6 +365,8 @@ class CollectedTorrent(Helper):
         assert isinstance(torrent, Torrent)
 
         self.torrent = torrent
+        if self.torrent_id <= 0:
+            raise RuntimeError("self.torrent_id is too low, %d %s" % (self.torrent_id, self.torrent_file_name))
 
         self.comment = torrentdef.get_comment_as_unicode()
         self.trackers = torrentdef.get_trackers_as_single_tuple()
@@ -388,12 +400,15 @@ class CollectedTorrent(Helper):
             print >> sys.stderr, "CollectedTorrent: fetching getSwarmInfo from DB", self
 
         swarminfo = self.torrent_db.getSwarmInfo(self.torrent_id)
-
         if swarminfo:
             self.torrent.num_seeders = swarminfo[0] or 0
             self.torrent.num_leechers = swarminfo[1] or 0
             self.last_check = swarminfo[2] or -1
         return swarminfo
+
+    def updateSwarminfo(self, swarminfo):
+        self.torrent.num_seeders, self.torrent.num_leechers, self.last_check = swarminfo
+        self._cache['swarminfo'] = swarminfo
 
     @cacheProperty
     def videofiles(self):
@@ -447,6 +462,8 @@ class NotCollectedTorrent(CollectedTorrent):
         self.files = files
         self.last_check = -1
 
+        if self.torrent_id <= 0:
+            raise RuntimeError("self.torrent_id is too low, %d %s" % (self.torrent_id, self.torrent_file_name))
 
 class LibraryTorrent(Torrent):
     __slots__ = ()
@@ -558,15 +575,18 @@ class Channel(Helper):
     @cache
     def getState(self):
         if self.isDispersy():
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            @forceAndReturnDispersyThread
+            def do_dispersy():
+                from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-            if DEBUGDB:
-                print >> sys.stderr, "Channel: fetching getChannelStateByCID from DB", self
+                if DEBUGDB:
+                    print >> sys.stderr, "Channel: fetching getChannelStateByCID from DB", self
 
-            searchManager = ChannelManager.getInstance()
-            result = searchManager.getChannelStateByCID(self.dispersy_cid)
-            if result:
+                searchManager = ChannelManager.getInstance()
+                result = searchManager.getChannelStateByCID(self.dispersy_cid)
                 return result
+
+            return do_dispersy()
 
         return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
 
