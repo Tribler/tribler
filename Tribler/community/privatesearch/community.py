@@ -820,7 +820,7 @@ class Das4DBStub():
 
     def on_search_response(self, results):
         for result in results:
-            assert isinstance(result[0], unicode), type(result[0])
+            assert isinstance(result[0], str), type(result[0])
             if result[0] not in self.myMegaCache:
                 self.myMegaCache[result[0]] = (result[0], result[1], 0, 0, 0, time())
         return len(self.myMegaCache)
