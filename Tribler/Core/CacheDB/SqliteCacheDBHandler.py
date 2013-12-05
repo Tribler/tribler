@@ -168,7 +168,7 @@ class PeerDBHandler(BasicDBHandler):
             if permid not in self.permid_id:
                 to_select.append(bin2str(permid))
 
-        if len(to_select) > 0:
+        if to_select:
             parameters = ", ".join('?' * len(to_select))
             sql_get_peer_ids = "SELECT peer_id, permid FROM Peer WHERE permid IN (" + parameters + ")"
             peerids = self._db.fetchall(sql_get_peer_ids, to_select)
@@ -261,68 +261,78 @@ class PeerDBHandler(BasicDBHandler):
         if not check_db:
             return bool(self.getPeerID(permid))
         else:
-            permid_str = bin2str(permid)
-            sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
-            peer_id = self._db.fetchone(sql_get_peer_id, (permid_str,))
-            if peer_id is None:
-                return False
-            else:
-                return True
+            sql = "SELECT peer_id FROM Peer WHERE permid == ?"
+            peer_id = self._db.fetchone(sql, (bin2str(permid),))
+            return peer_id is not None
 
-    def updatePeer(self, permid, commit=True, **argv):
-        self._db.update(self.table_name, 'permid=' + repr(bin2str(permid)), commit=commit, **argv)
-        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
+    def deletePeer(self, permid=None, peer_id=None):
+        assert (permid is not None) or (peer_id is not None)
 
-    def deletePeer(self, permid=None, peer_id=None, force=False, commit=True):
-        # don't delete friend of superpeers, except that force is True
         if peer_id is None:
             peer_id = self.getPeerID(permid)
         if peer_id is None:
             return
 
         deleted = False
-        if peer_id != None:
-            if force:
-                self._db.delete('Peer', peer_id=peer_id, commit=commit)
-            else:
-                self._db.delete('Peer', peer_id=peer_id, friend=0, superpeer=0, commit=commit)
+        if peer_id is not None:
+            sql = 'DELETE FROM Peer WHERE peer_id = ?'
+            self._db.execute_write(sql, (peer_id,))
+
             deleted = not self.hasPeer(permid, check_db=True)
             if deleted and permid in self.permid_id:
                 self.permid_id.pop(permid)
 
-        self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
-
-    def getPermid(self, peer_id):
-        permid = self.getOne('permid', peer_id=peer_id)
-        if permid is not None:
-            return str2bin(permid)
-        else:
-            return None
+        if deleted:
+            self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
 
     def getRanks(self):
-        value_name = 'permid'
-        order_by = 'similarity desc'
-        rankList_size = 20
-        where = '(last_connected>0 or friend=1) '
-        res_list = self._db.getAll('Peer', value_name, where=where, limit=rankList_size, order_by=order_by)
-        return [a[0] for a in res_list]
+        sql = """
+            SELECT permid FROM Peer WHERE (last_connected > 0 OR friend = 1)
+            ORDER BY similarity DESC LIMIT %d
+            """ % rankList_size
+        result_list = self._db.fetchall(sql)
+        return [result[0] for result in result_list]
 
-    def getPeerIcon(self, permid):
-        item = self.getOne('thumbnail', permid=bin2str(permid))
+    def getPeerIconByPermid(self, permid):
+        sql = 'SELECT thumbnail FROM Peer WHERE permid = ?'
+        item = self._db.fetchone(sql, (bin2str(permid),))
         if item:
             return NETW_MIME_TYPE, str2bin(item)
         else:
             return None, None
 
     def getPeerIconByPeerId(self, peerid):
-        item = self.getOne('thumbnail', peer_id=peerid)
+        sql = 'SELECT thumbnail FROM Peer WHERE peer_id = ?'
+        item = self._db.fetchone(sql, (peerid,))
         if item:
             return NETW_MIME_TYPE, str2bin(item)
         else:
             return None, None
 
     def searchNames(self, kws):
-        return doPeerSearchNames(self, 'Peer', kws)
+        where = '(Peer.last_connected > 0 OR Peer.friend = 1) AND '
+
+        # Must come before query
+        ranks = self.getRanks()
+
+        for i in range(len(kws)):
+            kw = kws[i]
+            where += ' name LIKE "%' + kw + '%"'
+            if (i + 1) != len(kws):
+                where += ' AND'
+
+        value_name = PeerDBHandler.gui_value_name
+
+        res_list = self._db.getAll('Peer', value_name, where)
+
+        peer_list = []
+        for item in res_list:
+            peer = dict(zip(value_name, item))
+            peer['name'] = dunno2unicode(peer['name'])
+            peer['simRank'] = ranksfind(ranks, peer['permid'])
+            peer['permid'] = str2bin(peer['permid'])
+            peer_list.append(peer)
+        return peer_list
 
 
 class TorrentDBHandler(BasicDBHandler):
@@ -3482,43 +3492,6 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
         # returns None if query not in db
         query = ' '.join(sorted(set(keywords)))
         return self.getOne('bundle_mode', query=query)
-
-
-def doPeerSearchNames(self, dbname, kws):
-    """ Get all peers that have the specified keywords in their name.
-    Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
-    """
-    if dbname == 'Peer':
-        where = '(Peer.last_connected>0 or Peer.friend=1) and '
-    elif dbname == 'Friend':
-        where = ''
-    else:
-        raise Exception('unknown dbname: %s' % dbname)
-
-    # Must come before query
-    ranks = self.getRanks()
-
-    for i in range(len(kws)):
-        kw = kws[i]
-        where += ' name like "%' + kw + '%"'
-        if (i + 1) != len(kws):
-            where += ' and'
-
-    value_name = PeerDBHandler.gui_value_name
-
-    # print >>sys.stderr,"peer_db: searchNames: sql",where
-    res_list = self._db.getAll(dbname, value_name, where)
-    # print >>sys.stderr,"peer_db: searchNames: res",res_list
-
-    peer_list = []
-    for item in res_list:
-        # print >>sys.stderr,"peer_db: searchNames: Got Record",`item`
-        peer = dict(zip(value_name, item))
-        peer['name'] = dunno2unicode(peer['name'])
-        peer['simRank'] = ranksfind(ranks, peer['permid'])
-        peer['permid'] = str2bin(peer['permid'])
-        peer_list.append(peer)
-    return peer_list
 
 
 def ranksfind(ranks, key):
