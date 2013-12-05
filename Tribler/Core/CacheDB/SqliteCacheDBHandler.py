@@ -3071,18 +3071,10 @@ class SearchDBHandler(BasicDBHandler):
                   in zip(term_ids, range(len(term_ids)))]
         self._db.executemany(sql_insert_search, values, commit=commit)
 
-    def getTermID(self, term):
-        row = self.getTermsIDS([term])
-        if row:
-            return row[1]
-
     def getTermsIDS(self, terms):
         parameters = '?,' * len(terms)
         sql = "SELECT term_id, term FROM TermFrequency WHERE term IN (" + parameters[:-1] + ")"
         return self._db.fetchall(sql, terms)
-
-    def getTorrentSearchTerms(self, torrent_id, peer_id):
-        return self.getAll("term_id", "torrent_id=%d AND peer_id=%s" % (torrent_id, peer_id), order_by="term_order")
 
     def getMyTorrentsSearchTermsStr(self, torrent_ids):
         return_dict = {}
