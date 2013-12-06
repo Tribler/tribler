@@ -633,8 +633,8 @@ class TorrentDBHandler(BasicDBHandler):
             key_str = key_str[:-1]
             value_list.append(torrent_id)
 
-            sql = 'UPDATE Torrent SET %s WHERE torrent_id = ?'
-            self._db.execute(sql, tuple(value_list))
+            sql = 'UPDATE Torrent SET %s WHERE torrent_id = ?' % key_str
+            self._db.execute_write(sql, tuple(value_list))
 
         if not torrentdef.is_multifile_torrent():
             swarmname, _ = os.path.splitext(swarmname)
@@ -1209,18 +1209,6 @@ class TorrentDBHandler(BasicDBHandler):
         fix_value('swift_torrent_hash')
         return results
 
-    def getRanks(self):
-        status_id = self._torrent_status_dict[u'good']
-        rankList_size = 20
-
-        sql = """
-            SELECT infohash FROM Torrent WHERE status_id = ?
-            ORDER BY relevance DESC
-            LIMIT %d
-            """ % rankList_size
-        res_list = self._db.fetchall(sql, (status_id,))
-        return [a[0] for a in res_list]
-
     def getNumberCollectedTorrents(self):
         # return self._db.size('CollectedTorrent')
         sql = 'SELECT count(torrent_id) FROM CollectedTorrent'
@@ -1671,7 +1659,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             key_str = key_str[:-1]
             value_list.append(torrent_id)
 
-            sql = 'UPDATE MyPreference SET %s WHERE torrent_id = ?'
+            sql = 'UPDATE MyPreference SET %s WHERE torrent_id = ?' % key_str
             self._db.execute(sql, tuple(value_list))
 
         # have keywords stored by SearchDBHandler

@@ -78,7 +78,8 @@ CREATE TABLE Peer (
 );
 
 CREATE UNIQUE INDEX permid_idx
-  ON Peer (permid);
+  ON Peer
+  (permid);
 
 ----------------------------------------
 
