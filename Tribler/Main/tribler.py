@@ -457,9 +457,10 @@ class ABCApp():
         #host = "127.0.0.1:21000"
         #root_hash = "b25eb5a4eb94fad36aa373d3b85434894961b1c5"
 
+        dest_dir = os.path.abspath("./.TriblerAnonTunnel/")
+        self.sconfig.set_swift_meta_dir(dest_dir + "/swift_meta/");
         try:
-            download = get_default_dest_dir() + "/" + root_hash
-
+            download = dest_dir + "/" + root_hash
             for file in glob.glob(download + "*"):
                 os.remove(file)
 
@@ -474,18 +475,27 @@ class ABCApp():
 
         sdef.set_name("AnonTunnel test (50 MB)")
 
-        result = self.frame.startDownload(sdef=sdef, destdir=get_default_dest_dir())
+        result = self.frame.startDownload(sdef=sdef, destdir=dest_dir)
         result.set_state_callback(state_call(result), delay=1)
 
     def startAPI(self, progress):
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
-        state_dir = Session.get_default_state_dir(".TriblerAnonTunnel")
+        folder_name = "./.TriblerAnonTunnel";
 
         try:
-            shutil.rmtree(state_dir)
+            shutil.rmtree(folder_name)
         except:
             pass
+
+        try:
+            os.mkdir(folder_name)
+        except:
+            pass
+
+        state_dir = Session.get_default_state_dir(folder_name)
+
+
 
         cfgfilename = Session.get_default_config_filename(state_dir)
         progress('Loading sessionconfig')
