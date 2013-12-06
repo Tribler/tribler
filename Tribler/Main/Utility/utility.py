@@ -80,7 +80,8 @@ class Utility:
                             'use_webui': 0,
                             'webui_port': 8080,
                             # Swift reseed
-                            'swiftreseed': 1}
+                            'swiftreseed': 1,
+                            'videohttpport':-1}
 
         if sys.platform == 'win32':
             tribler_defaults['mintray'] = '2'

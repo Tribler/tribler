@@ -46,7 +46,7 @@ class GUIUtility:
         self.app = app
 
         # videoplayer
-        self.videoplayer = VideoPlayer.getInstance()
+        self.videoplayer = None
 
         # current GUI page
         self.guiPage = 'home'
@@ -95,6 +95,8 @@ class GUIUtility:
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
             self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
+
+            self.videoplayer = VideoPlayer.getInstance()
         else:
             raise RuntimeError('GuiUtility is already registered')
 

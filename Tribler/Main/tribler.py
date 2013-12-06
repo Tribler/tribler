@@ -249,11 +249,12 @@ class ABCApp():
             # crashes.
             self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
 
-            # Put it here so an error is shown in the startup-error popup
-            # Start server for instance2instance communication
-            self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
-            self.i2is = Instance2InstanceServer(I2I_LISTENPORT, self.i2iconnhandler)
-            self.i2is.start()
+            if not ALLOW_MULTIPLE:
+                # Put it here so an error is shown in the startup-error popup
+                # Start server for instance2instance communication
+                self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
+                self.i2is = Instance2InstanceServer(I2I_LISTENPORT, self.i2iconnhandler)
+                self.i2is.start()
 
             # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
             # Range: GETs causes performance problems in our code. Disable for now.
@@ -264,8 +265,15 @@ class ABCApp():
 
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
+
+            httpport = self.utility.read_config('videohttpport')
+            if ALLOW_MULTIPLE or httpport == -1:
+                httpport = randint(1024, 25000)
+            else:
+                httpport = VIDEOHTTP_LISTENPORT
+            self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
+
             playbackmode = self.utility.read_config('videoplaybackmode')
-            self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
             self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
 
             notification_init(self.utility)
