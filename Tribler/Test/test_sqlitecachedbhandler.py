@@ -166,16 +166,6 @@ class TestTorrentDBHandler(AbstractDB):
         assert self.tdb.hasTorrent(fake_infoahsh) == False
         assert self.tdb.hasMetaData(fake_infoahsh) == False
 
-    def test_loadTorrents(self):
-        res = self.tdb.getTorrents()  # only returns good torrents
-
-        data = res[0]
-        # print data
-        assert data['category'][0] in self.tdb.category_table.keys(), data['category']
-        assert self.tdb.getTorrentStatusId(data['status']) is not None, data['status']
-        assert data['source'] in self.tdb.src_table.keys(), data['source']
-        assert len(data['infohash']) == 20
-
     def test_add_update_delete_Torrent(self):
         self.addTorrent()
         self.updateTorrent()

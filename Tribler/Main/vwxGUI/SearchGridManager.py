@@ -311,9 +311,19 @@ class TorrentManager:
             return torrent
 
     def getTorrentByInfohash(self, infohash):
-        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
-        if dict:
-            t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['swift_hash'], dict['swift_torrent_hash'], dict['name'], dict['torrent_file_name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+        torrent_dict = self.torrent_db.getTorrent(infohash,
+                keys=['torrent_id', 'infohash', 'swift_hash',
+                    'swift_torrent_hash', 'name', 'torrent_file_name',
+                    'length', 'category_id', 'status_id', 'num_seeders',
+                    'num_leechers'])
+        if torrent_dict:
+            t = Torrent(torrent_dict['torrent_id'], torrent_dict['infohash'],
+                torrent_dict['swift_hash'], torrent_dict['swift_torrent_hash'],
+                torrent_dict['name'], torrent_dict['torrent_file_name'],
+                torrent_dict['length'], torrent_dict['category_id'],
+                torrent_dict['status_id'], torrent_dict['num_seeders'],
+                torrent_dict['num_leechers'], None)
+
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
 
@@ -1135,9 +1145,19 @@ class LibraryManager:
         return [len(self.hits), self.hits]
 
     def getTorrentFromInfohash(self, infohash):
-        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
-        if dict and dict['myDownloadHistory']:
-            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['swift_hash'], dict['swift_torrent_hash'], dict['name'], dict['torrent_file_name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+        torrent_dict = self.torrent_db.getTorrent(infohash,
+                keys=['torrent_id', 'infohash', 'swift_hash',
+                'swift_torrent_hash', 'name', 'torrent_file_name',
+                'length', 'category_id', 'status_id', 'num_seeders',
+                'num_leechers'])
+        if torrent_dict and torrent_dict['myDownloadHistory']:
+            t = LibraryTorrent(torrent_dict['torrent_id'],
+                torrent_dict['infohash'], torrent_dict['swift_hash'],
+                torrent_dict['swift_torrent_hash'], torrent_dict['name'],
+                torrent_dict['torrent_file_name'], torrent_dict['length'],
+                torrent_dict['category_id'], torrent_dict['status_id'],
+                torrent_dict['num_seeders'], torrent_dict['num_leechers'], None)
+
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
 
