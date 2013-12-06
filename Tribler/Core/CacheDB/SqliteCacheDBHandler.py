@@ -490,7 +490,8 @@ class TorrentDBHandler(BasicDBHandler):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if self.getTorrentID(infohash) is None:
-            self._db.insert_or_ignore('Torrent', commit=commit, infohash=bin2str(infohash))
+            sql = 'INSERT OR IGNORE INTO Torrent(infohash) VALUES(?)'
+            self._db.execute_write(sql, (bin2str(infohash),))
 
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -498,7 +499,10 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent_id = self.getTorrentID(infohash)
         if torrent_id is None:
-            self._db.insert('Torrent', commit=True, infohash=bin2str(infohash), status_id=self._getStatusID("good"))
+            infohash_str = bin2str(infohash)
+            status_id = self._getStatusID("good")
+            sql = 'INSERT INTO Torrent(infohash, status_id) VALUES(?, ?)'
+            self._db.execute_write(sql, (infohash_str, status_id))
             torrent_id = self.getTorrentID(infohash)
         return torrent_id
 
@@ -508,8 +512,12 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent_id = self.getTorrentIDRoot(roothash)
         if torrent_id is None:
-            infohash = 'swift' + bin2str(roothash)[5:]
-            self._db.insert('Torrent', commit=True, infohash=infohash, swift_hash=bin2str(roothash), name=name, status_id=self._getStatusID("good"))
+            infohash_str = 'swift' + bin2str(roothash)[5:]
+            swift_hash_str = bin2str(roothash)
+            status_id=self._getStatusID("good")
+            sql = 'INSERT INTO Torrent(infohash, name, swift_hash, status_id) VALUES(?, ?, ?, ?)'
+            self._db.execute_write(sql, (infohash_str, name, swift_hash_str, status_id))
+
             torrent_id = self.getTorrentIDRoot(roothash)
         return torrent_id
 
@@ -602,12 +610,31 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id = self.getTorrentID(infohash)
 
         if torrent_id is None:  # not in database
-            self._db.insert("Torrent", commit=True, **database_dict)
+            key_str = ''
+            value_list = list()
+            for key, val in database_dict.iteritems():
+                key_str += key + ','
+                value_list.append(val)
+            key_str = key_str[:-1]
+
+            value_str = '?,' * len(value_list)
+            value_str = value_str[:-1]
+            sql = 'INSERT INTO Torrent(%s) VALUES(%s)' % (key_str, value_str)
+            self._db.execute_write(sql, tuple(value_list))
+
             torrent_id = self.getTorrentID(infohash)
 
         else:  # infohash in db
-            where = 'torrent_id = %d' % torrent_id
-            self._db.update('Torrent', where=where, commit=False, **database_dict)
+            key_str = ''
+            value_list = list()
+            for key, val in database_dict.iteritems():
+                key_str += key + ' = ?,'
+                value_list.append(val)
+            key_str = key_str[:-1]
+            value_list.append(torrent_id)
+
+            sql = 'UPDATE Torrent SET %s WHERE torrent_id = ?'
+            self._db.execute(sql, tuple(value_list))
 
         if not torrentdef.is_multifile_torrent():
             swarmname, _ = os.path.splitext(swarmname)
@@ -643,7 +670,7 @@ class TorrentDBHandler(BasicDBHandler):
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
         mime, thumb = torrentdef.get_thumbnail()
 
-        dict = {"infohash": bin2str(torrentdef.get_infohash()),
+        torrent_dict = {"infohash": bin2str(torrentdef.get_infohash()),
                 "name": torrentdef.get_name_as_unicode(),
                 "torrent_file_name": extra_info.get("filename", None),
                 "length": torrentdef.get_length(),
@@ -665,12 +692,12 @@ class TorrentDBHandler(BasicDBHandler):
                 }
 
         if extra_info.get('swift_hash', ''):
-            dict['swift_hash'] = bin2str(extra_info['swift_hash'])
+            torrent_dict['swift_hash'] = bin2str(extra_info['swift_hash'])
 
         if extra_info.get('swift_torrent_hash', ''):
-            dict['swift_torrent_hash'] = bin2str(extra_info['swift_torrent_hash'])
+            torrent_dict['swift_torrent_hash'] = bin2str(extra_info['swift_torrent_hash'])
 
-        return dict
+        return torrent_dict
 
     def _indexTorrent(self, torrent_id, swarmname, files, collected):
         sql = 'SELECT infohash FROM CollectedTorrent WHERE torrent_id = ?'
@@ -714,7 +741,8 @@ class TorrentDBHandler(BasicDBHandler):
         desc = ''
         if src.startswith('http') and src.endswith('xml'):
             desc = 'RSS'
-        self._db.insert('TorrentSource', commit=commit, name=src, description=desc)
+        sql = 'INSERT INTO TorrentSource(name, description) VALUES(?,?)'
+        self._db.execute_write(sql, (src, desc))
 
         sql = 'SELECT source_id FROM TorrentSource WHERE name = ?'
         src_id = self._db.fetchone(sql, (src,))
@@ -795,7 +823,7 @@ class TorrentDBHandler(BasicDBHandler):
         value_list.append(bin2str(infohash))
 
         sql = 'UPDATE Torrent SET %s WHERE infohash = ?' % key_str
-        self._db.execute_write(sql, value_list)
+        self._db.execute_write(sql, tuple(value_list))
 
         if commit:
             self.commit()
@@ -1635,7 +1663,16 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             if DEBUG:
                 print >> sys.stderr, "addClicklogToMyPreference: updatable clicklog data: %s" % d
-            self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, commit=commit, **d)
+            key_str = ''
+            value_list = list()
+            for key, val in d.iteritems():
+                key_str += key + ' = ?,'
+                value_list.append(val)
+            key_str = key_str[:-1]
+            value_list.append(torrent_id)
+
+            sql = 'UPDATE MyPreference SET %s WHERE torrent_id = ?'
+            self._db.execute(sql, tuple(value_list))
 
         # have keywords stored by SearchDBHandler
         if 'keywords' in clicklog_data:
