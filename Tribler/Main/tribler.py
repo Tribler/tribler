@@ -251,11 +251,12 @@ class ABCApp():
 
             self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'))
 
-            # Put it here so an error is shown in the startup-error popup
-            # Start server for instance2instance communication
-            self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
-            self.i2is = Instance2InstanceServer(I2I_LISTENPORT, self.i2iconnhandler)
-            self.i2is.start()
+            if not ALLOW_MULTIPLE:
+                # Put it here so an error is shown in the startup-error popup
+                # Start server for instance2instance communication
+                self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
+                self.i2is = Instance2InstanceServer(I2I_LISTENPORT, self.i2iconnhandler)
+                self.i2is.start()
 
             # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
             # Range: GETs causes performance problems in our code. Disable for now.
@@ -267,7 +268,13 @@ class ABCApp():
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
             playbackmode = self.utility.config.Read('videoplaybackmode', "int")
-            self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
+            # TODO: we should do
+            # httpport = self.utility.config.Read('videohttpport', 'int')
+            if ALLOW_MULTIPLE:
+                httpport = randint(1024, 25000)
+            else:
+                httpport = VIDEOHTTP_LISTENPORT
+            self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
             self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
 
             notification_init(self.utility)
