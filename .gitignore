@@ -12,3 +12,5 @@
 .pydevproject
 Tribler/.idea/
 /.idea
+
+/.TriblerAnonTunnel
