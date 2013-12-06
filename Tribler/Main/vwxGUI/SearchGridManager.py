@@ -671,9 +671,9 @@ class TorrentManager:
 
                     channel = channeldict.get(result[-1], False)
                     if channel:
-                        remoteHit = RemoteChannelTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.torrent_db.status_table['good'], result[6], result[7], channel, set([candidate]))
+                        remoteHit = RemoteChannelTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.torrent_db.getTorrentStatusId('good'), result[6], result[7], channel, set([candidate]))
                     else:
-                        remoteHit = RemoteTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.torrent_db.status_table['good'], result[6], result[7], set([candidate]))
+                        remoteHit = RemoteTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.torrent_db.getTorrentStatusId('good'), result[6], result[7], set([candidate]))
 
                     # Guess matches
                     keywordset = set(keywords)
@@ -1550,7 +1550,7 @@ class ChannelManager:
         for key, id in self.torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:
                 enabled_category_ids.add(id)
-        deadstatus_id = self.torrent_db.status_table['dead']
+        deadstatus_id = self.torrent_db.getTorrentStatusId('dead')
 
         def torrentFilter(torrent):
             okCategory = False

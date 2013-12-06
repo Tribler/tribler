@@ -241,7 +241,7 @@ class TestTorrentDBHandler(AbstractDB):
         data = res[0]
         # print data
         assert data['category'][0] in self.tdb.category_table.keys(), data['category']
-        assert data['status'] in self.tdb.status_table.keys(), data['status']
+        assert self.tdb.getTorrentStatusId(data['status']) is not None, data['status']
         assert data['source'] in self.tdb.src_table.keys(), data['source']
         assert len(data['infohash']) == 20
 
