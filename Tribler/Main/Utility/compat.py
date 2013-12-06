@@ -6,6 +6,7 @@
 
 import io
 import os
+import glob
 import json
 import pickle
 import cPickle
@@ -15,6 +16,7 @@ from ConfigParser import RawConfigParser
 
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.simpledefs import PERSISTENTSTATE_CURRENTVERSION
 
 
 def convertSessionConfig(oldfilename, newfilename):
@@ -115,3 +117,29 @@ def convertDefaultDownloadConfig(oldfilename, newfilename):
     ddsconfig.save(newfilename)
     os.remove(oldfilename)
     return ddsconfig
+
+def convertDownloadCheckpoints(checkpoint_dir):
+    # Convert tribler <= 6.2 download checkpoints to tribler 6.3
+
+    if os.path.exists(checkpoint_dir):
+        for old_filename in glob.glob(os.path.join(checkpoint_dir, '*.pickle')):
+            with open(old_filename, "rb") as old_file:
+                old_checkpoint = pickle.load(old_file)
+
+            if old_checkpoint:
+                new_checkpoint = RawConfigParser()
+                new_checkpoint.add_section('downloadconfig')
+                new_checkpoint.add_section('state')
+                for key, value in old_checkpoint['dlconfig'].iteritems():
+                    if key in ['saveas', 'showsaveas', 'max_upload_rate', 'max_download_rate', 'super_seeder', 'mode', \
+                               'selected_files', 'correctedfilename', 'vod_usercallback', 'swiftlistenport', \
+                               'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
+                        new_checkpoint.set('downloadconfig', key, value)
+                new_checkpoint.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
+                new_checkpoint.set('state', 'engineresumedata', old_checkpoint['engineresumedata'])
+                new_checkpoint.set('state', 'dlstate', old_checkpoint['dlstate'])
+                new_checkpoint.set('state', 'metainfo', old_checkpoint['metainfo'])
+                with open(old_filename.replace('.pickle', '.state'), "wb") as new_file:
+                    new_checkpoint.write(new_file)
+
+            os.remove(old_filename)
