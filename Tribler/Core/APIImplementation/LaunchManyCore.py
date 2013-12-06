@@ -148,6 +148,7 @@ class TriblerLaunchMany(Thread):
                     def __init__(self):
                         from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
                         self.queue = TimedTaskQueue("FakeCallback")
+                        self.is_running = True
 
                     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", callback=None, callback_args=(), callback_kargs=None, include_id=False):
                         def do_task():
@@ -162,6 +163,26 @@ class TriblerLaunchMany(Thread):
                                 else:
                                     callback(*callback_args)
                         self.queue.add_task(do_task, t=delay)
+
+                    def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", include_id=False, timeout=0.0, default=None):
+                        event = Event()
+                        container = [default, ]
+
+                        def do_task():
+                            if kargs:
+                                container[0] = call(*args, **kargs)
+                            else:
+                                container[0] = call(*args)
+
+                            event.set()
+
+                        if currentThread().getName().startswith('FakeCallback'):
+                            do_task()
+                        else:
+                            self.queue.add_task(do_task, t=delay)
+
+                        event.wait(None if timeout == 0.0 else timeout)
+                        return container[0]
 
                     def shutdown(self, immediately=False):
                         self.queue.shutdown(immediately)
@@ -185,7 +206,6 @@ class TriblerLaunchMany(Thread):
                 self.term = TermExtraction.getInstance(self.session.get_install_dir())
 
                 self.peer_db = PeerDBHandler.getInstance()
-                self.peer_db.registerConnectionUpdater(self.session)
 
                 self.torrent_db = TorrentDBHandler.getInstance()
                 self.torrent_db.register(os.path.abspath(self.session.get_torrent_collecting_dir()))
@@ -205,8 +225,11 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                 self.rtorrent_handler = RemoteTorrentHandler()
 
+            self.mainline_dht = None
+            self.ltmgr = None
+            self.torrent_checking = None
+
     def init(self):
-        self.mainline_dht = None
         if self.session.get_mainline_dht():
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             try:
@@ -215,13 +238,12 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc()
 
-        self.ltmgr = None
+
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
 
         # add task for tracker checking
-        self.torrent_checking = None
         if self.session.get_torrent_checking():
             if self.session.get_mainline_dht():
                 # Create torrent-liveliness checker based on DHT
@@ -234,9 +256,10 @@ class TriblerLaunchMany(Thread):
                 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
                 self.torrent_checking_period = self.session.get_torrent_checking_period()
                 self.torrent_checking = TorrentChecking.getInstance(self.torrent_checking_period)
+                self.torrent_checking.start()
                 self.run_torrent_check()
             except:
-                print_exc
+                print_exc()
 
         if self.rtorrent_handler:
             self.rtorrent_handler.register(self.dispersy, self.database_thread, self.session, self.session.get_torrent_collecting_max_torrents())
@@ -531,7 +554,7 @@ class TriblerLaunchMany(Thread):
             elif 'infohash' in metainfo:
                 tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'])
             else:
-                tdef = TorrentDef.load_from_dict(metainfo)
+                tdef = tdef = TorrentDef.load_from_dict(metainfo)
 
             if pstate.has_option('downloadconfig', 'saveas') and isinstance(pstate.get('downloadconfig', 'saveas'), tuple):
                 pstate.set('downloadconfig', 'saveas', pstate.get('downloadconfig', 'saveas')[-1])
@@ -810,12 +833,11 @@ class TriblerLaunchMany(Thread):
             print_exc()
 
     def update_torrent_checking_period(self):
-        # dynamically change the interval: update at least once per day
+        # dynamically change the interval: update at least every 2h
         if self.rtorrent_handler:
             ntorrents = self.rtorrent_handler.num_torrents
             if ntorrents > 0:
-                self.torrent_checking_period = min(max(86400 / ntorrents, 30), 300)
-
+                self.torrent_checking_period = min(max(7200 / ntorrents, 10), 100)
         # print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
 
     def run_torrent_check(self):
@@ -824,7 +846,7 @@ class TriblerLaunchMany(Thread):
         self.update_torrent_checking_period()
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         try:
-            self.torrent_checking.setInterval(self.torrent_checking_period)
+            self.torrent_checking.setTorrentSelectionInterval(self.torrent_checking_period)
         except Exception as e:
             print_exc()
             self.rawserver_nonfatalerrorfunc(e)

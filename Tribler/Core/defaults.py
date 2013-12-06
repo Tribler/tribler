@@ -58,7 +58,7 @@ sessdefaults['general']['live_aux_seeders'] = []
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()
 sessdefaults['mainline_dht']['enabled'] = True
-sessdefaults['mainline_dht']['mainline_dht_port'] = DEFAULTPORT - 3
+sessdefaults['mainline_dht']['mainline_dht_port'] = -1
 
 # Torrent checking settings
 sessdefaults['torrent_checking'] = OrderedDict()
@@ -86,14 +86,14 @@ sessdefaults['swift'] = OrderedDict()
 sessdefaults['swift']['enabled'] = True
 sessdefaults['swift']['swiftpath'] = None
 sessdefaults['swift']['swiftworkingdir'] = '.'
-sessdefaults['swift']['swiftcmdlistenport'] = DEFAULTPORT + 481
+sessdefaults['swift']['swiftcmdlistenport'] = -1
 sessdefaults['swift']['swiftdlsperproc'] = 1000
 sessdefaults['swift']['swiftmetadir'] = None
 # Config for tunneling via swift, e.g. dispersy
 sessdefaults['swift']['swifttunnellistenport'] = DEFAULTPORT - 2
-sessdefaults['swift']['swifttunnelhttpgwlistenport'] = sessdefaults['swift']['swifttunnellistenport'] + 10000
-sessdefaults['swift']['swifttunnelcmdgwlistenport'] = sessdefaults['swift']['swifttunnellistenport'] + 20000
-sessdefaults['swift']['swiftdhtport'] = 9999
+sessdefaults['swift']['swifttunnelhttpgwlistenport'] = -1
+sessdefaults['swift']['swifttunnelcmdgwlistenport'] = -1
+sessdefaults['swift']['swiftdhtport'] = -1
 
 # Dispersy config
 sessdefaults['dispersy'] = OrderedDict()

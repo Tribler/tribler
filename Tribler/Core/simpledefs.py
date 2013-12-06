@@ -68,6 +68,7 @@ NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
 NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
+NTFY_TRACKERINFO = 'trackerinfo'
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)

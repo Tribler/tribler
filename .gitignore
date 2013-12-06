@@ -4,6 +4,9 @@
 .ropeproject
 /.Tribler
 /.noseids
+/Tribler/Test/data/*.sdb
+/Tribler/Test/test_.Tribler2
+/Tribler/Test/test_TriblerDownloads2
 /output
 /swift
 /swift.exe

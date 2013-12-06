@@ -13,14 +13,14 @@ import time
 import gc
 import wx
 import Image
-from traceback import print_exc
+import re
 
+from traceback import print_exc
 from threading import enumerate as enumerate_threads
 
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-import re
 from Tribler.Utilities import LinuxSingleInstanceChecker
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -30,10 +30,14 @@ FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'data'))
 
 from Tribler.Core import defaults
 defaults.sessdefaults['general']['state_dir'] = STATE_DIR
+defaults.sessdefaults['general']['minport'] = -1
+defaults.sessdefaults['general']['maxport'] = -1
+defaults.sessdefaults['swift']['swifttunnellistenport'] = -1
+defaults.sessdefaults['dispersy']['dispersy_port'] = -1
+
 defaults.dldefaults["saveas"] = DEST_DIR
 
 DEBUG = False
-
 
 class AbstractServer(unittest.TestCase):
 
@@ -110,7 +114,6 @@ class TestAsServer(AbstractServer):
         """ Should set self.config_path and self.config """
         self.config = SessionStartupConfig()
         self.config.set_state_dir(self.getStateDir())
-        self.config.set_listen_port(random.randint(10000, 60000))
         self.config.set_torrent_checking(False)
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_megacache(False)
@@ -227,7 +230,9 @@ class TestGuiAsServer(TestAsServer):
 
     def startTest(self, callback, min_timeout=5):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        from Tribler.Main.tribler import run
+        from Tribler.Main.tribler import run, ALLOW_MULTIPLE
+
+        ALLOW_MULTIPLE = True
 
         self.hadSession = False
         starttime = time.time()

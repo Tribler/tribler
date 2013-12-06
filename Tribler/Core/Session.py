@@ -132,6 +132,8 @@ class Session(SessionRuntimeConfig):
 
         self.sessconfig = scfg.sessconfig
 
+        self.randomly_selected_ports = scfg.randomly_selected_ports
+
         # Checkpoint startup config
         self.save_pstate_sessconfig()
 

@@ -448,9 +448,6 @@ class ABCApp():
         if not self.sconfig.get_swift_meta_dir():
             self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
-        # 15/05/12 niels: fixing swift port
-        defaultDLConfig.set_swift_listen_port(7758)
-
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         s.start()

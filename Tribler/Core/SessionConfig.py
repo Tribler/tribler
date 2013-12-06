@@ -16,6 +16,7 @@
 import ast
 import sys
 import copy
+import socket
 
 from ConfigParser import ConfigParser, RawConfigParser
 
@@ -41,6 +42,7 @@ class SessionConfigInterface(object):
         to make this a copy constructor.
         """
 
+        self.randomly_selected_ports = {}
         self.sessconfig = sessconfig or CallbackConfigParser()
 
         # Poor man's versioning of SessionConfig, add missing default values.
@@ -57,6 +59,8 @@ class SessionConfigInterface(object):
         # Set video_analyser_path
         if sys.platform == 'win32':
             ffmpegname = "ffmpeg.exe"
+        elif sys.platform == 'darwin':
+            ffmpegname = "ffmpeg"
         else:
             ffmpegname = "avconv"
 
@@ -72,6 +76,25 @@ class SessionConfigInterface(object):
             self.sessconfig.set('general', 'videoanalyserpath', ffmpegpath)
 
         self.sessconfig.set('general', 'ipv6_binds_v4', autodetect_socket_style())
+
+    #
+    # Auxiliar functions
+    #
+
+    def _obtain_port(self, *keys):
+        """ Fetch a port setting from the config file and in case it's set to -1 (random), look for a free port and assign it to
+                this particular setting.
+        """
+        settings_port = self.sessconfig.get(*keys)
+        if settings_port == -1:
+            path = '~'.join(keys)
+            if path not in self.randomly_selected_ports:
+                s = socket.socket()
+                s.bind(('', 0))
+                self.randomly_selected_ports[path] = s.getsockname()[1]
+                s.close()
+            return self.randomly_selected_ports[path]
+        return settings_port
 
     def set_state_dir(self, statedir):
         """ Set the directory to store the Session's state in.
@@ -122,7 +145,7 @@ class SessionConfigInterface(object):
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.
         @return Port number. """
-        return self.sessconfig.get('general', 'minport')
+        return self._obtain_port('general', 'minport')
 
     def set_timeout_check_interval(self, timeout):
         self.sessconfig.set('general', 'timeout_check_interval', timeout)
@@ -362,7 +385,7 @@ class SessionConfigInterface(object):
         USP datagrams.
         @return int
         """
-        return self.sessconfig.get('mainline_dht', 'mainline_dht_port')
+        return self._obtain_port('mainline_dht', 'mainline_dht_port')
 
     #
     # Local Peer Discovery using IP Multicast
@@ -422,7 +445,7 @@ class SessionConfigInterface(object):
         USP datagrams.
         @return int
         """
-        return self.sessconfig.get('dispersy', 'dispersy_port')
+        return self._obtain_port('dispersy', 'dispersy_port')
 
     #
     # SWIFTPROC
@@ -487,11 +510,11 @@ class SessionConfigInterface(object):
     def get_swift_cmd_listen_port(self):
         """ Returns the local listen port for swift cmd socket communication.
         @return Port number. """
-        return self.sessconfig.get('swift', 'swiftcmdlistenport')
+        return self._obtain_port('swift', 'swiftcmdlistenport')
 
     def set_swift_dht_listen_port(self, port):
         """ Set the local UDP listen port for dht socket communication to
-        the swift processes. 
+        the swift processes.
         @param port A port number.
         """
         self.sessconfig.set('swift', 'swiftdhtport', port)
@@ -499,7 +522,7 @@ class SessionConfigInterface(object):
     def get_swift_dht_listen_port(self):
         """ Returns the local dht port for swift communication.
         @return Port number. """
-        return self.sessconfig.get('swift', 'swiftdhtport')
+        return self._obtain_port('swift', 'swiftdhtport')
 
     def set_swift_downloads_per_process(self, value):
         """ Number of downloads per swift process. When exceeded, a new swift
@@ -528,7 +551,7 @@ class SessionConfigInterface(object):
         """ Returns the UDP port of the swift process.
 
         @return Port number. """
-        return self.sessconfig.get('swift', 'swifttunnellistenport')
+        return self._obtain_port('swift', 'swifttunnellistenport')
 
     def set_swift_tunnel_cmdgw_listen_port(self, port):
         """ Set the TCP listen port for the CMDGW of the swift process
@@ -542,7 +565,7 @@ class SessionConfigInterface(object):
         (download-to-process mapping permitting).
 
         @return Port number. """
-        return self.sessconfig.get('swift', 'swifttunnelcmdgwlistenport')
+        return self._obtain_port('swift', 'swifttunnelcmdgwlistenport')
 
     def set_swift_tunnel_httpgw_listen_port(self, port):
         """ Set the TCP listen port for the CMDGW of the swift process
@@ -555,7 +578,7 @@ class SessionConfigInterface(object):
         """ Returns the TCP listen port for the CMDGW of the swift process.
 
         @return Port number. """
-        return self.sessconfig.get('swift', 'swifttunnelhttpgwlistenport')
+        return self._obtain_port('swift', 'swifttunnelhttpgwlistenport')
 
 
 class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):

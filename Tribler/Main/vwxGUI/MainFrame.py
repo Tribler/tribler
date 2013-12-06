@@ -35,7 +35,7 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
 
 
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY, forceAndReturnWxThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
                                              TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
