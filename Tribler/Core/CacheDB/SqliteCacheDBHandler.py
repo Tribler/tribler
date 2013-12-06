@@ -148,9 +148,6 @@ class BasicDBHandler(object):
     def commit(self):
         self._db.commit()
 
-    def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
-        return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
-
 
 class PeerDBHandler(BasicDBHandler):
 
@@ -1242,11 +1239,14 @@ class TorrentDBHandler(BasicDBHandler):
         return results
 
     def getRanks(self):
-        value_name = 'infohash'
-        order_by = 'relevance desc'
+        status_id = self._torrent_status_dict[u'good']
         rankList_size = 20
-        where = 'status_id=%d ' % self._torrent_status_dict[u'good']
-        res_list = self._db.getAll('Torrent', value_name, where=where, limit=rankList_size, order_by=order_by)
+
+        sql = """
+            SELECT infohash FROM Torrent WHERE status_id = ? LIMIT %d
+            ORDER BY relevance DESC
+            """ % rankList_size
+        res_list = self._db.fetchall(sql, (status_id,))
         return [a[0] for a in res_list]
 
     def getNumberCollectedTorrents(self):
@@ -1608,10 +1608,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         """
         self.recent_preflist = self.recent_preflist_with_clicklog = self.recent_preflist_with_swarmsize = None
 
-    def getMyPrefList(self, order_by=None):
-        res = self.getAll('torrent_id', order_by=order_by)
-        return [p[0] for p in res]
-
     def getMyPrefListInfohash(self, returnDeleted=True, limit=None):
         # Arno, 2012-08-01: having MyPreference (the shorter list) first makes
         # this faster.
@@ -1627,13 +1623,14 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return [str2bin(p) if p else '' for p in res]
 
     def getMyPrefStats(self, torrent_id=None):
-        # get the full {torrent_id:(create_time,progress,destdir)}
-        value_name = ('torrent_id', 'creation_time', 'progress', 'destination_path')
+        sql = """
+            SELECT torrent_id, creation_time, progress, destination_path
+            FROM MyPreference
+            """
         if torrent_id is not None:
-            where = 'torrent_id=%s' % torrent_id
-        else:
-            where = None
-        res = self.getAll(value_name, where)
+            sql += ' WHERE torrent_id = ?'
+
+        res = self._db.fetchall(sql, (torrent_id,))
         mypref_stats = {}
         for pref in res:
             torrent_id, creation_time, progress, destination_path = pref
@@ -3314,7 +3311,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         words = beginning.split()
         if len(words) < 3:
             if beginning[-1] == ' ' or len(words) > 1:
-                sql = 'SELECT term_id FROM term = ?'
+                sql = 'SELECT term_id FROM TermFrequency WHERE term = ?'
                 termid = self._db.fetchone(sql, (words[0],))
                 if termid:
                     sql = '''SELECT "%s " || TF.term AS phrase
@@ -3328,10 +3325,14 @@ class NetworkBuzzDBHandler(BasicDBHandler):
                              LIMIT ?'''
                     terms = self._db.fetchall(sql, (termid, num))
             else:
-                terms = self.getAll('term',
-                                    term=("like", u"%s%%" % beginning),
-                                    order_by="freq DESC",
-                                    limit=num * 2)
+                limit = num * 2
+                sql = """
+                    SELECT term FROM TermFrequency
+                    WHERE term LIKE '%s%%'
+                    ORDER BY freq DESC
+                    LIMIT %d
+                    """ % (beginning, limit)
+                terms = self._db.fetchall(sql)
 
         if terms:
             # terms is a list containing lists. We only want the first
