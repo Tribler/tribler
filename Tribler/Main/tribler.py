@@ -15,7 +15,7 @@ import glob
 
 import sys
 import logging.config
-#import time
+import time
 from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
@@ -55,6 +55,8 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
 from threading import currentThread
+
+import time as time_module
 
 try:
     prctlimported = True
@@ -115,7 +117,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_mode
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
-from time import sleep
+from time import sleep, time
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6875
@@ -415,7 +417,7 @@ class ABCApp():
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
 
                     if not _callback.download_started_at:
-                        _callback.download_started_at = time.time()
+                        _callback.download_started_at = time_module.time()
 
                     if not _callback.peer_added:
                         _callback.peer_added = True
@@ -424,7 +426,7 @@ class ABCApp():
 
                     self.tunnel.record_stats = True
                 elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
-                    _callback.download_finished_at = time.time()
+                    _callback.download_finished_at = time_module.time()
                     _callback.download_completed = True
                     self.tunnel.download_stats = {
                         'size': 50 * 1024**2,
