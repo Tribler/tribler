@@ -301,6 +301,9 @@ class TorrentManager:
                         os.remove(torrent_filename)
                         return self.loadTorrent(torrent, callback)
 
+                if isinstance(torrent, RemoteTorrent):
+                    del torrent.torrent_id
+
                 torrent = CollectedTorrent(torrent, tdef)
 
         self.library_manager.addDownloadState(torrent)
