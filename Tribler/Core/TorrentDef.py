@@ -420,6 +420,9 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             return (tracker,)
         return ()
 
+    def has_trackers(self):
+        return len(self.get_trackers_as_single_tuple()) > 0
+
     def set_dht_nodes(self, nodes):
         """ Sets the DHT nodes required by the mainline DHT support,
         See http://www.bittorrent.org/beps/bep_0005.html
@@ -1167,6 +1170,9 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def get_files(self, exts=None):
         return []
+
+    def has_trackers(self):
+        return False
 
     def copy(self):
         return TorrentDefNoMetainfo(self.infohash, self.name)
