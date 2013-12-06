@@ -135,9 +135,6 @@ class BasicDBHandler:
         return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
 
 
-NETW_MIME_TYPE = 'image/jpeg'
-
-
 class PeerDBHandler(BasicDBHandler):
 
     gui_value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
@@ -186,78 +183,73 @@ class PeerDBHandler(BasicDBHandler):
     def addOrGetPeerID(self, permid):
         peer_id = self.getPeerID(permid)
         if peer_id is None:
-            self.addPeer(permid, {})
+            self.addPeer(permid)
             peer_id = self.getPeerID(permid)
 
         return peer_id
 
-    def getPeer(self, permid, keys=None):
-        if keys is not None:
-            res = self.getOne(keys, permid=bin2str(permid))
-            return res
-        else:
-            # return a dictionary
-            # make it compatible for calls to old bsddb interface
-            value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                      'num_peers', 'num_torrents', 'num_prefs', 'num_queries',
-                      'connected_times', 'buddycast_times', 'last_connected', 'last_seen', 'last_buddycast', 'services')
+    def getPeer(self, permid):
+        value_name = ('peer_id', 'permid', 'name', 'thumbnail')
+        column_str = ''
+        for value in value_name:
+            column_str += value + ','
+        column_str = column_str[:-1]
+        
+        sql = 'SELECT %s FROM Peer WHERE permid = ?' % column_str
+        result = self._db.fetchone(sql, (bin2str(permid),))
+        if result is None:
+            return None
 
-            item = self.getOne(value_name, permid=bin2str(permid))
-            if not item:
-                return None
-            peer = dict(zip(value_name, item))
-            peer['permid'] = str2bin(peer['permid'])
-            return peer
+        peer = dict(zip(value_name, result))
+        peer['permid'] = permid
+        return peer
 
-    def addPeer(self, permid, value, update_dns=True, update_connected=False, commit=True):
-        # add or update a peer
-        # ARNO: AAARGGH a method that silently changes the passed value param!!!
-        # Jie: deepcopy(value)?
+    def addPeer(self, permid, value):
+        assert permid is not None
 
-        _permid = _last_seen = _ip = _port = None
-        if 'permid' in value:
-            _permid = value.pop('permid')
+        key_list = list()
+        val_list = list()
+        for key, val in value.iteritems():
+            assert key != 'peer_id'
+            if key == 'permid': continue
 
-        if not update_dns:
-            if 'ip' in value:
-                _ip = value.pop('ip')
-            if 'port' in value:
-                _port = value.pop('port')
-
-        if update_connected:
-            old_connected = self.getOne('connected_times', permid=bin2str(permid))
-            if not old_connected:
-                value['connected_times'] = 1
+            if key == 'name':
+                key_list.append(key)
+                val_list.append(dunno2unicode(val))
             else:
-                value['connected_times'] = old_connected + 1
+                key_list.append(key)
+                val_list.append(val)
 
         peer_id = self.getPeerID(permid)
-        peer_existed = False
-        if 'name' in value:
-            value['name'] = dunno2unicode(value['name'])
-        if peer_id != None:
-            peer_existed = True
-            where = u'peer_id=%d' % peer_id
-            self._db.update('Peer', where, commit=commit, **value)
+        has_peer = peer_id is not None
+
+        # TODO: remove update part
+        if has_peer:
+            for key in key_list:
+                sql_value_str = '%s = ?,'
+
+            val_list.append(peer_id)
+            sql = 'UPDATE Peer SET %s WHERE peer_id = ?' % sql_value_str[:-1]
+
+            self._db.execute_write(sql, tuple(val_list))
         else:
-            self._db.insert_or_ignore('Peer', permid=bin2str(permid), commit=commit, **value)
+            key_str = 'permid'
+            for key in key_list:
+                key_str += ', ' + key
 
-        if _permid is not None:
-            value['permid'] = permid
-        if _last_seen is not None:
-            value['last_seen'] = _last_seen
-        if _ip is not None:
-            value['ip'] = _ip
-        if _port is not None:
-            value['port'] = _port
+            val_str = '?,' * (len(val_list) + 1)
+            sql = 'INSERT OR IGNORE INTO Peer(%s) VALUES(%s)' % (key_str, val_str[:-1])
 
-        if peer_existed:
+            val_list.insert(0, bin2str(permid))
+            self._db.execute_write(sql, tuple(val_list))
+
+        if has_peer:
             self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
         # Jie: only notify the GUI when a peer was connected
         if 'connected_times' in value:
             self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
 
-    def hasPeer(self, permid, check_db=False):
+    def hasPeerByPermid(self, permid, check_db=False):
         if not check_db:
             return bool(self.getPeerID(permid))
         else:
@@ -278,61 +270,12 @@ class PeerDBHandler(BasicDBHandler):
             sql = 'DELETE FROM Peer WHERE peer_id = ?'
             self._db.execute_write(sql, (peer_id,))
 
-            deleted = not self.hasPeer(permid, check_db=True)
+            deleted = not self.hasPeerByPermid(permid, check_db=True)
             if deleted and permid in self.permid_id:
                 self.permid_id.pop(permid)
 
         if deleted:
             self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
-
-    def getRanks(self):
-        sql = """
-            SELECT permid FROM Peer WHERE (last_connected > 0 OR friend = 1)
-            ORDER BY similarity DESC LIMIT %d
-            """ % rankList_size
-        result_list = self._db.fetchall(sql)
-        return [result[0] for result in result_list]
-
-    def getPeerIconByPermid(self, permid):
-        sql = 'SELECT thumbnail FROM Peer WHERE permid = ?'
-        item = self._db.fetchone(sql, (bin2str(permid),))
-        if item:
-            return NETW_MIME_TYPE, str2bin(item)
-        else:
-            return None, None
-
-    def getPeerIconByPeerId(self, peerid):
-        sql = 'SELECT thumbnail FROM Peer WHERE peer_id = ?'
-        item = self._db.fetchone(sql, (peerid,))
-        if item:
-            return NETW_MIME_TYPE, str2bin(item)
-        else:
-            return None, None
-
-    def searchNames(self, kws):
-        where = '(Peer.last_connected > 0 OR Peer.friend = 1) AND '
-
-        # Must come before query
-        ranks = self.getRanks()
-
-        for i in range(len(kws)):
-            kw = kws[i]
-            where += ' name LIKE "%' + kw + '%"'
-            if (i + 1) != len(kws):
-                where += ' AND'
-
-        value_name = PeerDBHandler.gui_value_name
-
-        res_list = self._db.getAll('Peer', value_name, where)
-
-        peer_list = []
-        for item in res_list:
-            peer = dict(zip(value_name, item))
-            peer['name'] = dunno2unicode(peer['name'])
-            peer['simRank'] = ranksfind(ranks, peer['permid'])
-            peer['permid'] = str2bin(peer['permid'])
-            peer_list.append(peer)
-        return peer_list
 
 
 class TorrentDBHandler(BasicDBHandler):
