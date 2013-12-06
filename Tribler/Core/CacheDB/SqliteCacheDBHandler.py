@@ -100,7 +100,8 @@ class BasicDBHandler(object):
         self._torrent_status_dict = {u'unknown': 0, u'good': 1, u'dead': 2}
         sql = 'SELECT lower(name), status_id FROM TorrentStatus'
         st = self._db.fetchall(sql)
-        self._torrent_status_dict.update(dict(st))
+        if st is not None:
+            self._torrent_status_dict.update(dict(st))
 
     def getTorrentStatusId(self, status):
         if status in self._torrent_status_dict:
@@ -203,10 +204,10 @@ class PeerDBHandler(BasicDBHandler):
         return peer_id
 
     def getPeer(self, permid):
-        value_name = ('peer_id', 'permid', 'name', 'thumbnail')
+        value_name = (u'peer_id', u'permid', u'name', u'thumbnail')
         column_str = value_name[0]
         for value in value_name[1:]:
-            column_str += u',' + value
+            column_str += ',' + value
 
         sql = 'SELECT %s FROM Peer WHERE permid = ?' % column_str
         result = self._db.fetchone(sql, (bin2str(permid),))
@@ -214,7 +215,7 @@ class PeerDBHandler(BasicDBHandler):
             return None
 
         peer = dict(zip(value_name, result))
-        peer['permid'] = permid
+        peer[u'permid'] = permid
         return peer
 
     def addPeer(self, permid, value):
@@ -259,8 +260,7 @@ class PeerDBHandler(BasicDBHandler):
 
         if has_peer:
             self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
-        # Jie: only notify the GUI when a peer was connected
-        if 'connected_times' in value:
+        else:
             self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
 
     def hasPeerByPermid(self, permid, check_db=False):
