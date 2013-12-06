@@ -243,7 +243,7 @@ class DispersyTunnelProxy(Observable):
                             and (c.state is CIRCUIT_STATE_READY
                                  and c.last_incoming < time.time() - timeout
                                  or c.state in [CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_CREATING]
-                                 and c.last_incoming < time.time() - 6 * timeout
+                                 and c.last_incoming < time.time() - 2 * timeout
                                             )
                         ]
 
