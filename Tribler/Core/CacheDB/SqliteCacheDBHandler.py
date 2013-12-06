@@ -530,9 +530,9 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.getTorrentIDS(infohashes), to_be_inserted
 
-    def getTorrentById(self, torrent_id):
+    def getTorrentById(self, torrent_id, keys=None):
         infohash = self.getInfohash(torrent_id)
-        return self.getTorrent(infohash)
+        return self.getTorrent(infohash, keys=keys, include_mypref=False)
 
     def getTorrent(self, infohash, keys=None, include_mypref=True):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -552,18 +552,20 @@ class TorrentDBHandler(BasicDBHandler):
 
         if not res:
             return None
+        if not isinstance(res, tuple):
+            res = (res,)
         torrent = dict(zip(keys, res))
         if 'source_id' in torrent:
             torrent['source'] = self.id2src[torrent['source_id']]
-            del torrent['source_id']
+            #del torrent['source_id']
 
         if 'category_id' in torrent:
             torrent['category'] = [self.id2category[torrent['category_id']]]
-            del torrent['category_id']
+            #del torrent['category_id']
 
         if 'status_id' in torrent:
             torrent['status'] = self.id2status[torrent['status_id']]
-            del torrent['status_id']
+            #del torrent['status_id']
 
         if 'swift_hash' in torrent and torrent['swift_hash']:
             torrent['swift_hash'] = str2bin(torrent['swift_hash'])
@@ -575,7 +577,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         if 'last_tracker_check' in torrent:
             torrent['last_check_time'] = torrent['last_tracker_check']
-            del torrent['last_tracker_check']
+            #del torrent['last_tracker_check']
 
         if include_mypref:
             tid = torrent['C.torrent_id']
@@ -1243,8 +1245,9 @@ class TorrentDBHandler(BasicDBHandler):
         rankList_size = 20
 
         sql = """
-            SELECT infohash FROM Torrent WHERE status_id = ? LIMIT %d
+            SELECT infohash FROM Torrent WHERE status_id = ?
             ORDER BY relevance DESC
+            LIMIT %d
             """ % rankList_size
         res_list = self._db.fetchall(sql, (status_id,))
         return [a[0] for a in res_list]
@@ -1627,10 +1630,12 @@ class MyPreferenceDBHandler(BasicDBHandler):
             SELECT torrent_id, creation_time, progress, destination_path
             FROM MyPreference
             """
+        argument_tuple = None
         if torrent_id is not None:
             sql += ' WHERE torrent_id = ?'
+            argument_tuple = (torrent_id,)
 
-        res = self._db.fetchall(sql, (torrent_id,))
+        res = self._db.fetchall(sql, argument_tuple)
         mypref_stats = {}
         for pref in res:
             torrent_id, creation_time, progress, destination_path = pref
