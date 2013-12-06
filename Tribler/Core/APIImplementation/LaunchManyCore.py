@@ -533,7 +533,7 @@ class TriblerLaunchMany(Thread):
             try:
                 dir = self.session.get_downloads_pstate_dir()
                 filelist = os.listdir(dir)
-                filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
+                filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
 
             finally:
                 self.sesslock.release()
@@ -773,7 +773,7 @@ class TriblerLaunchMany(Thread):
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
-        basename = binascii.hexlify(infohash) + '.pickle'
+        basename = binascii.hexlify(infohash) + '.state'
         filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
         self._logger.debug("tlm: network checkpointing: to file %s", filename)
