@@ -80,8 +80,6 @@ class ShortCircuitReturnHandler(object):
         for source_address, packet in packets:
             logger.info("ENTER DATA packet FROM %s", source_address)
             self.proxy.stats['bytes_enter'] += len(packet)
-            self.proxy.circuits[0].bytes_down[1] += len(packet)
-
             message = ProxyMessage.DataMessage(("0.0.0.0",0), packet, source_address)
             self.proxy.on_data(0, None, message)
 

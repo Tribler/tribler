@@ -709,6 +709,7 @@ class DispersyTunnelProxy(Observable):
 
                 # If chosen the 0-hop circuit OR if there are no other circuits act as EXIT node ourselves
                 if circuit_id == 0:
+                    self.circuits[0].bytes_up[-1] += len(payload)
                     self.exit_data(0, None, ultimate_destination, payload)
                     return
 
