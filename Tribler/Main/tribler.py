@@ -14,7 +14,7 @@
 
 import sys
 import logging.config
-from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
 try:
     logging.config.fileConfig("logger.conf")
 except:
@@ -704,8 +704,11 @@ class ABCApp():
         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
 
         filelist = os.listdir(dir)
-        filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
 
+        if any([filename.endswith('.pickle') for filename in filelist]):
+            convertDownloadCheckpoints(dir)
+
+        filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
         for file in filelist:
             try:
                 pstate = self.utility.session.lm.load_download_pstate(file)
