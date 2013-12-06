@@ -805,7 +805,7 @@ class Das4DBStub():
         for infohash, is_local in self.myTorrentCache.iteritems():
             if local and not is_local:
                 continue
-            my_preferences[infohash] = unicode(self._dispersy._lan_address)
+            my_preferences[infohash] = u"%s %d" % self._dispersy._lan_address
 
         for infohash, results in self.myMegaCache.iteritems():
             if infohash not in my_preferences:
