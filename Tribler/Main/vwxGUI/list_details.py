@@ -2245,9 +2245,6 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             else:
                 self.torrentsearch_manager.getTorrent(torrent, load_torrent)
 
-        else:
-            self.library_manager.playTorrent(self.torrent, self.torrent.files[self.links[0].fileindex][0])
-
     def RemoveFileindex(self, fileindex):
         for index, link in enumerate(self.links):
             if link.fileindex == fileindex:
