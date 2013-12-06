@@ -1660,7 +1660,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             value_list.append(torrent_id)
 
             sql = 'UPDATE MyPreference SET %s WHERE torrent_id = ?' % key_str
-            self._db.execute(sql, tuple(value_list))
+            self._db.execute_write(sql, tuple(value_list))
 
         # have keywords stored by SearchDBHandler
         if 'keywords' in clicklog_data:
