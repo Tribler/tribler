@@ -150,7 +150,7 @@ class SearchScript(SemanticScript):
         for result in results:
             if result[0] in self.test_set:
                 ip, port = result[1].split()
-                peer = int(port[:-1]) - 12000
+                peer = int(port) - 12000
                 self.test_reply[result[0]].append(peer)
 
                 if peer not in self.file_availability[result[0]]:
