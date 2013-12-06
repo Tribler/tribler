@@ -148,9 +148,6 @@ class BasicDBHandler(object):
     def commit(self):
         self._db.commit()
 
-    def getOne(self, value_name, where=None, conj='and', **kw):
-        return self._db.getOne(self.table_name, value_name, where=where, conj=conj, **kw)
-
     def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
         return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
 
@@ -425,8 +422,8 @@ class TorrentDBHandler(BasicDBHandler):
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if infohash in self.existed_torrents:  # to do: not thread safe
             return True
-        infohash_str = bin2str(infohash)
-        existed = self._db.getOne('CollectedTorrent', 'torrent_id', infohash=infohash_str)
+        sql = 'SELECT torrent_id FROM CollectedTorrent WHERE infohash = ?'
+        existed = self._db.fetchone(sql, (bin2str(infohash),))
         if existed is None:
             return False
         else:
@@ -536,6 +533,131 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.getTorrentIDS(infohashes), to_be_inserted
 
+    def getTorrentById(self, torrent_id):
+        infohash = self.getInfohash(torrent_id)
+        return self.getTorrent(infohash)
+
+    def getTorrent(self, infohash, keys=None, include_mypref=True):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+
+        if keys is None:
+            keys = deepcopy(self.value_name)
+        else:
+            keys = list(keys)
+
+        column_str = keys[0]
+        for key in keys[1:]:
+            column_str += ',' + key
+
+        sql = 'SELECT %s FROM Torrent C WHERE infohash = ?' % column_str
+        res = self._db.fetchone(sql, (bin2str(infohash),))
+
+        if not res:
+            return None
+        torrent = dict(zip(keys, res))
+        if 'source_id' in torrent:
+            torrent['source'] = self.id2src[torrent['source_id']]
+            del torrent['source_id']
+
+        if 'category_id' in torrent:
+            torrent['category'] = [self.id2category[torrent['category_id']]]
+            del torrent['category_id']
+
+        if 'status_id' in torrent:
+            torrent['status'] = self.id2status[torrent['status_id']]
+            del torrent['status_id']
+
+        if 'swift_hash' in torrent and torrent['swift_hash']:
+            torrent['swift_hash'] = str2bin(torrent['swift_hash'])
+
+        if 'swift_torrent_hash' in torrent and torrent['swift_torrent_hash']:
+            torrent['swift_torrent_hash'] = str2bin(torrent['swift_torrent_hash'])
+
+        torrent['infohash'] = infohash
+
+        if 'last_tracker_check' in torrent:
+            torrent['last_check_time'] = torrent['last_tracker_check']
+            del torrent['last_tracker_check']
+
+        if include_mypref:
+            tid = torrent['C.torrent_id']
+            stats = self.mypref_db.getMyPrefStats(tid)
+
+            if stats:
+                torrent['myDownloadHistory'] = True
+                torrent['creation_time'] = stats[tid][0]
+                torrent['progress'] = stats[tid][1]
+                torrent['destination_path'] = stats[tid][2]
+            else:
+                torrent['myDownloadHistory'] = False
+
+        return torrent
+
+    def getTorrents(self, category_name='all', range=None, library=False, sort=None, reverse=False):
+        """
+        get Torrents of some category and with alive status (opt. not in family filter)
+
+        if library == True: only torrents with destination_path != '' are returned
+        else: return only good torrents, accepted by family filter
+
+        @return Returns a list of dicts with keys:
+            torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
+            length, secret, insert_time, source, torrent_filename, relevance, simRank, tracker, last_check
+            (if in library: myDownloadHistory, download_started, progress, dest_dir)
+
+        niels 25-10-2010: changed behaviour to left join TorrentTracker, due to magnet links
+        """
+
+        # print >> sys.stderr, 'TorrentDBHandler: getTorrents(%s, %s, %s, %s, %s)' % (category_name, range, library, sort, reverse)
+        s = time()
+
+        value_name = deepcopy(self.value_name)
+        sql = 'Select ' + ','.join(value_name)
+        sql += ' From CollectedTorrent C'
+        # sql += ' From CollectedTorrent C LEFT JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'
+
+        where = ''
+        if category_name != 'all':
+            where += 'category_id = %d AND' % self.category_table.get(category_name.lower(), -1)  # unkown category_name returns no torrents
+
+        if library:
+            where += 'C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
+        else:
+            where += 'status_id=%d ' % self._torrent_status_dict[u'good']  # if not library, show only good files
+            where += self.category.get_family_filter_sql(self._getCategoryID)  # add familyfilter
+
+        sql += ' Where ' + where
+
+        if 'infohash' in value_name:
+            sql += " GROUP BY infohash"
+
+        if range:
+            offset = range[0]
+            limit = range[1] - range[0]
+            sql += ' Limit %d Offset %d' % (limit, offset)
+
+        if sort:
+            # Arno, 2008-10-6: buggy: not reverse???
+            desc = (reverse) and 'desc' or ''
+            if sort == 'name':
+                sql += ' Order By lower(%s) %s' % (sort, desc)
+            else:
+                sql += ' Order By %s %s' % (sort, desc)
+
+        # print >>sys.stderr,"TorrentDBHandler: GET TORRENTS val",value_name,"where",where,"limit",limit,"offset",offset,"order",order_by
+        # print_stack
+
+        # Must come before query
+        ranks = self.getRanks()
+        res_list = self._db.fetchall(sql)
+        mypref_stats = self.mypref_db.getMyPrefStats() if self.mypref_db else None
+
+        torrent_list = self.valuelist2torrentlist(value_name, res_list, ranks, mypref_stats)
+        del res_list
+        del mypref_stats
+        return torrent_list
+
     def _addTorrentToDB(self, torrentdef, source, extra_info, commit):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
@@ -619,7 +741,8 @@ class TorrentDBHandler(BasicDBHandler):
         return dict
 
     def _indexTorrent(self, torrent_id, swarmname, files, collected):
-        existed = self._db.getOne('CollectedTorrent', 'infohash', torrent_id=torrent_id)
+        sql = 'SELECT infohash FROM CollectedTorrent WHERE torrent_id = ?'
+        existed = self._db.fetchone(sql, (torrent_id,))
         if existed and not collected:
             return
 
@@ -660,7 +783,9 @@ class TorrentDBHandler(BasicDBHandler):
         if src.startswith('http') and src.endswith('xml'):
             desc = 'RSS'
         self._db.insert('TorrentSource', commit=commit, name=src, description=desc)
-        src_id = self._db.getOne('TorrentSource', 'source_id', name=src)
+
+        sql = 'SELECT source_id FROM TorrentSource WHERE name = ?'
+        src_id = self._db.fetchone(sql, (src,))
         return src_id
 
     # ------------------------------------------------------------
@@ -702,31 +827,29 @@ class TorrentDBHandler(BasicDBHandler):
 
     def updateTorrent(self, infohash, commit=True, notify=True, **kw):  # watch the schema of database
         if 'category' in kw:
-            cat_id = self._getCategoryID(kw.pop('category'))
-            kw['category_id'] = cat_id
+            category_id = self._getCategoryID(kw.pop('category'))
+            kw[u'category_id'] = category_id
         if 'status' in kw:
             status_id = self._getStatusID(kw.pop('status'))
-            kw['status_id'] = status_id
+            kw[u'status_id'] = status_id
 
         if 'progress' in kw:
             torrent_id = self.getTorrentID(infohash)
             if infohash:
                 self.mypref_db.updateProgress(torrent_id, kw.pop('progress'), commit=False)  # commit at end of function
         if 'seeder' in kw:
-            kw['num_seeders'] = kw.pop('seeder')
+            kw[u'num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
-            kw['num_leechers'] = kw.pop('leecher')
+            kw[u'num_leechers'] = kw.pop('leecher')
 
         if 'swift_hash' in kw:
-            kw['swift_hash'] = bin2str(kw['swift_hash'])
+            kw[u'swift_hash'] = bin2str(kw['swift_hash'])
 
         if 'swift_torrent_hash' in kw:
-            kw['swift_torrent_hash'] = bin2str(kw['swift_torrent_hash'])
+            kw[u'swift_torrent_hash'] = bin2str(kw['swift_torrent_hash'])
 
         if 'last_check_time' in kw:
-            kw['last_tracker_check'] = kw.pop('last_check_time')
-        if 'retry_number' in kw:
-            kw['tracker_check_retries'] = kw.pop('retry_number')
+            kw[u'last_tracker_check'] = kw.pop('last_check_time')
 
         for key in kw.keys():
             if key not in self.keys:
@@ -918,7 +1041,8 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id = self.getTorrentID(infohash)
         if torrent_id is not None:
             torrent_dir = self.getTorrentDir()
-            torrent_name = self.getOne('torrent_file_name', torrent_id=torrent_id)
+            sql = 'SELECT torrent_file_name FROM Torrent WHERE torrent_id = ?'
+            torrent_name = self._db.fetchone(sql, (torrent_id,))
             src = os.path.join(torrent_dir, torrent_name)
             if not os.path.exists(src):  # already removed
                 return True
@@ -1039,21 +1163,6 @@ class TorrentDBHandler(BasicDBHandler):
         trackers = self._db.fetchall(sql, (limit,))
         return [tracker[0] for tracker in trackers]
 
-    # TODO: remove this method after we have improved GuiDBTuples
-    def getSwarmInfo(self, torrent_id):
-        """
-        returns info about swarm size from Torrent and TorrentTrackerMapping tables.
-        @author: Rahim
-        @param torrentId: The index of the torrent.
-        @return: A list of the form: [num_seeders, num_leechers, last_check]
-        """
-        sql = """
-            SELECT num_seeders, num_leechers, last_tracker_check
-            FROM Torrent WHERE torrent_id = ?
-            """
-        row = self._db.fetchone(sql, (torrent_id,))
-        return row[0], row[1], row[2]
-
     def getTorrentDir(self):
         return self.torrent_dir
 
@@ -1071,130 +1180,6 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.executemany(sql, updates)
 
         self.torrent_dir = torrent_dir
-
-    def getTorrent(self, infohash, keys=None, include_mypref=True):
-        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        # to do: replace keys like source -> source_id and status-> status_id ??
-
-        if keys is None:
-            keys = deepcopy(self.value_name)
-            # ('torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
-            # 'num_leechers', 'num_seeders',   'length',
-            # 'secret', 'insert_time', 'source_id', 'torrent_file_name',
-            # 'relevance', 'infohash', 'torrent_id')
-        else:
-            keys = list(keys)
-
-        # tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
-        # tracker_keys = [key for key in tracker_keys if key in keys]
-        # if len(tracker_keys) > 0:
-        #    sql = 'Torrent C LEFT OUTER JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'\
-        #        + ' LEFT OUTER JOIN TrackerInfo TI ON TTM.tracker_id = TI.tracker_id'
-        #    res = self._db.getOne(sql, keys, infohash=bin2str(infohash))
-        # else:
-        res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
-
-        if not res:
-            return None
-        torrent = dict(zip(keys, res))
-        if 'source_id' in torrent:
-            torrent['source'] = self.id2src[torrent['source_id']]
-
-        if 'category_id' in torrent:
-            torrent['category'] = [self.id2category[torrent['category_id']]]
-
-        if 'status_id' in torrent:
-            torrent['status'] = self.id2status[torrent['status_id']]
-
-        if 'swift_hash' in torrent and torrent['swift_hash']:
-            torrent['swift_hash'] = str2bin(torrent['swift_hash'])
-
-        if 'swift_torrent_hash' in torrent and torrent['swift_torrent_hash']:
-            torrent['swift_torrent_hash'] = str2bin(torrent['swift_torrent_hash'])
-
-        torrent['infohash'] = infohash
-
-        if 'last_tracker_check' in torrent:
-            torrent['last_check_time'] = torrent['last_tracker_check']
-
-        if include_mypref:
-            tid = torrent['C.torrent_id']
-            stats = self.mypref_db.getMyPrefStats(tid)
-
-            if stats:
-                torrent['myDownloadHistory'] = True
-                torrent['creation_time'] = stats[tid][0]
-                torrent['progress'] = stats[tid][1]
-                torrent['destination_path'] = stats[tid][2]
-            else:
-                torrent['myDownloadHistory'] = False
-
-        return torrent
-
-    def getTorrents(self, category_name='all', range=None, library=False, sort=None, reverse=False):
-        """
-        get Torrents of some category and with alive status (opt. not in family filter)
-
-        if library == True: only torrents with destination_path != '' are returned
-        else: return only good torrents, accepted by family filter
-
-        @return Returns a list of dicts with keys:
-            torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
-            length, secret, insert_time, source, torrent_filename, relevance, simRank, tracker, last_check
-            (if in library: myDownloadHistory, download_started, progress, dest_dir)
-
-        niels 25-10-2010: changed behaviour to left join TorrentTracker, due to magnet links
-        """
-
-        # print >> sys.stderr, 'TorrentDBHandler: getTorrents(%s, %s, %s, %s, %s)' % (category_name, range, library, sort, reverse)
-        s = time()
-
-        value_name = deepcopy(self.value_name)
-        sql = 'Select ' + ','.join(value_name)
-        sql += ' From CollectedTorrent C'
-        # sql += ' From CollectedTorrent C LEFT JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'
-
-        where = ''
-        if category_name != 'all':
-            where += 'category_id = %d AND' % self.category_table.get(category_name.lower(), -1)  # unkown category_name returns no torrents
-
-        if library:
-            where += 'C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
-        else:
-            where += 'status_id=%d ' % self._torrent_status_dict[u'good']  # if not library, show only good files
-            where += self.category.get_family_filter_sql(self._getCategoryID)  # add familyfilter
-
-        sql += ' Where ' + where
-
-        if 'infohash' in value_name:
-            sql += " GROUP BY infohash"
-
-        if range:
-            offset = range[0]
-            limit = range[1] - range[0]
-            sql += ' Limit %d Offset %d' % (limit, offset)
-
-        if sort:
-            # Arno, 2008-10-6: buggy: not reverse???
-            desc = (reverse) and 'desc' or ''
-            if sort == 'name':
-                sql += ' Order By lower(%s) %s' % (sort, desc)
-            else:
-                sql += ' Order By %s %s' % (sort, desc)
-
-        # print >>sys.stderr,"TorrentDBHandler: GET TORRENTS val",value_name,"where",where,"limit",limit,"offset",offset,"order",order_by
-        # print_stack
-
-        # Must come before query
-        ranks = self.getRanks()
-        res_list = self._db.fetchall(sql)
-        mypref_stats = self.mypref_db.getMyPrefStats() if self.mypref_db else None
-
-        torrent_list = self.valuelist2torrentlist(value_name, res_list, ranks, mypref_stats)
-        del res_list
-        del mypref_stats
-        return torrent_list
 
     def getLibraryTorrents(self, keys):
         sql = "SELECT " + ", ".join(keys) + " FROM MyPreference, Torrent LEFT JOIN ChannelTorrents ON Torrent.torrent_id = ChannelTorrents.torrent_id WHERE destination_path != '' AND MyPreference.torrent_id = Torrent.torrent_id"
@@ -1266,7 +1251,8 @@ class TorrentDBHandler(BasicDBHandler):
 
     def getNumberCollectedTorrents(self):
         # return self._db.size('CollectedTorrent')
-        return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
+        sql = 'SELECT count(torrent_id) FROM CollectedTorrent'
+        return self._db.fetchone(sql)
 
     def getRecentlyCollectedSwiftHashes(self, limit=50):
         sql = """
@@ -1303,7 +1289,8 @@ class TorrentDBHandler(BasicDBHandler):
         return [(str2bin(hash), str2bin(roothash)) for hash, roothash in results]
 
     def getTorrentsStats(self):
-        return self._db.getOne('CollectedTorrent', ['count(torrent_id)', 'sum(length)', 'sum(num_files)'])
+        sql = 'SELECT count(torrent_id), sum(length), sum(num_files) FROM CollectedTorrent'
+        return self._db.fetchone(sql)
 
     def freeSpace(self, torrents2del):
 # if torrents2del > 100:  # only delete so many torrents each time
@@ -1599,10 +1586,6 @@ class TorrentDBHandler(BasicDBHandler):
         sql = "SELECT source FROM TorrentCollecting WHERE torrent_id = ?"
         return self._db.fetchall(sql, (torrent_id,))
 
-    def setSecret(self, infohash, secret):
-        kw = {'secret': secret}
-        self.updateTorrent(infohash, commit=True, **kw)
-
 
 class MyPreferenceDBHandler(BasicDBHandler):
 
@@ -1777,11 +1760,9 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return recent_preflist
 
     def hasMyPreference(self, torrent_id):
-        res = self.getOne('torrent_id', torrent_id=torrent_id)
-        if res is not None:
-            return True
-        else:
-            return False
+        sql = 'SELECT torrent_id FROM MyPreference WHERE torrent_id = ?'
+        res = self._db.fetchone(sql, (torrent_id,))
+        return res is not None
 
     def addMyPreference(self, torrent_id, data, commit=True):
         # keys in data: destination_path, progress, creation_time, torrent_id
@@ -3333,7 +3314,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         words = beginning.split()
         if len(words) < 3:
             if beginning[-1] == ' ' or len(words) > 1:
-                termid = self.getOne('term_id', term=("=", words[0]))
+                sql = 'SELECT term_id FROM term = ?'
+                termid = self._db.fetchone(sql, (words[0],))
                 if termid:
                     sql = '''SELECT "%s " || TF.term AS phrase
                              FROM TorrentBiTermPhrase P, TermFrequency TF
@@ -3438,7 +3420,8 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
     def getPreference(self, keywords):
         # returns None if query not in db
         query = ' '.join(sorted(set(keywords)))
-        return self.getOne('bundle_mode', query=query)
+        sql = 'SELECT bundle_mode FROM BundlerPreference WHERE query = ?'
+        return self._db.fetchone(sql, (query,))
 
 
 def ranksfind(ranks, key):

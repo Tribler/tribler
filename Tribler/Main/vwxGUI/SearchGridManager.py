@@ -246,7 +246,7 @@ class TorrentManager:
             d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, tdef=tdef, destdir=dest, clicklog=clicklog, name=name, vodmode=vodmode, selectedFiles=selectedFiles)  # # remove name=name
             if d:
                 if secret:
-                    self.torrent_db.setSecret(torrent.infohash, secret)
+                    self.torrent_db.updateTorrent(torrent.infohash, secret=secret)
 
                 if DEBUG:
                     print >> sys.stderr, 'standardDetails: download: download started'
