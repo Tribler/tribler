@@ -135,11 +135,13 @@ class TorrentManager:
 
         if not retried:
             # reload torrent to see if database contains any changes
-            dict = self.torrent_db.getTorrent(torrent.infohash, keys=['torrent_id', 'swift_torrent_hash', 'torrent_file_name'], include_mypref=False)
-            if dict:
-                torrent.update_torrent_id(dict['torrent_id'])
-                torrent.swift_torrent_hash = dict['swift_torrent_hash']
-                torrent.torrent_file_name = dict['torrent_file_name']
+            torrent_dict = self.torrent_db.getTorrent(torrent.infohash,
+                    keys=(u'torrent_id', u'swift_torrent_hash',
+                    u'torrent_file_name'), include_mypref=False)
+            if torrent_dict:
+                torrent.update_torrent_id(torrent_dict[u'torrent_id'])
+                torrent.swift_torrent_hash = torrent_dict[u'swift_torrent_hash']
+                torrent.torrent_file_name = torrent_dict[u'torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
 
     def getCollectedFilenameFromDef(self, torrentdef):

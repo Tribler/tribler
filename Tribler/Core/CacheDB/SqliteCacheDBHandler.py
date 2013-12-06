@@ -557,15 +557,12 @@ class TorrentDBHandler(BasicDBHandler):
         torrent = dict(zip(keys, res))
         if 'source_id' in torrent:
             torrent['source'] = self.id2src[torrent['source_id']]
-            #del torrent['source_id']
 
         if 'category_id' in torrent:
             torrent['category'] = [self.id2category[torrent['category_id']]]
-            #del torrent['category_id']
 
         if 'status_id' in torrent:
             torrent['status'] = self.id2status[torrent['status_id']]
-            #del torrent['status_id']
 
         if 'swift_hash' in torrent and torrent['swift_hash']:
             torrent['swift_hash'] = str2bin(torrent['swift_hash'])
@@ -761,6 +758,9 @@ class TorrentDBHandler(BasicDBHandler):
         self.addTorrentTrackerMappingInBatch(torrent_id, list(new_tracker_set))
 
     def updateTorrent(self, infohash, commit=True, notify=True, **kw):  # watch the schema of database
+        if not kw:
+            return
+
         if 'category' in kw:
             category_id = self._getCategoryID(kw.pop('category'))
             kw[u'category_id'] = category_id
@@ -786,10 +786,16 @@ class TorrentDBHandler(BasicDBHandler):
             if key not in self.keys:
                 kw.pop(key)
 
-        if len(kw) > 0:
-            infohash_str = bin2str(infohash)
-            where = "infohash='%s'" % infohash_str
-            self._db.update(self.table_name, where, commit=False, **kw)
+        key_str = ''
+        value_list = list()
+        for key, val in kw.iteritems():
+            key_str += key + ' = ?,'
+            value_list.append(val)
+        key_str = key_str[:-1]
+        value_list.append(bin2str(infohash))
+
+        sql = 'UPDATE Torrent SET %s WHERE infohash = ?' % key_str
+        self._db.execute_write(sql, value_list)
 
         if commit:
             self.commit()
@@ -957,16 +963,19 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id = self.getTorrentID(infohash)
         if torrent_id is not None:
             if keep_infohash:
-                self._db.update(self.table_name, where="torrent_id=%d" % torrent_id, commit=commit, torrent_file_name=None)
+                sql = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
+                self._db.execute_write(sql, (torrent_id,))
             else:
-                self._db.delete(self.table_name, commit=commit, torrent_id=torrent_id)
+                sql = 'DELETE FROM Torrent WHERE torrent_id = ?'
+                self._db.execute_write(sql, (torrent_id,))
+
                 # vliegendhart: synch bi-term phrase table
                 self._nb.deleteTorrent(torrent_id, commit)
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
 
-            self._db.delete('TorrentTrackerMapping', commit=commit, torrent_id=torrent_id)
-            # print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
+            sql = 'DELETE FROM TorrentTrackerMapping WHERE torrent_id = ?'
+            self._db.execute_write(sql, (torrent_id,))
 
     def eraseTorrentFile(self, infohash):
         torrent_id = self.getTorrentID(infohash)
@@ -1728,7 +1737,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return True
 
     def deletePreference(self, torrent_id, commit=True):
-        self._db.delete(self.table_name, commit=commit, **{'torrent_id': torrent_id})
+        sql = 'DELETE FROM MyPreference WHERE torrent_id = ?'
+        self._db.execute_write(sql, (torrent_id,))
 
         infohash = self._torrent_db.getInfohash(torrent_id)
         if infohash:
@@ -1738,7 +1748,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         # self.loadData()
 
     def updateProgress(self, torrent_id, progress, commit=True):
-        self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, commit=commit, progress=progress)
+        sql = 'UPDATE MyPreference SET progress = ? WHERE torrent_id = ?'
+        self._db.execute_write(sql, (progress, torrent_id))
 
     def updateProgressByHash(self, hash, progress, commit=True):
         torrent_id = self._torrent_db.getTorrentID(hash)
@@ -1752,7 +1763,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if not isinstance(destdir, basestring):
             print >> sys.stderr, 'DESTDIR IS NOT STRING:', destdir
             return
-        self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, commit=commit, destination_path=destdir)
+        sql = 'UPDATE MyPreference SET destination_path = ? WHERE torrent_id = ?'
+        self._db.execute_write(sql, (destdir, torrent_id))
 
 
 class VoteCastDBHandler(BasicDBHandler):
@@ -3114,7 +3126,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         @param torrent_id Identifier of the deleted Torrent.
         @param commit Flag to indicate whether database changes should be committed.
         """
-        self._db.delete('TorrentBiTermPhrase', commit=commit, torrent_id=torrent_id)
+        sql = 'DELETE FROM TorrentBiTermPhrase WHERE torrent_id = ?'
+        self._db.execute_write(sql, (torrent_id,))
 
     def getBuzz(self, size=DEFAULT_SAMPLE_SIZE, with_freq=True, flat=False):
         """
