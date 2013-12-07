@@ -23,7 +23,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
 from Tribler.Core.Base import *
 from Tribler.Core.osutils import get_desktop_dir
-from Tribler.Core.SessionConfig import CallbackConfigParser
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
 
 class DownloadConfigInterface(object):

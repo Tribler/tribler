@@ -5,7 +5,7 @@ import os
 import copy
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.SessionConfig import CallbackConfigParser
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
 STATEDIR_DLCONFIG = "tribler.conf"
 
