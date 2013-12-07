@@ -12,7 +12,7 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from traceback import print_exc, print_stack
 import traceback
 from Tribler.Core.ServerPortHandler import MultiHandler
-from Tribler.Core.SessionConfig import CallbackConfigParser
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
 try:
     prctlimported = True
