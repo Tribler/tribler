@@ -1,7 +1,6 @@
 # Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
 
 import sys
-import copy
 import time
 import libtorrent as lt
 
@@ -12,7 +11,7 @@ from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Libtorrent.LibtorrentDownloadRuntimeConfig import LibtorrentDownloadRuntimeConfig
+from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
 from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
@@ -157,7 +156,7 @@ class VODFile(object):
         self._file.close(*args)
 
 
-class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
+class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
@@ -264,7 +263,7 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
         if DEBUG:
             print >> sys.stderr, "LibtorrentDownloadImpl: create_engine_wrapper()"
 
-        self.set_config_callback(self.session.lm.dlconfig_changed_callback)
+        self.set_config_callback(self.dlconfig_changed_callback)
 
         atp = {}
         atp["save_path"] = str(self.get_dest_dir())
@@ -686,7 +685,7 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
                 if selected_files is None:
                     selected_files = self.get_selected_files()
                 else:
-                    LibtorrentDownloadRuntimeConfig.set_selected_files(self, selected_files)
+                    DownloadRuntimeConfig.set_selected_files(self, selected_files)
 
                 is_multifile = len(self.tdef.get_files_as_unicode()) > 1
                 commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
@@ -1188,6 +1187,15 @@ class LibtorrentDownloadImpl(LibtorrentDownloadRuntimeConfig):
             else:
                 mimetype = 'video/mpeg'
         return mimetype
+
+    def dlconfig_changed_callback(self, section, name, new_value, old_value):
+        if section == 'downloadconfig' and name == 'max_upload_rate':
+            if self.handle:
+                self.handle.set_upload_limit(int(new_value * 1024))
+        elif section == 'downloadconfig' and name == 'max_download_rate':
+            if self.handle:
+                self.handle.set_download_limit(int(new_value * 1024))
+        return True
 
 
 class LibtorrentStatisticsResponse:
