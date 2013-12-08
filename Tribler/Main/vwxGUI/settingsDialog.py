@@ -144,8 +144,9 @@ class SettingsDialog(wx.Dialog):
         self.currentPortValue = str(self.utility.session.get_listen_port())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
 
-        self.elements['downloadCtrl'].SetValue(self.utility.getMaxDown())
-        self.elements['uploadCtrl'].SetValue(self.utility.getMaxUp())
+        convert = lambda v: 'unlimited' if v == 0 else ('0' if v == -1 else str(v))
+        self.elements['downloadCtrl'].SetValue(convert(self.utility.read_config('maxdownloadrate')))
+        self.elements['uploadCtrl'].SetValue(convert(self.utility.read_config('maxuploadrate')))
 
         self.currentDestDir = self.defaultDLConfig.get_dest_dir()
         self.elements['diskLocationCtrl'].SetValue(self.currentDestDir)
@@ -317,8 +318,9 @@ class SettingsDialog(wx.Dialog):
             cfgfilename = self.utility.session.get_default_config_filename(state_dir)
             scfg = SessionStartupConfig.load(cfgfilename)
 
-            self.utility.setMaxDown(valdown)
-            self.utility.setMaxUp(valup)
+            convert = lambda v: 0 if v == 'unlimited' else (-1 if v == '0' else int(v))
+            self.utility.write_config('maxdownloadrate', convert(valdown))
+            self.utility.write_config('maxuploadrate', convert(valup))
 
             if valport != self.currentPortValue:
                 scfg.set_listen_port(int(valport))

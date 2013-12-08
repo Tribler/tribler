@@ -55,7 +55,6 @@ class Utility:
                             # RateLimitPanel
                             'maxuploadrate': 0,
                             'maxdownloadrate': 0,
-                            'maxseeduploadrate': 0,
                             # VideoPanel
                             'videoplaybackmode': 0,
                             # Misc
@@ -122,41 +121,6 @@ class Utility:
 
     def getPath(self):
         return self.abcpath
-
-    def getMaxDown(self):
-        maxdownloadrate = self.read_config('maxdownloadrate')
-        if maxdownloadrate == -1:
-            return '0'
-        elif maxdownloadrate == 0:
-            return 'unlimited'
-        return str(maxdownloadrate)
-
-    def setMaxDown(self, valdown):
-        if valdown == 'unlimited':
-            self.write_config('maxdownloadrate', 0)
-        elif valdown == '0':
-            self.write_config('maxdownloadrate', -1)
-        else:
-            self.write_config('maxdownloadrate', valdown)
-
-    def getMaxUp(self):
-        maxuploadrate = self.read_config('maxuploadrate')
-        if maxuploadrate == -1:
-            return '0'
-        elif maxuploadrate == 0:
-            return 'unlimited'
-        return str(maxuploadrate)
-
-    def setMaxUp(self, valup):
-        if valup == 'unlimited':
-            self.write_config('maxuploadrate', 0)
-            self.write_config('maxseeduploadrate', 0)
-        elif valup == '0':
-            self.write_config('maxuploadrate', -1)
-            self.write_config('maxseeduploadrate', -1)
-        else:
-            self.write_config('maxuploadrate', valup)
-            self.write_config('maxseeduploadrate', valup)
 
     def read_config(self, option, section='Tribler', literal_eval=True):
         if not self.config.has_option(section, option):
