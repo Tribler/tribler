@@ -947,9 +947,6 @@ class TriblerLaunchMany(Thread):
             return False
         return True
 
-    def dlconfig_changed_callback(self, section, name, new_value, old_value):
-        return True
-
 
 def singledownload_size_cmp(x, y):
     """ Method that compares 2 SingleDownload objects based on the size of the
