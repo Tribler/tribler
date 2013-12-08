@@ -319,8 +319,10 @@ class SettingsDialog(wx.Dialog):
             scfg = SessionStartupConfig.load(cfgfilename)
 
             convert = lambda v: 0 if v == 'unlimited' else (-1 if v == '0' else int(v))
-            self.utility.write_config('maxdownloadrate', convert(valdown))
-            self.utility.write_config('maxuploadrate', convert(valup))
+            for config_option, value in [('maxdownloadrate', convert(valdown)), ('maxuploadrate', convert(valup))]:
+                if self.utility.read_config(config_option) != value:
+                    self.utility.write_config(config_option, value)
+                    self.guiUtility.app.ratelimiter.set_global_max_speed(UPLOAD if config_option == 'maxuploadrate' else DOWNLOAD, value)
 
             if valport != self.currentPortValue:
                 scfg.set_listen_port(int(valport))
