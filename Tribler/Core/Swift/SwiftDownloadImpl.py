@@ -36,8 +36,8 @@ from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import *
-from Tribler.Core.Swift.SwiftDownloadRuntimeConfig import SwiftDownloadRuntimeConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
+from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
 import shutil
 from Tribler.Main.globals import DownloadStartupConfig
 
@@ -50,7 +50,7 @@ SWIFT_ALIVE_CHECK_INTERVAL = 60.0
 DEBUG = False
 
 
-class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
+class SwiftDownloadImpl(DownloadRuntimeConfig):
 
     """ Download subclass that represents a swift download.
     The actual swift download takes places in a SwiftProcess.
@@ -155,6 +155,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if DEBUG:
             print >> sys.stderr, "SwiftDownloadImpl: create_engine_wrapper()"
 
+        self.set_config_callback(self.dlconfig_changed_callback)
+
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
@@ -255,10 +257,10 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 self.lm_network_vod_event_callback(videoinfo, VODEVENT_START, {
                     "complete": False,
                     "filename": None,
-                    "mimetype": 'application/octet-stream', # ARNOSMPTODO
+                    "mimetype": 'application/octet-stream',  # ARNOSMPTODO
                     "stream": None,
                     "length": self.get_dynasize(),
-                    "bitrate": None, # ARNOSMPTODO
+                    "bitrate": None,  # ARNOSMPTODO
                     "url": httpurl,
                 })
         finally:
@@ -685,6 +687,14 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
         if not self.done:
             self.session.lm.rawserver.add_task(self.network_check_swift_alive, SWIFT_ALIVE_CHECK_INTERVAL)
+
+    def dlconfig_changed_callback(self, section, name, new_value, old_value):
+        if section == 'downloadconfig' and name in ['max_upload_rate', 'max_download_rate']:
+            if self.sp is not None:
+                direct = UPLOAD if name == 'max_upload_rate' else DOWNLOAD
+                if self.get_max_speed(direct) != new_value:
+                    self.sp.set_max_speed(self, direct, new_value)
+        return True
 
 
 class SwiftStatisticsResponse:
