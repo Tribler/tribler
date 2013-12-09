@@ -79,14 +79,14 @@ class SeedingManager:
         download = self.download_state.get_download()
         if download.get_def().get_def_type() == 'torrent':
             if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
-                if not self.policy.apply(None, self.download_state, self.download_state.get_seeding_statistics()):
+                if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
                     if DEBUG:
                         print >> sys.stderr, "Stop seeding with libtorrent: ", self.download_state.get_download().get_dest_files()
                     self.udc.set_download_state(download.get_def().get_id(), 'stop')
                     self.download_state.get_download().stop()
         else:
             if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
-                if not self.policy.apply(None, self.download_state, self.download_state.get_seeding_statistics()):
+                if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
                     if DEBUG:
                         print >> sys.stderr, "Stop seeding with libswift: ", self.download_state.get_download().get_dest_files()
                     self.download_state.get_download().stop()
@@ -100,7 +100,7 @@ class SeedingPolicy:
     def __init__(self):
         pass
 
-    def apply(self, _, __, ___):
+    def apply(self, _, __):
         pass
 
 
@@ -109,7 +109,7 @@ class UnlimitedSeeding(SeedingPolicy):
     def __init__(self):
         SeedingPolicy.__init__(self)
 
-    def apply(self, _, __, ___):
+    def apply(self, _, __):
         return True
 
 
@@ -118,7 +118,7 @@ class NoSeeding(SeedingPolicy):
     def __init__(self):
         SeedingPolicy.__init__(self)
 
-    def apply(self, _, __, ___):
+    def apply(self, _, __):
         return False
 
 
@@ -128,7 +128,7 @@ class TitForTatTimeBasedSeeding(SeedingPolicy):
         SeedingPolicy.__init__(self)
         self.Read = Read
 
-    def apply(self, _, __, storage):
+    def apply(self, _, storage):
         current = storage["time_seeding"]
         limit = long(self.Read('t4t_hours', "int")) * 3600 + long(self.Read('t4t_mins', "int")) * 60
         if DEBUG:
@@ -142,7 +142,7 @@ class GiveToGetTimeBasedSeeding(SeedingPolicy):
         SeedingPolicy.__init__(self)
         self.Read = Read
 
-    def apply(self, _, __, storage):
+    def apply(self, _, storage):
         current = storage["time_seeding"]
         limit = long(self.Read('g2g_hours', "int")) * 3600 + long(self.Read('g2g_mins', "int")) * 60
         if DEBUG:
@@ -156,7 +156,7 @@ class TitForTatRatioBasedSeeding(SeedingPolicy):
         SeedingPolicy.__init__(self)
         self.Read = Read
 
-    def apply(self, _, download_state, storage):
+    def apply(self, download_state, storage):
         # No Bittorrent leeching (minimal ratio of 1.0)
         ul = storage["total_up"]
         dl = storage["total_down"]
@@ -183,7 +183,7 @@ class GiveToGetRatioBasedSeeding(SeedingPolicy):
         SeedingPolicy.__init__(self)
         self.Read = Read
 
-    def apply(self, _, download_state, storage):
+    def apply(self, download_state, storage):
         ul = storage["total_up"]
         dl = storage["total_down"]
 
