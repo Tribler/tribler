@@ -90,13 +90,13 @@ class SocialCommunity(Community):
         if community != self:
             for message, packet in self._orig__get_packets_for_bloomfilters(community, requests, include_inactive):
                 yield message, packet
-
-        for message, time_low, time_high, offset, modulo in requests:
-            data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0 ORDER BY sync.global_time DESC",
-                                                (time_low, time_high, offset, modulo))
-
-            sync_ids = tuple(sync_id for _, sync_id in data)
-            yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
+        else:
+            for message, time_low, time_high, offset, modulo in requests:
+                data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0 ORDER BY sync.global_time DESC",
+                                                    (time_low, time_high, offset, modulo))
+    
+                sync_ids = tuple(sync_id for _, sync_id in data)
+                yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         # first select_and_fix based on friendsync table
@@ -301,7 +301,7 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint)
+        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint,send_simi_reveal=True)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -343,7 +343,7 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        PForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint)
+        PForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint,send_simi_reveal=True)
 
     def initiate_conversions(self):
         return PForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -381,7 +381,7 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint)
+        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint,send_simi_reveal=True)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -423,7 +423,7 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality)
+        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality,send_simi_reveal=True)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
