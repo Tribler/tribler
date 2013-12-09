@@ -459,6 +459,8 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             cache = self._request_cache.add(ForwardCommunity.SimilarityAttempt(self, destination))
+            print >> sys.stderr, "sending msimilarity request with identifier", cache.number
+            
             self.send_msimilarity_request(destination, cache.number, payload)
             return True
 
