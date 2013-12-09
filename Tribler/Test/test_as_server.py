@@ -39,6 +39,8 @@ defaults.dldefaults["downloadconfig"]["saveas"] = DEST_DIR
 
 DEBUG = False
 
+OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
+
 class AbstractServer(unittest.TestCase):
 
     def setup(self):
@@ -71,7 +73,7 @@ class AbstractServer(unittest.TestCase):
             os.mkdir(dir)
         return dir
 
-    def annotate(self, annotation, start=True, destdir="output"):
+    def annotate(self, annotation, start=True, destdir=OUTPUT_DIR):
         if not os.path.exists(destdir):
             os.makedirs(destdir)
 
@@ -230,9 +232,8 @@ class TestGuiAsServer(TestAsServer):
 
     def startTest(self, callback, min_timeout=5):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        from Tribler.Main.tribler import run, ALLOW_MULTIPLE
-
-        ALLOW_MULTIPLE = True
+        from Tribler.Main import tribler
+        tribler.ALLOW_MULTIPLE = True
 
         self.hadSession = False
         starttime = time.time()
@@ -275,7 +276,7 @@ class TestGuiAsServer(TestAsServer):
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
-        run()
+        tribler.run()
 
         assert self.hadSession, 'Did not even create a session'
 
@@ -334,7 +335,7 @@ class TestGuiAsServer(TestAsServer):
         for boolean, reason in self.asserts:
             assert boolean, reason
 
-    def screenshot(self, title=None, destdir="output", window=None):
+    def screenshot(self, title=None, destdir=OUTPUT_DIR, window=None):
         if window == None:
             app = wx.GetApp()
             window = app.GetTopWindow()
