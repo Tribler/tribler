@@ -706,6 +706,11 @@ class ForwardCommunity():
 
     def on_similarity_reveal(self, messages):
         for message in messages:
+            if not isinstance(message.candidate, WalkCandidate):
+                candidate = self.create_candidate(message.candidate.sock_addr, message.candidate.tunnel, message.candidate.sock_addr, message.candidate.sock_addr, u"unknown")
+                candidate.associate(message.authentication.member)
+                message._candidate = candidate
+            
             self.add_taste_buddies([ActualTasteBuddy(message.payload.overlap, time(), message.candidate)])
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
