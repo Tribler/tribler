@@ -8,6 +8,8 @@ class TestSqliteCacheDB(unittest.TestCase):
         self.sqlite_test = SQLiteCacheDB.getInstance()
         self.db_path = ':memory:'
 
+        self._table_name = u'Person'
+
     def tearDown(self):
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
@@ -25,63 +27,155 @@ class TestSqliteCacheDB(unittest.TestCase):
 
         assert sqlite_test2 != self.sqlite_test
 
-    def test_insert(self):
+    def test_insert_one(self):
+        """Tests the new_insertOne() method.
+        """
         self.test_create_db()
 
-        self.sqlite_test.insert('person', lastname='a', firstname='b')
-        assert self.sqlite_test.size('person') == 1
+        column_tuple = (u'lastname', u'firstname')
+        value_tuple = (u'a', u'b')
+        self.sqlite_test.new_insertOne(self._table_name,
+            column_tuple, value_tuple)
 
-    def test_fetchone(self):
-        self.test_insert()
-        one = self.sqlite_test.fetchone('select * from person')
-        assert one == ('a', 'b')
+        assert self.sqlite_test.size(self._table_name) == 1
 
-        one = self.sqlite_test.fetchone("select lastname from person where firstname == 'b'")
-        assert one == 'a'
-
-        one = self.sqlite_test.fetchone("select lastname from person where firstname == 'c'")
-        assert one == None
-
-    def test_insertmany(self):
+    def test_insert_many(self):
+        """Tests the new_insertMany() method.
+        """
         self.test_create_db()
 
-        values = []
-        for i in range(100):
+        column_tuple = (u'lastname', u'firstname')
+        value_tuple_list = list()
+        for i in xrange(100):
             value = (str(i), str(i ** 2))
-            values.append(value)
-        self.sqlite_test.insertMany('person', values)
-        assert self.sqlite_test.size('person') == 100
+            value_tuple_list.append(value)
 
-    def test_fetchall(self):
-        self.test_insertmany()
+        self.sqlite_test.new_insertMany(self._table_name,
+            column_tuple, value_tuple_list)
 
-        all = self.sqlite_test.fetchall('select * from person')
-        assert len(all) == 100
+        assert self.sqlite_test.size(self._table_name) == 100
 
-        all = self.sqlite_test.fetchall("select * from person where lastname=='101'")
-        assert all == []
+    def test_get_one(self):
+        """Tests the new_getOne() method.
+        """
+        self.test_insert_one()
 
-    def test_insertorder(self):
-        self.test_insertmany()
+        column_tuple = (u'lastname', u'firstname')
+        result = self.sqlite_test.new_getOne(self._table_name, column_tuple)
+        assert result == (u'a', u'b'), result
 
-        self.sqlite_test.insert('person', lastname='1', firstname='abc')
-        one = self.sqlite_test.fetchone("select firstname from person where lastname == '1'")
-        assert one == '1' or one == 'abc'
+        column_tuple = (u'lastname',)
+        where_column_tuple = (u'firstname',)
+        where_value_tuple = (u'b',)
+        result = self.sqlite_test.new_getOne(self._table_name, column_tuple,
+                    where_column_tuple, where_value_tuple)
+        assert result == u'a', result
 
-        all = self.sqlite_test.fetchall("select firstname from person where lastname == '1'")
-        assert len(all) == 2
+        column_tuple = (u'lastname',)
+        where_column_tuple = (u'firstname',)
+        where_value_tuple = (u'c',)
+        result = self.sqlite_test.new_getOne(self._table_name, column_tuple,
+                    where_column_tuple, where_value_tuple)
+        assert result is None, result
 
-    def test_update(self):
-        self.test_insertmany()
+    def test_get_all(self):
+        """Tests the new_getAll() method.
+        """
+        self.test_insert_many()
 
-        self.sqlite_test.update('person', "lastname == '2'", firstname='56')
-        one = self.sqlite_test.fetchone("select firstname from person where lastname == '2'")
-        assert one == '56', one
+        column_tuple = (u'lastname', u'firstname')
+        result = self.sqlite_test.new_getMany(self._table_name, column_tuple)
+        assert len(result) == 100, result
 
-        self.sqlite_test.update('person', "lastname == '3'", firstname=65)
-        one = self.sqlite_test.fetchone("select firstname from person where lastname == '3'")
-        assert one == 65, one
+        column_tuple = (u'lastname', u'firstname')
+        where_column_tuple = (u'lastname',)
+        where_value_tuple = (u'101',)
+        result = self.sqlite_test.new_getMany(self._table_name, column_tuple,
+                    where_column_tuple, where_value_tuple)
+        assert len(result) == 0, result
 
-        self.sqlite_test.update('person', "lastname == '4'", firstname=654, lastname=44)
-        one = self.sqlite_test.fetchone("select firstname from person where lastname == 44")
-        assert one == 654, one
+    def test_update_one(self):
+        """Tests the new_updateOne() method.
+        """
+        self.test_create_db()
+
+        column_tuple = (u'lastname', u'firstname')
+
+        # insert a record: (a,b)
+        value_tuple = (u'a', u'b')
+        self.sqlite_test.new_insertOne(self._table_name,
+            column_tuple, value_tuple)
+        assert self.sqlite_test.size(self._table_name) == 1
+
+        # update the record: (a,b) -> (c,d)
+        value_tuple = (u'c', u'd')
+        where_column_tuple = (u'lastname', u'firstname')
+        where_value_tuple = (u'a', u'b')
+        self.sqlite_test.new_updateOne(self._table_name,
+            column_tuple, value_tuple,
+            where_column_tuple, where_value_tuple)
+
+        result = self.sqlite_test.new_getOne(self._table_name, column_tuple)
+        assert result == (u'c', u'd'), result
+
+        where_column_tuple = (u'lastname',)
+        where_value_tuple = (u'a',)
+        result = self.sqlite_test.new_getOne(self._table_name, column_tuple,
+            where_column_tuple, where_value_tuple)
+        assert result is None, result
+
+    def test_update_many(self):
+        """Tests the new_updateMany() method.
+        """
+        self.test_create_db()
+
+        column_tuple = (u'lastname', u'firstname')
+
+        # insert two records: (1,2) and (a,b)
+        value_tuple_list = list()
+        value_tuple_list.append((u'1', u'2'))
+        value_tuple_list.append((u'a', u'b'))
+        self.sqlite_test.new_insertMany(self._table_name,
+            column_tuple, value_tuple_list)
+        assert self.sqlite_test.size(self._table_name) == 2
+
+        # update the two records: (1,2) -> (3,4) and (a,b) -> (c,d)
+        where_column_tuple = (u'lastname', u'firstname')
+
+        value_tuple_list = list()
+        value_tuple_list.append((u'3', u'4'))
+        value_tuple_list.append((u'c', u'd'))
+        where_value_tuple_list = list()
+        where_value_tuple_list.append((u'1', u'2'))
+        where_value_tuple_list.append((u'a', u'b'))
+        self.sqlite_test.new_updateMany(self._table_name,
+            column_tuple, value_tuple_list,
+            where_column_tuple, where_value_tuple_list)
+
+        column_tuple = (u'lastname', u'firstname')
+        result = self.sqlite_test.new_getMany(self._table_name, column_tuple)
+        assert (u'3', u'4') in result, result
+        assert (u'c', u'd') in result, result
+        assert (u'1', u'2') not in result, result
+        assert (u'a', u'b') not in result, result
+
+    def test_insert_order(self):
+        """TODO: I am not sure what this test is for. Someone may add comments.
+        """
+        self.test_insert_many()
+
+        column_tuple = (u'lastname', u'firstname')
+        value_tuple = (u'1', u'abc')
+        self.sqlite_test.new_insertOne(self._table_name,
+            column_tuple, value_tuple)
+
+        column_tuple = (u'firstname',)
+        where_column_tuple = (u'lastname',)
+        where_value_tuple = (u'1')
+        result = self.sqlite_test.new_getOne(self._table_name,
+            column_tuple, where_column_tuple, where_value_tuple)
+        assert result == '1' or result == 'abc'
+
+        result = self.sqlite_test.new_getMany(self._table_name,
+            column_tuple, where_column_tuple, where_value_tuple)
+        assert len(result) == 2

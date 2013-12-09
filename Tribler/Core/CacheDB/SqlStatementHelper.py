@@ -32,7 +32,7 @@ def buildSelectSqlStatement(table_name, column_tuple,
     for idx in xrange(1, len(column_tuple)):
         column_str += u', %s' % column_tuple[idx]
 
-    sql_stmt = u'SELECT %s FROM %s' (column_str, table_name)
+    sql_stmt = u'SELECT %s FROM %s' % (column_str, table_name)
     sql_stmt += buildOtherSqlStatement(where_column_tuple, order_by, limit)
 
     return sql_stmt

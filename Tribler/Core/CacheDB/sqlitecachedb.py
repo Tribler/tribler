@@ -605,6 +605,17 @@ class SQLiteCacheDBBase:
             return []  # should it return None?
 
     def new_insertOne(self, table_name, column_tuple, value_tuple):
+        """Low-level method for inserting one record.
+
+        Args:
+            table_name: The table name.
+            column_tuple: A tuple of the columns to insert.
+            value_tuple: A tuple of the values to insert.
+        Returns:
+            True if successful, False otherwise.
+        Raises:
+            None
+        """
         sql_stmt = buildInsertSqlStatement(table_name, column_tuple)
 
         result = False
@@ -620,14 +631,153 @@ class SQLiteCacheDBBase:
         return result
 
     def new_insertMany(self, table_name, column_tuple, value_tuple_list):
+        """Low-level method for inserting many records.
+
+        Args:
+            table_name: The table name.
+            column_tuple: A tuple of the columns to insert.
+            value_tuple_list: A list of tuples of the values to insert.
+        Returns:
+            True if successful, False otherwise.
+        Raises:
+            None
+        """
         sql_stmt = buildInsertSqlStatement(table_name, column_tuple)
 
         result = False
         try:
-            self.execute_many(sql_stmt, value_tuple_list)
+            self.executemany(sql_stmt, value_tuple_list)
             result = True
         except Exception as e:
-            print >> sys.stderr, '[SQLiteDB] Failed to INSERT ONE.'
+            print >> sys.stderr, '[SQLiteDB] Failed to INSERT MANY.'
+            print >> sys.stderr, '[SQLiteDB] Error: %s' % e
+            print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
+            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print_exc()
+        return result
+
+    def new_updateOne(self, table_name, column_tuple, value_tuple,
+                where_column_tuple, where_value_tuple):
+        """Low-level method for updating one record.
+
+        Args:
+            table_name: The table name.
+            column_tuple: A tuple of the columns to update.
+            value_tuple: A tuple of the values to update.
+            where_column_tuple: A tuple of columns in the WHERE part.
+            where_value_tuple: A tuple of values in the WHERE part.
+        Returns:
+            True if successful, False otherwise.
+        Raises:
+            None
+        """
+        sql_stmt = buildUpdateSqlStatement(table_name, column_tuple,
+            where_column_tuple)
+
+        all_value_tuple = value_tuple + where_value_tuple
+        result = False
+        try:
+            self.execute_write(sql_stmt, all_value_tuple)
+            result = True
+        except Exception as e:
+            print >> sys.stderr, '[SQLiteDB] Failed to UPDATE ONE.'
+            print >> sys.stderr, '[SQLiteDB] Error: %s' % e
+            print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
+            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print_exc()
+        return result
+
+    def new_updateMany(self, table_name, column_tuple, value_tuple_list,
+                where_column_tuple, where_value_tuple_list):
+        """Low-level method for updating many records.
+
+        Args:
+            table_name: The table name.
+            column_tuple: A tuple of the columns to update.
+            value_tuple_list: A list of tuples of the values to update.
+            where_column_tuple: A tuple of columns in the WHERE part.
+            where_value_tuple_list: A list of tuple of values in the WHERE part.
+        Returns:
+            True if successful, False otherwise.
+        Raises:
+            None
+        """
+        sql_stmt = buildUpdateSqlStatement(table_name, column_tuple,
+            where_column_tuple)
+
+        all_value_tuple_list = list()
+        for i in xrange(len(value_tuple_list)):
+            row_value_tuple = value_tuple_list[i] + where_value_tuple_list[i]
+            all_value_tuple_list.append(row_value_tuple)
+
+        result = False
+        try:
+            self.executemany(sql_stmt, all_value_tuple_list)
+            result = True
+        except Exception as e:
+            print >> sys.stderr, '[SQLiteDB] Failed to UPDATE MANY.'
+            print >> sys.stderr, '[SQLiteDB] Error: %s' % e
+            print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
+            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print_exc()
+        return result
+
+    def new_getOne(self, table_name, column_tuple,
+                where_column_tuple=None, where_value_tuple=None,
+                order_by=None, limit=None):
+        """Low-level method for getting one record.
+
+        Args:
+            table_name: The table name.
+            column_tuple: A tuple of the columns to get.
+            where_column_tuple: A tuple of columns in the WHERE part.
+            where_value_tuple: A tuple of values in the WHERE part.
+            order_by: The ORDER BY string.
+            limit: The number for LIMIT.
+        Returns:
+            The record if successful and it exists, None otherwise.
+        Raises:
+            None
+        """
+        sql_stmt = buildSelectSqlStatement(table_name, column_tuple,
+            where_column_tuple, order_by, limit)
+
+        result = None
+        try:
+            result = self.fetchone(sql_stmt, where_value_tuple)
+        except Exception as e:
+            print >> sys.stderr, '[SQLiteDB] Failed to SELECT ONE.'
+            print >> sys.stderr, '[SQLiteDB] Error: %s' % e
+            print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
+            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print_exc()
+        return result
+
+    def new_getMany(self, table_name, column_tuple,
+                where_column_tuple=None, where_value_tuple=None,
+                order_by=None, limit=None):
+        """Low-level method for getting many records.
+
+        Args:
+            table_name: The table name.
+            column_tuple: A tuple of the columns to get.
+            where_column_tuple: A tuple of columns in the WHERE part.
+            where_value_tuple: A tuple of values in the WHERE part.
+            order_by: The ORDER BY string.
+            limit: The number for LIMIT.
+        Returns:
+            The records if successful and they exist, None otherwise.
+        Raises:
+            None
+        """
+        sql_stmt = buildSelectSqlStatement(table_name, column_tuple,
+            where_column_tuple, order_by, limit)
+
+        result = None
+        try:
+            result = self.fetchall(sql_stmt, where_value_tuple)
+        except Exception as e:
+            print >> sys.stderr, '[SQLiteDB] Failed to SELECT ALL.'
             print >> sys.stderr, '[SQLiteDB] Error: %s' % e
             print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
             print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
