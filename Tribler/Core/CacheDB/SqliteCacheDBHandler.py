@@ -1198,7 +1198,7 @@ class TorrentDBHandler(BasicDBHandler):
     def getRecentlyCollectedSwiftHashes(self, limit=50):
         sql = """
             SELECT swift_torrent_hash, infohash, num_seeders, num_leechers,
-             last_tracker_check, insert_time FROM Torrent
+             last_tracker_check, insert_time FROM CollectedTorrent
              WHERE swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> ''
              AND secret is not 1 ORDER BY insert_time DESC LIMIT ?
              """
@@ -1208,7 +1208,7 @@ class TorrentDBHandler(BasicDBHandler):
     def getRandomlyCollectedSwiftHashes(self, insert_time, limit=50):
         sql = """
             SELECT swift_torrent_hash, infohash, num_seeders, num_leechers,
-             last_tracker_check FROM Torrent
+             last_tracker_check FROM CollectedTorrent
              WHERE insert_time < ?
              AND swift_torrent_hash IS NOT NULL
              AND swift_torrent_hash <> ''
