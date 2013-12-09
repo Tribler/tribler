@@ -124,7 +124,7 @@ class TorrentManager:
                         if self.torrent_db.hasTorrent(torrent.infohash):
                             self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
                         else:
-                            self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
+                            self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'})
                     do_db()
 
                     torrent.torrent_file_name = torrent_filename
@@ -882,8 +882,6 @@ class LibraryManager:
                 print_exc()
 
     def updateProgressInDB(self):
-        updates = False
-
         for ds in self.dslist[:]:
             id = ds.get_download().get_def().get_id()
             progress = (ds.get_progress() or 0.0) * 100.0
@@ -892,13 +890,9 @@ class LibraryManager:
             if progress - self.cache_progress.get(id, 0) > 5:
                 self.cache_progress[id] = progress
                 try:
-                    self.mypref_db.updateProgressByHash(id, progress, commit=False)
-                    updates = True
+                    self.mypref_db.updateProgressByHash(id, progress)
                 except:
                     print_exc()
-
-        if updates:
-            self.mypref_db.commit()
 
     def add_download_state_callback(self, callback):
         if callback not in self.gui_callback:

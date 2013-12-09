@@ -265,7 +265,7 @@ class TriblerLaunchMany(Thread):
 
         self.initComplete = True
 
-    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, commit=True, setupDelay=0, hidden=False):
+    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False):
         """ Called by any thread """
         d = None
         self.sesslock.acquire()
@@ -299,16 +299,16 @@ class TriblerLaunchMany(Thread):
             def write_my_pref():
                 torrent_id = self.torrent_db.getTorrentID(infohash)
                 data = {'destination_path': d.get_dest_dir()}
-                self.mypref_db.addMyPreference(torrent_id, data, commit=commit)
+                self.mypref_db.addMyPreference(torrent_id, data)
 
             if isinstance(tdef, TorrentDefNoMetainfo):
-                self.torrent_db.addInfohash(tdef.get_infohash(), commit=commit)
-                self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name().encode('utf_8'), commit=commit)
+                self.torrent_db.addInfohash(tdef.get_infohash())
+                self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name().encode('utf_8'))
                 write_my_pref()
             elif self.rtorrent_handler:
                 self.rtorrent_handler.save_torrent(tdef, write_my_pref)
             else:
-                self.torrent_db.addExternalTorrent(tdef, source='', extra_info={'status': 'good'}, commit=commit)
+                self.torrent_db.addExternalTorrent(tdef, source='', extra_info={'status': 'good'})
                 write_my_pref()
 
         return d
@@ -525,8 +525,7 @@ class TriblerLaunchMany(Thread):
                 self.sesslock.release()
 
             for i, filename in enumerate(filelist):
-                shouldCommit = i + 1 == len(filelist)
-                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i * 0.1)
+                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, setupDelay=i * 0.1)
 
     def load_download_pstate_noexc(self, infohash):
         """ Called by any thread, assume sesslock already held """
@@ -540,7 +539,7 @@ class TriblerLaunchMany(Thread):
             # self.rawserver_nonfatalerrorfunc(e)
             return None
 
-    def resume_download(self, filename, initialdlstatus=None, initialdlstatus_dict={}, commit=True, setupDelay=0):
+    def resume_download(self, filename, initialdlstatus=None, initialdlstatus_dict={}, setupDelay=0):
         tdef = sdef = dscfg = pstate = None
 
         try:
@@ -614,7 +613,7 @@ class TriblerLaunchMany(Thread):
                     if not self.download_exists((tdef or sdef).get_id()):
                         if tdef:
                             initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
-                            self.add(tdef, dscfg, pstate, initialdlstatus, commit=commit, setupDelay=setupDelay)
+                            self.add(tdef, dscfg, pstate, initialdlstatus, setupDelay=setupDelay)
                         else:
                             initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
                             self.swift_add(sdef, dscfg, pstate, initialdlstatus)
