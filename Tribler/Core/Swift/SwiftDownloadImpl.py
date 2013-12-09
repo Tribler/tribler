@@ -158,7 +158,7 @@ class SwiftDownloadImpl(DownloadRuntimeConfig):
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
-        move_files = (not self.dlconfig.has_option('swift', 'swiftmetadir')) and not os.path.isdir(self.get_dest_dir())
+        move_files = (not self.dlconfig.has_option('downloadconfig', 'swiftmetadir')) and not os.path.isdir(self.get_dest_dir())
 
         metadir = self.get_swift_meta_dir()
         if not metadir:
