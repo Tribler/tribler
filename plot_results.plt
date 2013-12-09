@@ -10,4 +10,4 @@ set xlabel 'Number of hops'
 set ylabel 'Speed [KB/s]'
 set xtics 1
 
-plot "hop_speed.txt" using 1:3  w lines title "Average speed [KB/s]"
+plot "hop_speed.txt" using 1:5  w lines title "Average speed [KB/s]"
