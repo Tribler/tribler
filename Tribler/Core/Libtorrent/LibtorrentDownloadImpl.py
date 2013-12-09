@@ -1195,6 +1195,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         elif section == 'downloadconfig' and name == 'max_download_rate':
             if self.handle:
                 self.handle.set_download_limit(int(new_value * 1024))
+        elif section == 'downloadconfig' and name in ['correctedfilename', 'saveas', 'vod_usercallback', 'super_seeder']:
+            return False
         return True
 
 
