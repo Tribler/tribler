@@ -28,19 +28,19 @@ class TestSqliteCacheDB(unittest.TestCase):
         assert sqlite_test2 != self.sqlite_test
 
     def test_insert_one(self):
-        """Tests the new_insertOne() method.
+        """Tests the insertOne() method.
         """
         self.test_create_db()
 
         column_tuple = (u'lastname', u'firstname')
         value_tuple = (u'a', u'b')
-        self.sqlite_test.new_insertOne(self._table_name,
+        self.sqlite_test.insertOne(self._table_name,
             column_tuple, value_tuple)
 
         assert self.sqlite_test.size(self._table_name) == 1
 
     def test_insert_many(self):
-        """Tests the new_insertMany() method.
+        """Tests the insertMany() method.
         """
         self.test_create_db()
 
@@ -50,7 +50,7 @@ class TestSqliteCacheDB(unittest.TestCase):
             value = (str(i), str(i ** 2))
             value_tuple_list.append(value)
 
-        self.sqlite_test.new_insertMany(self._table_name,
+        self.sqlite_test.insertMany(self._table_name,
             column_tuple, value_tuple_list)
 
         assert self.sqlite_test.size(self._table_name) == 100
@@ -103,7 +103,7 @@ class TestSqliteCacheDB(unittest.TestCase):
 
         # insert a record: (a,b)
         value_tuple = (u'a', u'b')
-        self.sqlite_test.new_insertOne(self._table_name,
+        self.sqlite_test.insertOne(self._table_name,
             column_tuple, value_tuple)
         assert self.sqlite_test.size(self._table_name) == 1
 
@@ -135,7 +135,7 @@ class TestSqliteCacheDB(unittest.TestCase):
         value_tuple_list = list()
         value_tuple_list.append((u'1', u'2'))
         value_tuple_list.append((u'a', u'b'))
-        self.sqlite_test.new_insertMany(self._table_name,
+        self.sqlite_test.insertMany(self._table_name,
             column_tuple, value_tuple_list)
         assert self.sqlite_test.size(self._table_name) == 2
 
@@ -166,7 +166,7 @@ class TestSqliteCacheDB(unittest.TestCase):
 
         column_tuple = (u'lastname', u'firstname')
         value_tuple = (u'1', u'abc')
-        self.sqlite_test.new_insertOne(self._table_name,
+        self.sqlite_test.insertOne(self._table_name,
             column_tuple, value_tuple)
 
         column_tuple = (u'firstname',)

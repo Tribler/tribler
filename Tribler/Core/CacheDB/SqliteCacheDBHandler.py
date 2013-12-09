@@ -162,55 +162,25 @@ class PeerDBHandler(BasicDBHandler):
     def __len__(self):
         return self.size()
 
-    def getPeerID(self, permid):
-        return self.getPeerIDS([permid,])[0]
-
-    def getPeerIDS(self, permids):
-        to_select = list()
-
-        for permid in permids:
-            assert isinstance(permid, str), permid
-
-            if permid not in self.permid_id:
-                to_select.append(bin2str(permid))
-
-        if to_select:
-            parameters = ', '.join('?' * len(to_select))
-            sql_get_peer_ids = "SELECT peer_id, permid FROM Peer WHERE permid IN (" + parameters + ")"
-            peerids = self._db.fetchall(sql_get_peer_ids, to_select)
-            for peer_id, permid in peerids:
-                self.permid_id[str2bin(permid)] = peer_id
-
-        to_return = list()
-        for permid in permids:
-            if permid in self.permid_id:
-                to_return.append(self.permid_id[permid])
-            else:
-                to_return.append(None)
-        return to_return
-
     def addOrGetPeerID(self, permid):
-        peer_id = self.getPeerID(permid)
+        peer_id = self.getPeer(permid, (u'peer_id',))
         if peer_id is None:
             self.addPeer(permid, None)
-            peer_id = self.getPeerID(permid)
+            peer_id = self.getPeer(permid, (u'peer_id',))
 
         return peer_id
 
-    def getPeer(self, permid):
-        value_name = (u'peer_id', u'permid', u'name', u'thumbnail')
-        column_str = value_name[0]
-        for value in value_name[1:]:
-            column_str += ',' + value
+    def getPeer(self, permid, columns=None):
+        if columns is None:
+            columns = (u'peer_id', u'permid', u'name', u'thumbnail')
 
-        sql = 'SELECT %s FROM Peer WHERE permid = ?' % column_str
+        column_str = columns[0]
+        for column in columns[1:]:
+            column_str += u',' + column
+
+        sql = u'SELECT %s FROM Peer WHERE permid = ?' % column_str
         result = self._db.fetchone(sql, (bin2str(permid),))
-        if result is None:
-            return None
-
-        peer = dict(zip(value_name, result))
-        peer[u'permid'] = permid
-        return peer
+        return result
 
     def addPeer(self, permid, value):
         assert permid is not None
@@ -229,7 +199,7 @@ class PeerDBHandler(BasicDBHandler):
                     key_list.append(key)
                     val_list.append(val)
 
-        peer_id = self.getPeerID(permid)
+        peer_id = self.getPeer(permid, (u'peer_id',))
         has_peer = peer_id is not None
 
         # TODO: may remove update part
@@ -259,7 +229,7 @@ class PeerDBHandler(BasicDBHandler):
 
     def hasPeerByPermid(self, permid, check_db=False):
         if not check_db:
-            return bool(self.getPeerID(permid))
+            return bool(self.getPeer(permid, (u'peer_id',)))
         else:
             sql = "SELECT peer_id FROM Peer WHERE permid == ?"
             peer_id = self._db.fetchone(sql, (bin2str(permid),))
@@ -269,7 +239,7 @@ class PeerDBHandler(BasicDBHandler):
         assert (permid is not None) or (peer_id is not None)
 
         if peer_id is None:
-            peer_id = self.getPeerID(permid)
+            peer_id = self.getPeer(permid, (u'peer_id',))
         if peer_id is None:
             return
 

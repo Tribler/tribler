@@ -505,15 +505,6 @@ class SQLiteCacheDBBase:
     def executemany(self, sql, args, commit=True):
         self._executemany(sql, args)
 
-    # TODO: may remove this, no one uses it.
-    def insert_or_replace(self, table_name, commit=True, **argv):
-        if len(argv) == 1:
-            sql = 'INSERT OR REPLACE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
-        else:
-            questions = '?,' * len(argv)
-            sql = 'INSERT OR REPLACE INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values(), commit)
-
     def insert_or_ignore(self, table_name, commit=True, **argv):
         if len(argv) == 1:
             sql = 'INSERT OR IGNORE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
@@ -529,17 +520,6 @@ class SQLiteCacheDBBase:
             questions = '?,' * len(argv)
             sql = 'INSERT INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
         self.execute_write(sql, argv.values(), commit)
-
-    # TODO: may remove this, only used by test_sqlitecachedb.py
-    def insertMany(self, table_name, values, keys=None, commit=True):
-        """ values must be a list of tuples """
-
-        questions = u'?,' * len(values[0])
-        if keys is None:
-            sql = u'INSERT INTO %s VALUES (%s);' % (table_name, questions[:-1])
-        else:
-            sql = u'INSERT INTO %s %s VALUES (%s);' % (table_name, tuple(keys), questions[:-1])
-        self.executemany(sql, values, commit=commit)
 
     def update(self, table_name, where=None, commit=True, **argv):
         assert len(argv) > 0, 'NO VALUES TO UPDATE SPECIFIED'
@@ -604,7 +584,7 @@ class SQLiteCacheDBBase:
         else:
             return []  # should it return None?
 
-    def new_insertOne(self, table_name, column_tuple, value_tuple):
+    def insertOne(self, table_name, column_tuple, value_tuple):
         """Low-level method for inserting one record.
 
         Args:
@@ -630,7 +610,7 @@ class SQLiteCacheDBBase:
             print_exc()
         return result
 
-    def new_insertMany(self, table_name, column_tuple, value_tuple_list):
+    def insertMany(self, table_name, column_tuple, value_tuple_list):
         """Low-level method for inserting many records.
 
         Args:

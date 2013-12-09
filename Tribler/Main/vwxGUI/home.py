@@ -886,6 +886,7 @@ class PopularTorrentPanel(NewTorrentPanel):
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 
+            # TODO: to be replaced
             topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where=familyfilter_sql, order_by="(num_seeders+num_leechers) DESC", limit=10)
             self._RefreshList(topTen)
 

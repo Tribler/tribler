@@ -82,8 +82,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
     def test_getList(self):
         p1 = self.pdb.getPeer(self.p1)
         p2 = self.pdb.getPeer(self.p2)
-        assert isinstance(p1, dict)
-        assert isinstance(p2, dict)
+        assert isinstance(p1, tuple)
+        assert isinstance(p2, tuple)
         if DEBUG:
             print >> sys.stderr, "singtest_GETLIST P1", repr(p1)
             print >> sys.stderr, "singtest_GETLIST P2", repr(p2)
@@ -96,8 +96,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
         self.pdb.addPeer(fake_permid_x, peer_x)
         assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
 
-        p = self.pdb.getPeer(fake_permid_x)
-        assert p['name'] == 'fake peer x'
+        peer_name = self.pdb.getPeer(fake_permid_x, (u'name',))
+        assert peer_name == 'fake peer x', peer_name
 
         self.pdb.deletePeer(fake_permid_x)
         p = self.pdb.getPeer(fake_permid_x)
