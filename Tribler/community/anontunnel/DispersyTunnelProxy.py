@@ -289,6 +289,10 @@ class DispersyTunnelProxy(Observable):
 
         else:
             type, payload = ProxyMessage.parse_payload(data)
+            if circuit_id in self.circuits:
+                with self.lock:
+                    self.circuits[circuit_id].last_incoming = time.time()
+
             self.message_observer.fire(type, circuit_id=circuit_id, candidate=candidate, message=payload)
 
     def on_puncture(self, circuit_id, candidate, message):
@@ -674,7 +678,7 @@ class DispersyTunnelProxy(Observable):
                     'time': r.times[-1] - r.times[0]
                 }
                 for r in self.get_relays()
-                if len(r.times) >= 2
+                if r.times and len(r.times) >= 2
             ]
         }
 
