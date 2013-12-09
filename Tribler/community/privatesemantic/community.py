@@ -564,8 +564,8 @@ class ForwardCommunity():
             # create a register similarity request
             assert not self._request_cache.has(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier))
             request = ForwardCommunity.MSimilarityRequest(self, message.candidate, candidates, force_number=message.payload.identifier)
-            #TODO: this shouldn't be necessary
-            request.number = message.payload.identifer
+            #TODO: this shouldn't be necessary, requires a change in dispersy
+            request.number = message.payload.identifier
             assert request.number == message.payload.identifier, (request.number, message.payload.identifier)
 
             # add local response
