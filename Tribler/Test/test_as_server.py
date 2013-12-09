@@ -232,9 +232,8 @@ class TestGuiAsServer(TestAsServer):
 
     def startTest(self, callback, min_timeout=5):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        from Tribler.Main.tribler import run, ALLOW_MULTIPLE
-
-        ALLOW_MULTIPLE = True
+        from Tribler.Main import tribler
+        tribler.ALLOW_MULTIPLE = True
 
         self.hadSession = False
         starttime = time.time()
@@ -277,7 +276,7 @@ class TestGuiAsServer(TestAsServer):
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
-        run()
+        tribler.run()
 
         assert self.hadSession, 'Did not even create a session'
 
