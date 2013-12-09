@@ -446,33 +446,11 @@ class TorrentChecking(Thread):
         if is_good_result:
             return
 
-        infohash = response['infohash']
-        seeders = 0
-        leechers = 0
-        last_check = int(time.time())
-        # the torrent status logic, TODO: do it in other way
-        if DEBUG:
-            print >> sys.stderr, "TorrentChecking: Final result %d/%d for %s"\
-                % (seeders, leechers, bin2str(infohash))
+        response['seeders'] = 0
+        response['leechers'] = 0
+        response['last_check'] = int(time.time())
 
-        torrent_id = self._torrentdb.getTorrentID(infohash)
-        retries = self._torrentdb.getTorrentCheckRetries(torrent_id)
-        if retries is None:
-            retries = 0
-
-        if retries < self._max_torrrent_check_retries:
-            retries += 1
-        if retries < self._max_torrrent_check_retries:
-            status = u'unknown'
-        else:
-            status = u'dead'
-
-        # calculate next check time: <last-time> + <interval> * (2 ^ <retries>)
-        next_check = last_check + self._torrrent_check_retry_interval * (2 ** retries)
-
-        self._torrentdb.updateTorrentCheckResult(torrent_id,
-                infohash, seeders, leechers, last_check, next_check,
-                status, retries)
+        self._updateTorrentResult(response)
 
     # ------------------------------------------------------------
     # Selects torrents to check.
