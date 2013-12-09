@@ -1023,6 +1023,26 @@ class TorrentDBHandler(BasicDBHandler):
 
         return True
 
+    def getTorrentCheckRetries(self, torrent_id):
+        sql = 'SELECT tracker_check_retries FROM Torrent WHERE torrent_id = ?'
+        result = self._db.fetchone(sql, (torrent_id,))
+        return result
+
+    def updateTorrentCheckResult(self, torrent_id, infohash,
+                seeders, leechers, last_check, next_check, status, retries):
+        sql = 'UPDATE Torrent SET num_seeders = ?, num_leechers = ?'\
+              + ', last_tracker_check = ?, next_tracker_check = ?'\
+              + ', status_id = ?, tracker_check_retries = ?'\
+              + ' WHERE torrent_id = ?'
+
+        status_id = self.status_table[status]
+        self._db.execute_write(sql,
+            (seeders, leechers, last_check, next_check,
+             status_id, retries, torrent_id))
+
+        # notify
+        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
+
     # ------------------------------------------------------------
     # Updates the TorrentTrackerMapping table.
     # ------------------------------------------------------------
@@ -1056,14 +1076,15 @@ class TorrentDBHandler(BasicDBHandler):
     # ------------------------------------------------------------
     # Gets all the torrents that has a specific tracker.
     # ------------------------------------------------------------
-    def getTorrentsOnTracker(self, tracker):
+    def getTorrentsOnTracker(self, tracker, current_time):
         sql = """
             SELECT T.torrent_id, T.infohash, T.last_tracker_check
               FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM
               WHERE TI.tracker = ?
               AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id
+              AND next_tracker_check < ?
             """
-        infohash_list = self._db.fetchall(sql, (tracker,))
+        infohash_list = self._db.fetchall(sql, (tracker, current_time))
         return [(torrent_id, str2bin(infohash), last_tracker_check) for torrent_id, infohash, last_tracker_check in infohash_list]
 
     # ------------------------------------------------------------

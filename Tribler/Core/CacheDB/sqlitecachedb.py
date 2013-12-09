@@ -2007,6 +2007,12 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 self.execute_write(\
                     "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0", \
                     commit=False)
+                self.execute_write(\
+                    "ALTER TABLE Torrent ADD COLUMN tracker_check_retries integer DEFAULT 0", \
+                    commit=False)
+                self.execute_write(\
+                    "ALTER TABLE Torrent ADD COLUMN next_tracker_check integer DEFAULT 0", \
+                    commit=False)
 
                 create_new_table = """
                     CREATE TABLE TrackerInfo (

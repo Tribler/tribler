@@ -104,7 +104,9 @@ CREATE TABLE Torrent (
   dispersy_id      integer,
   swift_hash        text,
   swift_torrent_hash text,
-  last_tracker_check integer DEFAULT 0
+  last_tracker_check    integer DEFAULT 0,
+  tracker_check_retries integer DEFAULT 0,
+  next_tracker_check    integer DEFAULT 0
 );
 
 CREATE UNIQUE INDEX infohash_idx
