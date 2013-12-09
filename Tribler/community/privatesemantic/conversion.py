@@ -38,11 +38,11 @@ class ForwardConversion(BinaryConversion):
 
     def _encode_simi_reveal(self, message):
         if isinstance(message.payload.overlap, int):
-            return pack('!ci', 'I', message.payload.overlap)
+            return pack('!ci', 'I', message.payload.overlap),
 
         # convert long into string
         str_overlap = [long_to_bytes(overlap, 20) for overlap in message.payload.overlap]
-        return pack('!c' + '20s' * len(message.payload.overlap), 'L', *str_overlap)
+        return pack('!c' + '20s' * len(message.payload.overlap), 'L', *str_overlap),
 
     def _decode_simi_reveal(self, placeholder, offset, data):
         if len(data) < offset + 1:
