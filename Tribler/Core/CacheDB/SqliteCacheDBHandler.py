@@ -185,8 +185,8 @@ class PeerDBHandler(BasicDBHandler):
     def addPeer(self, permid, value):
         assert permid is not None
 
-        key_list = list()
-        val_list = list()
+        key_list = [u'permid']
+        val_list = [bin2str(permid)]
         if value:
             for key, val in value.iteritems():
                 assert key != 'peer_id'
@@ -212,27 +212,18 @@ class PeerDBHandler(BasicDBHandler):
 
             self._db.execute_write(sql, tuple(val_list))
         else:
-            key_str = 'permid'
-            for key in key_list:
-                key_str += ', ' + key
-
-            val_str = '?,' * (len(val_list) + 1)
-            sql = 'INSERT OR IGNORE INTO Peer(%s) VALUES(%s)' % (key_str, val_str[:-1])
-
-            val_list.insert(0, bin2str(permid))
-            self._db.execute_write(sql, tuple(val_list))
+            self._db.insertOne(u'Peer', tuple(key_list), tuple(val_list))
 
         if has_peer:
             self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
         else:
             self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
 
-    def hasPeerByPermid(self, permid, check_db=False):
+    def hasPeer(self, permid, check_db=False):
         if not check_db:
             return bool(self.getPeer(permid, (u'peer_id',)))
         else:
-            sql = "SELECT peer_id FROM Peer WHERE permid == ?"
-            peer_id = self._db.fetchone(sql, (bin2str(permid),))
+            peer_id = self.getPeer(permid, (u'peer_id',))
             return peer_id is not None
 
     def deletePeer(self, permid=None, peer_id=None):
@@ -245,10 +236,9 @@ class PeerDBHandler(BasicDBHandler):
 
         deleted = False
         if peer_id is not None:
-            sql = 'DELETE FROM Peer WHERE peer_id = ?'
-            self._db.execute_write(sql, (peer_id,))
+            self._db.deleteOne(u'Peer', (u'peer_id',), (peer_id,))
 
-            deleted = not self.hasPeerByPermid(permid, check_db=True)
+            deleted = not self.hasPeer(permid, check_db=True)
             if deleted and permid in self.permid_id:
                 self.permid_id.pop(permid)
 

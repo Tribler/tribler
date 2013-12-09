@@ -72,7 +72,7 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
         self.pdb = PeerDBHandler.getInstance()
 
-        hp = self.pdb.hasPeerByPermid(fake_permid_x)
+        hp = self.pdb.hasPeer(fake_permid_x)
         assert not hp
 
     def tearDown(self):
@@ -105,10 +105,10 @@ class TestSqlitePeerDBHandler(AbstractDB):
         assert self.pdb.size() == oldsize
 
     def test_aa_hasPeer(self):
-        assert self.pdb.hasPeerByPermid(self.p1)
-        assert self.pdb.hasPeerByPermid(self.p2)
+        assert self.pdb.hasPeer(self.p1)
+        assert self.pdb.hasPeer(self.p2)
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        assert not self.pdb.hasPeerByPermid(fake_permid_x)
+        assert not self.pdb.hasPeer(fake_permid_x)
 
     def test_deletePeer(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
@@ -119,16 +119,16 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
         self.pdb.addPeer(fake_permid_x, peer_x)
         assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
-        assert self.pdb.hasPeerByPermid(fake_permid_x)
+        assert self.pdb.hasPeer(fake_permid_x)
         p = self.pdb.getPeer(fake_permid_x)
         assert p is not None
 
         self.pdb.deletePeer(fake_permid_x)
-        assert not self.pdb.hasPeerByPermid(fake_permid_x)
+        assert not self.pdb.hasPeer(fake_permid_x)
 
         self.pdb.deletePeer(fake_permid_x)
         assert self.pdb.size() == oldsize
-        assert not self.pdb.hasPeerByPermid(fake_permid_x)
+        assert not self.pdb.hasPeer(fake_permid_x)
 
         self.pdb.deletePeer(fake_permid_x)
         assert self.pdb.size() == oldsize

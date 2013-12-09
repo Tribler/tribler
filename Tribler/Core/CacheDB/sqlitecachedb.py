@@ -764,6 +764,32 @@ class SQLiteCacheDBBase:
             print_exc()
         return result
 
+    def deleteOne(self, table_name, where_column_tuple, where_value_tuple):
+        """Low-level method for deleting one record.
+
+        Args:
+            table_name: The table name.
+            where_column_tuple: A tuple of columns in the WHERE part.
+            where_value_tuple: A tuple of values in the WHERE part.
+        Returns:
+            True if successful, False otherwise.
+        Raises:
+            None
+        """
+        sql_stmt = buildDeleteSqlStatement(table_name, where_column_tuple)
+
+        result = False
+        try:
+            self.execute_write(sql_stmt, where_value_tuple)
+            result = True
+        except Exception as e:
+            print >> sys.stderr, '[SQLiteDB] Failed to DELETE ONE.'
+            print >> sys.stderr, '[SQLiteDB] Error: %s' % e
+            print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
+            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print_exc()
+        return result
+
     def getAll(self, table_name, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
         """ value_name could be a string, or a tuple of strings
             order by is represented as order_by
