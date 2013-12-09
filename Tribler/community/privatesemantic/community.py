@@ -89,6 +89,8 @@ class TasteBuddy():
 
 class ActualTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate):
+        assert isinstance(candidate, WalkCandidate), type(candidate)
+        
         TasteBuddy.__init__(self, overlap, candidate.sock_addr)
         self.timestamp = timestamp
         self.candidate = candidate
@@ -122,6 +124,9 @@ class ActualTasteBuddy(TasteBuddy):
 
 class PossibleTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate_mid, received_from):
+        assert isinstance(timestamp, (long, float)), type(timestamp)
+        assert isinstance(received_from, WalkCandidate), type(received_from)
+        
         TasteBuddy.__init__(self, overlap, None)
         self.timestamp = timestamp
         self.candidate_mid = candidate_mid
@@ -419,6 +424,7 @@ class ForwardCommunity():
 
         def __init__(self, community, requested_candidate):
             NumberCache.__init__(self, community.request_cache)
+            assert isinstance(requested_candidate, WalkCandidate), type(requested_candidate)
             self.community = community
             self.requested_candidate = requested_candidate
 
@@ -434,6 +440,8 @@ class ForwardCommunity():
             self.community.send_introduction_request(self.requested_candidate)
 
     def create_introduction_request(self, destination, allow_sync):
+        assert isinstance(destination, WalkCandidate), [type(destination), destination]
+        
         if DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: creating intro request", isinstance(destination, BootstrapCandidate), self.is_taste_buddy(destination), self.has_possible_taste_buddies(destination)
 
