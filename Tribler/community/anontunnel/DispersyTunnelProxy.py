@@ -780,6 +780,8 @@ class DispersyTunnelProxy(Observable):
                     del self.destination_circuit[key]
                     tunnels_going_down = True
 
+            if tunnels_going_down:
+                self.online = False
 
     def on_candidate_exit(self, candidate):
         """
