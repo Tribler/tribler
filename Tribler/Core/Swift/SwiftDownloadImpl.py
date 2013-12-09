@@ -253,10 +253,10 @@ class SwiftDownloadImpl(DownloadRuntimeConfig):
                 self.lm_network_vod_event_callback(videoinfo, VODEVENT_START, {
                     "complete": False,
                     "filename": None,
-                    "mimetype": 'application/octet-stream',  # ARNOSMPTODO
+                    "mimetype": 'application/octet-stream', # ARNOSMPTODO
                     "stream": None,
                     "length": self.get_dynasize(),
-                    "bitrate": None,  # ARNOSMPTODO
+                    "bitrate": None, # ARNOSMPTODO
                     "url": httpurl,
                 })
         finally:
@@ -685,6 +685,8 @@ class SwiftDownloadImpl(DownloadRuntimeConfig):
                 direct = UPLOAD if name == 'max_upload_rate' else DOWNLOAD
                 if self.get_max_speed(direct) != new_value:
                     self.sp.set_max_speed(self, direct, new_value)
+        elif section == 'downloadconfig' and name in ['selected_files', 'mode', 'correctedfilename', 'saveas', 'vod_usercallback', 'super_seeder']:
+            return False
         return True
 
 
