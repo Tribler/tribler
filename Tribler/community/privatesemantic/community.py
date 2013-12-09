@@ -499,9 +499,13 @@ class ForwardCommunity():
                     # we need to associated this candidate with this mid, apparently this is only done when receiving an induction response
                     rcandidate.associate(member)
 
-                    if candidate not in self.received_candidates:
-                        self.received_candidates.add(candidate)
-                        self.received_lists.append((candidate, member.mid, response))
+                    if rcandidate not in self.received_candidates:
+                        self.received_candidates.add(rcandidate)
+                        self.received_lists.append((rcandidate, member.mid, response))
+                        
+                elif DEBUG:
+                    print >> sys.stderr, long(time()), "ForwardCommunity: did not send request to candidate", candidate,"ignoring response"
+                    
             else:
                 self.my_response = response
 
@@ -521,7 +525,7 @@ class ForwardCommunity():
 
                 if self.requesting_candidate:
                     if DEBUG_VERBOSE:
-                        print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
+                        print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate, self.received_lists
 
                     self.community.request_cache.pop(self.identifier)
                     return self.community.send_msimilarity_response(self.requesting_candidate, self.number, self.my_response, self.received_lists)
@@ -561,11 +565,11 @@ class ForwardCommunity():
 
             # add local response
             request.add_response(None, None, self.on_similarity_request([message], False))
-
-            self._request_cache.add(request)
+            
             if candidates:
                 # forward it to others
                 self.send_similarity_request(candidates, message.payload.identifier, message.payload)
+                self._request_cache.add(request)
 
             if request.is_complete():
                 request.process()
@@ -617,11 +621,17 @@ class ForwardCommunity():
 
     def on_similarity_response(self, messages):
         for message in messages:
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "ForwardCommunity: got similarity response from", message.candidate
+            
             request = self._request_cache.get(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier))
             if request:
                 request.add_response(message.candidate, message.authentication.member, message.payload)
                 if request.is_complete():
                     self.reply_packet_size += request.process()
+                    
+            elif DEBUG:
+                print >> sys.stderr, long(time()), "ForwardCommunity: could not get requestcache for", message.payload.identifier
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         assert isinstance(identifier, int), type(identifier)
