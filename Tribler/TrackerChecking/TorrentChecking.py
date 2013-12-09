@@ -57,6 +57,9 @@ DEFAULT_MAX_GUI_REQUESTS = 5000
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
 DEFAULT_TORRENT_CHECK_INTERVAL = 60  # a torrent will only be checked every 60 seconds
 
+DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8
+DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30
+
 # ============================================================
 # This is the single-threaded tracker checking class.
 # ============================================================
@@ -68,8 +71,10 @@ class TorrentChecking(Thread):
     # Intialization.
     # ------------------------------------------------------------
     def __init__(self, \
-            torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL, \
-            torrent_check_interval=DEFAULT_TORRENT_CHECK_INTERVAL):
+            torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL,
+            torrent_check_interval=DEFAULT_TORRENT_CHECK_INTERVAL,
+            max_torrrent_check_retries=DEFAULT_MAX_TORRENT_CHECK_RETRIES,
+            torrrent_check_retry_interval=DEFAULT_TORRENT_CHECK_RETRY_INTERVAL):
         if TorrentChecking.__single:
             raise RuntimeError("Torrent Checking is singleton")
         TorrentChecking.__single = self
@@ -97,6 +102,9 @@ class TorrentChecking(Thread):
         self._tracker_selection_idx = 0
         self._torrent_select_interval = torrent_select_interval
         self._torrent_check_interval = torrent_check_interval
+
+        self._max_torrrent_check_retries = max_torrrent_check_retries
+        self._torrrent_check_retry_interval = torrrent_check_retry_interval
 
         # self._max_gui_requests = DEFAULT_MAX_GUI_REQUESTS
         self._gui_request_queue = Queue.Queue()
@@ -383,22 +391,43 @@ class TorrentChecking(Thread):
     # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentResult(self, response):
+        infohash = response['infohash']
         seeders = response['seeders']
         leechers = response['leechers']
         last_check = response['last_check']
 
         # the torrent status logic, TODO: do it in other way
-        status = 'unknown'
-        if seeders > 0:
-            status = 'good'
-
         if DEBUG:
-            print >> sys.stderr, "TorrentChecking: updateresult %d/%d status %s for %s" % (seeders, leechers, status, bin2str(response['infohash']))
+            print >> sys.stderr, "TorrentChecking: Update result %d/%d for %s"\
+                % (seeders, leechers, bin2str(infohash))
 
-        # only use updateTorrent() to update results and status
-        kw = {'seeder': seeders, 'leecher': leechers, 'status': status, \
-            'last_tracker_check': last_check}
-        self._torrentdb.updateTorrent(response['infohash'], **kw)
+        torrent_id = self._torrentdb.getTorrentID(infohash)
+        retries = self._torrentdb.getTorrentCheckRetries(torrent_id)
+
+        # the result logic
+        is_good_result = False
+        if seeders > 0 or leechers > 0:
+            is_good_result = True
+
+        # the status logic
+        if is_good_result:
+            retries = 0
+            status = u'good'
+        else:
+            retries += 1
+            if retries < self._max_torrrent_check_retries:
+                status = u'unknown'
+            else:
+                status = u'dead'
+                # prevent retries from exceeding the maximum
+                retries = self._max_torrrent_check_retries
+
+        # calculate next check time: <last-time> + <interval> * (2 ^ <retries>)
+        next_check = last_check + self._torrrent_check_retry_interval * (2 ** retries)
+
+        self._torrentdb.updateTorrentCheckResult(torrent_id,
+                infohash, seeders, leechers, last_check, next_check,
+                status, retries)
 
     # ------------------------------------------------------------
     # Updates the check result into the database
@@ -410,26 +439,19 @@ class TorrentChecking(Thread):
         seeders = response['seeders']
         leechers = response['leechers']
 
-        if seeders >= 0 and leechers >= 0:
+        # the result logic
+        is_good_result = False
+        if seeders > 0 or leechers > 0:
+            is_good_result = True
+
+        if is_good_result:
             return
 
-        last_check = int(time.time())
-        # the torrent status logic, TODO: do it in other way
-        status = 'unknown'
-        if seeders > 0:
-            status = 'good'
-        elif seeders == 0:
-            status = 'dead'
+        response['seeders'] = 0
+        response['leechers'] = 0
+        response['last_check'] = int(time.time())
 
-        seeders = 0
-        leechers = 0
-
-        if DEBUG:
-            print >> sys.stderr, "TorrentChecking: finalresult %d/%d status %s for %s" % (seeders, leechers, status, bin2str(response['infohash']))
-
-        kw = {'seeder': seeders, 'leecher': leechers, 'status': status, \
-              'last_tracker_check': last_check}
-        self._torrentdb.updateTorrent(response['infohash'], **kw)
+        self._updateTorrentResult(response)
 
     # ------------------------------------------------------------
     # Selects torrents to check.
@@ -454,7 +476,7 @@ class TorrentChecking(Thread):
 
             # get all the torrents on this tracker
             try:
-                all_torrent_list = self._torrentdb.getTorrentsOnTracker(tracker)
+                all_torrent_list = self._torrentdb.getTorrentsOnTracker(tracker, current_time)
             except:
                 print_exc()
                 return
@@ -487,7 +509,7 @@ class TorrentChecking(Thread):
     def run(self):
         # TODO: someone please check this? I am not really sure what this is.
         if prctlimported:
-            prctl.set_name("Tribler" + currentThread().getName())
+            prctl.set_name("Tribler" + threading.currentThread().getName())
 
         # wait for the tracker info cache to be initialized
         if DEBUG:
