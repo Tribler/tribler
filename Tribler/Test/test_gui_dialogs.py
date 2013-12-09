@@ -98,8 +98,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog.OnAdd(None)
 
         def do_add_dialog():
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            defaultDLConfig.set_show_saveas(True)
+            self.guiUtility.utility.write_config('showsaveas', 1)
 
             self.Call(1, do_save_dialog)
             self.frame.top_bg.OnAdd(None)

@@ -72,18 +72,6 @@ class DownloadConfigInterface(object):
         """
         return self.dlconfig.get('downloadconfig', 'saveas')
 
-    # LAYERVIOLATION: Core has nothing to do with GUI dialogs
-    def get_show_saveas(self):
-        """ Gets the boolean indicating if we should show a dialog where to save a torrent
-        """
-        return self.dlconfig.get('downloadconfig', 'showsaveas')
-
-    def set_show_saveas(self, show):
-        """ Sets the boolean indicating if we should show a dialog where to save a torrent
-        @param show Boolean to show a dialog
-        """
-        self.dlconfig.set('downloadconfig', 'showsaveas', show)
-
     def get_corrected_filename(self):
         """ Gets the directory name where to save this torrent
         """
