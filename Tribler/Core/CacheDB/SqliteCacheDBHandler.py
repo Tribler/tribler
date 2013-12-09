@@ -1323,9 +1323,6 @@ class TorrentDBHandler(BasicDBHandler):
         print >> sys.stderr, "Erased %d torrents" % deleted
         return deleted
 
-    def hasMetaData(self, infohash):
-        return self.hasTorrent(infohash)
-
     def searchNames(self, kws, local=True, keys=['torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'insert_time', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'dispersy_id', 'swift_hash', 'swift_torrent_hash'], doSort=True):
         #        if local:
 #            mainsql += "C.id, C.dispersy_id, C.name, C.description, C.time_stamp, inserted, "
