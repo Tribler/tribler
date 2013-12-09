@@ -560,6 +560,10 @@ class ForwardCommunity():
             if self._request_cache.has(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier)):
                 yield DropMessage(message, "send similarity attempt to myself?")
                 continue
+            
+            if self._request_cache.has(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier)):
+                yield DropMessage(message, "currently processing another msimilarity request with this identifier")
+                continue
 
             yield message
 
@@ -569,7 +573,6 @@ class ForwardCommunity():
             candidates = self.get_connections(self.forward_to, message.candidate)
 
             # create a register similarity request
-            assert not self._request_cache.has(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier))
             request = ForwardCommunity.MSimilarityRequest(self, message.candidate, candidates, force_number=message.payload.identifier)
             #TODO: this shouldn't be necessary, requires a change in dispersy
             request._number = message.payload.identifier
