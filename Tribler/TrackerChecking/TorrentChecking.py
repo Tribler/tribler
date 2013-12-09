@@ -414,12 +414,13 @@ class TorrentChecking(Thread):
             retries = 0
             status = u'good'
         else:
-            if retries < self._max_torrrent_check_retries:
-                retries += 1
+            retries += 1
             if retries < self._max_torrrent_check_retries:
                 status = u'unknown'
             else:
                 status = u'dead'
+                # prevent retries from exceeding the maximum
+                retries = self._max_torrrent_check_retries
 
         # calculate next check time: <last-time> + <interval> * (2 ^ <retries>)
         next_check = last_check + self._torrrent_check_retry_interval * (2 ** retries)
