@@ -40,7 +40,7 @@ from Tribler.community.privatesemantic.conversion import bytes_to_long, \
     long_to_bytes
 
 DEBUG = True
-DEBUG_VERBOSE = False
+DEBUG_VERBOSE = True
 ENCRYPTION = True
 
 PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
@@ -250,7 +250,7 @@ class ForwardCommunity():
         self.taste_buddies.sort(reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
 
-        if True or DEBUG_VERBOSE:
+        if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "ForwardCommunity: current tastebuddy list", len(self.taste_buddies), map(str, self.taste_buddies)
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: current tastebuddy list", len(self.taste_buddies)
@@ -435,14 +435,14 @@ class ForwardCommunity():
 
     def create_introduction_request(self, destination, allow_sync):
         if DEBUG:
-            print >> sys.stderr, long(time()), "ForwardCommunity: creating intro request", isinstance(destination, BootstrapCandidate), self.is_taste_buddy(destination), self.has_possible_taste_buddies(destination), allow_sync
+            print >> sys.stderr, long(time()), "ForwardCommunity: creating intro request", isinstance(destination, BootstrapCandidate), self.is_taste_buddy(destination), self.has_possible_taste_buddies(destination)
 
         send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination):
             send = self.create_msimilarity_request(destination)
 
         if not send:
-            self.send_introduction_request(destination)
+            self.send_introduction_request(destination, allow_sync=allow_sync)
 
     def create_similarity_payload(self):
         raise NotImplementedError()
@@ -872,7 +872,7 @@ class PForwardCommunity(ForwardCommunity):
 
     def process_msimilarity_response(self, message):
         if DEBUG_VERBOSE:
-            print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
+            print >> sys.stderr, long(time()), "PSearchCommunity: got msimi response from", message.candidate, len(message.payload.sums)
 
         overlap = self.compute_overlap(message.payload._sum)
         self.add_taste_buddies([ActualTasteBuddy(overlap, time(), message.candidate)])
