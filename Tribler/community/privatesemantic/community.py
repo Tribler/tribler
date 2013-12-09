@@ -39,8 +39,8 @@ from Tribler.community.privatesemantic.payload import SimiRevealPayload
 from Tribler.community.privatesemantic.conversion import bytes_to_long, \
     long_to_bytes
 
-DEBUG = True
-DEBUG_VERBOSE = True
+DEBUG = False
+DEBUG_VERBOSE = False
 ENCRYPTION = True
 
 PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
@@ -647,6 +647,8 @@ class ForwardCommunity():
 
             request = self._request_cache.get(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier))
             if not request:
+                print >> sys.stderr, "cannot find", message.payload.identifier, self._request_cache._identifiers.keys()
+                
                 yield DropMessage(message, "unknown identifier")
                 continue
 
