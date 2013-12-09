@@ -224,7 +224,12 @@ class TestTorrentDBHandler(AbstractDB):
         m_size = torrent[u'length']
         assert m_size == 5358560, m_size
 
-        sid = self.tdb._db.getOne('TorrentSource', 'source_id', name=src)
+        table_name = u'TorrentSource'
+        column_tuple = (u'source_id',)
+        where_column_tuple = (u'name',)
+        where_value_tuple = (src,)
+        sid = self.tdb._db.getOne(table_name, column_tuple,
+            where_column_tuple, where_value_tuple)
         assert sid > 1
 
         torrent = self.tdb.getTorrentById(keys=(u'source_id',), torrent_id=multiple_torrent_id)

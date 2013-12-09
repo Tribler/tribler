@@ -722,7 +722,7 @@ class SQLiteCacheDBBase:
             print_exc()
         return result
 
-    def new_getOne(self, table_name, column_tuple,
+    def getOne(self, table_name, column_tuple,
                 where_column_tuple=None, where_value_tuple=None,
                 order_by=None, limit=None):
         """Low-level method for getting one record.
@@ -783,50 +783,6 @@ class SQLiteCacheDBBase:
             print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
             print_exc()
         return result
-
-    def getOne(self, table_name, value_name, where=None, conj='and', **kw):
-        """ value_name could be a string, a tuple of strings, or '*'
-        """
-
-        if isinstance(value_name, tuple):
-            value_names = u",".join(value_name)
-        elif isinstance(value_name, list):
-            value_names = u",".join(value_name)
-        else:
-            value_names = value_name
-
-        if isinstance(table_name, tuple):
-            table_names = u",".join(table_name)
-        elif isinstance(table_name, list):
-            table_names = u",".join(table_name)
-        else:
-            table_names = table_name
-
-        sql = u'select %s from %s' % (value_names, table_names)
-
-        if where or kw:
-            sql += u' where '
-        if where:
-            sql += where
-            if kw:
-                sql += u' %s ' % conj
-        if kw:
-            arg = []
-            for k, v in kw.iteritems():
-                if isinstance(v, tuple):
-                    operator = v[0]
-                    arg.append(v[1])
-                else:
-                    operator = "="
-                    arg.append(v)
-                sql += u' %s %s ? ' % (k, operator)
-                sql += conj
-            sql = sql[:-len(conj)]
-        else:
-            arg = None
-
-        # print >> sys.stderr, 'SQL: %s %s' % (sql, arg)
-        return self.fetchone(sql, arg)
 
     def getAll(self, table_name, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
         """ value_name could be a string, or a tuple of strings

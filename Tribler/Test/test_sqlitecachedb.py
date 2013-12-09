@@ -56,25 +56,25 @@ class TestSqliteCacheDB(unittest.TestCase):
         assert self.sqlite_test.size(self._table_name) == 100
 
     def test_get_one(self):
-        """Tests the new_getOne() method.
+        """Tests the getOne() method.
         """
         self.test_insert_one()
 
         column_tuple = (u'lastname', u'firstname')
-        result = self.sqlite_test.new_getOne(self._table_name, column_tuple)
+        result = self.sqlite_test.getOne(self._table_name, column_tuple)
         assert result == (u'a', u'b'), result
 
         column_tuple = (u'lastname',)
         where_column_tuple = (u'firstname',)
         where_value_tuple = (u'b',)
-        result = self.sqlite_test.new_getOne(self._table_name, column_tuple,
+        result = self.sqlite_test.getOne(self._table_name, column_tuple,
                     where_column_tuple, where_value_tuple)
         assert result == u'a', result
 
         column_tuple = (u'lastname',)
         where_column_tuple = (u'firstname',)
         where_value_tuple = (u'c',)
-        result = self.sqlite_test.new_getOne(self._table_name, column_tuple,
+        result = self.sqlite_test.getOne(self._table_name, column_tuple,
                     where_column_tuple, where_value_tuple)
         assert result is None, result
 
@@ -115,12 +115,12 @@ class TestSqliteCacheDB(unittest.TestCase):
             column_tuple, value_tuple,
             where_column_tuple, where_value_tuple)
 
-        result = self.sqlite_test.new_getOne(self._table_name, column_tuple)
+        result = self.sqlite_test.getOne(self._table_name, column_tuple)
         assert result == (u'c', u'd'), result
 
         where_column_tuple = (u'lastname',)
         where_value_tuple = (u'a',)
-        result = self.sqlite_test.new_getOne(self._table_name, column_tuple,
+        result = self.sqlite_test.getOne(self._table_name, column_tuple,
             where_column_tuple, where_value_tuple)
         assert result is None, result
 
@@ -172,7 +172,7 @@ class TestSqliteCacheDB(unittest.TestCase):
         column_tuple = (u'firstname',)
         where_column_tuple = (u'lastname',)
         where_value_tuple = (u'1')
-        result = self.sqlite_test.new_getOne(self._table_name,
+        result = self.sqlite_test.getOne(self._table_name,
             column_tuple, where_column_tuple, where_value_tuple)
         assert result == '1' or result == 'abc'
 
