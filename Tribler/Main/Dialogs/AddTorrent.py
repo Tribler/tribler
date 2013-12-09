@@ -93,7 +93,7 @@ class AddTorrent(wx.Dialog):
 
         else:
             self.choose = wx.CheckBox(self, -1, "Let me choose a downloadlocation for these torrents")
-            self.choose.SetValue(self.defaultDLConfig.get_show_saveas())
+            self.choose.SetValue(self.guiutility.utility.read_config('showsaveas'))
             vSizer.Add(self.choose, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 3)
 
         sizer = wx.BoxSizer()

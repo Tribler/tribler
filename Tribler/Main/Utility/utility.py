@@ -63,8 +63,8 @@ class Utility:
                             'window_width': 1024,
                             'window_height': 670,
                             'sash_position':-185,
-                            't4t_option': 0,  # Seeding items added by Boxun
-                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
+                            't4t_option': 0, # Seeding items added by Boxun
+                            't4t_ratio': 100, # T4T seeding ratio added by Niels
                             't4t_hours': 0,
                             't4t_mins': 30,
                             'g2g_option': 1,
@@ -80,7 +80,8 @@ class Utility:
                             'webui_port': 8080,
                             # Swift reseed
                             'swiftreseed': 1,
-                            'videohttpport':-1}
+                            'videohttpport':-1,
+                            'showsaveas': 1}
 
         if sys.platform == 'win32':
             tribler_defaults['mintray'] = '2'

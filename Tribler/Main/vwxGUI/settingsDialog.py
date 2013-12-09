@@ -150,7 +150,7 @@ class SettingsDialog(wx.Dialog):
 
         self.currentDestDir = self.defaultDLConfig.get_dest_dir()
         self.elements['diskLocationCtrl'].SetValue(self.currentDestDir)
-        self.elements['diskLocationChoice'].SetValue(self.defaultDLConfig.get_show_saveas())
+        self.elements['diskLocationChoice'].SetValue(self.utility.read_config('showsaveas'))
 
         if sys.platform != "darwin":
             min_to_tray = self.utility.read_config('mintray') == 1
@@ -333,9 +333,9 @@ class SettingsDialog(wx.Dialog):
                 self.guiUtility.set_firewall_restart(True)
                 restart = True
 
-            showSave = self.elements['diskLocationChoice'].IsChecked()
-            if showSave != self.defaultDLConfig.get_show_saveas():
-                self.defaultDLConfig.set_show_saveas(showSave)
+            showSave = int(self.elements['diskLocationChoice'].IsChecked())
+            if showSave != self.utility.read_config('showsaveas'):
+                self.utility.write_config('showsaveas', showSave)
                 self.saveDefaultDownloadConfig(scfg)
 
             if valdir != self.currentDestDir:

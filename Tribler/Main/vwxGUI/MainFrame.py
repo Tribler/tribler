@@ -484,7 +484,7 @@ class MainFrame(wx.Frame):
             dscfg = defaultDLConfig.copy()
 
             cancelDownload = False
-            useDefault = not dscfg.get_show_saveas()
+            useDefault = not self.utility.read_config('showsaveas')
             if not useDefault and not destdir:
                 defaultname = correctedFilename
                 if not correctedFilename and tdef and tdef.is_multifile_torrent():
