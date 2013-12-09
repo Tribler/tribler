@@ -32,6 +32,7 @@ def main(argv):
         parser.add_argument('-e', '--extend-strategy', default='upfront', help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_argument('--record-on-incoming', help='Record stats from the moment the first data enters the tunnel')
+        parser.add_argument('--crawl', default=False, help='Record stats from others in results.db')
 
         parser.add_help = True
         args = parser.parse_args(sys.argv[1:])
@@ -64,7 +65,9 @@ def main(argv):
         yappi.start(builtins=True)
         print "Profiling using %s time" % yappi.get_clock_type()['type']
 
-    anon_tunnel = AnonTunnel(socks5_port, cmd_port)
+    crawl = True if args.crawl else False
+
+    anon_tunnel = AnonTunnel(socks5_port, cmd_port, crawl)
 
     if args.record_on_incoming:
         def on_enter_tunnel_data_head(ultimate_destination, payload):

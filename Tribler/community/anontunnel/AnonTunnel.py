@@ -1,5 +1,6 @@
 import time
 from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
+from Tribler.community.anontunnel.StatsCrawler import StatsCrawler
 
 __author__ = 'chris'
 
@@ -19,7 +20,7 @@ from threading import Event, Thread
 
 
 class AnonTunnel(Thread):
-    def __init__(self, socks5_port, cmd_port):
+    def __init__(self, socks5_port, cmd_port, crawl=False):
         Thread.__init__(self)
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
@@ -38,6 +39,8 @@ class AnonTunnel(Thread):
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
         self.tunnel = DispersyTunnelProxy(self.raw_server)
         self.socks5_server.tunnel = self.tunnel
+
+        self.stats_crawler = StatsCrawler(self.tunnel, self.raw_server) if crawl else None
 
         if cmd_port:
             self.command_handler = CommandHandler(self)
@@ -96,6 +99,9 @@ class AnonTunnel(Thread):
         self.raw_server.listen_forever(None)
 
     def stop(self):
+        if self.stats_crawler:
+            self.raw_server.add_task(lambda: self.stats_crawler.stop())
+
         if self.dispersy:
             self.dispersy.stop()
 
