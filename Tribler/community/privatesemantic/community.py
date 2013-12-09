@@ -631,14 +631,31 @@ class ForwardCommunity():
                     self.reply_packet_size += request.process()
                     
             elif DEBUG:
-                print >> sys.stderr, long(time()), "ForwardCommunity: could not get requestcache for", message.payload.identifier
+                print >> sys.stderr, long(time()), "ForwardCommunity: could not get msimilarity requestcache for", message.payload.identifier
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         assert isinstance(identifier, int), type(identifier)
         raise NotImplementedError()
+    
+    def check_msimilarity_response(self, messages):
+        for message in messages:
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
+                yield DelayMessageByProof(message)
+                continue
+
+            request = self._request_cache.get(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier))
+            if not request:
+                yield DropMessage(message, "unknown identifier")
+                continue
+
+            yield message
 
     def on_msimilarity_response(self, messages):
         for message in messages:
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "ForwardCommunity: got msimilarity response from", message.candidate
+            
             request = self._request_cache.pop(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier))
             if request:
                 # replace message.candidate with WalkCandidate
@@ -654,6 +671,8 @@ class ForwardCommunity():
 
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, long(time()), "ForwardCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+            elif DEBUG:
+                print >> sys.stderr, long(time()), "ForwardCommunity: could not get similarity requestcache for", message.payload.identifier
 
     def send_similarity_reveal(self, destination, overlap):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
@@ -843,7 +862,7 @@ class PForwardCommunity(ForwardCommunity):
         messages = ForwardCommunity.initiate_meta_messages(self)
         messages.append(Message(self, u"msimilarity-request", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedVectorPayload(), self.check_msimilarity_request, self.on_msimilarity_request))
         messages.append(Message(self, u"similarity-request", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedVectorPayload(), self.check_similarity_request, self.on_similarity_request))
-        messages.append(Message(self, u"msimilarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedSumsPayload(), self._dispersy._generic_timeline_check, self.on_msimilarity_response))
+        messages.append(Message(self, u"msimilarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedSumsPayload(), self.check_msimilarity_response, self.on_msimilarity_response))
         messages.append(Message(self, u"similarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedSumPayload(), self.check_similarity_response, self.on_similarity_response))
         return messages
 
@@ -1013,7 +1032,7 @@ class HForwardCommunity(ForwardCommunity):
         messages = ForwardCommunity.initiate_meta_messages(self)
         messages.append(Message(self, u"msimilarity-request", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), SimilarityRequest(), self.check_msimilarity_request, self.on_msimilarity_request))
         messages.append(Message(self, u"similarity-request", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), SimilarityRequest(), self.check_similarity_request, self.on_similarity_request))
-        messages.append(Message(self, u"msimilarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), BundledEncryptedResponsePayload(), self._dispersy._generic_timeline_check, self.on_msimilarity_response))
+        messages.append(Message(self, u"msimilarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), BundledEncryptedResponsePayload(), self.check_msimilarity_response, self.on_msimilarity_response))
         messages.append(Message(self, u"similarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedResponsePayload(), self.check_similarity_response, self.on_similarity_response))
         return messages
 
@@ -1204,7 +1223,7 @@ class PoliForwardCommunity(ForwardCommunity):
         messages = ForwardCommunity.initiate_meta_messages(self)
         messages.append(Message(self, u"msimilarity-request", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), PoliSimilarityRequest(), self.check_msimilarity_request, self.on_msimilarity_request))
         messages.append(Message(self, u"similarity-request", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), PoliSimilarityRequest(), self.check_similarity_request, self.on_similarity_request))
-        messages.append(Message(self, u"msimilarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedPoliResponsesPayload(), self._dispersy._generic_timeline_check, self.on_msimilarity_response))
+        messages.append(Message(self, u"msimilarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedPoliResponsesPayload(), self.check_msimilarity_response, self.on_msimilarity_response))
         messages.append(Message(self, u"similarity-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedPoliResponsePayload(), self.check_similarity_response, self.on_similarity_response))
         return messages
 
