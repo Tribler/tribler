@@ -317,8 +317,8 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
-    def filter_tb(self):
-        return SocialCommunity.filter_tb(self)
+    def filter_tb(self, tbs):
+        return SocialCommunity.filter_tb(self, tbs)
 
     def get_tbs_from_peercache(self, nr):
         return SocialCommunity.get_tbs_from_peercache(self, nr)
@@ -355,8 +355,8 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
         PForwardCommunity.unload_community(self)
         SocialCommunity.unload_community(self)
 
-    def filter_tb(self):
-        return SocialCommunity.filter_tb(self)
+    def filter_tb(self, tbs):
+        return SocialCommunity.filter_tb(self, tbs)
 
     def get_tbs_from_peercache(self, nr):
         return SocialCommunity.get_tbs_from_peercache(self, nr)
@@ -397,8 +397,8 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
-    def create_ping_requests(self):
-        return SocialCommunity.create_ping_requests(self)
+    def filter_tb(self, tbs):
+        return SocialCommunity.filter_tb(self, tbs)
 
     def get_tbs_from_peercache(self, nr):
         return SocialCommunity.get_tbs_from_peercache(self, nr)
@@ -439,8 +439,8 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
         PoliForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
-    def filter_tb(self):
-        return SocialCommunity.filter_tb(self)
+    def filter_tb(self, tbs):
+        return SocialCommunity.filter_tb(self, tbs)
 
     def get_tbs_from_peercache(self, nr):
         return SocialCommunity.get_tbs_from_peercache(self, nr)
