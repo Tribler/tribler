@@ -14,6 +14,8 @@ from Tribler.Core import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
 
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
@@ -30,6 +32,7 @@ class LibtorrentMgr:
             LibtorrentMgr.__single = self
 
         self.trsession = trsession
+        self.notifier = Notifier.getInstance()
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
@@ -63,6 +66,13 @@ class LibtorrentMgr:
         self.ltsession.add_dht_router('router.utorrent.com', 6881)
         self.ltsession.add_dht_router('router.bitcomet.com', 6881)
 
+        # Load proxy settings
+        self.set_proxy_settings(*self.trsession.get_libtorrent_proxy_settings())
+
+        self.set_utp(self.trsession.get_libtorrent_utp())
+
+        self.external_ip = None
+
         self.torlock = NoDispersyRLock()
         self.torrents = {}
 
@@ -86,6 +96,10 @@ class LibtorrentMgr:
         del LibtorrentMgr.__single
         LibtorrentMgr.__single = None
     delInstance = staticmethod(delInstance)
+    
+    def hasInstance():
+        return LibtorrentMgr.__single != None
+    hasInstance = staticmethod(hasInstance)
 
     def shutdown(self):
         # Save DHT state
@@ -95,6 +109,28 @@ class LibtorrentMgr:
 
         del self.ltsession
         self.ltsession = None
+
+    def set_proxy_settings(self, ptype, server=None, auth=None):
+        proxy_settings = lt.proxy_settings()
+        proxy_settings.type = lt.proxy_type(ptype)
+        if server:
+            proxy_settings.hostname = server[0]
+            proxy_settings.port = server[1]
+        if auth:
+            proxy_settings.username = auth[0]
+            proxy_settings.password = auth[1]
+        proxy_settings.proxy_hostnames = True
+        proxy_settings.proxy_peer_connections = True
+        self.ltsession.set_peer_proxy(proxy_settings)
+        self.ltsession.set_web_seed_proxy(proxy_settings)
+        self.ltsession.set_tracker_proxy(proxy_settings)
+        self.ltsession.set_dht_proxy(proxy_settings)
+
+    def set_utp(self, enable):
+        settings = self.ltsession.settings()
+        settings.enable_outgoing_utp = enable
+        settings.enable_incoming_utp = enable
+        self.ltsession.set_settings(settings)
 
     def set_max_connections(self, conns):
         self.ltsession.set_max_connections(conns)
@@ -110,6 +146,9 @@ class LibtorrentMgr:
 
     def get_download_rate_limit(self):
         return self.ltsession.download_rate_limit()
+
+    def get_external_ip(self):
+        return self.external_ip
 
     def get_dht_nodes(self):
         return self.ltsession.status().dht_nodes
@@ -162,7 +201,7 @@ class LibtorrentMgr:
 
             if infohash in self.metainfo_requests:
                 print >> sys.stderr, "LibtorrentMgr: killing get_metainfo request for", infohash
-                handle, _ = self.metainfo_requests.pop(infohash)
+                handle, _, _ = self.metainfo_requests.pop(infohash)
                 if handle:
                     self.ltsession.remove_torrent(handle, 0)
 
@@ -212,13 +251,18 @@ class LibtorrentMgr:
         if self.ltsession:
             alert = self.ltsession.pop_alert()
             while alert:
+                alert_type = str(type(alert)).split("'")[1].split(".")[-1]
+                if alert_type == 'external_ip_alert':
+                    external_ip = str(alert).split()[-1]
+                    if self.external_ip != external_ip:
+                        self.external_ip = external_ip
+                        print >> sys.stderr, 'LibtorrentMgr: external IP is now', self.external_ip
                 handle = getattr(alert, 'handle', None)
                 if handle:
                     if handle.is_valid():
                         infohash = str(handle.info_hash())
                         with self.torlock:
                             if infohash in self.torrents:
-                                alert_type = str(type(alert)).split("'")[1].split(".")[-1]
                                 self.torrents[infohash].process_alert(alert, alert_type)
                             elif infohash in self.metainfo_requests:
                                 if type(alert) == lt.metadata_received_alert:
@@ -236,29 +280,33 @@ class LibtorrentMgr:
         else:
             self.trsession.lm.rawserver.add_task(self.reachability_check, 10)
 
-    def monitor_dht(self):
+    def monitor_dht(self, chances_remaining=1):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
         if self.ltsession:
             if self.get_dht_nodes() <= 25:
-                print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d)" % self.ltsession.status().dht_nodes
-                self.ltsession.start_dht(None)
-
+                if self.get_dht_nodes() >= 5 and chances_remaining:
+                    print >> sys.stderr, "LibtorrentMgr: giving the dht a chance (%d, %d)" % (self.ltsession.status().dht_nodes, chances_remaining)
+                    self.trsession.lm.rawserver.add_task(lambda: self.monitor_dht(chances_remaining - 1), 5)
+                else:
+                    print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d, %d)" % (self.ltsession.status().dht_nodes, chances_remaining)
+                    self.ltsession.start_dht(None)
+                    self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
             else:
                 print >> sys.stderr, "LibtorrentMgr: dht is working enough nodes are found (%d)" % self.ltsession.status().dht_nodes
                 self.dht_ready = True
                 return
-
-        self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
+        else:
+            self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
 
     def get_peers(self, infohash, callback, timeout=30):
         def on_metainfo_retrieved(metainfo, infohash=infohash, callback=callback):
             callback(infohash, metainfo.get('initial peers', []))
-        self.get_metainfo(infohash, on_metainfo_retrieved, timeout)
+        self.get_metainfo(infohash, on_metainfo_retrieved, timeout, notify=False)
 
-    def get_metainfo(self, infohash_or_magnet, callback, timeout=30):
+    def get_metainfo(self, infohash_or_magnet, callback, timeout=30, notify=True):
         if not self.is_dht_ready() and timeout > 5:
             print >> sys.stderr, "LibtorrentDownloadImpl: DHT not ready, rescheduling get_metainfo"
-            self.trsession.lm.rawserver.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5: self.get_metainfo(i, c, t), 5)
+            self.trsession.lm.rawserver.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5, n=notify: self.get_metainfo(i, c, t, n), 5)
             return
 
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
@@ -286,11 +334,14 @@ class LibtorrentMgr:
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
                 handle = self.ltsession.add_torrent(atp)
+                if notify:
+                    self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
 
-                self.metainfo_requests[infohash] = (handle, [callback])
+                self.metainfo_requests[infohash] = [handle, [callback], notify]
                 self.trsession.lm.rawserver.add_task(lambda: self.got_metainfo(infohash, True), timeout)
 
             else:
+                self.metainfo_requests[infohash][2] = self.metainfo_requests[infohash][2] and notify
                 callbacks = self.metainfo_requests[infohash][1]
                 if callback not in callbacks:
                     callbacks.append(callback)
@@ -299,9 +350,10 @@ class LibtorrentMgr:
 
     def got_metainfo(self, infohash, timeout=False):
         with self.metainfo_lock:
+            infohash_bin = binascii.unhexlify(infohash)
 
             if infohash in self.metainfo_requests:
-                handle, callbacks = self.metainfo_requests.pop(infohash)
+                handle, callbacks, notify = self.metainfo_requests.pop(infohash)
 
                 if DEBUG:
                     print >> sys.stderr, 'LibtorrentMgr: got_metainfo', infohash, handle, timeout
@@ -318,6 +370,8 @@ class LibtorrentMgr:
                         metainfo["nodes"] = []
                     if peers:
                         metainfo["initial peers"] = peers
+                        if notify:
+                            self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_GOT_PEERS, infohash_bin, len(peers))
 
                     self._add_cached_metainfo(infohash, metainfo)
 
@@ -329,6 +383,8 @@ class LibtorrentMgr:
 
                 if handle:
                     self.ltsession.remove_torrent(handle, 1)
+                    if notify:
+                        self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_CLOSE, infohash_bin)
 
     def _clean_metainfo_cache(self):
         oldest_valid_ts = time.time() - METAINFO_CACHE_PERIOD

@@ -93,7 +93,8 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         self.global_max_speed[UPLOAD] = 0.0
         self.global_max_speed[DOWNLOAD] = 0.0
         self.global_max_seedupload_speed = 0.0
-        self.ltmgr = LibtorrentMgr.getInstance()
+        
+        self.ltmgr = None
 
     def set_global_max_speed(self, direct, speed):
         self.lock.acquire()
@@ -164,13 +165,18 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                 for ds in todoset:
                     d = ds.get_download()
                     d.set_max_speed(dir, localmaxspeed)
-
-        rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
-        if dir == UPLOAD:
-            self.ltmgr.set_upload_rate_limit(libtorrent_rate)
-        else:
-            self.ltmgr.set_download_rate_limit(libtorrent_rate)
+        
+        
+        if self.ltmgr == None and LibtorrentMgr.hasInstance():
+            self.ltmgr = LibtorrentMgr.getInstance()
+            
+        if self.ltmgr:
+            rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
+            libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
+            if dir == UPLOAD:
+                self.ltmgr.set_upload_rate_limit(libtorrent_rate)
+            else:
+                self.ltmgr.set_download_rate_limit(libtorrent_rate)
 
     def get_global_max_speed(self, dir=UPLOAD):
         if dir == UPLOAD and len(self.statusmap[DLSTATUS_DOWNLOADING]) == 0 and len(self.statusmap[DLSTATUS_SEEDING]) > 0:
@@ -307,12 +313,16 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                         print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Normal set to", piece
                         d.set_max_speed(dir, localmaxspeed)
 
-        rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
-        if dir == UPLOAD:
-            self.ltmgr.set_upload_rate_limit(libtorrent_rate)
-        else:
-            self.ltmgr.set_download_rate_limit(libtorrent_rate)
+        if self.ltmgr == None and LibtorrentMgr.hasInstance():
+            self.ltmgr = LibtorrentMgr.getInstance()
+            
+        if self.ltmgr:
+            rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
+            libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
+            if dir == UPLOAD:
+                self.ltmgr.set_upload_rate_limit(libtorrent_rate)
+            else:
+                self.ltmgr.set_download_rate_limit(libtorrent_rate)
 
 
 class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager):
@@ -425,9 +435,13 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                     print >> sys.stderr, "RateManager: set_lim:", d.get_def().get_name(), "InactQ", setspeed
                 d.set_max_speed(dir, setspeed)
 
-        rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
-        if dir == UPLOAD:
-            self.ltmgr.set_upload_rate_limit(libtorrent_rate)
-        else:
-            self.ltmgr.set_download_rate_limit(libtorrent_rate)
+        if self.ltmgr == None and LibtorrentMgr.hasInstance():
+            self.ltmgr = LibtorrentMgr.getInstance()
+            
+        if self.ltmgr:
+            rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
+            libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
+            if dir == UPLOAD:
+                self.ltmgr.set_upload_rate_limit(libtorrent_rate)
+            else:
+                self.ltmgr.set_download_rate_limit(libtorrent_rate)

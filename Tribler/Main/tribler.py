@@ -20,6 +20,7 @@ from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
 from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
 
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig
 try:
     logging.config.fileConfig("logger.conf")
 except:
@@ -39,11 +40,14 @@ logger = logging.getLogger(__name__)
 #
 import urllib
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
 original_open_https = urllib.URLopener.open_https
+import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
 # modify the sys.stderr and sys.stdout for safe output
+import Tribler.Debug.console
 
 import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
@@ -96,6 +100,7 @@ from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 
 from Tribler.Main.Utility.utility import Utility
+from Tribler.Main.Utility.constants import *
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
 from Tribler.Category.Category import Category
@@ -106,18 +111,28 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
+from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
+from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
+from Tribler.Video.VideoServer import SimpleServer
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
+import Tribler.Core.DecentralizedTracking.pymdht.core
+import Tribler.Core.DecentralizedTracking.pymdht.core.identifier
+import Tribler.Core.DecentralizedTracking.pymdht.core.message
+import Tribler.Core.DecentralizedTracking.pymdht.core.node
+import Tribler.Core.DecentralizedTracking.pymdht.core.ptime
+import Tribler.Core.DecentralizedTracking.pymdht.core.routing_table
+import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
-from time import sleep, time
+from time import time, sleep
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6875
@@ -199,7 +214,7 @@ class ABCApp():
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-            UserDownloadChoice.get_singleton().set_session_dir(s.get_state_dir())
+            UserDownloadChoice.get_singleton().set_config(self.utility.config, s.get_state_dir())
 
             self.splash.tick('Initializing Family Filter')
             cat = Category.getInstance()
@@ -248,11 +263,12 @@ class ABCApp():
 
             self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'))
 
-            # Put it here so an error is shown in the startup-error popup
-            # Start server for instance2instance communication
-            self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
-            self.i2is = Instance2InstanceServer(I2I_LISTENPORT, self.i2iconnhandler)
-            self.i2is.start()
+            if not ALLOW_MULTIPLE:
+                # Put it here so an error is shown in the startup-error popup
+                # Start server for instance2instance communication
+                self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
+                self.i2is = Instance2InstanceServer(I2I_LISTENPORT, self.i2iconnhandler)
+                self.i2is.start()
 
             # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
             # Range: GETs causes performance problems in our code. Disable for now.
@@ -264,7 +280,13 @@ class ABCApp():
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
             playbackmode = self.utility.config.Read('videoplaybackmode', "int")
-            self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
+            # TODO: we should do
+            # httpport = self.utility.config.Read('videohttpport', 'int')
+            if ALLOW_MULTIPLE:
+                httpport = randint(1024, 25000)
+            else:
+                httpport = VIDEOHTTP_LISTENPORT
+            self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
             self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
 
             notification_init(self.utility)
@@ -303,7 +325,7 @@ class ABCApp():
                     if hand.GetMimeType() == 'image/x-bmp':
                         bmphand = hand
                         break
-                    # wx.Image.AddHandler()
+                # wx.Image.AddHandler()
                 if bmphand is not None:
                     bmphand.SetMimeType('image/bmp')
             except:
@@ -333,8 +355,8 @@ class ABCApp():
 
             status = get_status_holder("LivingLab")
             status.add_reporter(NullReporter("Periodically remove all events", 0))
-            # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
-            # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
             status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
@@ -504,8 +526,12 @@ class ABCApp():
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
         except:
-            self.sconfig = SessionStartupConfig()
-            self.sconfig.set_state_dir(state_dir)
+            try:
+                self.sconfig = convertSessionConfig(os.path.join(state_dir, 'sessconfig.pickle'), cfgfilename)
+                convertMainConfig(state_dir, os.path.join(state_dir, 'abc.conf'), os.path.join(state_dir, 'tribler.conf'))
+            except:
+                self.sconfig = SessionStartupConfig()
+                self.sconfig.set_state_dir(state_dir)
 
         self.sconfig.set_install_dir(self.installdir)
 
@@ -547,9 +573,6 @@ class ABCApp():
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
         if not self.sconfig.get_swift_meta_dir():
             self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
-
-        # 15/05/12 niels: fixing swift port
-        defaultDLConfig.set_swift_listen_port(7758)
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
@@ -919,6 +942,19 @@ class ABCApp():
 
                 manager = self.frame.librarylist.GetManager()
                 manager.torrentsUpdated(infohashes)
+
+            from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
+
+            if self.frame.torrentdetailspanel.torrent and self.frame.torrentdetailspanel.torrent.infohash in infohashes:
+                # If an updated torrent is being shown in the detailspanel, make sure the information gets refreshed.
+                t = self.frame.torrentdetailspanel.torrent
+                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
+                self.frame.torrentdetailspanel.setTorrent(torrent)
+
+            if self.frame.librarydetailspanel.torrent and self.frame.librarydetailspanel.torrent.infohash in infohashes:
+                t = self.frame.librarydetailspanel.torrent
+                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
+                self.frame.librarydetailspanel.setTorrent(torrent)
 
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading. Now seeding." % args[0], icon='seed')

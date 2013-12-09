@@ -528,7 +528,7 @@
 			                                    	<object class="wxStaticText">
 			                                        	<label>Current port</label>
 			                                    	</object>
-													<minsize>100,-1</minsize>
+													<minsize>80,-1</minsize>
 												</object>
 												<object class="sizeritem">
 													<object class="wxTextCtrl" name="firewallValue">
@@ -548,6 +548,134 @@
 											</object>
 											<flag>wxEXPAND</flag>
 										</object>
+										
+
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>BitTorrent proxy settings</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+											<flag>wxBOTTOM|wxTOP</flag>
+											<border>5</border>
+                                        </object>
+		                                <object class="sizeritem">
+		                                	<object class="wxGridBagSizer">
+										        <vgap>3</vgap>
+										        <hgap>0</hgap>
+												<object class="sizeritem">
+			                                    	<object class="wxStaticText">
+			                                        	<label>Type</label>
+			                                    	</object>
+													<minsize>80,-1</minsize>
+												    <cellpos>0,0</cellpos>
+													<cellspan>1,1</cellspan>
+												</object>												
+                                                <object class="sizeritem">
+                                                    <object class="wxChoice" name="lt_proxytype">
+                                                        <content>
+                                                            <item>None</item>
+                                                            <item>Socks4</item>
+                                                            <item>Socks5</item>
+                                                            <item>Socks5 with authentication</item>
+                                                            <item>HTTP</item>
+                                                            <item>HTTP with authentication</item>
+                                                        </content>
+                                                    </object>
+                                                    <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
+												    <cellpos>0,1</cellpos>
+													<cellspan>1,1</cellspan>
+                                                </object>
+												<object class="sizeritem">
+			                                    	<object class="wxStaticText">
+			                                        	<label>Server</label>
+			                                    	</object>
+													<minsize>80,-1</minsize>
+												    <cellpos>1,0</cellpos>
+													<cellspan>1,1</cellspan>
+												</object>
+												<object class="sizeritem">
+													<object class="wxTextCtrl" name="lt_proxyserver">
+		                                                <style>wxTE_PROCESS_ENTER</style>
+		                                            </object>
+												    <cellpos>1,1</cellpos>
+													<cellspan>1,1</cellspan>
+													<flag>wxEXPAND</flag>
+												</object>
+												<object class="sizeritem">
+			                                    	<object class="wxStaticText">
+			                                        	<label>Port</label>
+			                                    	</object>
+												    <cellpos>1,2</cellpos>
+													<cellspan>1,1</cellspan>
+													<flag>wxLEFT</flag>
+													<border>10</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxTextCtrl" name="lt_proxyport">
+		                                                <style>wxTE_PROCESS_ENTER</style>
+		                                            </object>
+												    <cellpos>1,3</cellpos>
+													<cellspan>1,1</cellspan>
+													<flag>wxLEFT</flag>
+													<border>5</border>
+												</object>
+												<object class="sizeritem">
+			                                    	<object class="wxStaticText">
+			                                        	<label>Username</label>
+			                                    	</object>
+													<minsize>80,-1</minsize>
+												    <cellpos>2,0</cellpos>
+													<cellspan>1,1</cellspan>
+												</object>
+												<object class="sizeritem">
+													<object class="wxTextCtrl" name="lt_proxyusername">
+		                                                <style>wxTE_PROCESS_ENTER</style>
+		                                            </object>
+												    <cellpos>2,1</cellpos>
+													<cellspan>1,1</cellspan>
+													<flag>wxEXPAND</flag>
+												</object>
+												<object class="sizeritem">
+			                                    	<object class="wxStaticText">
+			                                        	<label>Password</label>
+			                                    	</object>
+												    <cellpos>2,2</cellpos>
+													<cellspan>1,1</cellspan>
+													<flag>wxLEFT</flag>
+													<border>10</border>
+												</object>
+												<object class="sizeritem">
+													<object class="wxTextCtrl" name="lt_proxypassword">
+		                                                <style>wxTE_PROCESS_ENTER|wxTE_PASSWORD</style>
+		                                            </object>
+												    <cellpos>2,3</cellpos>
+													<cellspan>1,1</cellspan>
+													<flag>wxLEFT</flag>
+													<border>5</border>
+												</object>
+											</object>
+											<flag>wxEXPAND</flag>
+										</object>
+										
+                                        <object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>BitTorrent features</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+											<flag>wxBOTTOM|wxTOP</flag>
+											<border>5</border>
+                                        </object>
+                                        <object class="sizeritem">
+		                                    <object class="wxCheckBox" name="enable_utp">
+												<label>Enable bandwidth management (uTP)</label>
+												<checked>0</checked>
+											</object>
+	                                    </object>
+										
                                     </object>
                                 </object>
                                 <object class="sizeritem">

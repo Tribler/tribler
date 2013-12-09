@@ -9,7 +9,7 @@ from cStringIO import StringIO
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Utilities.configreader import ConfigReader
-from Tribler.Core.__init__ import version_id
+from Tribler.Core.version import version_id, commit_id, build_date
 
 #
 #
@@ -85,9 +85,9 @@ class Lang:
         if (label == 'version'):
             return version_id
         if (label == 'build'):
-            return "Build 31061"
+            return commit_id
         if (label == 'build_date'):
-            return "Jan 23, 2013"
+            return build_date
         # see if it exists in 'user.lang'
         if tryuser:
             text, found = self.getFromLanguage(label, self.user_lang)

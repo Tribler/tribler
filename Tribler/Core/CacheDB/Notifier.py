@@ -24,6 +24,7 @@ class Notifier:
 
         self.observers = []
         self.observerscache = {}
+        self.observertimers = {}
         self.observerLock = threading.Lock()
 
         Notifier.__single = self
@@ -74,7 +75,10 @@ class Notifier:
 
     def remove_observers(self):
         with self.observerLock:
+            for t in self.observertimers.values():
+                t.cancel()
             self.observerscache = {}
+            self.observertimers = {}
             self.observers = []
 
     def notify(self, subject, changeType, obj_id, *args):
@@ -102,6 +106,7 @@ class Notifier:
                                 if ofunc in self.observerscache:
                                     events = self.observerscache[ofunc]
                                     del self.observerscache[ofunc]
+                                    del self.observertimers[ofunc]
                                 else:
                                     events = []
                                 self.observerLock.release()
@@ -112,10 +117,12 @@ class Notifier:
                                     else:
                                         ofunc(events)
 
-                            self.observerscache[ofunc] = []
                             t = Timer(cache, doQueue, (ofunc,))
                             t.setName("Notifier-timer")
                             t.start()
+
+                            self.observerscache[ofunc] = []
+                            self.observertimers[ofunc] = t
 
                         self.observerscache[ofunc].append(args)
             except:

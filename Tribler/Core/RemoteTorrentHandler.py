@@ -14,7 +14,7 @@ from binascii import hexlify
 from time import sleep, time
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 import shutil
@@ -281,12 +281,18 @@ class RemoteTorrentHandler:
             # add this new torrent to db
             infohash = tdef.get_infohash()
             if self.torrent_db.hasTorrent(infohash):
-                self.torrent_db.updateTorrent(infohash, swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
+                if sdef:
+                    self.torrent_db.updateTorrent(infohash, swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
+                else:
+                    self.torrent_db.updateTorrent(infohash, torrent_file_name=swiftpath)
             else:
-                self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'swift_torrent_hash': sdef.get_roothash(), 'status': 'good'})
+                if sdef:
+                    self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'swift_torrent_hash': sdef.get_roothash(), 'status': 'good'})
+                else:
+                    self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'status': 'good'})
 
             # notify all
-            self.notify_possible_torrent_infohash(infohash, True)
+            self.notify_possible_torrent_infohash(infohash, swiftpath)
             if callback:
                 callback()
 
@@ -296,29 +302,36 @@ class RemoteTorrentHandler:
             callback()
 
     def _write_to_collected(self, filename):
-        # calculate root-hash
-        sdef = SwiftDef()
-        sdef.add_content(filename)
-        sdef.finalize(self.session.get_swift_path(), destdir=self.session.get_torrent_collecting_dir())
+        # if we don't have swift, write to collected using infohash as name
+        if os.path.isfile(self.session.get_swift_path()):
+            # calculate root-hash
+            sdef = SwiftDef()
+            sdef.add_content(filename)
+            sdef.finalize(self.session.get_swift_path(), destdir=self.session.get_torrent_collecting_dir())
 
-        mfpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
-        if not os.path.exists(mfpath):
-            download = self.session.get_download(sdef.get_roothash())
-            if download:
-                self.session.remove_download(download, removestate=True)
-                sleep(1)
-            elif os.path.exists(mfpath + ".mhash"):  # indicating failed swift download
-                os.remove(mfpath + ".mhash")
+            mfpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
+            if not os.path.exists(mfpath):
+                download = self.session.get_download(sdef.get_roothash())
+                if download:
+                    self.session.remove_download(download, removestate=True)
+                    sleep(1)
+                elif os.path.exists(mfpath + ".mhash"):  # indicating failed swift download
+                    os.remove(mfpath + ".mhash")
 
-            try:
-                shutil.copy(filename, mfpath)
-                shutil.move(filename + '.mhash', mfpath + '.mhash')
-                shutil.move(filename + '.mbinmap', mfpath + '.mbinmap')
+                try:
+                    shutil.copy(filename, mfpath)
+                    shutil.move(filename + '.mhash', mfpath + '.mhash')
+                    shutil.move(filename + '.mbinmap', mfpath + '.mbinmap')
 
-            except:
-                print_exc()
+                except:
+                    print_exc()
 
-        return sdef, mfpath
+            return sdef, mfpath
+
+        tdef = TorrentDef.load(filename)
+        mfpath = os.path.join(self.session.get_torrent_collecting_dir(), get_collected_torrent_filename(tdef.get_infohash()))
+        shutil.copyfile(filename, mfpath)
+        return None, mfpath
 
     def notify_possible_torrent_roothash(self, roothash):
         keys = self.callbacks.keys()
@@ -365,7 +378,7 @@ class RemoteTorrentHandler:
 
         if key in self.callbacks:
             for usercallback in self.callbacks[key]:
-                self.session.uch.perform_usercallback(usercallback)
+                self.session.uch.perform_usercallback(lambda usercallback=usercallback: usercallback(torrent))
 
             del self.callbacks[key]
 
@@ -540,8 +553,8 @@ class TorrentRequester(Requester):
         attempting_download = False
 
         if filename:
-            self.remote_th.notify_possible_torrent_infohash(infohash, True)
-            self.remote_th.notify_possible_torrent_infohash(hash, True)
+            self.remote_th.notify_possible_torrent_infohash(infohash, filename)
+            self.remote_th.notify_possible_torrent_infohash(hash, filename)
 
             self.requests_on_disk += 1
 
@@ -695,23 +708,27 @@ class MagnetRequester(Requester):
             if infohash in self.requestedInfohashes:
                 self.requestedInfohashes.remove(infohash)
 
-            self.remote_th.notify_possible_torrent_infohash(infohash, True)
+            self.remote_th.notify_possible_torrent_infohash(infohash, filename)
             self.requests_on_disk += 1
 
         else:
-            # try magnet link
-            magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
+            @forceDBThread
+            def construct_magnet():
+                # try magnet link
+                magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
 
-            if self.remote_th.torrent_db:
-                # see if we know any trackers for this magnet
-                trackers = self.remote_th.torrent_db.getTracker(infohash)
-                for tracker, _ in trackers:
-                    magnetlink += "&tr=" + urllib.quote_plus(tracker)
+                if self.remote_th.torrent_db:
+                    # see if we know any trackers for this magnet
+                    trackers = self.remote_th.torrent_db.getTrackerListByInfohash(infohash)
+                    for tracker in trackers:
+                        if tracker != 'no-DHT' and tracker != 'DHT':
+                            magnetlink += "&tr=" + urllib.quote_plus(tracker)
 
-            if DEBUG:
-                print >> sys.stderr, long(time()), 'rtorrent: requesting magnet', bin2str(infohash), self.prio, magnetlink, len(self.requestedInfohashes)
+                if DEBUG:
+                    print >> sys.stderr, long(time()), 'rtorrent: requesting magnet', bin2str(infohash), self.prio, magnetlink, len(self.requestedInfohashes)
 
-            TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections=30 if self.prio == 0 else 10)
+                TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections=30 if self.prio == 0 else 10)
+            construct_magnet()
 
             failed_lambda = lambda infohash = infohash: self.__torrentdef_failed(infohash)
             self.scheduletask(failed_lambda, t=self.MAGNET_RETRIEVE_TIMEOUT)

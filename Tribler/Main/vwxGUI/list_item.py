@@ -2,18 +2,22 @@
 import wx
 import sys
 import json
+import shutil
+import urllib
+from datetime import timedelta
+
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, _set_font, TagText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
-from list_body import *
-from list_details import *
-from _abcoll import Iterable
-from datetime import timedelta
-import urllib
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
 from Tribler import LIBRARYNAME
+
+from Tribler.Main.vwxGUI.list_body import *
+from Tribler.Main.vwxGUI.list_details import *
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 
 class ColumnsManager:
@@ -149,13 +153,13 @@ class DoubleLineListItem(ListItem):
                             self.columns[column_index]['width'] += self.descrSizer.GetChildren()[index - 1].GetSize().x
                         break
 
-            fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
-            column_sizes = fileconfig.Read("column_sizes")
+            config = self.guiutility.utility.config
+            column_sizes = config.Read("column_sizes")
             column_sizes = json.loads(column_sizes) if column_sizes else {}
             column_sizes[type(self).__name__] = column_sizes.get(type(self).__name__, {})
             column_sizes[type(self).__name__].update({self.columns[column_index]['name']: self.columns[column_index]['width']})
-            fileconfig.Write("column_sizes", json.dumps(column_sizes))
-            fileconfig.Flush()
+            config.Write("column_sizes", json.dumps(column_sizes))
+            config.Flush()
 
             def rebuild():
                 if hasattr(self.parent_list.parent_list, 'oldDS'):
@@ -218,15 +222,15 @@ class DoubleLineListItem(ListItem):
     def OnShowColumn(self, event, index):
         self.columns[index]['show'] = not self.columns[index].get('show', True)
 
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
+        config = self.guiutility.utility.config
 
-        hide_columns = fileconfig.Read("hide_columns")
+        hide_columns = config.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
         hide_columns[type(self).__name__] = hide_columns.get(type(self).__name__, {})
         hide_columns[type(self).__name__].update({self.columns[index]['name']: self.columns[index]['show']})
 
-        fileconfig.Write("hide_columns", json.dumps(hide_columns))
-        fileconfig.Flush()
+        config.Write("hide_columns", json.dumps(hide_columns))
+        config.Flush()
 
         if getattr(self.parent_list.parent_list, 'ResetBottomWindow', False):
             self.parent_list.parent_list.ResetBottomWindow()
@@ -499,10 +503,10 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         magnetlinks = ''
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            magnetlink = "magnet:?xt=urn:btih:" + hexlify(torrent.infohash)
-            trackers = self.guiutility.channelsearch_manager.torrent_db.getTracker(torrent.infohash)
+            magnetlink = "magnet:?xt=urn:btih:" + binascii.hexlify(torrent.infohash)
+            trackers = self.guiutility.channelsearch_manager.torrent_db.getTrackerListByTorrentID(torrent.torrent_id)
             if trackers:
-                for tracker, _ in trackers:
+                for tracker in trackers:
                     magnetlink += "&tr=" + urllib.quote_plus(tracker)
             magnetlinks += magnetlink + '\n'
 
@@ -525,7 +529,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         if added:
             UserEventLogDBHandler.getInstance().addEvent(message="MyChannel: %d manual add(s) from library" % len(added), type=2)
 
-            #remote channel link to force reload
+            # remote channel link to force reload
             for torrent in added:
                 del torrent.channel
                 torrent.channel
@@ -755,9 +759,11 @@ class ChannelListItem(DoubleLineListItemWithButtons):
 
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows=True)
-        if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list_header.BaseFilter):
+        from Tribler.Main.vwxGUI.list import GenericSearchList
+        from Tribler.Main.vwxGUI.list_header import BaseFilter
+        if not isinstance(self.parent_list.parent_list, BaseFilter):
             self.AddButton("Visit channel", lambda evt: self.guiutility.showChannel(self.original_data))
-        if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
+        if not isinstance(self.parent_list.parent_list, GenericSearchList):
             if self.original_data.my_vote == 2:
                 self.AddButton("Remove Favorite", lambda evt, data=self.original_data: self.guiutility.RemoveFavorite(evt, data))
             elif not self.original_data.isMyChannel():
@@ -899,7 +905,7 @@ class ActivityListItem(ListItem):
 
     def AddComponents(self, leftSpacer, rightSpacer):
         ListItem.AddComponents(self, leftSpacer, rightSpacer)
-        if self.data[0] in ['Results', 'Channels', 'Downloads']:
+        if self.data[0] in ['Results', 'Channels', 'Downloads', 'Videoplayer']:
             self.num_items = TagText(self, -1, label='0', fill_colour=GRADIENT_DGREY, edge_colour=SEPARATOR_GREY)
             self.hSizer.Add(self.num_items, 0, wx.CENTER | wx.RIGHT, 5)
             self.hSizer.Layout()
@@ -1116,7 +1122,7 @@ class ModificationActivityItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + hexlify(modification.torrent.infohash))
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
                 for single_thumb in os.listdir(thumb_dir)[:4]:
@@ -1166,7 +1172,7 @@ class ModificationItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + hexlify(modification.torrent.infohash))
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
                 for single_thumb in os.listdir(thumb_dir)[:4]:

@@ -14,8 +14,7 @@ from Tribler.__init__ import LIBRARYNAME
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.Search.SearchManager import split_into_keywords, \
-    fts3_preprocess
+from Tribler.Core.Search.SearchManager import split_into_keywords, fts3_preprocess
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -47,7 +46,7 @@ class GUIUtility:
         self.app = app
 
         # videoplayer
-        self.videoplayer = VideoPlayer.getInstance()
+        self.videoplayer = None
 
         # current GUI page
         self.guiPage = 'home'
@@ -96,6 +95,8 @@ class GUIUtility:
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
             self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
+
+            self.videoplayer = VideoPlayer.getInstance()
         else:
             raise RuntimeError('GuiUtility is already registered')
 
@@ -291,7 +292,8 @@ class GUIUtility:
         while self.frame.splitter_top.GetChildren():
             self.frame.splitter_top.Detach(0)
 
-        self.SetBottomSplitterWindow()
+        from Tribler.Main.vwxGUI.list_details import ChannelInfoPanel
+        self.SetBottomSplitterWindow(ChannelInfoPanel)
         if window:
             self.frame.splitter_top.Add(window, 1, wx.EXPAND)
             window.Show(show)
@@ -299,23 +301,38 @@ class GUIUtility:
         self.frame.splitter_top.Layout()
         self.frame.splitter_top_window.Refresh()
 
-    def SetBottomSplitterWindow(self, window=None, show=True):
-        self.frame.splitter_bottom.Clear(True)
-        if window:
-            self.frame.splitter_bottom.Add(window, 1, wx.EXPAND | wx.ALIGN_TOP | wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
-            self.frame.splitter_bottom_window.SetBackgroundColour(window.GetBackgroundColour())
-        else:
-            from __init__ import GRADIENT_LGREY
-            self.frame.splitter_bottom_window.SetBackgroundColour(GRADIENT_LGREY)
+    def SetBottomSplitterWindow(self, panel_type):
+        self.frame.splitter_bottom_window.Freeze()
+
+        from Tribler.Main.vwxGUI.list_details import TorrentDetails, ChannelInfoPanel, LibraryDetails, ChannelDetails, PlaylistDetails, SearchInfoPanel, LibraryInfoPanel, SelectedchannelInfoPanel, PlaylistInfoPanel
+
+        type_to_panel = {TorrentDetails.__name__: self.frame.torrentdetailspanel,
+                         LibraryDetails.__name__: self.frame.librarydetailspanel, \
+                         ChannelDetails.__name__: self.frame.channeldetailspanel, \
+                         PlaylistDetails.__name__: self.frame.playlistdetailspanel, \
+                         SearchInfoPanel.__name__: self.frame.searchinfopanel, \
+                         ChannelInfoPanel.__name__: self.frame.channelinfopanel, \
+                         LibraryInfoPanel.__name__: self.frame.libraryinfopanel, \
+                         PlaylistInfoPanel.__name__: self.frame.playlistinfopanel, \
+                         SelectedchannelInfoPanel.__name__: self.frame.selectedchannelinfopanel}
+
+        result = None
+        for pt, pl in type_to_panel.iteritems():
+            pl.Show(pt == panel_type.__name__)
+            if pt == panel_type.__name__:
+                result = pl
         if self.guiPage != 'mychannel':
-            self.frame.splitter.Show(show)
+            self.frame.splitter.Show(True)
         self.frame.splitter_bottom.Layout()
+        self.frame.splitter_bottom_window.Thaw()
         self.frame.splitter_bottom_window.Refresh()
+        return result
 
     def SetColumnInfo(self, itemtype, columns, hide_defaults=[]):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        config = self.utility.config
+
         # Load hidden column info
-        hide_columns = fileconfig.Read("hide_columns")
+        hide_columns = config.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
         hide_columns = hide_columns.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
@@ -325,7 +342,7 @@ class GUIUtility:
                 column['show'] = not (index in hide_defaults)
 
         # Load column width info
-        column_sizes = fileconfig.Read("column_sizes")
+        column_sizes = config.Read("column_sizes")
         column_sizes = json.loads(column_sizes) if column_sizes else {}
         column_sizes = column_sizes.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
@@ -335,8 +352,8 @@ class GUIUtility:
         return columns
 
     def ReadGuiSetting(self, setting_name, default=None, do_json=True):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
-        setting_value = fileconfig.Read(setting_name)
+        config = self.utility.config
+        setting_value = config.Read(setting_name)
         if do_json and setting_value:
             setting_value = json.loads(setting_value)
         elif not setting_value:
@@ -344,9 +361,9 @@ class GUIUtility:
         return setting_value
 
     def WriteGuiSetting(self, setting_name, setting_value, do_json=True):
-        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
-        fileconfig.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
-        fileconfig.Flush()
+        config = self.utility.config
+        config.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
+        config.Flush()
 
     @forceWxThread
     def GoBack(self, scrollTo=None, topage=None):

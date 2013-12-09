@@ -420,6 +420,9 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             return (tracker,)
         return ()
 
+    def has_trackers(self):
+        return len(self.get_trackers_as_single_tuple()) > 0
+
     def set_dht_nodes(self, nodes):
         """ Sets the DHT nodes required by the mainline DHT support,
         See http://www.bittorrent.org/beps/bep_0005.html
@@ -1075,6 +1078,14 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         else:
             raise TorrentDefNotFinalizedException()
 
+    def is_private(self):
+        """ Returns whether this TorrentDef is a private torrent. 
+        @return Boolean """
+        if not self.metainfo_valid:
+            raise NotYetImplementedException()
+
+        return int(self.metainfo['info'].get('private', 0)) == 1
+
     def get_url(self):
         """ Returns the URL representation of this TorrentDef. The TorrentDef
         must be a Merkle or live torrent and must be set to URL-compatible
@@ -1159,6 +1170,9 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def get_files(self, exts=None):
         return []
+
+    def has_trackers(self):
+        return False
 
     def copy(self):
         return TorrentDefNoMetainfo(self.infohash, self.name)

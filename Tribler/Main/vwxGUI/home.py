@@ -1,4 +1,5 @@
 # Written by Niels Zeilemaker
+import wx
 import sys
 import os
 import copy
@@ -14,15 +15,19 @@ import random
 import threading
 from time import strftime, time
 
+from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
 from Tribler.Main.vwxGUI.list_footer import *
 from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
-    TextCtrlAutoComplete, BetterText as StaticText, _set_font
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.vwxGUI.widgets import BetterListCtrl, SelectableListCtrl, \
+    TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, FancyPanel
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+
+from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
@@ -39,7 +44,7 @@ try:
 except ImportError, e:
     # Python fallback module
     import arflayout_fb as arflayout
-
+import wx.lib.agw.customtreectrl as CT
 
 class Home(XRCPanel):
 
@@ -116,7 +121,7 @@ class Home(XRCPanel):
         self.SetSizer(vSizer)
         self.Layout()
 
-        # self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
+        self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
 
         self.SearchFocus()
 
@@ -167,9 +172,9 @@ class Stats(XRCPanel):
     def _DoInit(self):
 
         try:
-            disp = DispersyPanel(self)
+            ldisp = LeftDispersyPanel(self)
+            rdisp = RightDispersyPanel(self)
         except:
-            # Dispersy not ready, try again in 5s
             if self.createTimer is None:
                 self.createTimer = wx.CallLater(5000, self._DoInit)
             else:
@@ -192,7 +197,10 @@ class Stats(XRCPanel):
         hSizer.Add(self.memdumpButton, 0, wx.RIGHT, 3)
         vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM, 3)
 
-        vSizer.Add(disp, 1, wx.EXPAND | wx.BOTTOM, 3)
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(ldisp, 1, wx.EXPAND | wx.RIGHT, 3)
+        hSizer.Add(rdisp, 2, wx.EXPAND)
+        vSizer.Add(hSizer, 1, wx.EXPAND | wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NetworkPanel(self), 1, wx.EXPAND | wx.RIGHT, 7)
@@ -317,7 +325,7 @@ class Stats(XRCPanel):
 
 class HomePanel(wx.Panel):
 
-    def __init__(self, parent, title, background, hspacer=(0, 0)):
+    def __init__(self, parent, title, background, hspacer=(0, 0), vspacer=(0, 0)):
         wx.Panel.__init__(self, parent)
 
         self.guiutility = GUIUtility.getInstance()
@@ -333,6 +341,7 @@ class HomePanel(wx.Panel):
         spacer = max(hspacer)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.AddSpacer((-1, vspacer[0]))
 
         self.header = self.CreateHeader()
         self.header.SetTitle(title)
@@ -346,6 +355,7 @@ class HomePanel(wx.Panel):
         self.footer = self.CreateFooter()
         self.footer.SetBackgroundColour(background)
         vSizer.Add(self.footer, 0, wx.EXPAND | spacerFlags, spacer)
+        vSizer.AddSpacer((-1, vspacer[1]))
 
         self.SetSizer(vSizer)
         self.Layout()
@@ -464,7 +474,7 @@ class NetworkPanel(HomePanel):
             self.timer = wx.CallLater(10000, self.UpdateStats)
 
 
-class DispersyPanel(HomePanel):
+class LeftDispersyPanel(HomePanel):
 
     def __init__(self, parent):
         self.buildColumns = False
@@ -474,7 +484,7 @@ class DispersyPanel(HomePanel):
         if not self.dispersy:
             raise RuntimeError("Dispersy has not started yet")
 
-        HomePanel.__init__(self, parent, 'Dispersy info', SEPARATOR_GREY)
+        HomePanel.__init__(self, parent, 'Dispersy info', SEPARATOR_GREY, hspacer=(0, 1), vspacer=(0, 1))
 
         self.SetMinSize((-1, 200))
 
@@ -528,45 +538,8 @@ class DispersyPanel(HomePanel):
         self.gridpanel.SetSizer(self.gridSizer)
         hSizer.Add(self.gridpanel, 1, wx.EXPAND | wx.LEFT, 7)
 
-        vSumSizer = wx.BoxSizer(wx.VERTICAL)
-        self.summary_tree = wx.TreeCtrl(panel, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.NO_BORDER)
-        self.summary_tree.blockUpdate = False
-        self.summary_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
-        self.summary_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
-
-        font = self.summary_tree.GetFont()
-        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        self.summary_tree.SetFont(font)
-
-        vSumSizer.Add(self.summary_tree, 1, wx.EXPAND)
-        self.includeStuffs = wx.CheckBox(panel, -1, "Include stuffs")
-        vSumSizer.Add(self.includeStuffs, 0, wx.TOP | wx.BOTTOM, 3)
-
-        self.vTreeSizer = wx.BoxSizer(wx.VERTICAL)
-        self.tree = wx.TreeCtrl(panel, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.NO_BORDER)
-        self.tree.blockUpdate = False
-        self.tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
-        self.tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
-
-        self.vTreeSizer.Add(self.tree, 1, wx.EXPAND)
-        self.includeDebug = wx.CheckBox(panel, -1, "Collect debug")
-        self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
-        self.vTreeSizer.Add(self.includeDebug, 0, wx.TOP | wx.BOTTOM, 3)
-
-        hSizer.Add(vSumSizer, 2, wx.EXPAND | wx.LEFT, 10)
-        hSizer.Add(self.vTreeSizer, 1, wx.EXPAND | wx.LEFT, 10)
         panel.SetSizer(hSizer)
         return panel
-
-    def ExpandTree(self, expand=True):
-        sizer = self.panel.GetSizer()
-        sizerItem = sizer.GetItem(self.vTreeSizer)
-
-        newProportion = 4 if expand else 1
-        if sizerItem.GetProportion() != newProportion:
-            sizerItem.SetProportion(newProportion)
-
-            self.panel.Layout()
 
     def CreateColumns(self):
         self.textdict = {}
@@ -591,6 +564,127 @@ class DispersyPanel(HomePanel):
         self.gridpanel.SetupScrolling()
         self.buildColumns = True
 
+    def _onTimer(self, event):
+        if self.IsShownOnScreen():
+            self.UpdateStats()
+
+    def UpdateStats(self):
+
+        def db_callback():
+            self.dispersy.statistics.update(database=False)
+            self._UpdateStats(self.dispersy.statistics)
+
+        startWorker(None, db_callback, uId=u"LeftDispersyPanel_UpdateStats", priority=GUI_PRI_DISPERSY)
+
+    @forceWxThread
+    def _UpdateStats(self, stats):
+        if not self.buildColumns:
+            self.CreateColumns()
+
+        for title, _, func in self.mapping:
+            self.textdict[title].SetLabel(str(func(stats)))
+
+        self.panel.Layout()
+
+
+class RightDispersyPanel(FancyPanel):
+
+    def __init__(self, parent):
+        FancyPanel.__init__(self, parent, border=wx.LEFT | wx.BOTTOM)
+        self.SetBorderColour(SEPARATOR_GREY)
+        self.SetBackgroundColour(wx.WHITE)
+
+        guiutility = GUIUtility.getInstance()
+        self.dispersy = guiutility.utility.session.lm.dispersy
+        if not self.dispersy:
+            raise RuntimeError("Dispersy has not started yet")
+
+        # Create notebook
+        self.notebook = SimpleNotebook(self, show_single_tab=True, style=wx.NB_NOPAGETHEME)
+        checkboxSizer = wx.BoxSizer(wx.HORIZONTAL)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(self.notebook, 1, wx.EXPAND | wx.LEFT, 1)
+        vSizer.Add(checkboxSizer, 0, wx.EXPAND | wx.LEFT, 5)
+        vSizer.AddSpacer((-1, 2))
+        self.SetSizer(vSizer)
+
+        # Create and populate community panel
+        self.community_panel = wx.Panel(self.notebook)
+        self.community_panel.SetBackgroundColour(wx.WHITE)
+        self.notebook.AddPage(self.community_panel, "Community info")
+
+        community_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.community_tree = CT.CustomTreeCtrl(self.community_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.community_tree.blockUpdate = False
+        self.community_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.community_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+
+        font = self.community_tree.GetFont()
+        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.community_tree.SetFont(font)
+
+        community_sizer.Add(self.community_tree, 1, wx.EXPAND)
+
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(community_sizer, 1, wx.EXPAND)
+        self.community_panel.SetSizer(hSizer)
+
+        # Create and populate raw info panel
+        self.rawinfo_panel = wx.Panel(self.notebook)
+        self.rawinfo_panel.SetBackgroundColour(wx.WHITE)
+        self.notebook.AddPage(self.rawinfo_panel, "Raw info")
+
+        self.rawinfo_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.rawinfo_tree = CT.CustomTreeCtrl(self.rawinfo_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.rawinfo_tree.blockUpdate = False
+        self.rawinfo_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.rawinfo_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+
+        font = self.rawinfo_tree.GetFont()
+        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.rawinfo_tree.SetFont(font)
+
+        self.rawinfo_sizer.Add(self.rawinfo_tree, 1, wx.EXPAND)
+
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.rawinfo_sizer, 1, wx.EXPAND)
+        self.rawinfo_panel.SetSizer(hSizer)
+
+        # Create and populate runtime statistics panel
+        self.runtime_panel = wx.Panel(self.notebook)
+        self.runtime_panel.SetBackgroundColour(wx.WHITE)
+        self.notebook.AddPage(self.runtime_panel, "Runtime stats")
+
+        self.runtime_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.runtime_tree = CT.CustomTreeCtrl(self.runtime_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.runtime_tree.blockUpdate = False
+        self.runtime_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
+        self.runtime_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+
+        font = self.runtime_tree.GetFont()
+        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.runtime_tree.SetFont(font)
+
+        self.runtime_sizer.Add(self.runtime_tree, 1, wx.EXPAND)
+
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.Add(self.runtime_sizer, 1, wx.EXPAND)
+        self.runtime_panel.SetSizer(hSizer)
+
+        # Add checkboxes
+        self.includeStuffs = wx.CheckBox(self, -1, "Include stuffs")
+        checkboxSizer.Add(self.includeStuffs, 0, wx.TOP | wx.BOTTOM, 3)
+
+        self.includeDebug = wx.CheckBox(self, -1, "Collect debug")
+        self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
+        checkboxSizer.Add(self.includeDebug, 0, wx.TOP | wx.BOTTOM, 3)
+
+        # Add timer for stats updates
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
+        self.timer.Start(5000, False)
+        self.UpdateStats()
+
     def OnMouseEvent(self, event):
         tree = event.GetEventObject()
 
@@ -600,14 +694,54 @@ class DispersyPanel(HomePanel):
         elif event.Leaving():
             tree.blockUpdate = False
 
-        if tree == self.tree:
-            self.ExpandTree(tree.blockUpdate)
-
         event.Skip()
 
     def _onTimer(self, event):
         if self.IsShownOnScreen():
             self.UpdateStats()
+
+    def AddDataToTree(self, data, parent, tree, prepend=True, sort_dict=False):
+
+        def addValue(parentNode, value):
+            if isinstance(value, dict):
+                addDict(parentNode, value)
+            elif isinstance(value, list):
+                addList(parentNode, value)
+            elif isinstance(value, tuple):
+                addTuple(parentNode, value)
+            elif value != None:
+                tree.AppendItem(parentNode, str(value))
+
+        def addList(parentNode, nodelist):
+            for key, value in enumerate(nodelist):
+                keyNode = tree.AppendItem(parentNode, str(key))
+                addValue(keyNode, value)
+
+        def addTuple(parentNode, nodetuple):
+            for value in nodetuple:
+                addValue(parentNode, value)
+
+        def addDict(parentNode, nodedict):
+            kv_pairs = sorted(nodedict.items(), reverse=True) if sort_dict else nodedict.items()
+            if prepend and kv_pairs:
+                kv_pairs.sort(key=lambda kv: kv[1], reverse=True)
+            for key, value in kv_pairs:
+                prepend_str = ''
+                if prepend and not isinstance(value, (list, dict)):
+                    prepend_str = str(value) + "x "
+                    value = None
+
+                if not isinstance(key, basestring):
+                    key = str(key)
+                try:
+                    key = key.decode("utf-8")
+                except UnicodeDecodeError:
+                    key = key.encode("hex")
+
+                keyNode = tree.AppendItem(parentNode, prepend_str + key)
+                addValue(keyNode, value)
+
+        addValue(parent, data)
 
     def UpdateStats(self):
         includeStuffs = self.includeStuffs.GetValue()
@@ -622,44 +756,10 @@ class DispersyPanel(HomePanel):
 
     @forceWxThread
     def _UpdateStats(self, stats):
-        if not self.buildColumns:
-            self.CreateColumns()
 
-        def addValue(parentNode, value):
-            if isinstance(value, dict):
-                addDict(parentNode, value)
-            elif isinstance(value, list):
-                addList(parentNode, value)
-            elif value != None:
-                self.tree.AppendItem(parentNode, str(value))
-
-        def addList(parentNode, nodelist):
-            for key, value in enumerate(nodelist):
-                keyNode = self.tree.AppendItem(parentNode, str(key))
-                addValue(keyNode, value)
-
-        def addDict(parentNode, nodedict):
-            for key, value in nodedict.items():
-                key = str(key)
-                prepend = ''
-                if not isinstance(value, (list, dict)):
-                    prepend = str(value) + "x "
-                    value = None
-                try:
-                    keyNode = self.tree.AppendItem(parentNode, prepend + str(key))
-                except UnicodeDecodeError:
-                    keyNode = self.tree.AppendItem(parentNode, prepend + key.encode("HEX"))
-                addValue(keyNode, value)
-
-        def updateColumn(key, value):
-            # if key.find('address') != -1:
-            #     value = "%s:%d"%value
-            self.textdict[key].SetLabel(str(value))
-
-        # center communities
-        if not self.summary_tree.blockUpdate:
-            self.summary_tree.DeleteAllItems()
-            root = self.summary_tree.AddRoot("fake")
+        if not self.community_tree.blockUpdate:
+            self.community_tree.DeleteAllItems()
+            root = self.community_tree.AddRoot("fake")
             for community in sorted(stats.communities, key=lambda community: (not community.dispersy_enable_candidate_walker, community.classification, community.cid)):
                 if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses:
                     candidates = "%d " % len(community.candidates)
@@ -668,39 +768,30 @@ class DispersyPanel(HomePanel):
                 else:
                     candidates = "- "
                 total_packets = sum(community.database.itervalues())
-                parent = self.summary_tree.AppendItem(root, u"%s %6d %3s %s @%d ~%d" % (community.hex_cid, total_packets, candidates, community.classification, community.global_time, community.acceptable_global_time - community.global_time - community.dispersy_acceptable_global_time_range))
-                self.summary_tree.AppendItem(parent, u"member:             %s" % community.hex_mid)
-                self.summary_tree.AppendItem(parent, u"classification:     %s" % community.classification)
-                self.summary_tree.AppendItem(parent, u"database id:        %d" % community.database_id)
-                self.summary_tree.AppendItem(parent, u"global time:        %d" % community.global_time)
-                self.summary_tree.AppendItem(parent, u"median global time: %d (%d difference)" % (community.acceptable_global_time - community.dispersy_acceptable_global_time_range, community.acceptable_global_time - community.global_time - community.dispersy_acceptable_global_time_range))
-                self.summary_tree.AppendItem(parent, u"acceptable range:   %d" % community.dispersy_acceptable_global_time_range)
-                self.summary_tree.AppendItem(parent, u"sync bloom created: %d" % community.sync_bloom_new)
-                self.summary_tree.AppendItem(parent, u"sync bloom reused:  %d" % community.sync_bloom_reuse)
-                self.summary_tree.AppendItem(parent, u"sync bloom skip: %d" % community.sync_bloom_skip)
+                parent = self.community_tree.AppendItem(root, u"%s %6d %3s %s @%d ~%d" % (community.hex_cid, total_packets, candidates, community.classification, community.global_time, community.acceptable_global_time - community.global_time - community.dispersy_acceptable_global_time_range))
+                self.community_tree.AppendItem(parent, u"member:             %s" % community.hex_mid)
+                self.community_tree.AppendItem(parent, u"classification:     %s" % community.classification)
+                self.community_tree.AppendItem(parent, u"database id:        %d" % community.database_id)
+                self.community_tree.AppendItem(parent, u"global time:        %d" % community.global_time)
+                self.community_tree.AppendItem(parent, u"median global time: %d (%d difference)" % (community.acceptable_global_time - community.dispersy_acceptable_global_time_range, community.acceptable_global_time - community.global_time - community.dispersy_acceptable_global_time_range))
+                self.community_tree.AppendItem(parent, u"acceptable range:   %d" % community.dispersy_acceptable_global_time_range)
+                self.community_tree.AppendItem(parent, u"sync bloom created: %d" % community.sync_bloom_new)
+                self.community_tree.AppendItem(parent, u"sync bloom reused:  %d" % community.sync_bloom_reuse)
+                self.community_tree.AppendItem(parent, u"sync bloom skip: %d" % community.sync_bloom_skip)
                 if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses:
-                    sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
+                    sub_parent = self.community_tree.AppendItem(parent, u"candidates: %s" % candidates)
                     for candidate in sorted(("@%d %s:%d" % (global_time, wan_address[0], wan_address[1]) if lan_address == wan_address else "@%d %s:%d, %s:%d" % (global_time, wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
                                             for lan_address, wan_address, global_time
                                             in community.candidates):
-                        self.summary_tree.AppendItem(sub_parent, candidate)
+                        self.community_tree.AppendItem(sub_parent, candidate)
                 if community.database:
-                    sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community.database.itervalues()))
+                    sub_parent = self.community_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community.database.itervalues()))
                     for name, count in sorted(community.database.iteritems(), key=lambda tup: tup[1]):
-                        self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
-                # self.summary_tree.Expand(parent)
-            # self.summary_tree.ExpandAll()
+                        self.community_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
 
-        # left tree
-        if not self.tree.blockUpdate:
-            self.tree.DeleteAllItems()
-            fakeRoot = self.tree.AddRoot('fake')
-            for title, _, func in self.mapping:
-                updateColumn(title, func(stats))
-
-        # right tree
-        if not self.tree.blockUpdate:
-            parentNode = self.tree.AppendItem(fakeRoot, "raw info")
+        if not self.rawinfo_tree.blockUpdate:
+            self.rawinfo_tree.DeleteAllItems()
+            parentNode = self.rawinfo_tree.AddRoot('raw info')
 
             raw_info = {}
             if stats.drop:
@@ -725,10 +816,25 @@ class DispersyPanel(HomePanel):
                 raw_info['endpoint_send'] = stats.endpoint_send
             if stats.bootstrap_candidates:
                 raw_info['bootstrap_candidates'] = stats.bootstrap_candidates
-            addValue(parentNode, raw_info)
+            self.AddDataToTree(raw_info, parentNode, self.rawinfo_tree)
 
-        self.panel.Layout()
+        if not self.runtime_tree.blockUpdate:
+            self.runtime_tree.DeleteAllItems()
+            parentNode = self.runtime_tree.AddRoot('runtime stats')
 
+            runtime = []
+            if getattr(stats, 'runtime', None):
+                for stat_dict in stats.runtime:
+                    stat_list = []
+                    for k, v in stat_dict.iteritems():
+                        if isinstance(v, basestring):
+                            v = v.replace('\n', '\n          ')
+                        stat_list.append('%-10s%s' % (k, v))
+                    runtime.append(("duration = %7.2f ; entry = %s" % (stat_dict['duration'], stat_dict['entry'].split('\n')[0]), tuple(stat_list)))
+                runtime.sort(reverse=True)
+            self.AddDataToTree(dict(runtime), parentNode, self.rawinfo_tree, prepend=False, sort_dict=True)
+
+        self.Layout()
 
 class NewTorrentPanel(HomePanel):
 

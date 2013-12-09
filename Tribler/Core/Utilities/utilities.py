@@ -106,6 +106,12 @@ def isValidName(name):
     except:
         return False
 
+def isInteger(str_integer):
+    try:
+        int(str_integer)
+        return True
+    except:
+        return False
 
 def validTorrentFile(metainfo):
     # Jie: is this function too strict? Many torrents could not be downloaded

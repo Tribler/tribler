@@ -53,7 +53,8 @@ class SwiftProcessMgr:
                     for sp2 in self.sps:
                         if len(sp2.get_downloads()) < self.dlsperproc:
                             sp = sp2
-                            print >> sys.stderr, "spm: get_or_create_sp: Reusing", sp.get_pid()
+                            if DEBUG:
+                                print >> sys.stderr, "spm: get_or_create_sp: Reusing", sp.get_pid()
                             break
 
                 if sp is None:
