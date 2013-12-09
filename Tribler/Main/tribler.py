@@ -127,7 +127,6 @@ import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 from time import time, sleep
 
 I2I_LISTENPORT = 57891
-VIDEOHTTP_LISTENPORT = 6875
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
 
@@ -268,9 +267,7 @@ class ABCApp():
 
             httpport = self.utility.read_config('videohttpport')
             if ALLOW_MULTIPLE or httpport == -1:
-                httpport = randint(1024, 25000)
-            else:
-                httpport = VIDEOHTTP_LISTENPORT
+                httpport = self.utility.get_free_random_port('videohttpport')
             self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
 
             playbackmode = self.utility.read_config('videoplaybackmode')
