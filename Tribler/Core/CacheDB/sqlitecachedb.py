@@ -20,6 +20,9 @@ from threading import currentThread, Event, RLock, Lock
 import inspect
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 
+from SqlStatementHelper import buildInsertSqlStatement,\
+    buildSelectSqlStatement, buildUpdateSqlStatement, buildDeleteSqlStatement
+
 # support_version = (3,5,9)
 # support_version = (3,3,13)
 # apsw_version = tuple([int(r) for r in apsw.apswversion().split('-')[0].split('.')])
@@ -600,6 +603,36 @@ class SQLiteCacheDBBase:
             return find
         else:
             return []  # should it return None?
+
+    def new_insertOne(self, table_name, column_tuple, value_tuple):
+        sql_stmt = buildInsertSqlStatement(table_name, column_tuple)
+
+        result = False
+        try:
+            self.execute_write(sql_stmt, value_tuple)
+            result = True
+        except Exception as e:
+            print >> sys.stderr, '[SQLiteDB] Failed to INSERT ONE.'
+            print >> sys.stderr, '[SQLiteDB] Error: %s' % e
+            print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
+            print >> sys.stderr, '[SQLiteDB] Values: %s' % str(value_tuple)
+            print_exc()
+        return result
+
+    def new_insertMany(self, table_name, column_tuple, value_tuple_list):
+        sql_stmt = buildInsertSqlStatement(table_name, column_tuple)
+
+        result = False
+        try:
+            self.execute_many(sql_stmt, value_tuple_list)
+            result = True
+        except Exception as e:
+            print >> sys.stderr, '[SQLiteDB] Failed to INSERT ONE.'
+            print >> sys.stderr, '[SQLiteDB] Error: %s' % e
+            print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
+            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print_exc()
+        return result
 
     def getOne(self, table_name, value_name, where=None, conj='and', **kw):
         """ value_name could be a string, a tuple of strings, or '*'
