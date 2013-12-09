@@ -180,18 +180,6 @@ class SocialCommunity(Community):
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
 
-    def create_ping_requests(self):
-        while True:
-            to_maintain = self.filter_tb(self.yield_taste_buddies())
-
-            # from the to_maintain list check if we need to send any pings
-            tbs = [tb.candidate for tb in to_maintain if tb.time_remaining() < PING_INTERVAL]
-            if len(tbs) > 0:
-                identifier = self._dispersy.request_cache.claim(ForwardCommunity.PingRequestCache(self, tbs))
-                self._create_pingpong(u"ping", tbs, identifier)
-
-            yield PING_INTERVAL
-
     def get_tbs_from_peercache(self, nr):
         peers = [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()[:nr]]
         return self.filter_tb(peers)
@@ -329,8 +317,8 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
-    def create_ping_requests(self):
-        return SocialCommunity.create_ping_requests(self)
+    def filter_tb(self):
+        return SocialCommunity.filter_tb(self)
 
     def get_tbs_from_peercache(self, nr):
         return SocialCommunity.get_tbs_from_peercache(self, nr)
@@ -367,8 +355,8 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
         PForwardCommunity.unload_community(self)
         SocialCommunity.unload_community(self)
 
-    def create_ping_requests(self):
-        return SocialCommunity.create_ping_requests(self)
+    def filter_tb(self):
+        return SocialCommunity.filter_tb(self)
 
     def get_tbs_from_peercache(self, nr):
         return SocialCommunity.get_tbs_from_peercache(self, nr)
@@ -451,8 +439,8 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
         PoliForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
-    def create_ping_requests(self):
-        return SocialCommunity.create_ping_requests(self)
+    def filter_tb(self):
+        return SocialCommunity.filter_tb(self)
 
     def get_tbs_from_peercache(self, nr):
         return SocialCommunity.get_tbs_from_peercache(self, nr)

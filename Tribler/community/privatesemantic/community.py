@@ -775,9 +775,11 @@ class ForwardCommunity():
     def create_ping_requests(self):
         while True:
             tbs = [tb.candidate for tb in self.yield_taste_buddies() if tb.time_remaining() < PING_INTERVAL]
+            tbs = self.filter_tb(tbs)
 
-            cache = self._request_cache.add(ForwardCommunity.PingRequestCache(self, tbs))
-            self._create_pingpong(u"ping", tbs, cache.number)
+            if tbs:
+                cache = self._request_cache.add(ForwardCommunity.PingRequestCache(self, tbs))
+                self._create_pingpong(u"ping", tbs, cache.number)
 
             yield PING_INTERVAL
 
@@ -816,6 +818,9 @@ class ForwardCommunity():
 
         if DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", len(candidates), "candidates:", map(str, candidates)
+    
+    def filter_tb(self, tbs):
+        return list(tbs)
 
 class PForwardCommunity(ForwardCommunity):
 
