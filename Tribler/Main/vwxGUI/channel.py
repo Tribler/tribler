@@ -1,5 +1,6 @@
 # Written by Niels Zeilemaker
 import wx
+import pickle
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
