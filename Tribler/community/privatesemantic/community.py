@@ -461,13 +461,12 @@ class ForwardCommunity():
         raise NotImplementedError()
 
     def create_msimilarity_request(self, destination):
-        if DEBUG:
-            print >> sys.stderr, long(time()), "ForwardCommunity: sending msimilarity request to", destination
-
         payload = self.create_similarity_payload()
         if payload:
             cache = self._request_cache.add(ForwardCommunity.SimilarityAttempt(self, destination))
-            print >> sys.stderr, "sending msimilarity request with identifier", cache.number
+            
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "ForwardCommunity: sending msimilarity request to", destination, "with identifier", cache.number
             
             self.send_msimilarity_request(destination, cache.number, payload)
             return True
@@ -747,8 +746,8 @@ class ForwardCommunity():
                 candidate = self.get_walkcandidate(message)
                 message._candidate = candidate
 
-                ctb = self.is_taste_buddy(candidate)
-                if ctb:
+                if DEBUG:
+                    ctb = self.is_taste_buddy(candidate)
                     print >> sys.stderr, "Got intro request from", ctb, ctb.overlap
 
                 self.requested_introductions[candidate] = introduce_me_to = self.get_tb_or_candidate_mid(message.payload.introduce_me_to)

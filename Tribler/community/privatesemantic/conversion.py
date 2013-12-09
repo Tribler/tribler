@@ -53,6 +53,7 @@ class ForwardConversion(BinaryConversion):
 
         if identifier == 'I':
             overlap, = unpack_from('!i', data, offset)
+            offset += 4
         else:
             length = len(data) - offset
             if length % 20 != 0:
@@ -64,6 +65,8 @@ class ForwardConversion(BinaryConversion):
                 overlap = [bytes_to_long(str_over) for str_over in str_overlap]
             else:
                 overlap = []
+                
+            offset += length
         return offset, placeholder.meta.payload.implement(overlap)
 
     def _encode_ping(self, message):
