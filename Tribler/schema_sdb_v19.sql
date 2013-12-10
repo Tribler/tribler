@@ -74,26 +74,7 @@ CREATE TABLE Peer (
   peer_id              integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   permid               text NOT NULL,
   name                 text,
-  ip                   text,
-  port                 integer,
-  thumbnail            text,
-  oversion             integer,
-  similarity           numeric DEFAULT 0,
-  friend               integer DEFAULT 0,
-  superpeer            integer DEFAULT 0,
-  last_seen            numeric DEFAULT 0,
-  last_connected       numeric,
-  last_buddycast       numeric,
-  connected_times      integer DEFAULT 0,
-  buddycast_times      integer DEFAULT 0,
-  num_peers            integer,
-  num_torrents         integer,
-  num_prefs            integer,
-  num_queries          integer,
-  -- V3: Addition for local peer discovery
-  is_local	       integer DEFAULT 0,
-  -- V6 P2P Services (ProxyService)
-  services              integer DEFAULT 0
+  thumbnail            text
 );
 
 CREATE UNIQUE INDEX permid_idx
