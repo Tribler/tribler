@@ -57,7 +57,7 @@ def states_callback(dslist):
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
-    print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
+    print >> sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
         (d.get_def().get_name(),
             dlstatus_strings[ds.get_status()],
             ds.get_progress() * 100,
@@ -149,9 +149,6 @@ def main():
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(port)
     sscfg.set_megacache(False)
-    sscfg.set_overlay(False)
-    sscfg.set_dialback(True)
-    sscfg.set_internal_tracker(False)
     sscfg.set_swift_path(".\\Tribler\\SwiftEngine\\swift.exe")
 
     s = Session(sscfg)
@@ -164,18 +161,18 @@ def main():
     td = start_download(s, tdef, output_dir, None)
 
     # Wait till seeding
-    print >>sys.stderr, "python: Waiting till BT download is seeding..."
+    print >> sys.stderr, "python: Waiting till BT download is seeding..."
     global cond
     cond.acquire()
     cond.wait()
     cond.release()
-    print >>sys.stderr, "python: Reseeding BT via swift"
+    print >> sys.stderr, "python: Reseeding BT via swift"
 
     sdef = SwiftDef()
     sdef.set_tracker("127.0.0.1:23000")  # set DownloadConfig.set_swift_listen_port() for local tracking
     iotuples = td.get_dest_files()
     for i, o in iotuples:
-        print >>sys.stderr, "python: add_content", i, o
+        print >> sys.stderr, "python: add_content", i, o
         if len(iotuples) == 1:
             sdef.add_content(o)  # single file .torrent
         else:
