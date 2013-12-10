@@ -836,7 +836,7 @@ class List(wx.BoxSizer):
         for key, id in torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:
                 self.enabled_category_ids.add(id)
-        self.deadstatus_id = torrent_db.status_table['dead']
+        self.deadstatus_id = torrent_db.getTorrentStatusId(u'dead')
 
     def MatchFFilter(self, item):
         result = True
