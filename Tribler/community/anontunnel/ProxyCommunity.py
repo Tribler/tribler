@@ -1,14 +1,17 @@
 import logging
+from Tribler.Core.MessageID import ProxyMessages
+from Tribler.community.anontunnel import ProxyMessage
+from Tribler.community.anontunnel.ProxyConversion import ProxyConversion, StatsPayload
 
 logger = logging.getLogger(__name__)
 
 from Tribler.dispersy.candidate import BootstrapCandidate, WalkCandidate
-from Tribler.dispersy.authentication import NoAuthentication
+from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination
-from Tribler.dispersy.distribution import DirectDistribution
-from Tribler.dispersy.message import Message
+from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
+from Tribler.dispersy.distribution import DirectDistribution, GlobalTimePruning, LastSyncDistribution
+from Tribler.dispersy.message import Message, BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
 
 from Observable import Observable
@@ -63,12 +66,34 @@ class ProxyCommunity(Community, Observable):
         self.member_ping = {}
 
 
-
     def initiate_conversions(self):
-        return [DefaultConversion(self)]
+        return [DefaultConversion(self), ProxyConversion(self)]
 
     def initiate_meta_messages(self):
-        return []
+        pruning = GlobalTimePruning(10000, 11000)
+        return [Message(
+            self
+            , u"stats"
+            , MemberAuthentication()
+            , PublicResolution()
+            , LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1, pruning=pruning)
+            , CommunityDestination(node_count=10)
+            , StatsPayload()
+            , lambda messages: messages
+            , self.on_stats
+        )]
+
+    def on_stats(self, messages):
+        for m in messages:
+            self.fire(ProxyMessage.MESSAGE_STATS, circuit_id=0, candidate=m.candidate, message=m.payload.stats)
+        
+    def send_stats(self, stats):
+        meta = self.get_meta_message(u"stats")
+        record = meta.impl(authentication=(self._my_member,),
+                           distribution=(self.claim_global_time(),),
+                           payload=(stats,))
+
+        self.dispersy.store_update_forward([record], True, False, True)
 
     def _initialize_meta_messages(self):
         super(ProxyCommunity, self)._initialize_meta_messages()

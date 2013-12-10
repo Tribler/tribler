@@ -314,6 +314,11 @@ class DispersyTunnelProxy(Observable):
         self.community.dispersy.endpoint.bypass_prefix = self.prefix
         self.community.dispersy.endpoint.bypass_community = self
 
+        def forward_stats_event(**kwargs):
+            self.message_observer.fire(ProxyMessage.MESSAGE_STATS, trigger_on_subscribe=False, **kwargs)
+
+        self.community.subscribe(ProxyMessage.MESSAGE_STATS, forward_stats_event)
+
         self.message_observer.subscribe(ProxyMessage.MESSAGE_CREATE, self.on_create)
         self.message_observer.subscribe(ProxyMessage.MESSAGE_CREATED, self.on_created)
         self.message_observer.subscribe(ProxyMessage.MESSAGE_EXTEND, self.on_extend)
@@ -321,8 +326,6 @@ class DispersyTunnelProxy(Observable):
         self.message_observer.subscribe(ProxyMessage.MESSAGE_DATA, self.on_data)
         self.message_observer.subscribe(ProxyMessage.MESSAGE_BREAK, self.on_break)
         self.message_observer.subscribe(ProxyMessage.MESSAGE_PUNCTURE, self.on_puncture)
-
-        #community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
 
         self.setup_keep_alive()
 
@@ -385,11 +388,18 @@ class DispersyTunnelProxy(Observable):
                 yield 1.0
 
         def share_stats():
+            share_dispersy = False
+
             while True:
                 if self.share_stats:
                     logger.error("Sharing STATS")
+                    stats = self._create_stats()
+                    if not share_dispersy:
+                        self.community.send_stats(stats)
+                        share_dispersy = True
+
                     for candidate in self.community.dispersy_yield_verified_candidates():
-                        self.send_message(candidate, 0, ProxyMessage.MESSAGE_STATS, self._create_stats())
+                        self.send_message(candidate, 0, ProxyMessage.MESSAGE_STATS, stats)
 
                 yield 10.0
 
