@@ -1981,10 +1981,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 except:
                     pass
                 try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN friend')
-                except:
-                    pass
-                try:
                     self.execute_write('ALTER TABLE Peer DROP COLUMN superpeer')
                 except:
                     pass

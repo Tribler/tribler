@@ -74,7 +74,8 @@ CREATE TABLE Peer (
   peer_id              integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   permid               text NOT NULL,
   name                 text,
-  thumbnail            text
+  thumbnail            text,
+  friend               integer DEFAULT 0
 );
 
 CREATE UNIQUE INDEX permid_idx
