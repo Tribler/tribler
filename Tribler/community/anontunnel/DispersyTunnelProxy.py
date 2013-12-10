@@ -315,7 +315,7 @@ class DispersyTunnelProxy(Observable):
         self.community.dispersy.endpoint.bypass_community = self
 
         def forward_stats_event(**kwargs):
-            self.message_observer.fire(ProxyMessage.MESSAGE_STATS, trigger_on_subscribe=False, **kwargs)
+            self.raw_server.add_task(lambda(): self.message_observer.fire(ProxyMessage.MESSAGE_STATS, trigger_on_subscribe=False, **kwargs))
 
         self.community.subscribe(ProxyMessage.MESSAGE_STATS, forward_stats_event)
 
