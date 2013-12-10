@@ -1786,6 +1786,10 @@ class LibraryList(SizeList):
         if ds1.get_current_speed('up') != ds2.get_current_speed('up'):
             return False
 
+        # Compare seeding stats
+        if ds1.get_seeding_statistics() != ds2.get_seeding_statistics():
+            return False
+
         seeds1, peers1 = ds1.get_num_seeds_peers()
         seeds2, peers2 = ds2.get_num_seeds_peers()
         if seeds1 != seeds2:
