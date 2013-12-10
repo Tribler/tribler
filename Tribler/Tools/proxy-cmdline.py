@@ -213,7 +213,7 @@ def main():
         peer['ip'] = helper1_ip
         peer['port'] = helper1_port
         peer['last_seen'] = 0
-        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        peerdb.addPeer(peer['permid'], peer, update_dns=True)
 
         # add the helper 2 as a friend
         # get helper2 permid
@@ -232,7 +232,7 @@ def main():
         peer['ip'] = helper2_ip
         peer['port'] = helper2_port
         peer['last_seen'] = 0
-        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        peerdb.addPeer(peer['permid'], peer, update_dns=True)
 
         # add the helper 3 as a friend
         # get helper3 permid
@@ -250,7 +250,7 @@ def main():
         peer['ip'] = helper3_ip
         peer['port'] = helper3_port
         peer['last_seen'] = 0
-        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        peerdb.addPeer(peer['permid'], peer, update_dns=True)
 
         # add the helper 4 as a friend
         # get helper4 permid
@@ -268,7 +268,7 @@ def main():
         peer['ip'] = helper4_ip
         peer['port'] = helper4_port
         peer['last_seen'] = 0
-        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        peerdb.addPeer(peer['permid'], peer, update_dns=True)
 
     # ProxyDevel - if no_download is false (the client has to download torrent data), then start downloading
     if (no_download == False):
