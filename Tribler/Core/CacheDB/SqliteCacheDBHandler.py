@@ -314,6 +314,12 @@ class TorrentDBHandler(BasicDBHandler):
         self._rtorrent_handler = RemoteTorrentHandler.getInstance()
         self._nb = NetworkBuzzDBHandler.getInstance()
 
+    def torrentSource2Id(self, source):
+        return self.src_table[source]
+
+    def torrentId2Source(self, source_id):
+        return self.id2src[source_id]
+
     def torrentId2Status(self, status_id):
         return self.id2status[status_id]
 
@@ -395,7 +401,7 @@ class TorrentDBHandler(BasicDBHandler):
 
                 if len(insert_collecting) > 0:
                     sql_insert_collecting = "INSERT OR IGNORE INTO TorrentCollecting (torrent_id, source) VALUES (?,?)"
-                    self._db.executemany(sql_insert_collecting, insert_collecting, False)
+                    self._db.executemany(sql_insert_collecting, insert_collecting)
             except:
                 print >> sys.stderr, "Could not create a TorrentDef instance", infohash, timestamp, name, files, trackers, source, extra_info
                 print_exc()
@@ -514,7 +520,15 @@ class TorrentDBHandler(BasicDBHandler):
         result = self._db.getOne(u'Torrent', columns,
             (u'infohash',), (infohash_str,))
 
-        return result
+        if len(columns) == 1:
+            processed_result = self._processValue(columns[0], result)
+        else:
+            processed_result = tuple()
+            for i in xrange(len(columns)):
+                value = self._processValue(columns[i], result[i])
+                processed_result += (value,)
+
+        return processed_result
 
     def new_getTorrentMany(self, infohash_tuple_list, columns):
         value_list = list()
@@ -524,14 +538,49 @@ class TorrentDBHandler(BasicDBHandler):
         result_list = self._db.getMany(u'Torrent', columns,
             (u'infohash',), value_list)
 
-        return result_list
+        processed_result_list = None
+        if result_list is not None:
+            processed_result_list = list()
+            for result in result_list:
+                if len(columns) == 1:
+                    processed_result = self._processValue(columns[0], result)
+                else:
+                    processed_result = tuple()
+                    for i in xrange(len(columns)):
+                        value = self._processValue(columns[i], result[i])
+                        processed_result += (value,)
+                processed_result_list.append(processed_result)
+
+        return processed_result_list
 
     def new_getTorrentBySwiftHash(self, swift_hash, columns):
         swift_hash_str = bin2str(swift_hash)
         result = self._db.getOne(u'Torrent', columns,
             (u'swift_hash',), (swift_hash_str,))
 
-        return result
+        if len(columns) == 1:
+            processed_result = self._processValue(columns[0], result)
+        else:
+            processed_result = tuple()
+            for i in xrange(len(columns)):
+                value = self._processValue(columns[i], result[i])
+                processed_result += (value,)
+
+        return processed_result
+
+    def _processValue(self, column, value):
+        str2bin_columns = (u'infohash', u'swift_hash', u'swift_torrent_hash')
+        processed_value = value
+        if value is not None:
+            if column in str2bin_columns:
+                processed_value = str2bin(value)
+            elif column == u'source_id':
+                processed_value = self.id2src[value]
+            elif column == u'category_id':
+                processed_value = [self.id2category[value]] # TODO: check later, the old one uses list
+            elif column == u'status_id':
+                processed_value = self.id2status[value]
+        return processed_value
 
     def _addTorrentToDB(self, torrentdef, source, extra_info):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
@@ -1949,28 +1998,28 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def drop_all_newer(self, dispersy_id):
         sql = "DELETE FROM _TorrentMarkings WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
+        self._db.execute_write(sql, (dispersy_id,))
 
         sql = "DELETE FROM _ChannelVotes WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
+        self._db.execute_write(sql, (dispersy_id,))
 
         sql = "DELETE FROM _ChannelMetaData WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
+        self._db.execute_write(sql, (dispersy_id,))
 
         sql = "DELETE FROM _Moderations WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
+        self._db.execute_write(sql, (dispersy_id,))
 
         sql = "DELETE FROM _Comments WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
+        self._db.execute_write(sql, (dispersy_id,))
 
         sql = "DELETE FROM _PlaylistTorrents WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
+        self._db.execute_write(sql, (dispersy_id,))
 
         sql = "DELETE FROM _Playlists WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
+        self._db.execute_write(sql, (dispersy_id,))
 
         sql = "DELETE FROM _ChannelTorrents WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
+        self._db.execute_write(sql, (dispersy_id,))
 
     def on_channel_from_dispersy(self, dispersy_cid, peer_id, name, description):
         if isinstance(dispersy_cid, (str)):

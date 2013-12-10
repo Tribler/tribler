@@ -139,7 +139,7 @@ class TorrentManager:
                 (u'torrent_id', u'swift_torrent_hash', u'torrent_file_name'))
             if torrent_values:
                 torrent.update_torrent_id(torrent_values[0])
-                torrent.swift_torrent_hash(str2bin(torrent_values[1]))
+                torrent.swift_torrent_hash(torrent_values[1])
                 torrent.torrent_file_name(torrent_values[2])
                 return self.getCollectedFilename(torrent, retried=True)
 
@@ -318,15 +318,8 @@ class TorrentManager:
             u'num_leechers')
         torrent_values = self.torrent_db.new_getTorrent(infohash, columns)
         if torrent_values:
-            t = Torrent(torrent_values[0],
-                str2bin(torrent_values[1]), # three hashes
-                str2bin(torrent_values[2]),
-                str2bin(torrent_values[3]),
-                torrent_values[4], torrent_values[5], torrent_values[6],
-                self.torrent_db.torrentId2Category(torrent_values[7]), # two IDs
-                self.torrent_db.torrentId2Status(torrent_values[8]),
-                torrent_values[9], torrent_values[10],
-                None)
+            torrent_values += (None,)
+            t = Torrent(*torrent_values)
 
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
@@ -1152,15 +1145,8 @@ class LibraryManager:
             # only add if it is in MyPreference
             my_pref_stats = self.mypref_db.getMyPrefStats(torrent_values[0])
             if my_pref_stats:
-                t = Torrent(torrent_values[0],
-                    str2bin(torrent_values[1]), # three hashes
-                    str2bin(torrent_values[2]),
-                    str2bin(torrent_values[3]),
-                    torrent_values[4], torrent_values[5], torrent_values[6],
-                    self.torrent_db.torrentId2Category(torrent_values[7]), # two IDs
-                    self.torrent_db.torrentId2Status(torrent_values[8]),
-                    torrent_values[9], torrent_values[10],
-                    None)
+                torrent_values += (None,)
+                t = Torrent(*torrent_values)
 
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db

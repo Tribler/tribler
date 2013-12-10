@@ -255,7 +255,7 @@ class TorrentChecking(Thread):
             (u'torrent_file_name', u'swift_torrent_hash'))
         if torrent:
             torrent_file_name = torrent[0]
-            swift_torrent_hash = str2bin(torrent[1])
+            swift_torrent_hash = torrent[1]
 
             if torrent_file_name and os.path.isfile(torrent_file_name):
                 result = torrent_file_name

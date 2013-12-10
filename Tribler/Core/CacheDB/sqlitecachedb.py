@@ -434,7 +434,7 @@ class SQLiteCacheDBBase:
 
     def writeDBVersion(self, version):
         sql = u"UPDATE MyInfo SET value=? WHERE entry='version'"
-        self.execute_write(sql, [version])
+        self.execute_write(sql, (version,))
 
     def show_sql(self, switch):
         # temporary show the sql executed

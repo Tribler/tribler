@@ -13,8 +13,6 @@ from traceback import print_exc, print_stack
 import traceback
 from Tribler.Core.ServerPortHandler import MultiHandler
 
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin
-
 try:
     prctlimported = True
     import prctl
@@ -583,7 +581,7 @@ class TriblerLaunchMany(Thread):
                 torrent_dir = self.session.get_torrent_collecting_dir()
 
                 torrent_name = torrent[0]
-                swift_torrent_hash = str2bin(torrent[2])
+                swift_torrent_hash = torrent[2]
 
                 if swift_torrent_hash:
                     sdef = SwiftDef(swift_torrent_hash)

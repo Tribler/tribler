@@ -218,18 +218,16 @@ class TestTorrentDBHandler(AbstractDB):
         m_size = self.tdb.new_getTorrent(m_infohash, (u'length',))
         assert m_size == 5358560, m_size
 
-        table_name = u'TorrentSource'
-        column_tuple = (u'source_id',)
-        where_column_tuple = (u'name',)
-        where_value_tuple = (src,)
-        sid = self.tdb._db.getOne(table_name, column_tuple,
-            where_column_tuple, where_value_tuple)
+        sid = self.tdb._db.getOne(u'TorrentSource', (u'source_id',),
+            (u'name',), (src,))
         assert sid > 1
 
-        m_sid = self.tdb.new_getTorrent(m_infohash, (u'source_id',))
+        m_source = self.tdb.new_getTorrent(m_infohash, (u'source_id',))
+        m_sid = self.tdb.torrentSource2Id(m_source)
         assert sid == m_sid
 
-        s_sid = self.tdb.new_getTorrent(s_infohash, (u'source_id',))
+        s_source = self.tdb.new_getTorrent(s_infohash, (u'source_id',))
+        s_sid = self.tdb.torrentSource2Id(s_source)
         assert 1 == s_sid
 
         m_comment = self.tdb.new_getTorrent(m_infohash, (u'comment',))
@@ -262,7 +260,7 @@ class TestTorrentDBHandler(AbstractDB):
         key_tuple = (u'status_id', u'num_seeders', u'num_leechers', u'last_tracker_check')
         torrent = self.tdb.new_getTorrent(m_infohash, key_tuple)
 
-        sid = torrent[0]
+        sid = self.tdb.getTorrentStatusId(torrent[0])
         assert sid == 1
 
         seeder = torrent[1]
