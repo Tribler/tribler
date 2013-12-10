@@ -194,7 +194,7 @@ class Torrent(Helper):
     def torrent_id(self):
         if DEBUGDB:
             print >> sys.stderr, "Torrent: fetching getTorrentID from DB", self
-        return self.torrent_db.new_getTorrent(self.infohash, (u'torrent_id'))
+        return self.torrent_db.new_getTorrent(self.infohash, (u'torrent_id',))
 
     def update_torrent_id(self, torrent_id):
         self._cache['torrent_id'] = torrent_id

@@ -317,6 +317,10 @@ class TorrentDBHandler(BasicDBHandler):
     def torrentId2Status(self, status_id):
         return self.id2status[status_id]
 
+    def torrentId2Category(self, category_id):
+        return self.id2category[category_id]
+    
+
     def getInfohash(self, torrent_id):
         sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
         ret = self._db.fetchone(sql_get_infohash, (torrent_id,))
@@ -376,7 +380,7 @@ class TorrentDBHandler(BasicDBHandler):
                 torrentdef = TorrentDef.load_from_dict(metainfo)
                 torrentdef.infohash = infohash
 
-                torrent_id = self._addTorrentToDB(torrentdef, source, extra_info, False)
+                torrent_id = self._addTorrentToDB(torrentdef, source, extra_info)
                 self._rtorrent_handler.notify_possible_torrent_infohash(infohash)
 
                 insert_files = [(torrent_id, unicode(path), length) for path, length in files]
@@ -449,10 +453,6 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.new_getTorrentMany(infohashes, (u'torrent_id',)), to_be_inserted
 
-    def getTorrentById(self, torrent_id, keys=None):
-        infohash = self.getInfohash(torrent_id)
-        return self.getTorrent(infohash, keys=keys, include_mypref=False)
-
     def getTorrent(self, infohash, keys=None, include_mypref=True):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
@@ -513,27 +513,6 @@ class TorrentDBHandler(BasicDBHandler):
         infohash_str = bin2str(infohash)
         result = self._db.getOne(u'Torrent', columns,
             (u'infohash',), (infohash_str,))
-        if result is None:
-            return None
-
-        # convert the values, # TODO: will be removed in the future
-        str2bin_columns = (u'infohash', u'swift_hash', u'swift_torrent_hash')
-        if len(columns) == 1:
-            if columns[0] in str2bin_columns and result is not None:
-                result = str2bin(result)
-        else:
-            for i in xrange(len(columns)):
-                if result[i] is None:
-                    continue
-    
-                if columns[i] in str2bin_columns:
-                    result[i] = str2bin(result[i])
-                #if columns[i] == u'source_id':
-                #    result[i] = self.id2src[result[i]]
-                #if columns[i] == u'category_id':
-                #    result[i] = self.id2category[result[i]]
-                #if columns[i] == u'status_id':
-                #    result[i] = self.id2status[result[i]]
 
         return result
 
@@ -544,30 +523,6 @@ class TorrentDBHandler(BasicDBHandler):
 
         result_list = self._db.getMany(u'Torrent', columns,
             (u'infohash',), value_list)
-        if result_list is None:
-            return None
-
-        # convert the values, # TODO: will be removed in the future
-        str2bin_columns = (u'infohash', u'swift_hash', u'swift_torrent_hash')
-        if len(columns) == 1:
-            if columns[0] in str2bin_columns:
-                for result in result_list:
-                    if result is not None:
-                        result = str2bin(result)
-        else:
-            for i in xrange(len(columns)):
-                for result in result_list:
-                    if result[i] is None:
-                        continue
-        
-                    if columns[i] in str2bin_columns:
-                        result[i] = str2bin(result[i])
-                    #if columns[i] == u'source_id':
-                    #    result[i] = self.id2src[result[i]]
-                    #if columns[i] == u'category_id':
-                    #    result[i] = self.id2category[result[i]]
-                    #if columns[i] == u'status_id':
-                    #    result[i] = self.id2status[result[i]]
 
         return result_list
 
@@ -575,27 +530,6 @@ class TorrentDBHandler(BasicDBHandler):
         swift_hash_str = bin2str(swift_hash)
         result = self._db.getOne(u'Torrent', columns,
             (u'swift_hash',), (swift_hash_str,))
-        if result is None:
-            return None
-
-        # convert the values, # TODO: will be removed in the future
-        str2bin_columns = (u'infohash', u'swift_hash', u'swift_torrent_hash')
-        if len(columns) == 1:
-            if columns[0] in str2bin_columns and result is not None:
-                result = str2bin(result)
-        else:
-            for i in xrange(len(columns)):
-                if result[i] is None:
-                    continue
-    
-                if columns[i] in str2bin_columns:
-                    result[i] = str2bin(result[i])
-                #if columns[i] == u'source_id':
-                #    result[i] = self.id2src[result[i]]
-                #if columns[i] == u'category_id':
-                #    result[i] = self.id2category[result[i]]
-                #if columns[i] == u'status_id':
-                #    result[i] = self.id2status[result[i]]
 
         return result
 

@@ -843,7 +843,7 @@ class NewTorrentPanel(HomePanel):
 
     def UpdateStats(self, infohash):
         def db_callback():
-            torrent_name = self.torrentdb.new_getTorrent(infohash, (u'name'))
+            torrent_name = self.torrentdb.new_getTorrent(infohash, (u'name',))
             if torrent_name:
                 self._UpdateStats(torrent_name)
 
