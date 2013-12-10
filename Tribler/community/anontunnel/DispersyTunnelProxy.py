@@ -315,7 +315,7 @@ class DispersyTunnelProxy(Observable):
         self.community.dispersy.endpoint.bypass_community = self
 
         def forward_stats_event(**kwargs):
-            self.raw_server.add_task(lambda(): self.message_observer.fire(ProxyMessage.MESSAGE_STATS, trigger_on_subscribe=False, **kwargs))
+            self.raw_server.add_task(lambda: self.message_observer.fire(ProxyMessage.MESSAGE_STATS, **kwargs))
 
         self.community.subscribe(ProxyMessage.MESSAGE_STATS, forward_stats_event)
 
@@ -398,10 +398,10 @@ class DispersyTunnelProxy(Observable):
                         self.community.send_stats(stats)
                         share_dispersy = True
 
-                    for candidate in self.community.dispersy_yield_verified_candidates():
-                        self.send_message(candidate, 0, ProxyMessage.MESSAGE_STATS, stats)
+                    #for candidate in self.community.dispersy_yield_verified_candidates():
+                    #    self.send_message(candidate, 0, ProxyMessage.MESSAGE_STATS, stats)
 
-                yield 10.0
+                yield 1.0
 
         callback.register(calc_speeds, priority=-10)
         callback.register(share_stats, priority=-10)
