@@ -48,7 +48,8 @@ class TestTorrentChecking(TestAsServer):
         self.tdb.addExternalTorrent(tdef)
         sleep(30)
 
-        torrent = self.tdb.getTorrent(tdef.get_infohash())
-        num_seeders = torrent['num_seeders']
-        num_leechers = torrent['num_leechers']
+        torrent = self.tdb.new_getTorrent(tdef.get_infohash(),
+            (u'num_seeders', u'num_leechers'))
+        num_seeders = torrent[0]
+        num_leechers = torrent[1]
         assert num_leechers >= 0 or num_seeders >= 0, (num_leechers, num_seeders)

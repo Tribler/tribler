@@ -843,15 +843,15 @@ class NewTorrentPanel(HomePanel):
 
     def UpdateStats(self, infohash):
         def db_callback():
-            torrent = self.torrentdb.getTorrent(infohash, include_mypref=False)
-            if torrent:
-                self._UpdateStats(torrent)
+            torrent_name = self.torrentdb.new_getTorrent(infohash, (u'name'))
+            if torrent_name:
+                self._UpdateStats(torrent_name)
 
         startWorker(None, db_callback, uId=u"NewTorrentPanel_UpdateStats", priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
-    def _UpdateStats(self, torrent):
-        self.list.InsertStringItem(0, torrent['name'])
+    def _UpdateStats(self, torrent_name):
+        self.list.InsertStringItem(0, torrent_name)
         size = self.list.GetItemCount()
         if size > 10:
             self.list.DeleteItem(size - 1)

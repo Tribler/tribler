@@ -806,13 +806,15 @@ class SearchCommunity(Community):
             if channel_id:
                 dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
             else:
-                torrent = self._torrent_db.getTorrent(infohash, ['dispersy_id', 'torrent_file_name'], include_mypref=False)
-                if torrent:
-                    dispersy_id = torrent['dispersy_id']
+                torrent_values = self._torrent_db.new_getTorrent(infohash,
+                    (u'dispersy_id', u'torrent_file_name'))
+                if torrent_values:
+                    dispersy_id = torrent_values[0]
+                    torrent_file_name = torrent_values[1]
 
                     # 2. if still not found, create a new torrentmessage and return this one
-                    if not dispersy_id and torrent['torrent_file_name'] and path.isfile(torrent['torrent_file_name']):
-                        message = self.create_torrent(torrent['torrent_file_name'], store=True, update=False, forward=False)
+                    if not dispersy_id and torrent_file_name and path.isfile(torrent_file_name):
+                        message = self.create_torrent(torrent_file_name, store=True, update=False, forward=False)
                         if message:
                             packets.append(message.packet)
             add_packet(dispersy_id)

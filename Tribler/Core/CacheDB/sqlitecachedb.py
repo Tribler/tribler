@@ -726,7 +726,7 @@ class SQLiteCacheDBBase:
             print >> sys.stderr, '[SQLiteDB] Failed to SELECT ONE.'
             print >> sys.stderr, '[SQLiteDB] Error: %s' % e
             print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
-            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print >> sys.stderr, '[SQLiteDB] WHERE values: %s' % where_value_tuple
             print_exc()
         return result
 
@@ -757,7 +757,7 @@ class SQLiteCacheDBBase:
             print >> sys.stderr, '[SQLiteDB] Failed to SELECT ALL.'
             print >> sys.stderr, '[SQLiteDB] Error: %s' % e
             print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
-            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print >> sys.stderr, '[SQLiteDB] WHERE values: %s' % where_value_tuple
             print_exc()
         return result
 
@@ -783,7 +783,7 @@ class SQLiteCacheDBBase:
             print >> sys.stderr, '[SQLiteDB] Failed to DELETE ONE.'
             print >> sys.stderr, '[SQLiteDB] Error: %s' % e
             print >> sys.stderr, '[SQLiteDB] SQL statement: %s' % sql_stmt
-            print >> sys.stderr, '[SQLiteDB] Values: %s' % value_tuple_list
+            print >> sys.stderr, '[SQLiteDB] WHERE values: %s' % where_value_tuple
             print_exc()
         return result
 

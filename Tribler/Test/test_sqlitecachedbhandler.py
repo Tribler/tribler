@@ -177,8 +177,8 @@ class TestTorrentDBHandler(AbstractDB):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
 
-        sid = self.tdb.getTorrentID(s_infohash)
-        mid = self.tdb.getTorrentID(m_infohash)
+        sid = self.tdb.new_getTorrent(s_infohash, (u'torrent_id',))
+        mid = self.tdb.new_getTorrent(m_infohash, (u'torrent_id',))
 
         single_torrent_file_path = os.path.join(self.getStateDir(), 'single.torrent')
         multiple_torrent_file_path = os.path.join(self.getStateDir(), 'multiple.torrent')
@@ -195,8 +195,8 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb.addExternalTorrent(single_tdef, extra_info={'filename': single_torrent_file_path})
         self.tdb.addExternalTorrent(multiple_tdef, source=src, extra_info={'filename': multiple_torrent_file_path})
 
-        single_torrent_id = self.tdb.getTorrentID(s_infohash)
-        multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
+        single_torrent_id = self.tdb.new_getTorrent(s_infohash, (u'torrent_id',))
+        multiple_torrent_id = self.tdb.new_getTorrent(m_infohash, (u'torrent_id',))
 
         assert self.tdb.getInfohash(single_torrent_id) == s_infohash
 
@@ -208,18 +208,14 @@ class TestTorrentDBHandler(AbstractDB):
         new_tracker_table_size = self.tdb._db.size('TrackerInfo')
         assert old_tracker_size < new_tracker_table_size, new_tracker_table_size - old_tracker_size
 
-        torrent = self.tdb.getTorrentById(keys=(u'name',), torrent_id=single_torrent_id)
-        sname = torrent[u'name']
+        sname = self.tdb.new_getTorrent(s_infohash, (u'name',))
         assert sname == single_name, (sname, single_name)
-        torrent = self.tdb.getTorrentById(keys=(u'name',), torrent_id=multiple_torrent_id)
-        mname = torrent[u'name']
+        mname = self.tdb.new_getTorrent(m_infohash, (u'name',))
         assert mname == multiple_name, (mname, multiple_name)
 
-        torrent = self.tdb.getTorrentById(keys=(u'length',), torrent_id=single_torrent_id)
-        s_size = torrent[u'length']
+        s_size = self.tdb.new_getTorrent(s_infohash, (u'length',))
         assert s_size == 1583233, s_size
-        torrent = self.tdb.getTorrentById(keys=(u'length',), torrent_id=multiple_torrent_id)
-        m_size = torrent[u'length']
+        m_size = self.tdb.new_getTorrent(m_infohash, (u'length',))
         assert m_size == 5358560, m_size
 
         table_name = u'TorrentSource'
@@ -230,16 +226,13 @@ class TestTorrentDBHandler(AbstractDB):
             where_column_tuple, where_value_tuple)
         assert sid > 1
 
-        torrent = self.tdb.getTorrentById(keys=(u'source_id',), torrent_id=multiple_torrent_id)
-        m_sid = torrent[u'source_id']
+        m_sid = self.tdb.new_getTorrent(m_infohash, (u'source_id',))
         assert sid == m_sid
 
-        torrent = self.tdb.getTorrentById(keys=(u'source_id',), torrent_id=single_torrent_id)
-        s_sid = torrent[u'source_id']
+        s_sid = self.tdb.new_getTorrent(s_infohash, (u'source_id',))
         assert 1 == s_sid
 
-        torrent = self.tdb.getTorrentById(keys=(u'comment',), torrent_id=multiple_torrent_id)
-        m_comment = torrent[u'comment']
+        m_comment = self.tdb.new_getTorrent(m_infohash, (u'comment',))
         comments = 'www.tribler.org'
         assert m_comment.find(comments) > -1
 
@@ -250,11 +243,12 @@ class TestTorrentDBHandler(AbstractDB):
         assert len(m_trackers) == 8
         assert 'http://tpb.tracker.thepiratebay.org:80/announce' in m_trackers, m_trackers
 
-        s_torrent = self.tdb.getTorrent(s_infohash)
-        m_torrent = self.tdb.getTorrent(m_infohash)
-        assert s_torrent['name'] == 'Tribler_4.1.7_src.zip', s_torrent['name']
-        assert m_torrent['name'] == 'Tribler_4.1.7_src', m_torrent['name']
-        assert m_torrent['last_check_time'] == 0
+        s_name = self.tdb.new_getTorrent(s_infohash, (u'name',))
+        m_name, m_tracker_check = self.tdb.new_getTorrent(m_infohash,
+            (u'name', u'last_tracker_check'))
+        assert s_name == 'Tribler_4.1.7_src.zip', s_name
+        assert m_name == 'Tribler_4.1.7_src', m_name
+        assert m_tracker_check == 0
 
     def updateTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
@@ -263,21 +257,21 @@ class TestTorrentDBHandler(AbstractDB):
                          status='good', seeder=123, leecher=321,
                          last_check_time=1234567,
                          other_key1='abcd', other_key2=123)
-        multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
+        multiple_torrent_id = self.tdb.new_getTorrent(m_infohash, (u'torrent_id',))
 
         key_tuple = (u'status_id', u'num_seeders', u'num_leechers', u'last_tracker_check')
-        torrent = self.tdb.getTorrentById(keys=key_tuple, torrent_id=multiple_torrent_id)
+        torrent = self.tdb.new_getTorrent(m_infohash, key_tuple)
 
-        sid = torrent[u'status_id']
+        sid = torrent[0]
         assert sid == 1
 
-        seeder = torrent[u'num_seeders']
+        seeder = torrent[1]
         assert seeder == 123
 
-        leecher = torrent[u'num_leechers']
+        leecher = torrent[2]
         assert leecher == 321
 
-        last_check_time = torrent[u'last_tracker_check']
+        last_check_time = torrent[3]
         assert last_check_time == 1234567, last_check_time
 
     def deleteTorrent(self):
@@ -403,7 +397,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
     def test_updateProgress(self):
         infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
         infohash = str2bin(infohash_str_126)
-        torrent_id = self.tdb.getTorrentID(infohash)
+        torrent_id = self.tdb.new_getTorrent(infohash, (u'torrent_id',))
         assert torrent_id == 126
         assert self.mdb.hasMyPreference(torrent_id)
         self.mdb.updateProgress(torrent_id, 3.14)

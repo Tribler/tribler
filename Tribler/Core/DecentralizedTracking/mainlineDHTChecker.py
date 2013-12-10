@@ -55,9 +55,10 @@ class mainlineDHTChecker:
             # so first check before doing commit.
             @forceDBThread
             def do_db():
-                torrent = self.torrent_db.getTorrent(infohash)  # ,keys=('torrent_id','status_id') don't work, st*pid code
-                if torrent['status'] != "good":
-                    status = "good"
-                    kw = {'status': status}
+                torrent_status_id = self.torrent_db.new_getTorrent(infohash, (u'status_id'))
+                torrent_status = self.torrent_db.torrentId2Status(torrent_status_id)
+                if torrent_status != u"good":
+                    status = u"good"
+                    kw = {u'status': status}
                     self.torrent_db.updateTorrent(infohash, **kw)
             do_db()

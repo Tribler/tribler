@@ -236,13 +236,17 @@ class RemoteTorrentHandler:
     def _has_torrent(self, infohash, tor_col_dir, callback):
         # save torrent
         result = False
-        torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
+        torrent = self.torrent_db.new_getTorrent(infohash,
+            (u'torrent_file_name', u'swift_torrent_hash'))
         if torrent:
-            if torrent.get('torrent_file_name', False) and os.path.isfile(torrent['torrent_file_name']):
-                result = torrent['torrent_file_name']
+            torrent_file_name = torrent[0]
+            swift_torrent_hash = torrent[1]
 
-            elif torrent.get('swift_torrent_hash', False):
-                sdef = SwiftDef(torrent['swift_torrent_hash'])
+            if torrent_file_name and os.path.isfile(torrent_file_name):
+                result = torrent_file_name
+
+            elif swift_torrent_hash:
+                sdef = SwiftDef(swift_torrent_hash)
                 torrent_filename = os.path.join(tor_col_dir, sdef.get_roothash_as_hex())
 
                 if os.path.isfile(torrent_filename):

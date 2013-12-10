@@ -297,7 +297,7 @@ class TriblerLaunchMany(Thread):
 
         if d and not hidden and self.session.get_megacache():
             def write_my_pref():
-                torrent_id = self.torrent_db.getTorrentID(infohash)
+                torrent_id = self.torrent_db.new_getTorrent(infohash, (u'torrent_id',))
                 data = {'destination_path': d.get_dest_dir()}
                 self.mypref_db.addMyPreference(torrent_id, data)
 
@@ -341,11 +341,11 @@ class TriblerLaunchMany(Thread):
         # this is a bit tricky, as we do not know if this "id" is a roothash or infohash
         # however a restart will re-add the preference to mypreference if we remove the wrong one
         def do_db(torrent_db, mypref_db, hash):
-            torrent_id = self.torrent_db.getTorrentID(hash)
+            torrent_id = self.torrent_db.new_getTorrent(hash, (u'torrent_id',))
             if torrent_id:
                 self.mypref_db.updateDestDir(torrent_id, "")
 
-            torrent_id = self.torrent_db.getTorrentIDRoot(hash)
+            torrent_id = self.torrent_db.new_getTorrentBySwiftHash(hash, (u'torrent_id',))
             if torrent_id:
                 self.mypref_db.updateDestDir(torrent_id, "")
 
@@ -573,19 +573,24 @@ class TriblerLaunchMany(Thread):
             _, file = os.path.split(filename)
 
             infohash = binascii.unhexlify(file[:-7])
-            torrent = self.torrent_db.getTorrent(infohash, keys=['name', 'torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
+
+            torrent = self.torrent_db.new_getTorrent(infohash,
+                (u'name', u'torrent_file_name', u'swift_torrent_hash'))
             torrentfile = None
             if torrent:
                 torrent_dir = self.session.get_torrent_collecting_dir()
 
-                if torrent['swift_torrent_hash']:
-                    sdef = SwiftDef(torrent['swift_torrent_hash'])
+                torrent_name = torrent[0]
+                swift_torrent_hash = torrent[2]
+
+                if swift_torrent_hash:
+                    sdef = SwiftDef(swift_torrent_hash)
                     save_name = sdef.get_roothash_as_hex()
                     torrentfile = os.path.join(torrent_dir, save_name)
 
                 if torrentfile and os.path.isfile(torrentfile):
                     # normal torrentfile is not present, see if readable torrent is there
-                    save_name = get_readable_torrent_name(infohash, torrent['name'])
+                    save_name = get_readable_torrent_name(infohash, torrent_name)
                     torrentfile = os.path.join(torrent_dir, save_name)
 
             if torrentfile and os.path.isfile(torrentfile):
@@ -904,7 +909,7 @@ class TriblerLaunchMany(Thread):
             self.sesslock.release()
 
         def do_db(torrent_db, my_prefdb, roothash):
-            torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
+            torrent_id = self.torrent_db.new_getTorrentBySwiftHash(roothash, (u'torrent_id',))
 
             if torrent_id:
                 self.mypref_db.updateDestDir(torrent_id, "")

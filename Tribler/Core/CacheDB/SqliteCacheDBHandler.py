@@ -314,6 +314,9 @@ class TorrentDBHandler(BasicDBHandler):
         self._rtorrent_handler = RemoteTorrentHandler.getInstance()
         self._nb = NetworkBuzzDBHandler.getInstance()
 
+    def torrentId2Status(self, status_id):
+        return self.id2status[status_id]
+
     def getTorrentID(self, infohash):
         return self.getTorrentIDS([infohash,])[0]
 
@@ -545,7 +548,6 @@ class TorrentDBHandler(BasicDBHandler):
 
         return torrent
 
-<<<<<<< HEAD
     def new_getTorrent(self, infohash, columns):
         infohash_str = bin2str(infohash)
         result = self._db.getOne(u'Torrent', columns,
@@ -555,18 +557,84 @@ class TorrentDBHandler(BasicDBHandler):
 
         # convert the values, # TODO: will be removed in the future
         str2bin_columns = (u'infohash', u'swift_hash', u'swift_torrent_hash')
-        for i in xrange(len(columns)):
-            if result[i] is None:
-                continue
+        if len(columns) == 1:
+            if columns[0] in str2bin_columns and result is not None:
+                result = str2bin(result)
+        else:
+            for i in xrange(len(columns)):
+                if result[i] is None:
+                    continue
+    
+                if columns[i] in str2bin_columns:
+                    result[i] = str2bin(result[i])
+                #if columns[i] == u'source_id':
+                #    result[i] = self.id2src[result[i]]
+                #if columns[i] == u'category_id':
+                #    result[i] = self.id2category[result[i]]
+                #if columns[i] == u'status_id':
+                #    result[i] = self.id2status[result[i]]
 
-            if columns[i] in str2bin_columns:
-                result[i] = str2bin(result[i])
-            if columns[i] == u'source_id':
-                result[i] = self.id2src[result[i]]
-            if columns[i] == u'category_id':
-                result[i] = self.id2category[result[i]]
-            if columns[i] == u'status_id':
-                result[i] = self.id2status[result[i]]
+        return result
+
+    def new_getTorrentMany(self, infohash_tuple_list, columns):
+        value_list = list()
+        for infohash in infohash_list:
+            value_list.append((bin2str(infohash),))
+
+        result_list = self._db.getMany(u'Torrent', columns,
+            (u'infohash',), value_list)
+        if result_list is None:
+            return None
+
+        # convert the values, # TODO: will be removed in the future
+        str2bin_columns = (u'infohash', u'swift_hash', u'swift_torrent_hash')
+        if len(columns) == 1:
+            if columns[0] in str2bin_columns:
+                for result in result_list:
+                    if result is not None:
+                        result = str2bin(result)
+        else:
+            for i in xrange(len(columns)):
+                for result in result_list:
+                    if result[i] is None:
+                        continue
+        
+                    if columns[i] in str2bin_columns:
+                        result[i] = str2bin(result[i])
+                    #if columns[i] == u'source_id':
+                    #    result[i] = self.id2src[result[i]]
+                    #if columns[i] == u'category_id':
+                    #    result[i] = self.id2category[result[i]]
+                    #if columns[i] == u'status_id':
+                    #    result[i] = self.id2status[result[i]]
+
+        return result_list
+
+    def new_getTorrentBySwiftHash(self, swift_hash, columns):
+        swift_hash_str = bin2str(swift_hash)
+        result = self._db.getOne(u'Torrent', columns,
+            (u'swift_hash',), (swift_hash_str,))
+        if result is None:
+            return None
+
+        # convert the values, # TODO: will be removed in the future
+        str2bin_columns = (u'infohash', u'swift_hash', u'swift_torrent_hash')
+        if len(columns) == 1:
+            if columns[0] in str2bin_columns and result is not None:
+                result = str2bin(result)
+        else:
+            for i in xrange(len(columns)):
+                if result[i] is None:
+                    continue
+    
+                if columns[i] in str2bin_columns:
+                    result[i] = str2bin(result[i])
+                #if columns[i] == u'source_id':
+                #    result[i] = self.id2src[result[i]]
+                #if columns[i] == u'category_id':
+                #    result[i] = self.id2category[result[i]]
+                #if columns[i] == u'status_id':
+                #    result[i] = self.id2status[result[i]]
 
         return result
 
@@ -1581,7 +1649,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return mypref_stats
 
     def getMyPrefStatsInfohash(self, infohash):
-        torrent_id = self._torrent_db.getTorrentID(infohash)
+        torrent_id = self._torrent_db.new_getTorrent(infohash, (u'torrent_id',))
         if torrent_id is not None:
             return self.getMyPrefStats(torrent_id)[torrent_id]
 
@@ -1615,7 +1683,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return self.recent_preflist
 
     def addClicklogToMyPreference(self, infohash, clicklog_data):
-        torrent_id = self._torrent_db.getTorrentID(infohash)
+        torrent_id = self._torrent_db.new_getTorrent(infohash, (u'torrent_id',))
         clicklog_already_stored = False  # equivalent to hasMyPreference TODO
         if torrent_id is None or clicklog_already_stored:
             return False
@@ -1757,9 +1825,9 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self._db.execute_write(sql, (progress, torrent_id))
 
     def updateProgressByHash(self, hash, progress):
-        torrent_id = self._torrent_db.getTorrentID(hash)
+        torrent_id = self._torrent_db.new_getTorrent(hash, (u'torrent_id',))
         if not torrent_id:
-            torrent_id = self.getTorrentIDRoot(hash)
+            torrent_id = self.new_getTorrentBySwiftHash(hash, (u'torrent_id',))
 
         if torrent_id:
             self.updateProgress(torrent_id, progress)
@@ -2129,7 +2197,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         return channeltorrent_id
 
     def hasTorrent(self, channel_id, infohash):
-        torrent_id = self.torrent_db.getTorrentID(infohash)
+        torrent_id = self.torrent_db.new_getTorrent(infohash, (u'torrent_id',))
         if torrent_id:
             sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ? and channel_id = ?"
             channeltorrent_id = self._db.fetchone(sql, (torrent_id, channel_id))
@@ -2139,7 +2207,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
-        torrent_ids = self.torrent_db.getTorrentIDS(infohashes)
+        torrent_ids = self.torrent_db.new_getTorrentMany(infohashes, (u'torrent_id',))
 
         for i in range(len(infohashes)):
             if torrent_ids[i] == None:

@@ -195,7 +195,7 @@ class TorrentChecking(Thread):
             if 'torrent_id' in gui_request:
                 torrent_id = gui_request['torrent_id']
             else:
-                torrent_id = self._torrentdb.getTorrentID(infohash)
+                torrent_id = self._torrentdb.new_getTorrent(infohash, (u'torrent_id',))
 
             if torrent_id <= 0:
                 if DEBUG:
@@ -251,17 +251,21 @@ class TorrentChecking(Thread):
 
         # get trackers from its .torrent file
         result = None
-        torrent = self._torrentdb.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
+        torrent = self._torrentdb.new_getTorrent(infohash,
+            (u'torrent_file_name', u'swift_torrent_hash'))
         if torrent:
-            if torrent.get('torrent_file_name', False) and os.path.isfile(torrent['torrent_file_name']):
-                result = torrent['torrent_file_name']
+            torrent_file_name = torrent[0]
+            swift_torrent_hash = torrent[1]
 
-            elif torrent.get('swift_torrent_hash', False):
-                sdef = SwiftDef(torrent['swift_torrent_hash'])
-                torrent_filename = os.path.join(self._tor_col_dir, sdef.get_roothash_as_hex())
+            if torrent_file_name and os.path.isfile(torrent_file_name):
+                result = torrent_file_name
 
-                if os.path.isfile(torrent_filename):
-                    result = torrent_filename
+            elif swift_torrent_hash:
+                sdef = SwiftDef(swift_torrent_hash)
+                torrent_file_name = os.path.join(self._tor_col_dir, sdef.get_roothash_as_hex())
+
+                if os.path.isfile(torrent_file_name):
+                    result = torrent_file_name
         if result:
             try:
                 torrent = TorrentDef.load(result)
@@ -401,8 +405,8 @@ class TorrentChecking(Thread):
             print >> sys.stderr, "TorrentChecking: Update result %d/%d for %s"\
                 % (seeders, leechers, bin2str(infohash))
 
-        torrent_id = self._torrentdb.getTorrentID(infohash)
-        retries = self._torrentdb.getTorrentCheckRetries(torrent_id)
+        torrent_id, retries = self._torrentdb.new_getTorrent(infohash,
+            (u'torrent_id', u'tracker_check_retries'))
 
         # the result logic
         is_good_result = False
