@@ -135,13 +135,12 @@ class TorrentManager:
 
         if not retried:
             # reload torrent to see if database contains any changes
-            torrent_dict = self.torrent_db.getTorrent(torrent.infohash,
-                    keys=(u'torrent_id', u'swift_torrent_hash',
-                    u'torrent_file_name'), include_mypref=False)
-            if torrent_dict:
-                torrent.update_torrent_id(torrent_dict[u'torrent_id'])
-                torrent.swift_torrent_hash = torrent_dict[u'swift_torrent_hash']
-                torrent.torrent_file_name = torrent_dict[u'torrent_file_name']
+            torrent_values = self.torrent_db.new_getTorrent(torrent.infohash,
+                (u'torrent_id', u'swift_torrent_hash', u'torrent_file_name'))
+            if torrent_values:
+                torrent.update_torrent_id(torrent_values[0])
+                torrent.swift_torrent_hash(torrent_values[1])
+                torrent.torrent_file_name(torrent_values[2])
                 return self.getCollectedFilename(torrent, retried=True)
 
     def getCollectedFilenameFromDef(self, torrentdef):
@@ -265,7 +264,7 @@ class TorrentManager:
 
                 # see if we have most info in our tables
                 if isinstance(torrent, RemoteTorrent):
-                    torrent_id = self.torrent_db.getTorrentID(torrent.infohash)
+                    torrent_id = self.torrent_db.new_getTorrent(torrent.infohash, (u'torrent_id',))
                 else:
                     torrent_id = torrent.torrent_id
 
@@ -313,18 +312,14 @@ class TorrentManager:
             return torrent
 
     def getTorrentByInfohash(self, infohash):
-        torrent_dict = self.torrent_db.getTorrent(infohash,
-                keys=['torrent_id', 'infohash', 'swift_hash',
-                    'swift_torrent_hash', 'name', 'torrent_file_name',
-                    'length', 'category_id', 'status_id', 'num_seeders',
-                    'num_leechers'])
-        if torrent_dict:
-            t = Torrent(torrent_dict['torrent_id'], torrent_dict['infohash'],
-                torrent_dict['swift_hash'], torrent_dict['swift_torrent_hash'],
-                torrent_dict['name'], torrent_dict['torrent_file_name'],
-                torrent_dict['length'], torrent_dict['category_id'],
-                torrent_dict['status_id'], torrent_dict['num_seeders'],
-                torrent_dict['num_leechers'], None)
+        columns = (u'torrent_id', u'infohash', u'swift_hash',
+            u'swift_torrent_hash', u'name', u'torrent_file_name',
+            u'length', u'category_id', u'status_id', u'num_seeders',
+            u'num_leechers')
+        torrent_values = self.torrent_db.new_getTorrent(infohash, columns)
+        if torrent_values:
+            torrent_values += (None,) # no channel
+            t = Torrent(*torrent_values)
 
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
@@ -1147,26 +1142,25 @@ class LibraryManager:
         return [len(self.hits), self.hits]
 
     def getTorrentFromInfohash(self, infohash):
-        torrent_dict = self.torrent_db.getTorrent(infohash,
-                keys=['torrent_id', 'infohash', 'swift_hash',
-                'swift_torrent_hash', 'name', 'torrent_file_name',
-                'length', 'category_id', 'status_id', 'num_seeders',
-                'num_leechers'])
-        if torrent_dict and torrent_dict['myDownloadHistory']:
-            t = LibraryTorrent(torrent_dict['torrent_id'],
-                torrent_dict['infohash'], torrent_dict['swift_hash'],
-                torrent_dict['swift_torrent_hash'], torrent_dict['name'],
-                torrent_dict['torrent_file_name'], torrent_dict['length'],
-                torrent_dict['category_id'], torrent_dict['status_id'],
-                torrent_dict['num_seeders'], torrent_dict['num_leechers'], None)
+        columns = (u'torrent_id', u'infohash', u'swift_hash',
+                u'swift_torrent_hash', u'name', u'torrent_file_name',
+                u'length', u'category_id', u'status_id', u'num_seeders',
+                u'num_leechers')
+        torrent_values = self.torrent_db.new_getTorrent(infohash, columns)
+        if torrent_values:
+            # only add if it is in MyPreference
+            my_pref_stats = self.mypref_db.getMyPrefStats(torrent_values[0])
+            if my_pref_stats:
+                torrent_values += (None,)
+                t = LibraryTorrent(*torrent_values)
 
-            t.torrent_db = self.torrent_db
-            t.channelcast_db = self.channelcast_db
+                t.torrent_db = self.torrent_db
+                t.channelcast_db = self.channelcast_db
 
-            # touch channel to force load
-            t.channel
-            self.addDownloadState(t)
-            return t
+                # touch channel to force load
+                t.channel
+                self.addDownloadState(t)
+                return t
 
     def exists(self, infohashes):
         prefrerences = self.mypref_db.getMyPrefListInfohash(returnDeleted=False)

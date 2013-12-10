@@ -387,13 +387,13 @@ class TorrentDBHandler(BasicDBHandler):
             self.existed_torrents.add(infohash)
             return True
 
-    def addExternalTorrent(self, torrentdef, source="BC", extra_info={}, commit=True):
+    def addExternalTorrent(self, torrentdef, source="BC", extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
         if torrentdef.is_finalized():
             infohash = torrentdef.get_infohash()
             if not self.hasTorrent(infohash):
-                self._addTorrentToDB(torrentdef, source, extra_info, commit)
+                self._addTorrentToDB(torrentdef, source, extra_info)
                 self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
 
     def addExternalTorrentNoDef(self, infohash, name, files, trackers, timestamp, source, extra_info={}):
@@ -432,7 +432,7 @@ class TorrentDBHandler(BasicDBHandler):
                 insert_files = [(torrent_id, unicode(path), length) for path, length in files]
                 if len(insert_files) > 0:
                     sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
-                    self._db.executemany(sql_insert_files, insert_files, commit=False)
+                    self._db.executemany(sql_insert_files, insert_files)
 
                 magnetlink = u"magnet:?xt=urn:btih:" + hexlify(infohash)
                 for tracker in trackers:
@@ -557,6 +557,30 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['myDownloadHistory'] = False
 
         return torrent
+
+    def new_getTorrent(self, infohash, columns):
+        infohash_str = bin2str(infohash)
+        result = self._db.getOne(u'Torrent', columns,
+            (u'infohash',), (infohash_str,))
+        if result is None:
+            return None
+
+        # convert the values, # TODO: will be removed in the future
+        str2bin_columns = (u'infohash', u'swift_hash', u'swift_torrent_hash')
+        for i in xrange(len(columns)):
+            if result[i] is None:
+                continue
+
+            if columns[i] in str2bin_columns:
+                result[i] = str2bin(result[i])
+            if columns[i] == u'source_id':
+                result[i] = self.id2src[result[i]]
+            if columns[i] == u'category_id':
+                result[i] = self.id2category[result[i]]
+            if columns[i] == u'status_id':
+                result[i] = self.id2status[result[i]]
+
+        return result
 
     def _addTorrentToDB(self, torrentdef, source, extra_info, commit):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
