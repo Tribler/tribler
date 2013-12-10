@@ -317,46 +317,6 @@ class TorrentDBHandler(BasicDBHandler):
     def torrentId2Status(self, status_id):
         return self.id2status[status_id]
 
-    def getTorrentID(self, infohash):
-        return self.getTorrentIDS([infohash,])[0]
-
-    def getTorrentIDS(self, infohashes):
-        to_select = []
-
-        for infohash in infohashes:
-            assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-            assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-
-            if not infohash in self.infohash_id:
-                to_select.append(bin2str(infohash))
-
-        while len(to_select) > 0:
-            nrToQuery = min(len(to_select), 50)
-            parameters = '?,' * nrToQuery
-            sql_get_torrent_ids = "SELECT torrent_id, infohash FROM Torrent WHERE infohash IN (" + parameters[:-1] + ")"
-
-            torrents = self._db.fetchall(sql_get_torrent_ids, to_select[:nrToQuery])
-            for torrent_id, infohash in torrents:
-                self.infohash_id[str2bin(infohash)] = torrent_id
-
-            to_select = to_select[nrToQuery:]
-
-        to_return = []
-        for infohash in infohashes:
-            if infohash in self.infohash_id:
-                to_return.append(self.infohash_id[infohash])
-            else:
-                to_return.append(None)
-        return to_return
-
-    def getTorrentIDRoot(self, roothash):
-        assert isinstance(roothash, str), "roothash has invalid type: %s" % type(roothash)
-        assert len(roothash) == INFOHASH_LENGTH, "roothash has invalid length: %d" % len(roothash)
-
-        sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE swift_hash==?"
-        tid = self._db.fetchone(sql_get_torrent_id, (bin2str(roothash),))
-        return tid
-
     def getInfohash(self, torrent_id):
         sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
         ret = self._db.fetchone(sql_get_infohash, (torrent_id,))
@@ -439,7 +399,8 @@ class TorrentDBHandler(BasicDBHandler):
     def addInfohash(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        if self.getTorrentID(infohash) is None:
+        torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
+        if torrent_id is None:
             sql = 'INSERT OR IGNORE INTO Torrent(infohash) VALUES(?)'
             self._db.execute_write(sql, (bin2str(infohash),))
 
@@ -447,20 +408,20 @@ class TorrentDBHandler(BasicDBHandler):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
 
-        torrent_id = self.getTorrentID(infohash)
+        torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
         if torrent_id is None:
             infohash_str = bin2str(infohash)
             status_id = self._getStatusID("good")
             sql = 'INSERT INTO Torrent(infohash, status_id) VALUES(?, ?)'
             self._db.execute_write(sql, (infohash_str, status_id))
-            torrent_id = self.getTorrentID(infohash)
+            torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
         return torrent_id
 
     def addOrGetTorrentIDRoot(self, roothash, name):
         assert isinstance(roothash, str), "roothash has invalid type: %s" % type(roothash)
         assert len(roothash) == INFOHASH_LENGTH, "roothash has invalid length: %d" % len(roothash)
 
-        torrent_id = self.getTorrentIDRoot(roothash)
+        torrent_id = self.new_getTorrentBySwiftHash(roothash, (u'torrent_id',))
         if torrent_id is None:
             infohash_str = 'swift' + bin2str(roothash)[5:]
             swift_hash_str = bin2str(roothash)
@@ -468,7 +429,7 @@ class TorrentDBHandler(BasicDBHandler):
             sql = 'INSERT INTO Torrent(infohash, name, swift_hash, status_id) VALUES(?, ?, ?, ?)'
             self._db.execute_write(sql, (infohash_str, name, swift_hash_str, status_id))
 
-            torrent_id = self.getTorrentIDRoot(roothash)
+            torrent_id = self.new_getTorrentBySwiftHash(roothash, (u'torrent_id',))
         return torrent_id
 
     def addOrGetTorrentIDS(self, infohashes):
@@ -477,7 +438,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def addOrGetTorrentIDSReturn(self, infohashes):
         to_be_inserted = []
-        torrent_ids = self.getTorrentIDS(infohashes)
+        torrent_ids = self.new_getTorrentMany(infohashes, (u'torrent_id',))
         for i in range(len(torrent_ids)):
             torrent_id = torrent_ids[i]
             if torrent_id is None:
@@ -486,7 +447,7 @@ class TorrentDBHandler(BasicDBHandler):
         status_id = self._getStatusID("good")
         sql = "INSERT OR IGNORE INTO Torrent (infohash, status_id) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
-        return self.getTorrentIDS(infohashes), to_be_inserted
+        return self.new_getTorrentMany(infohashes, (u'torrent_id',)), to_be_inserted
 
     def getTorrentById(self, torrent_id, keys=None):
         infohash = self.getInfohash(torrent_id)
@@ -647,7 +608,7 @@ class TorrentDBHandler(BasicDBHandler):
         database_dict = self._get_database_dict(torrentdef, source, extra_info)
 
         # see if there is already a torrent in the database with this infohash
-        torrent_id = self.getTorrentID(infohash)
+        torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
 
         if torrent_id is None:  # not in database
             key_str = ''
@@ -662,7 +623,7 @@ class TorrentDBHandler(BasicDBHandler):
             sql = 'INSERT INTO Torrent(%s) VALUES(%s)' % (key_str, value_str)
             self._db.execute_write(sql, tuple(value_list))
 
-            torrent_id = self.getTorrentID(infohash)
+            torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
 
         else:  # infohash in db
             key_str = ''
@@ -1007,7 +968,7 @@ class TorrentDBHandler(BasicDBHandler):
         if not self.hasTorrent(infohash):
             return False
 
-        torrent_id = self.getTorrentID(infohash)
+        torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
         if self.mypref_db.hasMyPreference(torrent_id):  # don't remove torrents in my pref
             return False
 
@@ -1023,7 +984,7 @@ class TorrentDBHandler(BasicDBHandler):
         return deleted
 
     def _deleteTorrent(self, infohash, keep_infohash=True):
-        torrent_id = self.getTorrentID(infohash)
+        torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
         if torrent_id is not None:
             if keep_infohash:
                 sql = 'UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?'
@@ -1041,7 +1002,7 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.execute_write(sql, (torrent_id,))
 
     def eraseTorrentFile(self, infohash):
-        torrent_id = self.getTorrentID(infohash)
+        torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
         if torrent_id is not None:
             torrent_dir = self.getTorrentDir()
             sql = 'SELECT torrent_file_name FROM Torrent WHERE torrent_id = ?'
@@ -1138,7 +1099,7 @@ class TorrentDBHandler(BasicDBHandler):
     # (from TorrentTrackerMapping table)
     # ------------------------------------------------------------
     def getTrackerListByInfohash(self, infohash):
-        torrent_id = self.getTorrentID(infohash)
+        torrent_id = self.new_getTorrent(infohash, (u'torrent_id',))
         return self.getTrackerListByTorrentID(torrent_id)
 
     # ------------------------------------------------------------
