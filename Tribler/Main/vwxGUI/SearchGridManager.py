@@ -139,8 +139,8 @@ class TorrentManager:
                 (u'torrent_id', u'swift_torrent_hash', u'torrent_file_name'))
             if torrent_values:
                 torrent.update_torrent_id(torrent_values[0])
-                torrent.swift_torrent_hash(torrent_values[1])
-                torrent.torrent_file_name(torrent_values[2])
+                torrent.swift_torrent_hash = torrent_values[1]
+                torrent.torrent_file_name = torrent_values[2]
                 return self.getCollectedFilename(torrent, retried=True)
 
     def getCollectedFilenameFromDef(self, torrentdef):

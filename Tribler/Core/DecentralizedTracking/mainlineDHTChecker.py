@@ -55,7 +55,8 @@ class mainlineDHTChecker:
             # so first check before doing commit.
             @forceDBThread
             def do_db():
-                torrent_status = self.torrent_db.new_getTorrent(infohash, (u'status_id',))
+                torrent_status_id = self.torrent_db.new_getTorrent(infohash, (u'status_id',))
+                torrent_status = self.torrent_db.getTorrentStatusId(torrent_status_id)
                 if torrent_status != u"good":
                     status = u"good"
                     kw = {u'status': status}

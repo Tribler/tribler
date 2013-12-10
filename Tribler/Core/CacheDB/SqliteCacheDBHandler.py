@@ -574,12 +574,6 @@ class TorrentDBHandler(BasicDBHandler):
         if value is not None:
             if column in str2bin_columns:
                 processed_value = str2bin(value)
-            elif column == u'source_id':
-                processed_value = self.id2src[value]
-            elif column == u'category_id':
-                processed_value = [self.id2category[value]] # TODO: check later, the old one uses list
-            elif column == u'status_id':
-                processed_value = self.id2status[value]
         return processed_value
 
     def _addTorrentToDB(self, torrentdef, source, extra_info):
