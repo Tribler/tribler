@@ -126,9 +126,15 @@ class TriblerLaunchMany(Thread):
                 # However, for now we must start self.dispersy.callback before running
                 # try_register(nocachedb, self.database_thread)!
 
-                self.dispersy.start()
+                print >> sys.stderr, "lmc: Starting Dispersy..."
+                now = timemod.time()
+                success = self.dispersy.start()
+                diff = timemod.time() - now
+                if success:
+                    print >> sys.stderr, "lmc: Dispersy started successfully in %.2f second [port: %d]" % (diff, self.dispersy.wan_address[1])
+                else:
+                    print >> sys.stderr, "lmc: Dispersy failed to start in %.2f seconds" % (diff,)
 
-                print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "using", endpoint
                 self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
                 self.dispersy.callback.call(self.dispersy.define_auto_load, args=(HardKilledCommunity,), kargs={'load': True})
@@ -699,8 +705,8 @@ class TriblerLaunchMany(Thread):
             print >> sys.stderr, "lmc: Shutting down Dispersy..."
             now = timemod.time()
             success = self.dispersy.stop(666.666)
+            diff = timemod.time() - now
             if success:
-                diff = timemod.time() - now
                 print >> sys.stderr, "lmc: Dispersy successfully shutdown in %.2f seconds" % diff
             else:
                 print >> sys.stderr, "lmc: Dispersy failed to shutdown in %.2f seconds" % diff
