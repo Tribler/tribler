@@ -344,7 +344,7 @@ class RemoteTorrentHandler:
             if self.torrent_db.hasTorrent(tdef.get_infohash()):
                 self.torrent_db.updateTorrent(tdef.get_infohash(), swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
             else:
-                self.torrent_db._addTorrentToDB(tdef, source="SWIFT", extra_info={'filename': swiftpath, 'swift_torrent_hash': roothash, 'status': 'good'}, commit=True)
+                self.torrent_db._addTorrentToDB(tdef, source="SWIFT", extra_info={'filename': swiftpath, 'swift_torrent_hash': roothash, 'status': 'good'})
 
         sdef = SwiftDef(roothash)
         swiftpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
