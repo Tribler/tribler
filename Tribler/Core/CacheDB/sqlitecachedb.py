@@ -1982,6 +1982,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 """
                 self.execute_write(copy_data)
 
+                drop_table = "DROP VIEW Friend"
+                self.execute_write(drop_table)
                 drop_table = "DROP TABLE __Peer_tmp"
                 self.execute_write(drop_table)
 
