@@ -27,12 +27,13 @@ from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
 
 from Tribler.community.channel.community import forceDispersyThread
 
-def define_communities():
+def define_communities(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
     from Tribler.community.channel.community import ChannelCommunity
 
+    dispersy = session.get_dispersy_instance()
     dispersy.define_auto_load(AllChannelCommunity,
-                                   (s.dispersy_member,),
+                                   (session.dispersy_member,),
                                    {},
                                    load=True)
     dispersy.define_auto_load(ChannelCommunity, load=True)
@@ -147,7 +148,7 @@ def main():
         print "\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies"
         sys.exit()
 
-    print "Type 'Q' to stop the metadata-injector"
+    print "Type Q followed by <ENTER> to stop the metadata-injector"
 
     sscfg = SessionStartupConfig()
     if opt.statedir:
