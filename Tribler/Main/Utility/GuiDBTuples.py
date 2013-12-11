@@ -150,7 +150,12 @@ class MergedDs:
 
 
 class Torrent(Helper):
-    __slots__ = ('infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', '_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db', 'dslist', '_progress', 'relevance_score', 'query_candidates', 'magnetstatus')
+    __slots__ = ('infohash', 'swift_hash', 'swift_torrent_hash',
+        'name', 'torrent_file_name', 'length', 'category_id', 'status_id',
+        'num_seeders', 'num_leechers', '_channel',
+        'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
+        'dslist', '_progress', 'relevance_score', 'query_candidates',
+        'magnetstatus')
 
     def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
         Helper.__init__(self)
@@ -171,6 +176,7 @@ class Torrent(Helper):
         self.updateChannel(channel)
 
         self.channeltorrents_id = None
+        self.misc_db = None
         self.torrent_db = None
         self.channelcast_db = None
 
@@ -188,7 +194,7 @@ class Torrent(Helper):
     @cacheProperty
     def status(self):
         if self.status_id:
-            return self.torrent_db.id2status[self.status_id]
+            return self.misc_db.torrentStatusId2Name(self.status_id)
 
     @cacheProperty
     def torrent_id(self):

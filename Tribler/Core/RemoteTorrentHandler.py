@@ -13,7 +13,8 @@ from random import choice
 from binascii import hexlify
 from time import sleep, time
 
-from Tribler.Core.simpledefs import INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH,\
+    DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
