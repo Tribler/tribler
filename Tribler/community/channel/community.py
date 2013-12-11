@@ -728,10 +728,7 @@ class ChannelCommunity(Community):
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
             # always store metadata
-            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrentDict.get(modifying_dispersy_id, None), playlistDict.get(modifying_dispersy_id, None), self._channel_id, dispersy_id, peer_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time, False)
-
-        # commit now to flush cache of sqlcachedb
-        self._channelcast_db.commit()
+            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrentDict.get(modifying_dispersy_id, None), playlistDict.get(modifying_dispersy_id, None), self._channel_id, dispersy_id, peer_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time)
 
         for message in messages:
             dispersy_id = message.packet_id
@@ -748,21 +745,19 @@ class ChannelCommunity(Community):
 
                 latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
                 if not latest or latest.packet_id == dispersy_id:
-                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value, False)
+                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
 
             elif message_name == u"playlist":
                 playlist_id = playlistDict[modifying_dispersy_id]
 
                 latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
                 if not latest or latest.packet_id == dispersy_id:
-                    self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value, False)
+                    self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
 
             elif message_name == u"channel":
                 latest = self._get_latest_modification_from_channel_id(modification_type_id)
                 if not latest or latest.packet_id == dispersy_id:
-                    self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value, False)
-
-        self._channelcast_db.commit()
+                    self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
 
         # this might be a response to a dispersy-missing-message
         self.handle_missing_messages(messages, MissingMessageCache)

@@ -210,10 +210,7 @@ def main():
         peerdb = s.open_dbhandler(NTFY_PEERS)
         peer = {}
         peer['permid'] = helper1_permid
-        peer['ip'] = helper1_ip
-        peer['port'] = helper1_port
-        peer['last_seen'] = 0
-        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        peerdb.addPeer(peer['permid'], peer)
 
         # add the helper 2 as a friend
         # get helper2 permid
@@ -229,10 +226,7 @@ def main():
         peerdb = s.open_dbhandler(NTFY_PEERS)
         peer = {}
         peer['permid'] = helper2_permid
-        peer['ip'] = helper2_ip
-        peer['port'] = helper2_port
-        peer['last_seen'] = 0
-        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        peerdb.addPeer(peer['permid'], peer)
 
         # add the helper 3 as a friend
         # get helper3 permid
@@ -247,10 +241,7 @@ def main():
         peerdb = s.open_dbhandler(NTFY_PEERS)
         peer = {}
         peer['permid'] = helper3_permid
-        peer['ip'] = helper3_ip
-        peer['port'] = helper3_port
-        peer['last_seen'] = 0
-        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        peerdb.addPeer(peer['permid'], peer)
 
         # add the helper 4 as a friend
         # get helper4 permid
@@ -265,10 +256,7 @@ def main():
         peerdb = s.open_dbhandler(NTFY_PEERS)
         peer = {}
         peer['permid'] = helper4_permid
-        peer['ip'] = helper4_ip
-        peer['port'] = helper4_port
-        peer['last_seen'] = 0
-        peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
+        peerdb.addPeer(peer['permid'], peer)
 
     # ProxyDevel - if no_download is false (the client has to download torrent data), then start downloading
     if (no_download == False):
