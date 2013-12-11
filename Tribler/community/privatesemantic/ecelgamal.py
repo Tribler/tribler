@@ -12,8 +12,8 @@ from gmpy import mpz, invert, rand
 from cProfile import Profile
 from Crypto.Random.random import StrongRandom
 from string import ascii_uppercase, digits
-from Tribler.community.privatesemantic.rsa import encrypt_str, decrypt_str
 from Crypto.Util.number import long_to_bytes, bytes_to_long
+from Crypto.Cipher import AES
 
 ECElgamalKey = namedtuple('ECElgamalKey', ['ec', 'x', 'Q', 'size', 'encsize'])
 
@@ -181,11 +181,6 @@ def ecelgamal_init(bits=192):
         Q = x * curve.g
         return ECElgamalKey(curve, x, Q, bits, bits * 4)
 
-def ecelgamal_encrypt_long(key, long_value):
-    assert isinstance(long_value, long), type(long_value)
-    R, S = ecelgamal_encrypt(key, key.ec.convert_to_point(long_value))
-    return Point.to_bytes(R, key.size) + Point.to_bytes(S, key.size)
-
 def ecelgamal_encrypt(key, M):
     assert M in key.ec
     k = rand('next', 10000)
@@ -212,6 +207,28 @@ def ecelgamal_add(cipher1, cipher2):
     S = cipher1[1] + cipher2[1]
     return R, S
 
+def encrypt_str(key, plain_str):
+    aes_key = StrongRandom().getrandbits(128)
+    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+
+    enc_str = cipher.encrypt(plain_str)
+
+    R, S = ecelgamal_encrypt(key, key.ec.convert_to_point(aes_key))
+    enc_aes_key = Point.to_bytes(R, key.size) + Point.to_bytes(S, key.size)
+    return enc_aes_key + enc_str
+
+def decrypt_str(key, encr_str):
+    enc_aes_key = encr_str[:key.encsize / 8]
+
+    R = key.ec.from_bytes(enc_aes_key[:key.encsize / 8 / 2], key.size)
+    S = key.ec.from_bytes(enc_aes_key[key.encsize / 8 / 2:], key.size)
+    M = ecelgamal_decrypt(key, (R, S))
+    aes_key = key.ec.convert_to_long(M)
+
+    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+    plain_str = cipher.decrypt(encr_str[key.encsize / 8:])
+    return plain_str
+
 if __name__ == "__main__":
     # lets check if this ecelgamal thing works
     key = ecelgamal_init()
@@ -231,8 +248,8 @@ if __name__ == "__main__":
     assert key.ec.convert_to_long(M1M2 - M1) == 2
 
     random_large_string = ''.join(choice(ascii_uppercase + digits) for _ in range(100001))
-    encrypted_str = encrypt_str(ecelgamal_encrypt_long, key, random_large_string)
-    assert random_large_string == decrypt_str(ecelgamal_decrypt_str, key, encrypted_str)
+    encrypted_str = encrypt_str(key, random_large_string)
+    assert random_large_string == decrypt_str(key, encrypted_str)
 
     # performance
     def do_perf():

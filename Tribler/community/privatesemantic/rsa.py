@@ -17,24 +17,6 @@ from struct import pack, unpack, unpack_from
 from sys import maxint
 import json
 
-def encrypt_str(encrypt_method, key, plain_str):
-    aes_key = StrongRandom().getrandbits(128)
-    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-
-    enc_str = cipher.encrypt(plain_str)
-    enc_aes_key = encrypt_method(key, aes_key)
-    assert isinstance(enc_aes_key, str), type(enc_aes_key)
-    return enc_aes_key + enc_str
-
-def decrypt_str(decrypt_method, key, encr_str):
-    enc_aes_key = encr_str[:key.encsize / 8]
-    aes_key = decrypt_method(key, enc_aes_key)
-    assert isinstance(aes_key, long), type(aes_key)
-
-    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-    plain_str = cipher.decrypt(encr_str[key.encsize / 8:])
-    return plain_str
-
 RSAKey = namedtuple('RSAKey', ['n', 'e', 'p', 'q', 'd', 'size', 'encsize'])
 
 def rsa_init(bits=1024):
@@ -54,18 +36,11 @@ def rsa_encrypt(key, element):
     _element = mpz(element)
     return long(pow(_element, key.e, key.n))
 
-def rsa_encrypt_long(key, element):
-    return long_to_bytes(rsa_encrypt(key, element), key.encsize / 8)
-
 def rsa_decrypt(key, cipher):
     assert isinstance(cipher, long), type(cipher)
 
     _cipher = mpz(cipher)
     return long(pow(_cipher, key.d, key.n))
-
-def rsa_decrypt_str(key, cipher):
-    assert isinstance(cipher, str), type(cipher)
-    return rsa_decrypt(key, bytes_to_long(cipher))
 
 def rsa_sign(key, message):
     message_hash = long(sha1(str(message)).hexdigest(), 16)
@@ -78,6 +53,22 @@ def rsa_verify(key, message, signature):
     _signature = mpz(signature)
     should_be_hash = long(pow(_signature, key.e, key.n))
     return message_hash == should_be_hash
+
+def encrypt_str(key, plain_str):
+    aes_key = StrongRandom().getrandbits(128)
+    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+
+    enc_str = cipher.encrypt(plain_str)
+    enc_aes_key = long_to_bytes(rsa_encrypt(key, aes_key), key.encsize / 8)
+    return enc_aes_key + enc_str
+
+def decrypt_str(key, encr_str):
+    enc_aes_key = bytes_to_long(encr_str[:key.encsize / 8])
+    aes_key = rsa_decrypt(key, enc_aes_key)
+
+    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+    plain_str = cipher.decrypt(encr_str[key.encsize / 8:])
+    return plain_str
 
 def hash_element(element):
     return sha1(str(element)).digest()
@@ -154,8 +145,8 @@ if __name__ == "__main__":
     signature = rsa_sign(key, random_large_string)
     assert rsa_verify(key, random_large_string, signature)
 
-    encrypted_str = encrypt_str(rsa_encrypt_long, key, random_large_string)
-    assert random_large_string == decrypt_str(rsa_decrypt_str, key, encrypted_str)
+    encrypted_str = encrypt_str(key, random_large_string)
+    assert random_large_string == decrypt_str(key, encrypted_str)
 
     # performance
     random_list = [randint(0, maxint) for i in xrange(100)]

@@ -2,7 +2,7 @@
 
 from Crypto.Random.random import StrongRandom
 from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes, inverse
-from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
 
 from gmpy import mpz, invert, rand
 
@@ -17,7 +17,6 @@ from polycreate import compute_coeff
 from itertools import groupby
 from cProfile import Profile
 from string import ascii_uppercase, digits
-from Tribler.community.privatesemantic.rsa import encrypt_str, decrypt_str
 
 PaillierKey = namedtuple('PaillierKey', ['n', 'n2', 'g', 'lambda_', 'd', 'size', 'encsize'])
 
@@ -68,9 +67,6 @@ def paillier_encrypt(key, element):
     cipher = (t1 * t2) % key.n2
     return long(cipher)
 
-def paillier_encrypt_long(key, element):
-    return long_to_bytes(paillier_encrypt(key, element), key.encsize / 8)
-
 def paillier_decrypt(key, cipher):
     cipher_ = mpz(cipher)
 
@@ -82,7 +78,7 @@ def paillier_decrypt(key, cipher):
 
 def paillier_decrypt_str(key, cipher):
     assert isinstance(cipher, str), type(cipher)
-    return paillier_decrypt(key, bytes_to_long(cipher))
+    return
 
 def paillier_multiply(cipher, times, n2):
     cipher_ = mpz(cipher)
@@ -102,6 +98,22 @@ def paillier_polyval(coefficients, x, n2):
         result = paillier_add(paillier_multiply(result, x, n2), coefficient, n2)
 
     return result
+
+def encrypt_str(key, plain_str):
+    aes_key = StrongRandom().getrandbits(128)
+    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+
+    enc_str = cipher.encrypt(plain_str)
+    enc_aes_key = long_to_bytes(paillier_encrypt(key, aes_key), key.encsize / 8)
+    return enc_aes_key + enc_str
+
+def decrypt_str(key, encr_str):
+    enc_aes_key = bytes_to_long(encr_str[:key.encsize / 8])
+    aes_key = paillier_decrypt(key, enc_aes_key)
+
+    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+    plain_str = cipher.decrypt(encr_str[key.encsize / 8:])
+    return plain_str
 
 if __name__ == "__main__":
     # lets check if this paillier thing works
@@ -206,8 +218,8 @@ if __name__ == "__main__":
     assert test == 1l, test
 
     random_large_string = ''.join(choice(ascii_uppercase + digits) for _ in range(100001))
-    encrypted_str = encrypt_str(paillier_encrypt_long, key, random_large_string)
-    assert random_large_string == decrypt_str(paillier_decrypt_str, key, encrypted_str)
+    encrypted_str = encrypt_str(key, random_large_string)
+    assert random_large_string == decrypt_str(key, encrypted_str)
 
     def do_perf():
         # performance
