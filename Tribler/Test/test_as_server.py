@@ -35,7 +35,7 @@ defaults.sessdefaults['general']['maxport'] = -1
 defaults.sessdefaults['swift']['swifttunnellistenport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
-defaults.dldefaults["saveas"] = DEST_DIR
+defaults.dldefaults["downloadconfig"]["saveas"] = DEST_DIR
 
 DEBUG = False
 

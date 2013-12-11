@@ -1664,8 +1664,8 @@ class LibraryList(SizeList):
                    {'name': 'Progress', 'type': 'method', 'width': '20em', 'method': self.CreateProgress, 'showColumname': False, 'autoRefresh': False},
                    {'name': 'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format},
                    {'name': 'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True, 'autoRefresh': False},
-                   {'name': 'Down speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False},
-                   {'name': 'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False},
+                   {'name': 'Down speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
+                   {'name': 'Up speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
                    {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
@@ -1786,6 +1786,10 @@ class LibraryList(SizeList):
         if ds1.get_current_speed('up') != ds2.get_current_speed('up'):
             return False
 
+        # Compare seeding stats
+        if ds1.get_seeding_statistics() != ds2.get_seeding_statistics():
+            return False
+
         seeds1, peers1 = ds1.get_num_seeds_peers()
         seeds2, peers2 = ds2.get_num_seeds_peers()
         if seeds1 != seeds2:
@@ -1810,9 +1814,9 @@ class LibraryList(SizeList):
 
         newFilter = self.newfilter
         show_seeding_colours = False
-        if self.statefilter == 'active' and self.utility.config.Read('t4t_option', 'int') == 0:
+        if self.statefilter == 'active' and self.utility.read_config('t4t_option') == 0:
             show_seeding_colours = True
-            t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
+            t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
 
             orange = LIST_ORANGE
             orange = rgb_to_hsv(orange.Red() / 255.0, orange.Green() / 255.0, orange.Blue() / 255.0)
@@ -1910,9 +1914,9 @@ class LibraryList(SizeList):
                 # For updating torrent icons
                 torrent_ds, swift_ds = item.original_data.dslist
                 torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
-                                  torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]
+                                  torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 swift_enabled = bool(swift_ds) and swift_ds.get_download().get_def().get_def_type() == 'swift' and \
-                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]
+                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 item.icons[0].Show(torrent_enabled)
                 item.icons[1].Show(swift_enabled)
 
@@ -2013,8 +2017,8 @@ class LibraryList(SizeList):
 
         if self.statefilter:
             message += " with state %s" % self.statefilter
-            if self.statefilter == 'active'and self.utility.config.Read('t4t_option', 'int') == 0:
-                t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
+            if self.statefilter == 'active'and self.utility.read_config('t4t_option') == 0:
+                t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
                 message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of %.1f" % t4t_ratio
         return header, message
 

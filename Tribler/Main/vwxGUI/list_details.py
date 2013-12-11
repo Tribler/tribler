@@ -870,7 +870,7 @@ class TorrentDetails(AbstractDetails):
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
             uls = ds.get_current_speed('up') * 1024
-            status = 'Seeding @ %s' % self.utility.speed_format_new(uls)
+            status = 'Seeding @ %s' % self.utility.speed_format(uls)
         elif finished:
             status = 'Completed'
         elif statusflag in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK]:
@@ -879,7 +879,7 @@ class TorrentDetails(AbstractDetails):
             status = 'Checking'
         elif statusflag == DLSTATUS_DOWNLOADING:
             dls = ds.get_current_speed('down') * 1024
-            status = 'Downloading @ %s' % self.utility.speed_format_new(dls)
+            status = 'Downloading @ %s' % self.utility.speed_format(dls)
         elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
 
@@ -1155,8 +1155,8 @@ class LibraryDetails(TorrentDetails):
                     self.peerList.InsertStringItem(index, peer_name)
 
                 traffic = ""
-                traffic += self.guiutility.utility.speed_format_new(peer_dict.get('downrate', 0)) + u"\u2193 "
-                traffic += self.guiutility.utility.speed_format_new(peer_dict.get('uprate', 0)) + u"\u2191"
+                traffic += self.guiutility.utility.speed_format(peer_dict.get('downrate', 0)) + u"\u2193 "
+                traffic += self.guiutility.utility.speed_format(peer_dict.get('uprate', 0)) + u"\u2191"
                 self.peerList.SetStringItem(index, 1, traffic.strip())
 
                 state = ""
@@ -1788,10 +1788,10 @@ class ProgressPanel(wx.BoxSizer):
 
         if self.style == ProgressPanel.ETA_EXTENDED:
             if status == DLSTATUS_SEEDING:
-                upSpeed = " @ " + self.utility.speed_format_new(uls)
+                upSpeed = " @ " + self.utility.speed_format(uls)
                 eta += upSpeed
             elif status == DLSTATUS_DOWNLOADING:
-                dlSpeed = " @ " + self.utility.speed_format_new(dls)
+                dlSpeed = " @ " + self.utility.speed_format(dls)
                 eta += dlSpeed
 
         # Update eta
@@ -1848,14 +1848,14 @@ class StringProgressPanel(wx.BoxSizer):
             eta = ds.get_eta()
 
             if progress == 1.0:
-                self.text.SetLabel("Currently uploading to %d peers @ %s." % (peers, self.utility.speed_format_new(uls)))
+                self.text.SetLabel("Currently uploading to %d peers @ %s." % (peers, self.utility.speed_format(uls)))
             else:
                 remaining = size - (size * progress)
                 eta = self.utility.eta_value(eta, truncate=2)
                 if eta == '' or eta.find('unknown') != -1:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining." % (self.utility.speed_format_new(dls), format_size(remaining)))
+                    self.text.SetLabel("Currently downloading @ %s, %s still remaining." % (self.utility.speed_format(dls), format_size(remaining)))
                 else:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining. Expected to finish in %s." % (self.utility.speed_format_new(dls), format_size(remaining), eta))
+                    self.text.SetLabel("Currently downloading @ %s, %s still remaining. Expected to finish in %s." % (self.utility.speed_format(dls), format_size(remaining), eta))
 
 
 class MyChannelDetails(wx.Panel):

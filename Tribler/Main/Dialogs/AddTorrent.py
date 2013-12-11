@@ -93,7 +93,7 @@ class AddTorrent(wx.Dialog):
 
         else:
             self.choose = wx.CheckBox(self, -1, "Let me choose a downloadlocation for these torrents")
-            self.choose.SetValue(self.defaultDLConfig.get_show_saveas())
+            self.choose.SetValue(self.guiutility.utility.read_config('showsaveas'))
             vSizer.Add(self.choose, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 3)
 
         sizer = wx.BoxSizer()
@@ -212,7 +212,7 @@ class AddTorrent(wx.Dialog):
             tdef = TorrentDef.load(torrentfilename)
         if torrenturl:
             tdef = TorrentDef.load_from_url(torrenturl)
-        dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None, self.guiutility.utility.config)
+        dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None)
         id = dlg.ShowModal()
 
         if id == wx.ID_OK:

@@ -18,18 +18,18 @@ from Tribler.Main.vwxGUI import forceWxThread
 
 class SaveAs(wx.Dialog):
 
-    def __init__(self, parent, tdef, defaultdir, defaultname, config, selectedFiles=None):
+    def __init__(self, parent, tdef, defaultdir, defaultname, selectedFiles=None):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450), name="SaveAsDialog")
 
-        self.config = config
+        self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
         self.filehistory = []
         try:
-            self.filehistory = json.loads(self.config.Read("recent_download_history"))
+            self.filehistory = json.loads(self.utility.read_config("recent_download_history", literal_eval=False))
         except:
             pass
 
         self.defaultdir = defaultdir
-        self.guiutility = GUIUtility.getInstance()
         self.listCtrl = None
         self.collected = None
 
@@ -213,8 +213,8 @@ class SaveAs(wx.Dialog):
         self.filehistory.insert(0, path)
         self.filehistory = self.filehistory[:25]
 
-        self.config.Write("recent_download_history", json.dumps(self.filehistory))
-        self.config.Flush()
+        self.utility.write_config("recent_download_history", json.dumps(self.filehistory))
+        self.utility.flush_config()
 
         self.EndModal(wx.ID_OK)
 

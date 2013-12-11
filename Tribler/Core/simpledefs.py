@@ -30,13 +30,14 @@ DLMODE_NORMAL = 0
 DLMODE_VOD = 1
 DLMODE_SVC = 2  # Ric: added download mode for Scalable Video Coding (SVC)
 
-PERSISTENTSTATE_CURRENTVERSION = 4
+PERSISTENTSTATE_CURRENTVERSION = 5
 """
 V1 = SwarmPlayer 1.0.0
 V2 = Tribler 4.5.0: SessionConfig: Added NAT fields
 V3 = SessionConfig: Added multicast_local_peer_discovery,
      Removed rss_reload_frequency + rss_check_frequency.
 V4 = ... + added pickled SwiftDef
+V5 = no longer pickling data
 For details see API.py
 """
 
@@ -109,12 +110,6 @@ NTFY_ACT_RECOMMEND = 6
 NTFY_ACT_DISK_FULL = 7
 NTFY_ACT_NEW_VERSION = 8
 NTFY_ACT_ACTIVE = 9
-
-# Disk-allocation policies for download, see DownloadConfig.set_alloc_type
-DISKALLOC_NORMAL = 'normal'
-DISKALLOC_BACKGROUND = 'background'
-DISKALLOC_PREALLOCATE = 'pre-allocate'
-DISKALLOC_SPARSE = 'sparse'
 
 # Buddycast Collecting Policy parameters
 BCCOLPOLICY_SIMPLE = 1
