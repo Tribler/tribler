@@ -13,7 +13,8 @@ from random import choice
 from binascii import hexlify
 from time import sleep, time
 
-from Tribler.Core.simpledefs import INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH,\
+    DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -74,7 +75,7 @@ class RemoteTorrentHandler:
 
         self.torrent_db = None
         if self.session.get_megacache():
-            self.torrent_db = session.open_dbhandler('torrents')
+            self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.database_thead.register(self.__check_overflow, delay=30.0)
 
         if session.get_dht_torrent_collecting():

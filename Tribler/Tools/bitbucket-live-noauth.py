@@ -36,7 +36,7 @@ def vod_event_callback(d, event, params):
             et = time.time()
             diff = max(et - st, 0.00001)
             grandrate = float(grandtotal) / diff
-            print >>sys.stderr, "bitbucket: grandrate", grandrate, "~", RATE  # ,"avail",stream.available()
+            print >> sys.stderr, "bitbucket: grandrate", grandrate, "~", RATE  # ,"avail",stream.available()
             time.sleep(1.0)
 
 
@@ -46,7 +46,7 @@ def state_callback(ds):
         p = "%.0f %%" % (100.0 * ds.get_progress())
         dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
         ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
-        print >>sys.stderr, dlstatus_strings[ds.get_status()], p, dl, ul, "====="
+        print >> sys.stderr, dlstatus_strings[ds.get_status()], p, dl, ul, "====="
     except:
         print_exc()
 
@@ -61,7 +61,6 @@ scfg = SessionStartupConfig()
 scfg.set_state_dir(statedir)
 scfg.set_listen_port(port)
 scfg.set_megacache(False)
-scfg.set_overlay(False)
 
 
 s = Session(scfg)
@@ -80,13 +79,13 @@ dscfg.set_video_event_callback(vod_event_callback)
 
 # A Closed swarm - load the POA. Will throw an exception if no POA is available
 if cdef.get_def_type() == "torrent" and cdef.get_cs_keys():
-    print >>sys.stderr, "Is a closed swarm, reading POA"
+    print >> sys.stderr, "Is a closed swarm, reading POA"
     try:
         poa = ClosedSwarm.trivial_get_poa(s.get_default_state_dir(),
                                           s.get_permid(),
                                           cdef.get_infohash())
     except Exception as e:
-        print >>sys.stderr, "Failed to load POA for swarm", encodestring(cdef.get_infohash()).replace("\n", ""), "from", s.get_default_state_dir(), "(my permid is %s)" % encodestring(s.get_permid()).replace("\n", ""), "Error was:", e
+        print >> sys.stderr, "Failed to load POA for swarm", encodestring(cdef.get_infohash()).replace("\n", ""), "from", s.get_default_state_dir(), "(my permid is %s)" % encodestring(s.get_permid()).replace("\n", ""), "Error was:", e
         raise SystemExit("Failed to load POA, aborting")
 
 d = s.start_download(cdef, dscfg)

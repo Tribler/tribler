@@ -12,8 +12,10 @@ from bak_tribler_sdb import *
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler, \
-    VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler,\
+    MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler,\
+    VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler,\
+    MiscDBHandler
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Test.test_as_server import AbstractServer
 
@@ -134,12 +136,17 @@ class TestTorrentDBHandler(AbstractDB):
     def setUp(self):
         AbstractDB.setUp(self)
 
+        assert not MiscDBHandler.hasInstance()
+        assert not TorrentDBHandler.hasInstance()
+
+        self.misc_db = MiscDBHandler.getInstance()
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.torrent_dir = FILES_DIR
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
         self.tdb._nb = NetworkBuzzDBHandler.getInstance()
 
     def tearDown(self):
+        MiscDBHandler.delInstance()
         TorrentDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
         NetworkBuzzDBHandler.delInstance()
@@ -160,9 +167,9 @@ class TestTorrentDBHandler(AbstractDB):
 
         data = res[0]
         # print data
-        assert data['category'][0] in self.tdb.category_table.keys(), data['category']
-        assert data['status'] in self.tdb.status_table.keys(), data['status']
-        assert data['source'] in self.tdb.src_table.keys(), data['source']
+        assert data['category'][0] in self.misc_db._category_name2id_dict, data['category']
+        assert data['status'] in self.misc_db._torrent_status_name2id_dict, data['status']
+        assert data['source'] in self.misc_db._torrent_source_name2id_dict, data['source']
         assert len(data['infohash']) == 20
 
     def test_add_update_delete_Torrent(self):
@@ -313,6 +320,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
         self.tdb = TorrentDBHandler.getInstance()
 
     def tearDown(self):
+        MiscDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
         TorrentDBHandler.delInstance()
 

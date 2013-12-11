@@ -57,7 +57,7 @@ def states_callback(dslist):
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
-    print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
+    print >> sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
         (d.get_def().get_name(),
             dlstatus_strings[ds.get_status()],
             ds.get_progress() * 100,
@@ -149,9 +149,6 @@ def main():
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(port)
     sscfg.set_megacache(False)
-    sscfg.set_overlay(False)
-    sscfg.set_dialback(True)
-    sscfg.set_internal_tracker(False)
     sscfg.set_swift_path(".\\Tribler\\SwiftEngine\\swift.exe")
 
     s = Session(sscfg)
@@ -191,10 +188,10 @@ def main():
             sdef.add_content(storagepath)
             sdef.finalize(sscfg.get_swift_path(), destdir=output_dir)
 
-        print >>sys.stderr, "python: root hash", sdef.get_roothash_as_hex()
-        print >>sys.stderr, "python: tracker", sdef.get_tracker()
-        print >>sys.stderr, "python: chunksize", sdef.get_chunksize()
-        print >>sys.stderr, "python: duration", sdef.get_duration()
+        print >> sys.stderr, "python: root hash", sdef.get_roothash_as_hex()
+        print >> sys.stderr, "python: tracker", sdef.get_tracker()
+        print >> sys.stderr, "python: chunksize", sdef.get_chunksize()
+        print >> sys.stderr, "python: duration", sdef.get_duration()
 
         d = start_download(s, sdef, storagepath, 23000)
 

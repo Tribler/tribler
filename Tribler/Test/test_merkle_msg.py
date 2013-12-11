@@ -47,7 +47,6 @@ class TestMerkleMessage(TestAsServer):
     def setUpPreSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
-        self.config.set_overlay(False)
         self.config.set_megacache(False)
 
     def setUpPostSession(self):
