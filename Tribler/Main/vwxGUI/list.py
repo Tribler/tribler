@@ -830,13 +830,14 @@ class List(wx.BoxSizer):
                 self.header.FilterCorrect(False)
 
     def LoadEnabledCategoryIDs(self):
+        misc_db = self.guiutility.utility.session.open_dbhandler(NTFY_MISC)
         torrent_db = self.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
         enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
         self.enabled_category_ids = set([0, 8])
         for key, id in torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:
                 self.enabled_category_ids.add(id)
-        self.deadstatus_id = torrent_db.status_table['dead']
+        self.deadstatus_id = misc_db.torrentStatusName2Id(u'dead')
 
     def MatchFFilter(self, item):
         result = True

@@ -390,6 +390,8 @@ class Session(SessionRuntimeConfig):
         # Called by any thread
         self.sesslock.acquire()
         try:
+            if subject == NTFY_MISC:
+                return self.lm.misc_db
             if subject == NTFY_PEERS:
                 return self.lm.peer_db
             elif subject == NTFY_TORRENTS:

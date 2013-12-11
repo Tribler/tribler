@@ -74,7 +74,7 @@ class RemoteTorrentHandler:
 
         self.torrent_db = None
         if self.session.get_megacache():
-            self.torrent_db = session.open_dbhandler('torrents')
+            self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.database_thead.register(self.__check_overflow, delay=30.0)
 
         if session.get_dht_torrent_collecting():

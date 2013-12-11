@@ -590,7 +590,7 @@ class SQLiteCacheDBBase:
         else:
             return find[0]
 
-    def fetchall(self, sql, args=None, retry=0):
+    def fetchall(self, sql, args=None):
         res = self.execute_read(sql, args)
         if res != None:
             find = list(res)
@@ -2394,8 +2394,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         return SQLiteCacheDBV5.fetchone(self, sql, args)
 
     @forceAndReturnDBThread
-    def fetchall(self, sql, args=None, retry=0):
-        return SQLiteCacheDBV5.fetchall(self, sql, args, retry)
+    def fetchall(self, sql, args=None):
+        return SQLiteCacheDBV5.fetchall(self, sql, args)
 
     @forceAndReturnDBThread
     def _execute(self, sql, args=None):
