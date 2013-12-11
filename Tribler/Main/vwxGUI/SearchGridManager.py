@@ -959,14 +959,14 @@ class LibraryManager:
                     sdef = None
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=[selectedinfilename or torrent.videofiles[0]])
+                d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=[selectedinfilename])
 
             else:
                 print >> sys.stderr, ".TORRENT MISSING REQUESTING FROM PEERS"
                 callback = lambda torrentfilename: self.playTorrent(torrent, selectedinfilename)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
         else:
-            videoplayer.play(ds, selectedinfilename or torrent.videofiles[0])
+            videoplayer.play(ds, selectedinfilename)
 
     def startDownloadFromUrl(self, url, useDefault=False):
         if useDefault:
