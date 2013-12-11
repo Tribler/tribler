@@ -124,6 +124,85 @@ class BasicDBHandler:
         return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
 
 
+class MiscDBHandler(BasicDBHandler):
+
+    def __init__(self):
+        if MiscDBHandler._single:
+            raise RuntimeError("MiscDBHandler is singleton")
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, None)
+
+        self.initialize()
+
+    def initialize(self):
+        # initialize TorrentStatus name-ID tables
+        self._torrent_status_name2id_dict = {u'unknown': 0, u'good': 1, u'dead': 2}
+        sql = u'SELECT LOWER(name), status_id FROM TorrentStatus'
+        st = self._db.fetchall(sql)
+        self._torrent_status_name2id_dict.update(dict(st))
+
+        self._torrent_status_id2name_dict =\
+            dict([(x, y) for (y, x) in self._torrent_status_name2id_dict.iteritems()])
+        self._torrent_status_id2name_dict[None] = 'unknown'
+
+        # initialize Category name-ID tables
+        self._category_name2id_dict = { u'Video': 1, u'VideoClips': 2,
+            u'Audio': 3, u'Compressed': 4, u'Document': 5,
+            u'Picture': 6, u'xxx': 7, u'other': 8, }
+        sql = u'SELECT LOWER(name), category_id FROM Category'
+        ct = self._db.fetchall(sql)
+        self._category_name2id_dict.update(dict(ct))
+        self._category_name2id_dict[u'unknown'] = 0
+
+        self._category_id2name_dict =\
+            dict([(x, y) for (y, x) in self._category_name2id_dict.iteritems()])
+        self._category_id2name_dict[None] = u'unknown'
+
+        # initialize TorrentSource name-ID tables
+        sql = u'SELECT name, source_id FROM TorrentSource'
+        st = self._db.fetchall(sql)
+        self._torrent_source_name2id_dict = dict(st)
+        self._torrent_source_id2name_dict =\
+            dict([(x, y) for (y, x) in self._torrent_source_name2id_dict.iteritems()])
+        self._torrent_source_id2name_dict[None] = u'unknown'
+
+    def torrentStatusName2Id(self, status_name):
+        return self._torrent_status_name2id_dict.get(status_name.lower(), 0)
+
+    def torrentStatusId2Name(self, status_id):
+        return self._torrent_status_id2name_dict.get(status_id, None)
+
+    def categoryName2Id(self, category_name):
+        category_id = 0
+        if category_name is not None and len(category_name) > 0:
+            category = category_name[0].lower()
+            category_id = self._category_name2id_dict[category]
+        return category_id
+
+    def categoryId2Name(self, category_id):
+        return self._category_id2name_dict[category_id]
+
+    def torrentSourceName2Id(self, source_name):
+        if source_name in self._torrent_source_name2id_dict:
+            source_id = self._torrent_source_name2id_dict[source_name]
+        else:
+            source_id = self._addSource(source_name)
+            self._torrent_source_name2id_dict[source_name] = source_id
+            self._torrent_source_id2name_dict[source_id] = source_name
+        return source_id
+
+    def torrentSourceId2Name(self, source_id):
+        return self._torrent_source_id2name_dict.get(source_id, None)
+
+    def _addSource(self, source):
+        desc = u''
+        if source.startswith('http') and source.endswith('xml'):
+            desc = u'RSS'
+        self._db.insert(u'TorrentSource', name=source, description=desc)
+        source_id = self._db.getOne(u'TorrentSource', u'source_id', name=source)
+        return source_id
+
+
 class PeerDBHandler(BasicDBHandler):
 
     def __init__(self):
@@ -274,51 +353,8 @@ class TorrentDBHandler(BasicDBHandler):
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'Torrent')  # # self,db,torrent
 
-        self.status_table = {'good': 1, 'unknown': 0, 'dead': 2}
-        sql = 'SELECT lower(name), status_id FROM TorrentStatus'
-        st = self._db.fetchall(sql)
-        self.status_table.update(dict(st))
-
-        self.id2status = dict([(x, y) for (y, x) in self.status_table.items()])
-        self.id2status[None] = 'unknown'
         self.torrent_dir = None
-        # 0 - unknown
-        # 1 - good
-        # 2 - dead
 
-        self.category_table = {u'Video': 1,
-                                u'VideoClips': 2,
-                                u'Audio': 3,
-                                u'Compressed': 4,
-                                u'Document': 5,
-                                u'Picture': 6,
-                                u'xxx': 7,
-                                u'other': 8, }
-        sql = 'SELECT lower(name), category_id FROM Category'
-        ct = self._db.fetchall(sql)
-        self.category_table.update(dict(ct))
-        self.category_table[u'unknown'] = 0
-
-        self.id2category = dict([(x, y) for (y, x) in self.category_table.items()])
-        self.id2category[None] = u'unknown'
-        # 1 - Video
-        # 2 - VideoClips
-        # 3 - Audio
-        # 4 - Compressed
-        # 5 - Document
-        # 6 - Picture
-        # 7 - xxx
-        # 8 - other
-
-        sql = 'SELECT name, source_id FROM TorrentSource'
-        st = self._db.fetchall(sql)
-        self.src_table = dict(st)
-        self.id2src = dict([(x, y) for (y, x) in self.src_table.items()])
-        self.id2src[None] = u'unknown'
-
-        # 0 - ''    # local added
-        # 1 - BC
-        # 2,3,4... - URL of RSS feed
         self.keys = ['torrent_id', 'name', 'torrent_file_name',
                 'length', 'creation_date', 'num_files', 'thumbnail',
                 'insert_time', 'secret', 'relevance',
@@ -338,6 +374,7 @@ class TorrentDBHandler(BasicDBHandler):
                 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
         self.category = Category.getInstance()
 
+        self.misc_db = MiscDBHandler.getInstance()
         self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
 
         self.infohash_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
@@ -345,6 +382,7 @@ class TorrentDBHandler(BasicDBHandler):
     def register(self, torrent_dir):
         self.torrent_dir = torrent_dir
 
+        self.misc_db = MiscDBHandler.getInstance()
         self.mypref_db = MyPreferenceDBHandler.getInstance()
         self.votecast_db = VoteCastDBHandler.getInstance()
         self.channelcast_db = ChannelCastDBHandler.getInstance()
@@ -482,7 +520,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent_id = self.getTorrentID(infohash)
         if torrent_id is None:
-            self._db.insert('Torrent', infohash=bin2str(infohash), status_id=self._getStatusID("good"))
+            status_id = self.misc_db.torrentStatusName2Id(u'good')
+            self._db.insert('Torrent', infohash=bin2str(infohash), status_id=status_id)
             torrent_id = self.getTorrentID(infohash)
         return torrent_id
 
@@ -493,7 +532,9 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id = self.getTorrentIDRoot(roothash)
         if torrent_id is None:
             infohash = 'swift' + bin2str(roothash)[5:]
-            self._db.insert('Torrent', infohash=infohash, swift_hash=bin2str(roothash), name=name, status_id=self._getStatusID("good"))
+            status_id = self.misc_db.torrentStatusName2Id(u'good')
+            self._db.insert('Torrent', infohash=infohash,
+                swift_hash=bin2str(roothash), name=name, status_id=status_id)
             torrent_id = self.getTorrentIDRoot(roothash)
         return torrent_id
 
@@ -509,30 +550,10 @@ class TorrentDBHandler(BasicDBHandler):
             if torrent_id is None:
                 to_be_inserted.append(infohashes[i])
 
-        status_id = self._getStatusID("good")
+        status_id = self.misc_db.torrentStatusName2Id(u'good')
         sql = "INSERT OR IGNORE INTO Torrent (infohash, status_id) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.getTorrentIDS(infohashes), to_be_inserted
-
-    def _getStatusID(self, status):
-        return self.status_table.get(status.lower(), 0)
-
-    def _getCategoryID(self, category_list):
-        if len(category_list) > 0:
-            category = category_list[0].lower()
-            cat_int = self.category_table[category]
-        else:
-            cat_int = 0
-        return cat_int
-
-    def _getSourceID(self, src):
-        if src in self.src_table:
-            src_int = self.src_table[src]
-        else:
-            src_int = self._insertNewSrc(src)  # add a new src, e.g., a RSS feed
-            self.src_table[src] = src_int
-            self.id2src[src_int] = src
-        return src_int
 
     def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
@@ -549,12 +570,12 @@ class TorrentDBHandler(BasicDBHandler):
                 "insert_time": long(time()),
                 "secret": 1 if torrentdef.is_private() else 0,
                 "relevance": 0.0,
-                "source_id": self._getSourceID(source),
+                "source_id": self.misc_db.torrentSourceName2Id(source),
                 # todo: the category_id is calculated directly from
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
-                "category_id": self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
-                "status_id": self._getStatusID(extra_info.get("status", "unknown")),
+                "category_id": self.misc_db.categoryName2Id(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
+                "status_id": self.misc_db.torrentStatusName2Id(extra_info.get("status", "unknown")),
                 "num_seeders": extra_info.get("seeder", -1),
                 "num_leechers": extra_info.get("leecher", -1),
                 "comment": torrentdef.get_comment_as_unicode()
@@ -631,14 +652,6 @@ class TorrentDBHandler(BasicDBHandler):
         # vliegendhart: extract terms and bi-term phrase from Torrent and store it
         self._nb.addTorrent(torrent_id, swarmname, collected=collected)
 
-    def _insertNewSrc(self, src):
-        desc = ''
-        if src.startswith('http') and src.endswith('xml'):
-            desc = 'RSS'
-        self._db.insert('TorrentSource', name=src, description=desc)
-        src_id = self._db.getOne('TorrentSource', 'source_id', name=src)
-        return src_id
-
     # ------------------------------------------------------------
     # Adds the trackers of a given torrent into the database.
     # ------------------------------------------------------------
@@ -678,10 +691,10 @@ class TorrentDBHandler(BasicDBHandler):
 
     def updateTorrent(self, infohash, notify=True, **kw):  # watch the schema of database
         if 'category' in kw:
-            cat_id = self._getCategoryID(kw.pop('category'))
+            cat_id = self.misc_db.categoryName2Id(kw.pop('category'))
             kw['category_id'] = cat_id
         if 'status' in kw:
-            status_id = self._getStatusID(kw.pop('status'))
+            status_id = self.misc_db.torrentStatusName2Id(kw.pop('status'))
             kw['status_id'] = status_id
 
         if 'progress' in kw:
@@ -768,10 +781,10 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, update_roothash)
 
     def on_search_response(self, torrents):
-        source_id = self._getSourceID("DISP_SEARCH")
-        status_id = self._getStatusID("unknown")
+        source_id = self.misc_db.torrentSourceName2Id(u'DISP_SEARCH')
+        status_id = self.misc_db.torrentStatusName2Id(u'unknown')
 
-        torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.category_table.get(torrent[4][0], 0), torrent[5], bin2str(torrent[8]) if torrent[8] else '', bin2str(torrent[9]) if torrent[9] else '') for torrent in torrents]
+        torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.misc_db.categoryName2Id(torrent[4]), torrent[5], bin2str(torrent[8]) if torrent[8] else '', bin2str(torrent[9]) if torrent[9] else '') for torrent in torrents]
         info_root = [(torrent[0], torrent[6] or '--') for torrent in torrents]
 
         sql = "SELECT torrent_id, infohash, swift_hash, torrent_file_name, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
@@ -916,7 +929,7 @@ class TorrentDBHandler(BasicDBHandler):
               + ', status_id = ?, tracker_check_retries = ?'\
               + ' WHERE torrent_id = ?'
 
-        status_id = self.status_table[status]
+        status_id = self.misc_db.torrentStatusName2Id(status)
         self._db.execute_write(sql,
             (seeders, leechers, last_check, next_check,
              status_id, retries, torrent_id))
@@ -1093,13 +1106,13 @@ class TorrentDBHandler(BasicDBHandler):
             return None
         torrent = dict(zip(keys, res))
         if 'source_id' in torrent:
-            torrent['source'] = self.id2src[torrent['source_id']]
+            torrent['source'] = self.misc_db.torrentSourceId2Name(torrent['source_id'])
 
         if 'category_id' in torrent:
-            torrent['category'] = [self.id2category[torrent['category_id']]]
+            torrent['category'] = [self.misc_db.categoryId2Name(torrent['category_id'])]
 
         if 'status_id' in torrent:
-            torrent['status'] = self.id2status[torrent['status_id']]
+            torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
 
         if 'swift_hash' in torrent and torrent['swift_hash']:
             torrent['swift_hash'] = str2bin(torrent['swift_hash'])
@@ -1151,13 +1164,14 @@ class TorrentDBHandler(BasicDBHandler):
 
         where = ''
         if category_name != 'all':
-            where += 'category_id = %d AND' % self.category_table.get(category_name.lower(), -1)  # unkown category_name returns no torrents
+            category_id = self.misc_db._category_name2id_dict.get(category_name.lower(), -1)
+            where += 'category_id = %d AND' % category_id  # unkown category_name returns no torrents
 
         if library:
             where += 'C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
         else:
-            where += 'status_id=%d ' % self.status_table['good']  # if not library, show only good files
-            where += self.category.get_family_filter_sql(self._getCategoryID)  # add familyfilter
+            where += 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')  # if not library, show only good files
+            where += self.category.get_family_filter_sql(self.misc_db.categoryName2Id)  # add familyfilter
 
         sql += ' Where ' + where
 
@@ -1204,14 +1218,14 @@ class TorrentDBHandler(BasicDBHandler):
             torrent = dict(zip(value_name, item))
 
             try:
-                torrent['source'] = self.id2src[torrent['source_id']]
+                torrent['source'] = self.misc_db.torrentSourceId2Name(torrent['source_id'])
             except:
                 print_exc()
                 # Arno: RSS subscription and id2src issue
                 torrent['source'] = 'http://some/RSS/feed'
 
-            torrent['category'] = [self.id2category[torrent['category_id']]]
-            torrent['status'] = self.id2status[torrent['status_id']]
+            torrent['category'] = [self.misc_db.categoryId2Name(torrent['category_id'])]
+            torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
             torrent['simRank'] = ranksfind(ranks, torrent['infohash'])
             torrent['infohash'] = str2bin(torrent['infohash'])
             # torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers']
@@ -1254,7 +1268,7 @@ class TorrentDBHandler(BasicDBHandler):
         value_name = 'infohash'
         order_by = 'relevance desc'
         rankList_size = 20
-        where = 'status_id=%d ' % self.status_table['good']
+        where = 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')
         res_list = self._db.getAll('Torrent', value_name, where=where, limit=rankList_size, order_by=order_by)
         return [a[0] for a in res_list]
 
@@ -1604,12 +1618,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'MyPreference')  # # self,db,'MyPreference'
 
-        self.status_table = {'good': 1, 'unknown': 0, 'dead': 2}
-        sql = 'SELECT lower(name), status_id FROM TorrentStatus'
-        st = self._db.fetchall(sql)
-        self.status_table.update(dict(st))
-
-        self.status_good = self.status_table['good']
+        self.status_good = MiscDBHandler.getInstance().torrentStatusName2Id(u'good')
         self.rlock = threading.RLock()
         self.loadData()
 

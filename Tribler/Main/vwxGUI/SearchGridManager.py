@@ -314,6 +314,7 @@ class TorrentManager:
         dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
         if dict:
             t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['swift_hash'], dict['swift_torrent_hash'], dict['name'], dict['torrent_file_name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+            t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
 
@@ -329,6 +330,7 @@ class TorrentManager:
             self.session = session
             self.col_torrent_dir = self.session.get_torrent_collecting_dir()
 
+            self.misc_db = session.open_dbhandler(NTFY_MISC)
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
             self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
@@ -338,7 +340,7 @@ class TorrentManager:
             self.channel_manager = channel_manager
 
             self.dispersy = session.lm.dispersy
-            self.xxx_category = self.torrent_db.category_table.get('xxx', 0)
+            self.xxx_category = self.misc_db.categoryName2Id([u'xxx'])
         else:
             raise RuntimeError('TorrentManager already connected')
 
@@ -562,6 +564,7 @@ class TorrentManager:
                 else:
                     t = Torrent(*a[:11] + [False])
 
+                t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 t.assignRelevance(a[-11])
@@ -667,13 +670,13 @@ class TorrentManager:
 
                 for result in results:
                     categories = result[4]
-                    category_id = self.torrent_db.category_table.get(categories[0], 0)
+                    category_id = self.misc_db.categoryName2Id(categories)
 
                     channel = channeldict.get(result[-1], False)
                     if channel:
-                        remoteHit = RemoteChannelTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.torrent_db.status_table['good'], result[6], result[7], channel, set([candidate]))
+                        remoteHit = RemoteChannelTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.misc_db.torrentStatusName2Id(u'good'), result[6], result[7], channel, set([candidate]))
                     else:
-                        remoteHit = RemoteTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.torrent_db.status_table['good'], result[6], result[7], set([candidate]))
+                        remoteHit = RemoteTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.misc_db.torrentStatusName2Id(u'good'), result[6], result[7], set([candidate]))
 
                     # Guess matches
                     keywordset = set(keywords)
@@ -692,6 +695,7 @@ class TorrentManager:
                         if ext in keywordset:
                             matches['fileextensions'].add(ext)
                     remoteHit.assignRelevance(matches)
+                    remoteHit.misc_db = self.misc_db
                     remoteHit.torrent_db = self.torrent_db
                     remoteHit.channelcast_db = self.channelcast_db
 
@@ -1062,6 +1066,7 @@ class LibraryManager:
     def connect(self, session, torrentsearch_manager, channelsearch_manager):
         if not self.connected:
             self.session = session
+            self.misc_db = session.open_dbhandler(NTFY_MISC)
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
@@ -1089,6 +1094,7 @@ class LibraryManager:
             def create_torrent(a):
                 t = ChannelTorrent(*a[1:-1] + [channelDict.get(a[0], False), None])
 
+                t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 t._progress = a[-1] / 100.0
@@ -1132,6 +1138,7 @@ class LibraryManager:
         dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
         if dict and dict['myDownloadHistory']:
             t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['swift_hash'], dict['swift_torrent_hash'], dict['name'], dict['torrent_file_name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+            t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
 
@@ -1171,6 +1178,7 @@ class ChannelManager:
         self.remoteLock = threading.Lock()
         self.remoteRefresh = False
 
+        self.misc_db = None
         self.channelcast_db = None
         self.votecastdb = None
         self.dispersy = None
@@ -1197,6 +1205,7 @@ class ChannelManager:
         if not self.connected:
             self.connected = True
             self.session = session
+            self.misc_db = self.session.open_dbhandler(NTFY_MISC)
             self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
             self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
             self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
@@ -1359,6 +1368,7 @@ class ChannelManager:
     def _createTorrent(self, tuple, channel, playlist=None, collectedOnly=True, addDs=True):
         if tuple:
             ct = ChannelTorrent(*tuple[1:] + [channel, playlist])
+            ct.misc_db = self.misc_db
             ct.torrent_db = self.torrent_db
             ct.channelcast_db = self.channelcast_db
 
@@ -1541,10 +1551,10 @@ class ChannelManager:
     def _applyFF(self, hits):
         enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()] + ['other']
         enabled_category_ids = set()
-        for key, id in self.torrent_db.category_table.iteritems():
+        for key, id in self.misc_db._category_name2id_dict.iteritems():
             if key.lower() in enabled_category_keys:
                 enabled_category_ids.add(id)
-        deadstatus_id = self.torrent_db.status_table['dead']
+        deadstatus_id = self.misc_db.torrentStatusName2Id(u'dead')
 
         def torrentFilter(torrent):
             okCategory = False
