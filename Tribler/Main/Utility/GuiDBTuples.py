@@ -189,7 +189,7 @@ class Torrent(Helper):
     @cacheProperty
     def categories(self):
         if self.category_id:
-            return [self.torrent_db.id2category[self.category_id]]
+            return [self.misc_db.categoryId2Name(self.category_id)]
 
     @cacheProperty
     def status(self):

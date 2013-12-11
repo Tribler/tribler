@@ -173,7 +173,11 @@ class MiscDBHandler(BasicDBHandler):
         return self._torrent_status_id2name_dict.get(status_id, None)
 
     def categoryName2Id(self, category_name):
-        return self._category_name2id_dict[category_name]
+        category_id = 0
+        if category_name is not None and len(category_name) > 0:
+            category = category_name[0].lower()
+            category_id = self._category_name2id_dict[category]
+        return category_id
 
     def categoryId2Name(self, category_id):
         return self._category_id2name_dict[category_id]
@@ -350,30 +354,6 @@ class TorrentDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, db, 'Torrent')  # # self,db,torrent
 
         self.torrent_dir = None
-
-        self.category_table = {u'Video': 1,
-                                u'VideoClips': 2,
-                                u'Audio': 3,
-                                u'Compressed': 4,
-                                u'Document': 5,
-                                u'Picture': 6,
-                                u'xxx': 7,
-                                u'other': 8, }
-        sql = 'SELECT lower(name), category_id FROM Category'
-        ct = self._db.fetchall(sql)
-        self.category_table.update(dict(ct))
-        self.category_table[u'unknown'] = 0
-
-        self.id2category = dict([(x, y) for (y, x) in self.category_table.items()])
-        self.id2category[None] = u'unknown'
-        # 1 - Video
-        # 2 - VideoClips
-        # 3 - Audio
-        # 4 - Compressed
-        # 5 - Document
-        # 6 - Picture
-        # 7 - xxx
-        # 8 - other
 
         self.keys = ['torrent_id', 'name', 'torrent_file_name',
                 'length', 'creation_date', 'num_files', 'thumbnail',
@@ -575,14 +555,6 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.getTorrentIDS(infohashes), to_be_inserted
 
-    def _getCategoryID(self, category_list):
-        if len(category_list) > 0:
-            category = category_list[0].lower()
-            cat_int = self.category_table[category]
-        else:
-            cat_int = 0
-        return cat_int
-
     def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
@@ -602,7 +574,7 @@ class TorrentDBHandler(BasicDBHandler):
                 # todo: the category_id is calculated directly from
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
-                "category_id": self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
+                "category_id": self.misc_db.categoryName2Id(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
                 "status_id": self.misc_db.torrentStatusName2Id(extra_info.get("status", "unknown")),
                 "num_seeders": extra_info.get("seeder", -1),
                 "num_leechers": extra_info.get("leecher", -1),
@@ -719,7 +691,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def updateTorrent(self, infohash, notify=True, **kw):  # watch the schema of database
         if 'category' in kw:
-            cat_id = self._getCategoryID(kw.pop('category'))
+            cat_id = self.misc_db.categoryName2Id(kw.pop('category'))
             kw['category_id'] = cat_id
         if 'status' in kw:
             status_id = self.misc_db.torrentStatusName2Id(kw.pop('status'))
@@ -812,7 +784,7 @@ class TorrentDBHandler(BasicDBHandler):
         source_id = self.misc_db.torrentSourceName2Id(u'DISP_SEARCH')
         status_id = self.misc_db.torrentStatusName2Id(u'unknown')
 
-        torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.category_table.get(torrent[4][0], 0), torrent[5], bin2str(torrent[8]) if torrent[8] else '', bin2str(torrent[9]) if torrent[9] else '') for torrent in torrents]
+        torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.misc_db.categoryName2Id(torrent[4]), torrent[5], bin2str(torrent[8]) if torrent[8] else '', bin2str(torrent[9]) if torrent[9] else '') for torrent in torrents]
         info_root = [(torrent[0], torrent[6] or '--') for torrent in torrents]
 
         sql = "SELECT torrent_id, infohash, swift_hash, torrent_file_name, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
@@ -1137,7 +1109,7 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['source'] = self.misc_db.torrentSourceId2Name(torrent['source_id'])
 
         if 'category_id' in torrent:
-            torrent['category'] = [self.id2category[torrent['category_id']]]
+            torrent['category'] = [self.misc_db.categoryId2Name(torrent['category_id'])]
 
         if 'status_id' in torrent:
             torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
@@ -1192,13 +1164,14 @@ class TorrentDBHandler(BasicDBHandler):
 
         where = ''
         if category_name != 'all':
-            where += 'category_id = %d AND' % self.category_table.get(category_name.lower(), -1)  # unkown category_name returns no torrents
+            category_id = self.misc_db._category_name2id_dict.get(category_name.lower(), -1)
+            where += 'category_id = %d AND' % category_id  # unkown category_name returns no torrents
 
         if library:
             where += 'C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
         else:
             where += 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')  # if not library, show only good files
-            where += self.category.get_family_filter_sql(self._getCategoryID)  # add familyfilter
+            where += self.category.get_family_filter_sql(self.misc_db.categoryName2Id)  # add familyfilter
 
         sql += ' Where ' + where
 
@@ -1251,7 +1224,7 @@ class TorrentDBHandler(BasicDBHandler):
                 # Arno: RSS subscription and id2src issue
                 torrent['source'] = 'http://some/RSS/feed'
 
-            torrent['category'] = [self.id2category[torrent['category_id']]]
+            torrent['category'] = [self.misc_db.categoryId2Name(torrent['category_id'])]
             torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
             torrent['simRank'] = ranksfind(ranks, torrent['infohash'])
             torrent['infohash'] = str2bin(torrent['infohash'])

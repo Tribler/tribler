@@ -831,10 +831,9 @@ class List(wx.BoxSizer):
 
     def LoadEnabledCategoryIDs(self):
         misc_db = self.guiutility.utility.session.open_dbhandler(NTFY_MISC)
-        torrent_db = self.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
         enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
         self.enabled_category_ids = set([0, 8])
-        for key, id in torrent_db.category_table.iteritems():
+        for key, id in misc_db._category_name2id_dict.iteritems():
             if key.lower() in enabled_category_keys:
                 self.enabled_category_ids.add(id)
         self.deadstatus_id = misc_db.torrentStatusName2Id(u'dead')
@@ -1413,11 +1412,11 @@ class SearchList(GenericSearchList):
         ColumnsManager.getInstance().setColumns(TorrentListItem, columns)
         ColumnsManager.getInstance().setColumns(DragItem, columns)
 
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
         for key, name in self.category.getCategoryNames(filter=False):
-            if key in torrent_db.category_table:
-                self.category_names[torrent_db.category_table[key]] = name
+            if key in misc_db._category_name2id_dict:
+                self.category_names[misc_db._category_name2id_dict[key]] = name
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 

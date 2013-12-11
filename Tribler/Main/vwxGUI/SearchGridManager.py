@@ -339,7 +339,7 @@ class TorrentManager:
             self.channel_manager = channel_manager
 
             self.dispersy = session.lm.dispersy
-            self.xxx_category = self.torrent_db.category_table.get('xxx', 0)
+            self.xxx_category = self.misc_db.categoryName2Id([u'xxx'])
         else:
             raise RuntimeError('TorrentManager already connected')
 
@@ -668,7 +668,7 @@ class TorrentManager:
 
                 for result in results:
                     categories = result[4]
-                    category_id = self.torrent_db.category_table.get(categories[0], 0)
+                    category_id = self.misc_db.categoryName2Id(categories)
 
                     channel = channeldict.get(result[-1], False)
                     if channel:
@@ -1172,6 +1172,7 @@ class ChannelManager:
         self.remoteLock = threading.Lock()
         self.remoteRefresh = False
 
+        self.misc_db = None
         self.channelcast_db = None
         self.votecastdb = None
         self.dispersy = None
@@ -1198,6 +1199,7 @@ class ChannelManager:
         if not self.connected:
             self.connected = True
             self.session = session
+            self.misc_db = self.session.open_dbhandler(NTFY_MISC)
             self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
             self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
             self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
@@ -1542,7 +1544,7 @@ class ChannelManager:
     def _applyFF(self, hits):
         enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()] + ['other']
         enabled_category_ids = set()
-        for key, id in self.torrent_db.category_table.iteritems():
+        for key, id in self.misc_db._category_name2id_dict.iteritems():
             if key.lower() in enabled_category_keys:
                 enabled_category_ids.add(id)
         deadstatus_id = self.misc_db.torrentStatusName2Id(u'dead')
