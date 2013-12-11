@@ -509,7 +509,7 @@ class TorrentChecking(Thread):
     def run(self):
         # TODO: someone please check this? I am not really sure what this is.
         if prctlimported:
-            prctl.set_name("Tribler" + currentThread().getName())
+            prctl.set_name("Tribler" + threading.currentThread().getName())
 
         # wait for the tracker info cache to be initialized
         if DEBUG:
