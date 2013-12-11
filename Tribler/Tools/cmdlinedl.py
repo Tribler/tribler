@@ -106,9 +106,6 @@ def main():
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(port)
     sscfg.set_megacache(False)
-    sscfg.set_overlay(False)
-    sscfg.set_dialback(True)
-    sscfg.set_internal_tracker(False)
     sscfg.set_dispersy(False)
 
     s = Session(sscfg)
