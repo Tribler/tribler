@@ -1964,71 +1964,28 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 
                 # drop Peer columns
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN ip')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN port')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN oversion')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN similarity')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN superpeer')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN last_seen')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN last_connected')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN last_buddycast')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN connected_times')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN buddycast_times')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN num_peers')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN num_torrents')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN num_prefs')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN num_queries')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN is_local')
-                except:
-                    pass
-                try:
-                    self.execute_write('ALTER TABLE Peer DROP COLUMN services')
-                except:
-                    pass
+                rename_table = "ALTER TABLE Peer RENAME TO __Peer_tmp"
+                self.execute_write(rename_table)
 
+                improved_peer_table = """
+                CREATE TABLE Peer (
+                    peer_id    integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    permid     text NOT NULL,
+                    name       text,
+                    thumbnail  text
+                );"""
+                self.execute_write(improved_peer_table)
+
+                copy_data = """
+                INSERT INTO Peer (peer_id, permid, name, thumbnail)
+                SELECT peer_id, permid, name, thumbnail FROM __Peer_tmp
+                """
+                self.execute_write(copy_data)
+
+                drop_table = "DROP TABLE __Peer_tmp"
+                self.execute_write(drop_table)
+
+                # new columns in Torrent table
                 self.execute_write(
                     "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0")
                 self.execute_write(

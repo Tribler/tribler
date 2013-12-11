@@ -63,15 +63,8 @@ class IconsManager:
             self.defaults[name][dim] = wx.BitmapFromImage(img, -1)
         return self.defaults[name][dim]
 
-    def load_wxBitmap(self, permid, dim=ICON_MAX_DIM):
-        [_mimetype, data] = self.peer_db.getPeerIcon(permid)
-        if data is None:
-            return None
-        else:
-            return data2wxBitmap('image/jpeg', data, dim)
-
     def load_wxBitmapByPeerId(self, peerid, dim=ICON_MAX_DIM):
-        [_mimetype, data] = self.peer_db.getPeerIconByPeerId(peerid)
+        data = self.peer_db.getPeerById(peerid, keys=u'thumbnail')
         if data is None:
             return None
         else:

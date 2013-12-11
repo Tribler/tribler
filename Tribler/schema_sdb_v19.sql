@@ -71,11 +71,10 @@ CREATE TABLE MyPreference (
 ----------------------------------------
 
 CREATE TABLE Peer (
-  peer_id              integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-  permid               text NOT NULL,
-  name                 text,
-  thumbnail            text,
-  friend               integer DEFAULT 0
+  peer_id    integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  permid     text NOT NULL,
+  name       text,
+  thumbnail  text
 );
 
 CREATE UNIQUE INDEX permid_idx
@@ -172,8 +171,6 @@ CREATE TABLE TorrentTrackerMapping (
 );
 
 ----------------------------------------
-
-CREATE VIEW Friend AS SELECT * FROM Peer WHERE friend=1;
 
 CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
 

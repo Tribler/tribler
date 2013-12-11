@@ -61,6 +61,8 @@ MAX_POPULARITY_REC_PER_TORRENT_PEER = 3  # maximum number of records per each co
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
 
+DEFAULT_ID_CACHE_SIZE = 1024 * 5
+
 class LimitedOrderedDict(OrderedDict):
 
     def __init__(self, limit, *args, **kargs):
@@ -122,23 +124,15 @@ class BasicDBHandler:
         return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
 
 
-NETW_MIME_TYPE = 'image/jpeg'
-
-
 class PeerDBHandler(BasicDBHandler):
-
-    gui_value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                      'num_peers', 'num_torrents', 'num_prefs',
-                      'connected_times', 'buddycast_times', 'last_connected',
-                      'is_local', 'services')
 
     def __init__(self):
         if PeerDBHandler._single:
             raise RuntimeError("PeerDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Peer')  # # self, db ,'Peer'
+        BasicDBHandler.__init__(self, db, 'Peer')
 
-        self.permid_id = LimitedOrderedDict(1024 * 5)
+        self.permid_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
 
     def __len__(self):
         return self.size()
@@ -185,9 +179,7 @@ class PeerDBHandler(BasicDBHandler):
         else:
             # return a dictionary
             # make it compatible for calls to old bsddb interface
-            value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                      'num_peers', 'num_torrents', 'num_prefs', 'num_queries',
-                      'connected_times', 'buddycast_times', 'last_connected', 'last_seen', 'last_buddycast', 'services')
+            value_name = (u'peer_id', u'permid', u'name')
 
             item = self.getOne(value_name, permid=bin2str(permid))
             if not item:
@@ -196,7 +188,23 @@ class PeerDBHandler(BasicDBHandler):
             peer['permid'] = str2bin(peer['permid'])
             return peer
 
-    def addPeer(self, permid, value, update_dns=True, update_connected=False):
+    def getPeerById(self, peer_id, keys=None):
+        if keys is not None:
+            res = self.getOne(keys, peer_id=peer_id)
+            return res
+        else:
+            # return a dictionary
+            # make it compatible for calls to old bsddb interface
+            value_name = (u'peer_id', u'permid', u'name')
+
+            item = self.getOne(value_name, peer_id=peer_id)
+            if not item:
+                return None
+            peer = dict(zip(value_name, item))
+            peer['permid'] = str2bin(peer['permid'])
+            return peer
+
+    def addPeer(self, permid, value):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
         # Jie: deepcopy(value)?
@@ -204,19 +212,6 @@ class PeerDBHandler(BasicDBHandler):
         _permid = _last_seen = _ip = _port = None
         if 'permid' in value:
             _permid = value.pop('permid')
-
-        if not update_dns:
-            if 'ip' in value:
-                _ip = value.pop('ip')
-            if 'port' in value:
-                _port = value.pop('port')
-
-        if update_connected:
-            old_connected = self.getOne('connected_times', permid=bin2str(permid))
-            if not old_connected:
-                value['connected_times'] = 1
-            else:
-                value['connected_times'] = old_connected + 1
 
         peer_id = self.getPeerID(permid)
         peer_existed = False
@@ -231,17 +226,10 @@ class PeerDBHandler(BasicDBHandler):
 
         if _permid is not None:
             value['permid'] = permid
-        if _last_seen is not None:
-            value['last_seen'] = _last_seen
-        if _ip is not None:
-            value['ip'] = _ip
-        if _port is not None:
-            value['port'] = _port
 
         if peer_existed:
             self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
-        # Jie: only notify the GUI when a peer was connected
-        if 'connected_times' in value:
+        else:
             self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
 
     def hasPeer(self, permid, check_db=False):
@@ -278,38 +266,6 @@ class PeerDBHandler(BasicDBHandler):
                 self.permid_id.pop(permid)
 
         self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
-
-    def getPermid(self, peer_id):
-        permid = self.getOne('permid', peer_id=peer_id)
-        if permid is not None:
-            return str2bin(permid)
-        else:
-            return None
-
-    def getRanks(self):
-        value_name = 'permid'
-        order_by = 'similarity desc'
-        rankList_size = 20
-        where = '(last_connected>0 or friend=1) '
-        res_list = self._db.getAll('Peer', value_name, where=where, limit=rankList_size, order_by=order_by)
-        return [a[0] for a in res_list]
-
-    def getPeerIcon(self, permid):
-        item = self.getOne('thumbnail', permid=bin2str(permid))
-        if item:
-            return NETW_MIME_TYPE, str2bin(item)
-        else:
-            return None, None
-
-    def getPeerIconByPeerId(self, peerid):
-        item = self.getOne('thumbnail', peer_id=peerid)
-        if item:
-            return NETW_MIME_TYPE, str2bin(item)
-        else:
-            return None, None
-
-    def searchNames(self, kws):
-        return doPeerSearchNames(self, 'Peer', kws)
 
 
 class TorrentDBHandler(BasicDBHandler):
@@ -387,7 +343,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
 
-        self.infohash_id = LimitedOrderedDict(1024 * 5)
+        self.infohash_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
 
     def register(self, torrent_dir):
         self.torrent_dir = torrent_dir
@@ -3456,43 +3412,6 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
         # returns None if query not in db
         query = ' '.join(sorted(set(keywords)))
         return self.getOne('bundle_mode', query=query)
-
-
-def doPeerSearchNames(self, dbname, kws):
-    """ Get all peers that have the specified keywords in their name.
-    Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
-    """
-    if dbname == 'Peer':
-        where = '(Peer.last_connected>0 or Peer.friend=1) and '
-    elif dbname == 'Friend':
-        where = ''
-    else:
-        raise Exception('unknown dbname: %s' % dbname)
-
-    # Must come before query
-    ranks = self.getRanks()
-
-    for i in range(len(kws)):
-        kw = kws[i]
-        where += ' name like "%' + kw + '%"'
-        if (i + 1) != len(kws):
-            where += ' and'
-
-    value_name = PeerDBHandler.gui_value_name
-
-    # print >>sys.stderr,"peer_db: searchNames: sql",where
-    res_list = self._db.getAll(dbname, value_name, where)
-    # print >>sys.stderr,"peer_db: searchNames: res",res_list
-
-    peer_list = []
-    for item in res_list:
-        # print >>sys.stderr,"peer_db: searchNames: Got Record",`item`
-        peer = dict(zip(value_name, item))
-        peer['name'] = dunno2unicode(peer['name'])
-        peer['simRank'] = ranksfind(ranks, peer['permid'])
-        peer['permid'] = str2bin(peer['permid'])
-        peer_list.append(peer)
-    return peer_list
 
 
 def ranksfind(ranks, key):
