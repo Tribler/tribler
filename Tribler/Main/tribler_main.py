@@ -260,12 +260,10 @@ class ABCApp():
 
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
-            # TODO: we should do
-            # httpport = self.utility.read_config('videohttpport')
-            if ALLOW_MULTIPLE:
-                httpport = randint(1024, 25000)
-            else:
-                httpport = VIDEOHTTP_LISTENPORT
+
+            httpport = self.utility.read_config('videohttpport')
+            if ALLOW_MULTIPLE or httpport == -1:
+                httpport = self.utility.get_free_random_port('videohttpport')
             self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
 
             playbackmode = self.utility.read_config('videoplaybackmode')
