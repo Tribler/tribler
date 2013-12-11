@@ -465,7 +465,7 @@ class ABCApp():
                                      load=True)
             dispersy.define_auto_load(AllChannelCommunity,
                                            (s.dispersy_member,),
-                                           {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                           {},
                                            load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
