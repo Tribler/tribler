@@ -97,7 +97,7 @@ class TestSqlitePeerDBHandler(AbstractDB):
         p = self.pdb.getPeer(fake_permid_x)
         assert p['name'] == 'fake peer x'
 
-        self.pdb.deletePeer(fake_permid_x, force=True)
+        self.pdb.deletePeer(fake_permid_x)
         p = self.pdb.getPeer(fake_permid_x)
         assert p == None
         assert self.pdb.size() == oldsize
@@ -121,24 +121,12 @@ class TestSqlitePeerDBHandler(AbstractDB):
         p = self.pdb.getPeer(fake_permid_x)
         assert p != None
 
-        self.pdb.deletePeer(fake_permid_x, force=False)
-        assert self.pdb.hasPeer(fake_permid_x)
-
-        self.pdb.deletePeer(fake_permid_x, force=True)
-        assert self.pdb.size() == oldsize
+        self.pdb.deletePeer(fake_permid_x)
         assert not self.pdb.hasPeer(fake_permid_x)
+        assert self.pdb.size() == oldsize
 
         p = self.pdb.getPeer(fake_permid_x)
         assert p == None
-
-        self.pdb.deletePeer(fake_permid_x, force=True)
-        assert self.pdb.size() == oldsize
-
-        p = self.pdb.getPeer(fake_permid_x)
-        assert p == None, p
-
-        self.pdb.deletePeer(fake_permid_x, force=True)
-        assert self.pdb.size() == oldsize
 
 
 class TestTorrentDBHandler(AbstractDB):

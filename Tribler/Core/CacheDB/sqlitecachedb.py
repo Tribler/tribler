@@ -1964,6 +1964,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 
                 # drop Peer columns
+                drop_table = "DROP VIEW Friend"
+                self.execute_write(drop_table)
+
                 rename_table = "ALTER TABLE Peer RENAME TO __Peer_tmp"
                 self.execute_write(rename_table)
 
@@ -1982,8 +1985,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 """
                 self.execute_write(copy_data)
 
-                drop_table = "DROP VIEW Friend"
-                self.execute_write(drop_table)
                 drop_table = "DROP TABLE __Peer_tmp"
                 self.execute_write(drop_table)
 

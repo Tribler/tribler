@@ -248,7 +248,7 @@ class PeerDBHandler(BasicDBHandler):
         self._db.update(self.table_name, 'permid=' + repr(bin2str(permid)), **argv)
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
-    def deletePeer(self, permid=None, peer_id=None, force=False):
+    def deletePeer(self, permid=None, peer_id=None):
         # don't delete friend of superpeers, except that force is True
         if peer_id is None:
             peer_id = self.getPeerID(permid)
