@@ -715,6 +715,7 @@ class TriblerLaunchMany(Thread):
             self.database_thread.shutdown(True)
 
         if self.session.get_megacache():
+            self.misc_db.delInstance()
             self.peer_db.delInstance()
             self.torrent_db.delInstance()
             self.mypref_db.delInstance()
