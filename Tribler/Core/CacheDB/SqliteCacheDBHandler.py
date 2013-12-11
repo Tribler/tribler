@@ -257,10 +257,7 @@ class PeerDBHandler(BasicDBHandler):
 
         deleted = False
         if peer_id != None:
-            if force:
-                self._db.delete('Peer', peer_id=peer_id)
-            else:
-                self._db.delete('Peer', peer_id=peer_id, friend=0, superpeer=0)
+            self._db.delete('Peer', peer_id=peer_id)
             deleted = not self.hasPeer(permid, check_db=True)
             if deleted and permid in self.permid_id:
                 self.permid_id.pop(permid)
