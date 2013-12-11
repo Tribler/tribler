@@ -59,5 +59,5 @@ class mainlineDHTChecker:
                 if torrent['status'] != "good":
                     status = "good"
                     kw = {'status': status}
-                    self.torrent_db.updateTorrent(infohash, commit=True, **kw)
+                    self.torrent_db.updateTorrent(infohash, **kw)
             do_db()

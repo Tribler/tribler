@@ -429,18 +429,15 @@ class SQLiteCacheDBBase:
         else:
             return None
 
-    def writeDBVersion(self, version, commit=True):
+    def writeDBVersion(self, version):
         sql = u"UPDATE MyInfo SET value=? WHERE entry='version'"
-        self.execute_write(sql, [version], commit=commit)
+        self.execute_write(sql, [version])
 
     def show_sql(self, switch):
         # temporary show the sql executed
         self.show_execute = switch
 
     # --------- generic functions -------------
-
-    def commit(self):
-        pass
 
     def _execute(self, sql, args=None):
         cur = self.getCursor()
@@ -496,39 +493,39 @@ class SQLiteCacheDBBase:
     def execute_read(self, sql, args=None):
         return self._execute(sql, args)
 
-    def execute_write(self, sql, args=None, commit=True):
+    def execute_write(self, sql, args=None):
         self._execute(sql, args)
 
-    def executemany(self, sql, args, commit=True):
+    def executemany(self, sql, args):
         self._executemany(sql, args)
 
     # TODO: may remove this, no one uses it.
-    def insert_or_replace(self, table_name, commit=True, **argv):
+    def insert_or_replace(self, table_name, **argv):
         if len(argv) == 1:
             sql = 'INSERT OR REPLACE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
         else:
             questions = '?,' * len(argv)
             sql = 'INSERT OR REPLACE INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values(), commit)
+        self.execute_write(sql, argv.values())
 
-    def insert_or_ignore(self, table_name, commit=True, **argv):
+    def insert_or_ignore(self, table_name, **argv):
         if len(argv) == 1:
             sql = 'INSERT OR IGNORE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
         else:
             questions = '?,' * len(argv)
             sql = 'INSERT OR IGNORE INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values(), commit)
+        self.execute_write(sql, argv.values())
 
-    def insert(self, table_name, commit=True, **argv):
+    def insert(self, table_name, **argv):
         if len(argv) == 1:
             sql = 'INSERT INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
         else:
             questions = '?,' * len(argv)
             sql = 'INSERT INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values(), commit)
+        self.execute_write(sql, argv.values())
 
     # TODO: may remove this, only used by test_sqlitecachedb.py
-    def insertMany(self, table_name, values, keys=None, commit=True):
+    def insertMany(self, table_name, values, keys=None):
         """ values must be a list of tuples """
 
         questions = u'?,' * len(values[0])
@@ -536,9 +533,9 @@ class SQLiteCacheDBBase:
             sql = u'INSERT INTO %s VALUES (%s);' % (table_name, questions[:-1])
         else:
             sql = u'INSERT INTO %s %s VALUES (%s);' % (table_name, tuple(keys), questions[:-1])
-        self.executemany(sql, values, commit=commit)
+        self.executemany(sql, values)
 
-    def update(self, table_name, where=None, commit=True, **argv):
+    def update(self, table_name, where=None, **argv):
         assert len(argv) > 0, 'NO VALUES TO UPDATE SPECIFIED'
         if len(argv) > 0:
             sql = u'UPDATE %s SET ' % table_name
@@ -553,9 +550,9 @@ class SQLiteCacheDBBase:
             sql = sql[:-1]
             if where != None:
                 sql += u' where %s' % where
-            self.execute_write(sql, arg, commit)
+            self.execute_write(sql, arg)
 
-    def delete(self, table_name, commit=True, **argv):
+    def delete(self, table_name, **argv):
         sql = u'DELETE FROM %s WHERE ' % table_name
         arg = []
         for k, v in argv.iteritems():
@@ -566,7 +563,7 @@ class SQLiteCacheDBBase:
                 sql += u'%s=? AND ' % k
                 arg.append(v)
         sql = sql[:-5]
-        self.execute_write(sql, argv.values(), commit)
+        self.execute_write(sql, argv.values())
 
     # -------- Read Operations --------
     def size(self, table_name):
@@ -740,7 +737,7 @@ CREATE INDEX idx_terms_term ON ClicklogTerm(term);
 
 """
 
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
 
         if fromver < 3:
             sql = """
@@ -748,7 +745,7 @@ CREATE INDEX idx_terms_term ON ClicklogTerm(term);
 
 ALTER TABLE Peer ADD COLUMN is_local integer DEFAULT 0;
 """
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
 
         if fromver < 4:
             sql = """
@@ -861,7 +858,7 @@ UPDATE Peer SET similarity = 0;
 UPDATE Torrent SET relevance = 0;
 
 """
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
         if fromver < 5:
             sql = \
                 """
@@ -933,7 +930,7 @@ on SubtitlesHave(received_ts);
 
 """
 
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
 
         # P2P Services (ProxyService)
         if fromver < 6:
@@ -942,7 +939,7 @@ on SubtitlesHave(received_ts);
 
 ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 """
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
 
         # Channelcast
         if fromver < 6:
@@ -960,7 +957,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     seen.setdefault(row[0], set()).add(row[2])
 
             sql = 'CREATE UNIQUE INDEX publisher_id_infohash_idx on ChannelCast (publisher_id,infohash);'
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
 
         if fromver < 7:
             sql = \
@@ -1005,7 +1002,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               message        text
             );
             """
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
 
         if fromver < 8:
             sql = \
@@ -1018,7 +1015,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               bundle_mode   integer
             );
             """
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
 
         if fromver < 9:
             sql = \
@@ -1225,12 +1222,11 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             INSERT INTO MetaDataTypes ('name') VALUES ('name');
             INSERT INTO MetaDataTypes ('name') VALUES ('description');
             """
-            self.execute_write(sql, commit=False)
+            self.execute_write(sql)
 
         # updating version stepwise so if this works, we store it
         # regardless of later, potentially failing updates
-        self.writeDBVersion(CURRENT_MAIN_DB_VERSION, commit=False)
-        self.commit()
+        self.writeDBVersion(CURRENT_MAIN_DB_VERSION)
 
         tqueue = None
 
@@ -1297,12 +1293,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     # table in the database
                     if len(keywords) > 0:
                         values = [(keyword, torrent_id) for keyword in keywords]
-                        self.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values, commit=False)
+                        self.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values)
                         if DEBUG:
                             print >> sys.stderr, "DB Upgradation: Extending the InvertedIndex table with", len(values), "new keywords for", torrent_name
-
-                # now commit, after parsing the batch of torrents
-                self.commit()
 
                 # upgradation not yet complete; comeback after 5 sec
                 tqueue.add_task(upgradeTorrents, SUCCESIVE_UPGRADE_PAUSE)
@@ -1368,9 +1361,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     phrases.append((torrent_id,) + phrase)
 
             # insert terms and phrases
-            self.executemany(ins_terms_sql, termcount.items(), commit=False)
-            self.executemany(ins_phrase_sql, phrases, commit=False)
-            self.commit()
+            self.executemany(ins_terms_sql, termcount.items())
+            self.executemany(ins_phrase_sql, phrases)
 
             if DEBUG:
                 dbg_ts2 = time()
@@ -1403,7 +1395,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             if DEBUG:
                 t2 = time.time()
 
-            self.executemany(u"INSERT OR IGNORE INTO InvertedIndex VALUES(?, ?)", values, commit=True)
+            self.executemany(u"INSERT OR IGNORE INTO InvertedIndex VALUES(?, ?)", values)
             if DEBUG:
                 print >> sys.stderr, "INSERTING NEW KEYWORDS TOOK", time.time() - t1, "INSERTING took", time.time() - t2
 
@@ -1486,7 +1478,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     for torrent_id, time_stamp in torrents:
                         to_be_inserted.append((-1, torrent_id, channel_id, long(time_stamp), long(time_stamp)))
 
-                    self.execute_write(update_channel, (len(torrents), channel_id), commit=False)
+                    self.execute_write(update_channel, (len(torrents), channel_id))
                 self.executemany(insert_channel_contents, to_be_inserted)
 
                 # convert votes
@@ -1526,7 +1518,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 update_votes = "UPDATE _Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
                 self.executemany(update_votes, channel_tuples)
 
-                self.execute_write('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid,), commit=False)
+                self.execute_write('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid,))
                 self.execute_write('DELETE FROM ChannelCast WHERE publisher_id <> ?', (my_permid,))
 
                 select_mychannel_id = "SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1"
@@ -1720,7 +1712,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         values.append((torrent_id, swarmname, " ".join(filenames), " ".join(fileextensions)))
 
                     if len(values) > 0:
-                        self.executemany(u"INSERT INTO FullTextIndex (rowid, swarmname, filenames, fileextensions) VALUES(?,?,?,?)", values, commit=True)
+                        self.executemany(u"INSERT INTO FullTextIndex (rowid, swarmname, filenames, fileextensions) VALUES(?,?,?,?)", values)
 
                 # upgradation not yet complete; comeback after 5 sec
                 tqueue.add_task(upgradeTorrents2, SUCCESIVE_UPGRADE_PAUSE)
@@ -1771,10 +1763,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             remove_indexes = ["Message_receive_time_idx", "Size_calc_age_idx", "Number_of_seeders_idx", "Number_of_leechers_idx", "Torrent_length_idx", "Torrent_num_seeders_idx", "Torrent_num_leechers_idx"]
             for index in remove_indexes:
-                self.execute_write("DROP INDEX %s" % index, commit=False)
+                self.execute_write("DROP INDEX %s" % index)
 
-            self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)", commit=False)
-            self.execute_write("CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check)", commit=False)
+            self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)")
+            self.execute_write("CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check)")
             self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
             self.clean_db(True)
 
@@ -1782,7 +1774,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
         if fromver < 13:
             self.database_update.acquire()
-            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');", commit=False)
+            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');")
             self.database_update.release()
 
         tmpfilename3 = os.path.join(state_dir, "upgradingdb3.txt")
@@ -1790,10 +1782,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.database_update.acquire()
 
             if fromver < 14:
-                self.execute_write("ALTER TABLE Torrent ADD COLUMN dispersy_id integer;", commit=False)
-                self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_hash text;", commit=False)
-                self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_torrent_hash text;", commit=False)
-                self.execute_write("CREATE INDEX Torrent_insert_idx ON Torrent (insert_time, swift_torrent_hash);", commit=False)
+                self.execute_write("ALTER TABLE Torrent ADD COLUMN dispersy_id integer;")
+                self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_hash text;")
+                self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_torrent_hash text;")
+                self.execute_write("CREATE INDEX Torrent_insert_idx ON Torrent (insert_time, swift_torrent_hash);")
                 self.execute_write("CREATE INDEX Torrent_info_roothash_idx ON Torrent (infohash, swift_torrent_hash);")
 
             # Create an empty file to mark the process of upgradation.
@@ -1913,7 +1905,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             self.execute_write("DROP TABLE IF EXISTS SubtitlesHave")
             self.execute_write("DROP INDEX IF EXISTS subtitles_have_idx")
-            self.execute_write("DROP INDEX IF EXISTS subtitles_have_ts", commit=True)
+            self.execute_write("DROP INDEX IF EXISTS subtitles_have_ts")
 
             update = list(self.execute_read("SELECT peer_id, torrent_id, term_id, term_order FROM ClicklogSearch"))
             results = self.execute_read("SELECT ClicklogTerm.term_id, TermFrequency.term_id FROM TermFrequency, ClicklogTerm WHERE TermFrequency.term == ClicklogTerm.term")
@@ -1930,7 +1922,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write("DROP INDEX IF EXISTS idx_terms_term")
 
             self.execute_write("DELETE FROM Peer WHERE superpeer = 1")
-            self.execute_write("DROP VIEW IF EXISTS SuperPeer", commit=True)
+            self.execute_write("DROP VIEW IF EXISTS SuperPeer")
 
             self.execute_write("DROP INDEX IF EXISTS Peer_name_idx")
             self.execute_write("DROP INDEX IF EXISTS Peer_ip_idx")
@@ -1971,15 +1963,38 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
                 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 
-                self.execute_write(\
-                    "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0", \
-                    commit=False)
-                self.execute_write(\
-                    "ALTER TABLE Torrent ADD COLUMN tracker_check_retries integer DEFAULT 0", \
-                    commit=False)
-                self.execute_write(\
-                    "ALTER TABLE Torrent ADD COLUMN next_tracker_check integer DEFAULT 0", \
-                    commit=False)
+                # drop Peer columns
+                drop_table = "DROP VIEW Friend"
+                self.execute_write(drop_table)
+
+                rename_table = "ALTER TABLE Peer RENAME TO __Peer_tmp"
+                self.execute_write(rename_table)
+
+                improved_peer_table = """
+                CREATE TABLE Peer (
+                    peer_id    integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    permid     text NOT NULL,
+                    name       text,
+                    thumbnail  text
+                );"""
+                self.execute_write(improved_peer_table)
+
+                copy_data = """
+                INSERT INTO Peer (peer_id, permid, name, thumbnail)
+                SELECT peer_id, permid, name, thumbnail FROM __Peer_tmp
+                """
+                self.execute_write(copy_data)
+
+                drop_table = "DROP TABLE __Peer_tmp"
+                self.execute_write(drop_table)
+
+                # new columns in Torrent table
+                self.execute_write(
+                    "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0")
+                self.execute_write(
+                    "ALTER TABLE Torrent ADD COLUMN tracker_check_retries integer DEFAULT 0")
+                self.execute_write(
+                    "ALTER TABLE Torrent ADD COLUMN next_tracker_check integer DEFAULT 0")
 
                 create_new_table = """
                     CREATE TABLE TrackerInfo (
@@ -1989,7 +2004,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                       failures    integer DEFAULT 0,
                       is_alive    integer DEFAULT 1
                     );"""
-                self.execute_write(create_new_table, commit=False)
+                self.execute_write(create_new_table)
 
                 create_new_table = """
                     CREATE TABLE TorrentTrackerMapping (
@@ -1999,11 +2014,11 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                       FOREIGN KEY (tracker_id) REFERENCES TrackerInfo(tracker_id),
                       PRIMARY KEY (torrent_id, tracker_id)
                     );"""
-                self.execute_write(create_new_table, commit=False)
+                self.execute_write(create_new_table)
 
                 insert_dht_tracker = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
                 default_tracker_list = [ ('no-DHT',), ('DHT',) ]
-                self.executemany(insert_dht_tracker, default_tracker_list, commit=False)
+                self.executemany(insert_dht_tracker, default_tracker_list)
 
                 print >> sys.stderr, 'Importing information from TorrentTracker ...'
                 sql = 'SELECT torrent_id, tracker FROM TorrentTracker'\
@@ -2169,9 +2184,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
     def clean_db(self, vacuum=False):
         from time import time
 
-        self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)", commit=False)
-        self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0", commit=False)
-        self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)", commit=False)
+        self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)")
+        self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0")
+        self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")
         self.execute_write("DELETE FROM Torrent where name is NULL and torrent_id not in (select torrent_id from _ChannelTorrents)")
 
         if vacuum:
@@ -2354,23 +2369,19 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         elif vacuum:
             self._execute("VACUUM;")
 
-    def execute_write(self, sql, args=None, commit=True):
+    def execute_write(self, sql, args=None):
         global _shouldCommit
         if not _shouldCommit:
             _shouldCommit = True
 
         self._execute(sql, args)
 
-    def executemany(self, sql, args, commit=True):
+    def executemany(self, sql, args):
         global _shouldCommit
         if not _shouldCommit:
             _shouldCommit = True
 
         return self._executemany(sql, args)
-
-    def commit(self):
-        if DEPRECATION_DEBUG:
-            raise DeprecationWarning('Please do not use commit')
 
     def clean_db(self, vacuum=False, exiting=False):
         SQLiteCacheDBV5.clean_db(self, False)
