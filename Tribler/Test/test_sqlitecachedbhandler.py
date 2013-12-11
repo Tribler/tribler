@@ -136,6 +136,9 @@ class TestTorrentDBHandler(AbstractDB):
     def setUp(self):
         AbstractDB.setUp(self)
 
+        assert not MiscDBHandler.hasInstance()
+        assert not TorrentDBHandler.hasInstance()
+
         self.misc_db = MiscDBHandler.getInstance()
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.torrent_dir = FILES_DIR
@@ -143,6 +146,7 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb._nb = NetworkBuzzDBHandler.getInstance()
 
     def tearDown(self):
+        MiscDBHandler.delInstance()
         TorrentDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
         NetworkBuzzDBHandler.delInstance()
@@ -164,8 +168,8 @@ class TestTorrentDBHandler(AbstractDB):
         data = res[0]
         # print data
         assert data['category'][0] in self.tdb.category_table.keys(), data['category']
-        assert data['status'] in self.misc_db._torrent_status_name2id_dict.keys(), data['status']
-        assert data['source'] in self.tdb.src_table.keys(), data['source']
+        assert data['status'] in self.misc_db._torrent_status_name2id_dict, data['status']
+        assert data['source'] in self.misc_db._torrent_source_name2id_dict, data['source']
         assert len(data['infohash']) == 20
 
     def test_add_update_delete_Torrent(self):
@@ -316,6 +320,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
         self.tdb = TorrentDBHandler.getInstance()
 
     def tearDown(self):
+        MiscDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
         TorrentDBHandler.delInstance()
 

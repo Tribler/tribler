@@ -170,7 +170,7 @@ class MiscDBHandler(BasicDBHandler):
         return self._torrent_status_name2id_dict.get(status_name.lower(), 0)
 
     def torrentStatusId2Name(self, status_id):
-        return self._torrent_status_id2name_dict[status_id]
+        return self._torrent_status_id2name_dict.get(status_id, None)
 
     def categoryName2Id(self, category_name):
         return self._category_name2id_dict[category_name]
@@ -179,10 +179,24 @@ class MiscDBHandler(BasicDBHandler):
         return self._category_id2name_dict[category_id]
 
     def torrentSourceName2Id(self, source_name):
-        return self._torrent_source_name2id_dict[source_name]
+        if source_name in self._torrent_source_name2id_dict:
+            source_id = self._torrent_source_name2id_dict[source_name]
+        else:
+            source_id = self._addSource(source_name)
+            self._torrent_source_name2id_dict[source_name] = source_id
+            self._torrent_source_id2name_dict[source_id] = source_name
+        return source_id
 
     def torrentSourceId2Name(self, source_id):
-        return self._torrent_source_id2name_dict[source_id]
+        return self._torrent_source_id2name_dict.get(source_id, None)
+
+    def _addSource(self, source):
+        desc = u''
+        if source.startswith('http') and source.endswith('xml'):
+            desc = u'RSS'
+        self._db.insert(u'TorrentSource', name=source, description=desc)
+        source_id = self._db.getOne(u'TorrentSource', u'source_id', name=source)
+        return source_id
 
 
 class PeerDBHandler(BasicDBHandler):
@@ -361,15 +375,6 @@ class TorrentDBHandler(BasicDBHandler):
         # 7 - xxx
         # 8 - other
 
-        sql = 'SELECT name, source_id FROM TorrentSource'
-        st = self._db.fetchall(sql)
-        self.src_table = dict(st)
-        self.id2src = dict([(x, y) for (y, x) in self.src_table.items()])
-        self.id2src[None] = u'unknown'
-
-        # 0 - ''    # local added
-        # 1 - BC
-        # 2,3,4... - URL of RSS feed
         self.keys = ['torrent_id', 'name', 'torrent_file_name',
                 'length', 'creation_date', 'num_files', 'thumbnail',
                 'insert_time', 'secret', 'relevance',
@@ -578,15 +583,6 @@ class TorrentDBHandler(BasicDBHandler):
             cat_int = 0
         return cat_int
 
-    def _getSourceID(self, src):
-        if src in self.src_table:
-            src_int = self.src_table[src]
-        else:
-            src_int = self._insertNewSrc(src)  # add a new src, e.g., a RSS feed
-            self.src_table[src] = src_int
-            self.id2src[src_int] = src
-        return src_int
-
     def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
@@ -602,7 +598,7 @@ class TorrentDBHandler(BasicDBHandler):
                 "insert_time": long(time()),
                 "secret": 1 if torrentdef.is_private() else 0,
                 "relevance": 0.0,
-                "source_id": self._getSourceID(source),
+                "source_id": self.misc_db.torrentSourceName2Id(source),
                 # todo: the category_id is calculated directly from
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
@@ -683,14 +679,6 @@ class TorrentDBHandler(BasicDBHandler):
 
         # vliegendhart: extract terms and bi-term phrase from Torrent and store it
         self._nb.addTorrent(torrent_id, swarmname, collected=collected)
-
-    def _insertNewSrc(self, src):
-        desc = ''
-        if src.startswith('http') and src.endswith('xml'):
-            desc = 'RSS'
-        self._db.insert('TorrentSource', name=src, description=desc)
-        src_id = self._db.getOne('TorrentSource', 'source_id', name=src)
-        return src_id
 
     # ------------------------------------------------------------
     # Adds the trackers of a given torrent into the database.
@@ -821,8 +809,8 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, update_roothash)
 
     def on_search_response(self, torrents):
-        source_id = self._getSourceID("DISP_SEARCH")
-        status_id = self.misc_db.torrentStatusName2Id("unknown")
+        source_id = self.misc_db.torrentSourceName2Id(u'DISP_SEARCH')
+        status_id = self.misc_db.torrentStatusName2Id(u'unknown')
 
         torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.category_table.get(torrent[4][0], 0), torrent[5], bin2str(torrent[8]) if torrent[8] else '', bin2str(torrent[9]) if torrent[9] else '') for torrent in torrents]
         info_root = [(torrent[0], torrent[6] or '--') for torrent in torrents]
@@ -1146,7 +1134,7 @@ class TorrentDBHandler(BasicDBHandler):
             return None
         torrent = dict(zip(keys, res))
         if 'source_id' in torrent:
-            torrent['source'] = self.id2src[torrent['source_id']]
+            torrent['source'] = self.misc_db.torrentSourceId2Name(torrent['source_id'])
 
         if 'category_id' in torrent:
             torrent['category'] = [self.id2category[torrent['category_id']]]
@@ -1257,7 +1245,7 @@ class TorrentDBHandler(BasicDBHandler):
             torrent = dict(zip(value_name, item))
 
             try:
-                torrent['source'] = self.id2src[torrent['source_id']]
+                torrent['source'] = self.misc_db.torrentSourceId2Name(torrent['source_id'])
             except:
                 print_exc()
                 # Arno: RSS subscription and id2src issue
