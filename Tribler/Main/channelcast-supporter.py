@@ -22,6 +22,7 @@ def define_communities(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
     from Tribler.community.channel.community import ChannelCommunity
 
+    dispersy = session.get_dispersy_instance()
     dispersy.define_auto_load(AllChannelCommunity,
                                    (session.dispersy_member,),
                                    {"auto_join_channel": True},
@@ -38,7 +39,7 @@ def main():
     # parse command-line arguments
     opt, args = command_line_parser.parse_args()
 
-    print "Press Ctrl-C to stop the channelcast-supporter"
+    print "Press Q followed by <ENTER> to stop the channelcast-supporter"
 
     sscfg = SessionStartupConfig()
     if opt.statedir:
@@ -55,7 +56,7 @@ def main():
     session = Session(sscfg)
     session.start()
 
-    dispersy = s.get_dispersy_instance()
+    dispersy = session.get_dispersy_instance()
     dispersy.callback.call(define_communities, args=(session,))
 
     def on_incoming_torrent(subject, type_, infohash):
