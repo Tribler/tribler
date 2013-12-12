@@ -8,6 +8,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
 from Tribler import LIBRARYNAME
+from Tribler.Main.vwxGUI import warnWxThread
 
 DEBUG = False
 
@@ -77,6 +78,7 @@ class SRstatusbar(wx.StatusBar):
             total_up += ds.get_current_speed(UPLOAD)
         self.SetTransferSpeeds(total_down * 1024, total_up * 1024)
 
+    @warnWxThread
     def SetTransferSpeeds(self, down, up):
         self.speed_down.SetLabel(self.utility.speed_format(down))
         self.speed_up.SetLabel(self.utility.speed_format(up))
@@ -99,6 +101,7 @@ class SRstatusbar(wx.StatusBar):
         values.append(0)
         return [('unlimited' if value == 0 else ('0' if value == -1 else str(value)), value) for value in values]
 
+    @warnWxThread
     def OnDownloadPopup(self, event):
         menu = wx.Menu()
         current = self.utility.read_config('maxdownloadrate')
@@ -114,6 +117,7 @@ class SRstatusbar(wx.StatusBar):
         menu.Destroy()
         self.speed_down.Layout()
 
+    @warnWxThread
     def OnUploadPopup(self, event):
         menu = wx.Menu()
         current = self.utility.read_config('maxuploadrate')
@@ -129,6 +133,7 @@ class SRstatusbar(wx.StatusBar):
         menu.Destroy()
         self.speed_up.Layout()
 
+    @warnWxThread
     def OnCheckbox(self, event):
         checkbox = event.GetEventObject()
         checkbox.Enable(False)
@@ -136,6 +141,7 @@ class SRstatusbar(wx.StatusBar):
 
         wx.CallLater(100, self.__toggleFF, event.GetEventObject().GetValue())
 
+    @warnWxThread
     def __toggleFF(self, newvalue):
         if newvalue != self.guiutility.getFamilyFilter():
             self.guiutility.toggleFamilyFilter(newvalue)
@@ -144,6 +150,7 @@ class SRstatusbar(wx.StatusBar):
                 self.uelog.addEvent(message="SRstatusbar: user toggled family filter", type=2)
             startWorker(None, db_callback, retryOnBusy=True)
 
+    @warnWxThread
     def SetConnections(self, connectionPercentage, totalConnections, channelConnections):
         self.connection.SetPercentage(connectionPercentage)
         self.connection.SetToolTipString('Connected to %d peers' % totalConnections)
@@ -154,6 +161,7 @@ class SRstatusbar(wx.StatusBar):
     def GetChannelConnections(self):
         return self.channelconnections
 
+    @warnWxThread
     def onReachable(self, event=None):
         if not self.guiutility.firewall_restart:
             self.firewallStatus.SetBitmapLabel(self.bmp_firewall_ok)
@@ -165,6 +173,7 @@ class SRstatusbar(wx.StatusBar):
             return self.firewallStatus.GetBitmapLabel() == self.bmp_firewall_ok
         return False
 
+    @warnWxThread
     def onActivity(self, msg):
         if self.activity_timer:
             self.activity_timer.Stop()
