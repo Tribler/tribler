@@ -111,6 +111,9 @@ class TriblerLaunchMany(Thread):
                 from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
                 from Tribler.dispersy.community import HardKilledCommunity
 
+                print >> sys.stderr, "lmc: Starting Dispersy..."
+                now = timemod.time()
+
                 # set communication endpoint
                 if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
@@ -126,12 +129,10 @@ class TriblerLaunchMany(Thread):
                 # However, for now we must start self.dispersy.callback before running
                 # try_register(nocachedb, self.database_thread)!
 
-                print >> sys.stderr, "lmc: Starting Dispersy..."
-                now = timemod.time()
                 success = self.dispersy.start()
                 diff = timemod.time() - now
                 if success:
-                    print >> sys.stderr, "lmc: Dispersy started successfully in %.2f second [port: %d]" % (diff, self.dispersy.wan_address[1])
+                    print >> sys.stderr, "lmc: Dispersy started successfully in %.2f seconds [port: %d]" % (diff, self.dispersy.wan_address[1])
                 else:
                     print >> sys.stderr, "lmc: Dispersy failed to start in %.2f seconds" % (diff,)
 
