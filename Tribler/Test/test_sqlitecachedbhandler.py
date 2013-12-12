@@ -253,14 +253,14 @@ class TestTorrentDBHandler(AbstractDB):
         m_torrent = self.tdb.getTorrent(m_infohash)
         assert s_torrent['name'] == 'Tribler_4.1.7_src.zip', s_torrent['name']
         assert m_torrent['name'] == 'Tribler_4.1.7_src', m_torrent['name']
-        assert m_torrent['last_check_time'] == 0
+        assert m_torrent['last_tracker_check'] == 0
 
     def updateTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
         self.tdb.updateTorrent(m_infohash, relevance=3.1415926, category=['Videoclips'],
                          status='good', progress=23.5, seeder=123, leecher=321,
-                         last_check_time=1234567,
+                         last_tracker_check=1234567,
                          other_key1='abcd', other_key2=123)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
         cid = self.tdb.getOne('category_id', torrent_id=multiple_torrent_id)
@@ -273,8 +273,8 @@ class TestTorrentDBHandler(AbstractDB):
         assert seeder == 123
         leecher = self.tdb.getOne('num_leechers', torrent_id=multiple_torrent_id)
         assert leecher == 321
-        last_check_time = self.tdb.getOne('last_tracker_check', torrent_id=multiple_torrent_id)
-        assert last_check_time == 1234567, last_check_time
+        last_tracker_check = self.tdb.getOne('last_tracker_check', torrent_id=multiple_torrent_id)
+        assert last_tracker_check == 1234567, last_tracker_check
 
     def deleteTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
