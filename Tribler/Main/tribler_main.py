@@ -455,9 +455,11 @@ class ABCApp():
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
-            from Tribler.community.bartercast3.community import BarterCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
+
+            print >> sys.stderr, "tribler: Preparing communities..."
+            now = time()
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
@@ -479,7 +481,8 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
-            print >> sys.stderr, "tribler: Dispersy communities are ready"
+            diff = time() - now
+            print >> sys.stderr, "tribler: communities are ready in %.2f seconds" % (diff,)
 
         swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
