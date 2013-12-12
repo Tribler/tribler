@@ -105,7 +105,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(10, lambda : 'stopped' in self.frame.librarylist.list.GetItem(infohash).original_data.state, do_resume, 'download not stopped')
 
         def item_shown_in_list():
-            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, do_stop, 'no download progress')
+            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, do_stop, 'no download progress')
 
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(infohash), item_shown_in_list, 'no download in librarylist')
