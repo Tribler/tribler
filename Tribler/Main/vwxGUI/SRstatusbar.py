@@ -156,8 +156,10 @@ class SRstatusbar(wx.StatusBar):
         self.connection.SetToolTipString('Connected to %d peers' % totalConnections)
         self.channelconnections = channelConnections
 
+    @warnWxThread
     def GetConnections(self):
         return self.connection.GetPercentage()
+
     def GetChannelConnections(self):
         return self.channelconnections
 
@@ -168,6 +170,7 @@ class SRstatusbar(wx.StatusBar):
             self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_ok)
             self.firewallStatus.SetToolTipString('Port is working')
 
+    @warnWxThread
     def IsReachable(self):
         if not self.guiutility.firewall_restart:
             return self.firewallStatus.GetBitmapLabel() == self.bmp_firewall_ok
@@ -202,9 +205,11 @@ class SRstatusbar(wx.StatusBar):
             return '%1.1f GB' % (bytes // 1073741824.0)
         return '%d GB' % (bytes // 1073741824)
 
+    @warnWxThread
     def OnSize(self, event):
         self.Reposition()
 
+    @warnWxThread
     def Reposition(self):
         self.Freeze()
 

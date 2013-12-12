@@ -2356,7 +2356,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
             if not exiting:
                 try:
-                    print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
+                    print >> sys.stderr, long(time()), "SQLiteNoCacheDB.commitNow: BEGIN"
                     self._execute("BEGIN;")
                 except:
                     print >> sys.stderr, "BEGIN FAILED"

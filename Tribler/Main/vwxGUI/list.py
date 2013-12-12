@@ -1966,7 +1966,6 @@ class LibraryList(SizeList):
 
         self.oldDS = dict([(infohash, item.original_data.ds) for infohash, item in self.list.items.iteritems()])
 
-    @warnWxThread
     def RefreshBandwidthHistory(self, dslist, magnetlist):
         for item in self.list.items.itervalues():
             # Store bandwidth history in self.bw_history
@@ -1976,7 +1975,6 @@ class LibraryList(SizeList):
                 self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
                 self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') if ds else 0, ds.get_current_speed('down') if ds else 0))
                 self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
-
 
     @warnWxThread
     def SetData(self, data):
