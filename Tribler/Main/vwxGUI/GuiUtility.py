@@ -283,6 +283,7 @@ class GUIUtility:
         if self.guiPage == 'my_files':
             return self.frame.librarylist
 
+    @warnWxThread
     def SetTopSplitterWindow(self, window=None, show=True):
         while self.frame.splitter_top.GetChildren():
             self.frame.splitter_top.Detach(0)
@@ -296,6 +297,7 @@ class GUIUtility:
         self.frame.splitter_top.Layout()
         self.frame.splitter_top_window.Refresh()
 
+    @warnWxThread
     def SetBottomSplitterWindow(self, panel_type):
         self.frame.splitter_bottom_window.Freeze()
 
@@ -323,6 +325,7 @@ class GUIUtility:
         self.frame.splitter_bottom_window.Refresh()
         return result
 
+    @warnWxThread
     def SetColumnInfo(self, itemtype, columns, hide_defaults=[]):
         # Load hidden column info
         hide_columns = self.ReadGuiSetting("hide_columns", default={})
@@ -377,6 +380,7 @@ class GUIUtility:
         if scrollTo:
             self.ScrollTo(scrollTo)
 
+    @warnWxThread
     def dosearch(self, input=None):
         if input == None:
             sf = self.frame.top_bg.searchField
