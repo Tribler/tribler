@@ -812,6 +812,7 @@ class TorrentFilter(BaseFilter):
             search += "category='%s'" % category
         self.search.SetValue(search)
 
+    @warnWxThread
     def Reset(self):
         self.search.Clear()
         self.filesize.Reset()
@@ -1053,6 +1054,7 @@ class ChannelFilter(BaseFilter):
         self.channeltype_icon.Show(show)
         self.channeltype.Show(show)
 
+    @warnWxThread
     def Reset(self):
         self.search.Clear()
 
