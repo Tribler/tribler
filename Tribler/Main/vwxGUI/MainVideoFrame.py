@@ -8,7 +8,7 @@ import os
 from Tribler.Video.VideoFrame import VideoBaseFrame
 from Tribler.Main.vwxGUI.EmbeddedPlayer import EmbeddedPlayerPanel
 from Tribler.__init__ import LIBRARYNAME
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
 
 DEBUG = False
 
@@ -41,6 +41,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Show(False)
 
+    @warnWxThread
     def show_videoframe(self):
         if DEBUG:
             print >> sys.stderr, "videoframe: Swap IN videopanel"
@@ -60,6 +61,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
         #
         wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
 
+    @warnWxThread
     def hide_videoframe(self):
         if DEBUG:
             print >> sys.stderr, "videoframe: Swap OUT videopanel"
@@ -68,10 +70,11 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
             self.videopanel.Reset()
             self.Hide()
 
+    @warnWxThread
     def get_videopanel(self):
         if self.videopanel is None:
             self.videopanel = EmbeddedPlayerPanel(self, self.utility, self.vlcwrap, wx.BLACK)
-            self.videopanel.SetMinSize((320, 300)) # vliegendhart: why 320x280? -> Niels: we need space for ctrlsizer
+            self.videopanel.SetMinSize((320, 300))  # vliegendhart: why 320x280? -> Niels: we need space for ctrlsizer
 
             mainbox = wx.BoxSizer()
             mainbox.Add(self.videopanel, 1, wx.EXPAND)
@@ -104,6 +107,7 @@ class VideoDummyFrame(VideoBaseFrame):
         else:
             self.videopanel.Hide()
 
+    @warnWxThread
     def recreate_videopanel(self):
         old_videopanel = self.videopanel
         new_videopanel = EmbeddedPlayerPanel(self.parent, self.utility, self.vlcwrap, wx.BLACK)

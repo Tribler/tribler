@@ -6,6 +6,7 @@ import os
 import cStringIO
 
 from Tribler.Core.API import *
+from Tribler.Main.vwxGUI import warnWxThread
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
@@ -15,6 +16,7 @@ class IconsManager:
 
     __single = None
 
+    @warnWxThread
     def __init__(self):
 
         if IconsManager.__single:
@@ -55,6 +57,7 @@ class IconsManager:
         return IconsManager.__single
     getInstance = staticmethod(getInstance)
 
+    @warnWxThread
     def get_default(self, name, dim=ICON_MAX_DIM):
         if dim not in self.defaults[name]:
             img = self.defaults[name][ICON_MAX_DIM].ConvertToImage()
@@ -71,6 +74,7 @@ class IconsManager:
             return data2wxBitmap('image/jpeg', data, dim)
 
 
+@warnWxThread
 def data2wxImage(type, data, dim=ICON_MAX_DIM):
     try:
         if data is None:
@@ -93,6 +97,7 @@ def data2wxImage(type, data, dim=ICON_MAX_DIM):
         return None
 
 
+@warnWxThread
 def data2wxBitmap(type, data, dim=ICON_MAX_DIM):
     try:
         im = data2wxImage(type, data, dim=dim)

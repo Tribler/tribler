@@ -130,6 +130,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ctrlsizer.ShowItems(True)
             self.guiutility.frame.Layout()
 
+    @warnWxThread
     def OnVolumeChanged(self, volume):
         if self.mute.GetBitmapLabel() == self.bmp_muted:  # unmute
             self.mute.SetBitmapLabel(self.bmp_unmuted, recreate=True)
@@ -537,12 +538,14 @@ class LogoWindow(wx.Panel):
         self.Layout()
         self.Refresh()
 
+    @warnWxThread
     def show_loading(self):
         if self.loading:
             self.logo = None
             self.loading.Show()
             self.Refresh()
 
+    @warnWxThread
     def hide_loading(self):
         if self.loading:
             self.loading.Hide()

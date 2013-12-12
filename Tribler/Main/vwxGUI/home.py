@@ -19,7 +19,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler,\
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
@@ -150,6 +150,7 @@ class Stats(XRCPanel):
         self.createTimer = None
         self.isReady = False
 
+    @warnWxThread
     def _DoInit(self):
 
         try:
@@ -296,6 +297,7 @@ class Stats(XRCPanel):
         for table, in tables:
             print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table)
 
+    @warnWxThread
     def Show(self, show=True):
         if show:
             if not self.isReady:
@@ -341,15 +343,18 @@ class HomePanel(wx.Panel):
         self.SetSizer(vSizer)
         self.Layout()
 
+    @warnWxThread
     def CreateHeader(self):
         return DetailHeader(self)
 
     def CreatePanel(self):
         pass
 
+    @warnWxThread
     def CreateFooter(self):
         return ListFooter(self)
 
+    @warnWxThread
     def DoLayout(self):
         self.Freeze()
         self.Layout()
@@ -372,6 +377,7 @@ class NetworkPanel(HomePanel):
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
         self.UpdateStats()
 
+    @warnWxThread
     def CreatePanel(self):
         panel = wx.Panel(self)
         panel.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -507,6 +513,7 @@ class LeftDispersyPanel(HomePanel):
             ("Debug mode", '', lambda stats: "yes" if __debug__ else "no"),
         ]
 
+    @warnWxThread
     def CreatePanel(self):
         panel = wx.Panel(self)
         panel.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -522,6 +529,7 @@ class LeftDispersyPanel(HomePanel):
         panel.SetSizer(hSizer)
         return panel
 
+    @warnWxThread
     def CreateColumns(self):
         self.textdict = {}
 
@@ -681,6 +689,7 @@ class RightDispersyPanel(FancyPanel):
         if self.IsShownOnScreen():
             self.UpdateStats()
 
+    @warnWxThread
     def AddDataToTree(self, data, parent, tree, prepend=True, sort_dict=False):
 
         def addValue(parentNode, value):
@@ -827,6 +836,7 @@ class NewTorrentPanel(HomePanel):
         session = Session.get_instance()
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
 
+    @warnWxThread
     def CreatePanel(self):
         self.list = SelectableListCtrl(self)
         self.list.InsertColumn(0, 'Torrent')
@@ -1051,6 +1061,7 @@ class BuzzPanel(wx.Panel):
         self.footer.SetLabel('Update in %d...' % self.refresh)
         self.Layout()
 
+    @warnWxThread
     def getStaticText(self, term, font=None):
         if len(self.tags) > 0:
             text = self.tags.pop()
@@ -1065,6 +1076,7 @@ class BuzzPanel(wx.Panel):
         text.SetToolTipString("Click to search for '%s'" % term)
         return text
 
+    @warnWxThread
     def DisplayTerms(self, rows):
         if rows:
             self.Freeze()
@@ -1103,6 +1115,7 @@ class BuzzPanel(wx.Panel):
             self.GetParent().Layout()
             self.Thaw()
 
+    @warnWxThread
     def DoPauseResume(self):
         def IsEnter(control):
             if getattr(control, 'GetWindow', False):

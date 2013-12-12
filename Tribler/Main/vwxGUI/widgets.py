@@ -17,7 +17,7 @@ from wx.lib.stattext import GenStaticText
 from wx.lib.colourutils import AdjustColour
 from wx.lib.wordwrap import wordwrap
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR, \
-    SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
+    SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR, warnWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from wx.lib.embeddedimage import PyEmbeddedImage
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -39,6 +39,7 @@ class NativeIcon:
         return NativeIcon.__single
     getInstance = staticmethod(getInstance)
 
+    @warnWxThread
     def getBitmap(self, parent, type, background, state):
         assert isinstance(background, wx.Colour), "we require a wx.colour object here, got %s" % type(background)
         if isinstance(background, wx.Colour):
@@ -82,6 +83,7 @@ class NativeIcon:
             icons[background][state] = self.__createBitmap(parent, background, type, state)
         return icons[background][state]
 
+    @warnWxThread
     def __createBitmap(self, parent, background, type, state):
         if state == 1:
             if type == 'tree':
@@ -171,6 +173,7 @@ class MaxBetterText(wx.BoxSizer):
     def Show(self, show):
         self.ShowItems(show)
 
+    @warnWxThread
     def SetLabel(self, label):
         if self.fullLabel != label:
             self.fullLabel = label
@@ -261,6 +264,7 @@ class LinkText(GenStaticText):
         self.Bind(wx.EVT_MOTION, self.OnMouseEvent)
         self.enter = False
 
+    @warnWxThread
     def SetFonts(self, fonts):
         self.fonts = []
         for font in fonts:
@@ -268,6 +272,7 @@ class LinkText(GenStaticText):
                 font = self.GetFont()
             self.fonts.append(font)
 
+    @warnWxThread
     def SetColours(self, colours):
         self.colours = []
         for colour in colours:
@@ -357,11 +362,13 @@ class LinkStaticText(wx.BoxSizer):
         if parent.GetBackgroundStyle() != wx.BG_STYLE_SYSTEM:
             self.SetBackgroundColour(parent.GetBackgroundColour())
 
+    @warnWxThread
     def SetToolTipString(self, tip):
         self.text.SetToolTipString(tip)
         if self.icon:
             self.icon.SetToolTipString(tip)
 
+    @warnWxThread
     def SetLabel(self, text):
         if text != self.text.GetLabel():
             if self.icon:
@@ -410,13 +417,16 @@ class LinkStaticText(wx.BoxSizer):
         self.text.SetMinSize(minsize)
         self.Layout()
 
+    @warnWxThread
     def HighLight(self, timeout=2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT, blink=True)
         wx.CallLater(timeout * 1000, self.Revert)
 
+    @warnWxThread
     def Revert(self):
         self.SetBackgroundColour(self.originalColor, blink=True)
 
+    @warnWxThread
     def Blink(self):
         self.HighLight(0.15)
         wx.CallLater(300, self.HighLight, 0.15)
@@ -444,6 +454,7 @@ class LinkStaticText(wx.BoxSizer):
         if self.icon:
             self.icon.Unbind(event)
 
+    @warnWxThread
     def SetBackgroundColour(self, colour, blink=False):
         if not blink:
             self.originalColor = colour
@@ -453,6 +464,7 @@ class LinkStaticText(wx.BoxSizer):
             self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.parent, self.icon_type, colour, state=0))
             self.icon.Refresh()
 
+    @warnWxThread
     def SetForegroundColour(self, colour):
         colours = self.text.GetColours()
         colours[0] = colour
@@ -483,6 +495,7 @@ class ProgressStaticText(wx.Panel):
         self.SetSize((-1, self.text.GetBestSize()[1]))
         self.SetSizer(sizer)
 
+    @warnWxThread
     def SetProgress(self, progress):
         self.gauge.SetProgress(progress)
 
@@ -497,6 +510,7 @@ class VerticalGauge(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
+    @warnWxThread
     def SetProgress(self, progress):
         self.progress = progress
         self.Refresh()
@@ -542,6 +556,7 @@ class HorizontalGauge(wx.Control):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
+    @warnWxThread
     def SetMinSize(self, size):
         w, h = size
         if w == -1:
@@ -550,6 +565,7 @@ class HorizontalGauge(wx.Control):
             h = self.GetSize().y
         wx.Control.SetMinSize(self, (w, h))
 
+    @warnWxThread
     def SetPercentage(self, percentage):
         self.percentage = percentage
         self.Refresh()
@@ -837,6 +853,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdownlistbox.Select(toSel)
         self.SetValueFromSelected()
 
+    @warnWxThread
     def SetChoices (self, choices=[""]):
         ''' Sets the choices available in the popup wx.ListBox. '''
         self.choices = choices
@@ -988,6 +1005,7 @@ class ImageScrollablePanel(ScrolledPanel):
         else:
             evt.Skip()
 
+    @warnWxThread
     def SetBitmap(self, bitmap):
         self.bitmap = bitmap
         self.Refresh()
@@ -1009,6 +1027,7 @@ class ChannelPopularity(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
+    @warnWxThread
     def SetVotes(self, votes):
         self.votes = votes
         self.Refresh()
@@ -1049,6 +1068,7 @@ class SwarmHealth(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
+    @warnWxThread
     def SetRatio(self, seeders, leechers):
         ratio = 0
         pop = 0
@@ -1192,6 +1212,7 @@ class ProgressBar(wx.Panel):
         dc.SetPen(wx.BLACK_PEN)
         dc.DrawRoundedRectangle(x, y, maxw, maxh, 2)
 
+    @warnWxThread
     def set_pieces(self, blocks):
         if self.prev_blocks == blocks:
             return
@@ -1238,6 +1259,7 @@ class ProgressBar(wx.Panel):
         self.completed = all([x == 2 for x in blocks])
         self.blocks = blocks
 
+    @warnWxThread
     def setNormalPercentage(self, perc):
         self.prev_blocks = None
         maxBlocks = max(self.GetClientRect().width, 100)
@@ -1278,6 +1300,7 @@ class ActionButton(wx.Panel):
     def GetBitmapLabel(self):
         return self.bitmaps[0]
 
+    @warnWxThread
     def SetBitmapLabel(self, bitmap, recreate=False):
         if bitmap:
             if recreate:
@@ -1343,6 +1366,7 @@ class ActionButton(wx.Panel):
             self.handler = handler
         wx.Panel.Bind(self, event, handler)
 
+    @warnWxThread
     def Enable(self, enable):
         if enable and self.handler:
             self.Bind(wx.EVT_LEFT_UP, self.handler)
@@ -1370,6 +1394,7 @@ class ProgressButton(ActionButton):
     def GetRange(self):
         return self.maxval
 
+    @warnWxThread
     def SetRange(self, maximum):
         self.maxval = maximum
         self.Refresh()
@@ -1377,6 +1402,7 @@ class ProgressButton(ActionButton):
     def GetValue(self):
         return self.curval
 
+    @warnWxThread
     def SetValue(self, current):
         self.curval = current
         self.Refresh()
@@ -1388,6 +1414,7 @@ class ProgressButton(ActionButton):
             self.icon_gs = icon.ConvertToImage().ConvertToGreyscale().ConvertToBitmap()
             self.ResetSize()
 
+    @warnWxThread
     def ResetSize(self):
         w, h = self.GetTextExtent(self.label)
         w += 30
@@ -1482,6 +1509,7 @@ class FancyPanel(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
+    @warnWxThread
     def SetBorderColour(self, colour, highlight=None):
         self.border_colour = colour
         if highlight:
@@ -1493,6 +1521,7 @@ class FancyPanel(wx.Panel):
             self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
         self.Refresh()
 
+    @warnWxThread
     def SetBackgroundColour(self, colour1, colour2=None):
         self.colour1 = colour1
         self.colour2 = colour2 if colour2 else colour1
@@ -1574,11 +1603,13 @@ class DottedBetterText(BetterText):
         if label:
             self.SetLabel(label)
 
+    @warnWxThread
     def SetLabel(self, text):
         if text:
             text = self.DetermineText(text, self.GetSize()[0])
         wx.StaticText.SetLabel(self, text)
 
+    @warnWxThread
     def DetermineText(self, text, maxWidth):
         for i in xrange(len(text), 0, -1):
             newText = text[0:i]
@@ -1607,6 +1638,7 @@ class MinMaxSlider(wx.Panel):
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
 
+    @warnWxThread
     def SetMinMax(self, min, max):
         if max < min:
             return
@@ -1617,6 +1649,7 @@ class MinMaxSlider(wx.Panel):
     def GetMinMax(self):
         return (self.min, self.max)
 
+    @warnWxThread
     def SetCurrentValues(self, min_val, max_val):
         if self.max - self.min == 0 or min_val == 0:
             w, h = self.arrow_up.GetSize()
@@ -1669,6 +1702,7 @@ class MinMaxSlider(wx.Panel):
         if event.LeftIsDown():
             self.SetIcon(event)
 
+    @warnWxThread
     def SetIcon(self, event):
         mx = event.GetPositionTuple()[0] - 3
         if self.arrow_up_drag and mx < self.arrow_down_rect[0]:
@@ -1766,6 +1800,7 @@ class SimpleNotebook(wx.Panel):
     def AddPage(self, page, text, tab_colour=None):
         self.InsertPage(self.GetPageCount(), page, text, tab_colour)
 
+    @warnWxThread
     def InsertPage(self, index, page, text, tab_colour=None):
         if not (index >= 0 and index <= self.GetPageCount()):
             return
@@ -1793,6 +1828,7 @@ class SimpleNotebook(wx.Panel):
                 self.pshown += 1
             wx.CallAfter(self.ResetTabs)
 
+    @warnWxThread
     def ResetTabs(self):
         for index, label in enumerate(self.labels):
             selected_tab = self.GetSelection()
@@ -1803,6 +1839,7 @@ class SimpleNotebook(wx.Panel):
             label.SetBackgroundColour(bg_colour)
         self.tab_panel.Refresh()
 
+    @warnWxThread
     def RemovePage(self, index):
         label = self.labels.pop(index)
         label.Show(False)
@@ -1820,6 +1857,7 @@ class SimpleNotebook(wx.Panel):
             self.hSizer_labels.ShowItems(show_tab_panel)
         self.Layout()
 
+    @warnWxThread
     def ShowPage(self, index, show):
         is_selected = self.GetSelection() == index
 
@@ -1839,6 +1877,7 @@ class SimpleNotebook(wx.Panel):
             return self.labels[num_page].GetLabel()
         return ''
 
+    @warnWxThread
     def SetPageText(self, num_page, text):
         if num_page >= 0 and num_page < self.GetPageCount():
             self.labels[num_page].SetLabel(text)
@@ -1897,6 +1936,7 @@ class SimpleNotebook(wx.Panel):
     def CalcSizeFromPage(self, *args):
         return GUIUtility.getInstance().frame.splitter_bottom_window.GetSize()
 
+    @warnWxThread
     def SetMessagePanel(self, panel):
         if self.messagePanel:
             self.messagePanel.Show(False)
@@ -1909,6 +1949,7 @@ class SimpleNotebook(wx.Panel):
         self.Layout()
         self.Refresh()
 
+    @warnWxThread
     def ShowMessageOnPage(self, index, show_message):
         is_selected = self.GetSelection() == index
 
@@ -2001,6 +2042,7 @@ class TagText(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
+    @warnWxThread
     def SetValue(self, label):
         self.label = label
         w, h = self.GetTextExtent(self.label)
@@ -2008,6 +2050,7 @@ class TagText(wx.Panel):
         self.SetMinSize((w, h))
         self.Refresh()
 
+    @warnWxThread
     def SetBackgroundColour(self, colour):
         self.prnt_colour = colour
         self.Refresh()
@@ -2066,6 +2109,7 @@ class TorrentStatus(wx.Panel):
         if isinstance(value, float) or isinstance(value, int):
             self.value = float(value)
 
+    @warnWxThread
     def SetStatus(self, status):
         if isinstance(status, str):
             self.status = status
@@ -2087,10 +2131,12 @@ class TorrentStatus(wx.Panel):
 
         self.SetMinSize((-1, -1))
 
+    @warnWxThread
     def SetBackgroundColour(self, colour):
         self.prnt_colour = colour
         self.Refresh()
 
+    @warnWxThread
     def Update(self, torrent):
         progress = torrent.progress
         torrent_state = torrent.state
@@ -2192,6 +2238,7 @@ class TransparentText(wx.StaticText):
         self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: None)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
+    @warnWxThread
     def SetLabel(self, value):
         size = self.GetTextExtent(value)
         self.SetSize(size)
@@ -2253,17 +2300,20 @@ class TextCtrl(wx.TextCtrl):
         self.descr_label = descr_label
         self._SetDescriptiveText()
 
+    @warnWxThread
     def _SetDescriptiveText(self):
         if not self.GetValue():
             wx.TextCtrl.SetValue(self, self.descr_label)
             self.SetForegroundColour(self.descr_colour)
             self.descr_shown = True
 
+    @warnWxThread
     def GetValue(self):
         if self.descr_shown:
             return ''
         return wx.TextCtrl.GetValue(self)
 
+    @warnWxThread
     def SetValue(self, value):
         if value:
             self.descr_shown = False
@@ -2312,18 +2362,21 @@ class StaticBitmaps(wx.Panel):
 
         event.Skip()
 
+    @warnWxThread
     def OnLeftButton(self):
         if self.bitmaps_index >= 0:
             self.bitmaps_index = self.bitmaps_index - 1 if self.bitmaps_index > 0 else len(self.bitmaps) - 1
             self.bitmap = self.bitmaps[self.bitmaps_index]
             self.Refresh()
 
+    @warnWxThread
     def OnRightButton(self):
         if self.bitmaps_index >= 0:
             self.bitmaps_index = self.bitmaps_index + 1 if self.bitmaps_index < len(self.bitmaps) - 1 else 0
             self.bitmap = self.bitmaps[self.bitmaps_index]
             self.Refresh()
 
+    @warnWxThread
     def SetBitmaps(self, bitmaps):
         if isinstance(bitmaps, list) and bitmaps:
             if self.bitmaps_index > len(self.bitmaps):
@@ -2438,6 +2491,7 @@ class Graph(wx.Panel):
     def SetMaxPoints(self, max_points):
         self.max_points = max_points
 
+    @warnWxThread
     def AddGraph(self, colour, data=[], label=""):
         self.data.append(data)
         self.data[-1] = self.data[-1][-self.max_points:]
@@ -2445,12 +2499,14 @@ class Graph(wx.Panel):
         self.max_range = max(self.max_range, max(self.data[-1]) if self.data[-1] else 0)
         self.Refresh()
 
+    @warnWxThread
     def SetData(self, graph_id, data):
         self.data[graph_id] = data
         self.data[graph_id] = self.data[graph_id][-self.max_points:]
         self.max_range = max([max(column) for column in self.data if column])
         self.Refresh()
 
+    @warnWxThread
     def AppendData(self, graph_id, value):
         self.data[graph_id].append(value)
 
@@ -2564,6 +2620,7 @@ class VideoProgress(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
+    @warnWxThread
     def SetValue(self, value):
         self.value = value
         self.label = 'Loading\n %d%%' % (value * 100)
@@ -2572,10 +2629,12 @@ class VideoProgress(wx.Panel):
     def SetError(self, error):
         self.error = error
 
+    @warnWxThread
     def SetLabel(self, label):
         self.label = label
         self.Refresh()
 
+    @warnWxThread
     def SetBackgroundColour(self, colour):
         self.prnt_colour = colour
         self.Refresh()
@@ -2651,6 +2710,7 @@ class VideoSlider(wx.Panel):
     def GetValue(self):
         return self.value
 
+    @warnWxThread
     def SetValue(self, value):
         self.value = value
         if not self.dragging:
@@ -2660,6 +2720,7 @@ class VideoSlider(wx.Panel):
             self.slider_position[0] = max(self.slider_range[0], self.slider_position[0])
             self.Refresh()
 
+    @warnWxThread
     def SetPieces(self, pieces):
         self.pieces = pieces
         self.Refresh()
@@ -2682,12 +2743,14 @@ class VideoSlider(wx.Panel):
         # Call parent
         self.GetParent().GetParent().Seek()
 
+    @warnWxThread
     def OnMotion(self, event):
         if event.LeftIsDown():
             self.SetSlider(event)
         if self.hovering != self.PositionOnSlider(event.GetPositionTuple()):
             self.Refresh()
 
+    @warnWxThread
     def SetSlider(self, event):
         mx = event.GetPositionTuple()[0]
         if mx > self.slider_range[0] and mx < self.slider_range[1]:
@@ -2753,6 +2816,7 @@ class VideoSlider(wx.Panel):
             path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius)
             gc.DrawPath(path)
 
+    @warnWxThread
     def Enable(self, enable):
         if enable:
             self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
@@ -2803,6 +2867,7 @@ class VideoVolume(wx.Panel):
         if event.LeftIsDown():
             self.SetPosition(event)
 
+    @warnWxThread
     def SetPosition(self, event):
         mx, _ = event.GetPosition()
         value = float(mx) / self.GetClientSize().x
@@ -2814,6 +2879,7 @@ class VideoVolume(wx.Panel):
     def SetVolumeHandler(self, handler):
         self.handler = handler
 
+    @warnWxThread
     def SetValue(self, value):
         self.value = min(max(0.0, value), 1.0)
         self.Refresh()
