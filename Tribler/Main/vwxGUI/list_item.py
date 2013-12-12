@@ -95,6 +95,7 @@ class DoubleLineListItem(ListItem):
             vSizer.Detach(self.descrSizer)
             self.descrSizer = None
 
+    @warnWxThread
     def _add_control(self, control, column_index, option, spacing):
         if column_index == 0:
             self.titleSizer.Add(control, 1, wx.CENTER)
@@ -112,6 +113,7 @@ class DoubleLineListItem(ListItem):
                     self._add_columnresizing(sline, column_index)
                 self.descrSizer.Add(sline, 0, wx.EXPAND | wx.RIGHT | wx.LEFT, 7)
 
+    @warnWxThread
     def _add_columnresizing(self, sline, column_index):
         sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE))
         # Take hidden columns into account
@@ -168,6 +170,7 @@ class DoubleLineListItem(ListItem):
         sline.Bind(wx.EVT_LEFT_DOWN, OnLeftDown)
         sline.Bind(wx.EVT_LEFT_UP, OnLeftUp)
 
+    @warnWxThread
     def _replace_control(self, columnindex, newcontrol):
         oldcontrol = self.controls[columnindex]
         if columnindex == 0:
@@ -236,6 +239,7 @@ class DoubleLineListItem(ListItem):
                                        'handler': lambda e, i=i: self.OnShowColumn(e, i)} for i, c in enumerate(self.columns)]}], menu)
         return menu
 
+    @warnWxThread
     def GetSubMenu(self, items, submenu=None):
         submenu = submenu or wx.Menu()
         for item in items:
@@ -282,6 +286,7 @@ class DoubleLineListItem(ListItem):
 
 class DoubleLineListItemWithButtons(DoubleLineListItem):
 
+    @warnWxThread
     def AddComponents(self, *args, **kwargs):
         DoubleLineListItem.AddComponents(self, *args, **kwargs)
 
@@ -293,6 +298,7 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
     def AddButtons(self):
         pass
 
+    @warnWxThread
     def AddButton(self, label, handler, right_spacer=10):
         if handler == None or label == None:
             return
@@ -305,6 +311,7 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
         self.ShowSelected()
         return button
 
+    @warnWxThread
     def ShowSelected(self):
         DoubleLineListItem.ShowSelected(self)
 
@@ -314,6 +321,7 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
             self.buttonSizer.ShowItems(True)
         self.Layout()
 
+    @warnWxThread
     def SetHideButtons(self, val):
         self.hide_buttons = val
         self.ShowSelected()
@@ -326,6 +334,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         self.SetThumbnailIcon()
         self.dlbutton = None
 
+    @warnWxThread
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows=True)
 
@@ -353,6 +362,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         if self.dlbutton:
             self.dlbutton.Enable('completed' not in self.original_data.state and 'active' not in self.original_data.state)
 
+    @warnWxThread
     def SetThumbnailIcon(self):
         torcoldir = self.guiutility.utility.session.get_torrent_collecting_dir()
         rel_thumbdir = 'thumbs-' + binascii.hexlify(self.original_data.infohash)
@@ -406,6 +416,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
         return menu
 
+    @warnWxThread
     def CreateBandwidthMenu(self, download, direction, parent_menu):
         result = wx.Menu()
 
@@ -430,6 +441,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
         return result
 
+    @warnWxThread
     def OnShowHover(self, event):
         show = not bool(len(self.buttonSizer.GetChildren()))
         for column in self.columns:
@@ -466,6 +478,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             if torrent.dslist[0] and 'metadata' not in torrent.state and 'checking' not in torrent.state:
                 torrent.dslist[0].get_download().force_recheck()
 
+    @warnWxThread
     def OnExportTorrent(self, filename):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         if len(torrents) == 1:
@@ -491,6 +504,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                     shutil.copyfile(src_filename, dst_filename)
             dlg.Destroy()
 
+    @warnWxThread
     def OnCopyMagnet(self, event):
         magnetlinks = ''
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
@@ -535,6 +549,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
             wx.CallAfter(gui_call)
 
+    @warnWxThread
     def OnExplore(self, event):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
@@ -549,6 +564,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                     startfile(path)
 
 
+    @warnWxThread
     def OnMove(self, event):
         items = self.guiutility.frame.librarylist.GetExpandedItems()
         torrents = [item[1].original_data for item in items if isinstance(item[1].original_data, Torrent) or isinstance(item[1].original_data, CollectedTorrent)]
@@ -741,6 +757,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
         DoubleLineListItemWithButtons.__init__(self, *args, **kwargs)
         self.last_my_vote = None
 
+    @warnWxThread
     def AddComponents(self, *args, **kwargs):
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
 
@@ -749,6 +766,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
         self.titleSizer.Insert(0, tag, 0, wx.CENTER | wx.TOP, 2)
         self.titleSizer.Insert(1, (5, -1), 0, 0)
 
+    @warnWxThread
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows=True)
         from Tribler.Main.vwxGUI.list import GenericSearchList
@@ -786,6 +804,7 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         self.at_index = -1
         ChannelListItem.__init__(self, *args, **kwargs)
 
+    @warnWxThread
     def AddComponents(self, *args, **kwargs):
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
 
@@ -802,6 +821,7 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         self.titleSizer.Insert(0, tag, 0, wx.CENTER | wx.TOP, 2)
         self.titleSizer.Insert(1, (5, -1), 0, 0)
 
+    @warnWxThread
     def ShowSelected(self, event=None):
         if event:
             self.OnMouse(event)
@@ -840,6 +860,7 @@ class PlaylistItem(DoubleLineListItemWithButtons):
             from channel import TorrentDT
             self.SetDropTarget(TorrentDT(original_data, parent_list.parent_list.AddTorrent))
 
+    @warnWxThread
     def AddComponents(self, *args, **kwargs):
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
 
@@ -848,6 +869,7 @@ class PlaylistItem(DoubleLineListItemWithButtons):
         self.titleSizer.Insert(0, tag, 0, wx.CENTER | wx.TOP, 2)
         self.titleSizer.Insert(1, (5, -1), 0, 0)
 
+    @warnWxThread
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows=True)
         self.AddButton("Visit playlist", lambda evt: self.guiutility.showPlaylist(self.original_data))
@@ -881,6 +903,7 @@ class LibraryListItem(TorrentListItem):
     def GetIcons(self):
         return [self.parent_list.parent_list._torrent_icon(self), self.parent_list.parent_list._swift_icon(self)]
 
+    @warnWxThread
     def GetContextMenu(self):
         menu = TorrentListItem.GetContextMenu(self)
         menu.Enable(menu.FindItem('Show download button on hover'), False)
@@ -895,6 +918,7 @@ class ActivityListItem(ListItem):
     def __init__(self, *args, **kwargs):
         ListItem.__init__(self, *args, **kwargs)
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         ListItem.AddComponents(self, leftSpacer, rightSpacer)
         if self.data[0] in ['Results', 'Channels', 'Downloads', 'Videoplayer']:
@@ -905,6 +929,7 @@ class ActivityListItem(ListItem):
 
 class DragItem(TorrentListItem):
 
+    @warnWxThread
     def AddEvents(self, control):
         if getattr(control, 'GetWindow', False):  # convert sizeritems
             control = control.GetWindow() or control.GetSizer()
@@ -914,6 +939,7 @@ class DragItem(TorrentListItem):
 
         TorrentListItem.AddEvents(self, control)
 
+    @warnWxThread
     def OnDrag(self, event):
         if event.LeftIsDown():
             self.parent_list.parent_list.OnDrag(self)
@@ -929,6 +955,7 @@ class AvantarItem(ListItem):
         self.maxlines = 6
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         titleRow = wx.BoxSizer(wx.HORIZONTAL)
         if leftSpacer > 0:
@@ -980,6 +1007,7 @@ class AvantarItem(ListItem):
         self.vSizer.Add(titleRow, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 3)
         self.AddEvents(self)
 
+    @warnWxThread
     def BackgroundColor(self, color):
         changed = ListItem.BackgroundColor(self, color)
 
@@ -1009,6 +1037,7 @@ class CommentItem(AvantarItem):
 
         AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         depth, comment = self.original_data
 
@@ -1044,6 +1073,7 @@ class CommentItem(AvantarItem):
 
 class CommentActivityItem(CommentItem):
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         _, comment = self.original_data
         self.header = "New comment received, posted %s by %s" % (format_time(comment.time_stamp).lower(), comment.name)
@@ -1063,6 +1093,7 @@ class CommentActivityItem(CommentItem):
 
 class NewTorrentActivityItem(AvantarItem):
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         torrent = self.original_data
 
@@ -1084,6 +1115,7 @@ class NewTorrentActivityItem(AvantarItem):
 
 class TorrentActivityItem(AvantarItem):
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         torrent = self.original_data
 
@@ -1105,6 +1137,7 @@ class TorrentActivityItem(AvantarItem):
 
 class ModificationActivityItem(AvantarItem):
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         modification = self.original_data
 
@@ -1157,6 +1190,7 @@ class ModificationItem(AvantarItem):
             self.noButton = not getattr(parent_list.parent_list, 'canModify', True)
         AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         modification = self.original_data
 
@@ -1206,6 +1240,7 @@ class ModificationItem(AvantarItem):
 
 class ModerationActivityItem(AvantarItem):
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         moderation = self.original_data
 
@@ -1219,6 +1254,7 @@ class ModerationActivityItem(AvantarItem):
 
 class ModerationItem(AvantarItem):
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         moderation = self.original_data
 
@@ -1251,6 +1287,7 @@ class ModerationItem(AvantarItem):
 
 class MarkingActivityItem(AvantarItem):
 
+    @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         marking = self.original_data
 

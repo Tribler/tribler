@@ -11,7 +11,7 @@ from Tribler.community.channel.community import ChannelCommunity
 
 class ListFooter(wx.Panel):
 
-    def __init__(self, parent, radius=0, spacers = [0, 0]):
+    def __init__(self, parent, radius=0, spacers=[0, 0]):
         wx.Panel.__init__(self, parent)
         self.SetForegroundColour(parent.GetForegroundColour())
 
@@ -40,6 +40,7 @@ class ListFooter(wx.Panel):
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
 
+    @warnWxThread
     def SetBackgroundColour(self, colour):
         if self.originalColor == None:
             self.originalColor = colour
@@ -47,19 +48,23 @@ class ListFooter(wx.Panel):
         self.background = wx.Brush(colour)
         return wx.Panel.SetBackgroundColour(self, colour)
 
+    @warnWxThread
     def Blink(self):
         self.HighLight(0.15)
         wx.CallLater(300, self.HighLight, 0.15)
 
+    @warnWxThread
     def HighLight(self, timeout=2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT)
         self.Refresh()
         wx.CallLater(timeout * 1000, self.Revert)
 
+    @warnWxThread
     def Revert(self):
         self.SetBackgroundColour(self.originalColor)
         self.Refresh()
 
+    @warnWxThread
     def OnPaint(self, event):
         obj = event.GetEventObject()
         dc = wx.BufferedPaintDC(obj)
@@ -69,11 +74,12 @@ class ListFooter(wx.Panel):
         dc.SetPen(wx.TRANSPARENT_PEN)
         dc.SetBrush(self.background)
         if h < 2 * LIST_RADIUS:
-            dc.DrawRoundedRectangle(0, h - 2 *self.radius, w, 2*self.radius, self.radius)
+            dc.DrawRoundedRectangle(0, h - 2 * self.radius, w, 2 * self.radius, self.radius)
         else:
             dc.DrawRoundedRectangle(0, 0, w, h, self.radius)
         dc.DrawRectangle(0, 0, w, h - self.radius)
 
+    @warnWxThread
     def OnResize(self, event):
         self.Refresh()
         event.Skip()
@@ -84,6 +90,7 @@ class ListFooter(wx.Panel):
 
 class TitleFooter(ListFooter):
 
+    @warnWxThread
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
 
@@ -93,6 +100,7 @@ class TitleFooter(ListFooter):
         self.scrollBar = hSizer.AddSpacer((0, 0))
         self.scrollBar.sizer = hSizer
 
+    @warnWxThread
     def SetTitle(self, title):
         self.Freeze()
         self.title.SetLabel(title)
@@ -106,6 +114,7 @@ class TotalFooter(TitleFooter):
         self.columns = columns
         ListFooter.__init__(self, parent, radius)
 
+    @warnWxThread
     def GetMidPanel(self, hSizer):
         self.totals = []
 
@@ -117,8 +126,8 @@ class TotalFooter(TitleFooter):
                 option = 0
                 size = (self.columns[i]['width'], -1)
 
-            label = StaticText(self, i, '', style= self.columns[i].get('footer_style', 0) | wx.ST_NO_AUTORESIZE, size = size)
-            hSizer.Add(label, option, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.TOP|wx.BOTTOM, 3)
+            label = StaticText(self, i, '', style=self.columns[i].get('footer_style', 0) | wx.ST_NO_AUTORESIZE, size=size)
+            hSizer.Add(label, option, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.TOP | wx.BOTTOM, 3)
 
             if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
                 label.SetMinSize((1, -1))
@@ -128,6 +137,7 @@ class TotalFooter(TitleFooter):
         self.scrollBar = hSizer.AddSpacer((3, 0))
         self.scrollBar.sizer = hSizer
 
+    @warnWxThread
     def SetTotal(self, column, total, tooltip=None):
         str_data = self.columns[column].get('fmt', str)(total)
         self.totals[column].SetLabel(str_data)
@@ -144,12 +154,13 @@ class ChannelResultFooter(ListFooter):
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.message.SetFont(font)
 
-        hSizer.Add(self.message, 0, wx.TOP | wx.BOTTOM |wx.ALIGN_BOTTOM, 3)
+        hSizer.Add(self.message, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_BOTTOM, 3)
         hSizer.AddStretchSpacer()
 
         self.channelResults = wx.Button(self, -1, "Channel Results")
         hSizer.Add(self.channelResults, 0, wx.TOP | wx.BOTTOM, 3)
 
+    @warnWxThread
     def SetLabel(self, label, nr_channels):
         haveResults = True if nr_channels and nr_channels >= 1 else False
 
@@ -162,14 +173,17 @@ class ChannelResultFooter(ListFooter):
 
         self.EnableResults(haveResults)
 
+    @warnWxThread
     def SetEvents(self, channel):
         # removing old, binding new eventhandler
         self.channelResults.Unbind(wx.EVT_BUTTON)
         self.channelResults.Bind(wx.EVT_BUTTON, channel)
 
+    @warnWxThread
     def EnableResults(self, state):
         self.channelResults.Enable(state)
 
+    @warnWxThread
     def Reset(self):
         self.EnableResults(False)
         self.message.SetLabel('')
@@ -177,6 +191,7 @@ class ChannelResultFooter(ListFooter):
 
 class ChannelListFooter(ListFooter):
 
+    @warnWxThread
     def GetMidPanel(self, hSizer):
         self.manualAdd = wx.Button(self, -1, "Add Favorite channel")
 
@@ -184,18 +199,22 @@ class ChannelListFooter(ListFooter):
         hSizer.Add(self.manualAdd, 0, wx.TOP | wx.BOTTOM, 3)
         return hSizer
 
+    @warnWxThread
     def SetEvents(self, onAdd):
         self.manualAdd.Bind(wx.EVT_BUTTON, onAdd)
 
+    @warnWxThread
     def EnableAdd(self, state):
         self.manualAdd.Show(state)
 
+    @warnWxThread
     def Reset(self):
         self.EnableAdd(False)
 
 
 class ChannelFooter(ListFooter):
 
+    @warnWxThread
     def GetMidPanel(self, hSizer):
         self.hSizer = hSizer
 
@@ -219,12 +238,14 @@ class ChannelFooter(ListFooter):
         self.spam.Show(False)
         self.manage.Show(False)
 
+    @warnWxThread
     def SetEvents(self, spam, favorite, remove, manage):
         self.spam_eventhandler = spam
         self.favorite_eventhandler = favorite
         self.remove_eventhandler = remove
         self.manage.Bind(wx.EVT_BUTTON, manage)
 
+    @warnWxThread
     def SetStates(self, vote, channelstate, iamModerator):
         self.Freeze()
         self.hSizer.Clear()
@@ -262,7 +283,7 @@ class ChannelFooter(ListFooter):
 
             buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
             buttonSizer.Add(self.spam)
-            buttonSizer.Add(self.ortext, 0, wx.LEFT | wx.RIGHT |wx.ALIGN_CENTRE_VERTICAL, 3)
+            buttonSizer.Add(self.ortext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTRE_VERTICAL, 3)
             buttonSizer.Add(self.favorite)
 
         else:
@@ -321,26 +342,27 @@ class ChannelFooter(ListFooter):
             if buttonSizer:
                 if preview:
                     vSizer.Add(self.subtitle, 0, wx.EXPAND)
-                    vSizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.TOP |wx.BOTTOM, 10)
+                    vSizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, 10)
                 else:
                     sizer = wx.BoxSizer(wx.HORIZONTAL)
                     sizer.Add(self.subtitle, 1, wx.EXPAND)
-                    sizer.Add(buttonSizer, 0, wx.TOP | wx.BOTTOM |wx.RIGHT, 3)
+                    sizer.Add(buttonSizer, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 3)
                     vSizer.Add(sizer, 0, wx.EXPAND)
             else:
                 vSizer.Add(self.subtitle, 0, wx.EXPAND)
 
-            self.hSizer.Add(vSizer, 1, wx.EXPAND | wx.TOP |wx.BOTTOM, 7)
+            self.hSizer.Add(vSizer, 1, wx.EXPAND | wx.TOP | wx.BOTTOM, 7)
         else:
             self.message.SetLabel(msg)
             self.subtitle.Show(False)
-            self.hSizer.Add(self.message, 1, wx.TOP | wx.BOTTOM |wx.ALIGN_BOTTOM|wx.LEFT, 7)
-            self.hSizer.Add(buttonSizer, 0, wx.TOP | wx.BOTTOM |wx.RIGHT, 7)
+            self.hSizer.Add(self.message, 1, wx.TOP | wx.BOTTOM | wx.ALIGN_BOTTOM | wx.LEFT, 7)
+            self.hSizer.Add(buttonSizer, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 7)
 
         self.hSizer.Layout()
         self.Layout()
         self.Thaw()
 
+    @warnWxThread
     def Reset(self):
         ListFooter.Reset(self)
 
@@ -377,6 +399,7 @@ class ManageChannelFilesFooter(ListFooter):
         self.add.Bind(wx.EVT_BUTTON, add)
         self.export.Bind(wx.EVT_BUTTON, export)
 
+    @warnWxThread
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
 
@@ -390,6 +413,7 @@ class ManageChannelFilesFooter(ListFooter):
         hSizer.Add(self.add, 0, wx.TOP | wx.BOTTOM, 3)
         hSizer.Add(self.export, 0, wx.TOP | wx.BOTTOM, 3)
 
+    @warnWxThread
     def SetState(self, canDelete, canAdd):
         self.removesel.Show(canDelete)
         self.removeall.Show(canDelete)
@@ -403,12 +427,14 @@ class ManageChannelPlaylistFooter(ListFooter):
         ListFooter.__init__(self, parent, 0)
         self.addnew.Bind(wx.EVT_BUTTON, createnew)
 
+    @warnWxThread
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
 
         self.addnew = wx.Button(self, -1, "Create New")
         hSizer.Add(self.addnew, 0, wx.TOP | wx.BOTTOM, 3)
 
+    @warnWxThread
     def SetState(self, canDelete, canAdd):
         self.addnew.Show(canDelete)
 
@@ -429,6 +455,7 @@ class CommentFooter(ListFooter, AbstractDetails):
         if quickPost:
             self.quickAdd.Bind(wx.EVT_BUTTON, quickPost)
 
+    @warnWxThread
     def GetMidPanel(self, topsizer):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 #        self._add_header(self, vSizer, 'Post a comment', spacer = 0)
@@ -474,6 +501,7 @@ class CommentFooter(ListFooter, AbstractDetails):
     def SetComment(self, value):
         self.commentbox.SetValue(value)
 
+    @warnWxThread
     def SetReply(self, reply):
         if reply:
             self.addnew.SetLabel('Reply')
@@ -481,6 +509,7 @@ class CommentFooter(ListFooter, AbstractDetails):
             self.addnew.SetLabel('Post')
         self.Layout()
 
+    @warnWxThread
     def EnableCommeting(self, enable):
         self.commentbox.Enable(enable)
         self.addnew.Enable(enable)
