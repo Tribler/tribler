@@ -183,11 +183,16 @@ class TestAsServer(AbstractServer):
         def DoCheck():
             if not self.quitting:
                 if time.time() - t < timeout:
-                    if condition():
-                        print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t)
-                        callback()
-                    else:
-                        self.Call(0.5, DoCheck)
+                    try:
+                        if condition():
+                            print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t)
+                            callback()
+                        else:
+                            self.Call(0.5, DoCheck)
+
+                    except:
+                        print_exc()
+                        self.assert_(False, 'Condition raised an exception, quitting (%s)' % (assertMsg or "no-assert-msg"), do_assert=False)
                 else:
                     print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
                     self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
