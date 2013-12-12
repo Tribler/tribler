@@ -14,7 +14,7 @@
 
 import sys
 import logging
-from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -197,17 +197,17 @@ class ABCApp():
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-            UserDownloadChoice.get_singleton().set_config(self.utility.config, s.get_state_dir())
+            UserDownloadChoice.get_singleton().set_utility(self.utility, s.get_state_dir())
 
             self.splash.tick('Initializing Family Filter')
             cat = Category.getInstance()
 
-            state = self.utility.config.Read('family_filter')
-            if state in ('1', '0'):
-                cat.set_family_filter(state == '1')
+            state = self.utility.read_config('family_filter')
+            if state in (1, 0):
+                cat.set_family_filter(state == 1)
             else:
-                self.utility.config.Write('family_filter', '1')
-                self.utility.config.Flush()
+                self.utility.write_config('family_filter', 1)
+                self.utility.flush_config()
 
                 cat.set_family_filter(True)
 
@@ -223,7 +223,7 @@ class ABCApp():
 
             # boudewijn 01/04/2010: hack to fix the seedupload speed that
             # was never used and defaulted to 0 (unlimited upload)
-            maxup = self.utility.config.Read('maxuploadrate', "int")
+            maxup = self.utility.read_config('maxuploadrate')
             if maxup == -1:  # no upload
                 self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
                 self.ratelimiter.set_global_max_seedupload_speed(0.00001)
@@ -231,10 +231,10 @@ class ABCApp():
                 self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
                 self.ratelimiter.set_global_max_seedupload_speed(maxup)
 
-            maxdown = self.utility.config.Read('maxdownloadrate', "int")
+            maxdown = self.utility.read_config('maxdownloadrate')
             self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
 
-            self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
+            self.seedingmanager = GlobalSeedingManager(self.utility.read_config)
 
             # Only allow updates to come in after we defined ratelimiter
             self.prevActiveDownloads = []
@@ -243,8 +243,6 @@ class ABCApp():
             # Schedule task for checkpointing Session, to avoid hash checks after
             # crashes.
             self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
-
-            self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'))
 
             if not ALLOW_MULTIPLE:
                 # Put it here so an error is shown in the startup-error popup
@@ -262,14 +260,12 @@ class ABCApp():
 
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
-            playbackmode = self.utility.config.Read('videoplaybackmode', "int")
-            # TODO: we should do
-            # httpport = self.utility.config.Read('videohttpport', 'int')
-            if ALLOW_MULTIPLE:
-                httpport = randint(1024, 25000)
-            else:
-                httpport = VIDEOHTTP_LISTENPORT
+            httpport = self.utility.read_config('videohttpport')
+            if ALLOW_MULTIPLE or httpport == -1:
+                httpport = self.utility.get_free_random_port('videohttpport')
             self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
+
+            playbackmode = self.utility.read_config('videoplaybackmode')
             self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
 
             notification_init(self.utility)
@@ -282,6 +278,8 @@ class ABCApp():
                 f.close()
 
             self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
+            self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
+
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
@@ -320,10 +318,10 @@ class ABCApp():
             self.torrentfeed = RssParser.getInstance()
 
             self.webUI = None
-            if self.utility.config.Read('use_webui', "boolean"):
+            if self.utility.read_config('use_webui'):
                 try:
                     from Tribler.Main.webUI.webUI import WebUI
-                    self.webUI = WebUI.getInstance(self.guiUtility.library_manager, self.guiUtility.torrentsearch_manager, self.utility.config.Read('webui_port', "int"))
+                    self.webUI = WebUI.getInstance(self.guiUtility.library_manager, self.guiUtility.torrentsearch_manager, self.utility.read_config('webui_port'))
                     self.webUI.start()
                 except Exception:
                     print_exc()
@@ -435,7 +433,10 @@ class ABCApp():
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            try:
+                defaultDLConfig = convertDefaultDownloadConfig(os.path.join(state_dir, 'dlconfig.pickle'), dlcfgfilename)
+            except:
+                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
@@ -701,15 +702,16 @@ class ABCApp():
         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
 
         filelist = os.listdir(dir)
-        filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
+        if any([filename.endswith('.pickle') for filename in filelist]):
+            convertDownloadCheckpoints(dir)
 
+        filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
         for file in filelist:
             try:
                 pstate = self.utility.session.lm.load_download_pstate(file)
-                dlconfig = pstate['dlconfig']
-
-                if dlconfig.get('saveas', ''):
-                    destdir = os.path.basename(dlconfig['saveas'])
+                saveas = pstate.get('downloadconfig', 'saveas')
+                if saveas:
+                    destdir = os.path.basename(saveas)
                     if destdir == coldir:
                         os.remove(file)
             except:
