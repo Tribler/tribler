@@ -151,6 +151,10 @@ class SRstatusbar(wx.StatusBar):
             startWorker(None, db_callback, retryOnBusy=True)
 
     @warnWxThread
+    def SetFF(self, newvalue):
+        self.ff_checkbox.SetValue(newvalue)
+
+    @warnWxThread
     def SetConnections(self, connectionPercentage, totalConnections, channelConnections):
         self.connection.SetPercentage(connectionPercentage)
         self.connection.SetToolTipString('Connected to %d peers' % totalConnections)

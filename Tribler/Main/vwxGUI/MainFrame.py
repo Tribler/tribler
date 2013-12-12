@@ -35,7 +35,7 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
 
 
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY, warnWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
                                              TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
@@ -1160,6 +1160,7 @@ class MainFrame(wx.Frame):
         result = dlg.ShowModal()
         dlg.Destroy()
 
+    @warnWxThread
     def setActivity(self, type, msg=u'', arg2=None):
         try:
             # print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
@@ -1167,11 +1168,6 @@ class MainFrame(wx.Frame):
                 if DEBUG:
                     print >> sys.stderr, "MainFrame: setActivity: Cannot display: t", type, "m", msg, "a2", arg2
                 return
-
-            if not wx.Thread_IsMain():
-                if DEBUG:
-                    print >> sys.stderr, "main: setActivity thread", currentThread().getName(), "is NOT MAIN THREAD"
-                    print_stack()
 
             if type == NTFY_ACT_NONE:
                 prefix = msg

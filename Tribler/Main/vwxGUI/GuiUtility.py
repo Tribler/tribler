@@ -586,7 +586,7 @@ class GUIUtility:
                 l.GotFilter(None)
 
         if setCheck:
-            self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
+            self.frame.SRstatusbar.SetFF(newState)
 
         if newState:
             self.utility.write_config('family_filter', 1)
