@@ -7,6 +7,7 @@ from list_details import AbstractDetails
 
 from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, TextCtrl
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.Main.vwxGUI import warnWxThread
 
 
 class ListFooter(wx.Panel):
