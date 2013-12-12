@@ -14,6 +14,7 @@
 
 import sys
 import logging
+from Tribler.Main.vwxGUI import warnWxThread
 logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -895,6 +896,7 @@ class ABCApp():
         target = FileDropTarget(self.frame)
         target.OnDropFiles(None, None, [filename])
 
+    @warnWxThread
     def OnExit(self):
         print >> sys.stderr, "main: ONEXIT"
         self.ready = False
@@ -965,8 +967,8 @@ class ABCApp():
         return 0
 
     def db_exception_handler(self, e):
-        if DEBUG:
-            print >> sys.stderr, "main: Database Exception handler called", e, "value", e.args, "#"
+        print >> sys.stderr, "main: Database Exception handler called", e, "value", e.args, "#"
+
         try:
             if e.args[1] == "DB object has been closed":
                 return  # We caused this non-fatal error, don't show.
