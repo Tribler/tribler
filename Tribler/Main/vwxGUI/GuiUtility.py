@@ -19,7 +19,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time
-from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.vwxGUI import forceWxThread, warnWxThread
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
@@ -552,6 +552,7 @@ class GUIUtility:
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
 
+    @forceWxThread
     def Notify(self, title, msg='', icon=wx.ART_INFORMATION):
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
@@ -570,6 +571,7 @@ class GUIUtility:
         if l not in self.lists:
             self.lists.append(l)
 
+    @warnWxThread
     def toggleFamilyFilter(self, newState=None, setCheck=False):
         if newState == None:
             newState = not self.getFamilyFilter()

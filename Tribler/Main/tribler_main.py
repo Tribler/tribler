@@ -14,8 +14,11 @@
 
 import sys
 import logging
-from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
+
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+
 
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
@@ -599,22 +602,22 @@ class ABCApp():
             except:
                 print_exc()
 
-            # Update bandwidth statistics in the Barter Community
-            if not self.barter_community:
-                self.barter_community = self.dispersy.callback.call(self._dispersy_get_barter_community)
-
-            if self.barter_community and not isinstance(self.barter_community, HardKilledCommunity):
-                if self.barter_community.has_been_killed:
-                    # set BARTER_COMMUNITY to None.  next state callback we will again get the
-                    # community resulting in the HardKilledCommunity instead
-                    self.barter_community = None
-                else:
-                    if True in self.lastwantpeers:
-                        self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist, True))
-
-                    # only request peer info every 120 intervals
-                    if self.ratestatecallbackcount % 120 == 0:
-                        wantpeers.append(True)
+#             # Update bandwidth statistics in the Barter Community
+#             if not self.barter_community:
+#                 self.barter_community = self.dispersy.callback.call(self._dispersy_get_barter_community)
+#
+#             if self.barter_community and not isinstance(self.barter_community, HardKilledCommunity):
+#                 if self.barter_community.has_been_killed:
+#                     # set BARTER_COMMUNITY to None.  next state callback we will again get the
+#                     # community resulting in the HardKilledCommunity instead
+#                     self.barter_community = None
+#                 else:
+#                     if True in self.lastwantpeers:
+#                         self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist, True))
+#
+#                     # only request peer info every 120 intervals
+#                     if self.ratestatecallbackcount % 120 == 0:
+#                         wantpeers.append(True)
 
             # Find State of currently playing video
             playds = None
