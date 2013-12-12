@@ -22,7 +22,7 @@ argsdef = [('name', '', 'name of the stream'),
            ('source', '-', 'source to stream (url, file or "-" to indicate stdin)'),
            ('fileloop', False, 'if source is file, loop over it endlessly'),
            ('destdir', '.', 'dir to save torrent (and stream)'),
-           ('bitrate', (512 * 1024) /8, 'bitrate of the streams in bytes'),
+           ('bitrate', (512 * 1024) / 8, 'bitrate of the streams in bytes'),
            ('piecesize', 32768, 'transport piece size'),
            ('duration', '1:00:00', 'duration of the stream in hh:mm:ss format'),
            ('nuploads', 7, 'the max number of peers to serve directly'),
@@ -41,7 +41,7 @@ def state_callback(ds):
     d = ds.get_download()
     # print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
     # Arno, 2010-03-04: more compact
-    print >>sys.stderr, repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], "%3.1f %%" % (ds.get_progress()), ds.get_error(), "up %.1f down %.1f" % (ds.get_current_speed(UPLOAD), ds.get_current_speed(DOWNLOAD))
+    print >> sys.stderr, repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], "%3.1f %%" % (ds.get_progress()), ds.get_error(), "up %.1f down %.1f" % (ds.get_current_speed(UPLOAD), ds.get_current_speed(DOWNLOAD))
 
     return (1.0, False)
 
@@ -50,7 +50,7 @@ def vod_ready_callback(d, mimetype, stream, filename):
     """ Called by the Session when the content of the Download is ready
 
     Called by Session thread """
-    print >>sys.stderr, "main: VOD ready callback called ###########################################################", mimetype
+    print >> sys.stderr, "main: VOD ready callback called ###########################################################", mimetype
 
 
 def get_usage(defs):
@@ -75,7 +75,7 @@ class InfiniteHTTPStream:
             except:
                 print_exc()
                 # EOF or Exception
-                print >>sys.stderr, "createlivestream: Reconnecting on EOF input stream"
+                print >> sys.stderr, "createlivestream: Reconnecting on EOF input stream"
                 self.reopen()
         return ret
 
@@ -101,7 +101,7 @@ class HaltOnEOFStream:
         ret = self.stream.read(nbytes)
         if len(ret) == 0:
             # EOF
-            print >>sys.stderr, "createlivestream: Exiting on EOF input stream"
+            print >> sys.stderr, "createlivestream: Exiting on EOF input stream"
             os._exit(1)
         return ret
 
@@ -159,8 +159,8 @@ if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
 
-    print >>sys.stderr, "config is", config
-    print >>sys.stderr, "fileargs is", fileargs
+    print >> sys.stderr, "config is", config
+    print >> sys.stderr, "fileargs is", fileargs
 
     if config['name'] == '':
         print "Usage:  ", get_usage(argsdef)
@@ -178,8 +178,6 @@ if __name__ == "__main__":
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(config['port'])
     sscfg.set_megacache(False)
-    sscfg.set_overlay(False)
-    sscfg.set_dialback(True)
     sscfg.set_dispersy(False)
     sscfg.set_torrent_collecting(False)
 
@@ -202,7 +200,7 @@ if __name__ == "__main__":
             authcfg = ECDSALiveSourceAuthConfig()
             authcfg.save(authfilename)
 
-    print >>sys.stderr, "main: Source auth pubkey", repr(authcfg.get_pubkey())
+    print >> sys.stderr, "main: Source auth pubkey", repr(authcfg.get_pubkey())
 
     # Support for Ogg as transport stream
     ogg_header_pages = []
@@ -237,10 +235,10 @@ if __name__ == "__main__":
 
         cs_keypair, config['cs_keys'] = generate_key(config['name'], config)
     if len(config['cs_keys']) > 0:
-        print >>sys.stderr, "Setting torrent keys to:", config['cs_keys'].split(";")
+        print >> sys.stderr, "Setting torrent keys to:", config['cs_keys'].split(";")
         tdef.set_cs_keys(config['cs_keys'].split(";"))
     else:
-        print >>sys.stderr, "No keys"
+        print >> sys.stderr, "No keys"
 
     if config['url']:
         tdef.set_url_compat(1)
@@ -288,9 +286,9 @@ if __name__ == "__main__":
                                              authcfg.get_pubkey(),
                                              tdef.infohash,
                                              poa)
-                print >>sys.stderr, "POA saved"
+                print >> sys.stderr, "POA saved"
             except Exception as e:
-                print >>sys.stderr, "Could not save POA"
+                print >> sys.stderr, "Could not save POA"
 
     # Save torrent public key to encoded permid.tkey for easy publishing
     if cs_keypair:

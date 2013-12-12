@@ -592,7 +592,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if self.session.lm.rtorrent_handler:
             self.session.lm.rtorrent_handler.save_torrent(self.tdef)
         elif self.session.lm.torrent_db:
-            self.session.lm.torrent_db.addExternalTorrent(self.tdef, source='', extra_info={'status': 'good'}, commit=True)
+            self.session.lm.torrent_db.addExternalTorrent(self.tdef, source='', extra_info={'status': 'good'})
 
         self.checkpoint()
 

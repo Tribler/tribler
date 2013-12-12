@@ -20,7 +20,7 @@ def vod_event_callback(d, event, params):
 
             if epoch_server is None:
                 if DEBUG:
-                    print >>sys.stderr, "bitbucket: received first data."
+                    print >> sys.stderr, "bitbucket: received first data."
                 epoch_server = last_ts
 
             age_server = last_ts - epoch_server
@@ -29,7 +29,7 @@ def vod_event_callback(d, event, params):
             # if server is younger, wait up to sync
             waittime = max(0, age_server - age_local)
             if DEBUG:
-                print >>sys.stderr, "bitbucket: sleeping %.2f seconds. we're at time %.2f, piece has age %.2f" % (waittime, age_local, age_server)
+                print >> sys.stderr, "bitbucket: sleeping %.2f seconds. we're at time %.2f, piece has age %.2f" % (waittime, age_local, age_server)
             time.sleep(waittime)
 
 
@@ -39,7 +39,7 @@ def state_callback(ds):
         p = "%.0f %%" % (100.0 * ds.get_progress())
         dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
         ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
-        print >>sys.stderr, dlstatus_strings[ds.get_status()], p, dl, ul, "====="
+        print >> sys.stderr, dlstatus_strings[ds.get_status()], p, dl, ul, "====="
     except:
         print_exc()
 
@@ -48,7 +48,6 @@ def state_callback(ds):
 
 scfg = SessionStartupConfig()
 scfg.set_megacache(False)
-scfg.set_overlay(False)
 
 s = Session(scfg)
 tdef = TorrentDef.load(sys.argv[1])

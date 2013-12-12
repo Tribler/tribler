@@ -40,9 +40,6 @@ class TestSeeding(TestAsServer):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
 
-        self.config.set_overlay(False)
-        self.config.set_internal_tracker(True)
-
         self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
 
