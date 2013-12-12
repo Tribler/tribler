@@ -403,15 +403,20 @@ class CollectedTorrent(Helper):
     @cacheProperty
     def swarminfo(self):
         if DEBUGDB:
-            print >> sys.stderr, "CollectedTorrent: fetching getSwarmInfo from DB", self
+            print >> sys.stderr, "CollectedTorrent: fetching getTorrent from DB", self
 
-        # TODO: use getTorrent instead
-        swarminfo = self.torrent_db.getSwarmInfo(self.torrent_id)
+        swarminfo = self.torrent_db.getTorrent(self.infohash,
+            keys=(u'num_seeders', u'num_leechers', u'last_tracker_check'),
+            include_mypref=False)
+        swarminfo_tuple = None
         if swarminfo:
-            self.torrent.num_seeders = swarminfo[0] or 0
-            self.torrent.num_leechers = swarminfo[1] or 0
-            self.last_check = swarminfo[2] or -1
-        return swarminfo
+            swarminfo_tuple = (swarminfo.get(u'num_seeders', 0),
+                swarminfo.get(u'num_leechers', 0),
+                swarminfo.get(u'last_tracker_check', 0))
+            self.torrent.num_seeders = swarminfo_tuple[0]
+            self.torrent.num_leechers = swarminfo_tuple[1]
+            self.last_check = swarminfo_tuple[2]
+        return swarminfo_tuple
 
     def updateSwarminfo(self, swarminfo):
         self.torrent.num_seeders, self.torrent.num_leechers, self.last_check = swarminfo

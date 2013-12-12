@@ -712,11 +712,6 @@ class TorrentDBHandler(BasicDBHandler):
         if 'swift_torrent_hash' in kw:
             kw['swift_torrent_hash'] = bin2str(kw['swift_torrent_hash'])
 
-        if 'last_check_time' in kw:
-            kw['last_tracker_check'] = kw.pop('last_check_time')
-        if 'retry_number' in kw:
-            kw['tracker_check_retries'] = kw.pop('retry_number')
-
         for key in kw.keys():
             if key not in self.keys:
                 kw.pop(key)
@@ -1046,21 +1041,6 @@ class TorrentDBHandler(BasicDBHandler):
         trackers = self._db.fetchall(sql, (limit,))
         return [tracker[0] for tracker in trackers]
 
-    # TODO: remove this method after we have improved GuiDBTuples
-    def getSwarmInfo(self, torrent_id):
-        """
-        returns info about swarm size from Torrent and TorrentTrackerMapping tables.
-        @author: Rahim
-        @param torrentId: The index of the torrent.
-        @return: A list of the form: [num_seeders, num_leechers, last_check]
-        """
-        sql = """
-            SELECT num_seeders, num_leechers, last_tracker_check
-            FROM Torrent WHERE torrent_id = ?
-            """
-        row = self._db.fetchone(sql, (torrent_id,))
-        return row[0], row[1], row[2]
-
     def getTorrentDir(self):
         return self.torrent_dir
 
@@ -1086,20 +1066,9 @@ class TorrentDBHandler(BasicDBHandler):
 
         if keys is None:
             keys = deepcopy(self.value_name)
-            # ('torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
-            # 'num_leechers', 'num_seeders',   'length',
-            # 'secret', 'insert_time', 'source_id', 'torrent_file_name',
-            # 'relevance', 'infohash', 'torrent_id')
         else:
             keys = list(keys)
 
-        # tracker_keys = ['tracker', 'announce_tier', 'ignored_times', 'retried_times', 'last_check']
-        # tracker_keys = [key for key in tracker_keys if key in keys]
-        # if len(tracker_keys) > 0:
-        #    sql = 'Torrent C LEFT OUTER JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'\
-        #        + ' LEFT OUTER JOIN TrackerInfo TI ON TTM.tracker_id = TI.tracker_id'
-        #    res = self._db.getOne(sql, keys, infohash=bin2str(infohash))
-        # else:
         res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
 
         if not res:
@@ -1121,9 +1090,6 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['swift_torrent_hash'] = str2bin(torrent['swift_torrent_hash'])
 
         torrent['infohash'] = infohash
-
-        if 'last_tracker_check' in torrent:
-            torrent['last_check_time'] = torrent['last_tracker_check']
 
         if include_mypref:
             tid = torrent['C.torrent_id']
@@ -1228,10 +1194,6 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
             torrent['simRank'] = ranksfind(ranks, torrent['infohash'])
             torrent['infohash'] = str2bin(torrent['infohash'])
-            # torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers']
-            torrent['last_check_time'] = torrent['last_tracker_check']
-            del torrent['last_tracker_check']
-            del torrent['source_id']
 
             # Niels: we now convert category and status in gui
             # del torrent['category_id']
