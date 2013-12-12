@@ -63,6 +63,12 @@ class TorrentStateManager:
                 if filename == largest_file:
                     print >> sys.stderr, 'Can run post-download scripts for', torrent, filename, destname
                     self.create_and_seed_metadata(destname, torrent)
+                    break
+
+            else:
+                print >> sys.stderr, 'Cannot run post-download scripts for', torrent, largest_file
+        else:
+            print >> sys.stderr, 'Cannot run post-download scripts, no open channels'
 
     def create_and_seed_metadata(self, videofile, torrent):
         t = Thread(target=self._create_and_seed_metadata, args=(videofile, torrent), name="ThumbnailGenerator")
