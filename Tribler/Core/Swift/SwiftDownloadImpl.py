@@ -599,7 +599,7 @@ class SwiftDownloadImpl(DownloadRuntimeConfig):
         pstate.set('downloadconfig', 'name', self.sdef.get_name())
 
         # Reset unpicklable params
-        pstate.set('downloadconfig', 'vod_usercallback', None)
+        pstate.remove_option('downloadconfig', 'vod_usercallback')
         pstate.set('downloadconfig', 'mode', DLMODE_NORMAL)
 
         # Reset default metadatadir

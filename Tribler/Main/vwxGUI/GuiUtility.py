@@ -345,6 +345,7 @@ class GUIUtility:
 
         return columns
 
+    @warnWxThread
     def ReadGuiSetting(self, setting_name, default=None, do_json=True):
         setting_value = self.utility.read_config(setting_name, literal_eval=False)
         if do_json and setting_value:
@@ -353,6 +354,7 @@ class GUIUtility:
             setting_value = default
         return setting_value
 
+    @warnWxThread
     def WriteGuiSetting(self, setting_name, setting_value, do_json=True):
         self.utility.write_config(setting_name, json.dumps(setting_value) if do_json else setting_value)
         self.utility.flush_config()

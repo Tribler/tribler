@@ -663,6 +663,7 @@ class SelectedChannelList(GenericSearchList):
             self.UpdateSplitter()
         self.ScrollToId(key)
 
+    @warnWxThread
     def UpdateSplitter(self):
         splitter = self.guiutility.frame.splitter
         topwindow = self.guiutility.frame.splitter_top_window

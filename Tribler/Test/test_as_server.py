@@ -295,6 +295,9 @@ class TestGuiAsServer(TestAsServer):
                 callback()
 
     def quit(self):
+        if not wx.Thread_IsMain():
+            print >> sys.stderr, 'tgs: not on wx thread!!!!'
+
         if self.frame:
             self.frame.OnCloseWindow()
         else:

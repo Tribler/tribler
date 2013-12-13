@@ -32,6 +32,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     VIDEO_SIZE = (320, 240)
 
+    @warnWxThread
     def __init__(self, parent, utility, vlcwrap, bg):
         wx.Panel.__init__(self, parent, -1)
 
