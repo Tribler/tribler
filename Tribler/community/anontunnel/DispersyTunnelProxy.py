@@ -172,11 +172,7 @@ class DispersyTunnelProxy(Observable):
         self.done = False
         self.circuits = {}
 
-        self.member_heartbeat = {}
-
         self.download_stats = None
-
-
         self.joined = set()
 
         self.lock = threading.RLock()
@@ -696,8 +692,6 @@ class DispersyTunnelProxy(Observable):
 
     def on_member_heartbeat(self, candidate):
         with self.lock:
-            self.member_heartbeat[candidate] = time.time()
-
             if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in [c.candidate for c in
                                                                                  self.circuits.values()]:
                 self.create_circuit(candidate)
