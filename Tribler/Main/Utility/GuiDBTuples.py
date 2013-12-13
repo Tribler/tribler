@@ -149,7 +149,12 @@ class MergedDs:
 
 
 class Torrent(Helper):
-    __slots__ = ('infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', '_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db', 'dslist', '_progress', 'relevance_score', 'query_candidates', 'magnetstatus')
+    __slots__ = ('infohash', 'swift_hash', 'swift_torrent_hash',
+        'name', 'torrent_file_name', 'length', 'category_id', 'status_id',
+        'num_seeders', 'num_leechers', '_channel',
+        'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
+        'dslist', '_progress', 'relevance_score', 'query_candidates',
+        'magnetstatus')
 
     def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
         Helper.__init__(self)
@@ -170,6 +175,7 @@ class Torrent(Helper):
         self.updateChannel(channel)
 
         self.channeltorrents_id = None
+        self.misc_db = None
         self.torrent_db = None
         self.channelcast_db = None
 
@@ -182,12 +188,12 @@ class Torrent(Helper):
     @cacheProperty
     def categories(self):
         if self.category_id:
-            return [self.torrent_db.id2category[self.category_id]]
+            return [self.misc_db.categoryId2Name(self.category_id)]
 
     @cacheProperty
     def status(self):
         if self.status_id:
-            return self.torrent_db.id2status[self.status_id]
+            return self.misc_db.torrentStatusId2Name(self.status_id)
 
     @cacheProperty
     def torrent_id(self):
@@ -399,15 +405,20 @@ class CollectedTorrent(Helper):
     @cacheProperty
     def swarminfo(self):
         if DEBUGDB:
-            print >> sys.stderr, "CollectedTorrent: fetching getSwarmInfo from DB", self
+            print >> sys.stderr, "CollectedTorrent: fetching getTorrent from DB", self
 
-        # TODO: use getTorrent instead
-        swarminfo = self.torrent_db.getSwarmInfo(self.torrent_id)
+        swarminfo = self.torrent_db.getTorrent(self.infohash,
+            keys=(u'num_seeders', u'num_leechers', u'last_tracker_check'),
+            include_mypref=False)
+        swarminfo_tuple = None
         if swarminfo:
-            self.torrent.num_seeders = swarminfo[0] or 0
-            self.torrent.num_leechers = swarminfo[1] or 0
-            self.last_check = swarminfo[2] or -1
-        return swarminfo
+            swarminfo_tuple = (swarminfo.get(u'num_seeders', 0),
+                swarminfo.get(u'num_leechers', 0),
+                swarminfo.get(u'last_tracker_check', 0))
+            self.torrent.num_seeders = swarminfo_tuple[0]
+            self.torrent.num_leechers = swarminfo_tuple[1]
+            self.last_check = swarminfo_tuple[2]
+        return swarminfo_tuple
 
     def updateSwarminfo(self, swarminfo):
         self.torrent.num_seeders, self.torrent.num_leechers, self.last_check = swarminfo

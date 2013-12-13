@@ -19,7 +19,7 @@ argsdef = [('name', '', 'name of the stream'),
            ('source', '-', 'source to stream (url, file or "-" to indicate stdin)'),
            ('fileloop', False, 'if source is file, loop over it endlessly'),
            ('destdir', '.', 'dir to save torrent (and stream)'),
-           ('bitrate', (512 * 1024) /8, 'bitrate of the streams in bytes'),
+           ('bitrate', (512 * 1024) / 8, 'bitrate of the streams in bytes'),
            ('piecesize', 32768, 'transport piece size'),
            ('duration', '1:00:00', 'duration of the stream in hh:mm:ss format'),
            ('nuploads', 7, 'the max number of peers to serve directly'),
@@ -34,7 +34,7 @@ argsdef = [('name', '', 'name of the stream'),
 
 def state_callback(ds):
     d = ds.get_download()
-    print >>sys.stderr, repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD)
+    print >> sys.stderr, repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD)
 
     return (1.0, False)
 
@@ -43,7 +43,7 @@ def vod_ready_callback(d, mimetype, stream, filename):
     """ Called by the Session when the content of the Download is ready
 
     Called by Session thread """
-    print >>sys.stderr, "main: VOD ready callback called ###########################################################", mimetype
+    print >> sys.stderr, "main: VOD ready callback called ###########################################################", mimetype
 
 
 def generate_key(source, config):
@@ -89,7 +89,7 @@ class FileLoopStream:
 if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
-    print >>sys.stderr, "config is", config
+    print >> sys.stderr, "config is", config
     print "fileargs is", fileargs
 
     if config['name'] == '':
@@ -108,8 +108,6 @@ if __name__ == "__main__":
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(config['port'])
     sscfg.set_megacache(False)
-    sscfg.set_overlay(False)
-    sscfg.set_dialback(True)
 
     s = Session(sscfg)
 
@@ -130,7 +128,7 @@ if __name__ == "__main__":
             authcfg = ECDSALiveSourceAuthConfig()
             authcfg.save(authfilename)
 
-    print >>sys.stderr, "main: Source auth pubkey", repr(str(authcfg.get_pubkey()))
+    print >> sys.stderr, "main: Source auth pubkey", repr(str(authcfg.get_pubkey()))
 
     tdef = TorrentDef()
     # hint: to derive bitrate and duration from a file, use
@@ -151,10 +149,10 @@ if __name__ == "__main__":
         # TODO: Read POA if keys are already given (but generate_cs is "no")
         # Will also create POA for this node - which will seed it!
     if len(config['cs_keys']) > 0:
-        print >>sys.stderr, "Setting torrent keys to:", config['cs_keys'].split(";")
+        print >> sys.stderr, "Setting torrent keys to:", config['cs_keys'].split(";")
         tdef.set_cs_keys(config['cs_keys'].split(";"))
     else:
-        print >>sys.stderr, "No keys"
+        print >> sys.stderr, "No keys"
     # tdef2 = TorrentDef.load(torrentfilename)
     # print >>sys.stderr,"main: Source auth pubkey2",`tdef2.metainfo['info']['live']`
 
@@ -182,9 +180,9 @@ if __name__ == "__main__":
                                              authcfg.get_pubkey(),
                                              tdef.infohash,
                                              poa)
-                print >>sys.stderr, "POA saved"
+                print >> sys.stderr, "POA saved"
             except Exception as e:
-                print >>sys.stderr, "Could not save POA"
+                print >> sys.stderr, "Could not save POA"
 
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(config['destdir'])

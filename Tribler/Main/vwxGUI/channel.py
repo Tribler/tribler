@@ -239,11 +239,11 @@ class SelectedChannelList(GenericSearchList):
         columns = self.guiutility.SetColumnInfo(PlaylistItem, columns)
         ColumnsManager.getInstance().setColumns(PlaylistItem, columns)
 
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
         for key, name in Category.getInstance().getCategoryNames(filter=False):
-            if key in torrent_db.category_table:
-                self.category_names[torrent_db.category_table[key]] = name
+            if key in misc_db._torrent_status_name2id_dict:
+                self.category_names[misc_db._torrent_status_name2id_dict[key]] = name
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 

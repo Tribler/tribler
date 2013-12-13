@@ -111,6 +111,9 @@ class TriblerLaunchMany(Thread):
                 from Tribler.dispersy.endpoint import TunnelEndpoint
                 from Tribler.dispersy.community import HardKilledCommunity
 
+                print >> sys.stderr, "lmc: Starting Dispersy..."
+                now = timemod.time()
+
                 # set communication endpoint
                 if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
@@ -127,9 +130,13 @@ class TriblerLaunchMany(Thread):
                 # However, for now we must start self.dispersy.callback before running
                 # try_register(nocachedb, self.database_thread)!
 
-                self.dispersy.start()
+                success = self.dispersy.start()
+                diff = timemod.time() - now
+                if success:
+                    print >> sys.stderr, "lmc: Dispersy started successfully in %.2f seconds [port: %d]" % (diff, self.dispersy.wan_address[1])
+                else:
+                    print >> sys.stderr, "lmc: Dispersy failed to start in %.2f seconds" % (diff,)
 
-                print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "using", endpoint
                 self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
                 self.dispersy.callback.call(self.dispersy.define_auto_load, args=(HardKilledCommunity,), kargs={'load': True})
@@ -191,7 +198,7 @@ class TriblerLaunchMany(Thread):
 
             if self.session.get_megacache():
                 import Tribler.Core.CacheDB.cachedb as cachedb
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler, MiscDBHandler
                 from Tribler.Category.Category import Category
                 from Tribler.Core.Tag.Extraction import TermExtraction
                 from Tribler.Core.CacheDB.sqlitecachedb import try_register
@@ -204,6 +211,8 @@ class TriblerLaunchMany(Thread):
 
                 self.cat = Category.getInstance(self.session.get_install_dir())
                 self.term = TermExtraction.getInstance(self.session.get_install_dir())
+
+                self.misc_db = MiscDBHandler.getInstance()
 
                 self.peer_db = PeerDBHandler.getInstance()
 
@@ -266,7 +275,7 @@ class TriblerLaunchMany(Thread):
 
         self.initComplete = True
 
-    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, commit=True, setupDelay=0, hidden=False):
+    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False):
         """ Called by any thread """
         d = None
         self.sesslock.acquire()
@@ -300,16 +309,16 @@ class TriblerLaunchMany(Thread):
             def write_my_pref():
                 torrent_id = self.torrent_db.getTorrentID(infohash)
                 data = {'destination_path': d.get_dest_dir()}
-                self.mypref_db.addMyPreference(torrent_id, data, commit=commit)
+                self.mypref_db.addMyPreference(torrent_id, data)
 
             if isinstance(tdef, TorrentDefNoMetainfo):
-                self.torrent_db.addInfohash(tdef.get_infohash(), commit=commit)
-                self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name().encode('utf_8'), commit=commit)
+                self.torrent_db.addInfohash(tdef.get_infohash())
+                self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name().encode('utf_8'))
                 write_my_pref()
             elif self.rtorrent_handler:
                 self.rtorrent_handler.save_torrent(tdef, write_my_pref)
             else:
-                self.torrent_db.addExternalTorrent(tdef, source='', extra_info={'status': 'good'}, commit=commit)
+                self.torrent_db.addExternalTorrent(tdef, source='', extra_info={'status': 'good'})
                 write_my_pref()
 
         return d
@@ -526,8 +535,7 @@ class TriblerLaunchMany(Thread):
                 self.sesslock.release()
 
             for i, filename in enumerate(filelist):
-                shouldCommit = i + 1 == len(filelist)
-                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i * 0.1)
+                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, setupDelay=i * 0.1)
 
     def load_download_pstate_noexc(self, infohash):
         """ Called by any thread, assume sesslock already held """
@@ -541,7 +549,7 @@ class TriblerLaunchMany(Thread):
             # self.rawserver_nonfatalerrorfunc(e)
             return None
 
-    def resume_download(self, filename, initialdlstatus=None, initialdlstatus_dict={}, commit=True, setupDelay=0):
+    def resume_download(self, filename, initialdlstatus=None, initialdlstatus_dict={}, setupDelay=0):
         tdef = sdef = dscfg = pstate = None
 
         try:
@@ -615,7 +623,7 @@ class TriblerLaunchMany(Thread):
                     if not self.download_exists((tdef or sdef).get_id()):
                         if tdef:
                             initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
-                            self.add(tdef, dscfg, pstate, initialdlstatus, commit=commit, setupDelay=setupDelay)
+                            self.add(tdef, dscfg, pstate, initialdlstatus, setupDelay=setupDelay)
                         else:
                             initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
                             self.swift_add(sdef, dscfg, pstate, initialdlstatus)
@@ -700,8 +708,8 @@ class TriblerLaunchMany(Thread):
             print >> sys.stderr, "lmc: Shutting down Dispersy..."
             now = timemod.time()
             success = self.dispersy.stop(666.666)
+            diff = timemod.time() - now
             if success:
-                diff = timemod.time() - now
                 print >> sys.stderr, "lmc: Dispersy successfully shutdown in %.2f seconds" % diff
             else:
                 print >> sys.stderr, "lmc: Dispersy failed to shutdown in %.2f seconds" % diff
@@ -709,6 +717,7 @@ class TriblerLaunchMany(Thread):
             self.database_thread.shutdown(True)
 
         if self.session.get_megacache():
+            self.misc_db.delInstance()
             self.peer_db.delInstance()
             self.torrent_db.delInstance()
             self.mypref_db.delInstance()
