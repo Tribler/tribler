@@ -66,14 +66,8 @@ class SessionConfigInterface(object):
             ffmpegname = "avconv"
 
         ffmpegpath = find_prog_in_PATH(ffmpegname)
-        if ffmpegpath is None:
-            if sys.platform == 'win32':
-                self.sessconfig.set('general', 'videoanalyserpath', ffmpegname)
-            elif sys.platform == 'darwin':
-                self.sessconfig.set('general', 'videoanalyserpath', "vlc/ffmpeg")
-            else:
-                self.sessconfig.set('general', 'videoanalyserpath', ffmpegname)
-        else:
+        if ffmpegpath:
+            # we've found our default option, use that one
             self.sessconfig.set('general', 'videoanalyserpath', ffmpegpath)
 
         self.sessconfig.set('general', 'ipv6_binds_v4', autodetect_socket_style())

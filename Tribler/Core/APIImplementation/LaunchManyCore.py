@@ -581,7 +581,7 @@ class TriblerLaunchMany(Thread):
             # pstate is invalid or non-existing
             _, file = os.path.split(filename)
 
-            infohash = binascii.unhexlify(file[:-7])
+            infohash = binascii.unhexlify(file[:-6])
             torrent = self.torrent_db.getTorrent(infohash, keys=['name', 'torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
             torrentfile = None
             if torrent:

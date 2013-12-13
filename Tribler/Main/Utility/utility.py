@@ -66,8 +66,8 @@ class Utility:
                             'window_width': 1024,
                             'window_height': 670,
                             'sash_position':-185,
-                            't4t_option': 0, # Seeding items added by Boxun
-                            't4t_ratio': 100, # T4T seeding ratio added by Niels
+                            't4t_option': 0,  # Seeding items added by Boxun
+                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
                             't4t_hours': 0,
                             't4t_mins': 30,
                             'g2g_option': 1,
@@ -97,7 +97,7 @@ class Utility:
         else:
             tribler_defaults['mintray'] = '0'  # Still crashes on Linux sometimes
             tribler_defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or "vlc"
-            tribler_defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "ffmpeg"
+            tribler_defaults['videoanalyserpath'] = find_prog_in_PATH("avconv") or find_prog_in_PATH("ffmpeg") or "ffmpeg"
 
         self.defaults = {'Tribler': tribler_defaults}
         self.configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")
@@ -148,6 +148,9 @@ class Utility:
 
     def flush_config(self):
         with open(self.configfilepath, "wb") as config_file:
+            if self.config.get('downloadconfig', 'vod_usercallback'):
+                print >> sys.stderr, "ATTEMPTING to write vod_usercallback", self.config.get('downloadconfig', 'vod_usercallback')
+
             self.config.write(config_file)
 
     def eta_value(self, n, truncate=3):
