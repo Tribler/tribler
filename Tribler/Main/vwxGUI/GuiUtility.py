@@ -544,6 +544,7 @@ class GUIUtility:
         self.frame.playlist.Set(data)
         self.ShowPage('playlist')
 
+    @warnWxThread
     def OnList(self, goto_end, event=None):
         lists = {'channels': self.frame.channellist, 'selectedchannel': self.frame.selectedchannellist, 'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists and lists[self.guiPage].HasFocus():
@@ -551,6 +552,7 @@ class GUIUtility:
         elif event:
             event.Skip()
 
+    @warnWxThread
     def ScrollTo(self, id):
         lists = {'channels': self.frame.channellist, 'selectedchannel': self.frame.selectedchannellist, 'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists:

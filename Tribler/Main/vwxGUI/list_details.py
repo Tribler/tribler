@@ -215,6 +215,7 @@ class TorrentDetails(AbstractDetails):
 
         self._Refresh(self.torrent.ds)
 
+    @warnWxThread
     def createMessagePanel(self):
         # Create messagePanel
         self.messagePanel = FancyPanel(self.notebook)
@@ -238,6 +239,7 @@ class TorrentDetails(AbstractDetails):
         self.messageButton.Show(False)
         self.messagePanel.SetSizer(vSizer)
 
+    @warnWxThread
     def createAllTabs(self):
         self.Freeze()
         self.createDetailsTab()
@@ -258,6 +260,7 @@ class TorrentDetails(AbstractDetails):
         else:
             self.notebook.SetSelection(0)
 
+    @warnWxThread
     def createDetailsTab(self):
         def OnToggleInfohash(event):
             self.showInfohash = not self.showInfohash
@@ -332,6 +335,7 @@ class TorrentDetails(AbstractDetails):
 
         self.Thaw()
 
+    @warnWxThread
     def createFilesTab(self):
         self.filesTab = wx.Panel(self.notebook)
         self.filesTab.SetBackgroundColour(wx.WHITE)
@@ -364,6 +368,7 @@ class TorrentDetails(AbstractDetails):
         self.filesTab.SetSizer(self.filesSizer)
         self.notebook.AddPage(self.filesTab, "Files")
 
+    @warnWxThread
     def createEditTab(self):
         self.editTab, self.editSizer = self._create_tab(self.notebook, 'Edit', border=10)
         self.editTab.SetBackgroundColour(wx.WHITE)
@@ -392,6 +397,7 @@ class TorrentDetails(AbstractDetails):
         vSizer.Add(self.editButton, 0, wx.ALIGN_RIGHT)
         self.editSizer.Add(vSizer, 1, wx.EXPAND)
 
+    @warnWxThread
     def createCommentsTab(self):
         from Tribler.Main.vwxGUI.channel import CommentList
         self.commentList = NotebookPanel(self.notebook)
@@ -403,6 +409,7 @@ class TorrentDetails(AbstractDetails):
         self.commentList.SetNrResults = updateTitle
         self.notebook.AddPage(self.commentList, 'Comments')
 
+    @warnWxThread
     def createModificationsTab(self):
         from channel import ModificationList
         self.modificationList = NotebookPanel(self.notebook)
@@ -414,6 +421,7 @@ class TorrentDetails(AbstractDetails):
         self.modificationList.SetNrResults = updateTitle
         self.notebook.AddPage(self.modificationList, 'Modifications', tab_colour=wx.WHITE)
 
+    @warnWxThread
     def createTrackersTab(self):
         self.trackerTab, self.trackerSizer = self._create_tab(self.notebook, "Trackers", border=10)
         self.trackerTab.SetBackgroundColour(wx.WHITE)
@@ -426,6 +434,7 @@ class TorrentDetails(AbstractDetails):
         self.updateModificationsTab()
         self.updateTrackersTab()
 
+    @warnWxThread
     def updateDetailsTab(self):
         self.Freeze()
 
@@ -487,6 +496,7 @@ class TorrentDetails(AbstractDetails):
 
         self.Thaw()
 
+    @warnWxThread
     def updateFilesTab(self):
         self.filesList.DeleteAllItems()
 
@@ -526,6 +536,7 @@ class TorrentDetails(AbstractDetails):
         else:
             self.notebook.ShowMessageOnPage(self.notebook.GetIndexFromText('Files'), True)
 
+    @warnWxThread
     def updateEditTab(self):
         if self.canEdit:
             self.isEditable['name'].SetValue(self.torrent.name)
@@ -533,6 +544,7 @@ class TorrentDetails(AbstractDetails):
         self.editButton.Enable(self.canEdit)
         self.notebook.ShowPage(self.notebook.GetIndexFromText('Edit'), self.canEdit)
 
+    @warnWxThread
     def updateCommentsTab(self):
         if self.canComment:
             commentManager = self.commentList.GetManager()
@@ -540,6 +552,7 @@ class TorrentDetails(AbstractDetails):
             commentManager.refresh()
         self.notebook.ShowPage(self.notebook.GetIndexFromText('Comments'), self.canComment)
 
+    @warnWxThread
     def updateModificationsTab(self):
         show_modifications = self.canEdit or bool(self.torrent.get('description', ''))
         if show_modifications:
@@ -548,6 +561,7 @@ class TorrentDetails(AbstractDetails):
             modificationManager.refresh()
         self.notebook.ShowPage(self.notebook.GetIndexFromText('Modifications'), show_modifications)
 
+    @warnWxThread
     def updateTrackersTab(self):
         self.trackerSizer.Clear(deleteWindows=True)
         if hasattr(self.torrent, 'trackers'):
@@ -859,6 +873,7 @@ class TorrentDetails(AbstractDetails):
             self.updateDetailsTab()
         self.UpdateStatus()
 
+    @warnWxThread
     def UpdateStatus(self):
         ds = self.torrent.ds
         progress = ds.get_progress() if ds else 0
@@ -980,6 +995,7 @@ class LibraryDetails(TorrentDetails):
 
         self.guiutility.library_manager.set_want_peers(self.getHashes(), enable=True)
 
+    @warnWxThread
     def createAllTabs(self):
         self.Freeze()
         self.createDetailsTab()
@@ -1002,6 +1018,7 @@ class LibraryDetails(TorrentDetails):
         else:
             self.notebook.SetSelection(0)
 
+    @warnWxThread
     def createFilesTab(self):
         TorrentDetails.createFilesTab(self)
 
@@ -1011,6 +1028,7 @@ class LibraryDetails(TorrentDetails):
         self.filesSizer.Add(self.filesFooter, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 6)
         self.filesSizer.AddSpacer((-1, 3))
 
+    @warnWxThread
     def createPeersTab(self):
         self.peersTab = wx.Panel(self.notebook)
         self.peersTab.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -1048,6 +1066,7 @@ class LibraryDetails(TorrentDetails):
         self.peersTab.SetSizer(self.peersSizer)
         self.notebook.InsertPage(2, self.peersTab, "Peers")
 
+    @warnWxThread
     def createSpeedTab(self):
         self.speedPanel = Graph(self.notebook)
         self.speedPanel.SetAxisLabels('Time (5 second update interval)', 'kB/s')
@@ -1066,6 +1085,7 @@ class LibraryDetails(TorrentDetails):
         self.updatePeersTab()
         self.updateSpeedTab()
 
+    @warnWxThread
     def updateFilesTab(self):
         self.filesList.DeleteAllItems()
 
@@ -1109,6 +1129,7 @@ class LibraryDetails(TorrentDetails):
         else:
             self.notebook.ShowMessageOnPage(self.notebook.GetIndexFromText('Files'), True)
 
+    @warnWxThread
     def updatePeersTab(self):
         ds = self.torrent.ds if self.torrent else None
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
@@ -1259,6 +1280,7 @@ class LibraryDetails(TorrentDetails):
 
 class ChannelDetails(AbstractDetails):
 
+    @warnWxThread
     def __init__(self, parent):
         FancyPanel.__init__(self, parent)
         self.Hide()
@@ -1287,6 +1309,7 @@ class ChannelDetails(AbstractDetails):
         self.updateAllTabs()
         self.Layout()
 
+    @warnWxThread
     def createAllTabs(self):
         self.Freeze()
 
@@ -1313,6 +1336,7 @@ class ChannelDetails(AbstractDetails):
 
         self.notebook.SetSelection(0)
 
+    @warnWxThread
     def updateAllTabs(self):
         self.Freeze()
 
@@ -1349,6 +1373,7 @@ class ChannelDetails(AbstractDetails):
 
 class PlaylistDetails(AbstractDetails):
 
+    @warnWxThread
     def __init__(self, parent):
         FancyPanel.__init__(self, parent)
         self.Hide()
@@ -1379,6 +1404,7 @@ class PlaylistDetails(AbstractDetails):
         self.updateAllTabs()
         self.Layout()
 
+    @warnWxThread
     def createAllTabs(self):
         self.Freeze()
 
@@ -1423,6 +1449,7 @@ class PlaylistDetails(AbstractDetails):
 
         self.notebook.SetSelection(0)
 
+    @warnWxThread
     def updateAllTabs(self):
         self.Freeze()
 
@@ -1496,6 +1523,7 @@ class PlaylistDetails(AbstractDetails):
 
 class AbstractInfoPanel(FancyPanel):
 
+    @warnWxThread
     def __init__(self, parent):
         FancyPanel.__init__(self, parent)
         self.Hide()
@@ -1536,6 +1564,7 @@ class AbstractInfoPanel(FancyPanel):
         self.SetSizer(self.topSizer)
         self.Layout()
 
+    @warnWxThread
     def AddMessage(self, message, colour=wx.Colour(50, 50, 50), bold=False):
         if not self.textSizer.GetChildren():
             self.messageSizer.Insert(0, TransparentStaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION)), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 15)
@@ -1546,6 +1575,7 @@ class AbstractInfoPanel(FancyPanel):
 
         self.Layout()
 
+    @warnWxThread
     def AddButton(self, label, handler, icon=None):
         if handler == None or label == None:
             return
@@ -1557,6 +1587,7 @@ class AbstractInfoPanel(FancyPanel):
         self.buttonSizer.Add(button, 0, wx.LEFT, 15)
         self.Layout()
 
+    @warnWxThread
     def Clear(self):
         self.messageSizer.Clear(deleteWindows=True)
         self.textSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1566,6 +1597,7 @@ class AbstractInfoPanel(FancyPanel):
 
 class SearchInfoPanel(AbstractInfoPanel):
 
+    @warnWxThread
     def Set(self, num_items):
         self.Show(False)
         self.Clear()
@@ -1578,6 +1610,7 @@ class SearchInfoPanel(AbstractInfoPanel):
 
 class ChannelInfoPanel(AbstractInfoPanel):
 
+    @warnWxThread
     def Set(self, num_items, is_favourite):
         self.Show(False)
         self.Clear()
@@ -1594,6 +1627,7 @@ class ChannelInfoPanel(AbstractInfoPanel):
 
 class LibraryInfoPanel(AbstractInfoPanel):
 
+    @warnWxThread
     def Set(self, num_items):
         self.Show(False)
         self.Clear()
@@ -1604,6 +1638,7 @@ class LibraryInfoPanel(AbstractInfoPanel):
 
 class PlaylistInfoPanel(AbstractInfoPanel):
 
+    @warnWxThread
     def Set(self, num_items, is_favourite):
         self.Show(False)
         self.Clear()
@@ -1618,6 +1653,7 @@ class PlaylistInfoPanel(AbstractInfoPanel):
 
 class SelectedchannelInfoPanel(AbstractInfoPanel):
 
+    @warnWxThread
     def Set(self, num_items, vote, channelstate, iamModerator):
         self.Show(False)
         self.Clear()
@@ -1663,6 +1699,7 @@ class ProgressPanel(wx.BoxSizer):
     ETA_DEFAULT = 1
     ETA_EXTENDED = 2
 
+    @warnWxThread
     def __init__(self, parent, item, style=ETA_DEFAULT, show_bar=True, show_status=True):
         wx.BoxSizer.__init__(self, wx.VERTICAL)
         self.item = item
@@ -1684,9 +1721,11 @@ class ProgressPanel(wx.BoxSizer):
         # self.AddStretchSpacer()
         wx.CallLater(100, self.Update)
 
+    @warnWxThread
     def Show(self, show):
         self.ShowItems(show)
 
+    @warnWxThread
     def Update(self, ds=None, torrent=None):
         # return_val, 0 == inactive, 1 == incomplete, 2 == complete/seeding
         return_val = 0
@@ -1821,6 +1860,7 @@ class ProgressPanel(wx.BoxSizer):
 
 class StringProgressPanel(wx.BoxSizer):
 
+    @warnWxThread
     def __init__(self, parent, torrent):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
         self.parent = parent
@@ -1832,6 +1872,7 @@ class StringProgressPanel(wx.BoxSizer):
         self.text = StaticText(parent)
         self.Add(self.text, 1, wx.EXPAND)
 
+    @warnWxThread
     def Update(self, ds=None):
         if ds == None:
             ds = self.torrent.ds
@@ -1860,6 +1901,7 @@ class StringProgressPanel(wx.BoxSizer):
 
 class MyChannelDetails(wx.Panel):
 
+    @warnWxThread
     def __init__(self, parent, torrent, channel_id):
         self.parent = parent
         self.torrent = torrent
@@ -1916,6 +1958,7 @@ class MyChannelDetails(wx.Panel):
 
 class MyChannelPlaylist(AbstractDetails):
 
+    @warnWxThread
     def __init__(self, parent, on_manage, can_edit=False, on_save=None, on_remove=None, playlist={}):
         self.can_edit = can_edit
         self.on_manage = on_manage
@@ -1995,6 +2038,7 @@ class MyChannelPlaylist(AbstractDetails):
 
 class ChannelsExpandedPanel(wx.Panel):
 
+    @warnWxThread
     def __init__(self, parent, size=wx.DefaultSize):
         wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
         self.guiutility = GUIUtility.getInstance()
@@ -2007,6 +2051,7 @@ class ChannelsExpandedPanel(wx.Panel):
         self.Bind(wx.EVT_SHOW, self.OnShow)
         wx.CallAfter(self.AddCurrentChannelLink)
 
+    @warnWxThread
     def AddComponents(self):
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2022,6 +2067,7 @@ class ChannelsExpandedPanel(wx.Panel):
         self.SetSizer(self.hSizer)
         self.Layout()
 
+    @warnWxThread
     def OnShow(self, event):
         if self.IsShownOnScreen():
             if self.channel_or_playlist:
@@ -2032,16 +2078,19 @@ class ChannelsExpandedPanel(wx.Panel):
             elif self.GetCategory() == 'My Channel':
                 self.guiutility.ShowPage('mychannel')
 
+    @warnWxThread
     def SetBackgroundColour(self, colour):
         if self.GetBackgroundColour() != colour:
             wx.Panel.SetBackgroundColour(self, colour)
             for link in self.links.values():
                 link.SetBackgroundColour(colour)
 
+    @warnWxThread
     def SetTextColour(self, colour):
         for link in self.links.values():
             link.SetForegroundColour(colour)
 
+    @warnWxThread
     def SetTextHighlight(self):
         self.SetTextColour(self.fg_colour)
         if not self.channel_or_playlist:
@@ -2060,6 +2109,7 @@ class ChannelsExpandedPanel(wx.Panel):
         channel = self.guiutility.frame.selectedchannellist.channel
         self.AddLink(channel)
 
+    @warnWxThread
     def AddLink(self, channel_or_playlist):
         if channel_or_playlist:
 
@@ -2119,6 +2169,7 @@ class ChannelsExpandedPanel(wx.Panel):
             cat = "All"
         return cat
 
+    @warnWxThread
     def OnCategory(self, event):
         control = event.GetEventObject()
         label = control.GetLabel()
@@ -2132,6 +2183,7 @@ class ChannelsExpandedPanel(wx.Panel):
         self.channel_or_playlist = None
         self.SetTextHighlight()
 
+    @warnWxThread
     def OnHistory(self, event, channel_or_playlist):
         if isinstance(channel_or_playlist, Channel):
             self.guiutility.showChannel(channel_or_playlist)
@@ -2164,6 +2216,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.guiutility.utility.session.add_observer(self.OnVideoStopped, NTFY_TORRENTS, [NTFY_VIDEO_STOPPED])
         self.guiutility.utility.session.add_observer(self.OnVideoEnded, NTFY_TORRENTS, [NTFY_VIDEO_ENDED])
 
+    @warnWxThread
     def AddComponents(self):
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2172,6 +2225,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.SetSizer(self.hSizer)
         self.Layout()
 
+    @warnWxThread
     def AddLinks(self):
         def DetermineText(linktext, text):
             for i in xrange(len(text), 0, -1):
@@ -2204,6 +2258,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.OnChange()
         self.GetParent().parent_list.parent_list.Layout()
 
+    @warnWxThread
     def UpdateComponents(self):
         self.Freeze()
         self.vSizer.Clear(deleteWindows=True)
@@ -2245,6 +2300,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             else:
                 self.torrentsearch_manager.getTorrent(torrent, load_torrent)
 
+    @warnWxThread
     def RemoveFileindex(self, fileindex):
         for index, link in enumerate(self.links):
             if link.fileindex == fileindex:
@@ -2257,6 +2313,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 self.library_manager.stopTorrent(self.torrent)
                 self.library_manager.last_vod_torrent = None
 
+    @warnWxThread
     def SetNrFiles(self, nr):
         videoplayer_item = self.guiutility.frame.actlist.GetItem(5)
         num_items = getattr(videoplayer_item, 'num_items', None)
@@ -2265,6 +2322,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             num_items.Show(bool(nr))
             videoplayer_item.hSizer.Layout()
 
+    @warnWxThread
     def OnChange(self):
         self.Freeze()
 
@@ -2277,6 +2335,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.Thaw()
 
+    @warnWxThread
     def OnLinkStaticTextMouseEvent(self, event):
         link = event.GetEventObject()
         if event.LeftDown():

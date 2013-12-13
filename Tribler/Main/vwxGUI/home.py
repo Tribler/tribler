@@ -34,6 +34,7 @@ import wx.lib.agw.customtreectrl as CT
 
 class Home(XRCPanel):
 
+    @warnWxThread
     def _PostInit(self):
         self.guiutility = GUIUtility.getInstance()
 
@@ -128,15 +129,19 @@ class Home(XRCPanel):
         term = self.searchBox.GetValue()
         self.guiutility.dosearch(term)
 
+    @warnWxThread
     def OnSearchKeyDown(self, event):
         self.OnClick(event)
 
+    @warnWxThread
     def OnChannels(self, event):
         self.guiutility.showChannels()
 
+    @warnWxThread
     def ResetSearchBox(self):
         self.searchBox.Clear()
 
+    @warnWxThread
     def SearchFocus(self):
         if self.isReady:
             self.searchBox.SetFocus()
@@ -308,6 +313,7 @@ class Stats(XRCPanel):
 
 class HomePanel(wx.Panel):
 
+    @warnWxThread
     def __init__(self, parent, title, background, hspacer=(0, 0), vspacer=(0, 0)):
         wx.Panel.__init__(self, parent)
 
@@ -364,6 +370,7 @@ class HomePanel(wx.Panel):
 
 class NetworkPanel(HomePanel):
 
+    @warnWxThread
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Network info', SEPARATOR_GREY, (0, 1))
 
@@ -463,6 +470,7 @@ class NetworkPanel(HomePanel):
 
 class LeftDispersyPanel(HomePanel):
 
+    @warnWxThread
     def __init__(self, parent):
         self.buildColumns = False
 
@@ -558,7 +566,6 @@ class LeftDispersyPanel(HomePanel):
             self.UpdateStats()
 
     def UpdateStats(self):
-
         def db_callback():
             self.dispersy.statistics.update(database=False)
             self._UpdateStats(self.dispersy.statistics)
@@ -578,6 +585,7 @@ class LeftDispersyPanel(HomePanel):
 
 class RightDispersyPanel(FancyPanel):
 
+    @warnWxThread
     def __init__(self, parent):
         FancyPanel.__init__(self, parent, border=wx.LEFT | wx.BOTTOM)
         self.SetBorderColour(SEPARATOR_GREY)
@@ -828,6 +836,7 @@ class RightDispersyPanel(FancyPanel):
 
 class NewTorrentPanel(HomePanel):
 
+    @warnWxThread
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Newest Torrents', SEPARATOR_GREY, (0, 1))
         self.Layout()
@@ -876,6 +885,7 @@ class NewTorrentPanel(HomePanel):
 
 class PopularTorrentPanel(NewTorrentPanel):
 
+    @warnWxThread
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Popular Torrents', SEPARATOR_GREY, (1, 0))
         self.Layout()
@@ -915,6 +925,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
 class ActivityPanel(NewTorrentPanel):
 
+    @warnWxThread
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Recent Activity', SEPARATOR_GREY, (1, 0))
 
@@ -935,6 +946,7 @@ class BuzzPanel(wx.Panel):
     DISPLAY_SIZES = [3, 5, 5]
     REFRESH_EVERY = 5
 
+    @warnWxThread
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.SetBackgroundColour(wx.WHITE)
