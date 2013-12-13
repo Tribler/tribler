@@ -26,8 +26,7 @@ MESSAGE_STRING_REPRESENTATION = {
     MESSAGE_PONG: u'pong',
     MESSAGE_PUNCTURE: u'puncture',
     MESSAGE_STATS: u'stats'
-};
-
+}
 
 encode_functions = {}
 decode_functions = {}

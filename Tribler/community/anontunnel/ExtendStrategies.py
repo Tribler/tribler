@@ -103,7 +103,6 @@ class RandomAPriori:
             # Wait 5 seconds before sending the EXTEND
             return 5.0
 
-
         # We have punctured the next hop, so send the EXTEND
         self.proxy.send_message(self.circuit.candidate, self.circuit.id, ProxyMessage.MESSAGE_EXTEND,
                                 ProxyMessage.ExtendMessage(self.desired_hops[len(self.circuit.hops)].sock_addr))
