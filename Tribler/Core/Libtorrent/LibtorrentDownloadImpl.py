@@ -1090,10 +1090,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if not pstate.has_section('state'):
             pstate.add_section('state')
         pstate.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
-        if isinstance(self.tdef, TorrentDefNoMetainfo):
-            pstate.set('state', 'metainfo', {'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode()})
-        else:
-            pstate.set('state', 'metainfo', self.tdef.get_metainfo())
+        pstate.set('state', 'metainfo', self.tdef.get_metainfo())
 
         ds = self.network_get_state(None, False, sessioncalling=True)
         dlstate = {'status': ds.get_status(), 'progress': ds.get_progress(), 'swarmcache': None}

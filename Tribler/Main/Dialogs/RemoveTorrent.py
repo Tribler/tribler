@@ -6,10 +6,12 @@ import wx
 from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText, EditText
 from Tribler.community.channel.community import ChannelCommunity
 from wx.lib.wordwrap import wordwrap
+from Tribler.Main.vwxGUI import warnWxThread
 
 
 class RemoveTorrent(wx.Dialog):
 
+    @warnWxThread
     def __init__(self, parent, torrents):
         canEdit = False
         single = len(torrents) == 1

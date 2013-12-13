@@ -13,11 +13,12 @@ from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
 from Tribler.Main.Utility.GuiDBTuples import Torrent
-from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.vwxGUI import forceWxThread, warnWxThread
 
 
 class SaveAs(wx.Dialog):
 
+    @warnWxThread
     def __init__(self, parent, tdef, defaultdir, defaultname, selectedFiles=None):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450), name="SaveAsDialog")
 
@@ -115,6 +116,7 @@ class SaveAs(wx.Dialog):
         sizer.Add(vSizer, 1, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(sizer)
 
+    @warnWxThread
     def AddFileList(self, tdef, selectedFiles, vSizer, index=None):
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
 
@@ -165,6 +167,7 @@ class SaveAs(wx.Dialog):
                 event.Skip()
         self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
 
+    @warnWxThread
     def SetCollected(self, tdef):
         self.collected = tdef
         self.SetSize((600, 450))

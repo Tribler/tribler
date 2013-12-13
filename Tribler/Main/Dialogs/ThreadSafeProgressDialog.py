@@ -1,4 +1,5 @@
 import wx
+from Tribler.Main.vwxGUI import warnWxThread
 
 
 class ThreadSafeProgressDialog():
@@ -6,8 +7,9 @@ class ThreadSafeProgressDialog():
     def __init__(self, title, message, maximum, parent, style):
         wx.CallAfter(self.wx_init, title, message, maximum, parent, style)
 
+    @warnWxThread
     def wx_init(self, title, message, maximum, parent, style):
-        self.dlg = wx.ProgressDialog(title=title, message=message, maximum = maximum, parent=parent, style=style)
+        self.dlg = wx.ProgressDialog(title=title, message=message, maximum=maximum, parent=parent, style=style)
         self.dlg.Raise()
 
     def Update(self, value, newmsg=''):

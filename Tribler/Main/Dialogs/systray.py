@@ -4,6 +4,7 @@ import sys
 import os
 import wx
 from traceback import print_exc
+from Tribler.Main.vwxGUI import warnWxThread
 
 try:
     import win32gui  # , win32con
@@ -22,6 +23,7 @@ except:
 
 class ABCTaskBarIcon(wx.TaskBarIcon):
 
+    @warnWxThread
     def __init__(self, parent):
         wx.TaskBarIcon.__init__(self)
 
@@ -36,6 +38,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
 
         self.updateIcon(False)
 
+    @warnWxThread
     def updateIcon(self, iconifying=False):
         remove = True
 
@@ -48,6 +51,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         elif not remove and not self.IsIconInstalled():
             self.SetIcon(self.parent.GetIcon(), "Tribler")
 
+    @warnWxThread
     def CreatePopupMenu(self):
         menu = wx.Menu()
 
@@ -61,6 +65,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         self.Bind(wx.EVT_MENU, self.OnExitClient, id=mi.GetId())
         return menu
 
+    @warnWxThread
     def Notify(self, title, msg, icon):
         if WIN32 and self.IsIconInstalled():
             if not msg and title:
@@ -73,6 +78,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
                 pass
         return False
 
+    @warnWxThread
     def __SetBalloonTip(self, hicon, title, msg, msec, icon):
         if icon == wx.ART_INFORMATION:
             infoFlags = win32gui.NIIF_INFO
@@ -97,6 +103,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
 
         self.SetIcon(self.icon, self.tooltip)
 
+    @warnWxThread
     def __GetIconHandle(self):
         if not hasattr(self, "_chwnd"):
             try:
@@ -113,6 +120,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
                 pass
         return self._chwnd
 
+    @warnWxThread
     def SetIcon(self, icon, tooltip=""):
         self.icon = icon
         self.tooltip = tooltip

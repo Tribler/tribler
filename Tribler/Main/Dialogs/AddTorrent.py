@@ -11,10 +11,12 @@ from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.Swift import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Main.vwxGUI import warnWxThread
 
 
 class AddTorrent(wx.Dialog):
 
+    @warnWxThread
     def __init__(self, parent, frame, libraryTorrents=None):
         wx.Dialog.__init__(self, parent, -1, 'Add an external .torrent', size=(500, 200), name="AddTorrentDialog")
 

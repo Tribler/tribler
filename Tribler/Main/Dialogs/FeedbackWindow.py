@@ -22,6 +22,7 @@ import platform
 from Tribler.Main.vwxGUI.widgets import AutoWidthListCtrl
 import httplib
 from urllib import urlencode
+from Tribler.Main.vwxGUI import warnWxThread
 
 
 class FeedbackWindow(wx.PyOnDemandOutputWindow):
@@ -35,6 +36,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         # windows popping up at the same time
         return self
 
+    @warnWxThread
     def _fillOptionalSection(self):
         try:
             # columns
@@ -84,6 +86,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         self.sysInfo.SetColumnWidth(0, wx.LIST_AUTOSIZE)
         self.sysInfo.SetColumnWidth(1, wx.LIST_AUTOSIZE)
 
+    @warnWxThread
     def _fillRequiredSection(self, st):
         # Version and other miscellaneous information
         try:
@@ -97,6 +100,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         # Traceback (actually just the first line of it)
         self.text.AppendText(st)
 
+    @warnWxThread
     def CreateOutputWindow(self, st):
         self.frame = wx.Dialog(self.parent, -1, self.title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, name="FeedbackWindow")
 
