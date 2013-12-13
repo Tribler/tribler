@@ -259,6 +259,7 @@ class DispersyTunnelProxy(Observable):
         self.callback.register(cleanup_dead_circuits, priority=0)
 
     def on_bypass_message(self, sock_addr, packet):
+        dispersy = self.community.dispersy
         candidate = self.community.candidates.get(sock_addr) or Candidate(sock_addr, False)
 
         buffer = packet[len(self.prefix):]
@@ -283,12 +284,14 @@ class DispersyTunnelProxy(Observable):
                 # Route is dead :(
                 del self.relay_from_to[relay_key]
 
+            self.callback.register(lambda: dispersy.statistics.dict_inc(dispersy.statistics.success, u'anontunnel-relayed'))
         else:
             type, payload = ProxyMessage.parse_payload(data)
             if circuit_id in self.circuits:
                 with self.lock:
                     self.circuits[circuit_id].last_incoming = time.time()
 
+            self.callback.register(lambda: dispersy.statistics.dict_inc(dispersy.statistics.success, u'anontunnel-' + ProxyMessage.MESSAGE_STRING_REPRESENTATION[type]))
             self.message_observer.fire(type, circuit_id=circuit_id, candidate=candidate, message=payload)
 
     def on_puncture(self, circuit_id, candidate, message):
@@ -393,9 +396,6 @@ class DispersyTunnelProxy(Observable):
                     if not share_dispersy:
                         self.community.send_stats(stats)
                         share_dispersy = True
-
-                    #for candidate in self.community.dispersy_yield_verified_candidates():
-                    #    self.send_message(candidate, 0, ProxyMessage.MESSAGE_STATS, stats)
 
                 yield 1.0
 
@@ -545,6 +545,10 @@ class DispersyTunnelProxy(Observable):
         self.extend_for(candidate, circuit_id, extend_with)
 
     def send_message(self, destination, circuit_id, type, message):
+        dispersy = self.community.dispersy
+
+        self.callback.register(lambda: dispersy.statistics.dict_inc(dispersy.statistics.outgoing, u"anontunnel-" + ProxyMessage.MESSAGE_STRING_REPRESENTATION[type], 1))
+
         self.community.dispersy.endpoint.send([destination],
                                               [self.prefix + ProxyMessage.serialize(circuit_id, type, message)])
 
