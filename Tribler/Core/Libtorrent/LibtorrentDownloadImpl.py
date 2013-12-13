@@ -223,6 +223,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 else:
                     cdcfg = dcfg
                 self.dlconfig = cdcfg.dlconfig.copy()
+                self.set_config_callback(self.dlconfig_changed_callback)
 
                 # Things that only exist at runtime
                 self.dlruntimeconfig = {}
@@ -260,8 +261,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None):
         # Called by any thread, assume dllock already acquired
         self._logger.debug("LibtorrentDownloadImpl: create_engine_wrapper()")
-
-        self.set_config_callback(self.dlconfig_changed_callback)
 
         atp = {}
         atp["save_path"] = str(self.get_dest_dir())
@@ -1172,14 +1171,17 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return mimetype
 
     def dlconfig_changed_callback(self, section, name, new_value, old_value):
-        if section == 'downloadconfig' and name == 'max_upload_rate':
-            if self.handle:
+        if self.handle:
+            if section == 'downloadconfig' and name == 'max_upload_rate':
                 self.handle.set_upload_limit(int(new_value * 1024))
-        elif section == 'downloadconfig' and name == 'max_download_rate':
-            if self.handle:
+            elif section == 'downloadconfig' and name == 'max_download_rate':
                 self.handle.set_download_limit(int(new_value * 1024))
-        elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
-            return False
+            elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
+                return False
+
+        else:
+            network_dlconfig_changed_callback = lambda: self.dlconfig_changed_callback(section, name, new_value, old_value)
+            self.session.lm.rawserver.add_task(network_dlconfig_changed_callback, 1.0)
         return True
 
 
