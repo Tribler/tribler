@@ -10,6 +10,7 @@ from cStringIO import StringIO
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.version import version_id, commit_id, build_date
 from ConfigParser import RawConfigParser
+from Tribler.Main.vwxGUI import warnWxThread
 
 #
 #
@@ -27,6 +28,7 @@ from ConfigParser import RawConfigParser
 
 class Lang:
 
+    @warnWxThread
     def __init__(self, utility):
         self.utility = utility
 
@@ -157,6 +159,7 @@ class Lang:
             self.error(label)
         return text
 
+    @warnWxThread
     def error(self, label, silent=False):
         # Display a warning once that the language file doesn't contain all the values
         if (not self.langwarning):

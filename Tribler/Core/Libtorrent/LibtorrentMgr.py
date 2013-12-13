@@ -96,7 +96,7 @@ class LibtorrentMgr:
         del LibtorrentMgr.__single
         LibtorrentMgr.__single = None
     delInstance = staticmethod(delInstance)
-    
+
     def hasInstance():
         return LibtorrentMgr.__single != None
     hasInstance = staticmethod(hasInstance)
@@ -305,7 +305,7 @@ class LibtorrentMgr:
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, notify=True):
         if not self.is_dht_ready() and timeout > 5:
-            print >> sys.stderr, "LibtorrentDownloadImpl: DHT not ready, rescheduling get_metainfo"
+            print >> sys.stderr, "LibtorrentMgr: DHT not ready, rescheduling get_metainfo"
             self.trsession.lm.rawserver.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5, n=notify: self.get_metainfo(i, c, t, n), 5)
             return
 
