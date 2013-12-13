@@ -199,7 +199,7 @@ class DispersyTunnelProxy(Observable):
         self.circuit_length_strategy = ConstantCircuitLengthStrategy(length)
         self.circuit_selection_strategy = RandomSelectionStrategy(1)
 
-        self.extend_strategy = ExtendStrategies.RandomAPriori
+        self.extend_strategy = ExtendStrategies.TrustThyNeighbour # .RandomAPriori
 
         self.message_observer = Observable()
 
@@ -258,7 +258,7 @@ class DispersyTunnelProxy(Observable):
                     print_exc()
 
                 # rerun over 3 seconds
-                yield 2.0
+                yield 10.0
 
         self.callback.register(cleanup_dead_circuits, priority=0)
 
