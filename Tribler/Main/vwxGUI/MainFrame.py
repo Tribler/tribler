@@ -368,10 +368,10 @@ class MainFrame(wx.Frame):
         nextId = wx.NewId()
         prevId = wx.NewId()
         dispId = wx.NewId()
-        self.Bind(wx.EVT_MENU, self.OnFind, id=findId)
+        self.Bind(wx.EVT_MENU, lambda event: self.top_bg.SearchFocus(), id=findId)
         self.Bind(wx.EVT_MENU, lambda event: self.Close(), id=quitId)
-        self.Bind(wx.EVT_MENU, self.OnNext, id=nextId)
-        self.Bind(wx.EVT_MENU, self.OnPrev, id=prevId)
+        self.Bind(wx.EVT_MENU, lambda event: self.actlist.NextPage(), id=nextId)
+        self.Bind(wx.EVT_MENU, lambda event: self.actlist.PrevPage(), id=prevId)
         self.Bind(wx.EVT_MENU, lambda evt: self.guiUtility.ShowPage('stats'), id=dispId)
 
         accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
@@ -471,14 +471,18 @@ class MainFrame(wx.Frame):
                 new_trackers = list(set(cdef.get_trackers_as_single_tuple()) - set(d.get_def().get_trackers_as_single_tuple()))
                 if not new_trackers:
                     raise DuplicateDownloadException()
-                else:
+
+                elif wx.Thread_IsMain():
                     # Show update tracker dialog
                     dialog = wx.MessageDialog(None, 'This torrent is already being downloaded. Do you wish to load the trackers from it?', 'Tribler', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                     if dialog.ShowModal() == wx.ID_YES:
                         # Update trackers
                         self.utility.session.update_trackers(cdef.get_id(), new_trackers)
                     dialog.Destroy()
-                return
+                    return
+                else:
+                    raise Exception("cannot create dialog, not on wx thread")
+
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
@@ -625,9 +629,6 @@ class MainFrame(wx.Frame):
 
         # 3. Checkpoint Session
         self.utility.session.checkpoint()
-
-    def modifySelection(self, download, selectedFiles):
-        download.set_selected_files(selectedFiles)
 
     def fixTorrent(self, filename):
         f = open(filename, "rb")
@@ -794,16 +795,9 @@ class MainFrame(wx.Frame):
                 return
 
             # start download
-            try:
+            download = self.utility.session.get_download(tdef.get_infohash())
+            if not download:
                 download = self.utility.session.start_download(tdef)
-
-            except DuplicateDownloadException:
-                print >> sys.stderr, "-- Duplicate download"
-                download = None
-                for random_download in self.utility.session.get_downloads():
-                    if random_download.get_def().get_infohash() == tdef.get_infohash():
-                        download = random_download
-                        break
 
             # continue until download is finished
             if download:
@@ -910,18 +904,7 @@ class MainFrame(wx.Frame):
         atexit.register(start_tribler)
         self.Close(force=True)
 
-    def OnFind(self, event):
-        self.top_bg.SearchFocus()
-
-    def OnNext(self, event):
-        self.actlist.NextPage()
-
-    def OnPrev(self, event):
-        self.actlist.PrevPage()
-
-    #
-    # minimize to tray bar control
-    #
+    @warnWxThread
     def onTaskBarActivate(self, event=None):
         if not self.GUIupdate:
             self.Iconize(False)
@@ -933,38 +916,31 @@ class MainFrame(wx.Frame):
 
             self.GUIupdate = True
 
+    @warnWxThread
     def onIconify(self, event=None):
         # This event handler is called both when being minimalized
         # and when being restored.
         # Arno, 2010-01-15: on Win7 with wxPython2.8-win32-unicode-2.8.10.1-py26
         # there is no event on restore :-(
-        if DEBUG:
-            if event is not None:
+        if event:
+            if DEBUG:
                 print >> sys.stderr, "main: onIconify(", event.Iconized()
+
+            if event.Iconized():
+                if self.utility.read_config('mintray') == 1:
+                    self.tbicon.updateIcon(True)
+                    self.Show(False)
+
+                self.GUIupdate = False
             else:
-                print >> sys.stderr, "main: onIconify event None"
+                self.GUIupdate = True
 
-        if event.Iconized():
-            # Niels, 2011-06-17: why pause the video? This does not make any sense
-            # videoplayer = VideoPlayer.getInstance()
-            # videoplayer.pause_playback() # when minimzed pause playback
-
-            if self.utility.read_config('mintray') == 1:
-                self.tbicon.updateIcon(True)
-                self.Show(False)
-
-            self.GUIupdate = False
-        else:
-            # Niels, 2011-06-17: why pause the video? This does not make any sense
-            # at least make it so, that it will only resume if it was actually paused by the minimize action
-
-            # videoplayer = VideoPlayer.getInstance()
-            # videoplayer.resume_playback()
-
-            self.GUIupdate = True
-        if event is not None:
             event.Skip()
 
+        elif DEBUG:
+            print >> sys.stderr, "main: onIconify event None"
+
+    @warnWxThread
     def onSize(self, event=None):
         # Arno: On Windows when I enable the tray icon and then change
         # virtual desktop (see MS DeskmanPowerToySetup.exe)
@@ -972,17 +948,20 @@ class MainFrame(wx.Frame):
         # I switch back, I don't get an event. As a result the GUIupdate
         # remains turned off. The wxWidgets wiki on the TaskBarIcon suggests
         # catching the onSize event.
-        if DEBUG:
-            if event is not None:
-                print >> sys.stderr, "main: onSize:", self.GetSize()
-            else:
-                print >> sys.stderr, "main: onSize: None"
+
         self.GUIupdate = True
-        if event is not None:
+        if event:
+            if DEBUG:
+                print >> sys.stderr, "main: onSize:", self.GetSize()
+
             if event.GetEventType() == wx.EVT_MAXIMIZE:
                 self.window.SetClientSize(self.GetClientSize())
             event.Skip()
 
+        elif DEBUG:
+            print >> sys.stderr, "main: onSize: None"
+
+    @warnWxThread
     def getWindowSettings(self):
         width = self.utility.read_config("window_width")
         height = self.utility.read_config("window_height")
@@ -1016,6 +995,7 @@ class MainFrame(wx.Frame):
 
         return size, position, sashpos
 
+    @warnWxThread
     def saveWindowSettings(self):
         width, height = self.GetSizeTuple()
         x, y = self.GetPositionTuple()
@@ -1029,31 +1009,24 @@ class MainFrame(wx.Frame):
 
         self.utility.flush_config()
 
-    #
-    # Close Program
-    #
-
+    @warnWxThread
     def OnCloseWindow(self, event=None, force=False):
-        found = False
         if event != None:
             nr = event.GetEventType()
             lookup = {wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION"}
             if nr in lookup:
                 nr = lookup[nr]
-                found = True
-
             print >> sys.stderr, "mainframe: Closing due to event ", nr, repr(event)
         else:
             print >> sys.stderr, "mainframe: Closing untriggered by event"
 
         # Don't do anything if the event gets called twice for some reason
         if self.utility.abcquitting:
-            print
             return
 
         # Check to see if we can veto the shutdown
         # (might not be able to in case of shutting down windows)
-        if event is not None:
+        if event:
             try:
                 if isinstance(event, wx.CloseEvent) and event.CanVeto() and self.utility.read_config('confirmonclose') and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
                     if self.shutdown_and_upgrade_notes:
@@ -1138,6 +1111,7 @@ class MainFrame(wx.Frame):
     def progressHandler(self, title, message, maximum):
         return ThreadSafeProgressDialog(title, message, maximum, self, wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_ESTIMATED_TIME | wx.PD_REMAINING_TIME | wx.PD_AUTO_HIDE)
 
+    @warnWxThread
     def onUPnPError(self, upnp_type, listenport, error_type, exc=None, listenproto='TCP'):
 
         if error_type == 0:
