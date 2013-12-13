@@ -24,7 +24,6 @@ from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core import NoDispersyRLock
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     prctlimported = True

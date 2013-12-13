@@ -20,7 +20,6 @@ from Tribler.Core.Utilities.unicode import unicode2str, bin2unicode
 
 from Tribler.Video.CachingStream import SmartCachingStream
 from Tribler.Video.Ogg import is_ogg, OggMagicLiveStream
-from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 DEBUG = False
@@ -627,15 +626,9 @@ class VideoPlayer:
     # Set information about video playback progress that is displayed
     # to the user.
     #
-    @forceWxThread
     def set_player_status_and_progress(self, progress, progress_consec, pieces_complete):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().UpdateStatus(progress, progress_consec, pieces_complete)
-
-    @forceWxThread
-    def set_save_button(self, enable, savebutteneventhandler):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
-            self.videoframe.get_videopanel().EnableSaveButton(enable, savebutteneventhandler)
 
     def get_state(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:

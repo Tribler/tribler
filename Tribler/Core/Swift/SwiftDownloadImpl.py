@@ -39,7 +39,7 @@ from Tribler.Core.DownloadState import *
 from Tribler.Core.DownloadConfig import get_default_dest_dir
 from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
 import shutil
-from Tribler.Main.globals import DownloadStartupConfig
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 # ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
 # Send PLAY after receiving 2^layer * 1024 bytes
@@ -114,7 +114,7 @@ class SwiftDownloadImpl(DownloadRuntimeConfig):
 
             # Copy dlconfig, from default if not specified
             if dcfg is None:
-                cdcfg = DownloadStartupConfig()
+                cdcfg = DefaultDownloadStartupConfig()
             else:
                 cdcfg = dcfg
             self.dlconfig = cdcfg.dlconfig.copy()
@@ -256,10 +256,10 @@ class SwiftDownloadImpl(DownloadRuntimeConfig):
                 self.lm_network_vod_event_callback(videoinfo, VODEVENT_START, {
                     "complete": False,
                     "filename": None,
-                    "mimetype": 'application/octet-stream', # ARNOSMPTODO
+                    "mimetype": 'application/octet-stream',  # ARNOSMPTODO
                     "stream": None,
                     "length": self.get_dynasize(),
-                    "bitrate": None, # ARNOSMPTODO
+                    "bitrate": None,  # ARNOSMPTODO
                     "url": httpurl,
                 })
         finally:
