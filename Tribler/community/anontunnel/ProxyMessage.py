@@ -14,6 +14,20 @@ MESSAGE_PONG = chr(8)
 MESSAGE_PUNCTURE = chr(9)
 MESSAGE_STATS = chr(10)
 
+
+MESSAGE_STRING_REPRESENTATION = {
+    MESSAGE_CREATE: u'create',
+    MESSAGE_CREATED: u'created',
+    MESSAGE_EXTEND: u'extend',
+    MESSAGE_EXTENDED: u'extended',
+    MESSAGE_DATA: u'data',
+    MESSAGE_BREAK: u'break',
+    MESSAGE_PING: u'ping',
+    MESSAGE_PONG: u'pong',
+    MESSAGE_PUNCTURE: u'puncture',
+    MESSAGE_STATS: u'stats'
+}
+
 encode_functions = {}
 decode_functions = {}
 

@@ -419,6 +419,7 @@ class TopSearchPanel(FancyPanel):
         if torrent.isPlayable():
             self.guiutility.ShowPlayer()
             self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
+            self.guiutility.library_manager.playTorrent(torrent)
 
         if not self.guiutility.frame.searchlist.IsShownOnScreen():
             self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
