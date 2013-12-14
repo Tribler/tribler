@@ -17,24 +17,12 @@ class TrustThyNeighbour:
         self.circuit = circuit
         self.proxy = proxy
 
-        def _timer():
-            while True:
-                self.extend()
-                yield 2.0
-
-        #circuit.subscribe("created", self.extend)
-        #circuit.subscribe("extended", self.extend)
-        self.__timer = proxy.callback.register(_timer)
-
     def stop(self):
-        self.proxy.callback.unregister(self.__timer)
+        pass
 
     def extend(self):
-        if not self.circuit.created or self.circuit.state == CIRCUIT_STATE_BROKEN or self.circuit.goal_hops <= len(self.circuit.hops):
-            return
-
-        with self.proxy.lock:
-            self.circuit.state = CIRCUIT_STATE_EXTENDING
+        assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
+        assert self.circuit.goal_hops > len(self.circuit.hops), "Circuits with correct length cannot be extended"
 
         logger.warning("We are trusting our hop to extend circuit %d" % (self.circuit.id))
         self.proxy.send_message(self.circuit.candidate, self.circuit.id, ProxyMessage.MESSAGE_EXTEND,
@@ -53,23 +41,12 @@ class RandomAPriori:
         self.desired_hops = None
         self.punctured_until = 0
 
-        def __timer():
-            while True:
-                yield self.extend()
-
-        self.__timer = proxy.callback.register(__timer)
-
-
     def stop(self):
-        self.proxy.callback.unregister(self.__timer)
-
+        pass
 
     def extend(self):
-        if not self.circuit.created or self.circuit.state == CIRCUIT_STATE_BROKEN or self.circuit.goal_hops <= len(self.circuit.hops):
-            return 2.0
-
-        with self.proxy.lock:
-            self.circuit.state = CIRCUIT_STATE_EXTENDING
+        assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
+        assert self.circuit.goal_hops > len(self.circuit.hops), "Circuits with correct length cannot be extended"
 
         if not self.desired_hops:
             candidate_hops = [self.circuit.candidate]
@@ -88,8 +65,7 @@ class RandomAPriori:
                 self.desired_hops = candidate_hops
                 logger.warning("Determined we want hops %s  for circuit %d" % ([x.sock_addr for x in candidate_hops], self.circuit.id))
             else:
-                logger.warning("Cannot find enough hops for circuit %d" % (self.circuit.id))
-                return 10.0
+                raise ValueError("Dont have enough hops to create circuit")
 
         if self.punctured_until < len(self.circuit.hops):
         # We need to puncture the NAT of the new hop with the last hop at this time.
@@ -100,12 +76,11 @@ class RandomAPriori:
             self.punctured_until += 1
             logger.warning("Sent PUNCTURE(%s) to %s" % (current_end_of_tunnel, to_puncture))
 
-            # Wait 5 seconds before sending the EXTEND
-            return 5.0
-
-
-        # We have punctured the next hop, so send the EXTEND
-        self.proxy.send_message(self.circuit.candidate, self.circuit.id, ProxyMessage.MESSAGE_EXTEND,
+            def send_extend():
+                # We have punctured the next hop, so send the EXTEND
+                self.proxy.send_message(self.circuit.candidate, self.circuit.id, ProxyMessage.MESSAGE_EXTEND,
                                 ProxyMessage.ExtendMessage(self.desired_hops[len(self.circuit.hops)].sock_addr))
+
+            self.proxy.callback.register(send_extend, delay=5.0)
 
         return 2.0

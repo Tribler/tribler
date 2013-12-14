@@ -1,3 +1,5 @@
+from collections import defaultdict
+import os
 import uuid
 from Tribler.community.anontunnel.ProxyMessage import PunctureMessage
 
@@ -35,16 +37,15 @@ class Circuit(Observable):
     def bytes_downloaded(self):
         return self.bytes_down[1]
 
-
     @property
     def bytes_uploaded(self):
         return self.bytes_up[1]
 
     @property
     def online(self):
-        return self.created and self.goal_hops == len(self.hops)
+        return self.goal_hops == len(self.hops)
 
-    def __init__(self, circuit_id, candidate=None):
+    def __init__(self, proxy, circuit_id, goal_hops=0, candidate=None):
         Observable.__init__(self)
 
         """
@@ -55,18 +56,15 @@ class Circuit(Observable):
         :return: Circuit
         """
 
-        self.created = False
+        self.proxy = proxy
         self.id = circuit_id
         self.candidate = candidate
         self.hops = [candidate.sock_addr] if candidate else []
-        self.goal_hops = 0
+        self.goal_hops = goal_hops
 
-        self.state = CIRCUIT_STATE_CREATING
-
+        self.state = CIRCUIT_STATE_CREATING if goal_hops > 0 else CIRCUIT_STATE_READY
         self.extend_strategy = None
-
         self.timestamp = None
-
         self.times = []
         self.bytes_up_list = []
         self.bytes_down_list = []
@@ -76,9 +74,48 @@ class Circuit(Observable):
 
         self.speed_up = 0.0
         self.speed_down = 0.0
-
         self.last_incoming = time.time()
 
+        # Start life cycle
+        if goal_hops > 0:
+            self.life_cycle = self.__life_cycle()
+            self.life_cycle.next()
+        else: self.life_cycle = None
+
+    def __life_cycle(self):
+        def break_circuit(message):
+            self.state = CIRCUIT_STATE_BROKEN
+            raise ValueError(message)
+
+        while self.state not in [CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_READY]:
+            try:
+                #self.send_create()
+                candidate, created_message = (yield)
+
+                if not isinstance(created_message, ProxyMessage.CreatedMessage):
+                    break_circuit("Expected CreatedMessage got " + created_message.__class__.__name__)
+
+                self.last_incoming = time.time()
+                logger.warning('Circuit %d has been created', self.id)
+
+                while len(self.hops) < self.goal_hops:
+                    self.state = CIRCUIT_STATE_EXTENDING
+                    self.extend_strategy.extend()
+                    candidate, extended_message = (yield)
+
+                    if not isinstance(extended_message, ProxyMessage.ExtendedWithMessage):
+                        break_circuit("Expected ExtendedWithMessage got " + extended_message.__class__.__name__)
+
+                    self.hops.append(extended_message.extended_with)
+                    self.last_incoming = time.time()
+
+                    logger.error('Circuit %d has been extended with node at address %s and contains now %d hops',
+                                   self.id,
+                                   extended_message.extended_with, len(self.hops))
+
+                    self.state = CIRCUIT_STATE_READY
+            except ValueError, e:
+                break_circuit("Unexpected error: " + e.message)
 
 class RelayRoute(object):
     def __init__(self, circuit_id, candidate):
@@ -159,25 +196,24 @@ class DispersyTunnelProxy(Observable):
         Observable.__init__(self)
 
         self.prefix = 'f' * 22 + 'e'
-
         self.__online = False
         self.share_stats = False
         self.callback = None
-
         self.raw_server = raw_server
         self._record_stats = False
-
         self._exit_sockets = {}
-
         self.done = False
         self.circuits = {}
-
         self.member_heartbeat = {}
-
         self.download_stats = None
+        self.joined = set()
 
+        self.cookies = {}
+        self.registered_cookies = {}
 
         self.joined = set()
+
+        self.accept_promises = defaultdict(lambda circuit_id, service_cookie: Promise())
 
         self.lock = threading.RLock()
 
@@ -188,19 +224,15 @@ class DispersyTunnelProxy(Observable):
         self.relay_from_to = {}
         self.circuit_tag = {}
 
-        length = random.randrange(0, 4)
+        length = random.randrange(2, 4)
 
         if length == 0:
             # Add 0-hop circuit
-            self.circuits[0] = Circuit(0)
-            self.circuits[0].state = CIRCUIT_STATE_READY
-
+            self.circuits[0] = Circuit(self, 0)
 
         self.circuit_length_strategy = ConstantCircuitLengthStrategy(length)
         self.circuit_selection_strategy = RandomSelectionStrategy(1)
-
-        self.extend_strategy = ExtendStrategies.RandomAPriori
-
+        self.extend_strategy = ExtendStrategies.TrustThyNeighbour
         self.message_observer = Observable()
 
         self.community = None
@@ -293,7 +325,10 @@ class DispersyTunnelProxy(Observable):
                 with self.lock:
                     self.circuits[circuit_id].last_incoming = time.time()
 
-            self.message_observer.fire(type, circuit_id=circuit_id, candidate=candidate, message=payload)
+            try:
+                self.message_observer.fire(type, circuit_id=circuit_id, candidate=candidate, message=payload)
+            except BaseException, e:
+                logger.exception(e)
 
     def on_puncture(self, circuit_id, candidate, message):
         assert isinstance(message, PunctureMessage)
@@ -408,7 +443,6 @@ class DispersyTunnelProxy(Observable):
         callback.register(check_ready)
         callback.register(find_circuit_candidate)
 
-
     def on_break(self, circuit_id, candidate, message):
         address = candidate
         assert isinstance(message, ProxyMessage.BreakMessage)
@@ -439,23 +473,12 @@ class DispersyTunnelProxy(Observable):
         with self.lock:
             if circuit_id in self.circuits:
                 circuit = self.circuits[circuit_id]
-                circuit.last_incoming = time.time()
-                circuit.created = True
-                logger.warning('Circuit %d has been created', circuit_id)
-
-                if circuit.goal_hops == len(circuit.hops):
-                    circuit.state = CIRCUIT_STATE_READY
-
-                # Instantiate extend strategy
-                circuit.extend_strategy = self.extend_strategy(self, circuit)
-
+                circuit.life_cycle.send((candidate, message))
                 self.fire("circuit_created", circuit=circuit)
-                circuit.fire("created")
 
             elif not self.relay_from_to.has_key((candidate, circuit_id)):
                 logger.warning("Cannot route CREATED packet, probably concurrency overwrote routing rules!")
             else:
-
                 # Mark link online such that no new extension attempts will be taken
                 created_for = self.relay_from_to[(candidate, circuit_id)]
                 created_for.online = True
@@ -589,52 +612,16 @@ class DispersyTunnelProxy(Observable):
             self.fire("circuit_extend", extend_for=(from_candidate, from_circuit_id),
                       extend_with=(to_candidate, new_circuit_id))
 
-
     def on_extended(self, circuit_id, candidate, message):
         """ A circuit has been extended, forward the acknowledgment back
             to the origin of the EXTEND. If we are the origin update
             our records. """
 
-        with self.lock:
-            relay_key = (candidate, circuit_id)
-            community = self.community
+        if circuit_id in self.circuits:
+            circuit = self.circuits[circuit_id]
+            circuit.life_cycle.send((candidate, message))
+            self.fire("circuit_extended", circuit=circuit)
 
-            if self.circuits.has_key(circuit_id):
-                circuit_id = circuit_id
-                extended_with = message.extended_with
-
-                circuit = self.circuits[circuit_id]
-                circuit.last_incoming = time.time()
-
-                addresses_in_use = [self.community.dispersy.wan_address, self.community.dispersy.lan_address]
-                addresses_in_use.extend([
-                    x.sock_addr if isinstance(x, Candidate) else x
-                    for x in circuit.hops
-                ])
-
-
-                # CYCLE DETECTED!
-                # Quick fix: delete the circuit!
-                if extended_with in addresses_in_use:
-                    with self.lock:
-                        del self.circuits[circuit_id]
-
-                    logger.error("[%d] CYCLE DETECTED %s in %s ", circuit_id, extended_with, addresses_in_use)
-                    return
-
-                # Decrease the EXTEND queue of this circuit if there is any
-                # if circuit in self.extension_queue and self.extension_queue[circuit] > 0:
-                circuit.hops.append(extended_with)
-
-                if circuit.goal_hops == len(circuit.hops):
-                    circuit.state = CIRCUIT_STATE_READY
-
-                logger.warning('Circuit %d has been extended with node at address %s and contains now %d hops',
-                               circuit_id,
-                               extended_with, len(self.circuits[circuit_id].hops))
-
-                self.fire("circuit_extended", circuit=circuit)
-                circuit.fire('extended')
 
     def _generate_circuit_id(self, neighbour):
         circuit_id = random.randint(1, 255)
@@ -645,16 +632,16 @@ class DispersyTunnelProxy(Observable):
 
         return circuit_id
 
-    def create_circuit(self, first_hop, circuit_id=None):
+    def create_circuit(self, first_hop, extend_strategy=None):
         """ Create a new circuit, with one initial hop """
-
+        circuit_id = None
         # Generate a random circuit id that hasn't been used yet by us
         while circuit_id is None or circuit_id in self.circuits:
             circuit_id = self._generate_circuit_id(first_hop)
 
-        circuit = Circuit(circuit_id, first_hop)
-        circuit.goal_hops = self.circuit_length_strategy.circuit_length()
-
+        goal_hops = self.circuit_length_strategy.circuit_length()
+        circuit = Circuit(self, circuit_id, goal_hops, first_hop)
+        circuit.extend_strategy = self.extend_strategy(self, circuit) if extend_strategy is None else extend_strategy(self, circuit)
         logger.warning('Circuit %d is to be created, we want %d hops', circuit.id, circuit.goal_hops)
 
         with self.lock:
@@ -730,7 +717,7 @@ class DispersyTunnelProxy(Observable):
                 # If no address has been given, pick the first hop
                 # Note: for packet forwarding address MUST be given
                 if address is None:
-                    if circuit_id in self.circuits and self.circuits[circuit_id].created:
+                    if circuit_id in self.circuits and self.circuits[circuit_id].online:
                         address = self.circuits[circuit_id].candidate
                     else:
                         logger.warning("Dropping packets from unknown / broken circuit")
@@ -767,7 +754,6 @@ class DispersyTunnelProxy(Observable):
                 # And delete from routing table, this will stop us from sending PING as well
                 del self.relay_from_to[(relay.candidate, relay.circuit_id)]
                 del self.relay_from_to[relay_key]
-
 
     def break_circuit(self, circuit_id):
         with self.lock:
@@ -821,5 +807,3 @@ class DispersyTunnelProxy(Observable):
                     del self.relay_from_to[relay_key]
         except BaseException, e:
             logger.exception(e)
-
-
