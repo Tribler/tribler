@@ -1,5 +1,3 @@
-from collections import defaultdict
-import os
 import uuid
 from Tribler.community.anontunnel.ProxyMessage import PunctureMessage
 
@@ -573,6 +571,8 @@ class DispersyTunnelProxy(Observable):
         self.extend_for(candidate, circuit_id, extend_with)
 
     def send_message(self, destination, circuit_id, type, message):
+        dispersy = self.community.dispersy
+        self.callback.register(lambda: dispersy.statistics.dict_inc(dispersy.statistics.outgoing, u"anontunnel-" + ProxyMessage.MESSAGE_STRING_REPRESENTATION[type], 1))
         self.community.dispersy.endpoint.send([destination],
                                               [self.prefix + ProxyMessage.serialize(circuit_id, type, message)])
 
