@@ -113,7 +113,7 @@ class Circuit(Observable):
                                    self.id,
                                    extended_message.extended_with, len(self.hops))
 
-                    self.state = CIRCUIT_STATE_READY
+                self.state = CIRCUIT_STATE_READY
             except ValueError, e:
                 break_circuit("Unexpected error: " + e.message)
 
@@ -622,43 +622,6 @@ class DispersyTunnelProxy(Observable):
             circuit = self.circuits[circuit_id]
             circuit.life_cycle.send((candidate, message))
             self.fire("circuit_extended", circuit=circuit)
-
-            if self.circuits.has_key(circuit_id):
-                circuit_id = circuit_id
-                extended_with = message.extended_with
-
-                circuit = self.circuits[circuit_id]
-                circuit.last_incoming = time.time()
-
-                addresses_in_use = [self.community.dispersy.wan_address, self.community.dispersy.lan_address]
-                addresses_in_use.extend([
-                    x.sock_addr if isinstance(x, Candidate) else x
-                    for x in circuit.hops
-                ])
-
-
-                # CYCLE DETECTED!
-                # Quick fix: delete the circuit!
-                if extended_with in addresses_in_use:
-                    with self.lock:
-                        del self.circuits[circuit_id]
-
-                    logger.error("[%d] CYCLE DETECTED %s in %s ", circuit_id, extended_with, addresses_in_use)
-                    return
-
-                # Decrease the EXTEND queue of this circuit if there is any
-                # if circuit in self.extension_queue and self.extension_queue[circuit] > 0:
-                circuit.hops.append(extended_with)
-
-                if circuit.goal_hops == len(circuit.hops):
-                    circuit.state = CIRCUIT_STATE_READY
-
-                logger.warning('Circuit %d has been extended with node at address %s and contains now %d hops',
-                               circuit_id,
-                               extended_with, len(self.circuits[circuit_id].hops))
-
-                self.fire("circuit_extended", circuit=circuit)
-                circuit.fire('extended')
 
     def _generate_circuit_id(self, neighbour):
         circuit_id = random.randint(1, 255)
