@@ -27,8 +27,8 @@ def main(argv):
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-y', '--yappi', help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
         parser.add_argument('-c', '--cmd', help='The command UDP port to listen on')
-        parser.add_argument('-l', '--length-strategy', default='', nargs='*', help='Circuit length strategy')
-        parser.add_argument('-s', '--select-strategy', default='', nargs='*', help='Circuit selection strategy')
+        parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
+        parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
         parser.add_argument('-e', '--extend-strategy', default='upfront', help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_argument('--record-on-incoming', help='Record stats from the moment the first data enters the tunnel')
@@ -86,23 +86,23 @@ def main(argv):
         raise ValueError("extend_strategy must be either random or delegate")
 
     # Circuit length strategy
-    if args.length_strategy == 'random':
+    if args.length_strategy[:1] == ['random']:
         strategy = RandomCircuitLengthStrategy(*args.length_strategy[1:])
         anon_tunnel.community.circuit_length_strategy = strategy
         logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
         
-    elif args.length_strategy == 'constant':
+    elif args.length_strategy[:1] == ['constant']:
         strategy = ConstantCircuitLengthStrategy(*args.length_strategy[1:])
         anon_tunnel.community.circuit_length_strategy = strategy
         logger.error("Using ConstantCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
 
     # Circuit selection strategies
-    if args.select_strategy == 'random':
+    if args.select_strategy[:1] == ['random']:
         strategy = RandomSelectionStrategy(*args.select_strategy[1:])
         anon_tunnel.community.circuit_selection_strategy = strategy
         logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
         
-    elif args.select_strategy == 'length':
+    elif args.select_strategy[:1] == ['length']:
         strategy = LengthSelectionStrategy(*args.select_strategy[1:])
         anon_tunnel.community.circuit_selection_strategy = strategy
         logger.error("Using LengthSelectionStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
