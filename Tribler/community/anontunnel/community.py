@@ -55,7 +55,7 @@ class Circuit:
 
         self.speed_up = 0.0
         self.speed_down = 0.0
-        self.last_incoming = time()
+        self.last_incomming = time()
     
     @property
     def bytes_downloaded(self):
@@ -82,7 +82,7 @@ class Circuit:
     @property
     def ping_time_remaining(self):
         too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
-        diff = self.last_incoming - too_old
+        diff = self.last_incomming - too_old
         return diff if diff > 0 else 0
             
     def __contains__(self, other):
@@ -109,7 +109,7 @@ class RelayRoute(object):
     @property
     def ping_time_remaining(self):
         too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
-        diff = self.last_incoming - too_old
+        diff = self.last_incomming - too_old
         return diff if diff > 0 else 0
 
 class ProxyCommunity(Community):
@@ -318,9 +318,11 @@ class ProxyCommunity(Community):
     def on_break(self, circuit_id, candidate, message):
         self._break_circuit(circuit_id)
         
-    def _break_circuit(self, circuit_id):
+    def _break_circuit(self, circuit_id, additional_info = ''):
+        assert isinstance(circuit_id, (long, int)), type(circuit_id)
+        
         if circuit_id in self.circuits:
-            logger.info("Breaking circuit %d", circuit_id)
+            logger.info("Breaking circuit %d " +additional_info, circuit_id)
 
             # Delete from data structures
             if self.circuits[circuit_id].extend_strategy:
@@ -373,7 +375,7 @@ class ProxyCommunity(Community):
 
         def on_timeout(self):
             if not self.circuit.state == CIRCUIT_STATE_READY:
-                self.community._break_circuit(self.number)
+                self.community._break_circuit(self.number, 'timeout on CircuitRequestCache, state = %s'%self.circuit.state)
 
     def create_circuit(self, first_hop_candidate, extend_strategy=None):
         """ Create a new circuit, with one initial hop """
@@ -426,8 +428,6 @@ class ProxyCommunity(Community):
             )
             
             return True
-        
-        logger.error("Cannot route CREATED packet, probably concurrency overwrote routing rules!")
         return False
 
     def on_data(self, circuit_id, candidate, message):
@@ -450,10 +450,7 @@ class ProxyCommunity(Community):
             self.exit_data(circuit_id, candidate, message.destination, message.data)
             
             return True
-        
         return False
-    
-    
         
     def on_extend(self, circuit_id, candidate, message):
         """ Upon reception of a EXTEND message the message
@@ -467,7 +464,7 @@ class ProxyCommunity(Community):
             logger.warning("We might be sending a CREATE to someone we don't know, sending to %s:%d!", message.host, message.port)
         else:
             extend_with = next(
-                (x for x in self.community.dispersy_yield_verified_candidates()
+                (x for x in self.dispersy_yield_verified_candidates()
                  if x and x != candidate),
                 None
             )
@@ -589,7 +586,7 @@ class ProxyCommunity(Community):
     def ping_circuits(self):
         while True:
             try:
-                to_be_removed = [self._break_circuit(circuit) for circuit in self.circuits.values() if circuit.ping_time_remaining == 0]
+                to_be_removed = [self._break_circuit(circuit.circuit_id, 'did not respond to ping') for circuit in self.circuits.values() if circuit.ping_time_remaining == 0]
                 assert all(to_be_removed)
                 
                 to_be_pinged = [circuit for circuit in self.circuits.values() if circuit.ping_time_remaining < PING_INTERVAL]
