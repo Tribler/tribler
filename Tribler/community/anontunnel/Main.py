@@ -27,8 +27,8 @@ def main(argv):
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-y', '--yappi', help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
         parser.add_argument('-c', '--cmd', help='The command UDP port to listen on')
-        parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
-        parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
+        parser.add_argument('-l', '--length-strategy', default='', nargs='*', help='Circuit length strategy')
+        parser.add_argument('-s', '--select-strategy', default='', nargs='*', help='Circuit selection strategy')
         parser.add_argument('-e', '--extend-strategy', default='upfront', help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_argument('--record-on-incoming', help='Record stats from the moment the first data enters the tunnel')
@@ -71,42 +71,43 @@ def main(argv):
 
     if args.record_on_incoming:
         def on_enter_tunnel_data_head(ultimate_destination, payload):
-            anon_tunnel.tunnel.record_stats = True
+            anon_tunnel.community.record_stats = True
         anon_tunnel.socks5_server.once("enter_tunnel_data", on_enter_tunnel_data_head)
 
     # Set extend strategy
     if args.extend_strategy == 'upfront':
-        anon_tunnel.tunnel.extend_strategy = RandomAPriori
+        anon_tunnel.community.extend_strategy = RandomAPriori
         logger.error("EXTEND STRATEGY UPFRONT: We will decide with whom created circuits are extended upfront")
+        
     elif args.extend_strategy == 'delegate':
         logger.error("EXTEND STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
-        anon_tunnel.tunnel.extend_strategy = TrustThyNeighbour
+        anon_tunnel.community.extend_strategy = TrustThyNeighbour
     else:
         raise ValueError("extend_strategy must be either random or delegate")
 
     # Circuit length strategy
-    if args.length_strategy[:1] == ['random']:
+    if args.length_strategy == 'random':
         strategy = RandomCircuitLengthStrategy(*args.length_strategy[1:])
-        anon_tunnel.tunnel.circuit_length_strategy = strategy
+        anon_tunnel.community.circuit_length_strategy = strategy
         logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
-    elif args.length_strategy[:1] == ['constant']:
+        
+    elif args.length_strategy == 'constant':
         strategy = ConstantCircuitLengthStrategy(*args.length_strategy[1:])
-        anon_tunnel.tunnel.circuit_length_strategy = strategy
+        anon_tunnel.community.circuit_length_strategy = strategy
         logger.error("Using ConstantCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
 
-
     # Circuit selection strategies
-    if args.select_strategy[:1] == ['random']:
+    if args.select_strategy == 'random':
         strategy = RandomSelectionStrategy(*args.select_strategy[1:])
-        anon_tunnel.tunnel.circuit_selection_strategy = strategy
+        anon_tunnel.community.circuit_selection_strategy = strategy
         logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
-    elif args.select_strategy[:1] == ['length']:
+        
+    elif args.select_strategy == 'length':
         strategy = LengthSelectionStrategy(*args.select_strategy[1:])
-        anon_tunnel.tunnel.circuit_selection_strategy = strategy
+        anon_tunnel.community.circuit_selection_strategy = strategy
         logger.error("Using LengthSelectionStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
 
     anon_tunnel.start()
-
     regex_cmd_extend_circuit = re.compile("e ?([0-9]+)\n")
 
     while 1:
@@ -149,7 +150,7 @@ def main(argv):
 
         elif line == 'c\n':
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tIN (kBps)\tOUT (kBps)"
-            for circuit in anon_tunnel.tunnel.circuits.values():
+            for circuit in anon_tunnel.community.circuits.values():
                 if circuit.created:
                     print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
                         circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
@@ -165,9 +166,9 @@ def main(argv):
         elif cmd_extend_match:
             circuit_id = int(cmd_extend_match.group(1))
 
-            if circuit_id in anon_tunnel.tunnel.circuits:
-                circuit = anon_tunnel.tunnel.circuits[circuit_id]
-                anon_tunnel.tunnel.extend_circuit(circuit)
+            if circuit_id in anon_tunnel.community.circuits:
+                circuit = anon_tunnel.community.circuits[circuit_id]
+                anon_tunnel.community.extend_circuit(circuit)
 
         elif line == 'q\n':
             anon_tunnel.stop()

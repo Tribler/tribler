@@ -1308,7 +1308,7 @@ class Anonymity(wx.Panel):
 
     def OnUpdateCircuits(self, event):
         circuits = self.socks_server.tunnel.get_circuits()
-        self.circuits = dict((circuit.id, circuit) for circuit in circuits)
+        self.circuits = dict((circuit.circuit_id, circuit) for circuit in circuits)
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -1356,9 +1356,9 @@ class Anonymity(wx.Panel):
     @forceWxThread
     def OnExtended(self, subject, changeType, circuit):
         if changeType == NTFY_CREATED:
-            self.log_text.AppendText("Created circuit %s with %s:%d\n" % (circuit.id, circuit.hops[-1][0], circuit.hops[-1][1]))
+            self.log_text.AppendText("Created circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1][0], circuit.hops[-1][1]))
         if changeType == NTFY_EXTENDED:
-            self.log_text.AppendText("Extended circuit %s with %s:%d\n" % (circuit.id, circuit.hops[-1][0], circuit.hops[-1][1]))
+            self.log_text.AppendText("Extended circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1][0], circuit.hops[-1][1]))
         if changeType == NTFY_BROKEN:
             self.log_text.AppendText("Circuit %d has been broken\n" % circuit)
 

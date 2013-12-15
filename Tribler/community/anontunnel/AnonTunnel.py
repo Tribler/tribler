@@ -37,10 +37,6 @@ class AnonTunnel(Thread):
 
         self.endpoint = HackyEndpoint(self.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
-        self.tunnel = DispersyTunnelProxy(self.raw_server)
-        self.socks5_server.tunnel = self.tunnel
-
-        self.stats_crawler = StatsCrawler(self.tunnel, self.raw_server) if crawl else None
 
         if cmd_port:
             self.command_handler = CommandHandler(self)
@@ -48,49 +44,46 @@ class AnonTunnel(Thread):
 
         self.community = None
 
-
     def run(self):
         self.dispersy.start()
         logger.error("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
         def join_overlay(dispersy):
-            def on_ready(proxy_community):
-                self.tunnel.start(self.callback, proxy_community)
-                self.socks5_server.start()
-
-            dispersy.define_auto_load(ProxyCommunity,
-                                     (self.dispersy.get_new_member(), on_ready),
+            proxy_community = dispersy.define_auto_load(ProxyCommunity,
+                                     (self.dispersy.get_new_member()),
                                      load=True)
+            
+            self.socks5_server.tunnel = proxy_community[0]
+            self.socks5_server.start()
+            
+            return proxy_community[0]
 
         self.community = self.dispersy.callback.call(join_overlay, (self.dispersy,))
-        '" :type : Tribler.community.anontunnel.DispersyTunnelProxy.DispersyTunnelProxy "'
+        '" :type : Tribler.community.anontunnel.community.ProxyCommunity "'
 
         def speed_stats():
-            print
             t1 = None
             bytes_exit = 0
             bytes_enter = 0
             bytes_relay = 0
 
             while True:
-                tunnel = self.socks5_server.tunnel
-
                 t2 = time.time()
-                if tunnel and t1 and t2 > t1:
-                    speed_exit = (tunnel.stats['bytes_exit'] - bytes_exit) / (t2 - t1)
-                    bytes_exit = tunnel.stats['bytes_exit']
+                if self.community and t1 and t2 > t1:
+                    speed_exit = (self.community.stats['bytes_exit'] - bytes_exit) / (t2 - t1)
+                    bytes_exit = self.community.stats['bytes_exit']
 
-                    speed_enter = (tunnel.stats['bytes_enter'] - bytes_enter) / (t2 - t1)
-                    bytes_enter = tunnel.stats['bytes_enter']
+                    speed_enter = (self.community.stats['bytes_enter'] - bytes_enter) / (t2 - t1)
+                    bytes_enter = self.community.stats['bytes_enter']
 
-                    relay_2 = sum([r.bytes[1] for r in tunnel.relay_from_to.values()])
+                    relay_2 = sum([r.bytes[1] for r in self.community.relay_from_to.values()])
 
                     speed_relay = (relay_2 - bytes_relay) / (t2 - t1)
                     bytes_relay = relay_2
-                    active_circuits = len(tunnel.active_circuits)
-                    num_routes = len(tunnel.relay_from_to) / 2
+                    active_circuits = len(self.community.active_circuits)
+                    num_routes = len(self.community.relay_from_to) / 2
 
-                    print "\r%s EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s using %d circuits and %d duplex routing rules. Average data packet size is %s bytes" % ("ONLINE" if tunnel.online else "OFFLINE", speed_exit / 1024.0, speed_enter/ 1024.0, speed_relay / 1024.0, active_circuits, num_routes, tunnel.stats['packet_size']),
+                    print "\r%s EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s using %d circuits and %d duplex routing rules. Average data packet size is %s bytes" % ("ONLINE" if self.community.online else "OFFLINE", speed_exit / 1024.0, speed_enter/ 1024.0, speed_relay / 1024.0, active_circuits, num_routes, self.community.stats['packet_size']),
 
                 t1 = t2
                 yield 1.0
@@ -99,9 +92,6 @@ class AnonTunnel(Thread):
         self.raw_server.listen_forever(None)
 
     def stop(self):
-        if self.stats_crawler:
-            self.raw_server.add_task(lambda: self.stats_crawler.stop())
-
         if self.dispersy:
             self.dispersy.stop()
 
