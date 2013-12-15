@@ -104,7 +104,7 @@ class RelayRoute(object):
 
         self.online = False
 
-        self.last_incomming = time.time()
+        self.last_incomming = time()
         
     @property
     def ping_time_remaining(self):
@@ -439,7 +439,7 @@ class ProxyCommunity(Community):
             and message.destination == ("0.0.0.0", 0) \
             and candidate == self.circuits[circuit_id].candidate:
             
-            self.circuits[circuit_id].last_incomming = time.time()
+            self.circuits[circuit_id].last_incomming = time()
             self.circuits[circuit_id].bytes_down[1] += len(message.data)
             self.stats['bytes_returned'] += len(message.data)
             
