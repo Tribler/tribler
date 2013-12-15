@@ -84,26 +84,6 @@ class Circuit:
         too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
         diff = self.last_incoming - too_old
         return diff if diff > 0 else 0
-        
-    def created(self, candidate, created_message):
-        if self.state == CIRCUIT_STATE_EXTENDING:
-            self.extend_strategy.extend()
-        
-        if self.community.notifier:
-            from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_CREATED
-            self.community.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, self)
-        
-    def extended(self, candidate, extended_message):
-        self.hops.append(extended_message.extended_with)
-        
-        if self.state == CIRCUIT_STATE_EXTENDING:
-            self.extend_strategy.extend()
-        elif self.state == CIRCUIT_STATE_READY:
-            logger.debug("Circuit %d is ready", self.circuit_id)
-            
-        if self.community.notifier:
-            from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED
-            self.community.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, self)
             
     def __contains__(self, other):
         if isinstance(other, Candidate):
@@ -336,6 +316,9 @@ class ProxyCommunity(Community):
                 self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type])
     
     def on_break(self, circuit_id, candidate, message):
+        self._break_circuit(circuit_id)
+        
+    def _break_circuit(self, circuit_id):
         if circuit_id in self.circuits:
             logger.info("Breaking circuit %d", circuit_id)
 
@@ -346,18 +329,64 @@ class ProxyCommunity(Community):
 
             return True
         return False
+    
+    class CircuitRequestCache(IntroductionRequestCache):
+        @staticmethod
+        def create_identifier(number):
+            assert isinstance(number, (int, long)), type(number)
+            return u"request-cache:circuit-request:%d" % (number,)
+        
+        def __init__(self, community):
+            IntroductionRequestCache.__init__(self, community, None)
+
+        @property
+        def cleanup_delay(self):
+            return 0.0
+
+        def on_created(self):
+            if self.circuit.state == CIRCUIT_STATE_EXTENDING:
+                self.circuit.extend_strategy.extend()
+            elif self.circuit.state == CIRCUIT_STATE_READY:
+                self.on_success()
+        
+            if self.community.notifier:
+                from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_CREATED
+                self.community.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, self.circuit)
+            
+        def on_extended(self, extended_message):
+            self.circuit.hops.append(extended_message.extended_with)
+        
+            if self.circuit.state == CIRCUIT_STATE_EXTENDING:
+                self.circuit.extend_strategy.extend()
+                
+            elif self.circuit.state == CIRCUIT_STATE_READY:
+                self.on_success()
+                
+            if self.community.notifier:
+                from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED
+                self.community.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, self.circuit)
+                
+        def on_success(self):
+            if self.circuit.state == CIRCUIT_STATE_READY:
+                logger.debug("Circuit %d is ready", self.number)
+                self.community._dispersy._callback.register(self.community._request_cache.pop, args = (self.identifier,))
+
+        def on_timeout(self):
+            if not self.circuit.state == CIRCUIT_STATE_READY:
+                self.community._break_circuit(self.number)
 
     def create_circuit(self, first_hop_candidate, extend_strategy=None):
         """ Create a new circuit, with one initial hop """
-        circuit_id = self._generate_circuit_id(first_hop_candidate)
+        
+        cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self))
 
         goal_hops = self.circuit_length_strategy.circuit_length()
-        circuit = Circuit(self, circuit_id, goal_hops, first_hop_candidate)
-        circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit) 
-        self.circuits[circuit_id] = circuit
+        circuit = cache.circuit = Circuit(self, cache.number, goal_hops, first_hop_candidate)
+        circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
+        self.circuits[circuit.circuit_id] = circuit
         
         logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit.circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
-        self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage())
+        self.send_message(first_hop_candidate, circuit.circuit_id, MESSAGE_CREATE, CreateMessage())
         return circuit
 
     def on_create(self, circuit_id, candidate, message):
@@ -372,14 +401,12 @@ class ProxyCommunity(Community):
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
-        relay_key = (candidate, circuit_id)
-        
-        if circuit_id in self.circuits:
-            circuit = self.circuits[circuit_id]
-            circuit.created(candidate, message)
-            
+        request = self._dispersy._callback.call(self._request_cache.get, args = (ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
+        if request:
+            request.on_created()
             return True
-
+        
+        relay_key = (candidate, circuit_id)
         if relay_key in self.relay_from_to:
             created_to = candidate
             created_for = self.relay_from_to[(created_to, circuit_id)]
@@ -425,6 +452,8 @@ class ProxyCommunity(Community):
             return True
         
         return False
+    
+    
         
     def on_extend(self, circuit_id, candidate, message):
         """ Upon reception of a EXTEND message the message
@@ -466,8 +495,9 @@ class ProxyCommunity(Community):
             to the origin of the EXTEND. If we are the origin update
             our records. """
 
-        if circuit_id in self.circuits:
-            self.circuits[circuit_id].extended(candidate, message)
+        request = self._dispersy._callback.call(self._request_cache.get, args = (ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
+        if request:
+            request.on_extended(message)
             return True
         
         return False
@@ -559,6 +589,9 @@ class ProxyCommunity(Community):
     def ping_circuits(self):
         while True:
             try:
+                to_be_removed = [self._break_circuit(circuit) for circuit in self.circuits.values() if circuit.ping_time_remaining == 0]
+                assert all(to_be_removed)
+                
                 to_be_pinged = [circuit for circuit in self.circuits.values() if circuit.ping_time_remaining < PING_INTERVAL]
                 to_be_pinged += [relay for relay in self.relay_from_to.values() if relay.ping_time_remaining < PING_INTERVAL]
                 
