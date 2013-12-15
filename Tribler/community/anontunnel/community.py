@@ -560,12 +560,10 @@ class ProxyCommunity(Community):
         while True:
             try:
                 to_be_pinged = [circuit for circuit in self.circuits.values() if circuit.ping_time_remaining < PING_INTERVAL]
-                
-                to_be_pinged = [circuit for circuit in self.circuits.values() if circuit.ping_time_remaining < PING_INTERVAL]
                 to_be_pinged += [relay for relay in self.relay_from_to.values() if relay.ping_time_remaining < PING_INTERVAL]
                 
-                ping_candidates = [obj.candidate for obj in to_be_pinged]
-                ping_ids = [obj.circuit_id for obj in to_be_pinged]
+                ping_candidates = [obj.candidate for obj in to_be_pinged if obj.candidate]
+                ping_ids = [obj.circuit_id for obj in to_be_pinged if obj.candidate]
                 self.create_ping(ping_candidates, ping_ids)
             except:
                 print_exc()

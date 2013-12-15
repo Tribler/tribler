@@ -1372,7 +1372,7 @@ class Anonymity(wx.Panel):
 
     @forceWxThread
     def OnJoined(self, subject, changeType, address, circuit_id):
-        self.log_text.AppendText("Joined an external circuit %d with %s:%d\n" % (circuit_id, address.sock_addr[0], address.sock_addr[1]))
+        self.log_text.AppendText("Joined an external circuit %d with %s:%d\n" % (circuit_id, address[0], address[1]))
 
     @forceWxThread
     def OnExtendedFor(self, subject, changeType, extended_for, extended_with):
