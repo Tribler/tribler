@@ -98,9 +98,9 @@ class StatsCrawler(TunnelObserver):
 
             self.conn.commit()
 
-            logger.warning("Storing stats data off %s:%d" % sock_address)
+            logger.warning("Storing stats data of %s:%d" % sock_address)
         except sqlite3.IntegrityError as e:
-            logger.exception("Error while storing stats")
+            logger.error("Stat already exists of %s:%d"  % sock_address)
         except BaseException as e:
             logger.exception(e)
 

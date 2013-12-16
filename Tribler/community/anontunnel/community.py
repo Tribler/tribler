@@ -410,7 +410,9 @@ class ProxyCommunity(Community):
 
         logger.warning("Sending stats")
         self.dispersy.store_update_forward([record], True, False, True)
-        
+
+    def send_stats(self):
+        self.dispersy.callback.register(self.__send_stats)
 
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
@@ -424,7 +426,7 @@ class ProxyCommunity(Community):
         relay_key = (candidate, circuit_id)
         packet_type = self.proxy_conversion.get_type(data)
 
-        logger.debug("GOT %s from %s:%d over circuit %d", MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % packet_type), candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+        logger.debug("GOT %s from %s:%d over circuit %d", MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type)), candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
         # First, relay packet if we know whom to forward message to for this circuit
         if circuit_id > 0 and relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
@@ -443,15 +445,18 @@ class ProxyCommunity(Community):
 
         # We don't know where to relay this message to, must be for me?
         else:
-            _, payload = self.proxy_conversion.decode(data)
-            if circuit_id in self.circuits:
-                self.circuits[circuit_id].last_incomming = time()
+            try:
+                _, payload = self.proxy_conversion.decode(data)
+                if circuit_id in self.circuits:
+                    self.circuits[circuit_id].last_incomming = time()
 
-            if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
-                self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type] + '-ignored')
-                logger.debug("Prev message was IGNORED")
-            else:
-                self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type])
+                if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
+                    self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type] + '-ignored')
+                    logger.debug("Prev message was IGNORED")
+                else:
+                    self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type])
+            except Exception as e:
+                logger.error("ERROR %s from %s:%d over circuit %d", ord(packet_type), candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
     class CircuitRequestCache(NumberCache):
 
@@ -868,6 +873,9 @@ class ProxyCommunity(Community):
 
                 if origin is None:
                     self.circuits[circuit_id].bytes_up[1] += len(payload)
+
+                if not ultimate_destination:
+                    ultimate_destination = ("0.0.0.0", 0)
 
                 logger.debug("Sending data with origin %s to %s over circuit %d with ultimate destination %s:%d",
                             origin, address, circuit_id, *ultimate_destination)
