@@ -1,4 +1,4 @@
-import random
+from random import randint
 
 __author__ = 'chris'
 
@@ -17,7 +17,7 @@ class RandomCircuitLengthStrategy(CircuitLengthStrategy):
         self.max = int(max)
 
     def circuit_length(self):
-        return random.randrange(self.min, self.max)
+        return randint(self.min, self.max)
 
 
 class ConstantCircuitLengthStrategy(CircuitLengthStrategy):

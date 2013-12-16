@@ -16,8 +16,6 @@ import glob
 import sys
 import logging
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig
-from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
-from Tribler.community.anontunnel.TriblerNotifier import TriblerNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -416,6 +414,7 @@ class ABCApp():
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
+    # TODO: this has to be moved, we cannot pollute the main.py file with stuff like this
     def setup_anon_test(self):
         if not self.tunnel or not self.frame:
             return
@@ -576,19 +575,12 @@ class ABCApp():
         socks_server = Socks5Server()
         socks_server.attach_to(s.lm.rawserver, 1080)
 
-        # Yep there is a cyclic dependency!
-        tunnel = DispersyTunnelProxy(s.lm.rawserver)
-        socks_server.tunnel = tunnel
-        socks_server.start()
-
-        TriblerNotifier(tunnel)
-
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
-            from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
+            from Tribler.community.anontunnel.community import ProxyCommunity
 
             print >> sys.stderr, "tribler: Preparing communities..."
             now = time()
@@ -613,22 +605,20 @@ class ABCApp():
             #dispersy.define_auto_load(ChannelCommunity, load=True)
             #dispersy.define_auto_load(PreviewChannelCommunity)
 
-            def on_load(proxy_community):
-                print >> sys.stderr, "ProxyCommunity has been loaded, linking TUNNEL, starting TEST"
-                tunnel.start(dispersy.callback, proxy_community)
-                self.tunnel = tunnel
-                self.setup_anon_test()
-
-
-            dispersy.define_auto_load(ProxyCommunity,
-                                     (s.dispersy_member, on_load),
+            proxy_community = dispersy.define_auto_load(ProxyCommunity,
+                                     (s.dispersy_member,),
                                      load=True)
+            
+            socks_server.tunnel = proxy_community[0]
+            socks_server.start()
 
             print >> sys.stderr, "tribler: Dispersy communities are ready"
 
-        swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
+        
+        self.setup_anon_test()
+        
         return s, socks_server
 
     def configure_install_dir(self, installdir):

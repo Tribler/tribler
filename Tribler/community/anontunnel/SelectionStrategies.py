@@ -1,18 +1,19 @@
 import random
 
-r = random.Random(500)
+r = random.Random()
 
 __author__ = 'chris'
-
-
 class SelectionStrategy:
+    
     def __init__(self):
         pass
 
     def select(self, circuits_to_select_from):
         pass
 
+
 class RandomSelectionStrategy(SelectionStrategy):
+    
     def __init__(self, min_population_size):
         SelectionStrategy.__init__(self)
         self.min_population_size = min_population_size
@@ -29,8 +30,8 @@ class RandomSelectionStrategy(SelectionStrategy):
         return circuit
 
 
-
 class LengthSelectionStrategy(SelectionStrategy):
+    
     def __init__(self, min, max, random=True):
         self.min = int(min)
         self.max = int(max)

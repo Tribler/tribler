@@ -8,7 +8,6 @@ import logging
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
 from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
 from Tribler.community.anontunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
-from Tribler.community.anontunnel.Observable import Observable
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +17,22 @@ from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 
 import Socks5.structs
 
+class Socks5Server:
+    
+    def __init__(self):
+        self._tunnel = None
+        self._accept_incoming = False
 
-class Socks5Server(Observable):
+        self.socket2connection = {}
+        self.socks5_port = None
+        self.raw_server = None
+
+        self.udp_relay_socket = None
+        self.bound = False
+
+        self.routes = {}
+        self.udp_relays = {}
+    
     @property
     def accept_incoming(self):
         return self._accept_incoming
@@ -42,7 +55,7 @@ class Socks5Server(Observable):
 
     @property
     def tunnel(self):
-        ''' :rtype : DispersyTunnelProxy '''
+        ''' :rtype : ProxyCommunity '''
         return self._tunnel
 
     @tunnel.setter
@@ -50,56 +63,20 @@ class Socks5Server(Observable):
         self._tunnel = value
         self._tunnel.subscribe("on_data", self.on_tunnel_data)
 
-        if self.bound:
-            self.bind_events()
-
-    def bind_events(self):
-        def accept_incoming():
-            self.accept_incoming = True
-
-        def disconnect_socks():
-                self.accept_incoming = False
-
-        self._tunnel.subscribe("on_ready", accept_incoming)
-        self._tunnel.subscribe("on_down", disconnect_socks)
-
-    def __init__(self):
-        Observable.__init__(self);
-        self._tunnel = None
-
-        self._accept_incoming = False
-
-        self.socket2connection = {}
-        self.socks5_port = None
-        self.raw_server = None
-
-        self.udp_relay_socket = None
-        self.bound = False
-
-        self.routes = {}
-        self.udp_relays = {}
-
     def attach_to(self, raw_server, socks5_port=1080):
         self.socks5_port = socks5_port
         self.raw_server = raw_server
-
 
     def start(self):
         if self.socks5_port:
             try:
                 port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
                                                      reuse=True, handler=self)
-                if self.tunnel:
-                    self.bind_events()
 
-                logger.error("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
+                logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
             except socket.error:
                 logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
                              self.socks5_port)
-
-
-    def add_task(self, func, t):
-        self.raw_server.add_task(func, t)
 
     def start_connection(self, dns):
         return self.raw_server.start_connection_raw(dns, handler=self.connection_handler)
@@ -157,7 +134,7 @@ class Socks5Server(Observable):
     def external_connection_made(self, s):
         # Extra check in case bind() no work
 
-        if not self.accept_incoming:
+        if not self.community._tunnel:
             s.close()
             return
 
@@ -185,6 +162,8 @@ class Socks5Server(Observable):
         logger.info("Connection lost")
 
         tcp_connection = self.socket2connection[s]
+        
+        #TODO: this one seems dangerous
         self.tunnel.clear_state()
 
         try:
