@@ -315,10 +315,6 @@ class ProxyCommunity(Community):
         relay_key = (candidate, circuit_id)
         packet_type = self.proxy_conversion.get_type(data)
 
-        # TODO: remove this line
-        if packet_type == chr(6):
-            return
-
         logger.debug("GOT %s from %s:%d over circuit %d", MESSAGE_STRING_REPRESENTATION[packet_type], candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
         # First, relay packet if we know whom to forward message to for this circuit
@@ -342,7 +338,7 @@ class ProxyCommunity(Community):
             if circuit_id in self.circuits:
                 self.circuits[circuit_id].last_incomming = time()
 
-            if not self.on_custom[packet_type](circuit_id, candidate, payload):
+            if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
                 self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type] + '-ignored')
                 logger.debug("Prev message was IGNORED")
             else:
@@ -352,7 +348,7 @@ class ProxyCommunity(Community):
 
         @staticmethod
         def create_number(force_number= -1):
-            return force_number if force_number >= 0 else IntroductionRequestCache.create_number()
+            return force_number if force_number >= 0 else NumberCache.create_number()
 
         @staticmethod
         def create_identifier(number, force_number= -1):
@@ -561,7 +557,7 @@ class ProxyCommunity(Community):
 
         @staticmethod
         def create_number(force_number= -1):
-            return force_number if force_number >= 0 else IntroductionRequestCache.create_number()
+            return force_number if force_number >= 0 else NumberCache.create_number()
 
         @staticmethod
         def create_identifier(number, force_number= -1):
@@ -668,7 +664,7 @@ class ProxyCommunity(Community):
                 self.circuit_selection_strategy.try_select(self.active_circuits)
                 self.online = True
 
-            except BaseException:
+            except ValueError:
                 self.online = False
 
             finally:
