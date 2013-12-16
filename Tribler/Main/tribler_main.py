@@ -556,9 +556,13 @@ class ABCApp():
         def state_call(download):
             def _callback(ds):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
-
                     if not _callback.download_started_at:
                         _callback.download_started_at = time_module.time()
+
+                    tunnel.download_stats = {
+                        'size': ds.get_progress() * ds.get_length(),
+                        'download_time': time_module.time() - _callback.download_started_at
+                    }
 
                     if not _callback.peer_added:
                         _callback.peer_added = True

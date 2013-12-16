@@ -1,8 +1,11 @@
 import logging
 import socket
 from threading import RLock
+import uuid
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
 from Tribler.dispersy.requestcache import NumberCache
+from Tribler.community.channel.community import forceDispersyThread
+
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
@@ -11,6 +14,7 @@ from Tribler.community.anontunnel import ExtendStrategies
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
 from traceback import print_exc
+from Tribler.dispersy.dispersy import IntroductionRequestCache
 
 from time import time
 
@@ -32,11 +36,12 @@ from Tribler.dispersy.resolution import PublicResolution
 
 class ProxySettings:
     def __init__(self):
-        length = 1  # randint(1, 4)
+        length = randint(1, 4)
 
         self.extend_strategy = ExtendStrategies.TrustThyNeighbour
         self.select_strategy = RandomSelectionStrategy(1)
         self.length_strategy = ConstantCircuitLengthStrategy(length)
+
 
 class TunnelObserver():
     def on_state_change(self, community, state):
@@ -176,6 +181,31 @@ class ProxyCommunity(Community):
             for o in self.__observers:
                 o.on_state_change(self, value)
 
+    @property
+    def record_stats(self):
+        return self._record_stats
+
+    @record_stats.setter
+    def record_stats(self, value):
+        previous_value = self._record_stats
+        self._record_stats = value
+
+        # clear old stats before recording new ones
+        if value and not previous_value:
+            with self.lock:
+                for circuit in self.active_circuits:
+                    circuit.bytes_down_list = circuit.bytes_down_list[:-1]
+                    circuit.bytes_up_list = circuit.bytes_up_list[:-1]
+
+                    circuit.times = [circuit.timestamp]
+
+                for relay in self.relay_from_to.values():
+                    relay.bytes_list = relay.bytes_list[:-1]
+
+                    relay.times = [relay.timestamp]
+
+                logger.error("Recording stats from NOW")
+
     def __init__(self, dispersy, master_member, raw_server, settings=None, integrate_with_tribler=True):
         Community.__init__(self, dispersy, master_member)
 
@@ -210,6 +240,11 @@ class ProxyCommunity(Community):
             'packet_size': 0
         }
 
+        self._record_stats = False
+        self.download_stats = None
+        self.session_id = uuid.uuid4()
+
+        
         self.circuit_length_strategy = settings.length_strategy
         self.circuit_selection_strategy = settings.select_strategy
         self.extend_strategy = settings.extend_strategy
@@ -223,6 +258,7 @@ class ProxyCommunity(Community):
 
         dispersy._callback.register(self.check_ready)
         dispersy._callback.register(self.ping_circuits)
+        dispersy._callback.register(self.calc_speeds)
 
         if integrate_with_tribler:
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -235,6 +271,11 @@ class ProxyCommunity(Community):
         self.__observers.append(observer)
 
         observer.on_state_change(self, self.online)
+
+    def unload_community(self):
+        Community.unload_community(self)
+
+        self.send_stats()
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ProxyConversion(self)]
@@ -294,17 +335,85 @@ class ProxyCommunity(Community):
             for o in self.__observers:
                 o.on_tunnel_stats(self, message.candidate, message.payload.stats)
 
-    def send_stats(self, stats):
+    def calc_speeds(self):
+        while True:
+            t2 = time()
+            for c in self.circuits.values():
+                if c.timestamp is None:
+                    c.timestamp = time()
+                elif c.timestamp < t2:
+
+                    if self.record_stats and (
+                            len(c.bytes_up_list) == 0 or c.bytes_up[-1] != c.bytes_up_list[-1] and c.bytes_down[
+                        -1] != c.bytes_down_list[-1]):
+                        c.bytes_up_list.append(c.bytes_up[-1])
+                        c.bytes_down_list.append(c.bytes_down[-1])
+                        c.times.append(t2)
+
+                    c.speed_up = 1.0 * (c.bytes_up[1] - c.bytes_up[0]) / (t2 - c.timestamp)
+                    c.speed_down = 1.0 * (c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp)
+
+                    c.timestamp = t2
+                    c.bytes_up = [c.bytes_up[1], c.bytes_up[1]]
+                    c.bytes_down = [c.bytes_down[1], c.bytes_down[1]]
+
+            for r in self.relay_from_to.values():
+                if r.timestamp is None:
+                    r.timestamp = time()
+                elif r.timestamp < t2:
+
+                    if self.record_stats and (len(r.bytes_list) == 0 or r.bytes[-1] != r.bytes_list[-1]):
+                        r.bytes_list.append(r.bytes[-1])
+                        r.times.append(t2)
+
+                    r.speed = 1.0 * (r.bytes[1] - r.bytes[0]) / (t2 - r.timestamp)
+                    r.timestamp = t2
+                    r.bytes = [r.bytes[1], r.bytes[1]]
+
+            yield 1.0
+
+    def _create_stats(self):
+        stats = {
+            'uuid': str(self.session_id),
+            'swift': self.download_stats,
+            'bytes_enter': self.stats['bytes_enter'],
+            'bytes_exit': self.stats['bytes_exit'],
+            'bytes_return': self.stats['bytes_returned'],
+            'circuits': [
+                {
+                    'hops': len(c.hops),
+                    'bytes_down': c.bytes_down_list[-1] - c.bytes_down_list[0],
+                    'bytes_up': c.bytes_up_list[-1] - c.bytes_up_list[0],
+                    'time': c.times[-1] - c.times[0]
+                }
+                for c in self.get_circuits()
+                if len(c.times) >= 2
+            ],
+            'relays': [
+                {
+                    'bytes': r.bytes_list[-1],
+                    'time': r.times[-1] - r.times[0]
+                }
+                for r in self.relay_from_to.values()
+                if r.times and len(r.times) >= 2
+            ]
+        }
+
+        return stats
+
+    def __send_stats(self):
+        stats = self._create_stats()
         meta = self.get_meta_message(u"stats")
         record = meta.impl(authentication=(self._my_member,),
                            distribution=(self.claim_global_time(),),
                            payload=(stats,))
 
+        logger.warning("Sending stats")
         self.dispersy.store_update_forward([record], True, False, True)
+        
 
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
-
     def on_bypass_message(self, sock_addr, packet):
         dispersy = self._dispersy
 
@@ -552,7 +661,7 @@ class ProxyCommunity(Community):
             request.on_extended(message)
             return True
         return False
-
+        
     class PingRequestCache(NumberCache):
 
         @staticmethod
@@ -608,8 +717,6 @@ class ProxyCommunity(Community):
         puncture_message = meta_puncture_request.impl(distribution=(self.global_time,),
                                                       destination=(introduce,), payload=(
                                                       message.sock_addr, message.sock_addr, randint(0, 2 ** 16)))
-
-        return self.dispersy.endpoint.send([introduce], [puncture_message.packet])
 
 
     # got introduction_request or introduction_response from candidate
