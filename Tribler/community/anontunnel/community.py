@@ -315,7 +315,7 @@ class ProxyCommunity(Community):
         relay_key = (candidate, circuit_id)
         packet_type = self.proxy_conversion.get_type(data)
 
-        logger.debug("GOT %s from %s:%d over circuit %d", MESSAGE_STRING_REPRESENTATION[packet_type], candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+        logger.debug("GOT %s from %s:%d over circuit %d", MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % packet_type), candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
         # First, relay packet if we know whom to forward message to for this circuit
         if circuit_id > 0 and relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
@@ -428,9 +428,9 @@ class ProxyCommunity(Community):
             return True
         return False
 
-    def remove_relay(self, relay_key):
+    def remove_relay(self, relay_key, additional_info=''):
         if relay_key in self.relay_from_to:
-            logger.info("Breaking relay %s:%d %d" % (relay_key[0][0], relay_key[0][1], relay_key[1]))
+            logger.info("Breaking relay %s:%d %d " + additional_info % (relay_key[0][0], relay_key[0][1], relay_key[1]))
 
             relay = self.relay_from_to[relay_key]
 
