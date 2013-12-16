@@ -62,11 +62,13 @@ class StatsCrawler(TunnelObserver):
         self.raw_server.add_task(init_sql)
 
     def on_tunnel_stats(self,  community, candidate, stats):
+        self.raw_server.add_task(lambda: self.on_stats(community, candidate, stats))
+
+    def on_stats(self, community, candidate, stats):
         sock_address = candidate.sock_addr
         cursor = self.conn.cursor()
 
         try:
-
             cursor.execute('''INSERT OR FAIL INTO result
                                 (session_id, time, host, port, swift_size, swift_time, bytes_enter, bytes_exit, bytes_returned)
                                 VALUES (?,DATETIME('now'),?,?,?,?,?,?,?)''',
@@ -98,7 +100,7 @@ class StatsCrawler(TunnelObserver):
 
             logger.warning("Storing stats data off %s:%d" % sock_address)
         except sqlite3.IntegrityError:
-            logger.info("Already stored this stat")
+            logger.error("Already stored this stat")
         except BaseException as e:
             logger.exception(e)
 

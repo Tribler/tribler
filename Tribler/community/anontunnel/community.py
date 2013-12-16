@@ -33,7 +33,7 @@ from Tribler.dispersy.resolution import PublicResolution
 
 class ProxySettings:
     def __init__(self):
-        length = randint(1, 4)
+        length = 1#randint(1, 4)
 
         self.extend_strategy = ExtendStrategies.TrustThyNeighbour
         self.select_strategy = RandomSelectionStrategy(1)
@@ -47,7 +47,7 @@ class TunnelObserver():
     def on_tunnel_data(self, community, origin, data):
         pass
 
-    def on_stats(self, community, candidate, stats):
+    def on_tunnel_stats(self, community, candidate, stats):
         pass
 
 class Circuit:
@@ -299,7 +299,7 @@ class ProxyCommunity(Community):
     def on_stats(self, messages):
         for message in messages:
             for o in self.__observers:
-                o.on_stats(self, message.candidate, message.payload.stats)
+                o.on_tunnel_stats(self, message.candidate, message.payload.stats)
         
     def send_stats(self, stats):
         meta = self.get_meta_message(u"stats")
