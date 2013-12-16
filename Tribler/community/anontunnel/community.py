@@ -3,7 +3,6 @@ import socket
 from threading import RLock
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
 from Tribler.dispersy.requestcache import NumberCache
-
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
@@ -12,12 +11,12 @@ from Tribler.community.anontunnel import ExtendStrategies
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
 from traceback import print_exc
-from Tribler.dispersy.dispersy import IntroductionRequestCache
 
 from time import time
 
 from Tribler.community.anontunnel.conversion import ProxyConversion, \
     CustomProxyConversion
+
 from Tribler.community.anontunnel.payload import StatsPayload, CreatedMessage, \
     PongMessage, CreateMessage, ExtendedWithMessage, PingMessage, DataMessage
 
@@ -31,7 +30,6 @@ from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 
-
 class ProxySettings:
     def __init__(self):
         length = 1  # randint(1, 4)
@@ -39,7 +37,6 @@ class ProxySettings:
         self.extend_strategy = ExtendStrategies.TrustThyNeighbour
         self.select_strategy = RandomSelectionStrategy(1)
         self.length_strategy = ConstantCircuitLengthStrategy(length)
-
 
 class TunnelObserver():
     def on_state_change(self, community, state):
@@ -190,7 +187,7 @@ class ProxyCommunity(Community):
         # Custom conversion
         self.prefix = 'f' * 22 + 'e'  # shouldn't this be "fffffffe".decode("HEX")?
         self.proxy_conversion = CustomProxyConversion(self.prefix)
-        self.on_custom = {MESSAGE_BREAK: self.on_break, MESSAGE_CREATE: self.on_create,
+        self.on_custom = {MESSAGE_CREATE: self.on_create,
                           MESSAGE_CREATED: self.on_created, MESSAGE_DATA: self.on_data, MESSAGE_EXTEND: self.on_extend,
                           MESSAGE_EXTENDED: self.on_extended, MESSAGE_PING: self.on_ping, MESSAGE_PONG: self.on_pong,
                           MESSAGE_PUNCTURE: self.on_puncture}
@@ -222,7 +219,7 @@ class ProxyCommunity(Community):
         self._exit_sockets = {}
         self.raw_server = raw_server
 
-        self.online = False
+        self._online = False
 
         dispersy._callback.register(self.check_ready)
         dispersy._callback.register(self.ping_circuits)
@@ -318,6 +315,10 @@ class ProxyCommunity(Community):
         relay_key = (candidate, circuit_id)
         packet_type = self.proxy_conversion.get_type(data)
 
+        # TODO: remove this line
+        if packet_type == chr(6):
+            return
+
         logger.debug("GOT %s from %s:%d over circuit %d", MESSAGE_STRING_REPRESENTATION[packet_type], candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
         # First, relay packet if we know whom to forward message to for this circuit
@@ -395,7 +396,7 @@ class ProxyCommunity(Community):
 
         def on_success(self):
             if self.circuit.state == CIRCUIT_STATE_READY:
-                logger.debug("Circuit %d is ready", self.number)
+                logger.info("Circuit %d is ready", self.number)
                 self.community._dispersy._callback.register(self.community._request_cache.pop, args=(self.identifier,))
 
         def on_timeout(self):
@@ -690,8 +691,7 @@ class ProxyCommunity(Community):
             yield PING_INTERVAL
 
     def exit_data(self, circuit_id, return_candidate, destination, data):
-        if __debug__:
-            logger.info("EXIT DATA packet to %s", destination)
+        logger.debug("EXIT DATA packet to %s", destination)
 
         self.stats['bytes_exit'] += len(data)
 
@@ -743,9 +743,7 @@ class ProxyCommunity(Community):
                         # Make sure the '0-hop circuit' is also a candidate for selection
                         circuit_id = self.circuit_selection_strategy.select(self.active_circuits).circuit_id
                         self.destination_circuit[ultimate_destination] = circuit_id
-                        logger.warning("SELECT %d for %s", circuit_id, ultimate_destination)
-#                        self.fire("circuit_select", destination=ultimate_destination, circuit_id=circuit_id)
-
+                        logger.info("SELECT circuit %d for %s:%d", circuit_id, *ultimate_destination)
 
                 # If chosen the 0-hop circuit OR if there are no other circuits act as EXIT node ourselves
                 if circuit_id == 0:
@@ -768,8 +766,7 @@ class ProxyCommunity(Community):
                 if origin is None:
                     self.circuits[circuit_id].bytes_up[1] += len(payload)
 
-                if __debug__:
-                    logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s",
-                                origin, address, circuit_id, ultimate_destination)
+                logger.debug("Sending data with origin %s to %s over circuit %d with ultimate destination %s:%d",
+                            origin, address, circuit_id, *ultimate_destination)
             except Exception, e:
                 logger.exception(e)
