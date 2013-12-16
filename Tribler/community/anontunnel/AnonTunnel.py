@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 from traceback import print_exc
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.community.anontunnel.ConnectionHandlers.CommandHandler import CommandHandler
-from Tribler.community.anontunnel.DispersyTunnelProxy import DispersyTunnelProxy
-from Tribler.community.anontunnel.ProxyCommunity import ProxyCommunity
+from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.community.anontunnel.Socks5Server import Socks5Server
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
@@ -20,8 +19,10 @@ from threading import Event, Thread
 
 
 class AnonTunnel(Thread):
-    def __init__(self, socks5_port, cmd_port, crawl=False):
+    def __init__(self, socks5_port, cmd_port, settings=None, crawl=False):
         Thread.__init__(self)
+        self.crawl = crawl
+        self.settings = settings
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
                                     600,
@@ -42,6 +43,7 @@ class AnonTunnel(Thread):
             self.command_handler = CommandHandler(self)
             self.command_handler.attach_to(self.raw_server, cmd_port)
 
+
         self.community = None
 
     def run(self):
@@ -50,11 +52,16 @@ class AnonTunnel(Thread):
 
         def join_overlay(dispersy):
             proxy_community = dispersy.define_auto_load(ProxyCommunity,
-                                     (self.dispersy.get_new_member()),
+                                     (self.dispersy.get_new_member(), self.raw_server, self.settings, False),
                                      load=True)
             
             self.socks5_server.tunnel = proxy_community[0]
             self.socks5_server.start()
+
+            self.community = proxy_community[0]
+
+            if self.crawl:
+                self.community.add_observer(StatsCrawler(self.raw_server))
             
             return proxy_community[0]
 

@@ -8,6 +8,8 @@ import logging
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
 from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
 from Tribler.community.anontunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
+from Tribler.community.anontunnel.Socks5 import structs
+from Tribler.community.anontunnel.community import TunnelObserver
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,7 @@ from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 
 import Socks5.structs
 
-class Socks5Server:
+class Socks5Server(object, TunnelObserver):
     
     def __init__(self):
         self._tunnel = None
@@ -55,13 +57,13 @@ class Socks5Server:
 
     @property
     def tunnel(self):
-        ''' :rtype : ProxyCommunity '''
+        ''' :rtype : Tribler.community.anontunnel.community.ProxyCommunity '''
         return self._tunnel
 
     @tunnel.setter
     def tunnel(self, value):
         self._tunnel = value
-        self._tunnel.subscribe("on_data", self.on_tunnel_data)
+        self.tunnel.add_observer(self)
 
     def attach_to(self, raw_server, socks5_port=1080):
         self.socks5_port = socks5_port
@@ -93,7 +95,23 @@ class Socks5Server:
 
         return udp_relay_socket
 
-    def on_tunnel_data(self, data):
+    def on_client_udp_packets(self, socket, packets):
+        for source_address, packet in packets:
+            request = structs.decode_udp_packet(packet)
+
+            self.udp_relays[source_address] = socket
+
+            if __debug__:
+                logger.info("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
+                            request.destination_address, request.destination_port)
+
+            self.routes[(request.destination_address, request.destination_port)] = source_address
+            self.tunnel.send_data(
+                ultimate_destination=(request.destination_address, request.destination_port),
+                payload=request.payload
+            )
+
+    def on_tunnel_data(self, community, source_address, data):
         # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
 
         # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP
@@ -104,11 +122,6 @@ class Socks5Server:
         # relay is created in response to UDP_ASSOCIATE request during the SOCKS5 initiation
 
         # The socket together with the destination address is enough to return the data
-
-        packet = data
-
-        source_address = packet.origin
-
         destination_address = self.routes.get(source_address, None)
 
         if destination_address is None:
@@ -122,7 +135,7 @@ class Socks5Server:
             return
 
         encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],
-                                                        source_address[1], packet.data)
+                                                        source_address[1], data)
 
         if socks5_socket.sendto(encapsulated, destination_address) < len(encapsulated):
             logger.error("Not sending package!")
@@ -132,9 +145,7 @@ class Socks5Server:
                         socks5_socket.getsockname()[1])
 
     def external_connection_made(self, s):
-        # Extra check in case bind() no work
-
-        if not self.community._tunnel:
+        if not self.accept_incoming:
             s.close()
             return
 
@@ -162,9 +173,9 @@ class Socks5Server:
         logger.info("Connection lost")
 
         tcp_connection = self.socket2connection[s]
-        
-        #TODO: this one seems dangerous
-        self.tunnel.clear_state()
+
+        destinations = self.routes.keys()
+        self.tunnel.unlink_destinations(destinations)
 
         try:
             tcp_connection.close()
@@ -192,10 +203,5 @@ class Socks5Server:
         for tcp_connection in self.socket2connection.values():
             tcp_connection.shutdown()
 
-    def enter_tunnel_data(self, ultimate_destination, payload):
-        self.fire("enter_tunnel_head", ultimate_destination, payload)
-
-        self.tunnel.send_data(
-            ultimate_destination=ultimate_destination,
-            payload=payload
-        )
+    def on_state_change(self, community, state):
+        self.accept_incoming = state

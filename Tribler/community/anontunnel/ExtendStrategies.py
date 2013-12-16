@@ -53,7 +53,7 @@ class RandomAPriori:
             #TODO: shouldn't we make sure that the complete circuit consists of unique candidates?
             candidate_hops = [self.circuit.candidate]
             
-            it = list(self.proxy.community.dispersy_yield_verified_candidates())
+            it = list(self.proxy.dispersy_yield_verified_candidates())
             for candidate in it:
                 if len(candidate_hops) >= self.circuit.goal_hops:
                     break

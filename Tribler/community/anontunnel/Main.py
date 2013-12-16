@@ -1,6 +1,7 @@
 import logging.config
 import os
 import re
+from Tribler.community.anontunnel.community import ProxySettings, ProxyCommunity
 
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
@@ -12,7 +13,6 @@ try:
 except:
     pass
 
-from Tribler.community.anontunnel import DispersyTunnelProxy
 from Tribler.community.anontunnel.ExtendStrategies import RandomAPriori, TrustThyNeighbour
 from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
@@ -29,7 +29,7 @@ def main(argv):
         parser.add_argument('-c', '--cmd', help='The command UDP port to listen on')
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
         parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
-        parser.add_argument('-e', '--extend-strategy', default='upfront', help='Circuit extend strategy')
+        parser.add_argument('-e', '--extend-strategy', default='delegate', help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_argument('--record-on-incoming', help='Record stats from the moment the first data enters the tunnel')
         parser.add_argument('--crawl', default=False, help='Record stats from others in results.db')
@@ -58,7 +58,7 @@ def main(argv):
         socks5_port = int(args.socks5)
 
     if args.max_circuits:
-        DispersyTunnelProxy.MAX_CIRCUITS_TO_CREATE = args.max_circuits
+        ProxyCommunity.MAX_CIRCUITS_TO_CREATE = args.max_circuits
 
     if profile:
         yappi.set_clock_type(profile)
@@ -67,46 +67,50 @@ def main(argv):
 
     crawl = True if args.crawl else False
 
-    anon_tunnel = AnonTunnel(socks5_port, cmd_port, crawl)
-
     if args.record_on_incoming:
-        def on_enter_tunnel_data_head(ultimate_destination, payload):
-            anon_tunnel.community.record_stats = True
-        anon_tunnel.socks5_server.once("enter_tunnel_data", on_enter_tunnel_data_head)
+        raise ValueError("not working anymore")
+        # def on_enter_tunnel_data_head(ultimate_destination, payload):
+        #     anon_tunnel.community.record_stats = True
+        # anon_tunnel.socks5_server.once("enter_tunnel_data", on_enter_tunnel_data_head)
 
+    proxy_settings = ProxySettings()
+    
     # Set extend strategy
     if args.extend_strategy == 'upfront':
-        anon_tunnel.community.extend_strategy = RandomAPriori
+        proxy_settings.extend_strategy = RandomAPriori
         logger.error("EXTEND STRATEGY UPFRONT: We will decide with whom created circuits are extended upfront")
         
     elif args.extend_strategy == 'delegate':
         logger.error("EXTEND STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
-        anon_tunnel.community.extend_strategy = TrustThyNeighbour
+        proxy_settings.extend_strategy = TrustThyNeighbour
     else:
         raise ValueError("extend_strategy must be either random or delegate")
 
     # Circuit length strategy
     if args.length_strategy[:1] == ['random']:
         strategy = RandomCircuitLengthStrategy(*args.length_strategy[1:])
-        anon_tunnel.community.circuit_length_strategy = strategy
+        proxy_settings.length_strategy = strategy
         logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
         
     elif args.length_strategy[:1] == ['constant']:
         strategy = ConstantCircuitLengthStrategy(*args.length_strategy[1:])
-        anon_tunnel.community.circuit_length_strategy = strategy
+        proxy_settings.length_strategy = strategy
         logger.error("Using ConstantCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
 
     # Circuit selection strategies
     if args.select_strategy[:1] == ['random']:
         strategy = RandomSelectionStrategy(*args.select_strategy[1:])
-        anon_tunnel.community.circuit_selection_strategy = strategy
+        proxy_settings.selection_strategy = strategy
         logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
         
     elif args.select_strategy[:1] == ['length']:
         strategy = LengthSelectionStrategy(*args.select_strategy[1:])
-        anon_tunnel.community.circuit_selection_strategy = strategy
+        proxy_settings.selection_strategy = strategy
         logger.error("Using LengthSelectionStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
 
+
+
+    anon_tunnel = AnonTunnel(socks5_port, cmd_port, proxy_settings, crawl)
     anon_tunnel.start()
     regex_cmd_extend_circuit = re.compile("e ?([0-9]+)\n")
 
@@ -151,17 +155,16 @@ def main(argv):
         elif line == 'c\n':
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tIN (kBps)\tOUT (kBps)"
             for circuit in anon_tunnel.community.circuits.values():
-                if circuit.created:
-                    print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
-                        circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
-                        circuit.bytes_downloaded / 1024.0 / 1024.0,
-                        circuit.bytes_uploaded / 1024.0 / 1024.0,
-                        circuit.speed_down / 1024.0,
-                        circuit.speed_up / 1024.0
-                    )
+                print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
+                    circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
+                    circuit.bytes_downloaded / 1024.0 / 1024.0,
+                    circuit.bytes_uploaded / 1024.0 / 1024.0,
+                    circuit.speed_down / 1024.0,
+                    circuit.speed_up / 1024.0
+                )
 
-                    for hop in circuit.hops[1:]:
-                        print "\t%s" % (hop,)
+                for hop in circuit.hops[1:]:
+                    print "\t%s" % (hop,)
 
         elif cmd_extend_match:
             circuit_id = int(cmd_extend_match.group(1))

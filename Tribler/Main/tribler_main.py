@@ -16,6 +16,7 @@ import glob
 import sys
 import logging
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig
+from Tribler.community.anontunnel.community import ProxyCommunity
 
 logger = logging.getLogger(__name__)
 
@@ -290,7 +291,6 @@ class ABCApp():
                 f.close()
 
             self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
-            self.setup_anon_test()
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
@@ -357,6 +357,11 @@ class ABCApp():
             self.ready = True
 
             # AnonTunnel test
+            for c in self.dispersy.get_communities():
+                if isinstance(c, ProxyCommunity):
+                    self.setup_anon_test(c, self.frame)
+                    break
+
             self.frame.actlist.DisableItem(3)
             self.frame.actlist.DisableItem(6)
             #self.frame.top_bg.searchField.Disable()
@@ -414,84 +419,6 @@ class ABCApp():
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
-    # TODO: this has to be moved, we cannot pollute the main.py file with stuff like this
-    def setup_anon_test(self):
-        if not self.tunnel or not self.frame:
-            return
-
-        @forceWxThread
-        def thank_you(file_size, start_time, end_time ):
-            avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
-
-            wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
-
-
-        def state_call(download):
-            def _callback(ds):
-                if ds.get_status() == DLSTATUS_DOWNLOADING:
-
-                    if not _callback.download_started_at:
-                        _callback.download_started_at = time_module.time()
-
-                    if not _callback.peer_added:
-                        _callback.peer_added = True
-                        result.add_peer(("pygmee.tribler.org", 21000))
-                        result.add_peer(("asmat.tribler.org", 21000))
-
-                    self.tunnel.record_stats = True
-                elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
-                    _callback.download_finished_at = time_module.time()
-                    _callback.download_completed = True
-                    self.tunnel.download_stats = {
-                        'size': 50 * 1024**2,
-                        'download_time': _callback.download_finished_at - _callback.download_started_at
-                    }
-
-                    self.tunnel.record_stats = False
-                    self.tunnel.share_stats = True
-                    thank_you(50 * 1024**2, _callback.download_started_at, _callback.download_finished_at)
-
-                return (1.0, False)
-
-            _callback.download_completed = False
-            _callback.download_started_at = None
-            _callback.peer_added = False
-
-            return _callback
-
-        #host = "95.211.198.140:21000"
-        #root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
-
-        host = "asmat.tribler.org:21000"
-        root_hash = "dfe61ceb7efaf7d1801df0af3ab5f2d816ba1120"
-
-        #host = "devristo.dyndns.org:20001"
-        #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
-
-        #host = "127.0.0.1:21000"
-        #root_hash = "b25eb5a4eb94fad36aa373d3b85434894961b1c5"
-
-        dest_dir = os.path.abspath("./.TriblerAnonTunnel/")
-        self.sconfig.set_swift_meta_dir(dest_dir + "/swift_meta/");
-        try:
-            download = dest_dir + "/" + root_hash
-            for file in glob.glob(download + "*"):
-                os.remove(file)
-
-            meta = self.sconfig.get_swift_meta_dir() + "/" + root_hash
-
-            for file in glob.glob(meta + "*"):
-                os.remove(file)
-        except BaseException, e:
-            print_exc()
-
-        sdef = SwiftDef.load_from_url("tswift://" + host + "/" + root_hash)
-
-        sdef.set_name("AnonTunnel test (50 MB)")
-
-        result = self.frame.startDownload(sdef=sdef, destdir=dest_dir)
-        result.set_state_callback(state_call(result), delay=1)
-
     def startAPI(self, progress):
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
@@ -508,8 +435,6 @@ class ABCApp():
             pass
 
         state_dir = Session.get_default_state_dir(folder_name)
-
-
 
         cfgfilename = Session.get_default_config_filename(state_dir)
 
@@ -606,7 +531,7 @@ class ABCApp():
             #dispersy.define_auto_load(PreviewChannelCommunity)
 
             proxy_community = dispersy.define_auto_load(ProxyCommunity,
-                                     (s.dispersy_member,),
+                                     (s.dispersy_member, s.lm.rawserver),
                                      load=True)
             
             socks_server.tunnel = proxy_community[0]
@@ -616,10 +541,84 @@ class ABCApp():
 
         dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
-        
-        self.setup_anon_test()
-        
+
         return s, socks_server
+
+    # TODO: this has to be moved, we cannot pollute the main.py file with stuff like this
+    def setup_anon_test(self, tunnel, frame):
+        @forceWxThread
+        def thank_you(file_size, start_time, end_time ):
+            avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
+
+            wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
+
+
+        def state_call(download):
+            def _callback(ds):
+                if ds.get_status() == DLSTATUS_DOWNLOADING:
+
+                    if not _callback.download_started_at:
+                        _callback.download_started_at = time_module.time()
+
+                    if not _callback.peer_added:
+                        _callback.peer_added = True
+                        result.add_peer(("pygmee.tribler.org", 21000))
+                        result.add_peer(("asmat.tribler.org", 21000))
+
+                    tunnel.record_stats = True
+                elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
+                    _callback.download_finished_at = time_module.time()
+                    _callback.download_completed = True
+                    tunnel.download_stats = {
+                        'size': 50 * 1024**2,
+                        'download_time': _callback.download_finished_at - _callback.download_started_at
+                    }
+
+                    tunnel.record_stats = False
+                    tunnel.share_stats = True
+                    thank_you(50 * 1024**2, _callback.download_started_at, _callback.download_finished_at)
+
+                return (1.0, False)
+
+            _callback.download_completed = False
+            _callback.download_started_at = None
+            _callback.peer_added = False
+
+            return _callback
+
+        #host = "95.211.198.140:21000"
+        #root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
+
+        host = "asmat.tribler.org:21000"
+        root_hash = "dfe61ceb7efaf7d1801df0af3ab5f2d816ba1120"
+
+        #host = "devristo.dyndns.org:20001"
+        #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
+
+        #host = "127.0.0.1:21000"
+        #root_hash = "b25eb5a4eb94fad36aa373d3b85434894961b1c5"
+
+        dest_dir = os.path.abspath("./.TriblerAnonTunnel/")
+        self.sconfig.set_swift_meta_dir(dest_dir + "/swift_meta/");
+        try:
+            download = dest_dir + "/" + root_hash
+            for file in glob.glob(download + "*"):
+                os.remove(file)
+
+            meta = self.sconfig.get_swift_meta_dir() + "/" + root_hash
+
+            for file in glob.glob(meta + "*"):
+                os.remove(file)
+        except BaseException, e:
+            print_exc()
+
+        sdef = SwiftDef.load_from_url("tswift://" + host + "/" + root_hash)
+
+        sdef.set_name("AnonTunnel test (50 MB)")
+
+        result = frame.startDownload(sdef=sdef, destdir=dest_dir)
+        result.set_state_callback(state_call(result), delay=1)
+
 
     def configure_install_dir(self, installdir):
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir

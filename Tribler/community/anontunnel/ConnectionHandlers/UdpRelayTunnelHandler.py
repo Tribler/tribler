@@ -18,18 +18,4 @@ class UdpRelayTunnelHandler(object):
         """:type : Socks5Server"""
 
     def data_came_in(self, packets):
-        for source_address, packet in packets:
-            request = structs.decode_udp_packet(packet)
-
-            self.server.udp_relays[source_address] = self.single_socket
-
-            if __debug__:
-                logger.info("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
-                            request.destination_address, request.destination_port)
-
-            self.server.routes[(request.destination_address, request.destination_port)] = source_address
-
-            self.server.enter_tunnel_data(
-                ultimate_destination=(request.destination_address, request.destination_port),
-                payload=request.payload
-            )
+        self.server.on_client_udp_packets(self.single_socket, packets)
