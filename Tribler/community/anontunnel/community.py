@@ -546,7 +546,7 @@ class ProxyCommunity(Community):
 
     def remove_relay(self, relay_key, additional_info=''):
         if relay_key in self.relay_from_to:
-            logger.info("Breaking relay %s:%d %d " + additional_info % (relay_key[0].sock_addr[0], relay_key[0].sock_addr[1], relay_key[1]))
+            logger.info(("Breaking relay %s:%d %d " + additional_info) % (relay_key[0].sock_addr[0], relay_key[0].sock_addr[1], relay_key[1]))
 
             relay = self.relay_from_to[relay_key]
 
