@@ -20,7 +20,7 @@ import Socks5.structs
 
 
 class Socks5Server(object, TunnelObserver):
-    
+
     def __init__(self):
         self._tunnel = None
         self._accept_incoming = False
@@ -34,7 +34,7 @@ class Socks5Server(object, TunnelObserver):
 
         self.routes = {}
         self.udp_relays = {}
-    
+
     @property
     def accept_incoming(self):
         return self._accept_incoming
@@ -42,10 +42,10 @@ class Socks5Server(object, TunnelObserver):
     @accept_incoming.setter
     def accept_incoming(self, value):
         if value and not self._accept_incoming:
-            logger.error("Accepting SOCKS5 connections now!")
+            logger.info("Accepting SOCKS5 connections now!")
 
         if not value:
-            logger.error("DISCONNECTING SOCKS5 !")
+            logger.info("DISCONNECTING SOCKS5 !")
 
             for key in self.socket2connection.keys():
                 self.socket2connection[key].close()
@@ -89,7 +89,7 @@ class Socks5Server(object, TunnelObserver):
         :rtype : socket.socket
         """
 
-        udp_relay_socket = self.raw_server.create_udpsocket(0,"0.0.0.0")
+        udp_relay_socket = self.raw_server.create_udpsocket(0, "0.0.0.0")
         handler = UdpRelayTunnelHandler(udp_relay_socket, self)
         self.raw_server.start_listening_udp(udp_relay_socket, handler)
 
@@ -101,9 +101,8 @@ class Socks5Server(object, TunnelObserver):
 
             self.udp_relays[source_address] = socket
 
-            if __debug__:
-                logger.info("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
-                            request.destination_address, request.destination_port)
+            logger.debug("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
+                        request.destination_address, request.destination_port)
 
             self.routes[(request.destination_address, request.destination_port)] = source_address
             self.tunnel.send_data(
@@ -140,9 +139,8 @@ class Socks5Server(object, TunnelObserver):
         if socks5_socket.sendto(encapsulated, destination_address) < len(encapsulated):
             logger.error("Not sending package!")
 
-        if __debug__:
-            logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address, destination_address,
-                        socks5_socket.getsockname()[1])
+        logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address, destination_address,
+                    socks5_socket.getsockname()[1])
 
     def external_connection_made(self, s):
         if not self.accept_incoming:

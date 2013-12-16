@@ -12,7 +12,6 @@ MESSAGE_CREATED = chr(2)
 MESSAGE_EXTEND = chr(3)
 MESSAGE_EXTENDED = chr(4)
 MESSAGE_DATA = chr(5)
-MESSAGE_BREAK = chr(6)
 MESSAGE_PING = chr(7)
 MESSAGE_PONG = chr(8)
 MESSAGE_PUNCTURE = chr(9)
@@ -24,7 +23,6 @@ MESSAGE_STRING_REPRESENTATION = {
     MESSAGE_EXTEND: u'extend',
     MESSAGE_EXTENDED: u'extended',
     MESSAGE_DATA: u'data',
-    MESSAGE_BREAK: u'break',
     MESSAGE_PING: u'ping',
     MESSAGE_PONG: u'pong',
     MESSAGE_PUNCTURE: u'puncture',
