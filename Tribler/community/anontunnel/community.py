@@ -275,7 +275,8 @@ class ProxyCommunity(Community):
     def unload_community(self):
         Community.unload_community(self)
 
-        self.send_stats()
+        if self.download_stats:
+            self.send_stats()
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ProxyConversion(self)]
@@ -425,8 +426,9 @@ class ProxyCommunity(Community):
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (candidate, circuit_id)
         packet_type = self.proxy_conversion.get_type(data)
+        str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
 
-        logger.debug("GOT %s from %s:%d over circuit %d", MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type)), candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+        logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
         # First, relay packet if we know whom to forward message to for this circuit
         if circuit_id > 0 and relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
@@ -441,7 +443,7 @@ class ProxyCommunity(Community):
                 this_relay.bytes[0] += len(packet)
 
             self.send_packet(next_relay.candidate, circuit_id, packet_type, new_packet, relayed=True)
-            self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type] + '-relayed')
+            self.dict_inc(dispersy.statistics.success, str_type + '-relayed')
 
         # We don't know where to relay this message to, must be for me?
         else:
@@ -451,12 +453,12 @@ class ProxyCommunity(Community):
                     self.circuits[circuit_id].last_incomming = time()
 
                 if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
-                    self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type] + '-ignored')
+                    self.dict_inc(dispersy.statistics.success, str_type + '-ignored')
                     logger.debug("Prev message was IGNORED")
                 else:
-                    self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type])
+                    self.dict_inc(dispersy.statistics.success, str_type)
             except Exception as e:
-                logger.error("ERROR %s from %s:%d over circuit %d", ord(packet_type), candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                logger.error("ERROR %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
     class CircuitRequestCache(NumberCache):
 
@@ -544,7 +546,7 @@ class ProxyCommunity(Community):
 
     def remove_relay(self, relay_key, additional_info=''):
         if relay_key in self.relay_from_to:
-            logger.info("Breaking relay %s:%d %d " + additional_info % (relay_key[0][0], relay_key[0][1], relay_key[1]))
+            logger.info("Breaking relay %s:%d %d " + additional_info % (relay_key[0].sock_addr[0], relay_key[0].sock_addr[1], relay_key[1]))
 
             relay = self.relay_from_to[relay_key]
 
@@ -751,9 +753,11 @@ class ProxyCommunity(Community):
         assert isinstance(packet, str), type(packet)
         assert packet.startswith(self.prefix)
 
-        logger.debug("SEND %s to %s:%d over circuit %d", MESSAGE_STRING_REPRESENTATION[message_type], destination.sock_addr[0], destination.sock_addr[1], circuit_id)
+        str_type = MESSAGE_STRING_REPRESENTATION.get(message_type, "unknown-type-"+str(ord(message_type)))
 
-        self.dict_inc(self.dispersy.statistics.outgoing, MESSAGE_STRING_REPRESENTATION[message_type] + ('-relayed' if relayed else ''), 1)
+        logger.debug("SEND %s to %s:%d over circuit %d", str_type, destination.sock_addr[0], destination.sock_addr[1], circuit_id)
+
+        self.dict_inc(self.dispersy.statistics.outgoing, str_type + ('-relayed' if relayed else ''), 1)
 
         # we need to make sure that this endpoint is threadsafe
         return self.dispersy.endpoint.send([destination], [packet])
