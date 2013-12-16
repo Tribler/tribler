@@ -387,10 +387,10 @@ class SettingsDialog(wx.Dialog):
             hours_min = hours_min.split(':')
             if len(hours_min) > 0:
                 if len(hours_min) > 1:
-                    self.utility.write_config("t4t_hours", hours_min[0])
-                    self.utility.write_config("t4t_mins", hours_min[1])
+                    self.utility.write_config("t4t_hours", hours_min[0] or 0)
+                    self.utility.write_config("t4t_mins", hours_min[1] or 0)
                 else:
-                    self.utility.write_config("t4t_hours", hours_min[0])
+                    self.utility.write_config("t4t_hours", hours_min[0] or 0)
                     self.utility.write_config("t4t_mins", 0)
 
             # give-2-get
@@ -409,10 +409,10 @@ class SettingsDialog(wx.Dialog):
             hours_min = hours_min.split(':')
             if len(hours_min) > 0:
                 if len(hours_min) > 1:
-                    self.utility.write_config("g2g_hours", hours_min[0])
-                    self.utility.write_config("g2g_mins", hours_min[1])
+                    self.utility.write_config("g2g_hours", hours_min[0] or 0)
+                    self.utility.write_config("g2g_mins", hours_min[1] or 0)
                 else:
-                    self.utility.write_config("g2g_hours", hours_min[0])
+                    self.utility.write_config("g2g_hours", hours_min[0] or 0)
                     self.utility.write_config("g2g_mins", 0)
 
             # Proxy settings
