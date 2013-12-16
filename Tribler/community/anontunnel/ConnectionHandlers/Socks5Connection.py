@@ -26,7 +26,6 @@ class Socks5Connection(object):
 
     def __init__(self, single_socket, socks5_server):
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
-
         self.single_socket = single_socket
         """:type : SingleSocket"""
 
@@ -34,8 +33,10 @@ class Socks5Connection(object):
         """:type : TcpConnectionHandler """
 
         self.buffer = ''
-
         self.tcp_relay = None
+
+    def open_tcp_relay(self, destination):
+        self.tcp_relay = self.socks5_server.start_connection(destination)
 
     def data_came_in(self, data):
         """
@@ -52,7 +53,10 @@ class Socks5Connection(object):
         else:
             self.buffer = self.buffer + data
 
-        self._process_buffer()
+        if self.tcp_relay:
+            self._try_tcp_relay()
+        else:
+            self._process_buffer()
 
     def _try_handshake(self):
 
@@ -117,14 +121,13 @@ class Socks5Connection(object):
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
         if request.cmd == structs.REQ_CMD_CONNECT:
-            dns = (request.destination_address, request.destination_port)
-            destination_socket = self.socks5_server.start_connection(dns)
+            destination = (request.destination_address, request.destination_port)
 
             logger.debug("Accepting TCP RELAY request, direct client to %s:%d", self.single_socket.get_myip(),
                          self.single_socket.get_myport())
 
             # Switch to TCP relay mode
-            self.socks5_server.switch_to_tcp_relay(self.single_socket, destination_socket)
+            self.socks5_server.open_tcp_relay(destination)
 
             response = structs.encode_reply(0x05, 0x00, 0x00, structs.ADDRESS_TYPE_IPV4, self.single_socket.get_myip(),
                                             self.single_socket.get_myport())
@@ -147,7 +150,6 @@ class Socks5Connection(object):
 
         self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
-
     def _process_buffer(self):
         """
         Processes the buffer by attempting to messages which are to be expected in the current state
@@ -164,7 +166,6 @@ class Socks5Connection(object):
                 if not self._try_request():
                     break  # Not enough bytes so wait till we got more
 
-
     def write(self, data):
         if self.single_socket is not None:
             self.single_socket.write(data)
@@ -175,3 +176,5 @@ class Socks5Connection(object):
             self.socks5_server.connection_lost(self.single_socket)
             self.single_socket = None
 
+            if self.tcp_relay:
+                self.tcp_relay.close()

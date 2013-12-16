@@ -1,8 +1,6 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from Tribler.community.anontunnel.Socks5 import structs
-
 __author__ = 'Chris'
 
 

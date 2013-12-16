@@ -7,7 +7,6 @@ Created on 3 jun. 2013
 import logging
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
 from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
-from Tribler.community.anontunnel.ConnectionHandlers.TcpRelayConnection import TcpRelayConnection
 from Tribler.community.anontunnel.Socks5 import structs
 from Tribler.community.anontunnel.community import TunnelObserver
 
@@ -18,6 +17,7 @@ from traceback import print_exc
 from ConnectionHandlers.UdpRelayTunnelHandler import UdpRelayTunnelHandler
 
 import Socks5.structs
+
 
 class Socks5Server(object, TunnelObserver):
     
@@ -152,19 +152,7 @@ class Socks5Server(object, TunnelObserver):
         assert isinstance(s, SingleSocket)
         logger.info("accepted a socket on port %d", s.get_myport())
 
-        tcp_connection = Socks5Connection(s, self)
-        self.socket2connection[s] = tcp_connection
-
-    def switch_to_tcp_relay(self, source_socket, destination_socket):
-        """
-        Switch the connection mode to RELAY, any incoming and outgoing data will be relayed
-
-        :param source_socket:
-        :param destination_socket:
-        """
-        self.socket2connection[source_socket] = TcpRelayConnection(source_socket, destination_socket, self)
-        self.socket2connection[destination_socket] = TcpRelayConnection(destination_socket, source_socket, self)
-
+        self.socket2connection[s] = Socks5Connection(s, self)
 
     def connection_flushed(self, s):
         pass
