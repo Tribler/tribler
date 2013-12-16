@@ -336,7 +336,7 @@ class ProxyCommunity(Community):
             #moreover, shouldn't we be calling self.break_circuit
             if packet_type == MESSAGE_BREAK:
                 # Route is dead :(
-                logging.DEBUG('routing is dead')
+                logger.debug('routing is dead')
                 del self.relay_from_to[relay_key]
                 
             self.dict_inc(dispersy.statistics.success, MESSAGE_STRING_REPRESENTATION[packet_type] + '-relayed')
@@ -510,6 +510,9 @@ class ProxyCommunity(Community):
                  if x and x != candidate),
                 None
             )
+
+        if not extend_with:
+            return
         
         relay_key = (candidate, circuit_id)
         if relay_key in self.relay_from_to:
