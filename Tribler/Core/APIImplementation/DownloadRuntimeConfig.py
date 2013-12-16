@@ -37,5 +37,6 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         if name in dir(DownloadConfigInterface):
             if name.startswith('get_') or name.startswith('set_'):
                 if hasattr(attr, '__call__'):
-                    return lambda *args, **kwargs: self._execute_with_dllock(attr, *args, **kwargs)
+                    dllock_func = DownloadConfigInterface.__getattribute__(self, '_execute_with_dllock')
+                    return lambda *args, **kwargs: dllock_func(attr, *args, **kwargs)
         return attr
