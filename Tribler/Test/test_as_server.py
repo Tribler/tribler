@@ -13,14 +13,14 @@ import time
 import gc
 import wx
 import Image
-from traceback import print_exc
+import re
 
+from traceback import print_exc
 from threading import enumerate as enumerate_threads
 
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-import re
 from Tribler.Utilities import LinuxSingleInstanceChecker
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -29,11 +29,17 @@ DEST_DIR = os.path.join(BASE_DIR, "test_TriblerDownloads")
 FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'data'))
 
 from Tribler.Core import defaults
-defaults.sessdefaults["state_dir"] = STATE_DIR
+defaults.sessdefaults['general']['state_dir'] = STATE_DIR
+defaults.sessdefaults['general']['minport'] = -1
+defaults.sessdefaults['general']['maxport'] = -1
+defaults.sessdefaults['swift']['swifttunnellistenport'] = -1
+defaults.sessdefaults['dispersy']['dispersy_port'] = -1
+
 defaults.dldefaults["saveas"] = DEST_DIR
 
 DEBUG = False
 
+OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
 
 class AbstractServer(unittest.TestCase):
 
@@ -67,7 +73,7 @@ class AbstractServer(unittest.TestCase):
             os.mkdir(dir)
         return dir
 
-    def annotate(self, annotation, start=True, destdir="output"):
+    def annotate(self, annotation, start=True, destdir=OUTPUT_DIR):
         if not os.path.exists(destdir):
             os.makedirs(destdir)
 
@@ -110,7 +116,6 @@ class TestAsServer(AbstractServer):
         """ Should set self.config_path and self.config """
         self.config = SessionStartupConfig()
         self.config.set_state_dir(self.getStateDir())
-        self.config.set_listen_port(random.randint(10000, 60000))
         self.config.set_torrent_checking(False)
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_megacache(False)
@@ -157,7 +162,7 @@ class TestAsServer(AbstractServer):
 
         print >> sys.stderr, "test_as_server: Session is shutdown"
 
-    def assert_(self, boolean, reason=None, do_assert = True):
+    def assert_(self, boolean, reason=None, do_assert=True):
         if not boolean:
             self.quit()
             assert boolean, reason
@@ -215,19 +220,20 @@ class TestGuiAsServer(TestAsServer):
         self.asserts = []
         self.annotate(self._testMethodName, start=True)
 
-    def assert_(self, boolean, reason, do_assert = True):
+    def assert_(self, boolean, reason, do_assert=True):
         if not boolean:
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
 
             self.asserts.append((boolean, reason))
-            
+
             if do_assert:
                 assert boolean, reason
 
     def startTest(self, callback, min_timeout=5):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        from Tribler.Main.tribler import run
+        from Tribler.Main import tribler_main
+        tribler_main.ALLOW_MULTIPLE = True
 
         self.hadSession = False
         starttime = time.time()
@@ -270,7 +276,7 @@ class TestGuiAsServer(TestAsServer):
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
-        run()
+        tribler_main.run()
 
         assert self.hadSession, 'Did not even create a session'
 
@@ -329,7 +335,7 @@ class TestGuiAsServer(TestAsServer):
         for boolean, reason in self.asserts:
             assert boolean, reason
 
-    def screenshot(self, title=None, destdir="output", window=None):
+    def screenshot(self, title=None, destdir=OUTPUT_DIR, window=None):
         if window == None:
             app = wx.GetApp()
             window = app.GetTopWindow()

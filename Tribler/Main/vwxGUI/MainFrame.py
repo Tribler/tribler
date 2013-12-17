@@ -35,7 +35,7 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
 
 
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY, forceAndReturnWxThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
                                              TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
@@ -491,7 +491,7 @@ class MainFrame(wx.Frame):
                     defaultname = tdef.get_name_as_unicode()
 
                 if wx.Thread_IsMain():
-                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
+                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, self.utility.config, selectedFiles)
                     dlg.CenterOnParent()
 
                     if isinstance(tdef, TorrentDefNoMetainfo):

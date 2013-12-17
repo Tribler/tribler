@@ -15,8 +15,7 @@ from __init__ import *
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
-from Tribler.community.channel.community import ChannelCommunity, \
-    forceAndReturnDispersyThread
+from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
@@ -240,11 +239,11 @@ class SelectedChannelList(GenericSearchList):
         columns = self.guiutility.SetColumnInfo(PlaylistItem, columns)
         ColumnsManager.getInstance().setColumns(PlaylistItem, columns)
 
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
         for key, name in Category.getInstance().getCategoryNames(filter=False):
-            if key in torrent_db.category_table:
-                self.category_names[torrent_db.category_table[key]] = name
+            if key in misc_db._torrent_status_name2id_dict:
+                self.category_names[misc_db._torrent_status_name2id_dict[key]] = name
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 

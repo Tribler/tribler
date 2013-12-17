@@ -174,8 +174,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.progressbeforestop = 0.0
         self.filepieceranges = []
 
-        # Libtorrent session manager
-        self.ltmgr = session.lm.ltmgr
+        # Libtorrent session manager, can be None at this point as the core could have
+        # not been started. Will set in create_engine wrapper
+        self.ltmgr = None
 
         # Libtorrent status
         self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
@@ -247,8 +248,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None, wrapperDelay=0):
         with self.dllock:
             if not self.cew_scheduled:
-                if isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready():
-                    print >> sys.stderr, "LibtorrentDownloadImpl: DHT not ready, rescheduling create_engine_wrapper"
+                self.ltmgr = self.session.lm.ltmgr
+                if not self.ltmgr or (not self.tdef.has_trackers() and not self.ltmgr.is_dht_ready()):
+                    print >> sys.stderr, "LibtorrentDownloadImpl: LTMGR or DHT not ready, rescheduling create_engine_wrapper"
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=initialdlstatus)
                     self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
                     self.dlstate = DLSTATUS_METADATA
@@ -590,7 +592,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if self.session.lm.rtorrent_handler:
             self.session.lm.rtorrent_handler.save_torrent(self.tdef)
         elif self.session.lm.torrent_db:
-            self.session.lm.torrent_db.addExternalTorrent(self.tdef, source='', extra_info={'status': 'good'}, commit=True)
+            self.session.lm.torrent_db.addExternalTorrent(self.tdef, source='', extra_info={'status': 'good'})
 
         self.checkpoint()
 

@@ -11,6 +11,7 @@ import threading
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
 
 DEBUG = True
 class TestMyChannel(TestGuiAsServer):
@@ -78,7 +79,7 @@ class TestMyChannel(TestGuiAsServer):
                     if modification.name == 'video-info' and modification.value:
                         videoinfo_dict = json.loads(modification.value)
                         if videoinfo_dict['duration'] and videoinfo_dict['resolution']:
-                            videoinfo_valid = True
+                            videoinfo_valid = (videoinfo_dict['resolution'] == [640, 480]) and (videoinfo_dict['duration'] == 6)
 
                 return videoinfo_valid and swiftthumbnails_valid
             self.CallConditional(10, check_for_modifications, do_overview, 'No valid channel modifications received')
@@ -166,7 +167,6 @@ class TestMyChannel(TestGuiAsServer):
 
         TestGuiAsServer.startTest(self, get_and_modify_dispersy)
 
-
     def setupSeeder(self):
         from Tribler.Core.Session import Session
         from Tribler.Core.TorrentDef import TorrentDef
@@ -175,7 +175,8 @@ class TestMyChannel(TestGuiAsServer):
         self.setUpPreSession()
         self.config.set_libtorrent(True)
 
-        self.session2 = Session(self.config, ignore_singleton=True)
+        self.config2 = self.config.copy()
+        self.session2 = Session(self.config2, ignore_singleton=True)
         self.session2.start()
 
         tdef = TorrentDef()
@@ -187,9 +188,15 @@ class TestMyChannel(TestGuiAsServer):
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
-        self.session2.start_download(tdef, dscfg)
+        d = self.session2.start_download(tdef, dscfg)
+        d.set_state_callback(self.seeder_state_callback)
 
         return torrentfn
+
+    def seeder_state_callback(self, ds):
+        d = ds.get_download()
+        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
+        return (5.0, False)
 
     def setUp(self):
         TestGuiAsServer.setUp(self)

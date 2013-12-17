@@ -55,9 +55,24 @@ def register_task(*args, **kwargs):
     assert _register_task, "_REGISTER_TASK must have been set"
     return _register_task(*args, **kwargs)
 
+def onDispersyThread():
+    return currentThread().getName() == 'Dispersy'
+
+def warnDispersyThread(func):
+    def invoke_func(*args, **kwargs):
+        if not onDispersyThread():
+            print >> sys.stderr, "This method MUST be called on the DispersyThread"
+            print_stack()
+            return None
+        else:
+            return func(*args, **kwargs)
+
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
 def forceDispersyThread(func):
     def invoke_func(*args, **kwargs):
-        if not currentThread().getName() == 'Dispersy':
+        if not onDispersyThread():
             def dispersy_thread():
                 func(*args, **kwargs)
             dispersy_thread.__name__ = func.__name__
@@ -70,7 +85,7 @@ def forceDispersyThread(func):
 
 def forcePrioDispersyThread(func):
     def invoke_func(*args, **kwargs):
-        if not currentThread().getName() == 'Dispersy':
+        if not onDispersyThread():
             def dispersy_thread():
                 func(*args, **kwargs)
             dispersy_thread.__name__ = func.__name__
@@ -83,7 +98,7 @@ def forcePrioDispersyThread(func):
 
 def forceAndReturnDispersyThread(func):
     def invoke_func(*args, **kwargs):
-        if not currentThread().getName() == 'Dispersy':
+        if not onDispersyThread():
             event = Event()
 
             result = [None]
@@ -713,10 +728,7 @@ class ChannelCommunity(Community):
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
             # always store metadata
-            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrentDict.get(modifying_dispersy_id, None), playlistDict.get(modifying_dispersy_id, None), self._channel_id, dispersy_id, peer_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time, False)
-
-        # commit now to flush cache of sqlcachedb
-        self._channelcast_db.commit()
+            self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrentDict.get(modifying_dispersy_id, None), playlistDict.get(modifying_dispersy_id, None), self._channel_id, dispersy_id, peer_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time)
 
         for message in messages:
             dispersy_id = message.packet_id
@@ -733,21 +745,19 @@ class ChannelCommunity(Community):
 
                 latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
                 if not latest or latest.packet_id == dispersy_id:
-                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value, False)
+                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
 
             elif message_name == u"playlist":
                 playlist_id = playlistDict[modifying_dispersy_id]
 
                 latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
                 if not latest or latest.packet_id == dispersy_id:
-                    self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value, False)
+                    self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
 
             elif message_name == u"channel":
                 latest = self._get_latest_modification_from_channel_id(modification_type_id)
                 if not latest or latest.packet_id == dispersy_id:
-                    self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value, False)
-
-        self._channelcast_db.commit()
+                    self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
 
         # this might be a response to a dispersy-missing-message
         self.handle_missing_messages(messages, MissingMessageCache)
@@ -1071,7 +1081,7 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_dynamic_settings(self._channel_id)
 
     # helper functions
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def _get_latest_channel_message(self):
         channel_meta = self.get_meta_message(u"channel")
 
@@ -1157,7 +1167,7 @@ class ChannelCommunity(Community):
         dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataPlaylist WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id AND type_id = ? AND playlist_id = ? AND dispersy_id not in (SELECT cause FROM Moderations WHERE channel_id = ?) ORDER BY prev_global_time DESC", (type_id, playlist_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def _determine_latest_modification(self, list):
 
         if len(list) > 0:
@@ -1197,7 +1207,7 @@ class ChannelCommunity(Community):
                 # 4. return first message
                 return conflicting_messages[0]
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
@@ -1215,7 +1225,7 @@ class ChannelCommunity(Community):
         if not messagename or message.name == messagename:
             return message
 
-    @forceAndReturnDispersyThread
+    @warnDispersyThread
     def _get_packet_id(self, global_time, mid):
         if global_time and mid:
             try:

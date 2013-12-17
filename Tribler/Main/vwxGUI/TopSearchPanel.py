@@ -15,7 +15,8 @@ from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRAD
 from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.vwxGUI.list_bundle import BundleListView
 from Tribler.Main.vwxGUI.channel import SelectedChannelList
-from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
+from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker, \
+    cancelWorker
 import time
 from Tribler.Video.VideoPlayer import VideoPlayer
 
@@ -193,6 +194,43 @@ class TopSearchPanel(FancyPanel):
         if getattr(self.searchField, 'ShowDropDown', False):
             self.searchField.ShowDropDown(False)
             self.guiutility.frame.searchlist.ResetBottomWindow()
+
+        self.Freeze()
+        self.go.SetValue(0)
+        self.guiutility.frame.top_bg.ag.Play()
+        self.guiutility.frame.top_bg.ag.Show()
+        self.Thaw()
+
+    def ShowSearching(self, max):
+        self.go.SetRange(max + 16)
+
+        cancelWorker(u"FakeResult")
+        startWorker(None, self.FakeResult, uId=u"FakeResult", delay=0.25, workerType="guiTaskQueue")
+
+    @forceWxThread
+    def FakeResult(self, times=1):
+        newValue = min(self.go.GetValue() + 1, self.go.GetRange())
+        if times < 16:
+            self.go.SetValue(newValue)
+
+            startWorker(None, self.FakeResult, wargs=(times + 1,), uId=u"FakeResult", delay=0.25, workerType="guiTaskQueue")
+
+    def NewResult(self):
+        maxValue = self.go.GetRange()
+        newValue = min(self.go.GetValue() + 1, maxValue)
+        self.guiutility.frame.top_bg.go.SetValue(newValue)
+
+        if newValue == maxValue:
+            return True
+        return False
+
+    def SetFinished(self):
+        self.Freeze()
+        self.ag.Stop()
+        self.ag.Hide()
+        self.go.SetValue(self.go.GetRange())
+        self.Layout()
+        self.Thaw()
 
     def complete(self, term):
         """autocompletes term."""
@@ -381,6 +419,7 @@ class TopSearchPanel(FancyPanel):
         if torrent.isPlayable():
             self.guiutility.ShowPlayer()
             self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
+            self.guiutility.library_manager.playTorrent(torrent)
 
         if not self.guiutility.frame.searchlist.IsShownOnScreen():
             self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)

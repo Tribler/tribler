@@ -830,13 +830,13 @@ class List(wx.BoxSizer):
                 self.header.FilterCorrect(False)
 
     def LoadEnabledCategoryIDs(self):
-        torrent_db = self.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
+        misc_db = self.guiutility.utility.session.open_dbhandler(NTFY_MISC)
         enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
         self.enabled_category_ids = set([0, 8])
-        for key, id in torrent_db.category_table.iteritems():
+        for key, id in misc_db._category_name2id_dict.iteritems():
             if key.lower() in enabled_category_keys:
                 self.enabled_category_ids.add(id)
-        self.deadstatus_id = torrent_db.status_table['dead']
+        self.deadstatus_id = misc_db.torrentStatusName2Id(u'dead')
 
     def MatchFFilter(self, item):
         result = True
@@ -1097,8 +1097,9 @@ class GenericSearchList(SizeList):
 
     @warnWxThread
     def CreateRatio(self, parent, item):
-        seeders = int(item.original_data.num_seeders)
-        leechers = int(item.original_data.num_leechers)
+        num_seeders, num_leechers, _ = item.original_data.swarminfo
+        seeders = int(num_seeders)
+        leechers = int(num_leechers)
         item.data[-2] = seeders + leechers
 
         control = SwarmHealth(parent)
@@ -1411,11 +1412,11 @@ class SearchList(GenericSearchList):
         ColumnsManager.getInstance().setColumns(TorrentListItem, columns)
         ColumnsManager.getInstance().setColumns(DragItem, columns)
 
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
         for key, name in self.category.getCategoryNames(filter=False):
-            if key in torrent_db.category_table:
-                self.category_names[torrent_db.category_table[key]] = name
+            if key in misc_db._category_name2id_dict:
+                self.category_names[misc_db._category_name2id_dict[key]] = name
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 
@@ -1572,41 +1573,18 @@ class SearchList(GenericSearchList):
 
     @forceWxThread
     def SetMaxResults(self, max, keywords):
-        self.Freeze()
-        self.guiutility.frame.top_bg.go.SetRange(max + 16)
-        self.guiutility.frame.top_bg.go.SetValue(0)
-        self.guiutility.frame.top_bg.ag.Play()
-        self.guiutility.frame.top_bg.ag.Show()
-        self.Thaw()
+        self.guiutility.frame.top_bg.ShowSearching(max)
         wx.CallLater(10000, self.SetFinished, keywords)
-        wx.CallLater(250, self.FakeResult)
-
-    @forceWxThread
-    def FakeResult(self, times=1):
-        maxValue = self.guiutility.frame.top_bg.go.GetRange()
-        newValue = min(self.guiutility.frame.top_bg.go.GetValue() + 1, maxValue)
-        if times < 16:
-            self.guiutility.frame.top_bg.go.SetValue(newValue)
-            wx.CallLater(250, self.FakeResult, times + 1)
 
     @forceWxThread
     def NewResult(self):
-        maxValue = self.guiutility.frame.top_bg.go.GetRange()
-        newValue = min(self.guiutility.frame.top_bg.go.GetValue() + 1, maxValue)
-        if newValue == maxValue:
+        if self.guiutility.frame.top_bg.NewResult():
             self.SetFinished(None)
-        else:
-            self.guiutility.frame.top_bg.go.SetValue(newValue)
 
     def SetFinished(self, keywords):
         curkeywords, hits, filtered = self.guiutility.torrentsearch_manager.getSearchKeywords()
         if not keywords or curkeywords == keywords:
-            self.Freeze()
-            self.guiutility.frame.top_bg.ag.Stop()
-            self.guiutility.frame.top_bg.ag.Hide()
-            self.guiutility.frame.top_bg.go.SetValue(self.guiutility.frame.top_bg.go.GetRange())
-            self.Layout()
-            self.Thaw()
+            self.guiutility.frame.top_bg.SetFinished()
 
             def db_callback(keywords):
                 self.uelog.addEvent(message="Search: nothing found for query: " + " ".join(keywords), type=2)

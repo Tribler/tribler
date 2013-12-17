@@ -15,11 +15,12 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from urlparse import urlparse
+from urllib2 import URLError
 
 try:
     from Tribler.Main.Utility.Feeds import feedparser
 except:
-    import feedparser #Feedparser is installed as a package in ubuntu
+    import feedparser  # Feedparser is installed as a package in ubuntu
 
 URLHIST_TIMEOUT = 7 * 24 * 3600.0  # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 30 * 60  # reload a rss source every n seconds
@@ -267,40 +268,44 @@ class RssParser(Thread):
 
         newItems = []
 
-        feedparser._HTMLSanitizer.acceptable_elements = ['p', 'br']
-        d = feedparser.parse(url)
-        for entry in d.entries:
-            title = entry.title
+        try:
+            feedparser._HTMLSanitizer.acceptable_elements = ['p', 'br']
+            d = feedparser.parse(url)
+            for entry in d.entries:
+                title = entry.title
 
-            discovered_links = set()
-            for link in entry.links:
-                discovered_links.add(link['href'])
+                discovered_links = set()
+                for link in entry.links:
+                    discovered_links.add(link['href'])
 
-            for enclosure in entry.enclosures:
-                discovered_links.add(enclosure['href'])
+                for enclosure in entry.enclosures:
+                    discovered_links.add(enclosure['href'])
 
-            try:
-                for content in entry.media_content:
-                    discovered_links.add(content['url'])
-            except:
-                pass
+                try:
+                    for content in entry.media_content:
+                        discovered_links.add(content['url'])
+                except:
+                    pass
 
-            description = ''
-            if getattr(entry, 'summary', False):
-                description = entry.summary
-                if description:
-                    description = re.sub("<.*?>", "\n", description)
-                    description = re.sub("\n+", "\n", description)
+                description = ''
+                if getattr(entry, 'summary', False):
+                    description = entry.summary
+                    if description:
+                        description = re.sub("<.*?>", "\n", description)
+                        description = re.sub("\n+", "\n", description)
 
-            try:
-                thumbnail = entry.media_thumbnail[0]['url']
-            except:
-                thumbnail = None
+                try:
+                    thumbnail = entry.media_thumbnail[0]['url']
+                except:
+                    thumbnail = None
 
-            new_urls = [discovered_url for discovered_url in discovered_links if not urls_already_seen.contains(discovered_url)]
+                new_urls = [discovered_url for discovered_url in discovered_links if not urls_already_seen.contains(discovered_url)]
 
-            if len(new_urls) > 0:
-                newItems.append((title, new_urls, description, thumbnail))
+                if len(new_urls) > 0:
+                    newItems.append((title, new_urls, description, thumbnail))
+        except URLError:
+            if DEBUG:
+                print >> sys.stderr, "RssParser: could not open url", url
 
         return newItems
 
@@ -382,7 +387,6 @@ class URLHistory:
             return link
         else:
             return link[:idx]
-
 
 if __name__ == '__main__':
     DEBUG = True

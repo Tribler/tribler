@@ -19,7 +19,6 @@ from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from unittest.case import skip
 
-LISTEN_PORT = 12345
 DEBUG = True
 
 
@@ -167,7 +166,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
     def setUp(self):
         # listener for incoming connections from MiniBitTorrent
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind(("", LISTEN_PORT))
+        self.server.bind(("", self.session.get_listen_port()))
         self.server.listen(5)
 
         TestAsServer.setUp(self)
@@ -216,7 +215,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
             ltmgr = LibtorrentMgr.getInstance()
             for infohash in ltmgr.metainfo_requests:
                 handle = ltmgr.ltsession.find_torrent(lt.big_number(infohash.decode('hex')))
-                handle.connect_peer(("127.0.0.1", LISTEN_PORT), 0)
+                handle.connect_peer(("127.0.0.1", self.session.get_listen_port()), 0)
         self.session.lm.rawserver.add_task(do_supply, delay=5.0)
 
         # accept incoming connection
@@ -271,7 +270,6 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
         self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
-        self.config2.set_listen_port(4810)
 
     def tearDown(self):
         self.teardown_seeder()
@@ -299,7 +297,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         return (1.0, False)
 
     def test_good_request(self):
-        conn = BTConnection("localhost", self.hisport, user_infohash=self.tdef.get_infohash())
+        conn = BTConnection("localhost", self.session.get_listen_port(), user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
         conn.read_handshake_medium_rare()
         metadata_id = self.read_extend_handshake(conn)
@@ -316,7 +314,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self.read_extend_metadata_reply(conn, len(self.metadata_list) - 1)
 
     def test_good_flood(self):
-        conn = BTConnection("localhost", self.hisport, user_infohash=self.tdef.get_infohash())
+        conn = BTConnection("localhost", self.session.get_listen_port(), user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
         conn.read_handshake_medium_rare()
         metadata_id = self.read_extend_handshake(conn)
@@ -338,7 +336,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self.bad_request_and_disconnect({"msg_type": 0, "PIECE": 1})
 
     def bad_request_and_disconnect(self, payload):
-        conn = BTConnection("localhost", self.hisport, user_infohash=self.tdef.get_infohash())
+        conn = BTConnection("localhost", self.session.get_listen_port(), user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
         conn.read_handshake_medium_rare()
         metadata_id = self.read_extend_handshake(conn)

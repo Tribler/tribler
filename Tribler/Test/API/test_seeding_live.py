@@ -40,10 +40,8 @@ class TestSeeding(TestAsServer):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
 
-        self.config.set_overlay(False)
-        self.config.set_internal_tracker(True)
-
-        self.mylistenport = 4810
+        self.config2 = self.config.copy()
+        self.config2.set_state_dir(self.getStateDir(2))
 
     def setUpPostSession(self):
         pass
@@ -97,10 +95,6 @@ class TestSeeding(TestAsServer):
 
     def subtest_download(self):
         """ Now download the file via another Session """
-
-        self.config2 = self.config.copy()  # not really necess
-        self.config2.set_state_dir(self.getStateDir(2))
-        self.config2.set_listen_port(self.mylistenport)
         self.session2 = Session(self.config2, ignore_singleton=True)
 
         # Allow session2 to start
@@ -143,7 +137,7 @@ class TestSeeding(TestAsServer):
         print >> sys.stderr, "test: verifier: Connecting to seeder to check bitfield"
 
         infohash = self.tdef.get_infohash()
-        s = BTConnection('localhost', self.mylistenport, user_infohash=infohash)
+        s = BTConnection('localhost', self.session2.get_listen_port(), user_infohash=infohash)
         s.read_handshake_medium_rare()
 
         try:

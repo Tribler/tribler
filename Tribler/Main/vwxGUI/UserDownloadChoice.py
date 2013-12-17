@@ -1,7 +1,8 @@
 import sys
 import os
-import cPickle
+import json
 import thread
+import cPickle
 
 DEBUG = False
 
@@ -21,21 +22,19 @@ class UserDownloadChoice:
                 cls._singleton_lock.release()
         return cls._singleton
 
-    def __init__(self, session_dir=None):
+    def __init__(self, config=None):
         assert self._singleton is None
-        self._storage_file = None
+        self._config = None
         self._choices = {"download_state": {}}
 
-        if not session_dir is None:
-            self.set_session_dir(session_dir)
+        if config:
+            self.set_config(config)
 
-    def set_session_dir(self, session_dir):
-        self._storage_file = os.path.join(session_dir, "user_download_choice.pickle")
-        if DEBUG:
-            print >> sys.stderr, "UserDownloadChoice: Using file:", self._storage_file
+    def set_config(self, config, state_dir):
+        self._config = config
 
         try:
-            self._choices = cPickle.Unpickler(open(self._storage_file, "r")).load()
+            self._choices = json.loads(config.Read("user_download_choice"))
         except:
             self._choices = {}
 
@@ -45,24 +44,27 @@ class UserDownloadChoice:
             self._choices["download_state"] = {}
 
     def flush(self):
-        if not self._storage_file is None:
+        if self._config:
             if DEBUG:
-                print >> sys.stderr, "UserDownloadChoice: flush to", self._storage_file
-            cPickle.Pickler(open(self._storage_file, "w")).dump(self._choices)
+                print >> sys.stderr, "UserDownloadChoice: saving to config file"
+            self._config.Write("user_download_choice", json.dumps(self._choices))
 
     def set_download_state(self, infohash, choice, flush=True):
+        infohash = infohash.encode('hex')
         self._choices["download_state"][infohash] = choice
         if flush:
             self.flush()
 
     def remove_download_state(self, infohash, flush=True):
+        infohash = infohash.encode('hex')
         if infohash in self._choices["download_state"]:
             del self._choices["download_state"][infohash]
             if flush:
                 self.flush()
 
     def get_download_state(self, infohash, default=None):
+        infohash = infohash.encode('hex')
         return self._choices["download_state"].get(infohash, default)
 
     def get_download_states(self):
-        return self._choices["download_state"]
+        return dict((k.decode('hex'), v) for k, v in self._choices["download_state"].iteritems())

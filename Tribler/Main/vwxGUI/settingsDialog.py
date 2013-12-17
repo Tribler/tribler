@@ -17,6 +17,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
+from Tribler.Core.Utilities.utilities import isInteger
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
@@ -55,7 +56,8 @@ class SettingsDialog(wx.Dialog):
                              'lt_proxyserver',
                              'lt_proxyport',
                              'lt_proxyusername',
-                             'lt_proxypassword']
+                             'lt_proxypassword',
+                             'enable_utp']
 
         self.myname = None
         self.elements = {}
@@ -201,6 +203,8 @@ class SettingsDialog(wx.Dialog):
             self.elements['lt_proxypassword'].SetValue(auth[1])
         self.ProxyTypeChanged()
 
+        self.elements['enable_utp'].SetValue(self.utility.session.get_libtorrent_utp())
+
         wx.CallAfter(self.Refresh)
 
     def OnSelectionChanging(self, event):
@@ -260,7 +264,7 @@ class SettingsDialog(wx.Dialog):
             errors['uploadCtrl'] = 'Value must be a digit'
 
         valport = self.elements['firewallValue'].GetValue().strip()
-        if not valport.isdigit():
+        if not isInteger(valport):
             errors['firewallValue'] = 'Value must be a digit'
 
         valdir = self.elements['diskLocationCtrl'].GetValue().strip()
@@ -299,7 +303,7 @@ class SettingsDialog(wx.Dialog):
                         self.elements['g2g2text'].SetValue('')
 
         valwebuiport = self.elements['webui_port'].GetValue().strip()
-        if not valwebuiport.isdigit():
+        if not isInteger(valwebuiport):
             errors['webui_port'] = 'Value must be a digit'
 
         valltproxyport = self.elements['lt_proxyport'].GetValue().strip()
@@ -317,8 +321,7 @@ class SettingsDialog(wx.Dialog):
             self.utility.setMaxUp(valup)
 
             if valport != self.currentPortValue:
-                self.utility.config.Write('minport', valport)
-                self.utility.config.Write('maxport', int(valport) + 10)
+                scfg.set_listen_port(int(valport))
 
                 scfg.set_dispersy_port(int(valport) - 1)
                 self.saveDefaultDownloadConfig(scfg)
@@ -413,6 +416,11 @@ class SettingsDialog(wx.Dialog):
             if old_ptype != new_ptype or old_server != new_server or old_auth != new_auth:
                 self.utility.session.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
                 scfg.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
+
+            enable_utp = self.elements['enable_utp'].GetValue()
+            if enable_utp != self.utility.session.get_libtorrent_utp():
+                self.utility.session.set_libtorrent_utp(enable_utp)
+                scfg.set_libtorrent_utp(enable_utp)
 
             scfg.save(cfgfilename)
 

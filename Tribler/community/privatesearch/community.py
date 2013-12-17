@@ -73,11 +73,12 @@ class TTLSearchCommunity(Community):
         self.search_no_candidates_remain = 0
 
         if self.integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler, MiscDBHandler
             from Tribler.Core.CacheDB.Notifier import Notifier
 
             # tribler channelcast database
             self._channelcast_db = ChannelCastDBHandler.getInstance()
+            self._misc_db = MiscDBHandler.getInstance()
             self._torrent_db = TorrentDBHandler.getInstance()
             self._notifier = Notifier.getInstance()
 
@@ -434,7 +435,7 @@ class TTLSearchCommunity(Community):
                     dbresult[1] = unicode(dbresult[1])
                     dbresult[2] = long(dbresult[2])
                     dbresult[3] = int(dbresult[3])
-                    dbresult[4] = [self._torrent_db.id2category[dbresult[4]], ]
+                    dbresult[4] = [self._misc_db.categoryId2Name(dbresult[4]), ]
                     dbresult[5] = long(dbresult[5])
                     dbresult[6] = int(dbresult[6] or 0)
                     dbresult[7] = int(dbresult[7] or 0)

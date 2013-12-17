@@ -193,7 +193,7 @@ class AddTorrent(wx.Dialog):
     def OnCreate(self, event):
         configfile = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_trackers')
         configfile2 = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_created')
-        trackers = self.guiutility.channelsearch_manager.torrent_db.getPopularTrackers()
+        trackers = self.guiutility.channelsearch_manager.torrent_db.getRecentlyAliveTrackers()
 
         dlg = CreateTorrent(self, configfile, configfile2, trackers, self.toChannel)
         if dlg.ShowModal() == wx.ID_OK:
@@ -212,7 +212,7 @@ class AddTorrent(wx.Dialog):
             tdef = TorrentDef.load(torrentfilename)
         if torrenturl:
             tdef = TorrentDef.load_from_url(torrenturl)
-        dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None, os.path.join(self.frame.utility.session.get_state_dir(), 'recent_download_history'))
+        dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None, self.guiutility.utility.config)
         id = dlg.ShowModal()
 
         if id == wx.ID_OK:

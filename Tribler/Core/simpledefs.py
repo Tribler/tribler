@@ -46,13 +46,14 @@ STATEDIR_PEERICON_DIR = 'icons'
 STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
 STATEDIR_SWIFTRESEED_DIR = os.path.join(STATEDIR_TORRENTCOLL_DIR, 'swift_reseeds')
 
-STATEDIR_SESSCONFIG = 'sessconfig.pickle'
+STATEDIR_SESSCONFIG = 'libtribler.conf'
 STATEDIR_SEEDINGMANAGER_DIR = 'seeding_manager_stats'
 PROXYSERVICE_DESTDIR = 'proxyservice'
 
 # For observer/callback mechanism, see Session.add_observer()
 
 # subjects
+NTFY_MISC = 'misc'
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
 NTFY_PLAYLISTS = 'playlists'
@@ -67,6 +68,7 @@ NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
 NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
+NTFY_TRACKERINFO = 'trackerinfo'
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)

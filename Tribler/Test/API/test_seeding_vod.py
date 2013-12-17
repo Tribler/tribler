@@ -17,8 +17,8 @@ class TestVODSeeding(TestSeeding):
         TestSeeding.setUp(self)
         self.vod_event = threading.Event()
 
-    def setup_seeder(self, merkle, filename='file2.wmv'):
-        TestSeeding.setup_seeder(self, merkle, filename)
+    def setup_seeder(self, filename='file2.wmv'):
+        TestSeeding.setup_seeder(self, filename)
 
     def subtest_download(self):
         self.dscfg2.set_video_event_callback(self.downloader_vod_ready_callback)

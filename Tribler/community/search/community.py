@@ -79,11 +79,12 @@ class SearchCommunity(Community):
         # self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
 
         if self.integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler, MiscDBHandler
             from Tribler.Core.CacheDB.Notifier import Notifier
 
             # tribler channelcast database
             self._channelcast_db = ChannelCastDBHandler.getInstance()
+            self._misc_db = MiscDBHandler.getInstance()
             self._torrent_db = TorrentDBHandler.getInstance()
             self._mypref_db = MyPreferenceDBHandler.getInstance()
             self._notifier = Notifier.getInstance()
@@ -351,7 +352,7 @@ class SearchCommunity(Community):
                     dbresult = list(dbresult[:10])
                     dbresult[2] = long(dbresult[2])
                     dbresult[3] = int(dbresult[3])
-                    dbresult[4] = [self._torrent_db.id2category[dbresult[4]], ]
+                    dbresult[4] = [self._misc_db.categoryId2Name(dbresult[4]), ]
                     dbresult[5] = long(dbresult[5])
                     dbresult[6] = int(dbresult[6] or 0)
                     dbresult[7] = int(dbresult[7] or 0)

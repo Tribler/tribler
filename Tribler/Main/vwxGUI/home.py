@@ -19,7 +19,8 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler,\
+    NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 from Tribler.Core.Utilities.utilities import show_permid_short
@@ -869,6 +870,7 @@ class PopularTorrentPanel(NewTorrentPanel):
         HomePanel.__init__(self, parent, 'Popular Torrents', SEPARATOR_GREY, (1, 0))
         self.Layout()
 
+        self.misc_db = MiscDBHandler.getInstance()
         self.torrentdb = TorrentDBHandler.getInstance()
 
         self.timer = wx.Timer(self)
@@ -882,7 +884,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
     def RefreshList(self):
         def db_callback():
-            familyfilter_sql = Category.getInstance().get_family_filter_sql(self.torrentdb._getCategoryID)
+            familyfilter_sql = Category.getInstance().get_family_filter_sql(self.misc_db.categoryName2Id)
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 

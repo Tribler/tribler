@@ -57,7 +57,7 @@ def states_callback(dslist):
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
-    print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
+    print >> sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
         (d.get_def().get_name(),
             dlstatus_strings[ds.get_status()],
             ds.get_progress() * 100,
@@ -144,10 +144,7 @@ def main():
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(port)
     sscfg.set_megacache(False)
-    sscfg.set_overlay(False)
     sscfg.set_dispersy(False)
-    sscfg.set_dialback(True)
-    sscfg.set_internal_tracker(False)
 
     s = Session(sscfg)
     time.sleep(1.0)
