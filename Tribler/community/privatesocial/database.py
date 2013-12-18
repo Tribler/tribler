@@ -2,7 +2,6 @@ from os import path
 from time import time
 
 from Tribler.dispersy.database import Database
-from Tribler.community.privatesemantic.rsa import key_to_bytes, bytes_to_key
 
 LATEST_VERSION = 1
 
@@ -79,7 +78,7 @@ class FriendDatabase(Database):
 
     def add_friend(self, name, key, keyhash):
         _name = unicode(name)
-        _key = key_to_bytes(key)
+        _key = self._dispersy.crypto.key_to_bin(key.pub())
         _keyhash = buffer(str(keyhash))
         self.execute(u"INSERT INTO friends (name, key, keyhash) VALUES (?,?,?)", (name, _key, _keyhash))
 
@@ -91,7 +90,7 @@ class FriendDatabase(Database):
         return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE keyhash = ?", (_keyhash,))).next()
 
     def add_my_key(self, key, keyhash):
-        _key = key_to_bytes(key)
+        _key = self._dispersy.crypto.key_to_bin(key.pub())
         _keyhash = buffer(str(keyhash))
         self.execute(u"INSERT INTO my_keys (key, keyhash, inserted) VALUES (?,?,?)", (_key, _keyhash, time()))
 
@@ -100,4 +99,4 @@ class FriendDatabase(Database):
 
     def _converted_keys(self, keylist):
         for key, keyhash in keylist:
-            yield bytes_to_key(key), long(str(keyhash))
+            yield self._dispersy.crypto.key_from_public_bin(key), long(str(keyhash))

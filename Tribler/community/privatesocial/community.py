@@ -22,7 +22,7 @@ from Tribler.community.privatesocial.payload import EncryptedPayload
 from Tribler.community.privatesemantic.rsa import rsa_encrypt, rsa_sign, rsa_verify, \
     encrypt_str
 from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
-    HForwardCommunity, PForwardCommunity, PING_INTERVAL, ForwardCommunity, \
+    HForwardCommunity, PForwardCommunity, ForwardCommunity, \
     TasteBuddy
 
 from random import choice
@@ -42,8 +42,8 @@ class SocialCommunity(Community):
         self._friend_db = FriendDatabase(dispersy)
         self._friend_db.open()
 
-        self._orig_get_members_from_id = self._dispersy.get_members_from_id
-        self._dispersy.get_members_from_id = self.get_rsa_members_from_id
+        # self._orig_get_members_from_id = self._dispersy.get_members_from_id
+        # self._dispersy.get_members_from_id = self.get_rsa_members_from_id
 
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
@@ -94,7 +94,7 @@ class SocialCommunity(Community):
             for message, time_low, time_high, offset, modulo in requests:
                 data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0 ORDER BY sync.global_time DESC",
                                                     (time_low, time_high, offset, modulo))
-    
+
                 sync_ids = tuple(sync_id for _, sync_id in data)
                 yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
 
@@ -153,8 +153,8 @@ class SocialCommunity(Community):
         assert isinstance(message_str, str)
         assert isinstance(dest_friend, str)
 
-        # get rsa key
-        rsakey, keyhash = self._friend_db.get_friend(dest_friend)
+        # get key
+        key, keyhash = self._friend_db.get_friend(dest_friend)
 
         # encrypt message
         encrypted_message = encrypt_str(rsa_encrypt, rsakey, message_str)
@@ -227,16 +227,16 @@ class SocialCommunity(Community):
         elif DEBUG:
             print >> sys.stderr, long(time()), "SocialCommunity: After sorting", [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies]
 
-    def get_rsa_members_from_id(self, mid):
-        try:
-            # dispersy uses the sha digest, we use a sha hexdigest converted into long
-            # convert it to our long format
-            keyhash = long(hexlify(mid), 16)
-
-            rsakey = self._friend_db.get_friend_by_hash(keyhash)
-            return RSAMember(rsakey)
-        except:
-            return self._orig_get_members_from_id(mid)
+#     def get_rsa_members_from_id(self, mid):
+#         try:
+#             # dispersy uses the sha digest, we use a sha hexdigest converted into long
+#             # convert it to our long format
+#             keyhash = long(hexlify(mid), 16)
+#
+#             rsakey = self._friend_db.get_friend_by_hash(keyhash)
+#             return RSAMember(rsakey)
+#         except:
+#             return self._orig_get_members_from_id(mid)
 
     def get_most_similar(self, candidate):
         ctb = self.is_taste_buddy(candidate)
@@ -259,34 +259,6 @@ class SocialCommunity(Community):
 
         return candidate, None
 
-class RSAMember(Member):
-    def __init__(self, dispersy, key):
-        self._key = key
-        self._mid = sha1(self._key).digest()
-        self._signature_length = key.size / 8
-        self._tags = []
-
-    def has_identity(self, community):
-        return True
-
-    def verify(self, data, signature, offset=0, length=0):
-        assert isinstance(data, str)
-        assert isinstance(signature, str)
-        assert isinstance(offset, (int, long))
-        assert isinstance(length, (int, long))
-        assert len(signature) == self._signature_length
-
-        message = data[offset:offset + (length or len(data))]
-        return rsa_verify(self._key, message, signature)
-
-    def sign(self, data, offset=0, length=0):
-        assert isinstance(data, str)
-        assert isinstance(offset, (int, long))
-        assert isinstance(length, (int, long))
-
-        message = data[offset:offset + (length or len(data))]
-        return rsa_sign(self._key, message)
-
 class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
     @classmethod
@@ -301,7 +273,7 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint,send_simi_reveal=True)
+        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -343,7 +315,7 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        PForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint,send_simi_reveal=True)
+        PForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
 
     def initiate_conversions(self):
         return PForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -381,7 +353,7 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint,send_simi_reveal=True)
+        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -423,7 +395,7 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
-        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality,send_simi_reveal=True)
+        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality, send_simi_reveal=True)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
