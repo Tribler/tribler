@@ -78,7 +78,7 @@ class FriendDatabase(Database):
 
     def add_friend(self, name, key, keyhash):
         _name = unicode(name)
-        _key = self._dispersy.crypto.key_to_bin(key.pub())
+        _key = buffer(self._dispersy.crypto.key_to_bin(key.pub()))
         _keyhash = buffer(str(keyhash))
         self.execute(u"INSERT INTO friends (name, key, keyhash) VALUES (?,?,?)", (name, _key, _keyhash))
 
@@ -90,7 +90,7 @@ class FriendDatabase(Database):
         return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE keyhash = ?", (_keyhash,))).next()
 
     def add_my_key(self, key, keyhash):
-        _key = self._dispersy.crypto.key_to_bin(key.pub())
+        _key = buffer(self._dispersy.crypto.key_to_bin(key.pub()))
         _keyhash = buffer(str(keyhash))
         self.execute(u"INSERT INTO my_keys (key, keyhash, inserted) VALUES (?,?,?)", (_key, _keyhash, time()))
 
@@ -99,4 +99,4 @@ class FriendDatabase(Database):
 
     def _converted_keys(self, keylist):
         for key, keyhash in keylist:
-            yield self._dispersy.crypto.key_from_public_bin(key), long(str(keyhash))
+            yield self._dispersy.crypto.key_from_public_bin(str(key)), long(str(keyhash))
