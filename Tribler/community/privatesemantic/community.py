@@ -51,7 +51,7 @@ class TasteBuddy():
         assert isinstance(overlap, (list, int, long, float)), type(overlap)
         if isinstance(overlap, list):
             assert all(isinstance(cur_overlap, (int, long, float)) for cur_overlap in overlap)
-        
+
         self.overlap = overlap
         self.sock_addr = sock_addr
 
@@ -90,7 +90,7 @@ class TasteBuddy():
 class ActualTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate):
         assert isinstance(candidate, WalkCandidate), type(candidate)
-        
+
         TasteBuddy.__init__(self, overlap, candidate.sock_addr)
         self.timestamp = timestamp
         self.candidate = candidate
@@ -126,7 +126,7 @@ class PossibleTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate_mid, received_from):
         assert isinstance(timestamp, (long, float)), type(timestamp)
         assert isinstance(received_from, WalkCandidate), type(received_from)
-        
+
         TasteBuddy.__init__(self, overlap, None)
         self.timestamp = timestamp
         self.candidate_mid = candidate_mid
@@ -225,13 +225,13 @@ class ForwardCommunity():
     def add_taste_buddies(self, new_taste_buddies):
         for new_taste_buddy in new_taste_buddies:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy?", new_taste_buddy   
-            
+                print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy?", new_taste_buddy
+
             for taste_buddy in self.taste_buddies:
                 if new_taste_buddy == taste_buddy:
                     if DEBUG_VERBOSE:
                         print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no equal to", new_taste_buddy, taste_buddy
-                    
+
                     taste_buddy.update_overlap(new_taste_buddy)
                     new_taste_buddies.remove(new_taste_buddy)
                     break
@@ -241,10 +241,10 @@ class ForwardCommunity():
                 if len(self.taste_buddies) < self.max_taste_buddies or new_taste_buddy > self.taste_buddies[-1]:
                     if DEBUG_VERBOSE:
                         print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? yes adding to list"
-                    
+
                     self.taste_buddies.append(new_taste_buddy)
                     self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_requests, delay=new_taste_buddy.time_remaining() - 5.0)
-                    
+
                 elif DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no smaller than", new_taste_buddy, self.taste_buddies[-1]
 
@@ -441,7 +441,7 @@ class ForwardCommunity():
 
     def create_introduction_request(self, destination, allow_sync):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
-        
+
         if DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: creating intro request", isinstance(destination, BootstrapCandidate), self.is_taste_buddy(destination), self.has_possible_taste_buddies(destination)
 
@@ -464,10 +464,10 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             cache = self._request_cache.add(ForwardCommunity.SimilarityAttempt(self, destination))
-            
+
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "ForwardCommunity: sending msimilarity request to", destination, "with identifier", cache.number
-            
+
             self.send_msimilarity_request(destination, cache.number, payload)
             return True
 
@@ -479,8 +479,12 @@ class ForwardCommunity():
 
     class MSimilarityRequest(NumberCache):
         @staticmethod
+        def create_number(force_number= -1):
+            return force_number if force_number >= 0 else int(random() * 2 ** 16)
+
+        @staticmethod
         def create_identifier(number, force_number= -1):
-            return u"request-cache:m-similarity-request:%d" % (force_number if force_number >= 0 else number,)
+            return u"request-cache:m-similarity-request:%d" % number
 
         def __init__(self, community, requesting_candidate, requested_candidates, force_number= -1):
             NumberCache.__init__(self, community.request_cache, force_number)
@@ -511,10 +515,10 @@ class ForwardCommunity():
                     if rcandidate not in self.received_candidates:
                         self.received_candidates.add(rcandidate)
                         self.received_lists.append((rcandidate, member.mid, response))
-                        
+
                 elif DEBUG:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: did not send request to candidate", candidate,"ignoring response"
-                    
+                    print >> sys.stderr, long(time()), "ForwardCommunity: did not send request to candidate", candidate, "ignoring response"
+
             else:
                 self.my_response = response
 
@@ -560,7 +564,7 @@ class ForwardCommunity():
             if self._request_cache.has(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier)):
                 yield DropMessage(message, "send similarity attempt to myself?")
                 continue
-            
+
             if self._request_cache.has(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier)):
                 yield DropMessage(message, "currently processing another msimilarity request with this identifier")
                 continue
@@ -574,13 +578,13 @@ class ForwardCommunity():
 
             # create a register similarity request
             request = ForwardCommunity.MSimilarityRequest(self, message.candidate, candidates, force_number=message.payload.identifier)
-            #TODO: this shouldn't be necessary, requires a change in dispersy
+            # TODO: this shouldn't be necessary, requires a change in dispersy
             request._number = message.payload.identifier
             assert request.number == message.payload.identifier, (request.number, message.payload.identifier)
 
             # add local response
             request.add_response(None, None, self.on_similarity_request([message], False))
-            
+
             if candidates:
                 # forward it to others
                 self.send_similarity_request(candidates, message.payload.identifier, message.payload)
@@ -638,20 +642,20 @@ class ForwardCommunity():
         for message in messages:
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "ForwardCommunity: got similarity response from", message.candidate
-            
+
             request = self._request_cache.get(ForwardCommunity.MSimilarityRequest.create_identifier(message.payload.identifier))
             if request:
                 request.add_response(message.candidate, message.authentication.member, message.payload)
                 if request.is_complete():
                     self.reply_packet_size += request.process()
-                    
+
             elif DEBUG:
                 print >> sys.stderr, long(time()), "ForwardCommunity: could not get msimilarity requestcache for", message.payload.identifier
 
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         assert isinstance(identifier, int), type(identifier)
         raise NotImplementedError()
-    
+
     def check_msimilarity_response(self, messages):
         for message in messages:
             accepted, proof = self._timeline.check(message)
@@ -662,7 +666,7 @@ class ForwardCommunity():
             request = self._request_cache.get(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier))
             if not request:
                 print >> sys.stderr, "cannot find", message.payload.identifier, self._request_cache._identifiers.keys()
-                
+
                 yield DropMessage(message, "unknown identifier")
                 continue
 
@@ -672,7 +676,7 @@ class ForwardCommunity():
         for message in messages:
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "ForwardCommunity: got msimilarity response from", message.candidate
-            
+
             request = self._request_cache.pop(ForwardCommunity.SimilarityAttempt.create_identifier(message.payload.identifier))
             if request:
                 # replace message.candidate with WalkCandidate
@@ -712,7 +716,7 @@ class ForwardCommunity():
                 candidate = self.create_candidate(message.candidate.sock_addr, message.candidate.tunnel, message.candidate.sock_addr, message.candidate.sock_addr, u"unknown")
                 candidate.associate(message.authentication.member)
                 message._candidate = candidate
-            
+
             self.add_taste_buddies([ActualTasteBuddy(message.payload.overlap, time(), message.candidate)])
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
@@ -793,12 +797,12 @@ class ForwardCommunity():
         def create_identifier(number):
             assert isinstance(number, (int, long)), type(number)
             return u"request-cache:ping-request:%d" % (number,)
-        
+
         def __init__(self, community, requested_candidates):
             IntroductionRequestCache.__init__(self, community, None)
             self.requested_candidates = requested_candidates
             self.received_candidates = set()
-            
+
         @property
         def cleanup_delay(self):
             return 0.0
@@ -869,7 +873,7 @@ class ForwardCommunity():
 
         if DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: send", meta_name, "to", len(candidates), "candidates:", map(str, candidates)
-    
+
     def filter_tb(self, tbs):
         return list(tbs)
 
@@ -1232,7 +1236,7 @@ class HForwardCommunity(ForwardCommunity):
 
 class PoliForwardCommunity(ForwardCommunity):
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True,send_simi_reveal=False):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True, send_simi_reveal=False):
         ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal)
 
         self.key = paillier_init(self.key)
