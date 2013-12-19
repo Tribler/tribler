@@ -17,9 +17,6 @@ class TrustThyNeighbour:
         self.proxy = proxy
         self.circuit = circuit
 
-    def stop(self):
-        pass
-
     def extend(self):
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
         assert self.circuit.goal_hops > len(self.circuit.hops), "Circuits with correct length cannot be extended"
@@ -39,9 +36,6 @@ class RandomAPriori:
 
         self.desired_hops = None
         self.punctured_until = 0
-
-    def stop(self):
-        pass
 
     def extend(self):
         #TODO: this one should be looked at, seems a bit dodgy
