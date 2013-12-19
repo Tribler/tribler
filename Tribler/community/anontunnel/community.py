@@ -4,7 +4,6 @@ from threading import RLock
 import uuid
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
 from Tribler.dispersy.requestcache import NumberCache
-from Tribler.community.channel.community import forceDispersyThread
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +13,6 @@ from Tribler.community.anontunnel import ExtendStrategies
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
 from traceback import print_exc
-from Tribler.dispersy.dispersy import IntroductionRequestCache
 
 from time import time
 
@@ -551,6 +549,10 @@ class ProxyCommunity(Community):
             # one side of the relay broke, removing both
             del self.relay_from_to[(relay.candidate, relay.circuit_id)]
             del self.relay_from_to[relay_key]
+
+            return True
+        else:
+            return False
 
     def on_create(self, circuit_id, candidate, message):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
