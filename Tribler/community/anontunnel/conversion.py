@@ -28,9 +28,7 @@ class ProxyConversion(BinaryConversion):
 
 class CustomProxyConversion():
 
-    def __init__(self, prefix):
-        self.prefix = prefix
-
+    def __init__(self):
         self.encode_functions = {}
         self.decode_functions = {}
 
@@ -59,16 +57,14 @@ class CustomProxyConversion():
         self.decode_functions[MESSAGE_PUNCTURE] = self.__decode_puncture
 
 
-    def encode(self, circuit_id, type, message):
-        return self.prefix + struct.pack("!L", circuit_id) + type + self.encode_functions[type](message)
+    def encode(self, type, message):
+        return type + self.encode_functions[type](message)
 
     def decode(self, data, offset=0):
         message_type = data[offset]
         return message_type, self.decode_functions[message_type](data, offset + 1)
 
     def get_circuit_and_data(self, buffer, offset=0):
-        offset += len(self.prefix)
-
         circuit_id, = struct.unpack_from("!L", buffer, offset)
         offset += 4
 

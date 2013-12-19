@@ -56,7 +56,7 @@ class TunnelObserver():
 class Circuit:
     """ Circuit data structure storing the id, status, first hop and all hops """
 
-    def __init__(self, community, circuit_id, goal_hops=0, candidate=None):
+    def __init__(self, circuit_id, goal_hops=0, candidate=None):
         """
         Instantiate a new Circuit data structure
 
@@ -65,7 +65,6 @@ class Circuit:
         :return: Circuit
         """
 
-        self.community = community
         self.circuit_id = circuit_id
         self.candidate = candidate
         self.hops = [candidate.sock_addr] if candidate else []
@@ -216,7 +215,7 @@ class ProxyCommunity(Community):
 
         # Custom conversion
         self.prefix = 'f' * 22 + 'e'  # shouldn't this be "fffffffe".decode("HEX")?
-        self.proxy_conversion = CustomProxyConversion(self.prefix)
+        self.proxy_conversion = CustomProxyConversion()
         self.on_custom = {MESSAGE_CREATE: self.on_create,
                           MESSAGE_CREATED: self.on_created, MESSAGE_DATA: self.on_data, MESSAGE_EXTEND: self.on_extend,
                           MESSAGE_EXTENDED: self.on_extended, MESSAGE_PING: self.on_ping, MESSAGE_PONG: self.on_pong,
@@ -418,6 +417,8 @@ class ProxyCommunity(Community):
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
     def on_bypass_message(self, sock_addr, packet):
+        packet = packet[len(self.prefix):]
+
         dispersy = self._dispersy
 
         # TODO: we should attempt to get the candidate from the member_heartbeat dict
@@ -522,7 +523,7 @@ class ProxyCommunity(Community):
         cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self, circuit_id))
 
         goal_hops = self.circuit_length_strategy.circuit_length()
-        circuit = cache.circuit = Circuit(self, circuit_id, goal_hops, first_hop_candidate)
+        circuit = cache.circuit = Circuit(circuit_id, goal_hops, first_hop_candidate)
         circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
         self.circuits[circuit_id] = circuit
 
@@ -536,9 +537,6 @@ class ProxyCommunity(Community):
         if circuit_id in self.circuits:
             logger.info("Breaking circuit %d " + additional_info, circuit_id)
 
-            # Delete from data structures
-            if self.circuits[circuit_id].extend_strategy:
-                self.circuits[circuit_id].extend_strategy.stop()
             del self.circuits[circuit_id]
 
             return True
@@ -746,12 +744,15 @@ class ProxyCommunity(Community):
         return circuit_id
 
     def send_message(self, destination, circuit_id, message_type, message):
-        return self.send_packet(destination, circuit_id, message_type, self.proxy_conversion.encode(circuit_id, message_type, message))
+        contents = self.proxy_conversion.encode(message_type, message)
+        return self.send_packet(destination, circuit_id, message_type, contents)
 
     def send_packet(self, destination, circuit_id, message_type, packet, relayed=False):
         assert isinstance(destination, Candidate), type(destination)
         assert isinstance(packet, str), type(packet)
-        assert packet.startswith(self.prefix)
+        # assert packet.startswith(self.prefix)
+
+        packet = self.proxy_conversion.add_circuit(packet, circuit_id)
 
         str_type = MESSAGE_STRING_REPRESENTATION.get(message_type, "unknown-type-"+str(ord(message_type)))
 
@@ -760,7 +761,7 @@ class ProxyCommunity(Community):
         self.dict_inc(self.dispersy.statistics.outgoing, str_type + ('-relayed' if relayed else ''), 1)
 
         # we need to make sure that this endpoint is threadsafe
-        return self.dispersy.endpoint.send([destination], [packet])
+        return self.dispersy.endpoint.send([destination], [self.prefix + packet])
 
     def dict_inc(self, statistics_dict, key, inc=1):
         self.dispersy._callback.register(self._dispersy.statistics.dict_inc, args=(statistics_dict, u"anontunnel-" + key, inc))
@@ -776,15 +777,8 @@ class ProxyCommunity(Community):
 
     def check_ready(self):
         while True:
-            try:
-                self.circuit_selection_strategy.try_select(self.active_circuits)
-                self.online = True
-
-            except ValueError:
-                self.online = False
-
-            finally:
-                yield 1.0
+            self.online = self.circuit_selection_strategy.can_select(self.active_circuits)
+            yield 1.0
 
     def ping_circuits(self):
         while True:

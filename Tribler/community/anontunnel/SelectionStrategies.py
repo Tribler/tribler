@@ -18,9 +18,11 @@ class RandomSelectionStrategy(SelectionStrategy):
         SelectionStrategy.__init__(self)
         self.min_population_size = min_population_size
 
-    def try_select(self, circuits_to_select_from):
+    def can_select(self, circuits_to_select_from):
         if len(circuits_to_select_from) < self.min_population_size:
-            raise ValueError("At least %d circuits are needed before we select a tunnel" % (self.min_population_size,))
+            return False
+
+        return True
 
     def select(self, circuits_to_select_from):
         if len(circuits_to_select_from) < self.min_population_size:
@@ -37,13 +39,15 @@ class LengthSelectionStrategy(SelectionStrategy):
         self.max = int(max)
         self.random = True if random else False
 
-    def try_select(self, circuits_to_select_from):
+    def can_select(self, circuits_to_select_from):
         candidates = [c for c in circuits_to_select_from if self.min <= len(c.hops) <= self.max]
 
-        if len(candidates) == 0:
-            raise ValueError()
+        return len(candidates) > 0
 
     def select(self, circuits_to_select_from):
+        if not self.can_select(circuits_to_select_from):
+            raise ValueError("No circuits meeting criteria")
+
         candidates = [c for c in circuits_to_select_from if self.min <= len(c.hops) <= self.max]
 
         if self.random:
