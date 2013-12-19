@@ -11,5 +11,5 @@ def run():
     from tribler_main import run as run_main
     run_main()
 
-if __name__ == '__main__':nt
+if __name__ == '__main__':
     run()
