@@ -1,7 +1,9 @@
 import logging
 import socket
+import string
 from threading import RLock
 import uuid
+import random
 import M2Crypto
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
 from Tribler.dispersy.requestcache import NumberCache
@@ -12,7 +14,7 @@ from AES import AESencode
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
-from Crypto.Random.random import randint
+from Crypto.Random.random import randint, randrange
 from Tribler.community.anontunnel import ExtendStrategies
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
@@ -36,6 +38,10 @@ from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
+
+ORIGINATOR = "originator"
+ENDPOINT = "endpoint"
+
 
 class ProxySettings:
     def __init__(self):
@@ -231,7 +237,12 @@ class ProxyCommunity(Community):
         dispersy.endpoint.bypass_community = self
 
         self.circuits = {}
+        self.directions = {}
         self.relay_from_to = {}
+
+        self.key = self.my_member.private_key
+        self.session_keys = {}
+
 
         # Stats
         self.stats = {
@@ -528,8 +539,11 @@ class ProxyCommunity(Community):
         circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
         self.circuits[circuit_id] = circuit
 
+        pub_key = None
+        session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+        circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, session_key)
         logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
-        self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage())
+        self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(session_key))
         return circuit
 
     def remove_circuit(self, circuit_id, additional_info=''):
@@ -562,8 +576,12 @@ class ProxyCommunity(Community):
         logger.info('We joined circuit %d with neighbour %s', circuit_id, candidate)
         logger.info('Received secret %s', message.encrypted_key)
 
+        self.directions[circuit_id] = ORIGINATOR
+
         # todo: decrypt
         key = message.encrypted_key
+
+        self.session_keys[circuit_id] = key
 
         m = hashlib.sha256()
         m.update(key)
@@ -582,6 +600,7 @@ class ProxyCommunity(Community):
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
+        self.directions[circuit_id] = ENDPOINT
         request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_created()
@@ -650,7 +669,9 @@ class ProxyCommunity(Community):
         self.relay_from_to[to_key] = RelayRoute(circuit_id, candidate)
         self.relay_from_to[relay_key] = RelayRoute(new_circuit_id, extend_with)
 
-        return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage())
+        encrypted_secret = message.encrypted_secret
+
+        return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_secret))
 
     def on_extended(self, circuit_id, candidate, message):
         """ A circuit has been extended, forward the acknowledgment back
@@ -740,24 +761,27 @@ class ProxyCommunity(Community):
         return circuit_id
 
     def send_message(self, destination, circuit_id, message_type, message):
-        contents = self.proxy_conversion.encode(message_type, message)
-        return self.send_packet(destination, circuit_id, message_type, contents)
-        #if circuit_id in self.circuits:
+        content = self.proxy_conversion.encode(message_type, message)
+        if circuit_id in self.circuits:
+            # I am the originator so I have to create the full onion
+            circuit = self.circuits[circuit_id]
+            hops = circuit.hops
 
-        circuit = self.circuits[circuit_id]
-        hops = circuit.hops
+            for hop in reversed(hops):
+                content = AESencode(hop.pub_key, content)
 
-        content = self.proxy_conversion.encode(circuit_id, message_type, message)
+        elif self.directions[circuit_id] == ORIGINATOR:
+            # Message is going downstream so I have to add my onion layer
+            content = AESencode(self.session_keys[circuit_id], content)
 
-        for hop in reversed(hops):
-            content = AESencode(hop.key, content)
-        if message_type == MESSAGE_CREATE:
-
+        elif self.directions[circuit_id] == ENDPOINT:
+            # Message is going upstream so I have to remove my onion layer
+            content = AESdecode(self.session_keys[circuit_id], content)
 
         packet = self.proxy_conversion.add_circuit(content, circuit_id)
 
-
         return self.send_packet(destination, circuit_id, message_type, packet)
+
 
     def send_packet(self, destination, circuit_id, message_type, packet, relayed=False):
         assert isinstance(destination, Candidate), type(destination)

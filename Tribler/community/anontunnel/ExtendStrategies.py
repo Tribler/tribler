@@ -17,11 +17,32 @@ class TrustThyNeighbour:
         self.proxy = proxy
         self.circuit = circuit
 
-    def extend(self):
+    def extend(self, candidate_list = None):
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
         assert self.circuit.goal_hops > len(self.circuit.hops), "Circuits with correct length cannot be extended"
 
         logger.info("We are trusting our hop to extend circuit %d" % (self.circuit.circuit_id))
+        self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(None))
+
+class NeighbourSubset:
+    def __init__(self, proxy, circuit):
+        """
+        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
+        :param circuit:
+        """
+        self.proxy = proxy
+        self.circuit = circuit
+
+    def extend(self, candidate_list):
+        assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
+        assert self.circuit.goal_hops > len(self.circuit.hops), "Circuits with correct length cannot be extended"
+
+        candidate = candidate_list[0]
+        pub_key = None
+        session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+        self.circuit.unverified_hop = Hop(candiate.sock_addr, pub_key, session_key)
+
+        logger.info("We chose %s from the list to extend circuit %d with session key %s" % (candidate.sock_addr, self.circuit.circuit_id, session_key))
         self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(None))
 
 
@@ -37,7 +58,7 @@ class RandomAPriori:
         self.desired_hops = None
         self.punctured_until = 0
 
-    def extend(self):
+    def extend(self, candidate_list = None):
         #TODO: this one should be looked at, seems a bit dodgy
         
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
