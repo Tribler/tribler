@@ -2,8 +2,12 @@ import logging
 import socket
 from threading import RLock
 import uuid
+import M2Crypto
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
 from Tribler.dispersy.requestcache import NumberCache
+
+from AES import AESdecode
+from AES import AESencode
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +19,7 @@ from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStra
 from traceback import print_exc
 
 from time import time
+import hashlib
 
 from Tribler.community.anontunnel.conversion import ProxyConversion, \
     CustomProxyConversion
@@ -559,12 +564,25 @@ class ProxyCommunity(Community):
     def on_create(self, circuit_id, candidate, message):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
         logger.info('We joined circuit %d with neighbour %s', circuit_id, candidate)
+        logger.info('Received secret %s', message.encrypted_key)
+
+        # todo: decrypt
+        key = message.encrypted_key
+
+        m = hashlib.sha256()
+        m.update(key)
+        hashed_key = m.digest()
+
+        candidate_list = self.dispersy_yield_verified_candidates()[0:5]
+        cand_dict = {}
+        for candidate in candidate_list:
+            cand_dict[candidate.sock_addr] = "mykey"
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-        return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage())
+        return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(hashed_key, cand_dict))
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
@@ -573,28 +591,6 @@ class ProxyCommunity(Community):
             request.on_created()
             return True
 
-        relay_key = (candidate, circuit_id)
-        if relay_key in self.relay_from_to:
-            created_to = candidate
-            created_for = self.relay_from_to[(created_to, circuit_id)]
-
-            # Mark link online such that no new extension attempts will be taken
-            created_for.online = True
-            self.relay_from_to[(created_for.candidate, created_for.circuit_id)].online = True
-
-            self.send_message(created_for.candidate, created_for.circuit_id, MESSAGE_EXTENDED,
-                              ExtendedWithMessage(created_to.sock_addr))
-
-            logger.info('We have created a circuit requested by (%s:%d, %d) to (%s:%d, %d)',
-                           created_for.candidate.sock_addr[0],
-                           created_for.candidate.sock_addr[1],
-                           created_for.circuit_id,
-                           created_to.sock_addr[0],
-                           created_to.sock_addr[1],
-                           circuit_id
-            )
-
-            return True
         return False
 
     def on_data(self, circuit_id, candidate, message):
@@ -748,7 +744,22 @@ class ProxyCommunity(Community):
         return circuit_id
 
     def send_message(self, destination, circuit_id, message_type, message):
-        return self.send_packet(destination, circuit_id, message_type, self.proxy_conversion.encode(circuit_id, message_type, message))
+        #if circuit_id in self.circuits:
+
+        circuit = self.circuits[circuit_id]
+        hops = circuit.hops
+
+        content = self.proxy_conversion.encode(circuit_id, message_type, message)
+
+        for hop in reversed(hops):
+            content = AESencode(hop.key, content)
+        if message_type == MESSAGE_CREATE:
+
+
+        packet = self.proxy_conversion.add_circuit(content, circuit_id)
+
+
+        return self.send_packet(destination, circuit_id, message_type, packet)
 
     def send_packet(self, destination, circuit_id, message_type, packet, relayed=False):
         assert isinstance(destination, Candidate), type(destination)

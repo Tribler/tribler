@@ -34,17 +34,14 @@ class CustomProxyConversion():
         self.encode_functions = {}
         self.decode_functions = {}
 
-        self.encode_functions[MESSAGE_CREATE] = lambda message: ''
-        self.decode_functions[MESSAGE_CREATE] = lambda buffer, offset: CreateMessage()
+        self.encode_functions[MESSAGE_CREATE] = self.__encode_create
+        self.decode_functions[MESSAGE_CREATE] = self.__decode_create
 
-        self.encode_functions[MESSAGE_CREATED] = lambda message: ''
-        self.decode_functions[MESSAGE_CREATED] = lambda buffer, offset: CreatedMessage()
+        self.encode_functions[MESSAGE_CREATED] = self.__encode_created
+        self.decode_functions[MESSAGE_CREATED] = self.__encode_created
 
         self.encode_functions[MESSAGE_EXTEND] = self.__encode_extend
         self.decode_functions[MESSAGE_EXTEND] = self.__decode_extend
-
-        self.encode_functions[MESSAGE_EXTENDED] = self.__encode_extended
-        self.decode_functions[MESSAGE_EXTENDED] = self.__decode_extended
 
         self.encode_functions[MESSAGE_DATA] = self.__encode_data
         self.decode_functions[MESSAGE_DATA] = self.__decode_data
@@ -84,7 +81,9 @@ class CustomProxyConversion():
         host = extend_message.host if extend_message.host else ''
         port = extend_message.port if extend_message.port else 0
 
-        data = struct.pack("!LL", len(host), port) + host
+        encrypted_secret = extend_message.encrypted_secret
+
+        data = struct.pack("!LL", len(host), port) + host + encrypted_secret
         return data
 
     def __decode_extend(self, buffer, offset=0):
@@ -98,27 +97,10 @@ class CustomProxyConversion():
         host = buffer[offset:offset + host_length]
         offset += host_length
 
-        extended_with = (host, port) if host and port else None
-        return ExtendMessage(extended_with)
+        encrypted_secret = buffer[offset:]
 
-    def __encode_extended(self, extended_with_message):
-        data = struct.pack("!LL", len(extended_with_message.host), extended_with_message.port) + extended_with_message.host
-        return data
-
-    def __decode_extended(self, buffer, offset=0):
-        if len(buffer) < offset + 8:
-            raise ValueError("Cannot unpack HostLength/Port, insufficient packet size")
-        host_length, port = struct.unpack_from("!LL", buffer, offset)
-        offset += 8
-
-        if len(buffer) < offset + host_length:
-            raise ValueError("Cannot unpack Host, insufficient packet size")
-        host = buffer[offset:offset + host_length]
-        offset += host_length
-
-        extended_with = (host, port)
-
-        return ExtendedWithMessage(extended_with)
+        extend_with = (host, port) if host and port else None
+        return ExtendMessage(extend_with, encrypted_secret)
 
     def __encode_data(self, data_message):
         if data_message.destination is None:
@@ -168,6 +150,29 @@ class CustomProxyConversion():
 
         return DataMessage(destination, payload, origin)
 
+
+    def __encode_created(self, created_message):
+        return created_message.hashed_key + encode(created_message.candidate_dict)
+
+    def __decode_created(self, buffer, offset=0):
+
+        hashed_key = buffer[offset:offset + 256]
+        offset += 256
+
+        candidate_dict = decode(buffer[offset:])
+
+        return CreatedMessage(hashed_key, candidate_dict)
+
+    def __encode_create(self, create_message):
+        return create_message.encrypted_key
+
+    def __decode_create(self, buffer, offset=0):
+
+        encrypted_key = buffer[offset:]
+
+        return CreateMessage(encrypted_key)
+
+
     # why are we using a custom punture-req message?
     def __encode_puncture(self, puncture_message):
         return struct.pack("!LL", len(puncture_message.sock_addr[0]), puncture_message.sock_addr[1]) + puncture_message.sock_addr[0]
@@ -184,3 +189,5 @@ class CustomProxyConversion():
         destination = (host, port)
 
         return PunctureMessage(destination)
+
+

@@ -5,13 +5,8 @@ from Tribler.Core.Utilities.encoding import decode, encode
 
 __author__ = 'Chris'
 
-class CreateMessage:
-    pass
-
-
 class BreakMessage:
     pass
-
 
 class PingMessage:
     pass
@@ -19,13 +14,19 @@ class PingMessage:
 class PongMessage:
     pass
 
-class CreatedMessage:
-    pass
+class CreateMessage:
+    def __init__(self, encrypted_key):
+        self.key = encrypted_key
 
+class CreatedMessage:
+    def __init__(self, hashed_key, candidate_list):
+        self.hashed_key = hashed_key
+        self.candidate_list = candidate_list
 
 class ExtendMessage:
-    def __init__(self, extend_with):
+    def __init__(self, extend_with, encrypted_secret):
         self.extend_with = extend_with
+        self.encrypted_secret = encrypted_secret
     
     @property
     def host(self):
@@ -38,18 +39,6 @@ class ExtendMessage:
 class PunctureMessage:
     def __init__(self, sock_addr):
         self.sock_addr = sock_addr
-
-class ExtendedWithMessage:
-    def __init__(self, extended_with):
-        self.extended_with = extended_with
-    
-    @property
-    def host(self):
-        return self.extended_with[0]
-
-    @property
-    def port(self):
-        return self.extended_with[1]
 
 class DataMessage:
     def __init__(self, destination, data, origin=None):

@@ -62,7 +62,7 @@ class AnonTunnel(Thread):
 
             if self.crawl:
                 self.community.add_observer(StatsCrawler(self.raw_server))
-            
+
             return proxy_community[0]
 
         self.community = self.dispersy.callback.call(join_overlay, (self.dispersy,))
