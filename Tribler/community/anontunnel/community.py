@@ -27,7 +27,7 @@ from Tribler.community.anontunnel.conversion import ProxyConversion, \
     CustomProxyConversion
 
 from Tribler.community.anontunnel.payload import StatsPayload, CreatedMessage, \
-    PongMessage, CreateMessage, ExtendedWithMessage, PingMessage, DataMessage
+    PongMessage, CreateMessage, PingMessage, DataMessage
 
 from Tribler.dispersy.candidate import BootstrapCandidate, WalkCandidate, \
     Candidate
@@ -38,6 +38,30 @@ from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
+
+
+class Hop:
+    def __init__(self, address, pub_key, session_key):
+        self.address = address
+        self.pub_key = pub_key
+        self.session_key = session_key
+
+        if not session_key:
+            raise ValueError("Invalid session key")
+
+    @property
+    def host(self):
+        return self.address[0]
+
+    @property
+    def port(self):
+        return self.address[1]
+
+    @staticmethod
+    def fromCandidate(candidate):
+        hop = Hop(candidate.sock_addr, None, None)
+        return hop
+
 
 ORIGINATOR = "originator"
 ENDPOINT = "endpoint"
@@ -76,7 +100,7 @@ class Circuit:
 
         self.circuit_id = circuit_id
         self.candidate = candidate
-        self.hops = [candidate.sock_addr] if candidate else []
+        self.hops = []
         self.goal_hops = goal_hops
 
         self.extend_strategy = None
@@ -91,6 +115,10 @@ class Circuit:
         self.speed_up = 0.0
         self.speed_down = 0.0
         self.last_incomming = time()
+
+        self.unverified_hop = None
+        """ :type : Hop """
+
 
     @property
     def bytes_downloaded(self):
@@ -256,7 +284,6 @@ class ProxyCommunity(Community):
         self._record_stats = False
         self.download_stats = None
         self.session_id = uuid.uuid4()
-
         
         self.circuit_length_strategy = settings.length_strategy
         self.circuit_selection_strategy = settings.select_strategy
@@ -431,6 +458,8 @@ class ProxyCommunity(Community):
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
     def on_bypass_message(self, sock_addr, packet):
+        packet = packet[len(self.prefix):]
+
         dispersy = self._dispersy
 
         # TODO: we should attempt to get the candidate from the member_heartbeat dict
@@ -507,6 +536,9 @@ class ProxyCommunity(Community):
             NumberCache.__init__(self, community._request_cache, force_number)
             self.community = community
 
+            self.circuit = None
+            """ :type : Tribler.community.anontunnel.community.Circuit """
+
         @property
         def timeout_delay(self):
             return 5.0
@@ -515,28 +547,31 @@ class ProxyCommunity(Community):
         def cleanup_delay(self):
             return 0.0
 
-        def on_created(self):
+        def on_created(self, created_message):
+            """
+
+            :type created_message : Tribler.community.anontunnel.payload.CreatedMessage
+            """
+            unverified_hop = self.circuit.unverified_hop
+            logger.error("Not really verifying hop! Check hashes etc")
+
+            self.circuit.hops.append(unverified_hop)
+            self.circuit.unverified_hop = None
+
+            candidate_list = created_message.candidate_list
+
             if self.circuit.state == CIRCUIT_STATE_EXTENDING:
-                self.circuit.extend_strategy.extend()
+                self.circuit.extend_strategy.extend(candidate_list)
             elif self.circuit.state == CIRCUIT_STATE_READY:
                 self.on_success()
 
             if self.community.notifier:
-                from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_CREATED
-                self.community.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, self.circuit)
+                from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED
 
-        def on_extended(self, extended_message):
-            self.circuit.hops.append(extended_message.extended_with)
-
-            if self.circuit.state == CIRCUIT_STATE_EXTENDING:
-                self.circuit.extend_strategy.extend()
-
-            elif self.circuit.state == CIRCUIT_STATE_READY:
-                self.on_success()
-
-            if self.community.notifier:
-                from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED
-                self.community.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, self.circuit)
+                if len(self.circuit.hops) == 1:
+                    self.community.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, self.circuit)
+                else:
+                    self.community.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, self.circuit)
 
         def on_success(self):
             if self.circuit.state == CIRCUIT_STATE_READY:
@@ -548,22 +583,30 @@ class ProxyCommunity(Community):
                 self.community.remove_circuit(self.number, 'timeout on CircuitRequestCache, state = %s' % self.circuit.state)
 
     def create_circuit(self, first_hop_candidate, extend_strategy=None):
-        """ Create a new circuit, with one initial hop """
+        try:
+            """ Create a new circuit, with one initial hop """
 
-        circuit_id = self._generate_circuit_id(first_hop_candidate)
-        cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self, circuit_id))
+            circuit_id = self._generate_circuit_id(first_hop_candidate)
+            cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self, circuit_id))
 
-        goal_hops = self.circuit_length_strategy.circuit_length()
-        circuit = cache.circuit = Circuit(circuit_id, goal_hops, first_hop_candidate)
-        circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
-        self.circuits[circuit_id] = circuit
+            goal_hops = self.circuit_length_strategy.circuit_length()
+            circuit = cache.circuit = Circuit(circuit_id, goal_hops, first_hop_candidate)
 
-        pub_key = None
-        session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
-        circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, session_key)
-        logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
-        self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(session_key))
-        return circuit
+
+            circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
+            self.circuits[circuit_id] = circuit
+
+            pub_key = None
+            session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, session_key)
+            logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
+            self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(session_key))
+
+            return circuit
+
+        except Exception as e:
+            logger.exception("create_circuit")
+
 
     def remove_circuit(self, circuit_id, additional_info=''):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
@@ -617,7 +660,7 @@ class ProxyCommunity(Community):
         self.directions[circuit_id] = ENDPOINT
         request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
-            request.on_created()
+            request.on_created(message)
             return True
 
         return False

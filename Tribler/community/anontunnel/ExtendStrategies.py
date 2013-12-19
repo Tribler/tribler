@@ -1,10 +1,13 @@
 import logging
+import string
+
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
 from Tribler.community.anontunnel.payload import *
 
 import itertools
+import random
 
 __author__ = 'chris'
 
@@ -17,7 +20,7 @@ class TrustThyNeighbour:
         self.proxy = proxy
         self.circuit = circuit
 
-    def extend(self, candidate_list = None):
+    def extend(self, candidate_list=None):
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
         assert self.circuit.goal_hops > len(self.circuit.hops), "Circuits with correct length cannot be extended"
 
@@ -37,10 +40,12 @@ class NeighbourSubset:
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
         assert self.circuit.goal_hops > len(self.circuit.hops), "Circuits with correct length cannot be extended"
 
+        from Tribler.community.anontunnel.community import Hop
+
         candidate = candidate_list[0]
         pub_key = None
         session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
-        self.circuit.unverified_hop = Hop(candiate.sock_addr, pub_key, session_key)
+        self.circuit.unverified_hop = Hop(candidate.sock_addr, pub_key, session_key)
 
         logger.info("We chose %s from the list to extend circuit %d with session key %s" % (candidate.sock_addr, self.circuit.circuit_id, session_key))
         self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(None))
@@ -58,7 +63,7 @@ class RandomAPriori:
         self.desired_hops = None
         self.punctured_until = 0
 
-    def extend(self, candidate_list = None):
+    def extend(self, candidate_list=None):
         #TODO: this one should be looked at, seems a bit dodgy
         
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"

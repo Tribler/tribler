@@ -160,6 +160,9 @@ class CustomProxyConversion():
         return CreatedMessage(hashed_key, candidate_dict)
 
     def __encode_create(self, create_message):
+        '''
+        :type create_message : Tribler.community.anontunnel.payload.CreateMessage
+        '''
         return create_message.encrypted_key
 
     def __decode_create(self, buffer, offset=0):

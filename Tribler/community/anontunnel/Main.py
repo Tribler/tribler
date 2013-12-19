@@ -181,7 +181,7 @@ def main(argv):
         elif line == 'r\n':
             print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)\tSpeed (kBps)"
 
-            from_to = anon_tunnel.tunnel.relay_from_to
+            from_to = anon_tunnel.community.relay_from_to
 
             for key in from_to.keys():
                 relay = from_to[key]
