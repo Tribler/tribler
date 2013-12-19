@@ -12,8 +12,6 @@ CREATE TABLE record(
  first_member INTEGER,                  -- REFERENCES user(id)
  second_member INTEGER,                 -- REFERENCES user(id)
  global_time INTEGER,                   -- global time when this record was made
- cycle INTEGER,                         -- the cycle when this record was made
- effort BLOB,                           -- raw bytes where each bit represents a cycle, LSB corresponds with the cycle when this record was made
  upload_first_to_second INTEGER,        -- in cooked bytes
  upload_second_to_first INTEGER,        -- in cooked bytes
 
@@ -23,8 +21,6 @@ CREATE TABLE record(
  first_download INTEGER,                -- DEBUG bytes uploaded from second to first
  first_total_up INTEGER,                -- DEBUG bytes uploaded from first to others (any transfer)
  first_total_down INTEGER,              -- DEBUG bytes uploaded from others to first (any transfer)
- first_associated_up INTEGER,           -- DEBUG bytes uploaded from first to others (only transfers resulting in records)
- first_associated_down INTEGER,         -- DEBUG bytes uploaded from others to first (only transfers resulting in records)
 
  -- the following debug values are all according to second_member
  second_timestamp INTEGER,              -- DEBUG timestamp when this record was made (according to second)
@@ -32,8 +28,6 @@ CREATE TABLE record(
  second_download INTEGER,               -- DEBUG bytes uploaded from first to second
  second_total_up INTEGER,               -- DEBUG bytes uploaded from second to others (any transfer)
  second_total_down INTEGER,             -- DEBUG bytes uploaded from others to second (any transfer)
- second_associated_up INTEGER,          -- DEBUG bytes uploaded from second to others (only transfers resulting in records)
- second_associated_down INTEGER,        -- DEBUG bytes uploaded from others to second (only transfers resulting in records)
 
  PRIMARY KEY (sync),
  UNIQUE (first_member, second_member));
@@ -43,8 +37,7 @@ CREATE TABLE record(
 -- possible.
 CREATE TABLE book(
  member INTEGER,                        -- REFERENCES user(id)
- cycle INTEGER,                         -- the cycle when the last book update was made
- effort BLOB,                           -- raw bytes where each bit represents a cycle, LSB corresponds with the cycle when this record was made
+ timestamp INTEGER,                     -- timestamp when the last change in up/download occurred
  upload INTEGER,                        -- bytes uploaded from member to me
  download INTEGER,                      -- bytes uploaded from me to member
  PRIMARY KEY (member));
@@ -67,9 +60,9 @@ class BarterDatabase(Database):
         self._dispersy = dispersy
         super(BarterDatabase, self).__init__(path.join(dispersy.working_directory, u"sqlite", u"barter.db"))
 
-    def open(self):
+    def open(self, *args, **kargs):
         self._dispersy.database.attach_commit_callback(self.commit)
-        return super(BarterDatabase, self).open()
+        return super(BarterDatabase, self).open(*args, **kargs)
 
     def close(self, commit=True):
         self._dispersy.database.detach_commit_callback(self.commit)

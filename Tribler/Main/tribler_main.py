@@ -473,10 +473,7 @@ class ABCApp():
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
             # their version before enabling it again.
-            # if swift_process:
-            #     dispersy.define_auto_load(BarterCommunity,
-            #                               (swift_process,),
-            #                               load=True)
+            # dispersy.define_auto_load(BarterCommunity, load=True)
 
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
@@ -484,7 +481,6 @@ class ABCApp():
             diff = time() - now
             print >> sys.stderr, "tribler: communities are ready in %.2f seconds" % (diff,)
 
-        swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
         return s
