@@ -446,6 +446,16 @@ class ProxyCommunity(Community):
         # First, relay packet if we know whom to forward message to for this circuit
         if circuit_id > 0 and relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
             next_relay = self.relay_from_to[relay_key]
+
+            if self.directions[circuit_id] == ORIGINATOR:
+                # Message is going downstream so I have to add my onion layer
+                data = AESencode(self.session_keys[circuit_id], data)
+
+            elif self.directions[circuit_id] == ENDPOINT:
+                # Message is going upstream so I have to remove my onion layer
+                data = AESdecode(self.session_keys[circuit_id], data)
+
+
             new_packet = self.prefix + self.proxy_conversion.add_circuit(data, next_relay.circuit_id)
             next_relay.bytes[1] += len(new_packet)
 
@@ -461,6 +471,15 @@ class ProxyCommunity(Community):
         # We don't know where to relay this message to, must be for me?
         else:
             try:
+                if circuit_id in self.circuits:
+                    # I am the originator
+                    for hop in self.circuits[circuit_id].hops:
+                        data = AESdecode(hop.session_key, data)
+                    if self.circuits[circuit_id].unverified_hop:
+                        data = AESdecode(self.circuits[circuit_id].unverified_hop.session_key, data)
+
+                else:
+                    data = AESdecode(self.session_keys[circuit_id], data)
                 _, payload = self.proxy_conversion.decode(data)
                 if circuit_id in self.circuits:
                     self.circuits[circuit_id].last_incomming = time()
@@ -763,15 +782,7 @@ class ProxyCommunity(Community):
             hops = circuit.hops
 
             for hop in reversed(hops):
-                content = AESencode(hop.pub_key, content)
-
-        elif self.directions[circuit_id] == ORIGINATOR:
-            # Message is going downstream so I have to add my onion layer
-            content = AESencode(self.session_keys[circuit_id], content)
-
-        elif self.directions[circuit_id] == ENDPOINT:
-            # Message is going upstream so I have to remove my onion layer
-            content = AESdecode(self.session_keys[circuit_id], content)
+                content = AESencode(hop.session_key, content)
 
         packet = self.proxy_conversion.add_circuit(content, circuit_id)
 

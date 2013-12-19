@@ -16,7 +16,7 @@ class PongMessage:
 
 class CreateMessage:
     def __init__(self, encrypted_key):
-        self.key = encrypted_key
+        self.encrypted_key = encrypted_key
 
 class CreatedMessage:
     def __init__(self, hashed_key, candidate_list):
