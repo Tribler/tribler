@@ -560,16 +560,11 @@ class ProxyCommunity(Community):
     def remove_relay(self, relay_key, additional_info=''):
         if relay_key in self.relay_from_to:
             logger.info(("Breaking relay %s:%d %d " + additional_info) % (relay_key[0].sock_addr[0], relay_key[0].sock_addr[1], relay_key[1]))
-
-            relay = self.relay_from_to[relay_key]
-
-            # one side of the relay broke, removing both
-            del self.relay_from_to[(relay.candidate, relay.circuit_id)]
+            # Only remove one side of the relay, this isn't as pretty but both sides have separate incomming timer, hence
+            # after removing one side the other will follow. 
             del self.relay_from_to[relay_key]
-
             return True
-        else:
-            return False
+        return False
 
     def on_create(self, circuit_id, candidate, message):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
