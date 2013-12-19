@@ -36,7 +36,7 @@ class CustomProxyConversion():
         self.decode_functions[MESSAGE_CREATE] = self.__decode_create
 
         self.encode_functions[MESSAGE_CREATED] = self.__encode_created
-        self.decode_functions[MESSAGE_CREATED] = self.__encode_created
+        self.decode_functions[MESSAGE_CREATED] = self.__decode_created
 
         self.encode_functions[MESSAGE_EXTEND] = self.__encode_extend
         self.decode_functions[MESSAGE_EXTEND] = self.__decode_extend
@@ -59,6 +59,7 @@ class CustomProxyConversion():
 
     def decode(self, data, offset=0):
         message_type = data[offset]
+        assert message_type > 0
         return message_type, self.decode_functions[message_type](data, offset + 1)
 
     def get_circuit_and_data(self, buffer, offset=0):
@@ -148,12 +149,12 @@ class CustomProxyConversion():
 
 
     def __encode_created(self, created_message):
-        return created_message.hashed_key + encode(created_message.candidate_dict)
+        return created_message.hashed_key + encode(created_message.candidate_list)
 
     def __decode_created(self, buffer, offset=0):
 
-        hashed_key = buffer[offset:offset + 256]
-        offset += 256
+        hashed_key = buffer[offset:offset + 32]
+        offset += 32
 
         candidate_dict = decode(buffer[offset:])
 

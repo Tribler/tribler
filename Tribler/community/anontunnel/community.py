@@ -71,7 +71,7 @@ class ProxySettings:
     def __init__(self):
         length = randint(1, 4)
 
-        self.extend_strategy = ExtendStrategies.TrustThyNeighbour
+        self.extend_strategy = ExtendStrategies.NeighbourSubset
         self.select_strategy = RandomSelectionStrategy(1)
         self.length_strategy = ConstantCircuitLengthStrategy(length)
 
@@ -467,10 +467,6 @@ class ProxyCommunity(Community):
         candidate = self.get_candidate(sock_addr) or Candidate(sock_addr, False)
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (candidate, circuit_id)
-        packet_type = self.proxy_conversion.get_type(data)
-        str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
-
-        logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
         # First, relay packet if we know whom to forward message to for this circuit
         if circuit_id > 0 and relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
@@ -494,6 +490,11 @@ class ProxyCommunity(Community):
                 this_relay.last_incomming = time()
                 this_relay.bytes[0] += len(packet)
 
+            packet_type = self.proxy_conversion.get_type(data)
+            str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
+
+            logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+
             self.send_packet(next_relay.candidate, circuit_id, packet_type, new_packet, relayed=True)
             self.dict_inc(dispersy.statistics.success, str_type + '-relayed')
 
@@ -507,9 +508,20 @@ class ProxyCommunity(Community):
                     if self.circuits[circuit_id].unverified_hop:
                         data = AESdecode(self.circuits[circuit_id].unverified_hop.session_key, data)
 
-                else:
+                elif circuit_id in self.session_keys:
                     data = AESdecode(self.session_keys[circuit_id], data)
+                else:
+                    logger.warning("Gotta decrypt with private key")
+                    data = data
+
                 _, payload = self.proxy_conversion.decode(data)
+
+                packet_type = self.proxy_conversion.get_type(data)
+                str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
+
+                logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+
+
                 if circuit_id in self.circuits:
                     self.circuits[circuit_id].last_incomming = time()
 
@@ -519,7 +531,7 @@ class ProxyCommunity(Community):
                 else:
                     self.dict_inc(dispersy.statistics.success, str_type)
             except Exception as e:
-                logger.error("ERROR %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                logger.exception("ERROR from %s:%d over circuit %d", candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
     class CircuitRequestCache(NumberCache):
 
@@ -598,6 +610,7 @@ class ProxyCommunity(Community):
 
             pub_key = None
             session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+            #session_key = "SESSIONSESSIONSESSION"
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, session_key)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
             self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(session_key))
@@ -644,10 +657,12 @@ class ProxyCommunity(Community):
         m.update(key)
         hashed_key = m.digest()
 
-        candidate_list = self.dispersy_yield_verified_candidates()[0:5]
         cand_dict = {}
-        for candidate in candidate_list:
-            cand_dict[candidate.sock_addr] = "mykey"
+        for i in range(1, 5):
+            candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
+            if not candidate_temp:
+                break
+            cand_dict[candidate_temp.sock_addr] = "mykey"
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -827,9 +842,9 @@ class ProxyCommunity(Community):
             for hop in reversed(hops):
                 content = AESencode(hop.session_key, content)
 
-        packet = self.proxy_conversion.add_circuit(content, circuit_id)
+        #packet = self.proxy_conversion.add_circuit(content, circuit_id)
 
-        return self.send_packet(destination, circuit_id, message_type, packet)
+        return self.send_packet(destination, circuit_id, message_type, content)
 
 
     def send_packet(self, destination, circuit_id, message_type, packet, relayed=False):
