@@ -16,9 +16,7 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 from Crypto.Cipher import AES
 from M2Crypto import EC, m2
 from Tribler.community.privatesemantic.ecutils import Point, EllipticCurve, \
-    OpenSSLCurves
-
-ECElgamalKey = namedtuple('ECElgamalKey', ['ec', 'x', 'Q', 'size', 'encsize'])
+    OpenSSLCurves, ECElgamalKey_Pub, ECElgamalKey
 
 def ecelgamal_init(bits=192, curve=None):
     if curve == None:
@@ -61,7 +59,7 @@ def ecelgamal_init(bits=192, curve=None):
         rand('seed', StrongRandom().randint(0, maxint))
         x = rand('next', 10000)
         Q = x * curve.g
-        return ECElgamalKey(curve, x, Q, bits, bits * 4)
+        return ECElgamalKey(curve, x, Q, bits / 8, bits / 8 * 4)
 
 def ecelgamal_encrypt(key, M):
     assert M in key.ec
@@ -71,15 +69,9 @@ def ecelgamal_encrypt(key, M):
     S = M + k * key.Q
     return (R, S)
 
-def ecelgamal_decrypt_str(key, cipher):
-    assert isinstance(cipher, str), type(cipher)
-    R = key.ec.from_bytes(cipher[:key.encsize / 8 / 2], key.size)
-    S = key.ec.from_bytes(cipher[key.encsize / 8 / 2:], key.size)
-
-    M = ecelgamal_decrypt(key, (R, S))
-    return key.ec.convert_to_long(M)
-
 def ecelgamal_decrypt(key, cipher):
+    assert not isinstance(key, ECElgamalKey_Pub)
+
     R, S = cipher
     M = S - key.x * R
     return M
@@ -96,30 +88,42 @@ def encrypt_str(key, plain_str):
     enc_str = cipher.encrypt(plain_str)
 
     R, S = ecelgamal_encrypt(key, key.ec.convert_to_point(aes_key))
-    enc_aes_key = Point.to_bytes(R, key.size) + Point.to_bytes(S, key.size)
-    return enc_aes_key + enc_str
+    R = Point.to_bytes(R, key.size)
+    S = Point.to_bytes(S, key.size)
+
+    assert len(R) == key.size * 2, "converted point is not as expected %d vs %d" % (len(R), key.size * 2)
+    assert len(S) == key.size * 2, "converted point is not as expected %d vs %d" % (len(S), key.size * 2)
+
+    enc_keylength = len(R) + len(S)
+    assert enc_keylength == key.encsize, ("encrypted keylength is not as expected %d vs %d" % (enc_keylength, key.encsize))
+
+    return R + S + enc_str
 
 def decrypt_str(key, encr_str):
-    enc_aes_key = encr_str[:key.encsize / 8]
+    assert not isinstance(key, ECElgamalKey_Pub)
+    enc_aes_key = encr_str[:key.encsize]
+    R = enc_aes_key[:len(enc_aes_key) / 2]
+    S = enc_aes_key[len(enc_aes_key) / 2:]
 
-    R = key.ec.from_bytes(enc_aes_key[:key.encsize / 8 / 2], key.size)
-    S = key.ec.from_bytes(enc_aes_key[key.encsize / 8 / 2:], key.size)
+    R = key.ec.from_bytes(R, key.size)
+    S = key.ec.from_bytes(S, key.size)
     M = ecelgamal_decrypt(key, (R, S))
     aes_key = key.ec.convert_to_long(M)
 
     cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-    plain_str = cipher.decrypt(encr_str[key.encsize / 8:])
+    plain_str = cipher.decrypt(encr_str[key.encsize:])
     return plain_str
 
 if __name__ == "__main__":
     # lets check if this ecelgamal thing works
     from Tribler.dispersy.crypto import ECCrypto
     ec = ECCrypto()
-    open = OpenSSLCurves()
+    openssl = OpenSSLCurves()
 
-    m2key = ec.generate_key(u'NID_secp192k1')
-    ec = open.get_curve_for_public_key(m2key)
-    key = ecelgamal_init(curve=ec)
+    m2key = ec.generate_key(u'NID_secp160k1')
+    # m2key = ec.generate_key(u'NID_secp192k1')
+    key = openssl.get_ecelgamalkey_for_key(m2key)
+    # key = ecelgamal_init(192)
 
     M1 = key.ec.convert_to_point(1)
     M2 = key.ec.convert_to_point(2)
@@ -132,8 +136,8 @@ if __name__ == "__main__":
 
     M1M2 = ecelgamal_decrypt(key, ecelgamal_add(encr_1, encr_2))
 
-    assert key.ec.convert_to_long(M1M2 - M2) == 1
-    assert key.ec.convert_to_long(M1M2 - M1) == 2
+    assert key.ec.convert_to_long(M1M2 - M2) == 1, key.ec.convert_to_long(M1M2 - M2)
+    assert key.ec.convert_to_long(M1M2 - M1) == 2, key.ec.convert_to_long(M1M2 - M1)
 
     random_large_string = ''.join(choice(ascii_uppercase + digits) for _ in range(100001))
     encrypted_str = encrypt_str(key, random_large_string)
@@ -142,7 +146,7 @@ if __name__ == "__main__":
     # performance
     def do_perf():
         t1 = time()
-        random_list = [key.ec.convert_to_point(randint(0, maxint)) for _ in xrange(1000)]
+        random_list = [key.ec.convert_to_point(randint(0, maxint)) for _ in xrange(10000)]
         t2 = time()
 
         encrypted_values = []

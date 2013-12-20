@@ -19,8 +19,6 @@ from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesocial.payload import EncryptedPayload
-from Tribler.community.privatesemantic.rsa import rsa_encrypt, rsa_sign, rsa_verify, \
-    encrypt_str
 from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
     HForwardCommunity, PForwardCommunity, ForwardCommunity, \
     TasteBuddy
@@ -29,6 +27,9 @@ from random import choice
 from Tribler.dispersy.member import Member
 from database import FriendDatabase
 from Tribler.community.privatesemantic.conversion import long_to_bytes
+from Tribler.community.privatesemantic.ecutils import OpenSSLCurves
+from Tribler.community.privatesemantic.ecelgamal import encrypt_str
+from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -36,14 +37,13 @@ ENCRYPTION = True
 
 class SocialCommunity(Community):
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION):
+        assert isinstance(dispersy.crypto, ElgamalCrypto)
+
         super(SocialCommunity, self).__init__(dispersy, master)
         self.encryption = bool(encryption)
 
         self._friend_db = FriendDatabase(dispersy)
         self._friend_db.open()
-
-        # self._orig_get_members_from_id = self._dispersy.get_members_from_id
-        # self._dispersy.get_members_from_id = self.get_rsa_members_from_id
 
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
@@ -52,8 +52,6 @@ class SocialCommunity(Community):
         # replace _get_packets_for_bloomfilters
         self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
         self._dispersy._get_packets_for_bloomfilters = self._get_packets_for_bloomfilters
-
-        # self._dispersy.callback.register(self.sync_with_friends)
 
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
@@ -157,7 +155,7 @@ class SocialCommunity(Community):
         key, keyhash = self._friend_db.get_friend(dest_friend)
 
         # encrypt message
-        encrypted_message = encrypt_str(rsa_encrypt, rsakey, message_str)
+        encrypted_message = self.dispersy.crypto.encrypt(key, message_str)
 
         meta = self.get_meta_message(u"encrypted")
         message = meta.impl(authentication=(self._my_member,),
@@ -172,10 +170,14 @@ class SocialCommunity(Community):
         for message in messages:
             self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.pubkey)
 
-            body = message.decrypt(self._db.get_my_keys())
-            if body:
-                decrypted_messages.append((message.candidate, body))
-            log("dispersy.log", "handled-record", type="encrypted", global_time=message._distribution.global_time, could_decrypt=bool(body))
+            could_decrypt = False
+            for key, keyhash in self._db.get_my_keys():
+                if keyhash == self._keyhash:
+                    decrypted_messages.append((message.candidate, self.dispersy.crypto.decrypt(key, self._encrypted_message)))
+                    could_decrypt = True
+                    break
+
+            log("dispersy.log", "handled-record", type="encrypted", global_time=message._distribution.global_time, could_decrypt=could_decrypt)
 
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
