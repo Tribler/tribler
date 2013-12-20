@@ -70,7 +70,7 @@ class StatsCrawler(TunnelObserver):
 
         try:
             cursor.execute('''INSERT OR FAIL INTO result
-                                (encrypted, session_id, time, host, port, swift_size, swift_time, bytes_enter, bytes_exit, bytes_returned)
+                                (encryption, session_id, time, host, port, swift_size, swift_time, bytes_enter, bytes_exit, bytes_returned)
                                 VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?)''',
                               [uuid.UUID(stats['uuid']),
 
