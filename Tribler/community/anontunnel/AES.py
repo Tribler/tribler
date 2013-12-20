@@ -7,7 +7,7 @@ import base64
 import os
 
 # the block size for the cipher object; must be 16, 24, or 32 for AES
-BLOCK_SIZE = 32
+BLOCK_SIZE = 16
 # the character used for padding--with a block cipher such as AES, the value
 # you encrypt must be a multiple of BLOCK_SIZE in length.  This character is
 # used to ensure that your value is always a multiple of BLOCK_SIZE
@@ -26,7 +26,7 @@ secret = os.urandom(BLOCK_SIZE)
 
 def AESencode(secret, message):
     #message = pad(message)
-    cipher = AES.new(secret, AES.MODE_CFB, IV=secret[0:16])
+    cipher = AES.new(secret, AES.MODE_CFB, IV=secret[0:8] * 2)
     #cipher = AES.new(secret,AES.MODE_ECB)
     #encoded = base64.b64encode(cipher.encrypt(message))
     encoded = cipher.encrypt(message)
@@ -35,7 +35,7 @@ def AESencode(secret, message):
 
 def AESdecode(secret, message):
     #message = unpad(message)
-    cipher = AES.new(secret, AES.MODE_CFB, IV=secret[0:16])
+    cipher = AES.new(secret, AES.MODE_CFB, IV=secret[0:8] * 2)
     #decoded = cipher.decrypt(base64.b64decode(message))
     decoded = cipher.decrypt(message)
     return decoded

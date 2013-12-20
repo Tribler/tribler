@@ -66,7 +66,7 @@ ENDPOINT = "endpoint"
 
 class ProxySettings:
     def __init__(self):
-        length = 2 #randint(1, 4)
+        length = randint(2, 4)
 
         self.extend_strategy = ExtendStrategies.NeighbourSubset
         self.select_strategy = RandomSelectionStrategy(1)
@@ -510,7 +510,7 @@ class ProxyCommunity(Community):
                 elif circuit_id in self.session_keys:
                     data = AESdecode(self.session_keys[circuit_id], data)
                 else:
-                    logger.warning("Gotta decrypt with private key")
+                    logger.warning("Gotta decrypt with private key, circuit = {}, my circuitkeys so far are {}".format(circuit_id, self.session_keys))
                     data = data
 
                 _, payload = self.proxy_conversion.decode(data)
@@ -624,7 +624,7 @@ class ProxyCommunity(Community):
             self.circuits[circuit_id] = circuit
 
             pub_key = None
-            session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+            session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(16))
             #session_key = "SESSIONSESSIONSESSION"
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, session_key)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
