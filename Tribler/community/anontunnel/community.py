@@ -66,11 +66,11 @@ ENDPOINT = "endpoint"
 
 class ProxySettings:
     def __init__(self):
-        length = randint(2, 4)
+        length = randint(1, 4)
 
         self.extend_strategy = ExtendStrategies.NeighbourSubset
         self.select_strategy = RandomSelectionStrategy(1)
-        self.length_strategy = RandomCircuitLengthStrategy(2,2)
+        self.length_strategy = ConstantCircuitLengthStrategy(length)
 
 
 class TunnelObserver():
