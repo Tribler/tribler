@@ -9,6 +9,7 @@ from Tribler.dispersy.crypto import ECCrypto
 import sys
 from traceback import print_exc
 from M2Crypto.EC import EC_pub
+import os
 
 ECElgamalKey = namedtuple('ECElgamalKey', ['ec', 'x', 'Q', 'size', 'encsize'])
 ECElgamalKey_Pub = namedtuple('ECElgamalKey_Pub', ['ec', 'Q', 'size', 'encsize'])
@@ -210,7 +211,7 @@ class OpenSSLCurves():
         self.curve_dict = defaultdict(lambda: ["", "", ""])
 
         implicit = True
-        f = open('curves.ec', 'r')
+        f = open(os.path.join(os.path.dirname(__file__), 'curves.ec'), 'r')
         for line in f:
             line = line.strip()
 
