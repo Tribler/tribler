@@ -1,9 +1,5 @@
-from Crypto.Util import Counter
-
 __author__ = 'rutger'
 # https://gist.github.com/sekondus/4322469
-
-from Crypto.Cipher import AES
 
 import M2Crypto
 import binascii

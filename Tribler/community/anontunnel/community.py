@@ -14,7 +14,7 @@ from AES import AESencode
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
-from Crypto.Random.random import randint, randrange
+from random import randint, randrange
 from Tribler.community.anontunnel import ExtendStrategies
 from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy, RandomCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
