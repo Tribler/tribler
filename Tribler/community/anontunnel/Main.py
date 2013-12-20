@@ -160,8 +160,8 @@ def main(argv):
         elif line == 'c\n':
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tIN (kBps)\tOUT (kBps)"
             for circuit in anon_tunnel.community.circuits.values():
-                print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
-                    circuit.circuit_id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
+                print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
+                    circuit.circuit_id, circuit.candidate.sock_addr[0], circuit.candidate.sock_addr[1], circuit.goal_hops, len(circuit.hops),
                     circuit.bytes_downloaded / 1024.0 / 1024.0,
                     circuit.bytes_uploaded / 1024.0 / 1024.0,
                     circuit.speed_down / 1024.0,
@@ -169,7 +169,7 @@ def main(argv):
                 )
 
                 for hop in circuit.hops[1:]:
-                    print "\t%s" % (hop,)
+                    print "\t%s:%d" % (hop.host, hop.port)
 
         elif cmd_extend_match:
             circuit_id = int(cmd_extend_match.group(1))

@@ -1356,9 +1356,9 @@ class Anonymity(wx.Panel):
     @forceWxThread
     def OnExtended(self, subject, changeType, circuit):
         if changeType == NTFY_CREATED:
-            self.log_text.AppendText("Created circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1][0], circuit.hops[-1][1]))
+            self.log_text.AppendText("Created circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1].host, circuit.hops[-1].port))
         if changeType == NTFY_EXTENDED:
-            self.log_text.AppendText("Extended circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1][0], circuit.hops[-1][1]))
+            self.log_text.AppendText("Extended circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1].host, circuit.hops[-1].port))
         if changeType == NTFY_BROKEN:
             self.log_text.AppendText("Circuit %d has been broken\n" % circuit)
 
@@ -1586,7 +1586,7 @@ class Anonymity(wx.Panel):
 
                     # Draw status text
                     dc.SetFont(self.GetFont())
-                    for index, text in enumerate(['IP %s:%s' % (self.peers[self.vertex_active][0], self.peers[self.vertex_active][1])]):
+                    for index, text in enumerate(['IP %s:%s' % (self.peers[self.vertex_active].host, self.peers[self.vertex_active].port)]):
                         dc.DrawText(text, x + 5, y + index * text_height + 5)
 
             # Draw vertex count
