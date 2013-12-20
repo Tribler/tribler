@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 from Tribler.community.anontunnel.globals import *
 from Crypto.Random.random import randint, randrange
 from Tribler.community.anontunnel import ExtendStrategies
-from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
+from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy, RandomCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
 from traceback import print_exc
 
@@ -70,7 +70,7 @@ class ProxySettings:
 
         self.extend_strategy = ExtendStrategies.NeighbourSubset
         self.select_strategy = RandomSelectionStrategy(1)
-        self.length_strategy = ConstantCircuitLengthStrategy(length)
+        self.length_strategy = RandomCircuitLengthStrategy(2,4)
 
 
 class TunnelObserver():
@@ -504,7 +504,7 @@ class ProxyCommunity(Community):
                         logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                         data = AESdecode(hop.session_key, data)
                     if self.circuits[circuit_id].unverified_hop:
-                        logger.debug("Removing AES layer for %s:%s with key %s" % (self.circuits[circuit_id].unverified_hop.host, self.circuits[circuit_id].unverified_hop.port, self.circuits[circuit_id].unverified_hop.session_key))
+                        logger.debug("Removing AES layer for unverified hop %s:%s with key %s" % (self.circuits[circuit_id].unverified_hop.host, self.circuits[circuit_id].unverified_hop.port, self.circuits[circuit_id].unverified_hop.session_key))
                         data = AESdecode(self.circuits[circuit_id].unverified_hop.session_key, data)
 
                 elif circuit_id in self.session_keys:
@@ -514,6 +514,7 @@ class ProxyCommunity(Community):
                     data = data
 
                 _, payload = self.proxy_conversion.decode(data)
+
 
                 packet_type = self.proxy_conversion.get_type(data)
                 str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
@@ -624,8 +625,7 @@ class ProxyCommunity(Community):
             self.circuits[circuit_id] = circuit
 
             pub_key = None
-            session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(16))
-            #session_key = "SESSIONSESSIONSESSION"
+            session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(AES_KEY_SIZE))
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, session_key)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
             self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(session_key))
@@ -842,11 +842,11 @@ class ProxyCommunity(Community):
 
     def _generate_circuit_id(self, neighbour):
         # TODO: why is the circuit_id so small? The conversion is using a unsigned long.
-        circuit_id = randint(1, 255)
+        circuit_id = randint(1, 255000)
 
         # prevent collisions
         while circuit_id in self.circuits or (neighbour, circuit_id) in self.relay_from_to:
-            circuit_id = randint(1, 255)
+            circuit_id = randint(1, 255000)
 
         return circuit_id
 
