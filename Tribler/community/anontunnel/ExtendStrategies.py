@@ -42,13 +42,19 @@ class NeighbourSubset:
 
         from Tribler.community.anontunnel.community import Hop
 
-        candidate = candidate_list[0]
-        pub_key = None
-        session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
-        self.circuit.unverified_hop = Hop(candidate.sock_addr, pub_key, session_key)
+        sock_addr, pub_key = next(candidate_list.iteritems(), (None, None))
 
-        logger.info("We chose %s from the list to extend circuit %d with session key %s" % (candidate.sock_addr, self.circuit.circuit_id, session_key))
-        self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(None))
+        if not sock_addr:
+            raise ValueError("No candidates to extend, bailing out ")
+
+        session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+        self.circuit.unverified_hop = Hop(sock_addr, pub_key, session_key)
+
+        logger.debug("still have to encrypt the session key in the xtend message")
+        encrypted_key = session_key
+
+        logger.info("We chose %s from the list to extend circuit %d with session key %s" % (sock_addr, self.circuit.circuit_id, session_key))
+        self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(sock_addr, encrypted_key))
 
 
 class RandomAPriori:

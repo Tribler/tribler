@@ -1,7 +1,9 @@
 import logging.config
 import os
 import re
+import globals
 from Tribler.community.anontunnel.community import ProxySettings, ProxyCommunity
+from Tribler.community.anontunnel.globals import MAX_CIRCUITS_TO_CREATE
 
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
@@ -13,7 +15,7 @@ try:
 except:
     pass
 
-from Tribler.community.anontunnel.ExtendStrategies import RandomAPriori, TrustThyNeighbour
+from Tribler.community.anontunnel.ExtendStrategies import RandomAPriori, TrustThyNeighbour, NeighbourSubset
 from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
 from Tribler.community.anontunnel.AnonTunnel import AnonTunnel
@@ -29,7 +31,7 @@ def main(argv):
         parser.add_argument('-c', '--cmd', help='The command UDP port to listen on')
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
         parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
-        parser.add_argument('-e', '--extend-strategy', default='delegate', help='Circuit extend strategy')
+        parser.add_argument('-e', '--extend-strategy', default='subset', help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_argument('--record-on-incoming', help='Record stats from the moment the first data enters the tunnel')
         parser.add_argument('--crawl', default=False, help='Record stats from others in results.db')
@@ -58,7 +60,7 @@ def main(argv):
         socks5_port = int(args.socks5)
 
     if args.max_circuits:
-        ProxyCommunity.MAX_CIRCUITS_TO_CREATE = args.max_circuits
+        globals.MAX_CIRCUITS_TO_CREATE = args.max_circuits
 
     if profile:
         yappi.set_clock_type(profile)
@@ -83,6 +85,9 @@ def main(argv):
     elif args.extend_strategy == 'delegate':
         logger.error("EXTEND STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
         proxy_settings.extend_strategy = TrustThyNeighbour
+    elif args.extend_strategy == 'subset':
+        logger.error("SUBSET STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
+        proxy_settings.extend_strategy = NeighbourSubset
     else:
         raise ValueError("extend_strategy must be either random or delegate")
 
@@ -156,7 +161,7 @@ def main(argv):
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tIN (kBps)\tOUT (kBps)"
             for circuit in anon_tunnel.community.circuits.values():
                 print "%d\t%s\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
-                    circuit.id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
+                    circuit.circuit_id, circuit.candidate, circuit.goal_hops, len(circuit.hops),
                     circuit.bytes_downloaded / 1024.0 / 1024.0,
                     circuit.bytes_uploaded / 1024.0 / 1024.0,
                     circuit.speed_down / 1024.0,

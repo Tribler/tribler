@@ -69,7 +69,7 @@ ENDPOINT = "endpoint"
 
 class ProxySettings:
     def __init__(self):
-        length = randint(1, 4)
+        length = 2 #randint(1, 4)
 
         self.extend_strategy = ExtendStrategies.NeighbourSubset
         self.select_strategy = RandomSelectionStrategy(1)
@@ -457,8 +457,8 @@ class ProxyCommunity(Community):
 
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
-    def on_bypass_message(self, sock_addr, packet):
-        packet = packet[len(self.prefix):]
+    def on_bypass_message(self, sock_addr, orig_packet):
+        packet = orig_packet[len(self.prefix):]
 
         dispersy = self._dispersy
 
@@ -469,20 +469,20 @@ class ProxyCommunity(Community):
         relay_key = (candidate, circuit_id)
 
         # First, relay packet if we know whom to forward message to for this circuit
-        if circuit_id > 0 and relay_key in self.relay_from_to and self.relay_from_to[relay_key].online:
+        if circuit_id > 0 and relay_key in self.relay_from_to:
             next_relay = self.relay_from_to[relay_key]
 
             if self.directions[circuit_id] == ORIGINATOR:
                 # Message is going downstream so I have to add my onion layer
-                data = AESencode(self.session_keys[circuit_id], data)
+                logger.debug("Adding AES layer with key %s to circuit %d" % (self.session_keys[next_relay.circuit_id], next_relay.circuit_id))
+                data = AESencode(self.session_keys[next_relay.circuit_id], data)
 
             elif self.directions[circuit_id] == ENDPOINT:
                 # Message is going upstream so I have to remove my onion layer
+                logger.debug("Removing AES layer with key %s" % self.session_keys[circuit_id])
                 data = AESdecode(self.session_keys[circuit_id], data)
 
-
-            new_packet = self.prefix + self.proxy_conversion.add_circuit(data, next_relay.circuit_id)
-            next_relay.bytes[1] += len(new_packet)
+            next_relay.bytes[1] += len(data)
 
             this_relay_key = (next_relay.candidate, next_relay.circuit_id)
             if this_relay_key in self.relay_from_to:
@@ -495,7 +495,7 @@ class ProxyCommunity(Community):
 
             logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
-            self.send_packet(next_relay.candidate, circuit_id, packet_type, new_packet, relayed=True)
+            self.send_packet(next_relay.candidate, next_relay.circuit_id, packet_type, data, relayed=True)
             self.dict_inc(dispersy.statistics.success, str_type + '-relayed')
 
         # We don't know where to relay this message to, must be for me?
@@ -504,8 +504,10 @@ class ProxyCommunity(Community):
                 if circuit_id in self.circuits:
                     # I am the originator
                     for hop in self.circuits[circuit_id].hops:
+                        logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                         data = AESdecode(hop.session_key, data)
                     if self.circuits[circuit_id].unverified_hop:
+                        logger.debug("Removing AES layer for %s:%s with key %s" % (self.circuits[circuit_id].unverified_hop.host, self.circuits[circuit_id].unverified_hop.port, self.circuits[circuit_id].unverified_hop.session_key))
                         data = AESdecode(self.circuits[circuit_id].unverified_hop.session_key, data)
 
                 elif circuit_id in self.session_keys:
@@ -572,8 +574,20 @@ class ProxyCommunity(Community):
 
             candidate_list = created_message.candidate_list
 
+            dispersy = self.community.dispersy
+            if dispersy.lan_address in candidate_list:
+                del candidate_list[dispersy.lan_address]
+
+            if dispersy.wan_address in candidate_list:
+                del candidate_list[dispersy.wan_address]
+
             if self.circuit.state == CIRCUIT_STATE_EXTENDING:
-                self.circuit.extend_strategy.extend(candidate_list)
+                try:
+                    self.circuit.extend_strategy.extend(candidate_list)
+                except ValueError as e:
+                    logger.error("Cannot extend due to {}".format(e.message))
+                    self.community.remove_circuit(self.number, 'extend error on CircuitRequestCache, state = %s' % self.circuit.state)
+
             elif self.circuit.state == CIRCUIT_STATE_READY:
                 self.on_success()
 
@@ -743,6 +757,9 @@ class ProxyCommunity(Community):
 
         encrypted_secret = message.encrypted_secret
 
+        self.directions[new_circuit_id] = ORIGINATOR
+        self.directions[circuit_id] = ENDPOINT
+
         return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_secret))
 
     def on_extended(self, circuit_id, candidate, message):
@@ -840,7 +857,11 @@ class ProxyCommunity(Community):
             hops = circuit.hops
 
             for hop in reversed(hops):
+                logger.debug("Adding AES layer for hop %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                 content = AESencode(hop.session_key, content)
+        elif circuit_id in self.session_keys:
+            content = AESencode(self.session_keys[circuit_id], content)
+            logger.debug("Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[circuit_id]))
 
         #packet = self.proxy_conversion.add_circuit(content, circuit_id)
 
