@@ -9,7 +9,7 @@ import M2Crypto
 import binascii
 import sys
 
-def get_cryptor( op, key, alg='aes_128_cbc', iv=None ):
+def get_cryptor( op, key, alg='aes_128_ecb', iv=None ):
     if iv == None:
         iv = '\0' * 16
     cryptor = M2Crypto.EVP.Cipher( alg=alg, key=key, iv=iv, op=op)

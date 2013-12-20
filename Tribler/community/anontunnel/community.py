@@ -471,12 +471,12 @@ class ProxyCommunity(Community):
 
             if self.directions[circuit_id] == ORIGINATOR:
                 # Message is going downstream so I have to add my onion layer
-                logger.debug("Adding AES layer with key %s to circuit %d" % (self.session_keys[next_relay.circuit_id], next_relay.circuit_id))
+                # logger.debug("Adding AES layer with key %s to circuit %d" % (self.session_keys[next_relay.circuit_id], next_relay.circuit_id))
                 data = AESencode(self.session_keys[next_relay.circuit_id], data)
 
             elif self.directions[circuit_id] == ENDPOINT:
                 # Message is going upstream so I have to remove my onion layer
-                logger.debug("Removing AES layer with key %s" % self.session_keys[circuit_id])
+                # logger.debug("Removing AES layer with key %s" % self.session_keys[circuit_id])
                 data = AESdecode(self.session_keys[circuit_id], data)
 
             next_relay.bytes[1] += len(data)
@@ -490,7 +490,7 @@ class ProxyCommunity(Community):
             packet_type = self.proxy_conversion.get_type(data)
             str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
 
-            logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+            #logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
             self.send_packet(next_relay.candidate, next_relay.circuit_id, packet_type, data, relayed=True)
             self.dict_inc(dispersy.statistics.success, str_type + '-relayed')
@@ -501,16 +501,16 @@ class ProxyCommunity(Community):
                 if circuit_id in self.circuits:
                     # I am the originator
                     for hop in self.circuits[circuit_id].hops:
-                        logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
+             #           logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                         data = AESdecode(hop.session_key, data)
                     if self.circuits[circuit_id].unverified_hop:
-                        logger.debug("Removing AES layer for unverified hop %s:%s with key %s" % (self.circuits[circuit_id].unverified_hop.host, self.circuits[circuit_id].unverified_hop.port, self.circuits[circuit_id].unverified_hop.session_key))
+            #            logger.debug("Removing AES layer for unverified hop %s:%s with key %s" % (self.circuits[circuit_id].unverified_hop.host, self.circuits[circuit_id].unverified_hop.port, self.circuits[circuit_id].unverified_hop.session_key))
                         data = AESdecode(self.circuits[circuit_id].unverified_hop.session_key, data)
 
                 elif circuit_id in self.session_keys:
                     data = AESdecode(self.session_keys[circuit_id], data)
                 else:
-                    logger.warning("Gotta decrypt with private key, circuit = {}, my circuitkeys so far are {}".format(circuit_id, self.session_keys))
+             #       logger.warning("Gotta decrypt with private key, circuit = {}, my circuitkeys so far are {}".format(circuit_id, self.session_keys))
                     data = data
 
                 _, payload = self.proxy_conversion.decode(data)
