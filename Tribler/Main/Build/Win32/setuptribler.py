@@ -45,7 +45,7 @@ includePanels = [
 ]
 
 # packages = ["Tribler.Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
-packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels] + ["Tribler.Core.DecentralizedTracking.pymdht.core"]
+packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels] + ["Tribler.Core.DecentralizedTracking.pymdht.core", "Tribler.Main.tribler_main"]
 
 setup(
     #    (Disabling bundle_files for now -- apparently causes some issues with Win98)
