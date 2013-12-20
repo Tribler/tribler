@@ -70,7 +70,7 @@ class ProxySettings:
 
         self.extend_strategy = ExtendStrategies.NeighbourSubset
         self.select_strategy = RandomSelectionStrategy(1)
-        self.length_strategy = RandomCircuitLengthStrategy(2,4)
+        self.length_strategy = RandomCircuitLengthStrategy(2,2)
 
 
 class TunnelObserver():
