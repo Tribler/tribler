@@ -46,9 +46,6 @@ class Hop:
         self.pub_key = pub_key
         self.session_key = session_key
 
-        if not session_key:
-            raise ValueError("Invalid session key")
-
     @property
     def host(self):
         return self.address[0]
@@ -580,6 +577,10 @@ class ProxyCommunity(Community):
 
             if dispersy.wan_address in candidate_list:
                 del candidate_list[dispersy.wan_address]
+
+            for hop in self.circuit.hops:
+                if hop.address in candidate_list:
+                    del candidate_list[hop.address]
 
             if self.circuit.state == CIRCUIT_STATE_EXTENDING:
                 try:

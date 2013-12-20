@@ -6,6 +6,7 @@ import copy
 
 import wx
 import igraph
+from Tribler.community.anontunnel.community import Hop
 
 try:
     import igraph.vendor.texttable
@@ -1206,7 +1207,7 @@ class Anonymity(wx.Panel):
 
         self.AddComponents()
 
-        self.my_address = ('127.0.0.1', 0)
+        self.my_address = Hop(('127.0.0.1', 0),None, None)
 
         self.vertices = {}
         self.edges = []
