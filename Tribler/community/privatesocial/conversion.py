@@ -5,7 +5,6 @@ from Tribler.dispersy.conversion import NoDefBinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.community.privatesemantic.conversion import long_to_bytes, \
     bytes_to_long
-from Tribler.community.privatesemantic.rsa import get_bits
 
 class SocialConversion(NoDefBinaryConversion):
 
@@ -39,7 +38,7 @@ class SocialConversion(NoDefBinaryConversion):
         return pack("!20s%ds" % len(message.payload.encrypted_message), keyhash, message.payload.encrypted_message),
 
     def _decode_encrypted(self, placeholder, offset, data):
-        if len(data) < offset + 2:
+        if len(data) < offset + 20:
             raise DropPacket("Insufficient packet size")
 
         keyhash, encrypted_message = unpack_from("!20s%ds" % (len(data) - offset - 20), data, offset)
