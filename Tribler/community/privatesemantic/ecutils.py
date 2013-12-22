@@ -225,13 +225,12 @@ class OpenSSLCurves():
                     self.curve_dict[curname][1 if implicit else 2] += line
         f.close()
 
-        for curvename, curve in self.curve_dict.items():
+        for curve in self.curve_dict.itervalues():
             try:
                 decoded_implicit, _ = decoder.decode(curve[1])
                 curve[1] = str(decoded_implicit)
-            except:
-                print >> sys.stderr, "Could not decode", curvename
-                del self.curve_dict[curvename]
+            except Exception, ex:
+                curve[1] = ex
 
     def get_curve_for_key(self, key):
         ec = ECCrypto()
