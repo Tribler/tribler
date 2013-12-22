@@ -243,7 +243,7 @@ class ForwardCommunity():
                         print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? yes adding to list"
 
                     self.taste_buddies.append(new_taste_buddy)
-                    self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_requests, delay=new_taste_buddy.time_remaining() - 5.0)
+                    self._pending_callbacks.append(self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_requests, delay=new_taste_buddy.time_remaining() - 5.0))
 
                 elif DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no smaller than", new_taste_buddy, self.taste_buddies[-1]
@@ -409,7 +409,7 @@ class ForwardCommunity():
                 if not candidate:
                     candidate = self.create_candidate(tb.sock_addr, False, tb.sock_addr, tb.sock_addr, u"unknown")
 
-                self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i)
+                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i))
 
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
