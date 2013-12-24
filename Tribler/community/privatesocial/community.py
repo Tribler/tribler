@@ -162,7 +162,7 @@ class SocialCommunity(Community):
         encrypted_message = self.dispersy.crypto.encrypt(key, message_str)
         
         # get overlapping connections
-        overlapping_candidates = self.get_tbs_which_overlap(self.yield_taste_buddies(), [keyhash,])
+        overlapping_candidates = self.filter_overlap(self.yield_taste_buddies(), [keyhash,])
 
         meta = self.get_meta_message(u"encrypted")
         message = meta.impl(authentication=(self._my_member,),
