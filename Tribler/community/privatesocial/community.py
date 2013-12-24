@@ -48,6 +48,7 @@ class SocialCommunity(Community):
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
         self.send_introduction_request = lambda destination, introduce_me_to = None, allow_sync = True, advice = True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
+        self._pending_callbacks.append(dispersy.callback.register(self.sync_with_friends))
 
         # replace _get_packets_for_bloomfilters
         self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
