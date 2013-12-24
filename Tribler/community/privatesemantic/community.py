@@ -397,19 +397,19 @@ class ForwardCommunity():
             if DEBUG:
                 print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
 
-            def attempt_to_connect(candidate, attempts):
-                while not self.is_taste_buddy_sock(candidate.sock_addr) and attempts:
+            def attempt_to_connect(candidate, cur_attempt):
+                while not self.is_taste_buddy_sock(candidate.sock_addr) and cur_attempt < 8:
                     self.create_similarity_request(candidate, payload)
 
-                    yield TIME_BETWEEN_CONNECTION_ATTEMPTS
-                    attempts -= 1
+                    yield TIME_BETWEEN_CONNECTION_ATTEMPTS * 2 ** cur_attempt
+                    cur_attempt += 1
 
             for i, tb in enumerate(tbs):
                 candidate = self.get_candidate(tb.sock_addr, replace=False)
                 if not candidate:
                     candidate = self.create_candidate(tb.sock_addr, False, tb.sock_addr, tb.sock_addr, u"unknown")
 
-                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(candidate, 10), delay=0.005 * i))
+                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(candidate, 0), delay=0.005 * i))
 
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"

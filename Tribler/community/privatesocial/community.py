@@ -145,7 +145,7 @@ class SocialCommunity(Community):
 
     def on_text(self, messages):
         for message in messages:
-            log("dispersy.log", "handled-record", type="text", global_time=message._distribution.global_time)
+            log("dispersy.log", "handled-record", type="text", global_time=message._distribution.global_time, payload=message.payload.text)
 
     def create_encrypted(self, message_str, dest_friend):
         assert isinstance(message_str, str)
