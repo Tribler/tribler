@@ -90,6 +90,8 @@ class SocialCommunity(Community):
                 yield message, packet
         else:
             for message, time_low, time_high, offset, modulo in requests:
+                print >> sys.stderr, "GOT sync-request from", message.candidate, self.is_taste_buddy(message.candidate)
+                
                 data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0 ORDER BY sync.global_time DESC",
                                                     (time_low, time_high, offset, modulo))
 
@@ -97,6 +99,8 @@ class SocialCommunity(Community):
                 yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
+        print >> sys.stderr, "SENDING sync-request to?"
+        
         # first select_and_fix based on friendsync table
         if higher:
             data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time > ? ORDER BY global_time ASC LIMIT ?",
@@ -156,10 +160,14 @@ class SocialCommunity(Community):
 
         # encrypt message
         encrypted_message = self.dispersy.crypto.encrypt(key, message_str)
+        
+        # get overlapping connections
+        overlapping_candidates = self.get_tbs_which_overlap(self.yield_taste_buddies(), [keyhash,])
 
         meta = self.get_meta_message(u"encrypted")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
+                            destination=(tuple(overlapping_candidates)),
                             payload=(keyhash, encrypted_message))
 
         self._dispersy.store_update_forward([message], True, False, True)
@@ -211,6 +219,15 @@ class SocialCommunity(Community):
         if DEBUG:
             print >> sys.stderr, long(time()), "SocialCommunity: Will maintain", len(to_maintain), "connections instead of", len(_tbs)
 
+        return to_maintain
+    
+    def filter_overlap(self, tbs, keys):
+        to_maintain = set()
+        for tb in tbs:
+            # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
+            if any(map(tb.does_overlap, keys)):
+                to_maintain.add(tb.candidate)
+                
         return to_maintain
 
     def add_possible_taste_buddies(self):
