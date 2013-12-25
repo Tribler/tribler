@@ -177,7 +177,7 @@ class SocialCommunity(Community):
         decrypted_messages = []
 
         for message in messages:
-            self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.pubkey)
+            self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.keyhash)
 
             could_decrypt = False
             for key, keyhash in self._db.get_my_keys():
