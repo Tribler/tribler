@@ -93,6 +93,8 @@ class SocialCommunity(Community):
             for message, time_low, time_high, offset, modulo in requests:
                 print >> sys.stderr, "GOT sync-request from", message.candidate, self.is_taste_buddy(message.candidate)
                 
+                #TODO: use overlapping friends to only select those messages
+                
                 data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 ORDER BY global_time DESC",
                                                     (time_low, time_high, offset, modulo))
 

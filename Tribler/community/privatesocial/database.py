@@ -73,8 +73,9 @@ class FriendDatabase(Database):
 
         return LATEST_VERSION
 
-    def add_message(self, sync_id, global_time, pubkey):
-        self.execute(u"INSERT INTO friendsync (sync_id, global_time, keyhash) VALUES (?,?,?) ", (sync_id, global_time, pubkey))
+    def add_message(self, sync_id, global_time, keyhash):
+        _keyhash = buffer(str(keyhash))
+        self.execute(u"INSERT INTO friendsync (sync_id, global_time, keyhash) VALUES (?,?,?) ", (sync_id, global_time, _keyhash))
 
     def add_friend(self, name, key, keyhash):
         _name = unicode(name)
