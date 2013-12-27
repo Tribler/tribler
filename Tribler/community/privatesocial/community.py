@@ -148,7 +148,7 @@ class SocialCommunity(Community):
         for friend in friends:
             self.create_encrypted(message.packet, friend)
 
-        self._dispersy.store_update_forward([message], True, True, False)
+        #self._dispersy.store_update_forward([message], True, True, False)
 
     def on_text(self, messages):
         for message in messages:
@@ -182,7 +182,7 @@ class SocialCommunity(Community):
             self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.keyhash)
 
             could_decrypt = False
-            for key, keyhash in self._db.get_my_keys():
+            for key, keyhash in self._friend_db.get_my_keys():
                 if keyhash == self._keyhash:
                     decrypted_messages.append((message.candidate, self.dispersy.crypto.decrypt(key, self._encrypted_message)))
                     could_decrypt = True
