@@ -183,8 +183,8 @@ class SocialCommunity(Community):
 
             could_decrypt = False
             for key, keyhash in self._friend_db.get_my_keys():
-                if keyhash == self._keyhash:
-                    decrypted_messages.append((message.candidate, self.dispersy.crypto.decrypt(key, self._encrypted_message)))
+                if keyhash ==  message.payload._keyhash:
+                    decrypted_messages.append((message.candidate, self.dispersy.crypto.decrypt(key, message.payload.encrypted_message)))
                     could_decrypt = True
                     break
 
