@@ -718,6 +718,8 @@ class ForwardCommunity():
                 message._candidate = candidate
 
             self.add_taste_buddies([ActualTasteBuddy(message.payload.overlap, time(), message.candidate)])
+            
+            print >> sys.stderr, "GOT similarity reveal from", message.candidate, self.is_taste_buddy(message.candidate)
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
