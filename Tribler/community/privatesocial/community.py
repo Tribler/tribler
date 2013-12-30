@@ -98,7 +98,7 @@ class SocialCommunity(Community):
                 data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 ORDER BY global_time DESC",
                                                     (time_low, time_high, offset, modulo))
 
-                sync_ids = tuple(sync_id for _, sync_id in data)
+                sync_ids = tuple(sync_id for sync_id, in data)
                 yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
