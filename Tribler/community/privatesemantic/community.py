@@ -684,7 +684,7 @@ class ForwardCommunity():
                 message._candidate = request.requested_candidate
 
                 overlap = self.process_msimilarity_response(message)
-                if self.send_simi_reveal:
+                if self.send_simi_reveal and overlap:
                     self.send_similarity_reveal(message.candidate, overlap)
 
                 destination, introduce_me_to = self.get_most_similar(message.candidate)
