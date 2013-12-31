@@ -547,7 +547,7 @@ class ForwardCommunity():
                 for response in self.received_lists:
                     overlap = self.community.process_similarity_response(response[0], response[1], response[2])
                     
-                    if self.send_reveal:
+                    if self.send_reveal and overlap:
                         if DEBUG_VERBOSE:
                             print >> sys.stderr, long(time()), "ForwardCommunity: sending reveal to", self.requested_candidates
                         self.community.send_similarity_reveal(response[0], overlap)    
