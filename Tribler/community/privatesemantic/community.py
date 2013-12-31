@@ -280,10 +280,8 @@ class ForwardCommunity():
             yield tb.candidate
 
     def is_taste_buddy(self, candidate):
-        candidate_mids = set(candidate.get_members())
         for tb in self.yield_taste_buddies():
-            tb_mids = set(tb.candidate.get_members())
-            if tb_mids & candidate_mids:
+            if tb == candidate:
                 return tb
 
     def is_taste_buddy_mid(self, mid):
