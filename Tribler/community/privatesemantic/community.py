@@ -486,7 +486,7 @@ class ForwardCommunity():
         def create_identifier(number, force_number= -1):
             return u"request-cache:m-similarity-request:%d" % number
 
-        def __init__(self, community, requesting_candidate, requested_candidates, force_number= -1):
+        def __init__(self, community, requesting_candidate, requested_candidates, force_number= -1, send_reveal = False):
             NumberCache.__init__(self, community.request_cache, force_number)
             self.community = community
 
@@ -496,6 +496,7 @@ class ForwardCommunity():
             self.received_candidates = set()
             self.received_lists = []
             self.isProcessed = False
+            self.send_reveal = send_reveal
 
         @property
         def timeout_delay(self):
@@ -544,7 +545,12 @@ class ForwardCommunity():
                     return self.community.send_msimilarity_response(self.requesting_candidate, self.number, self.my_response, self.received_lists)
 
                 for response in self.received_lists:
-                    self.community.process_similarity_response(response[0], response[1], response[2])
+                    overlap = self.community.process_similarity_response(response[0], response[1], response[2])
+                    
+                    if self.send_simi_reveal:
+                        if DEBUG_VERBOSE:
+                            print >> sys.stderr, long(time()), "ForwardCommunity: sending reveal to", self.requested_candidates
+                        self.community.send_similarity_reveal(response[0], overlap)    
                 return 0
 
         def on_timeout(self):
@@ -594,7 +600,7 @@ class ForwardCommunity():
                 request.process()
 
     def create_similarity_request(self, destination, payload):
-        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination]))
+        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=True))
         self.send_similarity_request([destination], cache.number, payload)
 
     def send_similarity_request(self, candidates, identifier, payload):
@@ -924,8 +930,9 @@ class PForwardCommunity(ForwardCommunity):
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
-        _sum = self.compute_overlap(payload._sum)
-        self.add_taste_buddies([ActualTasteBuddy(_sum, time(), candidate)])
+        overlap = self.compute_overlap(payload._sum)
+        self.add_taste_buddies([ActualTasteBuddy(overlap, time(), candidate)])
+        return overlap
 
     def process_msimilarity_response(self, message):
         if DEBUG_VERBOSE:
@@ -1104,6 +1111,7 @@ class HForwardCommunity(ForwardCommunity):
     def process_similarity_response(self, candidate, candidate_mid, payload):
         overlap = self.compute_overlap([payload.preference_list, payload.his_preference_list])
         self.add_taste_buddies([ActualTasteBuddy(overlap, time(), candidate)])
+        return overlap
 
     def process_msimilarity_response(self, message):
         if DEBUG_VERBOSE:
@@ -1304,6 +1312,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
         overlap = self.compute_overlap(payload.my_response)
         self.add_taste_buddies([ActualTasteBuddy(overlap, time(), candidate)])
+        return overlap
 
     def process_msimilarity_response(self, message):
         if DEBUG_VERBOSE:
