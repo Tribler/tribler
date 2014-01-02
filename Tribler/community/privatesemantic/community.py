@@ -204,8 +204,11 @@ class ForwardCommunity():
 
         self._peercache = SemanticDatabase(self._dispersy)
         self._peercache.open()
+        
+        print >> sys.stderr, "PEERCACHE after open:",self._peercache.get_database_stats()
 
     def unload_community(self):
+        print >> sys.stderr, "PEERCACHE after close:",self._peercache.get_database_stats()
         self._peercache.close()
 
     def initiate_meta_messages(self):
