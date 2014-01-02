@@ -4,6 +4,7 @@
 .ropeproject
 /.Tribler
 /.noseids
+/TAGS
 /Tribler/Test/data/*.sdb
 /Tribler/Test/test_.Tribler2
 /Tribler/Test/test_TriblerDownloads2
