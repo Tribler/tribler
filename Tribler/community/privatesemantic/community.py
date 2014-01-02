@@ -227,12 +227,12 @@ class ForwardCommunity():
 
     def add_taste_buddies(self, new_taste_buddies):
         for new_taste_buddy in new_taste_buddies:
-            if True or DEBUG_VERBOSE:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy?", new_taste_buddy
 
             for taste_buddy in self.taste_buddies:
                 if new_taste_buddy == taste_buddy:
-                    if True or DEBUG_VERBOSE:
+                    if DEBUG_VERBOSE:
                         print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no equal to", new_taste_buddy, taste_buddy
 
                     taste_buddy.update_overlap(new_taste_buddy)
@@ -242,13 +242,13 @@ class ForwardCommunity():
             # new peer
             else:
                 if len(self.taste_buddies) < self.max_taste_buddies or new_taste_buddy > self.taste_buddies[-1]:
-                    if True or DEBUG_VERBOSE:
+                    if DEBUG_VERBOSE:
                         print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? yes adding to list"
 
                     self.taste_buddies.append(new_taste_buddy)
                     self._pending_callbacks.append(self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_requests, delay=new_taste_buddy.time_remaining() - 5.0))
 
-                elif True or DEBUG_VERBOSE:
+                elif DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no smaller than", new_taste_buddy, self.taste_buddies[-1]
 
                 # if we have any similarity, cache peer
@@ -260,7 +260,7 @@ class ForwardCommunity():
 
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "ForwardCommunity: current tastebuddy list", len(self.taste_buddies), map(str, self.taste_buddies)
-        elif True or DEBUG:
+        elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: current tastebuddy list", len(self.taste_buddies)
 
     def yield_taste_buddies(self, ignore_candidate=None):
