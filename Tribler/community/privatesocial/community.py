@@ -44,6 +44,8 @@ class SocialCommunity(Community):
 
         self._friend_db = FriendDatabase(dispersy)
         self._friend_db.open()
+        
+        print >> sys.stderr, "FRIENDDB after open:", self._friend_db.get_database_stats()
 
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
@@ -56,6 +58,7 @@ class SocialCommunity(Community):
 
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
+        print >> sys.stderr, "FRIENDDB before close:", self._friend_db.get_database_stats()
         self._friend_db.close()
 
     def initiate_meta_messages(self):

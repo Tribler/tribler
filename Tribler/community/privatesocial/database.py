@@ -72,6 +72,14 @@ class FriendDatabase(Database):
                 pass
 
         return LATEST_VERSION
+    
+    def get_database_stats(self):
+        stats_dict = {}
+        
+        tables = self.execute(u'SELECT name FROM sqlite_master where type=table')
+        for tablename, in tables:
+            stats_dict[tablename] = self.execute(u"SELECT COUNT(*) FROM "+tablename).next()
+        return stats_dict 
 
     def add_message(self, sync_id, global_time, keyhash):
         _keyhash = buffer(str(keyhash))
