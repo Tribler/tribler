@@ -76,7 +76,7 @@ class FriendDatabase(Database):
     def get_database_stats(self):
         stats_dict = {}
         
-        tables = self.execute(u'SELECT name FROM sqlite_master where type=table')
+        tables = self.execute(u'SELECT name FROM sqlite_master where type = "table"')
         for tablename, in tables:
             stats_dict[tablename] = self.execute(u"SELECT COUNT(*) FROM "+tablename).next()
         return stats_dict 
