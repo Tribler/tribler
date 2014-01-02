@@ -34,7 +34,7 @@ rmdir %TDIR%\collected_torrent_files /S /Q
 del %TDIR%\routing*.*
 del %TDIR%\abc.conf
 del %TDIR%\*.pickle
-REM Remove downloads
+REM Remove downloads
 rmdir %DDIR% /S /Q
 
 REM SwarmPlayer
@@ -57,7 +57,7 @@ rmdir %TDIR%\downloads /S /Q
 del %TDIR%\routing*.*
 del %TDIR%\abc.conf
 del %TDIR%\*.pickle
-
+
 
 REM SwarmPlugin
 set TDIR="%USERPROFILE%\%APPDIR%\.SwarmPlugin"
@@ -79,4 +79,3 @@ rmdir %TDIR%\downloads /S /Q
 del %TDIR%\routing*.*
 del %TDIR%\abc.conf
 del %TDIR%\*.pickle
-

@@ -1,6 +1,13 @@
 REM @echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
+REM Check that we are running from the expected directory
+IF NOT EXIST Tribler\Main (
+ echo .
+ echo Please, execute this script from the repository root
+ exit /b
+)
+
 set PYTHONHOME=c:\Python273
 REM Arno: Add . to find our core
 set PYTHONPATH=.;%PYTHONHOME%
@@ -42,7 +49,7 @@ IF NOT EXIST %NSIS% (
 
 REM ----- Clean up
 
-call clean.bat
+call win\clean.bat
 
 REM ----- Build
 
@@ -63,7 +70,7 @@ IF EXIST C:\WINDOWS\WinSxS\x86_Microsoft.VC90.CRT_1fc8b3b9a1e18e3b_9.0.21022.8_x
 set CRTFULLNAME=x86_Microsoft.VC90.CRT_1fc8b3b9a1e18e3b_9.0.21022.8_x-ww_d08d0375
 ) ELSE (
 set CRTFULLNAME=x86_microsoft.vc90.crt_1fc8b3b9a1e18e3b_9.0.21022.8_none_bcb86ed6ac711f91
-) 
+)
 
 xcopy C:\WINDOWS\WinSxS\%CRTFULLNAME% dist\installdir\Microsoft.VC90.CRT /S /I
 copy C:\WINDOWS\WinSxS\Manifests\%CRTFULLNAME%.manifest dist\installdir\Microsoft.VC90.CRT\Microsoft.VC90.CRT.manifest
@@ -117,7 +124,8 @@ copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
 copy vlc.py dist\installdir\vlc.py
 
-copy reset*.bat dist\installdir
+mkdir dist\installdir\tools
+copy win\tools\reset*.bat dist\installdir\tools
 
 REM MainClient specific
 
