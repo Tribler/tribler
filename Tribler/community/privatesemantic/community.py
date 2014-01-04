@@ -1187,6 +1187,8 @@ class HForwardCommunity(ForwardCommunity):
         # 1. fetch my preferences
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local=False) if preference]
         myListLen = len(myPreferences)
+        
+        print >> sys.stderr, "on_simi_request", myListLen
 
         # 2. use subset if we have to many preferences
         if myListLen > self.max_h_prefs:
