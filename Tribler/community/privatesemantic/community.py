@@ -395,7 +395,7 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             tbs = self.get_tbs_from_peercache(nr)
-            if DEBUG:
+            if True or DEBUG:
                 print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
 
             def attempt_to_connect(candidate, cur_attempt):
@@ -412,7 +412,7 @@ class ForwardCommunity():
 
                 self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(candidate, 0), delay=0.005 * i))
 
-        elif DEBUG:
+        elif True or DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
 
     def get_tbs_from_peercache(self, nr):
