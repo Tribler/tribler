@@ -397,7 +397,7 @@ class ForwardCommunity():
         payload = self.create_similarity_payload()
         if payload:
             tbs = self.get_tbs_from_peercache(nr)
-            if True or DEBUG:
+            if DEBUG:
                 print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
 
             def attempt_to_connect(candidate, cur_attempt):
@@ -414,7 +414,7 @@ class ForwardCommunity():
 
                 self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(candidate, 0), delay=0.005 * i))
 
-        elif True or DEBUG:
+        elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
 
     def get_tbs_from_peercache(self, nr):
@@ -558,7 +558,7 @@ class ForwardCommunity():
 
         def on_timeout(self):
             if not self.isProcessed:
-                if True or DEBUG:
+                if DEBUG:
                     print >> sys.stderr, long(time()), "ForwardCommunity: timeout MSimilarityRequest", self.number, len(self.received_lists), len(self.requested_candidates), str(self.requested_candidates[0])
 
                 self.process()
@@ -606,7 +606,7 @@ class ForwardCommunity():
         cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=True))
         self.send_similarity_request([destination], cache.number, payload)
         
-        if True or DEBUG:
+        if DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: send_similarity_request to", destination, cache.number
 
     def send_similarity_request(self, candidates, identifier, payload):
@@ -1313,13 +1313,11 @@ class PoliForwardCommunity(ForwardCommunity):
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
+        if DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "PoliSearchCommunity: got simi response from", candidate, payload.identifier
+        
         overlap = self.compute_overlap(payload.my_response)
-        atb = ActualTasteBuddy(overlap, time(), candidate)
-        self.add_taste_buddies([atb])
-        
-        if True or DEBUG_VERBOSE:
-            print >> sys.stderr, long(time()), "PoliSearchCommunity: got simi response from", candidate, payload.identifier, atb, self.is_taste_buddy(candidate), self.is_taste_buddy(candidate.sock_addr)
-        
+        self.add_taste_buddies([ActualTasteBuddy(overlap, time(), candidate)])
         return overlap
 
     def process_msimilarity_response(self, message):
