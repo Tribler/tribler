@@ -107,9 +107,10 @@ class FriendDatabase(Database):
         return list(self._converted_keys(self.execute(u"SELECT key, keyhash FROM my_keys ORDER BY inserted DESC"), mykeys = True))
 
     def _converted_keys(self, keylist, mykeys = False):
-        try:
-            for key, keyhash in keylist:
-                yield (self._dispersy.crypto.key_from_private_bin(str(key)) if mykeys else self._dispersy.crypto.key_from_public_bin(str(key))), long(str(keyhash))
+        did_yield = False
+        for key, keyhash in keylist:
+            yield (self._dispersy.crypto.key_from_private_bin(str(key)) if mykeys else self._dispersy.crypto.key_from_public_bin(str(key))), long(str(keyhash))
+            did_yield = True
                 
-        except StopIteration:
+        if not did_yield:
             yield None, None
