@@ -154,6 +154,8 @@ class PossibleTasteBuddy(TasteBuddy):
 class ForwardCommunity():
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
+        print >> sys.stderr, "Called with", integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal
+        
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = rsa_init()
@@ -1311,11 +1313,13 @@ class PoliForwardCommunity(ForwardCommunity):
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
-        if True or DEBUG_VERBOSE:
-            print >> sys.stderr, long(time()), "PoliSearchCommunity: got simi response from", candidate, payload.identifier
-
         overlap = self.compute_overlap(payload.my_response)
-        self.add_taste_buddies([ActualTasteBuddy(overlap, time(), candidate)])
+        atb = ActualTasteBuddy(overlap, time(), candidate)
+        self.add_taste_buddies([atb])
+        
+        if True or DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "PoliSearchCommunity: got simi response from", candidate, payload.identifier, atb, self.is_taste_buddy(candidate), self.is_taste_buddy(candidate.sock_addr)
+        
         return overlap
 
     def process_msimilarity_response(self, message):
