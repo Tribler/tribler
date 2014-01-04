@@ -82,9 +82,6 @@ class FriendDatabase(Database):
         return stats_dict
 
     def add_message(self, sync_id, global_time, keyhash):
-        import sys
-        print >> sys.stderr, long(time()), "new message", global_time 
-        
         _keyhash = buffer(str(keyhash))
         self.execute(u"INSERT INTO friendsync (sync_id, global_time, keyhash) VALUES (?,?,?) ", (sync_id, global_time, _keyhash))
 
