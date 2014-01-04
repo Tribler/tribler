@@ -556,7 +556,7 @@ class ForwardCommunity():
 
         def on_timeout(self):
             if not self.isProcessed:
-                if DEBUG:
+                if True or DEBUG:
                     print >> sys.stderr, long(time()), "ForwardCommunity: timeout MSimilarityRequest", self.number, len(self.received_lists), len(self.requested_candidates), str(self.requested_candidates[0])
 
                 self.process()
@@ -603,6 +603,9 @@ class ForwardCommunity():
     def create_similarity_request(self, destination, payload):
         cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=True))
         self.send_similarity_request([destination], cache.number, payload)
+        
+        if True or DEBUG:
+            print >> sys.stderr, long(time()), "ForwardCommunity: send_similarity_request to", destination, cache.number
 
     def send_similarity_request(self, candidates, identifier, payload):
         raise NotImplementedError()
