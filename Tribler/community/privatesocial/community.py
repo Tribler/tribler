@@ -122,6 +122,7 @@ class SocialCommunity(Community):
 
         # next get actual packets from sync table, friendsync does not contain any non-syncable_messages hence this variable isn't used
         sync_ids = tuple(sync_id for _, sync_id in data)
+        global_ids = tuple(global_id for global_id,_ in data)
         if higher:
             data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time ASC", sync_ids))
         else:
@@ -130,7 +131,7 @@ class SocialCommunity(Community):
         if not higher:
             data.reverse()
             
-        print >> sys.stderr, "SENDING sync-request to ? included", sync_ids, "in bloomfilter", len(data)
+        print >> sys.stderr, "SENDING sync-request to ? included", global_ids, "in bloomfilter", len(data)
 
         return data, fixed
 
