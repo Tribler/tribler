@@ -53,6 +53,10 @@ class SocialCommunity(Community):
         # replace _get_packets_for_bloomfilters
         self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
         self._dispersy._get_packets_for_bloomfilters = self._get_packets_for_bloomfilters
+        
+        # logging
+        self._orig__is_duplicate_sync_message = self._dispersy._is_duplicate_sync_message
+        self._is_duplicate_sync_message = self._is_duplicate_sync_message
 
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
@@ -84,6 +88,10 @@ class SocialCommunity(Community):
                     yield interval
             else:
                 yield 15.0
+                
+    def _is_duplicate_sync_message(self, message):
+        print >> sys.stderr, long(time()), "new message %s %d@%d from %s"%(message.name, message.authentication.member.database_id, message.distribution.global_time, message.candidate)
+        return self._orig__is_duplicate_sync_message(message)
 
     def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
         if community != self:
@@ -182,7 +190,7 @@ class SocialCommunity(Community):
         for message in messages:
             self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.keyhash)
             
-            print >> sys.stderr, long(time()), "new encrypted_message %d@%d from %s"%(message.authentication.member.database_id, message.distribution.global_time, message.candidate)
+            print >> sys.stderr, long(time()), "new message %s %d@%d from %s"%(message.name, message.authentication.member.database_id, message.distribution.global_time, message.candidate)
 
             could_decrypt = False
             for key, keyhash in self._friend_db.get_my_keys():
