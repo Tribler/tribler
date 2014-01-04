@@ -456,7 +456,7 @@ class ForwardCommunity():
     def create_similarity_payload(self):
         raise NotImplementedError()
 
-    def process_similarity_response(self, candidate_mid, response):
+    def process_similarity_response(self, candidate, candidate_mid, payload):
         raise NotImplementedError()
     def process_msimilarity_response(self, message):
         raise NotImplementedError()
@@ -1311,8 +1311,8 @@ class PoliForwardCommunity(ForwardCommunity):
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
-        if DEBUG_VERBOSE:
-            print >> sys.stderr, long(time()), "PoliSearchCommunity: got simi response from", candidate
+        if True or DEBUG_VERBOSE:
+            print >> sys.stderr, long(time()), "PoliSearchCommunity: got simi response from", candidate, payload.identifier
 
         overlap = self.compute_overlap(payload.my_response)
         self.add_taste_buddies([ActualTasteBuddy(overlap, time(), candidate)])
