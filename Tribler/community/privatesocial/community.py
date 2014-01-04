@@ -53,10 +53,6 @@ class SocialCommunity(Community):
         # replace _get_packets_for_bloomfilters
         self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
         self._dispersy._get_packets_for_bloomfilters = self._get_packets_for_bloomfilters
-        
-        # logging
-        self._orig__is_duplicate_sync_message = self._dispersy._is_duplicate_sync_message
-        self._is_duplicate_sync_message = self._is_duplicate_sync_message
 
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
@@ -89,10 +85,6 @@ class SocialCommunity(Community):
             else:
                 yield 15.0
                 
-    def _is_duplicate_sync_message(self, message):
-        print >> sys.stderr, long(time()), "new message %s %d@%d from %s"%(message.name, message.authentication.member.database_id, message.distribution.global_time, message.candidate)
-        return self._orig__is_duplicate_sync_message(message)
-
     def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
         if community != self:
             for message, packet in self._orig__get_packets_for_bloomfilters(community, requests, include_inactive):
@@ -100,9 +92,7 @@ class SocialCommunity(Community):
         else:
             for message, time_low, time_high, offset, modulo in requests:
                 print >> sys.stderr, "GOT sync-request from", message.candidate, self.is_taste_buddy(message.candidate)
-                
                 #TODO: use overlapping friends to only select those messages
-                
                 data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 ORDER BY global_time DESC",
                                                     (time_low, time_high, offset, modulo))
 
@@ -130,7 +120,6 @@ class SocialCommunity(Community):
 
         # next get actual packets from sync table, friendsync does not contain any non-syncable_messages hence this variable isn't used
         sync_ids = tuple(sync_id for _, sync_id in data)
-        global_ids = tuple((global_id,sync_id) for global_id, sync_id in data)
         if higher:
             data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time ASC", sync_ids))
         else:
@@ -139,8 +128,6 @@ class SocialCommunity(Community):
         if not higher:
             data.reverse()
             
-        print >> sys.stderr, long(time()), "SENDING sync-request to ? included", global_ids, "in bloomfilter", len(global_ids), len(data)
-
         return data, fixed
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
@@ -182,7 +169,7 @@ class SocialCommunity(Community):
                             destination=(tuple(overlapping_candidates)),
                             payload=(keyhash, encrypted_message))
 
-        self._dispersy.store_update_forward([message], True, False, True)
+        self._dispersy.store_update_forward([message], True, True, True)
 
     def on_encrypted(self, messages):
         decrypted_messages = []
@@ -190,8 +177,6 @@ class SocialCommunity(Community):
         for message in messages:
             self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.keyhash)
             
-            print >> sys.stderr, long(time()), "new message %s %d@%d from %s"%(message.name, message.authentication.member.database_id, message.distribution.global_time, message.candidate)
-
             could_decrypt = False
             for key, keyhash in self._friend_db.get_my_keys():
                 if keyhash ==  message.payload._keyhash:
