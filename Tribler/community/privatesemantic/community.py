@@ -154,8 +154,6 @@ class PossibleTasteBuddy(TasteBuddy):
 class ForwardCommunity():
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
-        print >> sys.stderr, "Called with", integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal
-        
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = rsa_init()
@@ -207,10 +205,7 @@ class ForwardCommunity():
         self._peercache = SemanticDatabase(self._dispersy)
         self._peercache.open()
         
-        print >> sys.stderr, "PEERCACHE after open:",self._peercache.get_database_stats()
-
     def unload_community(self):
-        print >> sys.stderr, "PEERCACHE after close:",self._peercache.get_database_stats()
         self._peercache.close()
 
     def initiate_meta_messages(self):
@@ -731,7 +726,8 @@ class ForwardCommunity():
 
             self.add_taste_buddies([ActualTasteBuddy(message.payload.overlap, time(), message.candidate)])
             
-            print >> sys.stderr, "GOT similarity reveal from", message.candidate, self.is_taste_buddy(message.candidate), message.payload.overlap
+            if DEBUG:
+                print >> sys.stderr, "GOT similarity reveal from", message.candidate, self.is_taste_buddy(message.candidate), message.payload.overlap
 
     def send_introduction_request(self, destination, introduce_me_to=None, allow_sync=True, advice=True):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
