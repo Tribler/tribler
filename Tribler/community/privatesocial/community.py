@@ -131,7 +131,7 @@ class SocialCommunity(Community):
         if not higher:
             data.reverse()
             
-        print >> sys.stderr, "SENDING sync-request to ? included", global_ids, "in bloomfilter", len(data)
+        print >> sys.stderr, long(time()), "SENDING sync-request to ? included", global_ids, "in bloomfilter", len(data)
 
         return data, fixed
 
