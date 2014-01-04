@@ -102,8 +102,6 @@ class SocialCommunity(Community):
                 yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
-        print >> sys.stderr, "SENDING sync-request to?"
-        
         # first select_and_fix based on friendsync table
         if higher:
             data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time > ? ORDER BY global_time ASC LIMIT ?",
@@ -131,6 +129,8 @@ class SocialCommunity(Community):
 
         if not higher:
             data.reverse()
+            
+        print >> sys.stderr, "SENDING sync-request to ? included", sync_ids, "in bloomfilter", len(data)
 
         return data, fixed
 
