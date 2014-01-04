@@ -419,7 +419,7 @@ class PoliSearchConversion(ForwardConversion):
         max_prefs = (65000 - (1500 - (self._community.dispersy_sync_bloom_filter_bits / 8)) - 2) / 256
         
         str_identifer = pack("!H", message.payload.identifier)
-        str_prefs = pack("!" + "256s"*len(message.payload.my_response), *[long_to_bytes(preference, 256) for preference in message.payload.my_response[:max_prefs-1]])
+        str_prefs = pack("!" + "256s"*min(len(message.payload.my_response),max_prefs), *[long_to_bytes(preference, 256) for preference in message.payload.my_response[:max_prefs-1]])
         return encode([str_identifer, str_prefs]),
 
     def _decode_simi_response(self, placeholder, offset, data):
