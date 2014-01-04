@@ -416,11 +416,8 @@ class PoliSearchConversion(ForwardConversion):
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), bytes_to_long(str_g), preferences)
 
     def _encode_simi_response(self, message):
-        max_prefs = (65000 - (1500 - (self._community.dispersy_sync_bloom_filter_bits / 8)) - 2) / 256
-        max_prefs -= 1
-        
         str_identifer = pack("!H", message.payload.identifier)
-        str_prefs = pack("!" + "256s"*min(len(message.payload.my_response),max_prefs), *[long_to_bytes(preference, 256) for preference in message.payload.my_response[:max_prefs]])
+        str_prefs = pack("!" + "256s"*len(message.payload.my_response), *[long_to_bytes(preference, 256) for preference in message.payload.my_response])
         return encode([str_identifer, str_prefs]),
 
     def _decode_simi_response(self, placeholder, offset, data):
