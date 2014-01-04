@@ -156,20 +156,21 @@ class SocialCommunity(Community):
 
         # get key
         key, keyhash = self._friend_db.get_friend(dest_friend)
-
-        # encrypt message
-        encrypted_message = self.dispersy.crypto.encrypt(key, message_str)
         
-        # get overlapping connections
-        overlapping_candidates = self.filter_overlap(self.yield_taste_buddies(), [keyhash,])
-
-        meta = self.get_meta_message(u"encrypted")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
-                            destination=(tuple(overlapping_candidates)),
-                            payload=(keyhash, encrypted_message))
-
-        self._dispersy.store_update_forward([message], True, True, True)
+        if key:
+            # encrypt message
+            encrypted_message = self.dispersy.crypto.encrypt(key, message_str)
+            
+            # get overlapping connections
+            overlapping_candidates = self.filter_overlap(self.yield_taste_buddies(), [keyhash,])
+    
+            meta = self.get_meta_message(u"encrypted")
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.claim_global_time(),),
+                                destination=(tuple(overlapping_candidates)),
+                                payload=(keyhash, encrypted_message))
+    
+            self._dispersy.store_update_forward([message], True, True, True)
 
     def on_encrypted(self, messages):
         decrypted_messages = []
