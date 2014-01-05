@@ -1,4 +1,4 @@
-from os import path
+    from os import path
 from time import time
 
 from Tribler.dispersy.database import Database
@@ -89,7 +89,7 @@ class FriendDatabase(Database):
         _name = unicode(name)
         _key = buffer(self._dispersy.crypto.key_to_bin(key.pub()))
         _keyhash = buffer(str(keyhash))
-        self.execute(u"INSERT INTO friends (name, key, keyhash) VALUES (?,?,?)", (name, _key, _keyhash))
+        self.execute(u"INSERT INTO friends (name, key, keyhash) VALUES (?,?,?)", (_name, _key, _keyhash))
 
     def get_friend(self, name):
         return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE name = ?", (unicode(name),))).next()
