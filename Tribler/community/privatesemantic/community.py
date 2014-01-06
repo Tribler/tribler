@@ -43,7 +43,8 @@ DEBUG = False
 DEBUG_VERBOSE = False
 ENCRYPTION = True
 
-PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
+PING_INTERVAL = CANDIDATE_WALK_LIFETIME / 4
+PING_TIMEOUT = CANDIDATE_WALK_LIFETIME / 2
 TIME_BETWEEN_CONNECTION_ATTEMPTS = 15.0
 
 class TasteBuddy():
@@ -99,7 +100,7 @@ class ActualTasteBuddy(TasteBuddy):
         return self.candidate.connection_type == u"public"
 
     def time_remaining(self):
-        too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
+        too_old = time() - PING_TIMEOUT
         diff = self.timestamp - too_old
         return diff if diff > 0 else 0
 
@@ -133,7 +134,7 @@ class PossibleTasteBuddy(TasteBuddy):
         self.received_from = received_from
 
     def time_remaining(self):
-        too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
+        too_old = time() - PING_TIMEOUT
         diff = self.timestamp - too_old
         return diff if diff > 0 else 0
 
@@ -204,7 +205,7 @@ class ForwardCommunity():
 
         self._peercache = SemanticDatabase(self._dispersy)
         self._peercache.open()
-        
+
     def unload_community(self):
         self._peercache.close()
 
@@ -484,7 +485,7 @@ class ForwardCommunity():
         def create_identifier(number, force_number= -1):
             return u"request-cache:m-similarity-request:%d" % number
 
-        def __init__(self, community, requesting_candidate, requested_candidates, force_number= -1, send_reveal = False):
+        def __init__(self, community, requesting_candidate, requested_candidates, force_number= -1, send_reveal=False):
             NumberCache.__init__(self, community.request_cache, force_number)
             self.community = community
 
@@ -544,11 +545,11 @@ class ForwardCommunity():
 
                 for response in self.received_lists:
                     overlap = self.community.process_similarity_response(response[0], response[1], response[2])
-                    
+
                     if self.send_reveal and overlap:
                         if DEBUG_VERBOSE:
                             print >> sys.stderr, long(time()), "ForwardCommunity: sending reveal to", self.requested_candidates
-                        self.community.send_similarity_reveal(response[0], overlap)    
+                        self.community.send_similarity_reveal(response[0], overlap)
                 return 0
 
         def on_timeout(self):
@@ -600,7 +601,7 @@ class ForwardCommunity():
     def create_similarity_request(self, destination, payload):
         cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=True))
         self.send_similarity_request([destination], cache.number, payload)
-        
+
         if DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: send_similarity_request to", destination, cache.number
 
@@ -725,7 +726,7 @@ class ForwardCommunity():
                 message._candidate = candidate
 
             self.add_taste_buddies([ActualTasteBuddy(message.payload.overlap, time(), message.candidate)])
-            
+
             if DEBUG:
                 print >> sys.stderr, "GOT similarity reveal from", message.candidate, self.is_taste_buddy(message.candidate), message.payload.overlap
 
@@ -1187,7 +1188,7 @@ class HForwardCommunity(ForwardCommunity):
         # 1. fetch my preferences
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local=False) if preference]
         myListLen = len(myPreferences)
-        
+
         # 2. use subset if we have to many preferences
         if myListLen > self.max_h_prefs:
             myPreferences = sample(myPreferences, self.max_h_prefs)
@@ -1311,7 +1312,7 @@ class PoliForwardCommunity(ForwardCommunity):
     def process_similarity_response(self, candidate, candidate_mid, payload):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "PoliSearchCommunity: got simi response from", candidate, payload.identifier
-        
+
         overlap = self.compute_overlap(payload.my_response)
         self.add_taste_buddies([ActualTasteBuddy(overlap, time(), candidate)])
         return overlap
