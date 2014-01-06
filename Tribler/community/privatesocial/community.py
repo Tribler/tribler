@@ -44,7 +44,7 @@ class SocialCommunity(Community):
 
         self._friend_db = FriendDatabase(dispersy)
         self._friend_db.open()
-        
+
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
         self.send_introduction_request = lambda destination, introduce_me_to = None, allow_sync = True, advice = True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
@@ -84,7 +84,7 @@ class SocialCommunity(Community):
                     yield interval
             else:
                 yield 15.0
-                
+
     def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
         if community != self:
             for message, packet in self._orig__get_packets_for_bloomfilters(community, requests, include_inactive):
@@ -92,7 +92,7 @@ class SocialCommunity(Community):
         else:
             for message, time_low, time_high, offset, modulo in requests:
                 print >> sys.stderr, "GOT sync-request from", message.candidate, self.is_taste_buddy(message.candidate)
-                #TODO: use overlapping friends to only select those messages
+                # TODO: use overlapping friends to only select those messages
                 data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 ORDER BY global_time DESC",
                                                     (time_low, time_high, offset, modulo))
 
@@ -127,14 +127,15 @@ class SocialCommunity(Community):
 
         if not higher:
             data.reverse()
-            
+
         return data, fixed
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         raise NotImplementedError()
 
     def create_text(self, text, friends):
-        assert all(isinstance(friend, str) for friend in friends)
+        assert isinstance(text, unicode), type(text)
+        assert all(isinstance(friend, str) for friend in friends), [type(friend) for friend in friends]
 
         meta = self.get_meta_message(u"text")
         message = meta.impl(authentication=(self._my_member,),
@@ -144,7 +145,7 @@ class SocialCommunity(Community):
         for friend in friends:
             self.create_encrypted(message.packet, friend)
 
-        #self._dispersy.store_update_forward([message], True, True, False)
+        # self._dispersy.store_update_forward([message], True, True, False)
 
     def on_text(self, messages):
         for message in messages:
@@ -156,20 +157,20 @@ class SocialCommunity(Community):
 
         # get key
         key, keyhash = self._friend_db.get_friend(dest_friend)
-        
+
         if key:
             # encrypt message
             encrypted_message = self.dispersy.crypto.encrypt(key, message_str)
-            
+
             # get overlapping connections
-            overlapping_candidates = self.filter_overlap(self.yield_taste_buddies(), [keyhash,])
-    
+            overlapping_candidates = self.filter_overlap(self.yield_taste_buddies(), [keyhash, ])
+
             meta = self.get_meta_message(u"encrypted")
             message = meta.impl(authentication=(self._my_member,),
                                 distribution=(self.claim_global_time(),),
                                 destination=(tuple(overlapping_candidates)),
                                 payload=(keyhash, encrypted_message))
-    
+
             self._dispersy.store_update_forward([message], True, True, True)
 
     def on_encrypted(self, messages):
@@ -177,10 +178,10 @@ class SocialCommunity(Community):
 
         for message in messages:
             self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.keyhash)
-            
+
             could_decrypt = False
             for key, keyhash in self._friend_db.get_my_keys():
-                if keyhash ==  message.payload._keyhash:
+                if keyhash == message.payload._keyhash:
                     decrypted_messages.append((message.candidate, self.dispersy.crypto.decrypt(key, message.payload.encrypted_message)))
                     could_decrypt = True
                     break
@@ -220,14 +221,14 @@ class SocialCommunity(Community):
             print >> sys.stderr, long(time()), "SocialCommunity: Will maintain", len(to_maintain), "connections instead of", len(_tbs)
 
         return to_maintain
-    
+
     def filter_overlap(self, tbs, keys):
         to_maintain = set()
         for tb in tbs:
             # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
             if any(map(tb.does_overlap, keys)):
                 to_maintain.add(tb.candidate)
-                
+
         return to_maintain
 
     def add_possible_taste_buddies(self):
