@@ -91,13 +91,17 @@ class SocialCommunity(Community):
                 yield message, packet
         else:
             for message, time_low, time_high, offset, modulo in requests:
-                print >> sys.stderr, "GOT sync-request from", message.candidate, self.is_taste_buddy(message.candidate)
-                # TODO: use overlapping friends to only select those messages
-                data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 ORDER BY global_time DESC",
-                                                    (time_low, time_high, offset, modulo))
+                print >> sys.stderr, "GOT sync-request from", message.candidate,
 
-                sync_ids = tuple(sync_id for sync_id, in data)
-                yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
+                tb = self.is_taste_buddy(message.candidate)
+                if tb and tb.overlap:
+                    keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
+
+                    data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ") ORDER BY global_time DESC",
+                                                        (time_low, time_high, offset, modulo) + keyhashes)
+
+                    sync_ids = tuple(sync_id for sync_id, in data)
+                    yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         # first select_and_fix based on friendsync table
