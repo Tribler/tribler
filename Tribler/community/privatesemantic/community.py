@@ -336,6 +336,18 @@ class ForwardCommunity():
         elif DEBUG and possibles:
             print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies)
 
+    def clean_possible_taste_buddies(self):
+        low_sim = self.get_least_similar_tb()
+        for i in range(len(self.possible_taste_buddies) - 1, -1, -1):
+            to_low_sim = self.possible_taste_buddies[i] <= low_sim
+            to_old = self.possible_taste_buddies[i].time_remaining() == 0
+            is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i].candidate_mid)
+
+            if to_low_sim or to_old or is_tb:
+                if DEBUG:
+                    print >> sys.stderr, long(time()), "ForwardCommunity: removing possible tastebuddy", long(time()), to_low_sim, to_old, is_tb, self.possible_taste_buddies[i]
+                self.possible_taste_buddies.pop(i)
+
     def has_possible_taste_buddies(self, candidate):
         for possible in self.possible_taste_buddies:
             if possible == candidate:
@@ -350,16 +362,7 @@ class ForwardCommunity():
     def get_most_similar(self, candidate):
         assert isinstance(candidate, WalkCandidate), [type(candidate), candidate]
 
-        low_sim = self.get_least_similar_tb()
-        for i in range(len(self.possible_taste_buddies) - 1, -1, -1):
-            to_low_sim = self.possible_taste_buddies[i] <= low_sim
-            to_old = self.possible_taste_buddies[i].time_remaining() == 0
-            is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i].candidate_mid)
-
-            if to_low_sim or to_old or is_tb:
-                if DEBUG:
-                    print >> sys.stderr, long(time()), "ForwardCommunity: removing possible tastebuddy", long(time()), to_low_sim, to_old, is_tb, self.possible_taste_buddies[i]
-                self.possible_taste_buddies.pop(i)
+        self.clean_possible_taste_buddies()
 
         if self.possible_taste_buddies:
             most_similar = self.possible_taste_buddies.pop(0)

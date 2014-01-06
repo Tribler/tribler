@@ -237,10 +237,28 @@ class SocialCommunity(Community):
 
     def add_possible_taste_buddies(self):
         my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
+
+        connections = defaultdict(int)
+        for tb in self.yield_taste_buddies():
+            for keyhash in tb.overlap:
+                connections[keyhash] += 1
+
         def prefer_my_friends(a, b):
             if any(map(a.does_overlap, my_key_hashes)):
                 return 1
+
             if any(map(b.does_overlap, my_key_hashes)):
+                return -1
+
+            if a.overlap and b.overlap:
+                # neither are my friend, sort by a foaf which connects me to a least connected friend
+                min_a = min(connections[overlapping] for overlapping in a.overlap)
+                min_b = min(connections[overlapping] for overlapping in b.overlap)
+                return cmp(min_a, min_b)
+
+            if a.overlap:
+                return 1
+            if b.overlap:
                 return -1
             return cmp(a, b)
 
@@ -250,38 +268,6 @@ class SocialCommunity(Community):
             print >> sys.stderr, long(time()), "SocialCommunity: After sorting", [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies], map(str, self.possible_taste_buddies),
         elif DEBUG:
             print >> sys.stderr, long(time()), "SocialCommunity: After sorting", [any(map(tb.does_overlap, my_key_hashes)) for tb in self.possible_taste_buddies]
-
-#     def get_rsa_members_from_id(self, mid):
-#         try:
-#             # dispersy uses the sha digest, we use a sha hexdigest converted into long
-#             # convert it to our long format
-#             keyhash = long(hexlify(mid), 16)
-#
-#             rsakey = self._friend_db.get_friend_by_hash(keyhash)
-#             return RSAMember(rsakey)
-#         except:
-#             return self._orig_get_members_from_id(mid)
-
-    def get_most_similar(self, candidate):
-        ctb = self.is_taste_buddy(candidate)
-        if ctb and ctb.overlap:
-            # see which peer i havn't made a connection to/have fewest connections with
-            connections = defaultdict(int)
-            for keyhash in ctb.overlap:
-                connections[keyhash] += 1
-
-            my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
-            for tb in self.yield_taste_buddies(candidate):
-                if any(map(tb.does_overlap, my_key_hashes)):
-                    for keyhash in tb.overlap:
-                        if keyhash in connections:
-                            connections[keyhash] += 1
-
-            ckeys = connections.keys()
-            ckeys.sort(cmp=lambda a, b: cmp(connections[a], connections[b]))
-            return candidate, long_to_bytes(ckeys[0], 20)
-
-        return candidate, None
 
 class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
@@ -446,6 +432,3 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
         return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
-
-    def get_most_similar(self, candidate):
-        return ForwardCommunity.get_most_similar(self, candidate)
