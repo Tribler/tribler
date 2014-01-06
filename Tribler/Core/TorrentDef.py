@@ -26,6 +26,7 @@ from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.Crypto import sha
 
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from urllib2 import URLError
 
 
 class TorrentDef(ContentDefinition, Serializable, Copyable):
@@ -163,6 +164,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
         file from the URL and convert it into a TorrentDef. If the URL starts
         with our URL scheme, we convert the URL to a URL-compatible TorrentDef.
+        
+        If we can't download the .torrent file, this method returns None.
 
         @param url URL
         @return TorrentDef.
@@ -181,8 +184,12 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
             return t
         else:
-            f = urlOpenTimeout(url)
-            return TorrentDef._read(f)
+            try:
+                f = urlOpenTimeout(url)
+                return TorrentDef._read(f)
+
+            except URLError:
+                pass
 
     @staticmethod
     def load_from_dict(metainfo):

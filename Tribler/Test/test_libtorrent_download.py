@@ -142,17 +142,17 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_monitor():
             from Tribler.Video.VideoPlayer import VideoPlayer
-
             d = VideoPlayer.getInstance().get_vod_download()
-            self.assert_(bool(d), "No VOD download found")
 
             self.screenshot('After starting a VOD download')
             self.CallConditional(60, lambda: d.network_get_vod_stats()['status'] == "started", check_playlist, "streaming did not start")
 
         def do_vod():
-            self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/8-blue---a-short-film.torrent', self.getDestDir(), selectedFiles=[os.path.join('Content', 'blue-a-short-film-divx.avi')], vodmode=True)
+            from Tribler.Video.VideoPlayer import VideoPlayer
+
+            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir(), selectedFiles=[os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')], vodmode=True)
             self.guiUtility.ShowPlayer()
-            self.Call(30, do_monitor)
+            self.CallConditional(30, lambda: VideoPlayer.getInstance().get_vod_download(), do_monitor, "VOD download not found")
 
         self.startTest(do_vod)
 

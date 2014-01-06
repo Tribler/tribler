@@ -207,17 +207,18 @@ class AddTorrent(wx.Dialog):
         dlg.Destroy()
 
     def _GetDestPath(self, torrentfilename=None, torrenturl=None):
+        destdir = None
+
         tdef = None
         if torrentfilename:
             tdef = TorrentDef.load(torrentfilename)
         if torrenturl:
             tdef = TorrentDef.load_from_url(torrenturl)
-        dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None, self.guiutility.utility.config)
-        id = dlg.ShowModal()
+        if tdef:
+            dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None, self.guiutility.utility.config)
+            id = dlg.ShowModal()
 
-        if id == wx.ID_OK:
-            destdir = dlg.GetPath()
-        else:
-            destdir = None
-        dlg.Destroy()
+            if id == wx.ID_OK:
+                destdir = dlg.GetPath()
+            dlg.Destroy()
         return destdir

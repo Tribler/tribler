@@ -154,7 +154,7 @@ def main():
     s = Session(sscfg)
 
     # url = "http://www.vodo.net/media/torrents/Exhibit.A.2007.SD.x264-VODO.torrent"
-    url = "http://www.clearbits.net/get/394-the-future-of-ideas.torrent"
+    url = "http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent"
     tdef = url2cdef(url)
 
     output_dir = 'D:\\Build\\bt2swift-m48stb-r25811\\orig'
