@@ -106,7 +106,9 @@ class SocialCommunity(Community):
                 else:
                     print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
 
-    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
+    def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
+        print >> sys.stderr, "SELECTING packets for", request_cache.helper_candidate, self.is_taste_buddy(request_cache.helper_candidate)
+
         # first select_and_fix based on friendsync table
         if higher:
             data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time > ? ORDER BY global_time ASC LIMIT ?",
@@ -137,7 +139,7 @@ class SocialCommunity(Community):
 
         return data, fixed
 
-    def _dispersy_claim_sync_bloom_filter_modulo(self):
+    def _dispersy_claim_sync_bloom_filter_modulo(self, request_cache):
         raise NotImplementedError()
 
     def create_text(self, text, friends):
