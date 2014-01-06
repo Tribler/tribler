@@ -1,4 +1,4 @@
-    from os import path
+from os import path
 from time import time
 
 from Tribler.dispersy.database import Database
@@ -72,12 +72,12 @@ class FriendDatabase(Database):
                 pass
 
         return LATEST_VERSION
-    
+
     def get_database_stats(self):
         stats_dict = {}
-        
+
         for tablename, in list(self.execute(u'SELECT name FROM sqlite_master WHERE type = "table"')):
-            count, = self.execute(u"SELECT COUNT(*) FROM "+tablename).next()
+            count, = self.execute(u"SELECT COUNT(*) FROM " + tablename).next()
             stats_dict[str(tablename)] = count
         return stats_dict
 
@@ -104,13 +104,13 @@ class FriendDatabase(Database):
         self.execute(u"INSERT INTO my_keys (key, keyhash, inserted) VALUES (?,?,?)", (_key, _keyhash, time()))
 
     def get_my_keys(self):
-        return list(self._converted_keys(self.execute(u"SELECT key, keyhash FROM my_keys ORDER BY inserted DESC"), mykeys = True))
+        return list(self._converted_keys(self.execute(u"SELECT key, keyhash FROM my_keys ORDER BY inserted DESC"), mykeys=True))
 
-    def _converted_keys(self, keylist, mykeys = False):
+    def _converted_keys(self, keylist, mykeys=False):
         did_yield = False
         for key, keyhash in keylist:
             yield (self._dispersy.crypto.key_from_private_bin(str(key)) if mykeys else self._dispersy.crypto.key_from_public_bin(str(key))), long(str(keyhash))
             did_yield = True
-                
+
         if not did_yield:
             yield None, None
