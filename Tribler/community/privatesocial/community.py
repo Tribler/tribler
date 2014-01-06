@@ -313,8 +313,8 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
 
-    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
-        return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+    def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
+        return SocialCommunity._select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher)
 
 class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
@@ -351,8 +351,8 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
 
-    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
-        return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+    def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
+        return SocialCommunity._select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher)
 
 class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
@@ -393,8 +393,8 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
 
-    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
-        return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+    def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
+        return SocialCommunity._select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher)
 
 class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
@@ -435,5 +435,5 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
 
-    def _select_and_fix(self, syncable_messages, global_time, to_select, higher=True):
-        return SocialCommunity._select_and_fix(self, syncable_messages, global_time, to_select, higher)
+    def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
+        return SocialCommunity._select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher)
