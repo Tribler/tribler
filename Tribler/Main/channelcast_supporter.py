@@ -18,7 +18,7 @@ import time
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 
-def define_communities(session):
+def define_allchannel(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
     from Tribler.community.channel.community import ChannelCommunity
 
@@ -30,7 +30,11 @@ def define_communities(session):
     dispersy.define_auto_load(ChannelCommunity, load=True)
     print >> sys.stderr, "tribler: Dispersy communities are ready"
 
-def main():
+    def on_incoming_torrent(subject, type_, infohash):
+        print >> sys.stdout, "Incoming torrent:", infohash.encode("HEX")
+    session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
+
+def main(define_communities):
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
     command_line_parser.add_option("--port", action="store", type="int", help="Listen at this port")
@@ -59,10 +63,6 @@ def main():
     dispersy = session.get_dispersy_instance()
     dispersy.callback.call(define_communities, args=(session,))
 
-    def on_incoming_torrent(subject, type_, infohash):
-        print >> sys.stdout, "Incoming torrent:", infohash.encode("HEX")
-    session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
-
     try:
         while True:
             x = sys.stdin.readline()
@@ -77,4 +77,4 @@ def main():
     time.sleep(5)
 
 if __name__ == "__main__":
-    main()
+    main(define_allchannel)
