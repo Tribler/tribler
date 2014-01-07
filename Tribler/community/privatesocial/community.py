@@ -107,37 +107,42 @@ class SocialCommunity(Community):
                     print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
 
     def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
-        print >> sys.stderr, "SELECTING packets for", request_cache.helper_candidate, self.is_taste_buddy(request_cache.helper_candidate)
+        tb = self.is_taste_buddy(request_cache.helper_candidate)
+        if tb and tb.overlap:
+            print >> sys.stderr, "SELECTING packets for", request_cache.helper_candidate, tb
 
-        # first select_and_fix based on friendsync table
-        if higher:
-            data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time > ? ORDER BY global_time ASC LIMIT ?",
-                                                    (global_time, to_select + 1)))
-        else:
-            data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time < ? ORDER BY global_time DESC LIMIT ?",
-                                                    (global_time, to_select + 1)))
+            keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
 
-        fixed = False
-        if len(data) > to_select:
-            fixed = True
+            # first select_and_fix based on friendsync table
+            if higher:
+                data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time > ? AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ") ORDER BY global_time ASC LIMIT ?",
+                                                        (global_time,) + keyhashes + (to_select + 1,)))
+            else:
+                data = list(self._friend_db.execute(u"SELECT global_time, sync_id FROM friendsync WHERE global_time < ? AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ") ORDER BY global_time DESC LIMIT ?",
+                                                        (global_time,) + keyhashes + (to_select + 1,)))
 
-            # if last 2 packets are equal, then we need to drop those
-            global_time = data[-1][0]
-            del data[-1]
-            while data and data[-1][0] == global_time:
+            fixed = False
+            if len(data) > to_select:
+                fixed = True
+
+                # if last 2 packets are equal, then we need to drop those
+                global_time = data[-1][0]
                 del data[-1]
+                while data and data[-1][0] == global_time:
+                    del data[-1]
 
-        # next get actual packets from sync table, friendsync does not contain any non-syncable_messages hence this variable isn't used
-        sync_ids = tuple(sync_id for _, sync_id in data)
-        if higher:
-            data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time ASC", sync_ids))
-        else:
-            data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
+            # next get actual packets from sync table, friendsync does not contain any non-syncable_messages hence this variable isn't used
+            sync_ids = tuple(sync_id for _, sync_id in data)
+            if higher:
+                data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time ASC", sync_ids))
+            else:
+                data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
 
-        if not higher:
-            data.reverse()
+            if not higher:
+                data.reverse()
 
-        return data, fixed
+            return data, fixed
+        return [], False
 
     def _dispersy_claim_sync_bloom_filter_modulo(self, request_cache):
         raise NotImplementedError()
