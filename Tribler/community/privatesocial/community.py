@@ -188,6 +188,10 @@ class SocialCommunity(Community):
             self._dispersy.store_update_forward([message], True, True, True)
 
     def on_encrypted(self, messages):
+        if __debug__:
+            key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()] + [keyhash for _, keyhash in self._friend_db.get_friend_keys()]
+            assert all(message.payload.keyhash in key_hashes for message in messages), [(message.payload.keyhash in key_hashes, message.candidate.sock_addr) for message in messages]
+
         decrypted_messages = []
 
         for message in messages:
