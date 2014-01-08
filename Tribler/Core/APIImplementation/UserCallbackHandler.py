@@ -88,7 +88,7 @@ class UserCallbackHandler:
         # Remove checkpoint
         hexinfohash = binascii.hexlify(infohash)
         try:
-            basename = hexinfohash + '.pickle'
+            basename = hexinfohash + '.state'
             filename = os.path.join(dlpstatedir, basename)
             self._logger.debug("Session: sesscb_removestate: removing dlcheckpoint entry %s", filename)
             if os.access(filename, os.F_OK):
