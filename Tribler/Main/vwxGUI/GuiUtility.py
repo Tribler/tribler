@@ -19,7 +19,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time
-from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.vwxGUI import forceWxThread, warnWxThread
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
@@ -283,6 +283,7 @@ class GUIUtility:
         if self.guiPage == 'my_files':
             return self.frame.librarylist
 
+    @warnWxThread
     def SetTopSplitterWindow(self, window=None, show=True):
         while self.frame.splitter_top.GetChildren():
             self.frame.splitter_top.Detach(0)
@@ -296,6 +297,7 @@ class GUIUtility:
         self.frame.splitter_top.Layout()
         self.frame.splitter_top_window.Refresh()
 
+    @warnWxThread
     def SetBottomSplitterWindow(self, panel_type):
         self.frame.splitter_bottom_window.Freeze()
 
@@ -323,12 +325,10 @@ class GUIUtility:
         self.frame.splitter_bottom_window.Refresh()
         return result
 
+    @warnWxThread
     def SetColumnInfo(self, itemtype, columns, hide_defaults=[]):
-        config = self.utility.config
-
         # Load hidden column info
-        hide_columns = config.Read("hide_columns")
-        hide_columns = json.loads(hide_columns) if hide_columns else {}
+        hide_columns = self.ReadGuiSetting("hide_columns", default={})
         hide_columns = hide_columns.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
             if column['name'] in hide_columns:
@@ -337,8 +337,7 @@ class GUIUtility:
                 column['show'] = not (index in hide_defaults)
 
         # Load column width info
-        column_sizes = config.Read("column_sizes")
-        column_sizes = json.loads(column_sizes) if column_sizes else {}
+        column_sizes = self.ReadGuiSetting("column_sizes", default={})
         column_sizes = column_sizes.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
             if column['name'] in column_sizes:
@@ -346,19 +345,19 @@ class GUIUtility:
 
         return columns
 
+    @warnWxThread
     def ReadGuiSetting(self, setting_name, default=None, do_json=True):
-        config = self.utility.config
-        setting_value = config.Read(setting_name)
+        setting_value = self.utility.read_config(setting_name, literal_eval=False)
         if do_json and setting_value:
             setting_value = json.loads(setting_value)
         elif not setting_value:
             setting_value = default
         return setting_value
 
+    @warnWxThread
     def WriteGuiSetting(self, setting_name, setting_value, do_json=True):
-        config = self.utility.config
-        config.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
-        config.Flush()
+        self.utility.write_config(setting_name, json.dumps(setting_value) if do_json else setting_value)
+        self.utility.flush_config()
 
     @forceWxThread
     def GoBack(self, scrollTo=None, topage=None):
@@ -383,6 +382,7 @@ class GUIUtility:
         if scrollTo:
             self.ScrollTo(scrollTo)
 
+    @warnWxThread
     def dosearch(self, input=None):
         if input == None:
             sf = self.frame.top_bg.searchField
@@ -546,6 +546,7 @@ class GUIUtility:
         self.frame.playlist.Set(data)
         self.ShowPage('playlist')
 
+    @warnWxThread
     def OnList(self, goto_end, event=None):
         lists = {'channels': self.frame.channellist, 'selectedchannel': self.frame.selectedchannellist, 'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists and lists[self.guiPage].HasFocus():
@@ -553,11 +554,13 @@ class GUIUtility:
         elif event:
             event.Skip()
 
+    @warnWxThread
     def ScrollTo(self, id):
         lists = {'channels': self.frame.channellist, 'selectedchannel': self.frame.selectedchannellist, 'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
 
+    @forceWxThread
     def Notify(self, title, msg='', icon=wx.ART_INFORMATION):
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
@@ -576,6 +579,7 @@ class GUIUtility:
         if l not in self.lists:
             self.lists.append(l)
 
+    @warnWxThread
     def toggleFamilyFilter(self, newState=None, setCheck=False):
         if newState == None:
             newState = not self.getFamilyFilter()
@@ -586,13 +590,13 @@ class GUIUtility:
                 l.GotFilter(None)
 
         if setCheck:
-            self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
+            self.frame.SRstatusbar.SetFF(newState)
 
         if newState:
-            self.utility.config.Write('family_filter', '1')
+            self.utility.write_config('family_filter', 1)
         else:
-            self.utility.config.Write('family_filter', '0')
-        self.utility.config.Flush()
+            self.utility.write_config('family_filter', 0)
+        self.utility.flush_config()
 
     def getFamilyFilter(self):
         catobj = Category.getInstance()

@@ -13,23 +13,24 @@ from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
 from Tribler.Main.Utility.GuiDBTuples import Torrent
-from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.vwxGUI import forceWxThread, warnWxThread
 
 
 class SaveAs(wx.Dialog):
 
-    def __init__(self, parent, tdef, defaultdir, defaultname, config, selectedFiles=None):
+    @warnWxThread
+    def __init__(self, parent, tdef, defaultdir, defaultname, selectedFiles=None):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450), name="SaveAsDialog")
 
-        self.config = config
+        self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
         self.filehistory = []
         try:
-            self.filehistory = json.loads(self.config.Read("recent_download_history"))
+            self.filehistory = json.loads(self.utility.read_config("recent_download_history", literal_eval=False))
         except:
             pass
 
         self.defaultdir = defaultdir
-        self.guiutility = GUIUtility.getInstance()
         self.listCtrl = None
         self.collected = None
 
@@ -115,6 +116,7 @@ class SaveAs(wx.Dialog):
         sizer.Add(vSizer, 1, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(sizer)
 
+    @warnWxThread
     def AddFileList(self, tdef, selectedFiles, vSizer, index=None):
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
 
@@ -165,6 +167,7 @@ class SaveAs(wx.Dialog):
                 event.Skip()
         self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
 
+    @warnWxThread
     def SetCollected(self, tdef):
         self.collected = tdef
         self.SetSize((600, 450))
@@ -213,8 +216,8 @@ class SaveAs(wx.Dialog):
         self.filehistory.insert(0, path)
         self.filehistory = self.filehistory[:25]
 
-        self.config.Write("recent_download_history", json.dumps(self.filehistory))
-        self.config.Flush()
+        self.utility.write_config("recent_download_history", json.dumps(self.filehistory))
+        self.utility.flush_config()
 
         self.EndModal(wx.ID_OK)
 

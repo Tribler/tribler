@@ -12,6 +12,7 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from traceback import print_exc, print_stack
 import traceback
 from Tribler.Core.ServerPortHandler import MultiHandler
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
 try:
     prctlimported = True
@@ -528,7 +529,7 @@ class TriblerLaunchMany(Thread):
             try:
                 dir = self.session.get_downloads_pstate_dir()
                 filelist = os.listdir(dir)
-                filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
+                filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
 
             finally:
                 self.sesslock.release()
@@ -555,33 +556,33 @@ class TriblerLaunchMany(Thread):
             pstate = self.load_download_pstate(filename)
 
             # SWIFTPROC
-            if SwiftDef.is_swift_url(pstate['metainfo']):
-                sdef = SwiftDef.load_from_url(pstate['metainfo'])
-            elif 'infohash' in pstate['metainfo']:
-                tdef = TorrentDefNoMetainfo(pstate['metainfo']['infohash'], pstate['metainfo']['name'])
+            metainfo = pstate.get('state', 'metainfo')
+            if SwiftDef.is_swift_url(metainfo):
+                sdef = SwiftDef.load_from_url(metainfo)
+            elif 'infohash' in metainfo:
+                tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'])
             else:
-                tdef = TorrentDef.load_from_dict(pstate['metainfo'])
+                tdef = TorrentDef.load_from_dict(metainfo)
 
-            dlconfig = pstate['dlconfig']
-            if isinstance(dlconfig['saveas'], tuple):
-                dlconfig['saveas'] = dlconfig['saveas'][-1]
+            if pstate.has_option('downloadconfig', 'saveas') and isinstance(pstate.get('downloadconfig', 'saveas'), tuple):
+                pstate.set('downloadconfig', 'saveas', pstate.get('downloadconfig', 'saveas')[-1])
 
-            if sdef and 'name' in dlconfig and isinstance(dlconfig['name'], basestring):
-                sdef.set_name(dlconfig['name'])
+            if pstate.get('downloadconfig', 'name'):
+                sdef.set_name(pstate.get('downloadconfig', 'name'))
             if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
                 current_port = int(sdef.get_tracker().split(":")[1])
                 if current_port != self.session.get_swift_dht_listen_port():
                     print >> sys.stderr, "Modified SwiftDef to new tracker port"
                     sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
 
-            dscfg = DownloadStartupConfig(dlconfig)
+            dscfg = DownloadStartupConfig(pstate)
 
         except:
             print_exc()
             # pstate is invalid or non-existing
             _, file = os.path.split(filename)
 
-            infohash = binascii.unhexlify(file[:-7])
+            infohash = binascii.unhexlify(file[:-6])
             torrent = self.torrent_db.getTorrent(infohash, keys=['name', 'torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
             torrentfile = None
             if torrent:
@@ -771,20 +772,20 @@ class TriblerLaunchMany(Thread):
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
-        basename = binascii.hexlify(infohash) + '.pickle'
+        basename = binascii.hexlify(infohash) + '.state'
         filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
         if DEBUG:
             print >> sys.stderr, "tlm: network checkpointing: to file", filename
-        f = open(filename, "wb")
-        pickle.dump(pstate, f)
-        f.close()
+
+        with open(filename, "wb") as f:
+            pstate.write(f)
 
     def load_download_pstate(self, filename):
         """ Called by any thread """
-        f = open(filename, "rb")
-        pstate = pickle.load(f)
-        f.close()
+
+        pstate = CallbackConfigParser()
+        pstate.read(filename)
         return pstate
 
     def run(self):
@@ -928,7 +929,7 @@ class TriblerLaunchMany(Thread):
         @return A string. """
         return self.ltmgr.get_external_ip() if self.ltmgr else None
 
-    def config_changed_callback(self, section, name, new_value, old_value):
+    def sessconfig_changed_callback(self, section, name, new_value, old_value):
         value_changed = new_value != old_value
         if section == 'libtorrent' and name == 'utp':
             if self.ltmgr and value_changed:
@@ -940,11 +941,10 @@ class TriblerLaunchMany(Thread):
             if self.rtorrent_handler and value_changed:
                 self.rtorrent_handler.set_max_num_torrents(new_value)
         # Return True/False, depending on whether or not the config value can be changed at runtime.
-        elif (section == 'general' and name in ['nickname', 'mugshot', 'timeout_check_interval', 'timeout', 'ipv6_enabled', 'videoanalyserpath']) or \
-             (section == 'libtorrent' and name in ['enabled', 'lt_proxytype', 'lt_proxyserver']) or \
+        elif (section == 'general' and name in ['nickname', 'mugshot', 'videoanalyserpath']) or \
+             (section == 'libtorrent' and name in ['lt_proxytype', 'lt_proxyserver']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
-             (section == 'dispersy' and name in ['enabled', 'dispersy-tunnel-over-swift', 'dispersy_port']) or \
-             (section == 'swift' and name in ['swiftworkingdir', 'swiftmetadir', 'swifttunnellistenport', 'swifttunnelcmdgwlistenport', 'swifttunnelhttpgwlistenport']):
+             (section == 'swift' and name in ['swiftmetadir']):
             return True
         else:
             return False

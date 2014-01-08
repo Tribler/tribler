@@ -1157,7 +1157,7 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
         return 0
 
     def get_metainfo(self):
-        return None
+        return {'infohash': self.get_infohash(), 'name': self.get_name_as_unicode()}
 
     def get_url(self):
         return self.url

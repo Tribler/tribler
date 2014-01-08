@@ -11,7 +11,7 @@ import threading
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings, UPLOAD
 
 DEBUG = True
 class TestMyChannel(TestGuiAsServer):
@@ -188,8 +188,11 @@ class TestMyChannel(TestGuiAsServer):
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
+
         d = self.session2.start_download(tdef, dscfg)
         d.set_state_callback(self.seeder_state_callback)
+        # Limit the speed to make sure that the transfer takes more than 10 seconds
+        d.set_max_speed(UPLOAD, 1)
 
         return torrentfn
 

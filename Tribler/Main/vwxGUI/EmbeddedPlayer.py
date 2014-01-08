@@ -32,6 +32,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     VIDEO_SIZE = (320, 240)
 
+    @warnWxThread
     def __init__(self, parent, utility, vlcwrap, bg):
         wx.Panel.__init__(self, parent, -1)
 
@@ -130,6 +131,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ctrlsizer.ShowItems(True)
             self.guiutility.frame.Layout()
 
+    @warnWxThread
     def OnVolumeChanged(self, volume):
         if self.mute.GetBitmapLabel() == self.bmp_muted:  # unmute
             self.mute.SetBitmapLabel(self.bmp_unmuted, recreate=True)
@@ -273,11 +275,13 @@ class EmbeddedPlayerPanel(wx.Panel):
                 if DEBUG:
                     print >> sys.stderr, 'embedplay: Could not seek'
 
+    @warnWxThread
     def FullScreen(self, evt=None):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap and self.fsbtn.IsEnabled():
             self._ToggleFullScreen()
 
+    @warnWxThread
     def OnFullScreenKey(self, event):
         if event.GetUnicodeKey() == wx.WXK_ESCAPE:
             self._ToggleFullScreen()
@@ -285,6 +289,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         elif event.GetUnicodeKey() == wx.WXK_SPACE:
             self._TogglePause()
 
+    @warnWxThread
     def _TogglePause(self):
         if self.GetState() == MEDIASTATE_PLAYING:
             self.vlcwrap.pause()
@@ -353,11 +358,13 @@ class EmbeddedPlayerPanel(wx.Panel):
                     self.vlcwrap.set_media_position(cur_time)
                 wx.CallLater(500, doPause, cur_time)
 
+    @warnWxThread
     def Save(self, evt=None):
         # save media content in different directory
         if self.save_button.isToggled():
             self.save_callback()
 
+    @warnWxThread
     def SetVolume(self, volume, evt=None):
         if DEBUG:
             print >> sys.stderr, "embedplay: SetVolume:", self.volume
@@ -366,6 +373,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap:
             self.vlcwrap.sound_set_volume(volume)
 
+    @warnWxThread
     def OnStop(self, event=None):
         if self.vlcwrap and self.sbtn.IsEnabled():
             self.Stop()
@@ -392,6 +400,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.timer is not None:
                 self.timer.Stop()
 
+    @warnWxThread
     def GetState(self):
         """ Returns the state of VLC as summarized by Fabian:
         MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_ENDED, MEDIASTATE_STOPPED """
@@ -407,6 +416,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # catchall
         return MEDIASTATE_STOPPED
 
+    @warnWxThread
     def Reset(self):
         self.Stop()
         self.slider.SetPieces([])
@@ -443,6 +453,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                     if dl.get_def().get_def_type() == 'torrent':
                         fileindex = dl.get_def().get_index_of_file_in_files(dl.get_selected_files()[0]) if dl.get_def().is_multifile_torrent() else 0
                         self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (dl.get_def().get_id(), fileindex))
+                if self.fullscreenwindow:
+                    self._ToggleFullScreen()
 
     def FormatTime(self, s):
         longformat = time.strftime('%d:%H:%M:%S', time.gmtime(s))
@@ -452,10 +464,12 @@ class EmbeddedPlayerPanel(wx.Panel):
             longformat = longformat[3:]
         return longformat
 
+    @warnWxThread
     def TellLVCWrapWindow4Playback(self):
         if self.vlcwrap:
             self.vlcwin.tell_vclwrap_window_for_playback()
 
+    @warnWxThread
     def ShowLoading(self):
         if self.vlcwrap:
             self.logowin.loading.SetValue(0.0)
@@ -464,13 +478,13 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.Show(False)
             self.Layout()
 
+    @warnWxThread
     def HideLoading(self):
         if self.vlcwrap:
             self.logowin.hide_loading()
             self.logowin.Show(False)
             self.vlcwin.Show(True)
             self.Layout()
-
 
 class VLCWindow(wx.Panel):
     """ A wx.Window to be passed to the vlc.MediaControl to draw the video in (normally). """
@@ -525,12 +539,14 @@ class LogoWindow(wx.Panel):
         self.Layout()
         self.Refresh()
 
+    @warnWxThread
     def show_loading(self):
         if self.loading:
             self.logo = None
             self.loading.Show()
             self.Refresh()
 
+    @warnWxThread
     def hide_loading(self):
         if self.loading:
             self.loading.Hide()

@@ -556,21 +556,26 @@ class List(wx.BoxSizer):
 
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
 
+    @warnWxThread
     def CreateHeader(self, parent):
         return ListHeader(parent, self, self.columns)
 
+    @warnWxThread
     def CreateList(self, parent=None, listRateLimit=1):
         if not parent:
             parent = self
         return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=listRateLimit)
 
+    @warnWxThread
     def CreateFooter(self, parent):
         return ListFooter(parent)
 
+    @warnWxThread
     def OnSize(self, event):
         assert self.isReady, "List not ready"
         event.Skip()
 
+    @warnWxThread
     def OnSort(self, column, reverse):
         assert self.isReady, "List not ready"
         if self.isReady:
@@ -649,14 +654,17 @@ class List(wx.BoxSizer):
     def RefreshData(self, key, data):
         assert self.isReady, "List not ready"
 
+    @warnWxThread
     def RemoveItem(self, key):
         assert self.isReady, "List not ready"
         self.list.RemoveKey(key)
 
+    @warnWxThread
     def RemoveItems(self, keys):
         assert self.isReady, "List not ready"
         self.list.RemoveKeys(keys)
 
+    @warnWxThread
     def MarkForRemoval(self, keys):
         assert self.isReady, "List not ready"
         self.list.MarkForRemoval(keys)
@@ -674,31 +682,37 @@ class List(wx.BoxSizer):
     def GetNrResults(self):
         return self.nr_results
 
+    @warnWxThread
     def InList(self, key, onlyCreated=True):
         assert self.isReady, "List not ready"
         if self.isReady:
             return self.list.InList(key, onlyCreated)
 
+    @warnWxThread
     def GetItem(self, key):
         assert self.isReady, "List not ready"
         if self.isReady:
             return self.list.GetItem(key)
 
+    @warnWxThread
     def GetItems(self):
         assert self.isReady, "List not ready"
         if self.isReady:
             return self.list.items
 
+    @warnWxThread
     def GetItemPos(self, key):
         assert self.isReady, "List not ready"
         if self.isReady:
             return self.list.GetItemPos(key)
 
+    @warnWxThread
     def GetExpandedItem(self):
         assert self.isReady, "List not ready"
         if self.isReady:
             return self.list.GetExpandedItem()
 
+    @warnWxThread
     def GetExpandedItems(self):
         assert self.isReady, "List not ready"
         if self.isReady:
@@ -755,32 +769,40 @@ class List(wx.BoxSizer):
         if self.isReady:
             self.list.Select(key, raise_event)
 
+    @warnWxThread
     def ShouldGuiUpdate(self):
         if not self.IsShownOnScreen():
             return False
         return self.guiutility.ShouldGuiUpdate()
 
+    @warnWxThread
     def ShowLoading(self):
         if self.isReady:
             self.list.ShowLoading()
 
+    @warnWxThread
     def ShowMessage(self, message, header=None, altControl=None):
         if self.isReady:
             self.list.ShowMessage(message, header, altControl)
 
+    @warnWxThread
     def OnLoadAll(self):
         if self.isReady:
             self.list.OnLoadAll()
 
+    @warnWxThread
     def IsShownOnScreen(self):
         return self.IsShown(0)
 
+    @warnWxThread
     def Freeze(self):
         self.parent.Freeze()
 
+    @warnWxThread
     def Thaw(self):
         self.parent.Thaw()
 
+    @warnWxThread
     def Show(self, show=True, isShown=False):
         self.ShowItems(show)
 
@@ -795,6 +817,7 @@ class List(wx.BoxSizer):
             self.list.Layout()
         self.list.Show(show)
 
+    @warnWxThread
     def ShowFooter(self, show=True):
         self.footer.Show(show)
 
@@ -817,6 +840,7 @@ class List(wx.BoxSizer):
 
         self.OnFilter(self.rawfilter)
 
+    @warnWxThread
     def OnFilter(self, keyword):
         self.filter = keyword
         if keyword:
@@ -854,6 +878,7 @@ class List(wx.BoxSizer):
 
         return result
 
+    @warnWxThread
     def GetFFilterMessage(self):
         if self.guiutility.getFamilyFilter() and self.nr_filtered:
             return None, '%d items were blocked by the Familiy filter' % self.nr_filtered
@@ -882,9 +907,9 @@ class List(wx.BoxSizer):
     def Layout(self):
         return wx.BoxSizer.Layout(self)
 
+    @warnWxThread
     def SetupScrolling(self, *args, **kwargs):
         return self.list.SetupScrolling(*args, **kwargs)
-
 
 class SizeList(List):
 
@@ -956,6 +981,7 @@ class SizeList(List):
                 message += " between %d and %d MB in size" % (self.sizefilter[0], self.sizefilter[1])
         return header, message
 
+    @warnWxThread
     def SetData(self, data):
         List.SetData(self, data)
 
@@ -1030,6 +1056,7 @@ class SizeList(List):
 
         return didStateChange, old_dsdict, dsdict
 
+    @warnWxThread
     def Show(self, show=True, isShown=False):
         List.Show(self, show, isShown)
         if show:
@@ -1259,9 +1286,11 @@ class GenericSearchList(SizeList):
         self.ResetActionButtons()
         self.ResetBottomWindow()
 
+    @warnWxThread
     def ResetActionButtons(self):
         self.guiutility.frame.top_bg.ClearButtonHandlers()
 
+    @warnWxThread
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(SearchInfoPanel)
         detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
@@ -1332,14 +1361,17 @@ class GenericSearchList(SizeList):
         startWorker(None, db_callback, retryOnBusy=True)
         return self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles=files)
 
+    @warnWxThread
     def InList(self, key):
         key = self.infohash2key.get(key, key)
         return List.InList(self, key)
 
+    @warnWxThread
     def GetItem(self, key):
         key = self.infohash2key.get(key, key)
         return List.GetItem(self, key)
 
+    @warnWxThread
     def GetItemPos(self, key):
         key = self.infohash2key.get(key, key)
         return List.GetItemPos(self, key)
@@ -1481,6 +1513,7 @@ class SearchList(GenericSearchList):
         footer.SetMinSize((-1, 0))
         return footer
 
+    @warnWxThread
     def SetSelectedBundleMode(self, selected_bundle_mode):
         self.header.SetSelectedBundleMode(selected_bundle_mode)
 
@@ -1537,6 +1570,7 @@ class SearchList(GenericSearchList):
         self.SetNrChannels(len(channels))
         GenericSearchList.SetData(self, channels + torrents)
 
+    @warnWxThread
     def SetNrResults(self, nr):
         SizeList.SetNrResults(self, nr)
 
@@ -1581,6 +1615,7 @@ class SearchList(GenericSearchList):
         if self.guiutility.frame.top_bg.NewResult():
             self.SetFinished(None)
 
+    @warnWxThread
     def SetFinished(self, keywords):
         curkeywords, hits, filtered = self.guiutility.torrentsearch_manager.getSearchKeywords()
         if not keywords or curkeywords == keywords:
@@ -1609,6 +1644,7 @@ class SearchList(GenericSearchList):
                 header, message = self.list.GetMessage()
                 self.list.ShowMessage(message, header, suggestionSizer)
 
+    @warnWxThread
     def OnSearchSuggestion(self, event):
         label = event.GetEventObject()
         self.guiutility.dosearch(label.GetLabel())
@@ -1621,6 +1657,7 @@ class SearchList(GenericSearchList):
             return True
         return False
 
+    @warnWxThread
     def OnSize(self, event):
         event.Skip()
 
@@ -1664,8 +1701,8 @@ class LibraryList(SizeList):
                    {'name': 'Progress', 'type': 'method', 'width': '20em', 'method': self.CreateProgress, 'showColumname': False, 'autoRefresh': False},
                    {'name': 'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format},
                    {'name': 'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True, 'autoRefresh': False},
-                   {'name': 'Down speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False},
-                   {'name': 'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False},
+                   {'name': 'Down speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
+                   {'name': 'Up speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
                    {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
@@ -1682,6 +1719,7 @@ class LibraryList(SizeList):
 
         self.library_manager.add_download_state_callback(self.RefreshBandwidthHistory)
 
+    @warnWxThread
     def OnDeleteKey(self, event):
         if self.list.GetExpandedItems():
             self.guiutility.frame.top_bg.OnDelete()
@@ -1741,6 +1779,7 @@ class LibraryList(SizeList):
         item.progressPanel = progressPanel
         return progressPanel
 
+    @warnWxThread
     def OnExpand(self, item):
         List.OnExpand(self, item)
         detailspanel = self.guiutility.SetBottomSplitterWindow(LibraryDetails)
@@ -1752,9 +1791,11 @@ class LibraryList(SizeList):
         self.ResetActionButtons()
         self.ResetBottomWindow()
 
+    @warnWxThread
     def ResetActionButtons(self):
         self.guiutility.frame.top_bg.ClearButtonHandlers()
 
+    @warnWxThread
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(LibraryInfoPanel)
         detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
@@ -1786,6 +1827,10 @@ class LibraryList(SizeList):
         if ds1.get_current_speed('up') != ds2.get_current_speed('up'):
             return False
 
+        # Compare seeding stats
+        if ds1.get_seeding_statistics() != ds2.get_seeding_statistics():
+            return False
+
         seeds1, peers1 = ds1.get_num_seeds_peers()
         seeds2, peers2 = ds2.get_num_seeds_peers()
         if seeds1 != seeds2:
@@ -1810,9 +1855,9 @@ class LibraryList(SizeList):
 
         newFilter = self.newfilter
         show_seeding_colours = False
-        if self.statefilter == 'active' and self.utility.config.Read('t4t_option', 'int') == 0:
+        if self.statefilter == 'active' and self.utility.read_config('t4t_option') == 0:
             show_seeding_colours = True
-            t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
+            t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
 
             orange = LIST_ORANGE
             orange = rgb_to_hsv(orange.Red() / 255.0, orange.Green() / 255.0, orange.Blue() / 255.0)
@@ -1910,9 +1955,9 @@ class LibraryList(SizeList):
                 # For updating torrent icons
                 torrent_ds, swift_ds = item.original_data.dslist
                 torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
-                                  torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]
+                                  torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 swift_enabled = bool(swift_ds) and swift_ds.get_download().get_def().get_def_type() == 'swift' and \
-                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]
+                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 item.icons[0].Show(torrent_enabled)
                 item.icons[1].Show(swift_enabled)
 
@@ -1921,7 +1966,6 @@ class LibraryList(SizeList):
 
         self.oldDS = dict([(infohash, item.original_data.ds) for infohash, item in self.list.items.iteritems()])
 
-    @warnWxThread
     def RefreshBandwidthHistory(self, dslist, magnetlist):
         for item in self.list.items.itervalues():
             # Store bandwidth history in self.bw_history
@@ -1931,7 +1975,6 @@ class LibraryList(SizeList):
                 self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
                 self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') if ds else 0, ds.get_current_speed('down') if ds else 0))
                 self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
-
 
     @warnWxThread
     def SetData(self, data):
@@ -1955,6 +1998,7 @@ class LibraryList(SizeList):
         data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, -1], data)
         self.list.RefreshData(key, data)
 
+    @warnWxThread
     def SetNrResults(self, nr):
         highlight = nr > self.nr_results and self.initnumitems
         SizeList.SetNrResults(self, nr)
@@ -2013,8 +2057,8 @@ class LibraryList(SizeList):
 
         if self.statefilter:
             message += " with state %s" % self.statefilter
-            if self.statefilter == 'active'and self.utility.config.Read('t4t_option', 'int') == 0:
-                t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
+            if self.statefilter == 'active'and self.utility.read_config('t4t_option') == 0:
+                t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
                 message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of %.1f" % t4t_ratio
         return header, message
 
@@ -2076,6 +2120,7 @@ class ChannelList(List):
         footer.SetMinSize((-1, 0))
         return footer
 
+    @warnWxThread
     def SetCategory(self, category):
         if category == "Favorites":
             self.header.AddButton("Add Favorite channel", self.OnAdd)
@@ -2105,6 +2150,7 @@ class ChannelList(List):
             control.SetToolTipString('%s users marked this channel as one of their favorites.' % pop)
             return control
 
+    @warnWxThread
     def OnExpand(self, item):
         List.OnExpand(self, item)
         detailspanel = self.guiutility.SetBottomSplitterWindow(ChannelDetails)
@@ -2112,17 +2158,21 @@ class ChannelList(List):
         item.expandedPanel = detailspanel
         return True
 
+    @warnWxThread
     def OnCollapseInternal(self, item):
         self.ResetActionButtons()
         self.ResetBottomWindow()
 
+    @warnWxThread
     def ResetActionButtons(self):
         self.guiutility.frame.top_bg.ClearButtonHandlers()
 
+    @warnWxThread
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(ChannelInfoPanel)
         detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 1, self.GetManager().category == "Favorites")
 
+    @warnWxThread
     def OnAdd(self, event):
         dlg = wx.TextEntryDialog(None, 'Please specify the channel-identifier.\nThis should be a 40 character string which can be found in the overview tab of the channel management interface.\n\nJoining a channel can take up to 1 minute and should appear in the all channellist.', 'Enter channel-identifier')
         if dlg.ShowModal() == wx.ID_OK:
@@ -2138,6 +2188,7 @@ class ChannelList(List):
             self.manager = ChannelSearchManager(self)
         return self.manager
 
+    @warnWxThread
     def SetData(self, data):
         List.SetData(self, data)
 
@@ -2152,12 +2203,14 @@ class ChannelList(List):
             self.list.ShowMessage('No channels are discovered for this category.')
             self.SetNrResults(0)
 
+    @warnWxThread
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
 
         data = (data.id, [data.name, data.modified, data.nr_torrents, data.nr_favorites], data)
         self.list.RefreshData(key, data)
 
+    @warnWxThread
     def SetNrResults(self, nr):
         List.SetNrResults(self, nr)
 
@@ -2237,6 +2290,7 @@ class ActivitiesList(List):
     def do_or_schedule_refresh(self, force_refresh=False):
         pass
 
+    @warnWxThread
     def OnSize(self, event):
         if self.expandedPanel_videoplayer:
             self.expandedPanel_videoplayer.OnChange()
@@ -2245,12 +2299,14 @@ class ActivitiesList(List):
     def GotFilter(self, filter):
         pass
 
+    @warnWxThread
     def CreateList(self, parent):
         flb = FixedListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect)
         flb.listpanel.SetBackgroundColour(self.background)
         flb.SetStyle(list_expanded=None)
         return flb
 
+    @warnWxThread
     def DisableItem(self, index):
         if self.settings.get(index, None):
             return
@@ -2268,6 +2324,7 @@ class ActivitiesList(List):
         item.ShowSelected()
         item.OnClick = lambda evt: None
 
+    @warnWxThread
     def EnableItem(self, index):
         if not self.settings.get(index, None):
             return
@@ -2280,16 +2337,19 @@ class ActivitiesList(List):
         item.ShowSelected()
         self.settings.pop(index)
 
+    @warnWxThread
     def DisableCollapse(self):
         # Ensure that items from the menu cannot be deselected by double-clicking.
         for item in self.list.items.values():
             item.DoCollapse = lambda raise_events = True: None
 
+    @warnWxThread
     def ResizeListItems(self):
         for item in self.list.items.values():
             item.vSizer.Detach(item.hSizer)
             item.vSizer.Add(item.hSizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
+    @warnWxThread
     def OnExpand(self, item):
         for child in item.GetChildren():
             if not isinstance(child, TagText):
@@ -2314,6 +2374,7 @@ class ActivitiesList(List):
     def OnCollapse(self, item, panel, from_expand):
         List.OnCollapse(self, item, panel, False)
 
+    @warnWxThread
     def OnCollapseInternal(self, item):
         for child in item.GetChildren():
             if not isinstance(child, TagText):

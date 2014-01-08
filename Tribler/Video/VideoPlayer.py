@@ -20,7 +20,6 @@ from Tribler.Core.Utilities.unicode import unicode2str, bin2unicode
 
 from Tribler.Video.CachingStream import SmartCachingStream
 from Tribler.Video.Ogg import is_ogg, OggMagicLiveStream
-from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 DEBUG = False
@@ -86,11 +85,8 @@ class VideoPlayer:
             #
             from Tribler.Video.VLCWrapper import VLCWrapper
             self.vlcwrap = VLCWrapper(self.utility.getPath())
-            self.supportedvodevents = [VODEVENT_START, VODEVENT_PAUSE, VODEVENT_RESUME]
         else:
             self.vlcwrap = None
-            # Can't pause when external player
-            self.supportedvodevents = [VODEVENT_START]
 
         if self.playbackmode != PLAYBACKMODE_INTERNAL or not USE_VLC_RAW_INTERFACE:
             # Start HTTP server for serving video to external player
@@ -107,9 +103,6 @@ class VideoPlayer:
 
     def get_vlcwrap(self):
         return self.vlcwrap
-
-    def get_supported_vod_events(self):
-        return self.supportedvodevents
 
     def set_videoframe(self, videoframe):
         self.videoframe = videoframe
@@ -340,7 +333,6 @@ class VideoPlayer:
 
         # Restart download
         d.set_video_event_callback(self.sesscb_vod_event_callback)
-        d.set_video_events(self.get_supported_vod_events())
         if cdef.get_def_type() != "torrent" or d.get_def().is_multifile_torrent():
             d.set_selected_files([infilename])
 
@@ -368,7 +360,6 @@ class VideoPlayer:
 
             # Restart download
             dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
-            dscfg.set_video_events(self.get_supported_vod_events())
             dscfg.set_mode(DLMODE_VOD)
             print >> sys.stderr, "videoplay: Starting new VOD/live Download", repr(cdef.get_name())
 
@@ -506,7 +497,7 @@ class VideoPlayer:
 
     def get_video_player(self, ext, videourl, mimetype=None):
 
-        video_player_path = self.utility.config.Read('videoplayerpath')
+        video_player_path = self.utility.read_config('videoplayerpath')
         if DEBUG:
             print >> sys.stderr, "videoplay: Default player is", video_player_path
 
@@ -635,15 +626,9 @@ class VideoPlayer:
     # Set information about video playback progress that is displayed
     # to the user.
     #
-    @forceWxThread
     def set_player_status_and_progress(self, progress, progress_consec, pieces_complete):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().UpdateStatus(progress, progress_consec, pieces_complete)
-
-    @forceWxThread
-    def set_save_button(self, enable, savebutteneventhandler):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
-            self.videoframe.get_videopanel().EnableSaveButton(enable, savebutteneventhandler)
 
     def get_state(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:

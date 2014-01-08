@@ -1,5 +1,6 @@
 # Written by Niels Zeilemaker
 import wx
+import pickle
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
@@ -242,8 +243,8 @@ class SelectedChannelList(GenericSearchList):
         misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
         for key, name in Category.getInstance().getCategoryNames(filter=False):
-            if key in misc_db._torrent_status_name2id_dict:
-                self.category_names[misc_db._torrent_status_name2id_dict[key]] = name
+            if key in misc_db._category_name2id_dict:
+                self.category_names[misc_db._category_name2id_dict[key]] = name
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 
@@ -662,6 +663,7 @@ class SelectedChannelList(GenericSearchList):
             self.UpdateSplitter()
         self.ScrollToId(key)
 
+    @warnWxThread
     def UpdateSplitter(self):
         splitter = self.guiutility.frame.splitter
         topwindow = self.guiutility.frame.splitter_top_window

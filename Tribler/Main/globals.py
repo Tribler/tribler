@@ -1,16 +1,14 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
 import os
-import pickle
+import copy
 
-STATEDIR_DLCONFIG = "dlconfig.pickle"
-
-# Global variable containing the DownloadStartupConfig to use for crearing
-# Downloads
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.defaults import DLDEFAULTS_VERSION, dldefaults
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
+
+STATEDIR_DLCONFIG = "tribler.conf"
+
 
 class DefaultDownloadStartupConfig(DownloadStartupConfig):
     __single = None
@@ -33,33 +31,17 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         DefaultDownloadStartupConfig.__single = None
     delInstance = staticmethod(delInstance)
 
-    def updateToCurrentVersion(self):
-        newKeys = DownloadStartupConfig.updateToCurrentVersion(self)
-        if newKeys:
-            for key in newKeys:
-                print >> sys.stderr, "DefaultDownloadStartupConfig: Adding field", key
-    #
-    # Class method
-    #
-
     def load(filename):
-        """
-        Load a saved DownloadStartupConfig from disk.
-
-        @param filename  An absolute Unicode filename
-        @return DefaultDownloadStartupConfig object
-        """
-        # Class method, no locking required
-        f = open(filename, "rb")
-        dlconfig = pickle.load(f)
-        dscfg = DefaultDownloadStartupConfig(dlconfig)
-        f.close()
-
-        dscfg.updateToCurrentVersion()
-
-        return dscfg
+        dlconfig = CallbackConfigParser()
+        if not dlconfig.read(filename):
+            raise IOError, "Failed to open download config file"
+        return DefaultDownloadStartupConfig(dlconfig)
     load = staticmethod(load)
 
+    def copy(self):
+        config = CallbackConfigParser()
+        config._sections = {'downloadconfig': copy.deepcopy(self.dlconfig._sections['downloadconfig'])}
+        return DownloadStartupConfig(config)
 
 def get_default_dscfg_filename(state_dir):
     return os.path.join(state_dir, STATEDIR_DLCONFIG)

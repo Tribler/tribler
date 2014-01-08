@@ -36,10 +36,10 @@ from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import *
-from Tribler.Core.Swift.SwiftDownloadRuntimeConfig import SwiftDownloadRuntimeConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
+from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
 import shutil
-from Tribler.Main.globals import DownloadStartupConfig
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 # ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
 # Send PLAY after receiving 2^layer * 1024 bytes
@@ -50,7 +50,7 @@ SWIFT_ALIVE_CHECK_INTERVAL = 60.0
 DEBUG = False
 
 
-class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
+class SwiftDownloadImpl(DownloadRuntimeConfig):
 
     """ Download subclass that represents a swift download.
     The actual swift download takes places in a SwiftProcess.
@@ -114,18 +114,18 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
             # Copy dlconfig, from default if not specified
             if dcfg is None:
-                cdcfg = DownloadStartupConfig()
+                cdcfg = DefaultDownloadStartupConfig()
             else:
                 cdcfg = dcfg
-            self.dlconfig = copy.copy(cdcfg.dlconfig)
+            self.dlconfig = cdcfg.dlconfig.copy()
 
             # Things that only exist at runtime
             self.dlruntimeconfig = {}
             self.dlruntimeconfig['max_desired_upload_rate'] = 0
             self.dlruntimeconfig['max_desired_download_rate'] = 0
 
-            if pstate and 'dlstate' in pstate:
-                dlstate = pstate['dlstate']
+            if pstate and pstate.has_option('state', 'dlstate'):
+                dlstate = pstate.get('state', 'dlstate')
                 if 'time_seeding' in dlstate:
                     self.time_seeding = [dlstate['time_seeding'], None]
                 if 'total_up' in dlstate:
@@ -155,10 +155,12 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if DEBUG:
             print >> sys.stderr, "SwiftDownloadImpl: create_engine_wrapper()"
 
+        self.set_config_callback(self.dlconfig_changed_callback)
+
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
-        move_files = ('swiftmetadir' not in self.dlconfig) and not os.path.isdir(self.get_dest_dir())
+        move_files = (not self.dlconfig.has_option('downloadconfig', 'swiftmetadir')) and not os.path.isdir(self.get_dest_dir())
 
         metadir = self.get_swift_meta_dir()
         if not metadir:
@@ -176,7 +178,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             try:
                 if is_multifile:
                     shutil.move(path_old, path_new + '.mfspec')
-                    self.dlconfig['saveas'] = os.path.split(self.get_dest_dir())[0]
+                    self.set_dest_dir(os.path.split(self.get_dest_dir())[0])
                 shutil.move(path_old + '.mhash', path_new + '.mhash')
                 shutil.move(path_old + '.mbinmap', path_new + '.mbinmap')
             except:
@@ -237,7 +239,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 if duration is not None:
                     httpurl += '@' + duration
 
-                vod_usercallback_wrapper = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
+                vod_usercallback_wrapper = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.get_video_event_callback(), event, params)
                 videoinfo = {}
                 videoinfo['usercallback'] = vod_usercallback_wrapper
 
@@ -591,33 +593,35 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
     def network_get_persistent_state(self):
         """ Assume dllock already held """
-        pstate = {}
-        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
-        pstate['metainfo'] = self.sdef.get_url_with_meta()  # assumed immutable
-        dlconfig = copy.copy(self.dlconfig)
-        dlconfig['name'] = self.sdef.get_name()
+
+        pstate = self.dlconfig.copy()
+
+        pstate.set('downloadconfig', 'name', self.sdef.get_name())
+
         # Reset unpicklable params
-        dlconfig['vod_usercallback'] = None
-        dlconfig['mode'] = DLMODE_NORMAL  # no callback, no VOD
+        pstate.remove_option('downloadconfig', 'vod_usercallback')
+        pstate.set('downloadconfig', 'mode', DLMODE_NORMAL)
 
         # Reset default metadatadir
         if self.get_swift_meta_dir() == self.old_metadir:
-            dlconfig['swiftmetadir'] = None
+            pstate.set('downloadconfig', 'swiftmetadir', None)
 
-        pstate['dlconfig'] = dlconfig
+        # Add state stuff
+        if not pstate.has_section('state'):
+            pstate.add_section('state')
+        pstate.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
+        pstate.set('state', 'metainfo', self.sdef.get_url_with_meta())  # assumed immutable
 
-        pstate['dlstate'] = {}
         ds = self.network_get_state(None, False, sessioncalling=True)
-        pstate['dlstate']['status'] = ds.get_status()
-        pstate['dlstate']['progress'] = ds.get_progress()
-        pstate['dlstate']['swarmcache'] = None
-        pstate['dlstate'].update(ds.get_seeding_statistics())
+        dlstate = {'status': ds.get_status(), 'progress': ds.get_progress(), 'swarmcache': None}
+        dlstate.update(ds.get_seeding_statistics())
+        pstate.set('state', 'dlstate', dlstate)
 
         if DEBUG:
             print >> sys.stderr, "SwiftDownloadImpl: netw_get_pers_state: status", dlstatus_strings[ds.get_status()], "progress", ds.get_progress()
 
         # Swift stores own state in .mhash and .mbinmap file
-        pstate['engineresumedata'] = None
+        pstate.set('state', 'engineresumedata', None)
         return pstate
 
     #
@@ -682,6 +686,16 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
         if not self.done:
             self.session.lm.rawserver.add_task(self.network_check_swift_alive, SWIFT_ALIVE_CHECK_INTERVAL)
+
+    def dlconfig_changed_callback(self, section, name, new_value, old_value):
+        if section == 'downloadconfig' and name in ['max_upload_rate', 'max_download_rate']:
+            if self.sp is not None:
+                direct = UPLOAD if name == 'max_upload_rate' else DOWNLOAD
+                if self.get_max_speed(direct) != new_value:
+                    self.sp.set_max_speed(self, direct, new_value)
+        elif section == 'downloadconfig' and name in ['selected_files', 'mode', 'correctedfilename', 'saveas', 'vod_usercallback', 'super_seeder']:
+            return False
+        return True
 
 
 class SwiftStatisticsResponse:

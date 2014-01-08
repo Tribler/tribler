@@ -11,7 +11,8 @@ from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, NetworkBuzzDBHandler
 
 from widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButton
-from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY
+from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY, \
+    warnWxThread
 from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.vwxGUI.list_bundle import BundleListView
 from Tribler.Main.vwxGUI.channel import SelectedChannelList
@@ -19,6 +20,7 @@ from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker, \
     cancelWorker
 import time
 from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 DEBUG = False
 
@@ -62,6 +64,7 @@ class TopSearchPanel(FancyPanel):
         self.AddComponents()
         self.Bind(wx.EVT_SIZE, self.OnResize)
 
+    @warnWxThread
     def AddComponents(self):
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))
 
@@ -158,13 +161,16 @@ class TopSearchPanel(FancyPanel):
         self.SetSizer(mainSizer)
         self.Layout()
 
+    @warnWxThread
     def OnResize(self, event):
         self.Refresh()
         event.Skip()
 
+    @forceDBThread
     def OnAutoComplete(self):
         self.uelog.addEvent(message="TopSearchPanel: user used autocomplete", type=2)
 
+    @warnWxThread
     def OnSearchKeyDown(self, event=None):
         if self.go.IsEnabled():
             if DEBUG:
@@ -181,6 +187,7 @@ class TopSearchPanel(FancyPanel):
     def OnSettings(self, event):
         self.guiutility.ShowPage('settings')
 
+    @warnWxThread
     def OnAdd(self, event):
         dlg = AddTorrent(None, self.guiutility.frame)
         dlg.CenterOnParent()
@@ -190,6 +197,7 @@ class TopSearchPanel(FancyPanel):
     def OnStats(self, event):
         self.guiutility.ShowPage('stats')
 
+    @warnWxThread
     def StartSearch(self):
         if getattr(self.searchField, 'ShowDropDown', False):
             self.searchField.ShowDropDown(False)
@@ -201,6 +209,7 @@ class TopSearchPanel(FancyPanel):
         self.guiutility.frame.top_bg.ag.Show()
         self.Thaw()
 
+    @warnWxThread
     def ShowSearching(self, max):
         self.go.SetRange(max + 16)
 
@@ -215,6 +224,7 @@ class TopSearchPanel(FancyPanel):
 
             startWorker(None, self.FakeResult, wargs=(times + 1,), uId=u"FakeResult", delay=0.25, workerType="guiTaskQueue")
 
+    @warnWxThread
     def NewResult(self):
         maxValue = self.go.GetRange()
         newValue = min(self.go.GetValue() + 1, maxValue)
@@ -224,6 +234,7 @@ class TopSearchPanel(FancyPanel):
             return True
         return False
 
+    @warnWxThread
     def SetFinished(self):
         self.Freeze()
         self.ag.Stop()
@@ -240,6 +251,7 @@ class TopSearchPanel(FancyPanel):
             return self.nbdb.getTermsStartingWith(term, num=7)
         return []
 
+    @warnWxThread
     def SearchFocus(self):
         if self.guiutility.guiPage == 'home':
             if getattr(self.GetParent(), 'home', False):
@@ -248,6 +260,7 @@ class TopSearchPanel(FancyPanel):
             self.searchField.SetFocus()
             self.searchField.SelectAll()
 
+    @warnWxThread
     def Bitmap(self, path, type):
         namelist = path.split("/")
         path = os.path.join(self.installdir, LIBRARYNAME, "Main", "vwxGUI", *namelist)
@@ -270,6 +283,7 @@ class TopSearchPanel(FancyPanel):
     def TorrentsChanged(self):
         self.RefreshTorrents(self.GetSelectedTorrents())
 
+    @warnWxThread
     def RefreshTorrents(self, torrents):
         inDownloads = self.guiutility.guiPage == 'my_files'
 
@@ -355,6 +369,7 @@ class TopSearchPanel(FancyPanel):
         else:
             self.ClearButtonHandlers()
 
+    @warnWxThread
     def SetButtonHandler(self, button, handler=None, tooltip=None):
         button.Enable(bool(handler))
         if handler:
@@ -366,6 +381,7 @@ class TopSearchPanel(FancyPanel):
         else:
             button.SetToolTip(None)
 
+    @warnWxThread
     def ClearButtonHandlers(self):
         self.SetButtonHandler(self.download_btn, None)
         self.SetButtonHandler(self.upload_btn, None)
@@ -395,15 +411,16 @@ class TopSearchPanel(FancyPanel):
         if refresh_library:
             wx.CallLater(1000, self.guiutility.frame.librarylist.do_or_schedule_refresh, True)
 
-    def OnUpload(self, event):
+    def OnUpload(self, event=None):
         for torrent in self.GetSelectedTorrents():
             if 'completed' in torrent.state:
                 self.guiutility.library_manager.resumeTorrent(torrent)
+
         if event:
             button = event.GetEventObject()
             button.Enable(False)
 
-    def OnPlay(self, event):
+    def OnPlay(self, event=None):
         # Select the first playable torrent. Return if none can be found
         torrent = None
         for t in self.GetSelectedTorrents():
@@ -421,17 +438,22 @@ class TopSearchPanel(FancyPanel):
             self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
             self.guiutility.library_manager.playTorrent(torrent)
 
-        if not self.guiutility.frame.searchlist.IsShownOnScreen():
-            self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
-        else:
-            self.uelog.addEvent(message="Torrent: torrent play from other", type=2)
+        @forceDBThread
+        def do_db():
+            if not self.guiutility.frame.searchlist.IsShownOnScreen():
+                self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
+            else:
+                self.uelog.addEvent(message="Torrent: torrent play from other", type=2)
+        do_db()
 
-        button = event.GetEventObject()
-        button.Enable(False)
+        if event:
+            button = event.GetEventObject()
+            button.Enable(False)
 
     def OnResume(self, event=None):
         for torrent in self.GetSelectedTorrents():
             self.guiutility.library_manager.resumeTorrent(torrent)
+
         if event:
             button = event.GetEventObject()
             button.Enable(False)
@@ -439,6 +461,7 @@ class TopSearchPanel(FancyPanel):
     def OnStop(self, event=None):
         for torrent in self.GetSelectedTorrents():
             self.guiutility.library_manager.stopTorrent(torrent)
+
         if event:
             button = event.GetEventObject()
             button.Enable(False)

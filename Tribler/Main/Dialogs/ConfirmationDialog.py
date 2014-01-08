@@ -1,12 +1,13 @@
 import wx
 from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-
+from Tribler.Main.vwxGUI import warnWxThread
 
 class ConfirmationDialog(wx.Dialog):
 
+    @warnWxThread
     def __init__(self, parent, name, msg_bold='', msg=''):
-        wx.Dialog.__init__(self, parent=parent, size=(475, 210), name = name)
+        wx.Dialog.__init__(self, parent=parent, size=(475, 210), name=name)
 
         self.checkbox = wx.CheckBox(self, label='Don\'t show this dialog again')
         self.checkbox.SetValue(False)

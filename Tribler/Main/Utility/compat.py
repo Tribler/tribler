@@ -6,13 +6,17 @@
 
 import io
 import os
+import glob
 import json
 import pickle
 import cPickle
 import StringIO
 
 from ConfigParser import RawConfigParser
+
 from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.simpledefs import PERSISTENTSTATE_CURRENTVERSION
 
 
 def convertSessionConfig(oldfilename, newfilename):
@@ -25,7 +29,7 @@ def convertSessionConfig(oldfilename, newfilename):
     # Upgrade to new config
     sconfig = SessionStartupConfig()
     for key, value in sessconfig.iteritems():
-        if key in ['version', 'state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled', \
+        if key in ['state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled', \
                    'ipv6_binds_v4', 'timeout', 'timeout_check_interval', 'eckeypairfilename', 'megacache', \
                    'nickname', 'mugshot', 'videoanalyserpath', 'peer_icon_path', 'live_aux_seeders']:
             sconfig.sessconfig.set('general', key, value)
@@ -93,3 +97,49 @@ def convertMainConfig(state_dir, oldfilename, newfilename):
     with open(newfilename, "wb") as f:
         config.write(f)
     os.remove(oldfilename)
+
+def convertDefaultDownloadConfig(oldfilename, newfilename):
+    # Convert tribler <= 6.2 default download config file to tribler 6.3
+
+    # We assume oldfilename exists
+    with open(oldfilename, "rb") as f:
+        dlconfig = pickle.load(f)
+
+    # Upgrade to new config
+    ddsconfig = DefaultDownloadStartupConfig.getInstance()
+    for key, value in dlconfig.iteritems():
+        if key in ['saveas', 'max_upload_rate', 'max_download_rate', \
+                   'super_seeder', 'mode', 'selected_files', 'correctedfilename', \
+                   'swiftlistenport', 'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
+            ddsconfig.dlconfig.set('downloadconfig', key, value)
+
+    # Save the new file, remove the old one
+    ddsconfig.save(newfilename)
+    os.remove(oldfilename)
+    return ddsconfig
+
+def convertDownloadCheckpoints(checkpoint_dir):
+    # Convert tribler <= 6.2 download checkpoints to tribler 6.3
+
+    if os.path.exists(checkpoint_dir):
+        for old_filename in glob.glob(os.path.join(checkpoint_dir, '*.pickle')):
+            with open(old_filename, "rb") as old_file:
+                old_checkpoint = pickle.load(old_file)
+
+            if old_checkpoint:
+                new_checkpoint = RawConfigParser()
+                new_checkpoint.add_section('downloadconfig')
+                new_checkpoint.add_section('state')
+                for key, value in old_checkpoint['dlconfig'].iteritems():
+                    if key in ['saveas', 'max_upload_rate', 'max_download_rate', 'super_seeder', 'mode', \
+                               'selected_files', 'correctedfilename', 'swiftlistenport', \
+                               'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
+                        new_checkpoint.set('downloadconfig', key, value)
+                new_checkpoint.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
+                new_checkpoint.set('state', 'engineresumedata', old_checkpoint['engineresumedata'])
+                new_checkpoint.set('state', 'dlstate', old_checkpoint['dlstate'])
+                new_checkpoint.set('state', 'metainfo', old_checkpoint['metainfo'])
+                with open(old_filename.replace('.pickle', '.state'), "wb") as new_file:
+                    new_checkpoint.write(new_file)
+
+            os.remove(old_filename)

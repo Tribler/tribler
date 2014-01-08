@@ -81,6 +81,7 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         self.errorcallback = None
         self.statuscallback = None
+        self.is_shutdown = False
 
     def getInstance(*args, **kw):
         if VideoHTTPServer.__single is None:
@@ -102,6 +103,10 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def register(self, errorcallback, statuscallback):
         self.errorcallback = errorcallback
         self.statuscallback = statuscallback
+
+    def shutdown(self):
+        BaseHTTPServer.HTTPServer.shutdown(self)
+        self.is_shutdown = True
 
     def set_inputstream(self, streaminfo, urlpath):
         if DEBUGLOCK:
@@ -218,6 +223,11 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
         Called by a separate thread for each request.
         """
+        if self.server.is_shutdown:
+            self.send_error(410)
+            self.finish()
+            return
+
         global DEBUG
         try:
             if self.path.startswith("/webUI"):

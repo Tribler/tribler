@@ -289,8 +289,7 @@ class TorrentManager:
                         return torrent_filename[1]
             else:
                 try:
-                    d = self.session.get_download(torrent.infohash)
-                    tdef = (d.get_def() if d else None) or TorrentDef.load(torrent_filename)
+                    tdef = TorrentDef.load(torrent_filename)
 
                 except ValueError:
                     # we should move fixTorrent to this object
@@ -301,6 +300,9 @@ class TorrentManager:
                         # cannot repair torrent, removing
                         os.remove(torrent_filename)
                         return self.loadTorrent(torrent, callback)
+
+                if isinstance(torrent, RemoteTorrent):
+                    del torrent.torrent_id
 
                 torrent = CollectedTorrent(torrent, tdef)
 
@@ -824,6 +826,7 @@ class LibraryManager:
         LibraryManager.__single = None
     delInstance = staticmethod(delInstance)
 
+    @warnWxThread
     def _get_videoplayer(self):
         """
         Returns the VideoPlayer instance.
@@ -920,12 +923,10 @@ class LibraryManager:
                 torrent.magnetstatus = self.magnetlist[torrent.infohash]
         return torrentlist
 
-    @forceWxThread
     def startLastVODTorrent(self):
         if self.last_vod_torrent:
             self.playTorrent(*self.last_vod_torrent)
 
-    @forceWxThread
     def stopLastVODTorrent(self):
         if self.last_vod_torrent:
             self.stopTorrent(self.last_vod_torrent[0])
@@ -1005,9 +1006,7 @@ class LibraryManager:
         downloads = self._getDownloads(torrent)
         for download in downloads:
             if download:
-                if download == self._get_videoplayer().get_vod_download():
-                    self._get_videoplayer().stop_playback()
-
+                self.stopVideoIfEqual(download)
                 download.stop()
 
                 id = download.get_def().get_id()
@@ -1043,12 +1042,7 @@ class LibraryManager:
 
     def deleteTorrentDS(self, ds, infohash, removecontent=False):
         if not ds is None:
-            videoplayer = VideoPlayer.getInstance()
-            playd = videoplayer.get_vod_download()
-
-            if playd == ds.download:
-                self._get_videoplayer().stop_playback()
-
+            self.stopVideoIfEqual(ds.download)
             self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
 
         elif infohash:
@@ -1062,6 +1056,13 @@ class LibraryManager:
 
         if id:
             self.user_download_choice.remove_download_state(id)
+
+    def stopVideoIfEqual(self, download):
+        videoplayer = self._get_videoplayer()
+        playd = videoplayer.get_vod_download()
+
+        if playd == download:
+            videoplayer.stop_playback()
 
     def connect(self, session, torrentsearch_manager, channelsearch_manager):
         if not self.connected:

@@ -137,6 +137,7 @@ class ListItem(wx.Panel):
 
         self.AddEvents(self)
 
+    @warnWxThread
     def _add_control(self, control, column_index, option, spacing):
         if column_index != 0:
             self.hSizer.AddSpacer((3, -1))
@@ -149,6 +150,7 @@ class ListItem(wx.Panel):
         if getattr(control, 'icon_right', None):
             self.hSizer.Add(control.icon_right, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
 
+    @warnWxThread
     def _replace_control(self, old_index, newcontrol):
         oldcontrol = self.controls[old_index]
         self.hSizer.Replace(oldcontrol, newcontrol)
@@ -162,6 +164,7 @@ class ListItem(wx.Panel):
             oldcontrol.Show(False)
             oldcontrol.Destroy()
 
+    @warnWxThread
     def _get_icon(self, column, name="icon", staticbitmap=None):
         icon = None
         if self.columns[column].get(name, False):
@@ -250,6 +253,7 @@ class ListItem(wx.Panel):
 
         self.Thaw()
 
+    @warnWxThread
     def RefreshColumn(self, columnindex, data):
         new_controls = has_changed = False
         column = self.columns[columnindex]
@@ -302,6 +306,7 @@ class ListItem(wx.Panel):
                         self.AddEvents(control)
         return new_controls, has_changed
 
+    @warnWxThread
     def SetToolTipColumn(self, columnindex, tooltip):
         column = self.columns[columnindex]
         if column.get('show', True):
@@ -323,6 +328,7 @@ class ListItem(wx.Panel):
             return True
         return False
 
+    @warnWxThread
     def Revert(self):
         try:
             self.ShowSelected()
@@ -331,6 +337,7 @@ class ListItem(wx.Panel):
         except PyDeadObjectError:  # PyDeadError
             pass
 
+    @warnWxThread
     def ShowSelected(self):
         def IsSelected(control):
             if getattr(control, 'GetWindow', False):  # convert sizeritems
@@ -359,6 +366,7 @@ class ListItem(wx.Panel):
         else:
             self.BackgroundColor(self.list_deselected)
 
+    @warnWxThread
     def SetDeselectedColour(self, deselected):
         if deselected.Get() != self.list_deselected.Get():
             self.list_deselected = deselected
@@ -501,6 +509,7 @@ class ListItem(wx.Panel):
                 self.vSizer.Layout()
                 return self.expandedPanel
 
+    @warnWxThread
     def OnEventSize(self, width):
         if self.expanded and self.expandedPanel:
             if getattr(self.expandedPanel, 'OnEventSize', False):
@@ -797,6 +806,7 @@ class AbstractListBody():
         self.OnChange()
         self.Thaw()
 
+    @warnWxThread
     def Rebuild(self):
         _rawdata = self.raw_data
         self.Reset()
@@ -945,6 +955,7 @@ class AbstractListBody():
                 else:
                     self.dataTimer.Restart(call_in)
 
+    @warnWxThread
     def __SetData(self, highlight=True):
         if DEBUG:
             print >> sys.stderr, "ListBody: __SetData", time()
@@ -1010,6 +1021,7 @@ class AbstractListBody():
         else:
             self.Bind(wx.EVT_IDLE, self.OnIdle)
 
+    @warnWxThread
     def OnIdle(self, event):
         if DEBUG:
             print >> sys.stderr, "ListBody: OnIdle"
@@ -1024,6 +1036,7 @@ class AbstractListBody():
             if self.done:
                 self.Unbind(wx.EVT_IDLE)
 
+    @warnWxThread
     def OnLoadMore(self, event=None):
         if self.loadNext.IsShown():
             self.loadNext.Disable()
@@ -1032,6 +1045,7 @@ class AbstractListBody():
             wx.CallAfter(self.CreateItems)
             self.Bind(wx.EVT_IDLE, self.OnIdle)
 
+    @warnWxThread
     def OnLoadAll(self):
         self.loadNext.Disable()
         self.list_cur_max = sys.maxsize
@@ -1211,6 +1225,7 @@ class AbstractListBody():
                 if len(_keys) == 0:
                     break
 
+    @warnWxThread
     def DestroyItem(self, key):
         item = self.items.get(key, None)
         if item:
@@ -1286,11 +1301,13 @@ class AbstractListBody():
         for _, item in self.GetExpandedItems():
             item.Deselect(raise_event=False)
 
+    @warnWxThread
     def Revert(self, revertList):
         for key in revertList:
             if key in self.items:
                 self.items[key].Revert()
 
+    @warnWxThread
     def OnEventSize(self, event):
         width = self.GetSize()[0]
         if width != self.curWidth:
@@ -1374,6 +1391,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         except PyDeadObjectError:
             GUIUtility.getInstance().frame.Unbind(wx.EVT_MOUSEWHEEL)
 
+    @warnWxThread
     def Show(self, show=True):
         scrolled.ScrolledPanel.Show(self, show)
         if show:
@@ -1381,6 +1399,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         else:
             self.scrollTimer.Stop()
 
+    @warnWxThread
     def checkScroll(self, event):
         maxY = self.vSizer.GetSize()[1]
         doMore = maxY * 0.8

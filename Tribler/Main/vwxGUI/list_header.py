@@ -538,6 +538,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         dlg.ShowModal()
         dlg.Destroy()
 
+    @warnWxThread
     def Reset(self):
         SearchHeaderHelper.Reset(self)
         self.filter.Clear()
@@ -569,6 +570,7 @@ class BaseFilter(wx.Panel):
 
         self.SetSizer(vSizer)
 
+    @warnWxThread
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
         panel.SetMinSize((-1, 25))
@@ -618,6 +620,7 @@ class TorrentFilter(BaseFilter):
 
         BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(TorrentListItem), spacers)
 
+    @warnWxThread
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
         panel.SetMinSize((-1, 25))
@@ -743,6 +746,7 @@ class TorrentFilter(BaseFilter):
         menu.Destroy()
         self.Layout()
 
+    @warnWxThread
     def OnSlider(self, min_val, max_val):
         search = self.search.GetValue().strip()
         # Remove old filter
@@ -763,6 +767,7 @@ class TorrentFilter(BaseFilter):
             search += "size=%d:%d" % (min_val / self.conversion_factor, max_val / self.conversion_factor)
         self.search.SetValue(search)
 
+    @warnWxThread
     def OnKey(self, event=None):
         search = self.search.GetValue().strip()
         self.parent_list.GotFilter(search)
@@ -787,6 +792,7 @@ class TorrentFilter(BaseFilter):
             except:
                 pass
 
+    @warnWxThread
     def CategoryFilter(self, category):
         search = self.search.GetValue().strip()
         # Remove old filter
@@ -806,6 +812,7 @@ class TorrentFilter(BaseFilter):
             search += "category='%s'" % category
         self.search.SetValue(search)
 
+    @warnWxThread
     def Reset(self):
         self.search.Clear()
         self.filesize.Reset()
@@ -815,6 +822,7 @@ class TorrentFilter(BaseFilter):
     def GetSliderMinMax(self):
         return self.slider_minmax
 
+    @warnWxThread
     def SetSliderMinMax(self, length_min, length_max):
         if self.slider_minmax != (length_min, length_max):
             self.slider_minmax = (length_min, length_max)
@@ -848,7 +856,7 @@ class TorrentFilter(BaseFilter):
     @forceDBThread
     def SetBundleState(self, newstate, refresh=True):
         if newstate is None:
-            auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
+            auto_guess = self.guiutility.utility.read_config('use_bundle_magic')
 
             newstate = Bundler.ALG_OFF  # default
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
@@ -876,6 +884,7 @@ class TorrentFilter(BaseFilter):
         if self.bundlestate == Bundler.ALG_MAGIC:
             self.selected_bundle_mode = selected_bundle_mode
 
+    @warnWxThread
     def AddButton(self, btn_label, btn_handler):
         num_children = len(self.filter_sizer.GetChildren())
         if num_children < 2:
@@ -911,6 +920,7 @@ class SelectedChannelFilter(TorrentFilter):
                 self.columns.remove(column)
                 break
 
+    @warnWxThread
     def AddComponents(self, spacers):
         self.SetBackgroundColour(wx.WHITE)
         TorrentFilter.AddComponents(self, spacers)
@@ -919,6 +929,7 @@ class SelectedChannelFilter(TorrentFilter):
 
 class SelectedPlaylistFilter(TorrentFilter):
 
+    @warnWxThread
     def AddComponents(self, spacers):
         TorrentFilter.AddComponents(self, spacers)
         self.search.SetDescriptiveText('Filter playlist content')
@@ -933,6 +944,7 @@ class ChannelFilter(BaseFilter):
 
         BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(ChannelListItem), spacers)
 
+    @warnWxThread
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
         panel.SetMinSize((-1, 25))
@@ -1023,6 +1035,7 @@ class ChannelFilter(BaseFilter):
         menu.Destroy()
         self.Layout()
 
+    @warnWxThread
     def OnKey(self, event=None):
         search = self.search.GetValue().strip()
         self.parent_list.GotFilter(search)
@@ -1041,9 +1054,11 @@ class ChannelFilter(BaseFilter):
         self.channeltype_icon.Show(show)
         self.channeltype.Show(show)
 
+    @warnWxThread
     def Reset(self):
         self.search.Clear()
 
+    @warnWxThread
     def AddButton(self, btn_label, btn_handler):
         num_children = len(self.filter_sizer.GetChildren())
         if num_children < 2:
@@ -1079,6 +1094,7 @@ class DownloadFilter(BaseFilter):
 
         BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(LibraryListItem), spacers)
 
+    @warnWxThread
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
         panel.SetMinSize((-1, 25))
@@ -1179,6 +1195,7 @@ class DownloadFilter(BaseFilter):
         menu.Destroy()
         self.Layout()
 
+    @warnWxThread
     def OnSlider(self, min_val, max_val):
         search = self.search.GetValue().strip()
         # Remove old filter
@@ -1199,6 +1216,7 @@ class DownloadFilter(BaseFilter):
             search += "size=%d:%d" % (min_val / self.conversion_factor, max_val / self.conversion_factor)
         self.search.SetValue(search)
 
+    @warnWxThread
     def OnState(self, state):
         search = self.search.GetValue().strip()
         # Remove old filter
@@ -1219,6 +1237,7 @@ class DownloadFilter(BaseFilter):
             search += "state=%s" % state
         self.search.SetValue(search)
 
+    @warnWxThread
     def OnKey(self, event=None):
         search = self.search.GetValue().strip()
         self.parent_list.GotFilter(search)
@@ -1243,6 +1262,7 @@ class DownloadFilter(BaseFilter):
             except:
                 pass
 
+    @warnWxThread
     def Reset(self):
         self.search.Clear()
         self.filesize.Reset()
@@ -1251,6 +1271,7 @@ class DownloadFilter(BaseFilter):
     def GetSliderMinMax(self):
         return self.slider_minmax
 
+    @warnWxThread
     def SetSliderMinMax(self, length_min, length_max):
         if self.slider_minmax != (length_min, length_max):
             self.slider_minmax = (length_min, length_max)
@@ -1259,6 +1280,7 @@ class DownloadFilter(BaseFilter):
             max_val = min(self.slider_positions[1], length_max)
             self.filesize.SetCurrentValues(min_val, max_val)
 
+    @warnWxThread
     def AddButton(self, btn_label, btn_handler):
         num_children = len(self.filter_sizer.GetChildren())
         if num_children < 2:
@@ -1345,6 +1367,7 @@ class ChannelHeader(ListItemHeader):
 
             self.header_list.Layout()
 
+    @warnWxThread
     def SetButtons(self, channel):
         item = self.header_list.GetItems()[0]
         num_items = len(self.parent_list.list.raw_data) if self.parent_list.list.raw_data else 0
@@ -1368,6 +1391,7 @@ class ChannelHeader(ListItemHeader):
             elif not open2edit and not allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage, 4)
 
+    @warnWxThread
     def OnExpand(self, item):
         if isinstance(item, ChannelListItem):
             from Tribler.Main.vwxGUI.list_details import ChannelDetails
