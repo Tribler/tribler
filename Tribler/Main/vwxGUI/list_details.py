@@ -1022,7 +1022,9 @@ class LibraryDetails(TorrentDetails):
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
-        self.peerList.SetToolTipString("States:\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\tOutgoing connection\nR\t\tIncoming connection")
+        tt_string = "States:" + (" "*75 if sys.platform == 'win32' else "")
+        tt_string += "\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\t\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\toutgoing connection\nR\t\tincoming connection"
+        self.peerList.SetToolTipString(tt_string)
         self.peersTab.il = wx.ImageList(16, 11)
         self.peerList.SetImageList(self.peersTab.il, wx.IMAGE_LIST_SMALL)
         self.peersSizer.Add(self.peerList, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
