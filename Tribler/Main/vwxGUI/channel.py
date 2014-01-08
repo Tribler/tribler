@@ -918,15 +918,20 @@ class ManageChannelFilesManager(BaseManager):
     def startDownloadFromUrl(self, url, *args, **kwargs):
         try:
             tdef = TorrentDef.load_from_url(url)
-            return self.AddTDef(tdef)
+            if tdef:
+                return self.AddTDef(tdef)
         except:
-            return False
+            print_exc()
+
+        return False
 
     def startDownloadFromMagnet(self, url, *args, **kwargs):
         try:
             return TorrentDef.retrieve_from_magnet(url, self.AddTDef, timeout=300)
+
         except:
-            return False
+            print_exc()
+        return False
 
     def startDownload(self, torrentfilename, *args, **kwargs):
         try:
@@ -939,8 +944,10 @@ class ManageChannelFilesManager(BaseManager):
                 download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
                 self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
             return self.AddTDef(tdef)
+
         except:
-            return False
+            print_exc()
+        return False
 
     def startDownloads(self, filenames, *args, **kwargs):
         torrentdefs = []
