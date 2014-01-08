@@ -541,7 +541,7 @@ class TriblerLaunchMany(Thread):
         """ Called by any thread, assume sesslock already held """
         try:
             dir = self.session.get_downloads_pstate_dir()
-            basename = binascii.hexlify(infohash) + '.pickle'
+            basename = binascii.hexlify(infohash) + '.state'
             filename = os.path.join(dir, basename)
             return self.load_download_pstate(filename)
         except Exception as e:
