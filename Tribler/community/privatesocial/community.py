@@ -207,7 +207,7 @@ class SocialCommunity(Community):
 
             if self.log_text:
                 # if no candidate -> message is created by me
-                self.log_text("encrypted-statistics", message.candidate, global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), created_by_me=bool(message.candidate), could_decrypt=could_decrypt)
+                self.log_text("encrypted-statistics", message.candidate, global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), created_by_me=message.candidate != None, could_decrypt=could_decrypt)
 
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
