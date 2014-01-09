@@ -201,11 +201,9 @@ class SocialCommunity(Community):
     def on_encrypted(self, messages):
         if __debug__:
             key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()] + [keyhash for _, _, keyhash in self._friend_db.get_friend_keys()]
-            friend_ids = ["me" for _, _ in self._friend_db.get_my_keys()] + [name for name, _, _ in self._friend_db.get_friend_keys()]
-            assert all(message.payload.keyhash in key_hashes for message in messages), ([(message.payload.keyhash, key_hashes, message.candidate.sock_addr, message.payload.encrypted_message) for message in messages], friend_ids)
+            assert all(message.payload.keyhash in key_hashes for message in messages)
 
         decrypted_messages = []
-
         for message in messages:
             self._friend_db.add_message(message.packet_id, message._distribution.global_time, message.payload.keyhash)
 
@@ -220,7 +218,6 @@ class SocialCommunity(Community):
                 # if no candidate -> message is created by me
                 if message.candidate:
                     self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), created_by_me=True, could_decrypt=could_decrypt)
-
                 else:
                     tb = self.is_taste_buddy(message.candidate)
                     is_friend = is_foaf = False
