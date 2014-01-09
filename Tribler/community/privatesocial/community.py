@@ -165,16 +165,7 @@ class SocialCommunity(Community):
     def on_text(self, messages):
         for message in messages:
             if self.log_text:
-                tb = self.is_taste_buddy(message.candidate)
-                is_friend = is_foaf = False
-                if tb:
-                    my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
-                    if any(map(tb.does_overlap, my_key_hashes)):
-                        is_friend = True
-                    elif tb.overlap:
-                        is_foaf = True
-
-                self.log_text("text-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), from_friend=is_friend, from_foaf=is_foaf)
+                self.log_text("text-statistics", message.candidate.sock_addr, global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'))
 
     def create_encrypted(self, message_str, dest_friend):
         assert isinstance(message_str, str)
@@ -216,19 +207,7 @@ class SocialCommunity(Community):
 
             if self.log_text:
                 # if no candidate -> message is created by me
-                if message.candidate:
-                    self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), created_by_me=True, could_decrypt=could_decrypt)
-                else:
-                    tb = self.is_taste_buddy(message.candidate)
-                    is_friend = is_foaf = False
-                    if tb:
-                        my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
-                        if any(map(tb.does_overlap, my_key_hashes)):
-                            is_friend = True
-                        elif tb.overlap:
-                            is_foaf = True
-
-                    self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), from_friend=is_friend, from_foaf=is_foaf, created_by_me=False, could_decrypt=could_decrypt)
+                self.log_text("encrypted-statistics", message.candidate, global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), created_by_me=bool(message.candidate), could_decrypt=could_decrypt)
 
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
