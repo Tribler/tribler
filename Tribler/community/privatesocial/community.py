@@ -189,8 +189,9 @@ class SocialCommunity(Community):
 
     def on_encrypted(self, messages):
         if __debug__:
-            key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()] + [keyhash for _, keyhash in self._friend_db.get_friend_keys()]
-            assert all(message.payload.keyhash in key_hashes for message in messages), [(message.payload.keyhash in key_hashes, message.candidate.sock_addr) for message in messages]
+            key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()] + [keyhash for _, _, keyhash in self._friend_db.get_friend_keys()]
+            friend_ids = ["me" for _, _ in self._friend_db.get_my_keys()] + [name for name, _, _ in self._friend_db.get_friend_keys()]
+            assert all(message.payload.keyhash in key_hashes for message in messages), ([(message.payload.keyhash in key_hashes, message.candidate.sock_addr) for message in messages], friend_ids)
 
         decrypted_messages = []
 

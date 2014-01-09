@@ -99,7 +99,7 @@ class FriendDatabase(Database):
         return self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends WHERE keyhash = ?", (_keyhash,))).next()
 
     def get_friend_keys(self):
-        return list(self._converted_keys(self.execute(u"SELECT key, keyhash FROM friends")))
+        return list(self._converted_keys(self.execute(u"SELECT name, key, keyhash FROM friends")))
 
     def add_my_key(self, key, keyhash):
         _key = buffer(self._dispersy.crypto.key_to_bin(key))
