@@ -18,7 +18,10 @@ class ElgamalCrypto(ECCrypto):
         ecelgamalkey = self.openssl.get_ecelgamalkey_for_key(key)
         return decrypt_str(ecelgamalkey, string)
 
-class NoElgamalCrypto(NoCrypto):
+class NoElgamalCrypto(NoCrypto, ElgamalCrypto):
+
+    def __init__(self):
+        ECCrypto.__init__(self)
 
     def encrypt(self, key, string):
         return string
