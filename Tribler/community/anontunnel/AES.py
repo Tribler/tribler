@@ -7,7 +7,7 @@ import sys
 
 def get_cryptor( op, key, alg='aes_128_ecb', iv=None ):
     if iv == None:
-        iv = '\0' * 16
+        iv = '\0' * 256
     cryptor = M2Crypto.EVP.Cipher( alg=alg, key=key, iv=iv, op=op)
     return cryptor
 
@@ -27,7 +27,7 @@ cache = {}
 
 def getCipher(secret):
     if secret not in cache:
-        iv = secret[:16]
+        iv = secret[:256]
         cache[secret] = AES.new(secret, AES.MODE_ECB, iv)
 
     return cache[secret]
