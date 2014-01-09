@@ -11,25 +11,25 @@ from traceback import print_exc
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination,\
+from Tribler.dispersy.destination import CandidateDestination, \
     CommunityDestination
-from Tribler.dispersy.distribution import DirectDistribution,\
+from Tribler.dispersy.distribution import DirectDistribution, \
     FullSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 
 from Tribler.community.search.conversion import SearchConversion
-from Tribler.community.search.payload import SearchRequestPayload,\
-    SearchResponsePayload, TorrentRequestPayload, TorrentCollectRequestPayload,\
+from Tribler.community.search.payload import SearchRequestPayload, \
+    SearchResponsePayload, TorrentRequestPayload, TorrentCollectRequestPayload, \
     TorrentCollectResponsePayload, TasteIntroPayload
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.channel.payload import TorrentPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.requestcache import NumberCache
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME,\
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate
 from Tribler.dispersy.dispersy import IntroductionRequestCache
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler,\
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler, \
     LOW_PRIO_COLLECTING
 from Tribler.Core.TorrentDef import TorrentDef
 from os import path
@@ -62,18 +62,19 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, log_incomming_searches=False):
         try:
             dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, log_incomming_searches=log_incomming_searches)
         else:
-            return super(SearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler)
+            return super(SearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, log_incomming_searches=log_incomming_searches)
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, log_incomming_searches=False):
         super(SearchCommunity, self).__init__(dispersy, master)
 
         self.integrate_with_tribler = integrate_with_tribler
+        self.log_incomming_searches = log_incomming_searches
         self.taste_buddies = []
         # To always connect to a peer uncomment/modify the following line
         # self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
@@ -343,8 +344,11 @@ class SearchCommunity(Community):
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: got search request for", keywords
 
+            if self.log_incomming_searches:
+                self.log_incomming_searches(message.candidate.sock_addr, keywords)
+
             results = []
-            dbresults = self._torrent_db.searchNames(keywords, local=False, keys= ['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
+            dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
             if len(dbresults) > 0:
                 for dbresult in dbresults:
                     channel_details = dbresult[-10:]
@@ -537,7 +541,7 @@ class SearchCommunity(Community):
                         from Tribler.Core.CacheDB.sqlitecachedb import bin2str
                         print >> sys.stderr, "SearchCommunity: requesting .torrent after receiving ping/pong ", candidate, bin2str(infohash), bin2str(roothash)
 
-                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio=LOW_PRIO_COLLECTING, timeout= CANDIDATE_WALK_LIFETIME)
+                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio=LOW_PRIO_COLLECTING, timeout=CANDIDATE_WALK_LIFETIME)
 
     def _create_pingpong(self, meta_name, candidates, identifiers=None):
         max_len = self.dispersy_sync_bloom_filter_bits / 8
@@ -620,7 +624,7 @@ class SearchCommunity(Community):
                             payload=(infohash, timestamp, name, files, trackers))
 
         self._dispersy.store_update_forward([message], store, update, forward)
-        self._torrent_db.updateTorrent(infohash, notify=False, dispersy_id= message.packet_id)
+        self._torrent_db.updateTorrent(infohash, notify=False, dispersy_id=message.packet_id)
         return message
 
     def check_torrent(self, messages):
@@ -641,7 +645,7 @@ class SearchCommunity(Community):
         assert all(len(cid) == 20 for cid in cids)
 
         parameters = u",".join(["?"] * len(cids))
-        known_cids = self._channelcast_db._db.fetchall(u"SELECT dispersy_cid FROM Channels WHERE dispersy_cid in (" + parameters +")", map(buffer, cids))
+        known_cids = self._channelcast_db._db.fetchall(u"SELECT dispersy_cid FROM Channels WHERE dispersy_cid in (" + parameters + ")", map(buffer, cids))
         known_cids = map(str, known_cids)
         return [cid for cid in cids if cid not in known_cids]
 
@@ -685,7 +689,7 @@ class SearchCommunity(Community):
 
                     # 2. if still not found, create a new torrentmessage and return this one
                     if not dispersy_id and torrent['torrent_file_name'] and path.isfile(torrent['torrent_file_name']):
-                        message = self.create_torrent(torrent['torrent_file_name'], store=True, update= False, forward = False)
+                        message = self.create_torrent(torrent['torrent_file_name'], store=True, update=False, forward=False)
                         if message:
                             packets.append(message.packet)
             add_packet(dispersy_id)
