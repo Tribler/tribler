@@ -87,7 +87,7 @@ if __name__ == "__main__":
         assert bytes_to_long(long_to_bytes(coeff, -256), -256) == coeff, (bytes_to_long(long_to_bytes(coeff, -256), -256), coeff, long_to_bytes(coeff, -256))
 
     coeffs = [long_to_bytes(coeff, -256) for coeff in coeffs]
-    coeffs = [bytes_to_long(str_coeff) for str_coeff in coeffs]
+    coeffs = [bytes_to_long(str_coeff, -256) for str_coeff in coeffs]
 
     for val in set1:
         print val, polyval(coeffs, val)
