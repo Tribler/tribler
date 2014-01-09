@@ -174,7 +174,7 @@ class SocialCommunity(Community):
                     elif tb.overlap:
                         is_foaf = True
 
-                self.log_text("text-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), payload=message.payload.text, from_friend=is_friend, from_foaf=is_foaf)
+                self.log_text("text-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), from_friend=is_friend, from_foaf=is_foaf)
 
     def create_encrypted(self, message_str, dest_friend):
         assert isinstance(message_str, str)
@@ -219,7 +219,7 @@ class SocialCommunity(Community):
             if self.log_text:
                 # if no candidate -> message is created by me
                 if message.candidate:
-                    self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), created_by_me=True, could_decrypt=could_decrypt, text=message.payload.encrypted_message)
+                    self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), created_by_me=True, could_decrypt=could_decrypt)
 
                 else:
                     tb = self.is_taste_buddy(message.candidate)
@@ -231,7 +231,7 @@ class SocialCommunity(Community):
                         elif tb.overlap:
                             is_foaf = True
 
-                    self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), from_friend=is_friend, from_foaf=is_foaf, created_by_me=False, could_decrypt=could_decrypt, text=message.payload.encrypted_message)
+                    self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), from_friend=is_friend, from_foaf=is_foaf, created_by_me=False, could_decrypt=could_decrypt)
 
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
