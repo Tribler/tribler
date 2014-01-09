@@ -67,6 +67,7 @@ ENDPOINT = "endpoint"
 class ProxySettings:
     def __init__(self):
         length = randint(1, 4)
+        length = 2
 
         self.extend_strategy = ExtendStrategies.NeighbourSubset
         self.select_strategy = RandomSelectionStrategy(1)
@@ -886,7 +887,8 @@ class ProxyCommunity(Community):
         return self.dispersy.endpoint.send([destination], [self.prefix + packet])
 
     def dict_inc(self, statistics_dict, key, inc=1):
-        self.dispersy._callback.register(self._dispersy.statistics.dict_inc, args=(statistics_dict, u"anontunnel-" + key, inc))
+        pass
+        #self.dispersy._callback.register(self._dispersy.statistics.dict_inc, args=(statistics_dict, u"anontunnel-" + key, inc))
 
     # CIRCUIT STUFFS
     def get_circuits(self):

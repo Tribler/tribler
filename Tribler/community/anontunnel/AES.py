@@ -25,6 +25,7 @@ def AESdecode( key, ciphertext ):
 
 cache = {}
 
+'''
 def getCipher(secret):
     if secret not in cache:
         iv = secret[:256]
@@ -32,7 +33,6 @@ def getCipher(secret):
 
     return cache[secret]
 
-'''
 
 # the character used for padding--with a block cipher such as AES, the value
 # you encrypt must be a multiple of BLOCK_SIZE in length.  This character is
