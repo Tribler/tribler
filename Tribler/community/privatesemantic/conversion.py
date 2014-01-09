@@ -19,8 +19,8 @@ def long_to_bytes(val, nrbytes=0):
         return ("-" if val < 0 else "+") + result
     return result
 
-def bytes_to_long(val):
-    if val[0] == "-" or val[0] == "+":
+def bytes_to_long(val, nrbytes=0):
+    if nrbytes < 0 and (val[0] == "-" or val[0] == "+"):
         _val = long(hexlify(val[1:][::-1]), 16)
         if val[0] == "-":
             return -_val
@@ -65,7 +65,7 @@ class ForwardConversion(BinaryConversion):
                 overlap = [bytes_to_long(str_over) for str_over in str_overlap]
             else:
                 overlap = []
-                
+
             offset += length
         return offset, placeholder.meta.payload.implement(overlap)
 
@@ -398,7 +398,7 @@ class PoliSearchConversion(ForwardConversion):
         length = len(data) - offset
         if length:
             one_coeff, = unpack_from("!257s", data, offset)
-            one_coeff = bytes_to_long(one_coeff)
+            one_coeff = bytes_to_long(one_coeff, -256)
 
             offset += 257
             length = len(data) - offset
@@ -410,7 +410,7 @@ class PoliSearchConversion(ForwardConversion):
             hashpack = '257s' * nr_coeffs
             str_coeffs = unpack_from('!' + hashpack, data, offset)
             offset += 257 * nr_coeffs
-            preferences[partition] = [one_coeff] + [bytes_to_long(str_coeff) for str_coeff in str_coeffs]
+            preferences[partition] = [one_coeff] + [bytes_to_long(str_coeff, -256) for str_coeff in str_coeffs]
 
             length = len(data) - offset
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), bytes_to_long(str_g), preferences)
