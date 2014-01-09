@@ -28,7 +28,7 @@ from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate
-from Tribler.dispersy.dispersy import IntroductionRequestCache
+from Tribler.dispersy.cache import IntroductionRequestCache
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler, \
     LOW_PRIO_COLLECTING
 from Tribler.Core.TorrentDef import TorrentDef
