@@ -111,8 +111,11 @@ class FriendDatabase(Database):
 
     def _converted_keys(self, keylist, mykeys=False):
         did_yield = False
-        for key, keyhash in keylist:
-            yield (self._dispersy.crypto.key_from_private_bin(str(key)) if mykeys else self._dispersy.crypto.key_from_public_bin(str(key))), long(str(keyhash))
+        for keytuple in keylist:
+            if len(keytuple) == 3:
+                yield keytuple[0], (self._dispersy.crypto.key_from_private_bin(str(keytuple[1])) if mykeys else self._dispersy.crypto.key_from_public_bin(str(keytuple[1]))), long(str(keytuple[2]))
+            else:
+                yield (self._dispersy.crypto.key_from_private_bin(str(keytuple[0])) if mykeys else self._dispersy.crypto.key_from_public_bin(str(keytuple[0]))), long(str(keytuple[1]))
             did_yield = True
 
         if not did_yield:
