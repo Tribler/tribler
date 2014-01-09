@@ -36,11 +36,12 @@ DEBUG_VERBOSE = False
 ENCRYPTION = True
 
 class SocialCommunity(Community):
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, log_text=None):
         assert isinstance(dispersy.crypto, ElgamalCrypto)
 
         super(SocialCommunity, self).__init__(dispersy, master)
         self.encryption = bool(encryption)
+        self.log_text = log_text
 
         self._friend_db = FriendDatabase(dispersy)
         self._friend_db.open()
@@ -163,7 +164,17 @@ class SocialCommunity(Community):
 
     def on_text(self, messages):
         for message in messages:
-            log("dispersy.log", "handled-record", type="text", global_time=message._distribution.global_time, payload=message.payload.text)
+            if self.log_text:
+                tb = self.is_taste_buddy(message.candidate)
+                is_friend = is_foaf = False
+                if tb:
+                    my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
+                    if any(map(tb.does_overlap, my_key_hashes)):
+                        is_friend = True
+                    elif tb.overlap:
+                        is_foaf = True
+
+                self.log_text("text-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), payload=message.payload.text, from_friend=is_friend, from_foaf=is_foaf)
 
     def create_encrypted(self, message_str, dest_friend):
         assert isinstance(message_str, str)
@@ -205,7 +216,22 @@ class SocialCommunity(Community):
                     could_decrypt = True
                     break
 
-            log("dispersy.log", "handled-record", type="encrypted", global_time=message._distribution.global_time, could_decrypt=could_decrypt)
+            if self.log_text:
+                # if no candidate -> message is created by me
+                if message.candidate:
+                    self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), created_by_me=True, could_decrypt=could_decrypt, text=message.payload.encrypted_message)
+
+                else:
+                    tb = self.is_taste_buddy(message.candidate)
+                    is_friend = is_foaf = False
+                    if tb:
+                        my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
+                        if any(map(tb.does_overlap, my_key_hashes)):
+                            is_friend = True
+                        elif tb.overlap:
+                            is_foaf = True
+
+                    self.log_text("encrypted-statistics", global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'), from_friend=is_friend, from_foaf=is_foaf, created_by_me=False, could_decrypt=could_decrypt, text=message.payload.encrypted_message)
 
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
@@ -287,17 +313,17 @@ class SocialCommunity(Community):
 class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
         dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, log_text=log_text)
         else:
-            return super(NoFSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(NoFSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, log_text=log_text)
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
-        SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+        SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, log_text)
         HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
 
     def initiate_conversions(self):
@@ -329,17 +355,17 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
         dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, log_text=log_text)
         else:
-            return super(PSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(PSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, log_text=log_text)
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
-        SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+        SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, log_text)
         PForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
 
     def initiate_conversions(self):
@@ -367,17 +393,17 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
 class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
         dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, log_text=log_text)
         else:
-            return super(HSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(HSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, log_text=log_text)
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
-        SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+        SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, log_text)
         HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
 
     def initiate_conversions(self):
@@ -409,17 +435,17 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
 class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
         dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality, log_text=log_text)
         else:
-            return super(PoliSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality)
+            return super(PoliSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality, log_text=log_text)
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True):
-        SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+        SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, log_text)
         PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality, send_simi_reveal=True)
 
     def initiate_conversions(self):
