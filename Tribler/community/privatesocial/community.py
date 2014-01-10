@@ -167,7 +167,7 @@ class SocialCommunity(Community):
     def on_text(self, messages):
         for message in messages:
             if self.log_text:
-                self.log_text("text-statistics", message.candidate.sock_addr, global_time=message._distribution.global_time - 1, created_by=message.authentication.member.mid.encode('hex'))
+                self.log_text("text-statistics", message.candidate.sock_addr, global_time=message._distribution.global_time + 1, created_by=message.authentication.member.mid.encode('hex'))
 
     def create_encrypted(self, message_str, dest_friend):
         assert isinstance(message_str, str)
