@@ -36,6 +36,11 @@ class ExtendMessage:
     def port(self):
         return self.extend_with[1] if self.extend_with else None
 
+class ExtendedMessage:
+    def __init__(self, hashed_key, candidate_list):
+        self.hashed_key = hashed_key
+        self.candidate_list = candidate_list
+
 class PunctureMessage:
     def __init__(self, sock_addr):
         self.sock_addr = sock_addr

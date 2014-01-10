@@ -149,7 +149,7 @@ class CustomProxyConversion():
 
 
     def __encode_created(self, created_message):
-        assert len(created_message.hashed_key) == 32, "Hashed key should be 10 bytes long, is {} bytes ".format(len(created_message.hashed_key))
+        assert len(created_message.hashed_key) == 32, "Hashed key should be 32 bytes long, is {} bytes ".format(len(created_message.hashed_key))
         return created_message.hashed_key + encode(created_message.candidate_list)
 
     def __decode_created(self, buffer, offset=0):
@@ -160,6 +160,19 @@ class CustomProxyConversion():
         offset, candidate_dict = decode(buffer[offset:])
 
         return CreatedMessage(hashed_key, candidate_dict)
+
+    def __encode_extended(self, extended_message):
+        assert len(extended_message.hashed_key) == 32, "Hashed key should be 32 bytes long, is {} bytes ".format(len(extended_message.hashed_key))
+        return extended_message.hashed_key + encode(extended_message.candidate_list)
+
+    def __decode_extended(self, buffer, offset=0):
+
+        hashed_key = buffer[offset:offset + 32]
+        offset += 32
+
+        offset, candidate_dict = decode(buffer[offset:])
+
+        return ExtendedMessage(hashed_key, candidate_dict)
 
     def __encode_create(self, create_message):
         '''
