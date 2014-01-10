@@ -158,17 +158,17 @@ class SocialCommunity(Community):
                             payload=(text,))
 
         for friend in friends:
-            self.create_encrypted(message, friend)
+            self.create_encrypted(message.packet, friend)
 
         # self._dispersy.store_update_forward([message], True, True, False)
 
     def on_text(self, messages):
         for message in messages:
             if self.log_text:
-                self.log_text("text-statistics", message.candidate.sock_addr, global_time=message._distribution.global_time, created_by=message.authentication.member.mid.encode('hex'))
+                self.log_text("text-statistics", message.candidate.sock_addr, global_time=message._distribution.global_time - 1, created_by=message.authentication.member.mid.encode('hex'))
 
-    def create_encrypted(self, message, dest_friend):
-        # assert isinstance(message,)
+    def create_encrypted(self, message_str, dest_friend):
+        assert isinstance(message_str, str)
         assert isinstance(dest_friend, str)
 
         # get key
@@ -176,7 +176,6 @@ class SocialCommunity(Community):
 
         if key:
             # encrypt message
-            message_str = message.packet
             encrypted_message = self.dispersy.crypto.encrypt(key, message_str)
 
             # get overlapping connections
@@ -184,7 +183,7 @@ class SocialCommunity(Community):
 
             meta = self.get_meta_message(u"encrypted")
             message = meta.impl(authentication=(self._my_member,),
-                                distribution=(message._distribution.global_time,),
+                                distribution=(self.claim_global_time(),),
                                 destination=(tuple(overlapping_candidates)),
                                 payload=(keyhash, encrypted_message))
 
