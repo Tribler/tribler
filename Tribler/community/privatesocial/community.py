@@ -95,7 +95,8 @@ class SocialCommunity(Community):
 
                 tb = self.is_taste_buddy(message.candidate)
                 if tb and tb.overlap:
-                    print >> sys.stderr, "GOT sync-request from", message.candidate, tb
+                    if DEBUG_VERBOSE:
+                        print >> sys.stderr, "GOT sync-request from", message.candidate, tb
 
                     keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
 
@@ -104,13 +105,14 @@ class SocialCommunity(Community):
 
                     sync_ids = tuple(sync_id for sync_id, in data)
                     yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
-                else:
+                elif DEBUG:
                     print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
 
     def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
         tb = self.is_taste_buddy(request_cache.helper_candidate)
         if tb and tb.overlap:
-            print >> sys.stderr, "SELECTING packets for", request_cache.helper_candidate, tb
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, "SELECTING packets for", request_cache.helper_candidate, tb
 
             keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
 
