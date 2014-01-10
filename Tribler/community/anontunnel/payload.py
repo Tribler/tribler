@@ -19,8 +19,8 @@ class CreateMessage:
         self.encrypted_key = encrypted_key
 
 class CreatedMessage:
-    def __init__(self, hashed_key, candidate_list):
-        self.hashed_key = hashed_key
+    def __init__(self, key, candidate_list):
+        self.key = key
         self.candidate_list = candidate_list
 
 class ExtendMessage:
@@ -37,8 +37,8 @@ class ExtendMessage:
         return self.extend_with[1] if self.extend_with else None
 
 class ExtendedMessage:
-    def __init__(self, hashed_key, candidate_list):
-        self.hashed_key = hashed_key
+    def __init__(self, key, candidate_list):
+        self.hashed_key = key
         self.candidate_list = candidate_list
 
 class PunctureMessage:

@@ -178,11 +178,11 @@ class CustomProxyConversion():
         '''
         :type create_message : Tribler.community.anontunnel.payload.CreateMessage
         '''
-        return create_message.encrypted_key
+        return str(create_message.encrypted_key)
 
     def __decode_create(self, buffer, offset=0):
 
-        encrypted_key = buffer[offset:]
+        encrypted_key = long(buffer[offset:])
 
         return CreateMessage(encrypted_key)
 

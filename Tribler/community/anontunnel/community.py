@@ -1,8 +1,11 @@
 import logging
+import os
 import socket
 import string
 from threading import RLock
+from random import getrandbits
 import uuid
+import sys
 import random
 import M2Crypto
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
@@ -41,10 +44,18 @@ from Tribler.dispersy.resolution import PublicResolution
 
 
 class Hop:
-    def __init__(self, address, pub_key, session_key):
+    def __init__(self, address, pub_key, dh_first_part):
         self.address = address
         self.pub_key = pub_key
-        self.session_key = session_key
+        self.session_key = None
+        self.dh_first_part = dh_first_part
+
+    @property
+    def session_key(self):
+        return self.session_key
+    @property
+    def dh_first(self):
+        return self.dh_first
 
     @property
     def host(self):
@@ -268,6 +279,10 @@ class ProxyCommunity(Community):
 
         self.key = self.my_member.private_key
         self.session_keys = {}
+
+        sr = random.SystemRandom()
+        sys.modules["random"] = sr
+        self.dh_secret = getrandbits(128)
 
 
         # Stats
@@ -570,6 +585,9 @@ class ProxyCommunity(Community):
             unverified_hop = self.circuit.unverified_hop
             logger.error("Not really verifying hop! Check hashes etc")
 
+            session_key = str(pow(extended_message.key, unverified_hop.dh_first_part, DIFFIE_HELLMAN_MODULUS))
+            unverified_hop.session_key = session_key
+
             self.circuit.hops.append(unverified_hop)
             self.circuit.unverified_hop = None
 
@@ -623,15 +641,15 @@ class ProxyCommunity(Community):
             goal_hops = self.circuit_length_strategy.circuit_length()
             circuit = cache.circuit = Circuit(circuit_id, goal_hops, first_hop_candidate)
 
-
             circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
             self.circuits[circuit_id] = circuit
 
             pub_key = None
-            session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(AES_KEY_SIZE))
-            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, session_key)
+
+            dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, self.dh_secret, DIFFIE_HELLMAN_MODULUS)
+            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_first_part)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
-            self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(session_key))
+            self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(dh_first_part))
 
             return circuit
 
@@ -666,15 +684,11 @@ class ProxyCommunity(Community):
 
         self.directions[circuit_id] = ORIGINATOR
 
-        # todo: decrypt
-        key = message.encrypted_key
+        key = str(pow(message.encrypted_key, self.dh_secret, DIFFIE_HELLMAN_MODULUS))
 
         self.session_keys[circuit_id] = key
 
-        m = hashlib.sha256()
-        m.update(key)
-        hashed_key = m.digest()
-
+        return_key = str(pow(DIFFIE_HELLMAN_GENERATOR, self.dh_secret, DIFFIE_HELLMAN_MODULUS))
         cand_dict = {}
         for i in range(1, 5):
             candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
@@ -686,13 +700,13 @@ class ProxyCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-        return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(hashed_key, cand_dict))
+        return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(return_key, cand_dict))
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
         relay_key = (circuit_id, candidate)
         if relay_key in self.relay_from_to:
-            extended_message = ExtendedMessage(message.hashed_key, message.candidate_list)
+            extended_message = ExtendedMessage(message.key, message.candidate_list)
             forwarding_relay = self.relay_from_to[relay_key]
             return self.send_message(forwarding_relay.candidate, forwarding_relay.circuit_id, MESSAGE_EXTENDED, extended_message)
 
