@@ -1,5 +1,5 @@
 from time import time
-import logging.config
+import logging
 
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.endpoint import RawserverEndpoint

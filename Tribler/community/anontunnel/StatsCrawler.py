@@ -1,9 +1,8 @@
 import os
-import logging.config
+import logging
 import uuid
 from Tribler.community.anontunnel.community import TunnelObserver
 
-logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
 
 import sqlite3

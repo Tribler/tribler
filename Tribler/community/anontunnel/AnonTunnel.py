@@ -4,7 +4,7 @@ from Tribler.community.anontunnel.StatsCrawler import StatsCrawler
 
 __author__ = 'chris'
 
-import logging.config
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +25,8 @@ class AnonTunnel(Thread):
         self.settings = settings
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
-                                    600,
-                                    10.0,
+                                    1,
+                                    600.0,
                                     ipv6_enable=False,
                                     failfunc=lambda (e): print_exc(),
                                     errorfunc=lambda (e): print_exc())
