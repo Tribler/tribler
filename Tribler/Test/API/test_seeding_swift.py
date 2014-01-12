@@ -81,8 +81,8 @@ class TestSeeding(TestAsServer):
             except:
                 print_exc()
         else:
-            metapath = os.path.join(metadir, "." + self.sdef.get_roothash_as_hex())
-            storagepath = os.path.join(destdir, "." + self.sdef.get_roothash_as_hex())
+            metapath = os.path.join(metadir, self.sdef.get_roothash_as_hex())
+            storagepath = destdir
 
             # Reuse .mhash and .mbinmap (happens automatically for single-file)
             try:
@@ -155,5 +155,10 @@ class TestSeeding(TestAsServer):
 
     def test_multifile_swift(self):
         filenames = ['file.wmv', 'file2.wmv']
+        roothash = self.setup_seeder(filenames)
+        self.setup_downloader(roothash, filenames)
+
+    def test_multifile_swift_with_subdirs(self):
+        filenames = ['file.wmv', 'contentdir\\file.avi']
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)
