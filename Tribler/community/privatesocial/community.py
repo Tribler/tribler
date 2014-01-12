@@ -99,12 +99,7 @@ class SocialCommunity(Community):
                         print >> sys.stderr, "GOT sync-request from", message.candidate, tb
 
                     keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
-
-                    data = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ") ORDER BY global_time DESC",
-                                                        (time_low, time_high, offset, modulo) + keyhashes)
-
-                    sync_ids = tuple(sync_id for sync_id, in data)
-                    yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
+                    yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ")) ORDER BY global_time DESC", (time_low, time_high, offset, modulo) + keyhashes))
                 elif DEBUG:
                     print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
 
