@@ -159,6 +159,6 @@ class TestSeeding(TestAsServer):
         self.setup_downloader(roothash, filenames)
 
     def test_multifile_swift_with_subdirs(self):
-        filenames = ['file.wmv', 'contentdir\\file.avi']
+        filenames = ['file.wmv', os.path.join('contentdir', 'file.avi')]
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)
