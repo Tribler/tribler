@@ -182,7 +182,7 @@ class SaveAs(wx.Dialog):
         return self.collected
 
     def GetPath(self):
-        return self.dirTextCtrl.GetValue().strip()
+        return self.dirTextCtrl.GetValue().strip().rstrip(os.path.sep)
 
     def GetSelectedFiles(self):
         if self.listCtrl:
