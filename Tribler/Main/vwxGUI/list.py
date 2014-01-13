@@ -1786,6 +1786,10 @@ class LibraryList(SizeList):
         if ds1.get_current_speed('up') != ds2.get_current_speed('up'):
             return False
 
+        # Compare seeding stats
+        if ds1.get_seeding_statistics() != ds2.get_seeding_statistics():
+            return False
+
         seeds1, peers1 = ds1.get_num_seeds_peers()
         seeds2, peers2 = ds2.get_num_seeds_peers()
         if seeds1 != seeds2:
@@ -1830,7 +1834,7 @@ class LibraryList(SizeList):
             if self.statefilter != None:
                 self.list.SetData()  # basically this means execute filter again
 
-        for item in self.list.items.itervalues():
+        for infohash, item in self.list.items.iteritems():
             ds = item.original_data.ds
             id = ds.get_download().get_def().get_id() if ds else None
             if newFilter or not self.__ds__eq__(ds, self.oldDS.get(id, None)):
@@ -1916,10 +1920,14 @@ class LibraryList(SizeList):
                 item.icons[0].Show(torrent_enabled)
                 item.icons[1].Show(swift_enabled)
 
+                self.oldDS[infohash] = ds
+
         if newFilter:
             self.newfilter = False
 
-        self.oldDS = dict([(infohash, item.original_data.ds) for infohash, item in self.list.items.iteritems()])
+        # Clean old downloadstates
+        for infohash in set(self.oldDS.iterkeys()) - set(self.list.items.iterkeys()):
+            self.oldDS.pop(infohash)
 
     @warnWxThread
     def RefreshBandwidthHistory(self, dslist, magnetlist):

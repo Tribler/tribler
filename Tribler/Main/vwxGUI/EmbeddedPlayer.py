@@ -443,6 +443,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                     if dl.get_def().get_def_type() == 'torrent':
                         fileindex = dl.get_def().get_index_of_file_in_files(dl.get_selected_files()[0]) if dl.get_def().is_multifile_torrent() else 0
                         self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (dl.get_def().get_id(), fileindex))
+                if self.fullscreenwindow:
+                    self._ToggleFullScreen()
 
     def FormatTime(self, s):
         longformat = time.strftime('%d:%H:%M:%S', time.gmtime(s))
