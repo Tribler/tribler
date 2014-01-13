@@ -63,19 +63,19 @@ class TestSeeding(TestAsServer):
         self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
         self.tdef.save(self.torrentfn)
 
-        print >> sys.stderr, "test: setup_seeder: name is", self.tdef.metainfo['info']['name']
+        print("test: setup_seeder: name is", self.tdef.metainfo['info']['name'], file=sys.stderr)
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))  # basedir of the file we are seeding
         d = self.session.start_download(self.tdef, self.dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
-        print >> sys.stderr, "test: setup_seeder: starting to wait for download to reach seeding state"
+        print("test: setup_seeder: starting to wait for download to reach seeding state", file=sys.stderr)
         assert self.seeding_event.wait(60)
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
+        print("test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), file=sys.stderr)
 
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeding_event.set()
@@ -99,7 +99,7 @@ class TestSeeding(TestAsServer):
             self.assert_(len(resp) > 0)
             self.assert_(resp[0] == EXTEND)
         except socket.timeout:
-            print >> sys.stderr, "test: Timeout, peer didn't reply"
+            print("test: Timeout, peer didn't reply", file=sys.stderr)
             self.assert_(False)
         s.close()
 
@@ -122,7 +122,7 @@ class TestSeeding(TestAsServer):
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
+        print("test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), file=sys.stderr)
 
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in

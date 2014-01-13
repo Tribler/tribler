@@ -69,7 +69,7 @@ class Pymdht:
         self.reactor.start()
         self.swift_tracker_thread = None
         if swift_port:
-            print 'Creating SwiftTracker'
+            print('Creating SwiftTracker')
             self.swift_tracker_thread = swift_tracker.SwiftTracker(self, swift_port)
             self.swift_tracker_thread.start()
         self.timestamps = []
@@ -129,7 +129,7 @@ class Pymdht:
 
         if not use_cache:
             use_cache = True
-            print 'pymdht: use_cache ON!!'
+            print('pymdht: use_cache ON!!')
         self.reactor.call_asap(self.controller.get_peers,
                                lookup_id, info_hash,
                                callback_f, bt_port,

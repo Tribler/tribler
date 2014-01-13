@@ -23,29 +23,29 @@ from Tribler.Core.__init__ import version, report_email
 
 
 def usage():
-    print "Usage: python cmdlineseeding.py [options] file"
-    print "Options:"
-    print "\t--port <port>"
-    print "\t-p <port>\t\tuse <port> to listen for connections"
-    print "\t\t\t\t(default is random value)"
-    print "\t--type <type>"
-    print "\t-t <type>\t\tdefine type to start seeding"
-    print "\t\t\t\t(can be either swift or bittorrent)"
-    print "\t--version"
-    print "\t-v\t\t\tprint version and exit"
-    print "\t--help"
-    print "\t-h\t\t\tprint this help screen"
-    print
-    print "Example:"
-    print "\t python cmdlineseeding.py --port=20000 --type=swift ffmpeg.exe"
-    print
-    print "Report bugs to <" + report_email + ">"
+    print("Usage: python cmdlineseeding.py [options] file")
+    print("Options:")
+    print("\t--port <port>")
+    print("\t-p <port>\t\tuse <port> to listen for connections")
+    print("\t\t\t\t(default is random value)")
+    print("\t--type <type>")
+    print("\t-t <type>\t\tdefine type to start seeding")
+    print("\t\t\t\t(can be either swift or bittorrent)")
+    print("\t--version")
+    print("\t-v\t\t\tprint version and exit")
+    print("\t--help")
+    print("\t-h\t\t\tprint this help screen")
+    print()
+    print("Example:")
+    print("\t python cmdlineseeding.py --port=20000 --type=swift ffmpeg.exe")
+    print()
+    print("Report bugs to <" + report_email + ">")
 
 # Print version information
 
 
 def print_version():
-    print version, "<" + report_email + ">"
+    print(version, "<" + report_email + ">")
 
 # Print torrent statistics
 
@@ -53,13 +53,13 @@ def print_version():
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
-    print >> sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
+    print('%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
         (d.get_def().get_name(),
             dlstatus_strings[ds.get_status()],
             ds.get_progress() * 100,
             ds.get_error(),
             ds.get_current_speed(UPLOAD),
-            ds.get_current_speed(DOWNLOAD))
+            ds.get_current_speed(DOWNLOAD)), file=sys.stderr)
 
     return (1.0, False)
 
@@ -70,7 +70,7 @@ def main():
         # args = the list of program arguments left after the option list was stripped
         opts, args = getopt.getopt(sys.argv[1:], "hvt:p:", ["help", "version", "type=", "port="])
     except getopt.GetoptError as err:
-        print str(err)
+        print(str(err))
         usage()
         sys.exit(2)
 
@@ -96,7 +96,7 @@ def main():
         sys.exit(2)
 
     if len(args) > 1:
-        print "Too many arguments"
+        print("Too many arguments")
         usage()
         sys.exit(2)
 
@@ -105,7 +105,7 @@ def main():
     destdir = os.path.dirname(filename)
 
 
-    print "Press Ctrl-C to stop the download"
+    print("Press Ctrl-C to stop the download")
 
     # setup session
     sscfg = SessionStartupConfig()

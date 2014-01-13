@@ -505,7 +505,7 @@ class TorrentDBHandler(BasicDBHandler):
                     sql_insert_collecting = "INSERT OR IGNORE INTO TorrentCollecting (torrent_id, source) VALUES (?,?)"
                     self._db.executemany(sql_insert_collecting, insert_collecting)
             except:
-                print >> sys.stderr, "Could not create a TorrentDef instance", infohash, timestamp, name, files, trackers, source, extra_info
+                print("Could not create a TorrentDef instance", infohash, timestamp, name, files, trackers, source, extra_info, file=sys.stderr)
                 print_exc()
 
     def addInfohash(self, infohash):
@@ -856,7 +856,7 @@ class TorrentDBHandler(BasicDBHandler):
                 to_be_indexed = to_be_indexed + list(self._db.executemany(sql, were_inserted))
             except:
                 print_exc()
-                print >> sys.stderr, "infohashes:", insert
+                print("infohashes:", insert, file=sys.stderr)
 
         for torrent_id, swarmname in to_be_indexed:
             self._indexTorrent(torrent_id, swarmname, [], False)
@@ -907,7 +907,7 @@ class TorrentDBHandler(BasicDBHandler):
             try:
                 os.remove(src)
             except Exception as msg:
-                print >> sys.stderr, "cachedbhandler: failed to erase torrent", src, Exception, msg
+                print("cachedbhandler: failed to erase torrent", src, Exception, msg, file=sys.stderr)
                 return False
 
         return True
@@ -1360,7 +1360,7 @@ class TorrentDBHandler(BasicDBHandler):
             sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
             self._db.executemany(sql_insert_files, insert_files)
 
-        print >> sys.stderr, "Erased %d torrents" % deleted
+        print("Erased %d torrents" % deleted, file=sys.stderr)
         return deleted
 
     def hasMetaData(self, infohash):
@@ -1673,10 +1673,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
         if d == {}:
             if DEBUG:
-                print >> sys.stderr, "no updatable information given to addClicklogToMyPreference"
+                print("no updatable information given to addClicklogToMyPreference", file=sys.stderr)
         else:
             if DEBUG:
-                print >> sys.stderr, "addClicklogToMyPreference: updatable clicklog data: %s" % d
+                print("addClicklogToMyPreference: updatable clicklog data: %s" % d, file=sys.stderr)
             self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, **d)
 
         # have keywords stored by SearchDBHandler
@@ -1802,7 +1802,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
     def updateDestDir(self, torrent_id, destdir):
         if not isinstance(destdir, basestring):
-            print >> sys.stderr, 'DESTDIR IS NOT STRING:', destdir
+            print('DESTDIR IS NOT STRING:', destdir, file=sys.stderr)
             return
         self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, destination_path=destdir)
 
@@ -1814,13 +1814,13 @@ class VoteCastDBHandler(BasicDBHandler):
             db = SQLiteCacheDB.getInstance()
             BasicDBHandler.__init__(self, db, 'VoteCast')
             if DEBUG:
-                print >> sys.stderr, "votecast: DB made"
+                print("votecast: DB made", file=sys.stderr)
         except:
-            print >> sys.stderr, "votecast: couldn't make the table"
+            print("votecast: couldn't make the table", file=sys.stderr)
 
         self.my_votes = None
         if DEBUG:
-            print >> sys.stderr, "votecast: "
+            print("votecast: ", file=sys.stderr)
 
     def registerSession(self, session):
         self.session = session
@@ -1959,9 +1959,9 @@ class ChannelCastDBHandler(BasicDBHandler):
             db = SQLiteCacheDB.getInstance()
             BasicDBHandler.__init__(self, db, '_Channels')
             if DEBUG:
-                print >> sys.stderr, "Channels: DB made"
+                print("Channels: DB made", file=sys.stderr)
         except:
-            print >> sys.stderr, "Channels: couldn't make the table"
+            print("Channels: couldn't make the table", file=sys.stderr)
 
         self._channel_id = None
         self.my_dispersy_cid = None
@@ -1971,7 +1971,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
         self._channel_id = self.getMyChannelId()
         if DEBUG:
-            print >> sys.stderr, "Channels: my channel is", self._channel_id
+            print("Channels: my channel is", self._channel_id, file=sys.stderr)
 
     def registerSession(self, session):
         self.session = session
@@ -2502,7 +2502,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "SELECT " + ", ".join(keys) + " FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = ?"
         result = self._db.fetchone(sql, (channeltorrent_id,))
         if not result:
-            print >> sys.stderr, "COULD NOT FIND CHANNELTORRENT_ID", channeltorrent_id
+            print("COULD NOT FIND CHANNELTORRENT_ID", channeltorrent_id, file=sys.stderr)
         else:
             return self.__fixTorrent(keys, result)
 
@@ -3034,7 +3034,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
                     self._db.executemany(ins_phrase_sql, self.new_phrases)
                 except:
                     print_exc()
-                    print >> sys.stderr, "could not insert terms", self.new_terms.values()
+                    print("could not insert terms", self.new_terms.values(), file=sys.stderr)
 
                 self.new_terms.clear()
                 self.update_terms.clear()

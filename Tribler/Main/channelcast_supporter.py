@@ -28,10 +28,10 @@ def define_allchannel(session):
                                    {"auto_join_channel": True},
                                    load=True)
     dispersy.define_auto_load(ChannelCommunity, load=True)
-    print >> sys.stderr, "tribler: Dispersy communities are ready"
+    print("tribler: Dispersy communities are ready", file=sys.stderr)
 
     def on_incoming_torrent(subject, type_, infohash):
-        print >> sys.stdout, "Incoming torrent:", infohash.encode("HEX")
+        print("Incoming torrent:", infohash.encode("HEX"), file=sys.stdout)
     session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
 
 def main(define_communities):
@@ -43,7 +43,7 @@ def main(define_communities):
     # parse command-line arguments
     opt, args = command_line_parser.parse_args()
 
-    print "Press Q followed by <ENTER> to stop the channelcast-supporter"
+    print("Press Q followed by <ENTER> to stop the channelcast-supporter")
 
     sscfg = SessionStartupConfig()
     if opt.statedir:
@@ -66,14 +66,14 @@ def main(define_communities):
     try:
         while True:
             x = sys.stdin.readline()
-            print >> sys.stderr, x
+            print(x, file=sys.stderr)
             if x.strip() == 'Q':
                 break
     except:
         print_exc()
 
     session.shutdown()
-    print "Shutting down..."
+    print("Shutting down...")
     time.sleep(5)
 
 if __name__ == "__main__":

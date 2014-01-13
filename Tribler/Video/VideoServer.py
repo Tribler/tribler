@@ -105,12 +105,12 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     def set_inputstream(self, streaminfo, urlpath):
         if DEBUGLOCK:
-            print >> sys.stderr, "vs: set_input: lock", urlpath, currentThread().getName()
+            print("vs: set_input: lock", urlpath, currentThread().getName(), file=sys.stderr)
         self.lock.acquire()
         streaminfo['lock'] = RLock()
         self.urlpath2streaminfo[urlpath] = streaminfo
         if DEBUGLOCK:
-            print >> sys.stderr, "vs: set_input: unlock", urlpath, currentThread().getName()
+            print("vs: set_input: unlock", urlpath, currentThread().getName(), file=sys.stderr)
         self.lock.release()
 
     def acquire_inputstream(self, urlpath):
@@ -124,56 +124,56 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 return streaminfo
 
         if DEBUGLOCK:
-            print >> sys.stderr, "vs: acq_input: lock", urlpath, currentThread().getName()
+            print("vs: acq_input: lock", urlpath, currentThread().getName(), file=sys.stderr)
         self.lock.acquire()
         try:
             streaminfo = self.urlpath2streaminfo.get(urlpath, None)
         finally:
             if DEBUGLOCK:
-                print >> sys.stderr, "vs: acq_input: unlock", urlpath, currentThread().getName()
+                print("vs: acq_input: unlock", urlpath, currentThread().getName(), file=sys.stderr)
             self.lock.release()
 
         # Grab lock of video stream, such that other threads cannot read from it. Do outside self.lock
         if streaminfo is not None and 'lock' in streaminfo:
             if DEBUGLOCK:
-                print >> sys.stderr, "vs: acq_input: stream: lock", urlpath, currentThread().getName()
+                print("vs: acq_input: stream: lock", urlpath, currentThread().getName(), file=sys.stderr)
             streaminfo['lock'].acquire()
         return streaminfo
 
     def release_inputstream(self, urlpath):
         if DEBUGLOCK:
-            print >> sys.stderr, "vs: rel_input: lock", urlpath, currentThread().getName()
+            print("vs: rel_input: lock", urlpath, currentThread().getName(), file=sys.stderr)
         self.lock.acquire()
         try:
             streaminfo = self.urlpath2streaminfo.get(urlpath, None)
         finally:
             if DEBUGLOCK:
-                print >> sys.stderr, "vs: rel_input: unlock", urlpath, currentThread().getName()
+                print("vs: rel_input: unlock", urlpath, currentThread().getName(), file=sys.stderr)
             self.lock.release()
 
         if streaminfo is not None and 'lock' in streaminfo:
             if DEBUGLOCK:
-                print >> sys.stderr, "vs: rel_input: stream: unlock", urlpath, currentThread().getName()
+                print("vs: rel_input: stream: unlock", urlpath, currentThread().getName(), file=sys.stderr)
             streaminfo['lock'].release()
 
     def del_inputstream(self, urlpath):
         if DEBUGLOCK:
-            print >> sys.stderr, "vs: del_input: enter", urlpath
+            print("vs: del_input: enter", urlpath, file=sys.stderr)
         streaminfo = self.acquire_inputstream(urlpath)
 
         if DEBUGLOCK:
-            print >> sys.stderr, "vs: del_input: lock", urlpath, currentThread().getName()
+            print("vs: del_input: lock", urlpath, currentThread().getName(), file=sys.stderr)
         self.lock.acquire()
         try:
             del self.urlpath2streaminfo[urlpath]
         finally:
             if DEBUGLOCK:
-                print >> sys.stderr, "vs: del_input: unlock", urlpath, currentThread().getName()
+                print("vs: del_input: unlock", urlpath, currentThread().getName(), file=sys.stderr)
             self.lock.release()
 
         if streaminfo is not None and 'lock' in streaminfo:
             if DEBUGLOCK:
-                print >> sys.stderr, "vs: del_input: stream: unlock", urlpath, currentThread().getName()
+                print("vs: del_input: stream: unlock", urlpath, currentThread().getName(), file=sys.stderr)
             streaminfo['lock'].release()
 
     def get_port(self):
@@ -195,7 +195,7 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
           only print when really wanted.
         """
         if DEBUGBASESERV:
-            print >> sys.stderr, "VideoHTTPServer: handle_error", request, client_address
+            print("VideoHTTPServer: handle_error", request, client_address, file=sys.stderr)
             print_exc()
 
 
@@ -226,7 +226,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 DEBUG = DEBUGCONTENT
 
             if DEBUG:
-                print >> sys.stderr, "videoserv: do_GET: Got request", self.path, self.headers.getheader('range'), currentThread().getName()
+                print("videoserv: do_GET: Got request", self.path, self.headers.getheader('range'), currentThread().getName(), file=sys.stderr)
                 # print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
 
             # 1. Get streaminfo for the data we should return in response
@@ -238,7 +238,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 streaminfo = None
 
             if DEBUG:
-                print >> sys.stderr, "videoserv: do_GET: Got streaminfo", self.path, self.headers.getheader('range'), currentThread().getName()
+                print("videoserv: do_GET: Got streaminfo", self.path, self.headers.getheader('range'), currentThread().getName(), file=sys.stderr)
 
             # Ric: modified to create a persistent connection in case it's requested (HTML5)
             if self.request_version == 'HTTP/1.1':
@@ -251,7 +251,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     if streaminfo is None:
                         streaminfo = {'statuscode': 500, 'statusmsg': "Internal Server Error, couldn't find resource"}
                     if DEBUG:
-                        print >> sys.stderr, "videoserv: do_GET: Cannot serve request", streaminfo['statuscode'], currentThread().getName()
+                        print("videoserv: do_GET: Cannot serve request", streaminfo['statuscode'], currentThread().getName(), file=sys.stderr)
 
                     self.send_response(streaminfo['statuscode'])
                     if streaminfo['statuscode'] == 301:
@@ -283,7 +283,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 # mimetype = 'application/x-mms-framed'
                 # mimetype = 'video/H264'
                 if DEBUG:
-                    print >> sys.stderr, "videoserv: do_GET: MIME type is", mimetype, "length", length, "blocksize", blocksize, currentThread().getName()
+                    print("videoserv: do_GET: MIME type is", mimetype, "length", length, "blocksize", blocksize, currentThread().getName(), file=sys.stderr)
 
                 # 3. Support for HTTP range queries:
                 # http://tools.ietf.org/html/rfc2616#section-14.35
@@ -360,7 +360,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
                 if DEBUG:
-                    print >> sys.stderr, "videoserv: do_GET: final range", firstbyte, lastbyte, nbytes2send, currentThread().getName()
+                    print("videoserv: do_GET: final range", firstbyte, lastbyte, nbytes2send, currentThread().getName(), file=sys.stderr)
 
 
                 # 4. Seek in stream to desired offset, unless svc
@@ -404,7 +404,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         self.wfile.write(data)
                     elif len(data) == 0:
                         if DEBUG:
-                            print >> sys.stderr, "videoserv: svc: stream.read() no data"
+                            print("videoserv: svc: stream.read() no data", file=sys.stderr)
                 else:
                     # 6. Send body (completely, a Range: or an infinite stream in chunked encoding
                     done = False
@@ -414,7 +414,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                             done = True
 
                         if DEBUG:
-                            print >> sys.stderr, "videoserv: HTTP: read", len(data), "bytes", currentThread().getName()
+                            print("videoserv: HTTP: read", len(data), "bytes", currentThread().getName(), file=sys.stderr)
 
                         if length is None:
                             # If length unknown, use chunked encoding
@@ -440,11 +440,11 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
                         if done:
                             if DEBUG:
-                                print >> sys.stderr, "videoserv: do_GET: stream reached EOF or range query's send limit", currentThread().getName()
+                                print("videoserv: do_GET: stream reached EOF or range query's send limit", currentThread().getName(), file=sys.stderr)
                             break
 
                     if nbyteswritten != nbytes2send:
-                        print >> sys.stderr, "videoserv: do_GET: Sent wrong amount, wanted", nbytes2send, "got", nbyteswritten, currentThread().getName()
+                        print("videoserv: do_GET: Sent wrong amount, wanted", nbytes2send, "got", nbyteswritten, currentThread().getName(), file=sys.stderr)
 
                     # Arno, 2010-01-08: No close on Range queries
                     if not range:
@@ -461,7 +461,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
         except Exception, e:
             if DEBUG:
-                print >> sys.stderr, "videoserv: Error occured while serving", currentThread().getName()
+                print("videoserv: Error occured while serving", currentThread().getName(), file=sys.stderr)
             print_exc()
             self.error(e, self.path)
 
@@ -500,7 +500,7 @@ class VideoRawVLCServer:
         """
         self.lock.acquire()
         try:
-            print >> sys.stderr, "VLCRawServer: setting sid", sid
+            print("VLCRawServer: setting sid", sid, file=sys.stderr)
             self.sid2streaminfo[sid] = streaminfo
 
             # workaround

@@ -22,15 +22,15 @@ import kadtracker
 # hp = guppy.hpy()
 
 def peers_found(peers):
-    print 'Peers found:', time.time()
+    print('Peers found:', time.time())
     return
     for peer in peers:
-        print peer
-    print '-' * 20
+        print(peer)
+    print('-' * 20)
 
 
 def lookup_done():
-    print 'Lookup DONE'
+    print('Lookup DONE')
 
 
 info_hashes = (
@@ -91,15 +91,15 @@ if len(sys.argv) == 1:
     RUN_DHT = True
     my_addr = ('192.16.125.242', 2222)  # (sys.argv[1], int(sys.argv[2])) #
     logs_path = '.'  # sys.argv[3]
-    print 'logs_path:', logs_path
+    print('logs_path:', logs_path)
     logging_conf.setup(logs_path, logs_level)
     dht = kadtracker.KadTracker(my_addr, logs_path)
 else:
     RUN_DHT = False
-    print 'usage: python server_dht.py dht_ip dht_port path'
+    print('usage: python server_dht.py dht_ip dht_port path')
 
 try:
-    print 'Type Control-C to exit.'
+    print('Type Control-C to exit.')
     i = 0
     if RUN_DHT:
         time.sleep(10 * 60)
@@ -107,7 +107,7 @@ try:
             # splitted_heap_str = str(hp.heap()).split()
             # print i, splitted_heap_str[10]
             # dht.print_routing_table_stats()
-            print '>>>>>>>>>>>>>>>>>>> [%d] Lookup:' % (i)
+            print('>>>>>>>>>>>>>>>>>>> [%d] Lookup:' % (i))
             dht.get_peers(info_hash, peers_found)
             time.sleep(1 * 60)
             # time.sleep(1.5)

@@ -85,7 +85,7 @@ class TrackerInfoCache(object):
             # new tracker insertion callback
             for tracker in objectID:
                 if DEBUG:
-                    print >> sys.stderr, '[D] New tracker[%s].' % tracker
+                    print('[D] New tracker[%s].' % tracker, file=sys.stderr)
                 self._tracker_info_dict[tracker] = {'last_check':0, 'failures':0, 'alive':True, 'updated':False}
 
                 # check all the pending update requests
@@ -94,8 +94,7 @@ class TrackerInfoCache(object):
 
                 for request in self._tracker_update_request_dict[tracker]:
                     if DEBUG:
-                        print >> sys.stderr, \
-                        '[D] Handling new tracker[%s] request: %s' % request
+                        print('[D] Handling new tracker[%s] request: %s' % request, file=sys.stderr)
                     self.updateTrackerInfo(tracker, request)
                 del self._tracker_update_request_dict[tracker]
 

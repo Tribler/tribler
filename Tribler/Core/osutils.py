@@ -207,9 +207,9 @@ except:
                     size = long(sizestring)
 
                     if size == 0:
-                        print >>sys.stderr, "getfreespace: can't determine freespace of ", path
+                        print("getfreespace: can't determine freespace of ", path, file=sys.stderr)
                         for line in mystdout:
-                            print >>sys.stderr, line
+                            print(line, file=sys.stderr)
 
                         size = 2 ** 80
                 except:

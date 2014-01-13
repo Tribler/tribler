@@ -37,7 +37,7 @@ class XXXFilter:
                 print_exc()
 
         if DEBUG:
-            print 'Read %d XXX terms from file %s' % (len(terms) + len(searchterms), filename)
+            print('Read %d XXX terms from file %s' % (len(terms) + len(searchterms), filename))
         return terms, searchterms
 
     def _getWords(self, string):
@@ -56,9 +56,9 @@ class XXXFilter:
                   )
         if DEBUG:
             if is_xxx:
-                print 'Torrent is XXX: %s %s' % (torrent_name, tracker)
+                print('Torrent is XXX: %s %s' % (torrent_name, tracker))
             else:
-                print 'Torrent is NOT XXX: %s %s' % (torrent_name, tracker)
+                print('Torrent is NOT XXX: %s %s' % (torrent_name, tracker))
         return is_xxx
 
     def isXXX(self, s, isFilename=True):
@@ -79,7 +79,7 @@ class XXXFilter:
         for term in self.xxx_searchterms:
             if term in s:
                 if DEBUG:
-                    print 'XXXFilter: Found term "%s" in %s' % (term, s)
+                    print('XXXFilter: Found term "%s" in %s' % (term, s))
                 return True
         return False
 
@@ -88,17 +88,17 @@ class XXXFilter:
         s = s.lower()
         if s in self.xxx_terms:
             if DEBUG:
-                print 'XXXFilter: "%s" is dirty%s' % (s, title and ' in %s' % title or '')
+                print('XXXFilter: "%s" is dirty%s' % (s, title and ' in %s' % title or ''))
             return True
         if s.endswith('es'):
             if s[:-2] in self.xxx_terms:
                 if DEBUG:
-                    print 'XXXFilter: "%s" is dirty%s' % (s[:-2], title and ' in %s' % title or '')
+                    print('XXXFilter: "%s" is dirty%s' % (s[:-2], title and ' in %s' % title or ''))
                 return True
         elif s.endswith('s') or s.endswith('n'):
             if s[:-1] in self.xxx_terms:
                 if DEBUG:
-                    print 'XXXFilter: "%s" is dirty%s' % (s[:-1], title and ' in %s' % title or '')
+                    print('XXXFilter: "%s" is dirty%s' % (s[:-1], title and ' in %s' % title or ''))
                 return True
 
         return False

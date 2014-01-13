@@ -139,9 +139,9 @@ class TestTorrentDef(unittest.TestCase):
             p = os.path.join(dn, f)
             s = os.path.getsize(p)
             exps += s
-            print "test: expected size", f, s
+            print("test: expected size", f, s)
 
-        print "test: expected total size of files in torrent", exps
+        print("test: expected total size of files in torrent", exps)
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
@@ -150,10 +150,10 @@ class TestTorrentDef(unittest.TestCase):
         reals = 0
         for file in metainfo['info']['files']:
             s = file['length']
-            print "test: real size", file['path'], s
+            print("test: real size", file['path'], s)
             reals += s
 
-        print "test: real size of files in torrent", reals
+        print("test: real size of files in torrent", reals)
 
         self.assert_(exps == reals)
 

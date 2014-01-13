@@ -18,18 +18,18 @@ class TUDelftReporter(LivingLabPeriodicReporter):
 
     def report(self):
         if DEBUG:
-            print >> sys.stderr, "TUDelftReporter: report"
+            print("TUDelftReporter: report", file=sys.stderr)
         events = self.get_events()
         if events:
             events = [{"name": event.get_name(), "time": event.get_time(), "values": event.get_values()} for event in events]
             data = (time(), self.device_id.encode("HEX"), events)
             compressed = compress(encode(data))
             if DEBUG:
-                print >> sys.stderr, "TUDelftReporter: posting", len(compressed), "bytes payload"
+                print("TUDelftReporter: posting", len(compressed), "bytes payload", file=sys.stderr)
             self.post(compressed)
         else:
             if DEBUG:
-                print >> sys.stderr, "TUDelftReporter: Nothing to report"
+                print("TUDelftReporter: Nothing to report", file=sys.stderr)
 
 if __debug__:
     if __name__ == "__main__":

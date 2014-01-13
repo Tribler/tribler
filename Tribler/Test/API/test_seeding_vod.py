@@ -28,7 +28,7 @@ class TestVODSeeding(TestSeeding):
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
+        print("test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), file=sys.stderr)
 
         if ds.get_progress() > 0:
             self.downloading_event.set()

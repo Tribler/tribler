@@ -26,11 +26,11 @@ def urlOpenTimeout(url, timeout=30, referer='', *data):
                     self.sock = socket.socket(af, socktype, proto)
                     self.sock.settimeout(timeout)
                     if self.debuglevel > 0:
-                        print "connect: (%s, %s)" % (self.host, self.port)
+                        print("connect: (%s, %s)" % (self.host, self.port))
                     self.sock.connect(sa)
                 except socket.error as msg:
                     if self.debuglevel > 0:
-                        print 'connect fail:', (self.host, self.port)
+                        print('connect fail:', (self.host, self.port))
                     if self.sock:
                         self.sock.close()
                     self.sock = None
@@ -93,7 +93,7 @@ def find_proxy(url):
             proxyhost = proxyelems[1]
 
     if DEBUG:
-        print >>sys.stderr, "find_proxy: Got proxies", proxies, "selected", proxyhost, "URL was", url
+        print("find_proxy: Got proxies", proxies, "selected", proxyhost, "URL was", url, file=sys.stderr)
     return proxyhost
 
 

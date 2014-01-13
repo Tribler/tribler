@@ -25,7 +25,7 @@ class ExperimentalManager:
         if not self._stop and msg.query == 'ping':
             self._stop = True
             self.pinged_ips[msg.src_node.ip] = msg.src_node.ip
-            print '\nExperimentalModule got query (%s) from  node  %r =' % (msg.query, msg.src_node)
+            print('\nExperimentalModule got query (%s) from  node  %r =' % (msg.query, msg.src_node))
             if msg.src_node.ip not in self.pinged_ips:
                 # prepare to ping to the node from which it got ping
                 probe_query = message.OutgoingPingQuery(msg.src_node,
@@ -40,19 +40,19 @@ class ExperimentalManager:
 
     def on_response_received(self, msg, related_query):
         if self.pinged_ips.get(msg.src_node.ip) == STATUS_PINGED:
-            print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+            print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
         if related_query.experimental_obj:
-            print "probe OK (%r) (%r)" % (related_query.experimental_obj.value, msg.src_node)
+            print("probe OK (%r) (%r)" % (related_query.experimental_obj.value, msg.src_node))
             self.pinged_ips[msg.src_node.ip] = STATUS_OK
             elapsed_time = time.time() - related_query.experimental_obj.query_ts
-            print 'RTT = ', elapsed_time
+            print('RTT = ', elapsed_time)
         pass
 
     def on_timeout(self, related_query):
         if related_query.experimental_obj:
             elapsed_time = time.time() - related_query.experimental_obj.query_ts
-            print 'prove FAILED Due to Time-Out', related_query.experimental_obj.value
-            print 'RTT = ', elapsed_time
+            print('prove FAILED Due to Time-Out', related_query.experimental_obj.value)
+            print('RTT = ', elapsed_time)
             self.pinged_ips[related_query.dst_node.ip] = STATUS_FAIL
 #
 
@@ -71,5 +71,5 @@ class ExpObj:
     def __init__(self, value):
         self.value = value
         self.query_ts = time.time()
-        print 'Got query at Time :', self.query_ts
+        print('Got query at Time :', self.query_ts)
         pass

@@ -83,9 +83,8 @@ class TorrentChecking(Thread):
 
         self.setName('TorrentChecking' + self.getName())
         if DEBUG:
-            print >> sys.stderr, \
-            '[DEBUG] Starting TorrentChecking from %s.' % \
-            threading.currentThread().getName()
+            print('[DEBUG] Starting TorrentChecking from %s.' % \
+            threading.currentThread().getName(), file=sys.stderr)
         self.setDaemon(True)
 
         self._mldhtchecker = mainlineDHTChecker.getInstance()
@@ -175,11 +174,11 @@ class TorrentChecking(Thread):
 
         except Queue.Full:
             if DEBUG:
-                print >> sys.stderr, 'TorrentChecking: GUI request queue is full.'
+                print('TorrentChecking: GUI request queue is full.', file=sys.stderr)
             successful = False
 
         except Exception as e:
-            print >> sys.stderr, 'TorrentChecking: Unexpected error while adding GUI request:', e
+            print('TorrentChecking: Unexpected error while adding GUI request:', e, file=sys.stderr)
             successful = False
 
         return successful
@@ -199,7 +198,7 @@ class TorrentChecking(Thread):
 
             if torrent_id <= 0:
                 if DEBUG:
-                    print >> sys.stderr, "TorrentChecking: ignoring gui request, no torrent_id"
+                    print("TorrentChecking: ignoring gui request, no torrent_id", file=sys.stderr)
                 continue
 
             if not tracker_set:
@@ -210,7 +209,7 @@ class TorrentChecking(Thread):
 
             if not tracker_set:
                 if DEBUG:
-                    print >> sys.stderr, "TorrentChecking: ignoring gui request, no trackers"
+                    print("TorrentChecking: ignoring gui request, no trackers", file=sys.stderr)
                 # TODO: add method to handle torrents with no tracker
                 continue
 
@@ -327,7 +326,7 @@ class TorrentChecking(Thread):
 
         if request_handled:
             if DEBUG:
-                print >> sys.stderr, 'TorrentChecking: Session [%s] appended.' % binascii.b2a_hex(infohash)
+                print('TorrentChecking: Session [%s] appended.' % binascii.b2a_hex(infohash), file=sys.stderr)
             return
 
         # >> Step 2: No session to append to, create a new one
@@ -350,12 +349,12 @@ class TorrentChecking(Thread):
             self._updatePendingResponseDict(infohash)
 
             if DEBUG:
-                print >> sys.stderr, 'TorrentChecking: Session [%s] created.' % binascii.b2a_hex(infohash)
+                print('TorrentChecking: Session [%s] created.' % binascii.b2a_hex(infohash), file=sys.stderr)
 
         except Exception as e:
             if DEBUG:
-                print >> sys.stderr, 'TorrentChecking: Failed to create session for tracker[%s]: %s' % \
-                (tracker_url, e)
+                print('TorrentChecking: Failed to create session for tracker[%s]: %s' % \
+                (tracker_url, e), file=sys.stderr)
 
             if session:
                 session.cleanup()
@@ -398,8 +397,8 @@ class TorrentChecking(Thread):
 
         # the torrent status logic, TODO: do it in other way
         if DEBUG:
-            print >> sys.stderr, "TorrentChecking: Update result %d/%d for %s"\
-                % (seeders, leechers, bin2str(infohash))
+            print("TorrentChecking: Update result %d/%d for %s"\
+                % (seeders, leechers, bin2str(infohash)), file=sys.stderr)
 
         torrent_id = self._torrentdb.getTorrentID(infohash)
         retries = self._torrentdb.getTorrentCheckRetries(torrent_id)
@@ -466,13 +465,13 @@ class TorrentChecking(Thread):
 
             tracker, _ = self._tracker_info_cache.getTrackerInfo(self._tracker_selection_idx)
             if DEBUG:
-                print >> sys.stderr, 'TorrentChecking: Should we check tracker[%s].' % tracker
+                print('TorrentChecking: Should we check tracker[%s].' % tracker, file=sys.stderr)
 
             if tracker == 'no-DHT' or tracker == 'DHT' or not self._tracker_info_cache.toCheckTracker(tracker):
                 continue
 
             if DEBUG:
-                print >> sys.stderr, 'TorrentChecking: Selecting torrents to check on tracker[%s].' % tracker
+                print('TorrentChecking: Selecting torrents to check on tracker[%s].' % tracker, file=sys.stderr)
 
             # get all the torrents on this tracker
             try:
@@ -497,11 +496,11 @@ class TorrentChecking(Thread):
             if scheduled_torrents:
                 self._interrupt_socket.interrupt()
                 if DEBUG:
-                    print >> sys.stderr, 'TorrentChecking: Selected %d torrents to check on tracker[%s].' % (scheduled_torrents, tracker)
+                    print('TorrentChecking: Selected %d torrents to check on tracker[%s].' % (scheduled_torrents, tracker), file=sys.stderr)
                 break
 
             elif DEBUG:
-                print >> sys.stderr, 'TorrentChecking: Selected 0 torrents to check on tracker[%s].' % (tracker)
+                print('TorrentChecking: Selected 0 torrents to check on tracker[%s].' % (tracker), file=sys.stderr)
 
     # ------------------------------------------------------------
     # The thread function.
@@ -513,13 +512,13 @@ class TorrentChecking(Thread):
 
         # wait for the tracker info cache to be initialized
         if DEBUG:
-            print >> sys.stderr, 'TorrentChecking: Start initializing TrackerInfoCache...'
+            print('TorrentChecking: Start initializing TrackerInfoCache...', file=sys.stderr)
 
         self._tracker_info_cache.loadCacheFromDb()
 
         if DEBUG:
-            print >> sys.stderr, 'TorrentChecking: TrackerInfoCache initialized.'
-        print >> sys.stderr, 'TorrentChecking: initialized.'
+            print('TorrentChecking: TrackerInfoCache initialized.', file=sys.stderr)
+        print('TorrentChecking: initialized.', file=sys.stderr)
 
         last_time_select_torrent = 0
         while not self._should_stop:
@@ -534,7 +533,7 @@ class TorrentChecking(Thread):
                     pass
 
                 except Exception as e:
-                    print >> sys.stderr, 'TorrentChecking: Unexpected error while handling requests'
+                    print('TorrentChecking: Unexpected error while handling requests', file=sys.stderr)
                     print_exc()
 
                 if requests:
@@ -548,13 +547,13 @@ class TorrentChecking(Thread):
             time_remaining = max(0, self._torrent_select_interval - (current_time - last_time_select_torrent))
             if time_remaining == 0:
                 if DEBUG:
-                    print >> sys.stderr, 'TorrentChecking: Selecting new torrent'
+                    print('TorrentChecking: Selecting new torrent', file=sys.stderr)
 
                 try:
                     self._selectTorrentsToCheck()
 
                 except Exception as e:
-                    print >> sys.stderr, 'TorrentChecking: Unexpected error during TorrentSelection: ', e
+                    print('TorrentChecking: Unexpected error during TorrentSelection: ', e, file=sys.stderr)
                     print_exc()
 
                 last_time_select_torrent = current_time
@@ -589,7 +588,7 @@ class TorrentChecking(Thread):
 
             except Exception as e:
                 if DEBUG:
-                    print >> sys.stderr, 'TorrentChecking: Error while selecting: ', e
+                    print('TorrentChecking: Error while selecting: ', e, file=sys.stderr)
 
             if not self._should_stop:
                 current_time = int(time.time())
@@ -598,14 +597,14 @@ class TorrentChecking(Thread):
                     # >> Step 1: Check the sockets
                     # check writable sockets (TCP connections)
                     if DEBUG:
-                        print >> sys.stderr, 'TorrentChecking: got %d writable sockets' % len(write_socket_list)
+                        print('TorrentChecking: got %d writable sockets' % len(write_socket_list), file=sys.stderr)
                     for write_socket in write_socket_list:
                         session = session_dict[write_socket]
                         session.handleRequest()
 
                     # check readable sockets
                     if DEBUG:
-                        print >> sys.stderr, 'TorrentChecking: got %d readable sockets' % (len(read_socket_list) - 1)
+                        print('TorrentChecking: got %d readable sockets' % (len(read_socket_list) - 1), file=sys.stderr)
                     for read_socket in read_socket_list:
                         session = session_dict.get(read_socket, self._interrupt_socket)
                         session.handleRequest()
@@ -619,12 +618,12 @@ class TorrentChecking(Thread):
                             if session.getRetries() > session.getMaxRetries():
                                 session.setFailed()
                                 if DEBUG:
-                                    print >> sys.stderr, 'TorrentChecking: Tracker[%s] retried out.' % session.getTracker()
+                                    print('TorrentChecking: Tracker[%s] retried out.' % session.getTracker(), file=sys.stderr)
                             else:
                                 # re-establish the connection
                                 session.reestablishConnection()
                                 if DEBUG:
-                                    print >> sys.stderr, 'TorrentChecking: Tracker[%s] retry, %d.' % (session.getTracker(), session.getRetries())
+                                    print('TorrentChecking: Tracker[%s] retry, %d.' % (session.getTracker(), session.getRetries()), file=sys.stderr)
 
                     # >> Step 3: Remove completed sessions
                     with self._lock:
@@ -656,21 +655,21 @@ class TorrentChecking(Thread):
 
                 # All kinds of unexpected exceptions
                 except Exception as err:
-                    print >> sys.stderr, 'TorrentChecking: Unexpected exception: ', err
+                    print('TorrentChecking: Unexpected exception: ', err, file=sys.stderr)
                     print_exc()
 
                 if DEBUG:
-                    print >> sys.stderr, 'TorrentChecking: sessions: %d' % len(self._session_list)
+                    print('TorrentChecking: sessions: %d' % len(self._session_list), file=sys.stderr)
                     for session in self._session_list:
-                        print >> sys.stderr, 'TorrentChecking: session[%s], finished=%d, failed=%d' % \
-                        (session.getTracker(), session.hasFinished(), session.hasFailed())
+                        print('TorrentChecking: session[%s], finished=%d, failed=%d' % \
+                        (session.getTracker(), session.hasFinished(), session.hasFailed()), file=sys.stderr)
 
         # the thread is shutting down, kill all the tracker sessions
         for session in self._session_list:
             session.cleanup()
 
         self._interrupt_socket.close()
-        print >> sys.stderr, 'TorrentChecking: shutdown'
+        print('TorrentChecking: shutdown', file=sys.stderr)
 
 class InterruptSocket:
 
@@ -689,7 +688,7 @@ class InterruptSocket:
         for self.port in xrange(10000, 12345):
             try:
                 if DEBUG:
-                    print >> sys.stderr, "InterruptSocket: Trying to start InterruptSocket on port", self.port
+                    print("InterruptSocket: Trying to start InterruptSocket on port", self.port, file=sys.stderr)
                 self.socket.bind((self.ip, self.port))
                 break
             except:

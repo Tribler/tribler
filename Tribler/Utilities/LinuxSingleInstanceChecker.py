@@ -18,7 +18,7 @@ class LinuxSingleInstanceChecker:
         cmd = 'pgrep -fl "%s\.py" | grep -v pgrep' % (self.basename)
         progressInfo = commands.getoutput(cmd)
 
-        print >>sys.stderr, "LinuxSingleInstanceChecker returned", progressInfo
+        print("LinuxSingleInstanceChecker returned", progressInfo, file=sys.stderr)
 
         numProcesses = len(progressInfo.split('\n'))
         # if DEBUG:

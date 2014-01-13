@@ -48,7 +48,7 @@ class DownloadState(Serializable):
         if stats is None:
             # No info available yet from download engine
             if DEBUG:
-                print >> sys.stderr, "DownloadState.__init__: stats is None"
+                print("DownloadState.__init__: stats is None", file=sys.stderr)
             self.error = error  # readonly access
             self.progress = progress
             if self.error is not None:
@@ -58,7 +58,7 @@ class DownloadState(Serializable):
 
         elif error is not None:
             if DEBUG:
-                print >> sys.stderr, "DownloadState.__init__: error is not None"
+                print("DownloadState.__init__: error is not None", file=sys.stderr)
             self.error = error  # readonly access
             self.progress = 0.0  # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
@@ -66,7 +66,7 @@ class DownloadState(Serializable):
         elif status is not None and not status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
             if DEBUG:
-                print >> sys.stderr, "DownloadState.__init__: we have status and it is not downloading or seeding"
+                print("DownloadState.__init__: we have status and it is not downloading or seeding", file=sys.stderr)
             self.error = error
             self.status = status
             if self.status == DLSTATUS_WAITING4HASHCHECK:
@@ -79,7 +79,7 @@ class DownloadState(Serializable):
         else:
             # Copy info from stats
             if DEBUG:
-                print >> sys.stderr, "DownloadState.__init__: copy from stats"
+                print("DownloadState.__init__: copy from stats", file=sys.stderr)
             self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:

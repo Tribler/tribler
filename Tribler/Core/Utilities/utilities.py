@@ -264,26 +264,26 @@ def validTorrentFile(metainfo):
         if 'files' in metainfo['info']:
             # Only single-file mode allowed for http seeding
             del metainfo['url-list']
-            print >>sys.stderr, "Warning: Only single-file mode supported with HTTP seeding. HTTP seeding disabled"
+            print("Warning: Only single-file mode supported with HTTP seeding. HTTP seeding disabled", file=sys.stderr)
         elif not isinstance(metainfo['url-list'], ListType):
             del metainfo['url-list']
-            print >>sys.stderr, "Warning: url-list is not of type list. HTTP seeding disabled"
+            print("Warning: url-list is not of type list. HTTP seeding disabled", file=sys.stderr)
         else:
             for url in metainfo['url-list']:
                 if not isValidURL(url):
                     del metainfo['url-list']
-                    print >>sys.stderr, "Warning: url-list url is not valid: ", repr(url), "HTTP seeding disabled"
+                    print("Warning: url-list url is not valid: ", repr(url), "HTTP seeding disabled", file=sys.stderr)
                     break
 
     if 'httpseeds' in metainfo:
         if not isinstance(metainfo['httpseeds'], ListType):
             del metainfo['httpseeds']
-            print >>sys.stderr, "Warning: httpseeds is not of type list. HTTP seeding disabled"
+            print("Warning: httpseeds is not of type list. HTTP seeding disabled", file=sys.stderr)
         else:
             for url in metainfo['httpseeds']:
                 if not isValidURL(url):
                     del metainfo['httpseeds']
-                    print >>sys.stderr, "Warning: httpseeds url is not valid: ", repr(url), "HTTP seeding disabled"
+                    print("Warning: httpseeds url is not valid: ", repr(url), "HTTP seeding disabled", file=sys.stderr)
                     break
 
 
@@ -335,20 +335,20 @@ def show_permid_shorter(permid):
 
 def print_dict(data, level=0):
     if isinstance(data, dict):
-        print
+        print()
         for i in data:
-            print "  " * level, str(i) + ':',
+            print("  " * level, str(i) + ':', end=' ')
             print_dict(data[i], level + 1)
     elif isinstance(data, list):
         if not data:
-            print "[]"
+            print("[]")
         else:
-            print
+            print()
         for i in xrange(len(data)):
-            print "  " * level, '[' + str(i) + ']:',
+            print("  " * level, '[' + str(i) + ']:', end=' ')
             print_dict(data[i], level + 1)
     else:
-        print data
+        print(data)
 
 
 def friendly_time(old_time):
@@ -430,7 +430,7 @@ def multisort_dictlist(dict_list, keys):
 def find_content_in_dictlist(dict_list, content, key='infohash'):
     title = content.get(key)
     if not title:
-        print 'Error: content had no content_name'
+        print('Error: content had no content_name')
         return False
     for i in xrange(len(dict_list)):
         if title == dict_list[i].get(key):
@@ -491,10 +491,10 @@ def hostname_or_ip2ip(hostname_or_ip):
             # dns-lookup for hostname_or_ip into an ip address
             ip = socket.gethostbyname(hostname_or_ip)
             if not hostname_or_ip.startswith("superpeer"):
-                print >>sys.stderr, "hostname_or_ip2ip: resolved ip from hostname, an ip should have been provided", hostname_or_ip
+                print("hostname_or_ip2ip: resolved ip from hostname, an ip should have been provided", hostname_or_ip, file=sys.stderr)
 
         except:
-            print >>sys.stderr, "hostname_or_ip2ip: invalid hostname", hostname_or_ip
+            print("hostname_or_ip2ip: invalid hostname", hostname_or_ip, file=sys.stderr)
             print_exc()
 
     return ip
@@ -514,7 +514,7 @@ def parse_magnetlink(url):
     trs = []
 
     if DEBUG:
-        print >> sys.stderr, "parse_magnetlink()", url
+        print("parse_magnetlink()", url, file=sys.stderr)
 
     schema, netloc, path, query, fragment = urlsplit(url)
     if schema == "magnet":
@@ -545,11 +545,11 @@ def parse_magnetlink(url):
                 trs.append(value)
 
         if DEBUG:
-            print >> sys.stderr, "parse_magnetlink() NAME:", dn
+            print("parse_magnetlink() NAME:", dn, file=sys.stderr)
         if DEBUG:
-            print >> sys.stderr, "parse_magnetlink() HASH:", xt
+            print("parse_magnetlink() HASH:", xt, file=sys.stderr)
         if DEBUG:
-            print >> sys.stderr, "parse_magnetlink() TRACS:", trs
+            print("parse_magnetlink() TRACS:", trs, file=sys.stderr)
 
     return (dn, xt, trs)
 
@@ -562,7 +562,7 @@ if __name__ == '__main__':
     torrentd = {'name': 'b', 'swarmsize': 36, 'Web2': True}
 
     torrents = [torrenta, torrentb, torrentc, torrentd]
-    print multisort_dictlist(torrents, ["Web2", ("swarmsize", "decrease")])
+    print(multisort_dictlist(torrents, ["Web2", ("swarmsize", "decrease")]))
 
 
     # d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}

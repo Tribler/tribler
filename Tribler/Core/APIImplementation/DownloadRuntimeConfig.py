@@ -31,7 +31,7 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     """
     def set_max_speed(self, direct, speed):
         if DEBUG:
-            print >> sys.stderr, "Download: set_max_speed", repr(self.get_def().get_metainfo()['info']['name']), direct, speed
+            print("Download: set_max_speed", repr(self.get_def().get_metainfo()['info']['name']), direct, speed, file=sys.stderr)
         # print_stack()
 
         self.dllock.acquire()

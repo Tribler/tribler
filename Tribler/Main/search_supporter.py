@@ -15,7 +15,7 @@ from channelcast_supporter import main
 def log_search(sock_addr, keywords):
     d = date.today()
     f = open('incomming-searches-%s' % d.isoformat(), 'a')
-    print >> f, time(), sock_addr[0], sock_addr[1], ";".join(keywords)
+    print(time(), sock_addr[0], sock_addr[1], ";".join(keywords), file=f)
     f.close()
 
 def define_search(session):
@@ -26,7 +26,7 @@ def define_search(session):
                                      (session.dispersy_member,),
                                      {"log_incomming_searches": log_search},
                                      load=True)
-    print >> sys.stderr, "tribler: Dispersy communities are ready"
+    print("tribler: Dispersy communities are ready", file=sys.stderr)
 
 if __name__ == "__main__":
     main(define_search)

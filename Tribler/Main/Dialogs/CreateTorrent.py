@@ -456,13 +456,13 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
     if params['makehash_md5']:
-        print >> sys.stderr, "TorrentMaker: make MD5"
+        print("TorrentMaker: make MD5", file=sys.stderr)
         tdef.set_add_md5hash(params['makehash_md5'])
     if params['makehash_crc32']:
-        print >> sys.stderr, "TorrentMaker: make CRC32"
+        print("TorrentMaker: make CRC32", file=sys.stderr)
         tdef.set_add_crc32(params['makehash_crc32'])
     if params['makehash_sha1']:
-        print >> sys.stderr, "TorrentMaker: make SHA1"
+        print("TorrentMaker: make SHA1", file=sys.stderr)
         tdef.set_add_sha1hash(params['makehash_sha1'])
     if params['createmerkletorrent']:
         tdef.set_create_merkle_torrent(params['createmerkletorrent'])

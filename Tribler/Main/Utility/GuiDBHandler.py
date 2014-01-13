@@ -76,7 +76,7 @@ class GUIDBProducer():
         """
         if self.utility.abcquitting:
             if DEBUG:
-                print >> sys.stderr, "GUIDBHandler: abcquitting ignoring Task(%s)" % name
+                print("GUIDBHandler: abcquitting ignoring Task(%s)" % name, file=sys.stderr)
             return
 
         assert uId is None or isinstance(uId, unicode), type(uId)
@@ -87,7 +87,7 @@ class GUIDBProducer():
                 self.uIdsLock.acquire()
                 if uId in self.uIds:
                     if DEBUG:
-                        print >> sys.stderr, "GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s" % (name, uId)
+                        print("GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s" % (name, uId), file=sys.stderr)
                     return
                 else:
                     self.uIds.add(uId)
@@ -99,13 +99,13 @@ class GUIDBProducer():
             callbackId = name
 
         if DEBUG:
-            print >> sys.stderr, "GUIDBHandler: adding Task(%s)" % callbackId
+            print("GUIDBHandler: adding Task(%s)" % callbackId, file=sys.stderr)
 
         if __debug__:
             self.uIdsLock.acquire()
             self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) + 1
             if self.nrCallbacks[callbackId] > 10:
-                print >> sys.stderr, "GUIDBHandler: Scheduled Task(%s) %d times" % (callbackId, self.nrCallbacks[callbackId])
+                print("GUIDBHandler: Scheduled Task(%s) %d times" % (callbackId, self.nrCallbacks[callbackId]), file=sys.stderr)
 
             self.uIdsLock.release()
 
@@ -126,7 +126,7 @@ class GUIDBProducer():
 
             except Exception as exc:
                 if str(exc).startswith("BusyError") and retryOnBusy:
-                    print >> sys.stderr, "GUIDBHandler: BusyError, retrying Task(%s) in 0.5s" % name
+                    print("GUIDBHandler: BusyError, retrying Task(%s) in 0.5s" % name, file=sys.stderr)
                     self.database_thread.register(wrapper, delay=0.5, id_=name)
 
                     return
@@ -137,7 +137,7 @@ class GUIDBProducer():
 
             t3 = time()
             if DEBUG:
-                print >> sys.stderr, "GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s" % (name, t2 - t1, delay, t3 - t2, workerType)
+                print("GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s" % (name, t2 - t1, delay, t3 - t2, workerType), file=sys.stderr)
 
             if uId:
                 try:
@@ -156,7 +156,7 @@ class GUIDBProducer():
                 sender.sendResult(result)
             except:
                 print_exc()
-                print >> sys.stderr, "GUIDBHandler: Could not send result of Task(%s)" % name
+                print("GUIDBHandler: Could not send result of Task(%s)" % name, file=sys.stderr)
 
         wrapper.__name__ = str(name)
 
@@ -174,13 +174,13 @@ class GUIDBProducer():
                 self.guitaskqueue.add_task(wrapper, t=delay)
         else:
             if __debug__:
-                print >> sys.stderr, "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately" % name
+                print("GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately" % name, file=sys.stderr)
             wrapper()
 
     def Remove(self, uId):
         if uId in self.uIds:
             if DEBUG:
-                print >> sys.stderr, "GUIDBHandler: removing Task(%s)" % uId
+                print("GUIDBHandler: removing Task(%s)" % uId, file=sys.stderr)
 
             try:
                 self.uIdsLock.acquire()
@@ -256,13 +256,13 @@ class ASyncDelayedResult():
         if self.wait(timeout):
             if self.__exception:  # exception was raised!
                 self.__exception.originalTraceback = self.__original_traceback
-                print >> sys.stderr, self.__original_traceback
+                print(self.__original_traceback, file=sys.stderr)
                 raise self.__exception
 
             return self.__result
         else:
             print_stack()
-            print >> sys.stderr, "TIMEOUT on get", self.__jobID, timeout
+            print("TIMEOUT on get", self.__jobID, timeout, file=sys.stderr)
 
     def wait(self, timeout=None):
         return self.isFinished.wait(timeout) or self.isFinished.isSet()
@@ -272,7 +272,7 @@ def exceptionConsumer(delayedResult, *args, **kwargs):
     try:
         delayedResult.get()
     except Exception as e:
-        print >> sys.stderr, e.originalTraceback
+        print(e.originalTraceback, file=sys.stderr)
 
 # Modified startWorker to use our single thread
 # group and daemon variables have been removed

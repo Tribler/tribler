@@ -26,24 +26,24 @@ def testFilter(catfilename, torrentpath):
         porn += int(isporn)
         if isporn == fporn:
             if DEBUG:
-                print (isporn, fporn), 'good', name
+                print((isporn, fporn), 'good', name)
 
         elif isporn and not fporn:
             fn += 1
-            print 'FALSE NEGATIVE'
+            print('FALSE NEGATIVE')
             showTorrent(os.path.join(torrentpath, tfilename))
         elif not isporn and fporn:
             fp += 1
-            print 'FALSE POSITIVE'
+            print('FALSE POSITIVE')
             showTorrent(os.path.join(torrentpath, tfilename))
 
-    print """
+    print("""
     Total torrents:   %(total)d
     XXX torrents:     %(porn)d
     Correct filtered: %(good)d
     False negatives:  %(fn)d
     False positives:  %(fp)d
-    """ % {'total': total, 'porn': porn, 'fn': fn,'fp':fp,'good':total-fn-fp}
+    """ % {'total': total, 'porn': porn, 'fn': fn,'fp':fp,'good':total-fn-fp})
 
 
 def readCategorisationFile(filename):
@@ -58,7 +58,7 @@ def readCategorisationFile(filename):
                 tdict[parts[0]] = bool(int(parts[1]))
         f.close()
     except IOError:
-        print 'No file %s found, starting with empty file' % filename
+        print('No file %s found, starting with empty file' % filename)
 
 
 def getTorrentData(path, max_num=-1):
@@ -68,19 +68,19 @@ def getTorrentData(path, max_num=-1):
         if fname.endswith('.torrent'):
             torrents.append(os.path.join(path, fname))
         if i % 1000 == 0 and i:
-            print 'Loaded: %d torrents' % i
+            print('Loaded: %d torrents' % i)
         if i == int(max_num):
             break
         i += 1
-    print 'Loaded %d torrents' % len(torrents)
+    print('Loaded %d torrents' % len(torrents))
     return torrents
 
 
 def showTorrent(path):
     torrent = getMetainfo(os.path.join(path))
     name = torrent['info']['name']
-    print '------------------------------'
-    print '\tfiles  :'
+    print('------------------------------')
+    print('\tfiles  :')
     files_list = []
     __size_change = 1024
     try:
@@ -91,10 +91,10 @@ def showTorrent(path):
         # single mode
         files_list.append((torrent['info']["name"], torrent['info']['length'] / float(__size_change)))
     for fname, fsize in files_list:
-        print'\t\t%s\t%d kb' % (fname, fsize)
-    print 'Torrent name: %s' % name
-    print '\ttracker:%s' % torrent['announce']
-    print '------------------------------'
+        print('\t\t%s\t%d kb' % (fname, fsize))
+    print('Torrent name: %s' % name)
+    print('\ttracker:%s' % torrent['announce'])
+    print('------------------------------')
 
 
 def createTorrentDataSet(filename, torrentpath):
@@ -107,7 +107,7 @@ def createTorrentDataSet(filename, torrentpath):
         showTorrent(torrent)
         ans = None
         while ans not in ['q', 'y', 'n']:
-            print 'Is this torrent porn? (y/n/q)'
+            print('Is this torrent porn? (y/n/q)')
             ans = sys.stdin.readline()[:-1].lower()
         if ans == 'q':
             break
@@ -136,19 +136,19 @@ def initSaveFile(filename):
             tset.add(line.split('\t')[0])
         f.close()
     except IOError:
-        print 'No file %s found, starting with empty file' % filename
+        print('No file %s found, starting with empty file' % filename)
 
 
 def main(args):
     if len(args) != 4 or args[1] not in ['categorise', 'test']:
-        print 'Usage 1: %s categorise [torrent-dir] [torrent-data-file]' % args[0]
-        print 'Usage 2: %s test [torrent-dir] [torrent-data-file]' % args[0]
+        print('Usage 1: %s categorise [torrent-dir] [torrent-data-file]' % args[0])
+        print('Usage 2: %s test [torrent-dir] [torrent-data-file]' % args[0])
         sys.exit(1)
     if args[1] == 'categorise':
         createTorrentDataSet(args[3], args[2])
     elif args[1] == 'test':
         testFilter(args[3], args[2])
-    print 'ready'
+    print('ready')
 
 
 if __name__ == '__main__':

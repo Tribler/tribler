@@ -66,7 +66,7 @@ class SearchManager:
     def search(self, kws, maxhits=None):
         """ Called by any thread """
         if DEBUG:
-            print >>sys.stderr, "SearchManager: search", kws
+            print("SearchManager: search", kws, file=sys.stderr)
 
         hits = self.dbhandler.searchNames(kws)
         if maxhits is None:

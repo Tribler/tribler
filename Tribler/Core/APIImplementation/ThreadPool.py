@@ -95,7 +95,7 @@ class ThreadPool:
         """ Retrieve the next task from the task queue.  For use
         only by ThreadPoolThread objects contained in the pool."""
         if DEBUG:
-            print >> sys.stderr, len(self.__tasks)
+            print(len(self.__tasks), file=sys.stderr)
 
         self.__taskCond.acquire()
         try:

@@ -241,7 +241,7 @@ class StatusHolder:
 
     def create_and_add_event(self, name, values=[]):
         if __debug__ and len(self.reporters) == 0:
-            print >> sys.stderr, "NO REPORTERS FOR THIS STATUSHOLDER (%s), WILL CAUSE MEMORY LEAK" % self.name
+            print("NO REPORTERS FOR THIS STATUSHOLDER (%s), WILL CAUSE MEMORY LEAK" % self.name, file=sys.stderr)
 
         self.add_event(self.create_event(name, values))
 
@@ -331,8 +331,8 @@ class BaseElement:
             try:
                 callback(self)
             except Exception as e:
-                print >> sys.stderr, "Exception in callback", \
-                    callback, "for parameter", self.name, ":", e
+                print("Exception in callback", \
+                    callback, "for parameter", self.name, ":", e, file=sys.stderr)
 
 
 class StatusElement(BaseElement):
@@ -594,14 +594,14 @@ class PeriodicStatusReporter(StatusReporter):
             try:
                 self.report()
             except Exception as e:
-                print >> sys.stderr, "Status: error while reporting:", e
+                print("Status: error while reporting:", e, file=sys.stderr)
                 if self.error_handler:
                     try:
                         self.error_handler(0, str(e))
                     except:
                         pass
                 else:
-                    print "Error but no error handler:", e
+                    print("Error but no error handler:", e)
                     # import traceback
                     # traceback.print_stack()
 
@@ -612,14 +612,14 @@ class PeriodicStatusReporter(StatusReporter):
         try:
             self.report()
         except Exception as e:
-            print >> sys.stderr, "Status: error while reporting:", e
+            print("Status: error while reporting:", e, file=sys.stderr)
             if self.error_handler:
                 try:
                     self.error_handler(0, str(e))
                 except:
                     pass
             else:
-                print "Error but no error handler:", e
+                print("Error but no error handler:", e)
                 # import traceback
                 # traceback.print_stack()
 
@@ -627,5 +627,5 @@ class PeriodicStatusReporter(StatusReporter):
 if __name__ == "__main__":
     # Some basic testing (full unit tests are in StatusTest.py)
 
-    print "Run unit tests"
+    print("Run unit tests")
     raise SystemExit(-1)

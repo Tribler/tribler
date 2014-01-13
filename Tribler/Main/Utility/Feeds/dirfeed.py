@@ -31,7 +31,7 @@ class DirectoryFeedThread(Thread):
     getInstance = staticmethod(getInstance)
 
     def _on_torrent_found(self, dirpath, torrentpath, infohash, torrent_data):
-        print >>sys.stderr, 'DirectoryFeedThread: Adding', torrentpath
+        print('DirectoryFeedThread: Adding', torrentpath, file=sys.stderr)
         imported_dir = os.path.join(dirpath, 'imported')
         if not os.path.exists(imported_dir):
             os.makedirs(imported_dir)
@@ -64,7 +64,7 @@ class DirectoryFeedThread(Thread):
     def run(self):
         time.sleep(60)  # Let other Tribler components, in particular, Session startup
 
-        print >>sys.stderr, '*** DirectoryFeedThread: Starting first refresh round'
+        print('*** DirectoryFeedThread: Starting first refresh round', file=sys.stderr)
         while not self.done.isSet():
             self.refresh()
             time.sleep(DIR_CHECK_FREQUENCY)

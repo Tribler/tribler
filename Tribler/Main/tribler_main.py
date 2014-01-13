@@ -177,13 +177,13 @@ class ABCApp():
             self.splash.setTicks(10)
             self.splash.Show()
 
-            print >> sys.stderr, 'Client Starting Up.'
-            print >> sys.stderr, "Tribler is using", self.installdir, "as working directory"
+            print('Client Starting Up.', file=sys.stderr)
+            print("Tribler is using", self.installdir, "as working directory", file=sys.stderr)
 
             self.splash.tick('Starting API')
             s = self.startAPI(self.splash.tick)
 
-            print >> sys.stderr, "Tribler is expecting swift in", self.sconfig.get_swift_path()
+            print("Tribler is expecting swift in", self.sconfig.get_swift_path(), file=sys.stderr)
 
             self.dispersy = s.lm.dispersy
 
@@ -193,7 +193,7 @@ class ABCApp():
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance(self.dispersy.callback)
 
-            print >> sys.stderr, 'Tribler Version:', self.utility.lang.get('version'), ' Build:', self.utility.lang.get('build')
+            print('Tribler Version:', self.utility.lang.get('version'), ' Build:', self.utility.lang.get('build'), file=sys.stderr)
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -400,7 +400,7 @@ class ABCApp():
 
         progress('Loading sessionconfig')
         if DEBUG:
-            print >> sys.stderr, "main: Session config", cfgfilename
+            print("main: Session config", cfgfilename, file=sys.stderr)
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
         except:
@@ -431,7 +431,7 @@ class ABCApp():
         progress('Loading downloadconfig')
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         if DEBUG:
-            print >> sys.stderr, "main: Download config", dlcfgfilename
+            print("main: Download config", dlcfgfilename, file=sys.stderr)
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
@@ -458,7 +458,7 @@ class ABCApp():
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
 
-            print >> sys.stderr, "tribler: Preparing communities..."
+            print("tribler: Preparing communities...", file=sys.stderr)
             now = time()
 
             # must be called on the Dispersy thread
@@ -482,7 +482,7 @@ class ABCApp():
             dispersy.define_auto_load(PreviewChannelCommunity)
 
             diff = time() - now
-            print >> sys.stderr, "tribler: communities are ready in %.2f seconds" % (diff,)
+            print("tribler: communities are ready in %.2f seconds" % (diff,), file=sys.stderr)
 
         swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
@@ -573,7 +573,7 @@ class ABCApp():
         if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-            print >> sys.stderr, "main: Stats: Total torrents found", torrentdb.size(), "peers", peerdb.size()
+            print("main: Stats: Total torrents found", torrentdb.size(), "peers", peerdb.size(), file=sys.stderr)
 
         try:
             # Print stats on Console
@@ -582,10 +582,10 @@ class ABCApp():
                     for ds in dslist:
                         safename = repr(ds.get_download().get_def().get_name())
                         if DEBUG:
-                            print >> sys.stderr, "%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers())
+                            print("%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()), file=sys.stderr)
                         # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                         if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                            print >> sys.stderr, "main: Error:", repr(ds.get_error())
+                            print("main: Error:", repr(ds.get_error()), file=sys.stderr)
 
             # Pass DownloadStates to libaryView
             no_collected_list = []
@@ -688,9 +688,9 @@ class ABCApp():
                         state = ds.get_status()
                         if cdef.get_def_type() == 'swift':
                             safename = cdef.get_name()
-                            print >> sys.stderr, "tribler: SW", dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD)
+                            print("tribler: SW", dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD), file=sys.stderr)
                         else:
-                            print >> sys.stderr, "tribler: BT", dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD)
+                            print("tribler: BT", dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD), file=sys.stderr)
 
         except:
             print_exc()
@@ -732,7 +732,7 @@ class ABCApp():
         if self.done:
             return
         try:
-            print >> sys.stderr, "main: Checkpointing Session"
+            print("main: Checkpointing Session", file=sys.stderr)
             self.utility.session.checkpoint()
 
             self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
@@ -889,12 +889,12 @@ class ABCApp():
         win.ShowModal()
 
     def MacOpenFile(self, filename):
-        print >> sys.stderr, filename
+        print(filename, file=sys.stderr)
         target = FileDropTarget(self.frame)
         target.OnDropFiles(None, None, [filename])
 
     def OnExit(self):
-        print >> sys.stderr, "main: ONEXIT"
+        print("main: ONEXIT", file=sys.stderr)
         self.ready = False
         self.done = True
 
@@ -933,21 +933,21 @@ class ABCApp():
             while not self.utility.session.has_shutdown():
                 diff = time() - session_shutdown_start
                 if diff > waittime:
-                    print >> sys.stderr, "main: ONEXIT NOT Waiting for Session to shutdown, took too long"
+                    print("main: ONEXIT NOT Waiting for Session to shutdown, took too long", file=sys.stderr)
                     break
 
-                print >> sys.stderr, "main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
+                print("main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff), file=sys.stderr)
                 sleep(3)
-            print >> sys.stderr, "main: ONEXIT Session is shutdown"
+            print("main: ONEXIT Session is shutdown", file=sys.stderr)
 
             try:
-                print >> sys.stderr, "main: ONEXIT cleaning database"
+                print("main: ONEXIT cleaning database", file=sys.stderr)
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
                 peerdb._db.clean_db(randint(0, 24) == 0, exiting=True)
             except:
                 print_exc()
 
-            print >> sys.stderr, "main: ONEXIT deleting instances"
+            print("main: ONEXIT deleting instances", file=sys.stderr)
 
         Session.del_instance()
         GUIUtility.delInstance()
@@ -964,14 +964,14 @@ class ABCApp():
 
     def db_exception_handler(self, e):
         if DEBUG:
-            print >> sys.stderr, "main: Database Exception handler called", e, "value", e.args, "#"
+            print("main: Database Exception handler called", e, "value", e.args, "#", file=sys.stderr)
         try:
             if e.args[1] == "DB object has been closed":
                 return  # We caused this non-fatal error, don't show.
             if self.error is not None and self.error.args[1] == e.args[1]:
                 return  # don't repeat same error
         except:
-            print >> sys.stderr, "main: db_exception_handler error", e, type(e)
+            print("main: db_exception_handler error", e, type(e), file=sys.stderr)
             print_exc()
             # print_stack()
 
@@ -987,7 +987,7 @@ class ABCApp():
     def i2ithread_readlinecallback(self, ic, cmd):
         """ Called by Instance2Instance thread """
 
-        print >> sys.stderr, "main: Another instance called us with cmd", cmd
+        print("main: Another instance called us with cmd", cmd, file=sys.stderr)
         ic.close()
 
         if cmd.startswith('START '):
@@ -1129,7 +1129,7 @@ def run(params=None):
                 torrentfilename = params[0]
                 i2ic = Instance2InstanceClient(I2I_LISTENPORT, 'START', torrentfilename)
 
-            print "Client shutting down. Detected another instance."
+            print("Client shutting down. Detected another instance.")
         else:
             arg0 = sys.argv[0].lower()
             if arg0.endswith('.exe'):
@@ -1156,7 +1156,7 @@ def run(params=None):
 
             # Niels: No code should be present here, only executed after gui closes
 
-        print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
+        print("Client shutting down. Sleeping for a few seconds to allow other threads to finish")
         sleep(5)
 
     except:

@@ -683,7 +683,7 @@ def printTorrent(torrent, pre=''):
         if isinstance(value, dict):
             printTorrent(value, pre + ' ' + key)
         elif key.lower() not in ['pieces', 'thumbnail', 'preview']:
-            print '%s | %s: %s' % (pre, key, value)
+            print('%s | %s: %s' % (pre, key, value))
 
 
 def getMetainfo(src, openoptions='rb', style="file"):

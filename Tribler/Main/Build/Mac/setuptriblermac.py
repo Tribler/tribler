@@ -23,10 +23,10 @@ includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 # ----- some basic checks
 
 if __debug__:
-    print "WARNING: Non optimised python bytecode (.pyc) will be produced. Run with -OO instead to produce and bundle .pyo files."
+    print("WARNING: Non optimised python bytecode (.pyc) will be produced. Run with -OO instead to produce and bundle .pyo files.")
 
 if sys.platform != "darwin":
-    print "WARNING: You do not seem to be running Mac OS/X."
+    print("WARNING: You do not seem to be running Mac OS/X.")
 
 # ----- import and verify wxPython
 
@@ -40,17 +40,17 @@ import wx
 v = wx.__version__
 
 if v < "2.6":
-    print "WARNING: You need wxPython 2.6 or higher but are using %s." % v
+    print("WARNING: You need wxPython 2.6 or higher but are using %s." % v)
 
 if v < "2.8.4.2":
-    print "WARNING: wxPython before 2.8.4.2 could crash when loading non-present fonts. You are using %s." % v
+    print("WARNING: wxPython before 2.8.4.2 could crash when loading non-present fonts. You are using %s." % v)
 
 # ----- import and verify M2Crypto
 
 import M2Crypto
 import M2Crypto.m2
 if "ec_init" not in M2Crypto.m2.__dict__:
-    print "WARNING: Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__
+    print("WARNING: Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__)
 
 # ----- import Growl
 try:
@@ -58,7 +58,7 @@ try:
 
     includeModules += ["Growl"]
 except:
-    print "WARNING: Not including Growl support."
+    print("WARNING: Not including Growl support.")
 
 
 # =================

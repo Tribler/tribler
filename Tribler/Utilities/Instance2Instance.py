@@ -31,7 +31,7 @@ class Instance2InstanceServer(Thread):
         self.i2iport = i2iport
         self.connhandler = connhandler
 
-        print >> sys.stderr, "Instance2Instance binding to %s:%d" % ("127.0.0.1", self.i2iport)
+        print("Instance2Instance binding to %s:%d" % ("127.0.0.1", self.i2iport), file=sys.stderr)
         self.i2idoneflag = Event()
         self.rawserver = RawServer(self.i2idoneflag,
                                    timeout / 5.0,
@@ -61,13 +61,13 @@ class Instance2InstanceServer(Thread):
     def rawserver_fatalerrorfunc(self, e):
         """ Called by network thread """
         if DEBUG:
-            print >>sys.stderr, "i2is: RawServer fatal error func called", e
+            print("i2is: RawServer fatal error func called", e, file=sys.stderr)
         print_exc()
 
     def rawserver_nonfatalerrorfunc(self, e):
         """ Called by network thread """
         if DEBUG:
-            print >>sys.stderr, "i2is: RawServer non fatal error func called", e
+            print("i2is: RawServer non fatal error func called", e, file=sys.stderr)
             print_exc()
         # Could log this somewhere, or phase it out
 
@@ -79,7 +79,7 @@ class Instance2InstanceServer(Thread):
         try:
             try:
                 if DEBUG:
-                    print >>sys.stderr, "i2is: Ready to receive remote commands on", self.i2iport
+                    print("i2is: Ready to receive remote commands on", self.i2iport, file=sys.stderr)
                 self.rawserver.listen_forever(self)
             except:
                 print_exc()
@@ -89,7 +89,7 @@ class Instance2InstanceServer(Thread):
     def external_connection_made(self, s):
         try:
             if DEBUG:
-                print >>sys.stderr, "i2is: external_connection_made"
+                print("i2is: external_connection_made", file=sys.stderr)
             self.connhandler.external_connection_made(s)
         except:
             print_exc()
@@ -100,7 +100,7 @@ class Instance2InstanceServer(Thread):
 
     def connection_lost(self, s):
         if DEBUG:
-            print >>sys.stderr, "i2is: connection_lost ------------------------------------------------"
+            print("i2is: connection_lost ------------------------------------------------", file=sys.stderr)
         self.connhandler.connection_lost(s)
 
     def data_came_in(self, s, data):
@@ -129,10 +129,10 @@ class InstanceConnectionHandler:
     def external_connection_made(self, s):
         # Extra check in case bind() no work
         if DEBUG:
-            print >>sys.stderr, "i2is: ich: ext_conn_made"
+            print("i2is: ich: ext_conn_made", file=sys.stderr)
         peername = s.get_ip()
         if peername != "127.0.0.1":
-            print >>sys.stderr, "i2is: ich: ext_conn_made: Refusing non-local connection from", peername
+            print("i2is: ich: ext_conn_made: Refusing non-local connection from", peername, file=sys.stderr)
             s.close()
 
         ic = InstanceConnection(s, self, self.readlinecallback)
@@ -144,19 +144,19 @@ class InstanceConnectionHandler:
     def connection_lost(self, s):
         """ Called when peer closes connection and when we close the connection """
         if DEBUG:
-            print >>sys.stderr, "i2is: ich: connection_lost ------------------------------------------------"
+            print("i2is: ich: connection_lost ------------------------------------------------", file=sys.stderr)
 
         # Extra check in case bind() no work
         peername = s.get_ip()
         if peername != "127.0.0.1":
-            print >>sys.stderr, "i2is: ich: connection_lost: Refusing non-local connection from", peername
+            print("i2is: ich: connection_lost: Refusing non-local connection from", peername, file=sys.stderr)
             return
 
         del self.singsock2ic[s]
 
     def data_came_in(self, s, data):
         if DEBUG:
-            print >>sys.stderr, "i2is: ich: data_came_in"
+            print("i2is: ich: data_came_in", file=sys.stderr)
 
         ic = self.singsock2ic[s]
         try:
@@ -190,7 +190,7 @@ class InstanceConnection:
         # data may come in in parts, not lines! Or multiple lines at same time
 
         if DEBUG:
-            print >>sys.stderr, "i2is: ic: data_came_in", repr(data), len(data)
+            print("i2is: ic: data_came_in", repr(data), len(data), file=sys.stderr)
 
         if len(self.buffer) == 0:
             self.buffer = data

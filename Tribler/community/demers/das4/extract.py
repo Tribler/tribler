@@ -2,7 +2,7 @@ import sys
 
 f = open("sum_total_records.txt")
 f2 = open("received_records_10.txt", 'w')
-print >> f2, "#nrpeers, took, partnr"
+print("#nrpeers, took, partnr", file=f2)
 
 piece_created = {}
 
@@ -24,7 +24,7 @@ for line in f:
     if created not in piece_created:
         piece_created[created] = time
         # piece_created[created] = 120 * created
-        print "new part", peers.index(created), time, created * 120, piece_received.get(created - 1, 0)
+        print("new part", peers.index(created), time, created * 120, piece_received.get(created - 1, 0))
 
     updated_parts = set()
 
@@ -37,10 +37,10 @@ for line in f:
 
             took = time - piece_created[part]
 
-            print >> f2, piece_received[part], took, part
+            print(piece_received[part], took, part, file=f2)
             if piece_received[part] == 1000:
                 took_list.append(took)
-                print "received part", part, took, sum(took_list) / float(len(took_list))
+                print("received part", part, took, sum(took_list) / float(len(took_list)))
 
 f.close()
 f2.close()

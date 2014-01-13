@@ -215,7 +215,7 @@ class SearchCommunity(Community):
         self.taste_buddies = self.taste_buddies[:10]
 
         if DEBUG:
-            print >> sys.stderr, long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), self.taste_buddies
+            print(long(time()), "SearchCommunity: current tastebuddy list", len(self.taste_buddies), self.taste_buddies, file=sys.stderr)
 
     def yield_taste_buddies(self, ignore_candidate=None):
         taste_buddies = self.taste_buddies[:]
@@ -273,7 +273,7 @@ class SearchCommunity(Community):
                 self.my_vector_cache = [str_myPreferences, myPreferences]
 
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "SearchCommunity: sending introduction request to", destination, "containing", len(myPreferences), "hashes", self._mypref_db.getMyPrefListInfohash()
+                print(long(time()), "SearchCommunity: sending introduction request to", destination, "containing", len(myPreferences), "hashes", self._mypref_db.getMyPrefListInfohash(), file=sys.stderr)
 
             payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, myPreferences, self.key.n)
 
@@ -286,7 +286,7 @@ class SearchCommunity(Community):
                     reason = 'is taste buddy'
                 else:
                     reason = 'having no preferences'
-                print >> sys.stderr, long(time()), "SearchCommunity: sending empty-introduction request to", destination, "due to", reason
+                print(long(time()), "SearchCommunity: sending empty-introduction request to", destination, "due to", reason, file=sys.stderr)
 
             payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, None)
 
@@ -301,7 +301,7 @@ class SearchCommunity(Community):
 
     def on_intro_request(self, orig_messages):
         if DEBUG_VERBOSE:
-            print >> sys.stderr, long(time()), "SearchCommunity: got %d introduction requests" % len(orig_messages)
+            print(long(time()), "SearchCommunity: got %d introduction requests" % len(orig_messages), file=sys.stderr)
 
         messages = [message for message in orig_messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
         self.process_rsa_simirequest(messages)
@@ -355,7 +355,7 @@ class SearchCommunity(Community):
                 self._dispersy._forward([resp_message])
 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "SearchCommunity: sending encrypted-response to", message.payload.identifier, message.candidate
+                    print(long(time()), "SearchCommunity: sending encrypted-response to", message.payload.identifier, message.candidate, file=sys.stderr)
             else:
                 return hisList, myList
 
@@ -434,7 +434,7 @@ class SearchCommunity(Community):
                     self.community.search_forward_timeout += 1
 
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay
+                        print(long(time()), "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay, file=sys.stderr)
 
     def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None):
         if identifier == None:
@@ -481,7 +481,7 @@ class SearchCommunity(Community):
             candidates.append(candidate)
 
         if DEBUG:
-            print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
+            print(long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates), file=sys.stderr)
 
         return candidates, local_results
 
@@ -496,11 +496,11 @@ class SearchCommunity(Community):
                 bloomfilter = message.payload.bloom_filter
 
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: got search request for", keywords
+                    print(long(time()), "SearchCommunity: got search request for", keywords, file=sys.stderr)
 
                 results = self._get_results(keywords, bloomfilter, False)
                 if not results and DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: no results"
+                    print(long(time()), "SearchCommunity: no results", file=sys.stderr)
 
                 if self.ttl:
                     ttl = message.payload.ttl
@@ -514,7 +514,7 @@ class SearchCommunity(Community):
 
                 if ttl:
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
+                        print(long(time()), "SearchCommunity: ttl == %d forwarding" % ttl, file=sys.stderr)
 
                     callback = lambda keywords, newresults, candidate, myidentifier = message.payload.identifier: self._create_search_response(myidentifier, newresults, candidate)
                     self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.SearchRequest(self, keywords, ttl, callback, results, message.candidate))
@@ -523,12 +523,12 @@ class SearchCommunity(Community):
                     self.search_forward += 1
                 else:
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "SearchCommunity: ttl == 0 returning"
+                        print(long(time()), "SearchCommunity: ttl == 0 returning", file=sys.stderr)
                     self._create_search_response(message.payload.identifier, results, message.candidate)
                     self.search_endpoint += 1
             else:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: cycle detected returning"
+                    print(long(time()), "SearchCommunity: cycle detected returning", file=sys.stderr)
 
                 self.search_cycle_detected += 1
                 self._create_search_response(message.payload.identifier, [], message.candidate)
@@ -575,7 +575,7 @@ class SearchCommunity(Community):
         self._dispersy._send([candidate], [message])
 
         if DEBUG:
-            print >> sys.stderr, long(time()), "SearchCommunity: returning", len(results), "results to", candidate
+            print(long(time()), "SearchCommunity: returning", len(results), "results to", candidate, file=sys.stderr)
 
     def on_search_response(self, messages):
         for message in messages:
@@ -583,7 +583,7 @@ class SearchCommunity(Community):
             search_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SearchRequest)
             if search_request:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
+                    print(long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate, file=sys.stderr)
 
                 if len(message.payload.results) > 0:
                     self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
@@ -598,14 +598,14 @@ class SearchCommunity(Community):
                     channels = self._get_unknown_channels(channels)
 
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "SearchCommunity: joining %d preview communities" % len(channels)
+                        print(long(time()), "SearchCommunity: joining %d preview communities" % len(channels), file=sys.stderr)
 
                     for cid in channels:
                         community = self._get_channel_community(cid)
                         community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
             else:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: got search response identifier not found", message.payload.identifier
+                    print(long(time()), "SearchCommunity: got search response identifier not found", message.payload.identifier, file=sys.stderr)
 
     class PingRequestCache(IntroductionRequestCache):
         cleanup_delay = 0.0
@@ -621,7 +621,7 @@ class SearchCommunity(Community):
         def on_timeout(self):
             if not self.processed:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: no response on ping, removing from taste_buddies", self.candidate
+                    print(long(time()), "SearchCommunity: no response on ping, removing from taste_buddies", self.candidate, file=sys.stderr)
                 self.community.removeTastebuddy(self.candidate)
 
     def removeTastebuddy(self, candidate):
@@ -719,7 +719,7 @@ class SearchCommunity(Community):
             self._dispersy._send([candidate], [message])
 
             if DEBUG:
-                print >> sys.stderr, long(time()), "SearchCommunity: send", meta_name, "to", candidate
+                print(long(time()), "SearchCommunity: send", meta_name, "to", candidate, file=sys.stderr)
 
     def create_torrent_request(self, torrents, candidate):
         torrentdict = {}
@@ -739,7 +739,7 @@ class SearchCommunity(Community):
 
         if DEBUG:
             nr_requests = sum([len(cid_torrents) for cid_torrents in torrentdict.values()])
-            print >> sys.stderr, long(time()), long(time()), "SearchCommunity: requesting", nr_requests, "TorrentMessages from", candidate
+            print(long(time()), long(time()), "SearchCommunity: requesting", nr_requests, "TorrentMessages from", candidate, file=sys.stderr)
 
     def on_torrent_request(self, messages):
         for message in messages:
@@ -752,7 +752,7 @@ class SearchCommunity(Community):
                 self._dispersy.endpoint.send([message.candidate], requested_packets)
 
             if DEBUG:
-                print >> sys.stderr, long(time()), long(time()), "SearchCommunity: got request for ", len(requested_packets), "torrents from", message.candidate
+                print(long(time()), long(time()), "SearchCommunity: got request for ", len(requested_packets), "torrents from", message.candidate, file=sys.stderr)
 
     def on_torrent(self, messages):
         for message in messages:
@@ -910,7 +910,7 @@ class ForwardCommunity(SearchCommunity):
         self.possible_taste_buddies.sort(reverse=True)
 
         if DEBUG and possibles:
-            print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
+            print(long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies], file=sys.stderr)
 
     def has_possible_taste_buddies(self, candidate):
         for _, _, _, from_candidate in self.possible_taste_buddies:
@@ -934,7 +934,7 @@ class ForwardCommunity(SearchCommunity):
             is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i][2])
             if to_low_sim or to_old or is_tb:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), long(time()), "ForwardCommunity: removing possible tastebuddy", long(time()), to_low_sim, to_old, is_tb, self.possible_taste_buddies[i]
+                    print(long(time()), long(time()), "ForwardCommunity: removing possible tastebuddy", long(time()), to_low_sim, to_old, is_tb, self.possible_taste_buddies[i], file=sys.stderr)
                 self.possible_taste_buddies.pop(i)
 
         if self.possible_taste_buddies:
@@ -1002,7 +1002,7 @@ class ForwardCommunity(SearchCommunity):
                 self.requested_introductions[candidate] = introduce_me_to = self.get_candidate_mid(message.payload.introduce_me_to)
 
                 if not introduce_me_to and DEBUG:
-                    print >> sys.stderr, long(time()), long(time()), "Cannot create candidate for mid", message.payload.introduce_me_to
+                    print(long(time()), long(time()), "Cannot create candidate for mid", message.payload.introduce_me_to, file=sys.stderr)
 
         self._disp_intro_handler(messages)
 
@@ -1067,7 +1067,7 @@ class PSearchCommunity(ForwardCommunity):
     def on_sums_request(self, messages):
         for message in messages:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), long(time()), "PSearchCommunity: got sums request"
+                print(long(time()), long(time()), "PSearchCommunity: got sums request", file=sys.stderr)
 
             # get candidates to forward requests to, excluding the requesting peer
             candidates = self.get_connections(10, message.candidate)
@@ -1096,7 +1096,7 @@ class PSearchCommunity(ForwardCommunity):
     def on_sum_request(self, messages):
         for message in messages:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PSearchCommunity: got sum request"
+                print(long(time()), "PSearchCommunity: got sum request", file=sys.stderr)
 
             # create a PSimilarityRequest to store this request for sum
             if not self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.PSimilarityRequest):
@@ -1135,7 +1135,7 @@ class PSearchCommunity(ForwardCommunity):
     def on_global_vector(self, messages):
         for message in messages:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PSearchCommunity: got global vector"
+                print(long(time()), "PSearchCommunity: got global vector", file=sys.stderr)
 
             if not self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.PSimilarityRequest):
                 self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
@@ -1146,7 +1146,7 @@ class PSearchCommunity(ForwardCommunity):
             if isinstance(request, PSearchCommunity.RPSimilarityRequest):
                 if request.requested_candidates:
                     if DEBUG_VERBOSE:
-                        print >> sys.stderr, long(time()), "PSearchCommunity: forwarding global vector", request.requested_candidates
+                        print(long(time()), "PSearchCommunity: forwarding global vector", request.requested_candidates, file=sys.stderr)
                     self._dispersy._send(request.requested_candidates, [message])
 
             if request.is_complete():
@@ -1199,7 +1199,7 @@ class PSearchCommunity(ForwardCommunity):
                             _sum += 1
 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "PSearchCommunity: calculated sum", _sum
+                    print(long(time()), "PSearchCommunity: calculated sum", _sum, file=sys.stderr)
 
                 return _sum
 
@@ -1217,13 +1217,13 @@ class PSearchCommunity(ForwardCommunity):
                 self.isProcessed = True
 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "PSearchCommunity: processed PSimilarityRequest"
+                    print(long(time()), "PSearchCommunity: processed PSimilarityRequest", file=sys.stderr)
 
                 self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.PSimilarityRequest)
 
         def on_timeout(self):
             if DEBUG:
-                print >> sys.stderr, long(time()), "PSearchCommunity: timeout PSimilarityRequest", self.global_vector != None, self.user_vector != None
+                print(long(time()), "PSearchCommunity: timeout PSimilarityRequest", self.global_vector != None, self.user_vector != None, file=sys.stderr)
 
     class RPSimilarityRequest(PSimilarityRequest):
         timeout_delay = 7.0
@@ -1242,11 +1242,11 @@ class PSearchCommunity(ForwardCommunity):
 
         def add_sum(self, candidate_mid, _sum):
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PSearchCommunity: got sum in RPSimilarityRequest"
+                print(long(time()), "PSearchCommunity: got sum in RPSimilarityRequest", file=sys.stderr)
 
             if candidate_mid in self.requested_mids:
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "PSearchCommunity: added sum in RPSimilarityRequest"
+                    print(long(time()), "PSearchCommunity: added sum in RPSimilarityRequest", file=sys.stderr)
 
                 self.received_candidates.append(candidate_mid)
                 self.received_sums.append((candidate_mid, _sum))
@@ -1269,7 +1269,7 @@ class PSearchCommunity(ForwardCommunity):
                 self.isProcessed = True
 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "PSearchCommunity: processed RPSimilarityRequest"
+                    print(long(time()), "PSearchCommunity: processed RPSimilarityRequest", file=sys.stderr)
 
                 self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.RPSimilarityRequest)
 
@@ -1293,7 +1293,7 @@ class PSearchCommunity(ForwardCommunity):
     def on_encr_sum(self, messages):
         for message in messages:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PSearchCommunity: received sum", message.payload._sum
+                print(long(time()), "PSearchCommunity: received sum", message.payload._sum, file=sys.stderr)
 
             request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
             request.add_sum(message.authentication.member.mid, message.payload._sum)
@@ -1304,7 +1304,7 @@ class PSearchCommunity(ForwardCommunity):
     def on_encr_sums(self, messages):
         for message in messages:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
+                print(long(time()), "PSearchCommunity: received sums", message.payload._sum, file=sys.stderr)
 
             if self.encryption:
                 t1 = time()
@@ -1329,7 +1329,7 @@ class PSearchCommunity(ForwardCommunity):
                 self.send_introduction_request(destination, introduce_me_to)
 
                 if DEBUG and introduce_me_to:
-                    print >> sys.stderr, long(time()), "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+                    print(long(time()), "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate), file=sys.stderr)
 
 
 class HSearchCommunity(ForwardCommunity):
@@ -1365,7 +1365,7 @@ class HSearchCommunity(ForwardCommunity):
 
         if myPreferences:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "HSearchCommunity: sending similarity request to", destination, "containing", len(myPreferences), "hashes"
+                print(long(time()), "HSearchCommunity: sending similarity request to", destination, "containing", len(myPreferences), "hashes", file=sys.stderr)
 
             meta_request = self.get_meta_message(u"msimilarity-request")
             request = meta_request.impl(authentication=(self.my_member,),
@@ -1394,7 +1394,7 @@ class HSearchCommunity(ForwardCommunity):
     def on_msimi_request(self, messages):
         for message in messages:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "HSearchCommunity: got msimi request from", message.candidate
+                print(long(time()), "HSearchCommunity: got msimi request from", message.candidate, file=sys.stderr)
 
             # get candidates to forward requests to, excluding the requesting peer
             candidates = self.get_connections(10, message.candidate)
@@ -1456,14 +1456,14 @@ class HSearchCommunity(ForwardCommunity):
                 self.isProcessed = True
 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "HSearchCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
+                    print(long(time()), "HSearchCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate, file=sys.stderr)
 
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
 
         def on_timeout(self):
             if not self.isProcessed:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "HSearchCommunity: timeout MSimilarityRequest", self.identifier, len(self.received_lists), len(self.requested_candidates)
+                    print(long(time()), "HSearchCommunity: timeout MSimilarityRequest", self.identifier, len(self.received_lists), len(self.requested_candidates), file=sys.stderr)
 
                 self.process()
 
@@ -1484,7 +1484,7 @@ class HSearchCommunity(ForwardCommunity):
 #            candidate = self._dispersy.get_walkcandidate(message, self)
 #            candidate.walk_response()
             if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
+                print(long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses), file=sys.stderr)
 
             possibles = []
             for candidate_mid, remote_response in message.payload.bundled_responses:
@@ -1499,7 +1499,7 @@ class HSearchCommunity(ForwardCommunity):
                 self.send_introduction_request(destination, introduce_me_to)
 
                 if DEBUG and introduce_me_to:
-                    print >> sys.stderr, long(time()), "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+                    print(long(time()), "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate), file=sys.stderr)
 
 
 class Das4DBStub():

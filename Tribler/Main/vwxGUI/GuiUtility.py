@@ -425,7 +425,7 @@ class GUIUtility:
                 self.frame.top_bg.StartSearch()
                 self.current_search_query = keywords
                 if DEBUG:
-                    print >> sys.stderr, "GUIUtil: searchFiles:", keywords, time()
+                    print("GUIUtil: searchFiles:", keywords, time(), file=sys.stderr)
 
                 self.frame.searchlist.Freeze()
 

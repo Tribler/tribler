@@ -15,7 +15,7 @@ def to_unicode(string):
         return unicode(string, "utf-8")
     except:
         pass
-    print "Warning: Fallback to latin-1 for unicode conversion"
+    print("Warning: Fallback to latin-1 for unicode conversion")
     return unicode(string, "latin-1")
 
 
@@ -176,10 +176,10 @@ class XmlPrinter:
             try:
                 return buffer
             except Exception as e:
-                print "-----------------"
-                print "Exception:", e
-                print "Buffer:", buffer
-                print "-----------------"
+                print("-----------------")
+                print("Exception:", e)
+                print("Buffer:", buffer)
+                print("-----------------")
                 raise e
 
         raise Exception("Could not serialize DOM")
