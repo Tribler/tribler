@@ -279,7 +279,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             torrent_files = torrentinfo.files()
             is_multifile = len(self.tdef.get_files_as_unicode()) > 1
             commonprefix = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
-            swarmname = [part for part in commonprefix.split(os.path.sep) if part][0]
+            swarmname = commonprefix.partition(os.path.sep)[0]
 
             if is_multifile and swarmname != self.correctedinfoname:
                 for i, file_entry in enumerate(torrent_files):
@@ -689,7 +689,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
                 is_multifile = len(self.tdef.get_files_as_unicode()) > 1
                 commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
-                swarmname = [part for part in commonprefix.split(os.path.sep) if part][0]
+                swarmname = commonprefix.partition(os.path.sep)[0]
                 unwanteddir = os.path.join(swarmname, '.unwanted')
                 unwanteddir_abs = os.path.join(self.handle.save_path(), unwanteddir)
 
