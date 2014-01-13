@@ -212,7 +212,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
             self.dlstatus = dlstatus
             self.dynasize = dynasize
-            self.progress = progress
+            # TODO: Temporary fix for very high progress even though nothing has been downloaded yet.
+            self.progress = progress if progress <= 1.0 else 0.0
             self.curspeeds[DOWNLOAD] = dlspeed
             self.curspeeds[UPLOAD] = ulspeed
             self.numleech = numleech
@@ -254,10 +255,10 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 self.lm_network_vod_event_callback(videoinfo, VODEVENT_START, {
                     "complete": False,
                     "filename": None,
-                    "mimetype": 'application/octet-stream',  # ARNOSMPTODO
+                    "mimetype": 'application/octet-stream', # ARNOSMPTODO
                     "stream": None,
                     "length": self.get_dynasize(),
-                    "bitrate": None,  # ARNOSMPTODO
+                    "bitrate": None, # ARNOSMPTODO
                     "url": httpurl,
                 })
         finally:
