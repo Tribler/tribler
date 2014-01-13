@@ -608,7 +608,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             _, old_file = os.path.split(old)
             new = os.path.join(new_dir, old_file)
 
-        print >> sys.stderr, "Creating new downloadconfig"
+        print("Creating new downloadconfig", file=sys.stderr)
         if isinstance(download_state, MergedDs):
             dslist = download_state.dslist
         else:
@@ -626,14 +626,14 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         for ds in dslist:
             download = ds.get_download()
             if download.get_def().get_def_type() == 'torrent':
-                print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
+                print("Moving from", old, "to", new, "newdir", new_dir, file=sys.stderr)
                 download.move_storage(new_dir)
                 if download.get_save_path() == new_dir:
                     storage_moved = True
 
         # If libtorrent hasn't moved the files yet, move them now
         if not storage_moved:
-            print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
+            print("Moving from", old, "to", new, "newdir", new_dir, file=sys.stderr)
             movelambda = lambda: rename_or_merge(old, new)
             self.guiutility.utility.session.lm.rawserver.add_task(movelambda, 0.0)
 

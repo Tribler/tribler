@@ -16,8 +16,8 @@ DEBUG = True
 # Print usage information
 def usage():
 
-    print "Usage:"
-    print " python pingback.py <serverport>"
+    print("Usage:")
+    print(" python pingback.py <serverport>")
 
 
 def serveclient(message, udpsock, clientaddr):
@@ -28,12 +28,12 @@ def serveclient(message, udpsock, clientaddr):
     if data[0] == "ping":
 
         if DEBUG:
-            print >> sys.stderr, "received ping with delay", data[1], "from", clientaddr
+            print("received ping with delay", data[1], "from", clientaddr, file=sys.stderr)
 
         time.sleep(int(data[1]))
 
         if DEBUG:
-            print >> sys.stderr, "sending pong back after", data[1], "seconds", "to", clientaddr
+            print("sending pong back after", data[1], "seconds", "to", clientaddr, file=sys.stderr)
 
         pongMsg = (str("pong:" + data[1]))
         udpsock.sendto(pongMsg, clientaddr)
@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     except ValueError as strerror:
         if DEBUG:
-            print >> sys.stderr, "ValueError: ", strerror
+            print("ValueError: ", strerror, file=sys.stderr)
         usage()
         sys.exit(1)
 
@@ -71,13 +71,13 @@ if __name__ == "__main__":
             udpsock.close()
 
         if DEBUG:
-            print >> sys.stderr, "Could not open socket: %s" % (strerror)
+            print("Could not open socket: %s" % (strerror), file=sys.stderr)
         sys.stdout.flush()
 
         sys.exit(1)
 
     if DEBUG:
-        print >> sys.stderr, "waiting for connection..."
+        print("waiting for connection...", file=sys.stderr)
 
     # Loop forever receiving pings and sending pongs
     while True:
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         except error:
             continue
 
-        print >> sys.stderr, time.strftime("%Y/%m/%d %H:%M:%S"), "...connected from:", clientaddr
+        print(time.strftime("%Y/%m/%d %H:%M:%S"), "...connected from:", clientaddr, file=sys.stderr)
         log.write("%i %s %i\n" % (time.time(), str(clientaddr[0]), clientaddr[1]))
         log.flush()
 

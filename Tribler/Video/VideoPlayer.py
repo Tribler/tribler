@@ -117,13 +117,13 @@ class VideoPlayer:
     def play_file(self, dest):
         """ Play video file from disk """
         if DEBUG:
-            print >> sys.stderr, "videoplay: Playing file from disk", dest
+            print("videoplay: Playing file from disk", dest, file=sys.stderr)
 
         (prefix, ext) = os.path.splitext(dest)
         [mimetype, cmd] = self.get_video_player(ext, dest)
 
         if DEBUG:
-            print >> sys.stderr, "videoplay: play_file: cmd is", cmd
+            print("videoplay: play_file: cmd is", cmd, file=sys.stderr)
 
         self.launch_video_player(cmd)
 
@@ -133,7 +133,7 @@ class VideoPlayer:
         characters.
         """
         if DEBUG:
-            print >> sys.stderr, "videoplay: Playing file with Unicode filename via HTTP"
+            print("videoplay: Playing file with Unicode filename via HTTP", file=sys.stderr)
 
         (prefix, ext) = os.path.splitext(dest)
         videourl = self.create_url(self.videohttpserv, '/' + os.path.basename(prefix + ext))
@@ -150,7 +150,7 @@ class VideoPlayer:
     def play_url(self, url):
         """ Play video file from network or disk """
         if DEBUG:
-            print >> sys.stderr, "videoplay: Playing file from url", url
+            print("videoplay: Playing file from url", url, file=sys.stderr)
 
         self.determine_playbackmode()
 
@@ -164,11 +164,11 @@ class VideoPlayer:
                 x = [t[0], t[1], t[2], t[3], t[4]]
                 n = urllib.quote(x[2])
                 if DEBUG:
-                    print >> sys.stderr, "videoplay: play_url: OLD PATH WAS", x[2], "NEW PATH", n
+                    print("videoplay: play_url: OLD PATH WAS", x[2], "NEW PATH", n, file=sys.stderr)
                 x[2] = n
                 n = urllib.quote(x[3])
                 if DEBUG:
-                    print >> sys.stderr, "videoplay: play_url: OLD QUERY WAS", x[3], "NEW PATH", n
+                    print("videoplay: play_url: OLD QUERY WAS", x[3], "NEW PATH", n, file=sys.stderr)
                 x[3] = n
                 url = urlparse.urlunsplit(x)
             elif url[0] != '"' and url[0] != "'":
@@ -180,13 +180,13 @@ class VideoPlayer:
         [mimetype, cmd] = self.get_video_player(ext, url)
 
         if DEBUG:
-            print >> sys.stderr, "videoplay: play_url: cmd is", cmd
+            print("videoplay: play_url: cmd is", cmd, file=sys.stderr)
 
         self.launch_video_player(cmd)
 
     def play_stream(self, streaminfo):
         if DEBUG:
-            print >> sys.stderr, "videoplay: play_stream"
+            print("videoplay: play_stream", file=sys.stderr)
 
         self.determine_playbackmode()
 
@@ -276,7 +276,7 @@ class VideoPlayer:
             # User didn't select file to play, select if there is a single, or ask
             videofiles = d.get_dest_files(exts=videoextdefaults)
             if len(videofiles) == 0:
-                print >> sys.stderr, "videoplay: play: No video files found! Let user select"
+                print("videoplay: play: No video files found! Let user select", file=sys.stderr)
                 # Let user choose any file
                 videofiles = d.get_dest_files(exts=None)
 
@@ -286,25 +286,25 @@ class VideoPlayer:
                     infilenames.append(infilename)
 
                 selectedinfilename = self.ask_user_to_select_video(infilenames)
-                print >> sys.stderr, "selectedinfilename == None", selectedinfilename, len(selectedinfilename)
+                print("selectedinfilename == None", selectedinfilename, len(selectedinfilename), file=sys.stderr)
 
                 if selectedinfilename is None:
-                    print >> sys.stderr, "videoplay: play: User selected no video"
+                    print("videoplay: play: User selected no video", file=sys.stderr)
                     return
             else:
                 selectedinfilename = videofiles[0][0]
 
-        print >> sys.stderr , "videoplay: play: PROGRESS" , ds.get_progress()
+        print("videoplay: play: PROGRESS" , ds.get_progress(), file=sys.stderr)
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
 
         if cdef.get_def_type() == 'swift' or not complete:
-            print >> sys.stderr, 'videoplay: play: not complete'
+            print('videoplay: play: not complete', file=sys.stderr)
             self.play_vod(ds, selectedinfilename)
 
         else:
             videofiles = d.get_dest_files(exts=videoextdefaults)
             if len(videofiles) == 0:
-                print >> sys.stderr, "videoplay: play: No video files found! Let user select"
+                print("videoplay: play: No video files found! Let user select", file=sys.stderr)
                 # Let user choose any file
                 videofiles = d.get_dest_files(exts=None)
 
@@ -320,7 +320,7 @@ class VideoPlayer:
             if selectedoutfilename is None:
                 return self.play_vod(ds, selectedinfilename)
 
-            print >> sys.stderr, 'videoplay: play: complete'
+            print('videoplay: play: complete', file=sys.stderr)
             flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(selectedoutfilename)
             if flag:
                 self.play_file_via_httpserv(selectedoutfilename)
@@ -336,7 +336,7 @@ class VideoPlayer:
         cdef = d.get_def()
 
         if DEBUG:
-            print >> sys.stderr, "videoplay: play_vod: Enabling VOD on torrent", cdef.get_name()
+            print("videoplay: play_vod: Enabling VOD on torrent", cdef.get_name(), file=sys.stderr)
 
         # Restart download
         d.set_video_event_callback(self.sesscb_vod_event_callback)
@@ -344,7 +344,7 @@ class VideoPlayer:
         if cdef.get_def_type() != "torrent" or d.get_def().is_multifile_torrent():
             d.set_selected_files([infilename])
 
-        print >> sys.stderr, "videoplay: play_vod: Restarting existing Download", cdef.get_id()
+        print("videoplay: play_vod: Restarting existing Download", cdef.get_id(), file=sys.stderr)
         self.set_vod_download(d)
         d.set_mode(DLMODE_VOD)
         d.restart()
@@ -370,7 +370,7 @@ class VideoPlayer:
             dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
             dscfg.set_video_events(self.get_supported_vod_events())
             dscfg.set_mode(DLMODE_VOD)
-            print >> sys.stderr, "videoplay: Starting new VOD/live Download", repr(cdef.get_name())
+            print("videoplay: Starting new VOD/live Download", repr(cdef.get_name()), file=sys.stderr)
 
             download = self.utility.session.start_download(cdef, dscfg)
 
@@ -385,13 +385,13 @@ class VideoPlayer:
 
         Called by Session thread """
 
-        print >> sys.stderr, "videoplay: sesscb_vod_event_callback called", currentThread().getName(), "###########################################################"
+        print("videoplay: sesscb_vod_event_callback called", currentThread().getName(), "###########################################################", file=sys.stderr)
         wx.CallAfter(self.gui_vod_event_callback, d, event, params)
 
     def gui_vod_event_callback(self, d, event, params):
         """ Also called by SwarmPlayer """
 
-        print >> sys.stderr, "videoplay: gui_vod_event:", event
+        print("videoplay: gui_vod_event:", event, file=sys.stderr)
         if event == VODEVENT_START:
             filename = params["filename"]
             mimetype = params["mimetype"]
@@ -508,14 +508,14 @@ class VideoPlayer:
 
         video_player_path = self.utility.config.Read('videoplayerpath')
         if DEBUG:
-            print >> sys.stderr, "videoplay: Default player is", video_player_path
+            print("videoplay: Default player is", video_player_path, file=sys.stderr)
 
         if mimetype is None:
             if sys.platform == 'win32':
                 # TODO: Use Python's mailcap facility on Linux to find player
                 [mimetype, playcmd] = win32_retrieve_video_play_command(ext, videourl)
                 if DEBUG:
-                    print >> sys.stderr, "videoplay: Win32 reg said playcmd is", playcmd
+                    print("videoplay: Win32 reg said playcmd is", playcmd, file=sys.stderr)
 
             if mimetype is None:
                 if ext == '.avi':
@@ -531,7 +531,7 @@ class VideoPlayer:
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             if DEBUG:
-                print >> sys.stderr, "videoplay: using internal player"
+                print("videoplay: using internal player", file=sys.stderr)
             return [mimetype, videourl]
         elif self.playbackmode == PLAYBACKMODE_EXTERNAL_MIME and sys.platform == 'win32':
             if playcmd is not None:
@@ -539,7 +539,7 @@ class VideoPlayer:
                 return [mimetype, cmd]
 
         if DEBUG:
-            print >> sys.stderr, "videoplay: Defaulting to default player", video_player_path
+            print("videoplay: Defaulting to default player", video_player_path, file=sys.stderr)
         qprogpath = quote_program_path(video_player_path)
         # print >>sys.stderr,"videoplay: Defaulting to quoted prog",qprogpath
         if qprogpath is None:
@@ -553,12 +553,12 @@ class VideoPlayer:
         else:
             cmd = playcmd
         if DEBUG:
-            print >> sys.stderr, "videoplay: using external user-defined player by executing ", cmd
+            print("videoplay: using external user-defined player by executing ", cmd, file=sys.stderr)
         return [mimetype, cmd]
 
     def exec_video_player(self, cmd):
         if DEBUG:
-            print >> sys.stderr, "videoplay: Command is @" + cmd + "@"
+            print("videoplay: Command is @" + cmd + "@", file=sys.stderr)
         # I get a weird problem on Linux. When doing a
         # os.popen2("vlc /tmp/file.wmv") I get the following error:
         # [00000259] main interface error: no suitable interface module
@@ -681,7 +681,7 @@ class VideoChooser(wx.Dialog):
             self.filelist.append(u)
 
         if DEBUG:
-            print >> sys.stderr, "VideoChooser: filelist", self.filelist
+            print("VideoChooser: filelist", self.filelist, file=sys.stderr)
 
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
         if title is None:
@@ -714,7 +714,7 @@ class VideoChooser(wx.Dialog):
 
 def parse_playtime_to_secs(hhmmss):
     if DEBUG:
-        print >> sys.stderr, "videoplay: Playtime is", hhmmss
+        print("videoplay: Playtime is", hhmmss, file=sys.stderr)
     r = re.compile("([0-9]+):*")
     occ = r.findall(hhmmss)
     t = None

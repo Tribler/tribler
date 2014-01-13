@@ -16,7 +16,7 @@ class mainlineDHTChecker:
     def __init__(self):
 
         if DEBUG:
-            print >> sys.stderr, 'mainlineDHTChecker: initialization'
+            print('mainlineDHTChecker: initialization', file=sys.stderr)
         if mainlineDHTChecker.__single:
             raise RuntimeError("mainlineDHTChecker is Singleton")
         mainlineDHTChecker.__single = self
@@ -35,20 +35,20 @@ class mainlineDHTChecker:
 
     def lookup(self, infohash):
         if DEBUG:
-            print >> sys.stderr, "mainlineDHTChecker: Lookup", repr(infohash)
+            print("mainlineDHTChecker: Lookup", repr(infohash), file=sys.stderr)
 
         try:
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             LibtorrentMgr.getInstance().get_peers(infohash, self.got_peers_callback)
         except:
-            print >> sys.stderr, "mainlineDHTChecker: No lookup, libtorrent not loaded"
+            print("mainlineDHTChecker: No lookup, libtorrent not loaded", file=sys.stderr)
 
     def got_peers_callback(self, infohash, peers, node=None):
         if DEBUG:
             if peers:
-                print >> sys.stderr, "mainlineDHTChecker: Got", len(peers), "peers for torrent", repr(infohash), currentThread().getName()
+                print("mainlineDHTChecker: Got", len(peers), "peers for torrent", repr(infohash), currentThread().getName(), file=sys.stderr)
             else:
-                print >> sys.stderr, "mainlineDHTChecker: Got no peers for torrent", repr(infohash), currentThread().getName()
+                print("mainlineDHTChecker: Got no peers for torrent", repr(infohash), currentThread().getName(), file=sys.stderr)
 
         if peers:
             # Arno, 2010-02-19: this can be called frequently with the new DHT,

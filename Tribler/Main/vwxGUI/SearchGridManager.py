@@ -249,7 +249,7 @@ class TorrentManager:
                     self.torrent_db.setSecret(torrent.infohash, secret)
 
                 if DEBUG:
-                    print >> sys.stderr, 'standardDetails: download: download started'
+                    print('standardDetails: download: download started', file=sys.stderr)
         wx.CallAfter(do_gui)
 
         return bool(tdef)
@@ -355,14 +355,14 @@ class TorrentManager:
                 if isinstance(community, SearchCommunity):
                     nr_requests_made = community.create_search(self.searchkeywords, self.gotDispersyRemoteHits)
                     if not nr_requests_made:
-                        print >> sys.stderr, "Could not send search in SearchCommunity, no verified candidates found"
+                        print("Could not send search in SearchCommunity, no verified candidates found", file=sys.stderr)
                     break
 
             else:
-                print >> sys.stderr, "Could not send search in SearchCommunity, community not found"
+                print("Could not send search in SearchCommunity, community not found", file=sys.stderr)
 
         else:
-            print >> sys.stderr, "Could not send search in SearchCommunity, Dispersy not found"
+            print("Could not send search in SearchCommunity, Dispersy not found", file=sys.stderr)
 
         return nr_requests_made
 
@@ -373,7 +373,7 @@ class TorrentManager:
         bundle_mode = self.bundle_mode
 
         if DEBUG:
-            print >> sys.stderr, "TorrentSearchManager: getHitsInCategory:", categorykey
+            print("TorrentSearchManager: getHitsInCategory:", categorykey, file=sys.stderr)
 
         try:
             # locking hits variable
@@ -385,13 +385,13 @@ class TorrentManager:
             new_local_hits = self.searchLocalDatabase()
 
             if DEBUG:
-                print >> sys.stderr, 'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
+                print('TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch), file=sys.stderr)
 
             # 2. Add remote hits that may apply.
             new_remote_hits, modified_hits = self.addStoredRemoteResults()
 
             if DEBUG:
-                print >> sys.stderr, 'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
+                print('TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits), file=sys.stderr)
 
             if DEBUG:
                 beginsort = time()
@@ -422,7 +422,7 @@ class TorrentManager:
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
 
         if DEBUG:
-            print >> sys.stderr, 'TorrentSearchGridManager: getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle)
+            print('TorrentSearchGridManager: getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle), file=sys.stderr)
 
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
@@ -452,9 +452,9 @@ class TorrentManager:
                 # find the original hit
                 for hit in self.hits:
                     if hit.infohash == infohash:
-                        print >> sys.stderr, "Prefetch: in", "%.1fs" % (time() - begin_time), hit.name
+                        print("Prefetch: in", "%.1fs" % (time() - begin_time), hit.name, file=sys.stderr)
                         return
-                print >> sys.stderr, "Prefetch BUG. We got a hit from something we didn't ask for"
+                print("Prefetch BUG. We got a hit from something we didn't ask for", file=sys.stderr)
 
         # we will prefetch 2 types of torrents, full .torrent files and torrentmessages (only containing the info dict)
         hit_counter_limit = [25, 150]
@@ -470,7 +470,7 @@ class TorrentManager:
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
                     if self.downloadTorrentfileFromPeers(hit, lambda infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
                         if DEBUG:
-                            print >> sys.stderr, "Prefetch: attempting to download actual torrent", hit.name
+                            print("Prefetch: attempting to download actual torrent", hit.name, file=sys.stderr)
                         prefetch_counter[0] += 1
 
                 elif prefetch_counter[1] < prefetch_counter_limit[1] and i < hit_counter_limit[1]:
@@ -502,7 +502,7 @@ class TorrentManager:
                 self.bundle_mode = None
                 self.searchkeywords = [kw for kw in wantkeywords if kw != '']
                 if DEBUG:
-                    print >> sys.stderr, "TorrentSearchGridManager: keywords:", self.searchkeywords, ";time:%", time()
+                    print("TorrentSearchGridManager: keywords:", self.searchkeywords, ";time:%", time(), file=sys.stderr)
 
                 self.filteredResults = 0
 
@@ -525,12 +525,12 @@ class TorrentManager:
         """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
         if self.searchkeywords == self.oldsearchkeywords:
             if DEBUG:
-                print >> sys.stderr, "TorrentSearchGridManager: searchLocalDB: returning old hit list", len(self.hits)
+                print("TorrentSearchGridManager: searchLocalDB: returning old hit list", len(self.hits), file=sys.stderr)
             return False
         self.oldsearchkeywords = self.searchkeywords
 
         if DEBUG:
-            print >> sys.stderr, "TorrentSearchGridManager: searchLocalDB: Want", self.searchkeywords
+            print("TorrentSearchGridManager: searchLocalDB: Want", self.searchkeywords, file=sys.stderr)
 
         if len(self.searchkeywords) == 0:
             return False
@@ -574,7 +574,7 @@ class TorrentManager:
         self.hits = results
 
         if DEBUG:
-            print >> sys.stderr, 'TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s' % (time() - begintime, time() - begintuples)
+            print('TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s' % (time() - begintime, time() - begintuples), file=sys.stderr)
         return True
 
     def addStoredRemoteResults(self):
@@ -630,7 +630,7 @@ class TorrentManager:
                         local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')[0]
                         if local_category == 'xxx':
                             if DEBUG:
-                                print >> sys.stderr, 'TorrentSearchGridManager:', remoteItem.name, "is xxx"
+                                print('TorrentSearchGridManager:', remoteItem.name, "is xxx", file=sys.stderr)
                             remoteItem.category_id = self.xxx_category
 
                     self.hits.append(remoteItem)
@@ -646,7 +646,7 @@ class TorrentManager:
             self.remoteLock.release()
 
             if DEBUG:
-                print >> sys.stderr, "TorrentSearchGridManager: addStoredRemoteResults: ", time() - begintime
+                print("TorrentSearchGridManager: addStoredRemoteResults: ", time() - begintime, file=sys.stderr)
 
         return False, []
 
@@ -654,7 +654,7 @@ class TorrentManager:
         refreshGrid = False
         try:
             if DEBUG:
-                print >> sys.stderr, "TorrentSearchGridManager: gotRemoteHist: got", len(results), "unfiltered results for", keywords, candidate, time()
+                print("TorrentSearchGridManager: gotRemoteHist: got", len(results), "unfiltered results for", keywords, candidate, time(), file=sys.stderr)
             self.remoteLock.acquire()
 
             if self.searchkeywords == keywords:
@@ -709,10 +709,10 @@ class TorrentManager:
 
             if refreshGrid:
                 if DEBUG:
-                    print >> sys.stderr, "TorrentSearchGridManager: gotRemoteHist: scheduling refresh"
+                    print("TorrentSearchGridManager: gotRemoteHist: scheduling refresh", file=sys.stderr)
                 self.refreshGrid(remote=True)
             elif DEBUG:
-                print >> sys.stderr, "TorrentSearchGridManager: gotRemoteHist: not scheduling refresh"
+                print("TorrentSearchGridManager: gotRemoteHist: not scheduling refresh", file=sys.stderr)
 
     def refreshGrid(self, remote=False):
         if self.gridmgr:
@@ -932,7 +932,7 @@ class LibraryManager:
 
     @forceWxThread
     def playTorrent(self, torrent, selectedinfilename=None):
-        print >> sys.stderr, "PLAY CLICKED", selectedinfilename
+        print("PLAY CLICKED", selectedinfilename, file=sys.stderr)
 
         self.last_vod_torrent = [torrent, selectedinfilename]
 
@@ -958,7 +958,7 @@ class LibraryManager:
                 d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=[selectedinfilename or torrent.videofiles[0]])
 
             else:
-                print >> sys.stderr, ".TORRENT MISSING REQUESTING FROM PEERS"
+                print(".TORRENT MISSING REQUESTING FROM PEERS", file=sys.stderr)
                 callback = lambda torrentfilename: self.playTorrent(torrent, selectedinfilename)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
         else:
@@ -1129,7 +1129,7 @@ class LibraryManager:
         # results = self.rerankingStrategy.rerank(results, '', self.torrent_db, self.pref_db, self.mypref_db, self.search_db)
 
         if DEBUG:
-            print >> sys.stderr, 'getHitsInCat took:', time() - begintime
+            print('getHitsInCat took:', time() - begintime, file=sys.stderr)
 
         self.hits = self.addDownloadStates(results)
         return [len(self.hits), self.hits]
@@ -1151,7 +1151,7 @@ class LibraryManager:
         prefrerences = self.mypref_db.getMyPrefListInfohash(returnDeleted=False)
         for infohash in infohashes:
             if infohash in prefrerences:
-                print >> sys.stderr, bin2str(infohash), "missing in library"
+                print(bin2str(infohash), "missing in library", file=sys.stderr)
                 return True
         return False
 
@@ -1586,7 +1586,7 @@ class ChannelManager:
 
             return self._disp_get_community_from_cid(dispersy_cid)
 
-        print >> sys.stderr, "Could not find channel", channel_id
+        print("Could not find channel", channel_id, file=sys.stderr)
 
     @warnDispersyThread
     def _disp_get_community_from_cid(self, dispersy_cid):
@@ -1655,7 +1655,7 @@ class ChannelManager:
             channel_id = channel.id
 
         if len(torrent.files) == 0:
-            print >> sys.stderr, "Could not create torrent, no files?", torrent.name, torrent.files, torrent.trackers
+            print("Could not create torrent, no files?", torrent.name, torrent.files, torrent.trackers, file=sys.stderr)
             return False
 
         if not self.channelcast_db.hasTorrent(channel_id, torrent.infohash):
@@ -1677,7 +1677,7 @@ class ChannelManager:
 
             files = tdef.get_files_as_unicode_with_length()
             if len(files) == 0:
-                print >> sys.stderr, "Could not create torrent, no files?", tdef.get_name_as_unicode(), files, tdef.get_trackers_as_single_tuple()
+                print("Could not create torrent, no files?", tdef.get_name_as_unicode(), files, tdef.get_trackers_as_single_tuple(), file=sys.stderr)
                 return False
 
             community._disp_create_torrent(tdef.infohash, long(time()), tdef.get_name_as_unicode(), tuple(files), tdef.get_trackers_as_single_tuple(), forward=forward)
@@ -1700,7 +1700,7 @@ class ChannelManager:
             channel_id = self.channelcast_db.getMyChannelId()
 
         if not channel_id:
-            print >> sys.stderr, "No channel"
+            print("No channel", file=sys.stderr)
             return
 
         for tdef in tdefs:
@@ -1852,7 +1852,7 @@ class ChannelManager:
 
         hitsUpdated = self.searchLocalDatabase()
         if DEBUG:
-            print >> sys.stderr, 'ChannelManager: getChannelHits: search found: %d items' % len(self.hits)
+            print('ChannelManager: getChannelHits: search found: %d items' % len(self.hits), file=sys.stderr)
 
         try:
             # merge remoteHits
@@ -1891,7 +1891,7 @@ class ChannelManager:
             self.remoteLock.release()
 
         if DEBUG:
-            print >> sys.stderr, "ChannelManager: getChannelHits took", time() - begintime
+            print("ChannelManager: getChannelHits took", time() - begintime, file=sys.stderr)
 
         if len(self.hits) == 0:
             return [0, hitsUpdated, None]
@@ -1906,14 +1906,14 @@ class ChannelManager:
                 if isinstance(community, AllChannelCommunity):
                     nr_requests_made = community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
                     if not nr_requests_made:
-                        print >> sys.stderr, "Could not send search in AllChannelCommunity, no verified candidates found"
+                        print("Could not send search in AllChannelCommunity, no verified candidates found", file=sys.stderr)
                     break
 
             else:
-                print >> sys.stderr, "Could not send search in AllChannelCommunity, community not found"
+                print("Could not send search in AllChannelCommunity, community not found", file=sys.stderr)
 
         else:
-            print >> sys.stderr, "Could not send search in AllChannelCommunity, Dispersy not found"
+            print("Could not send search in AllChannelCommunity, Dispersy not found", file=sys.stderr)
 
         return nr_requests_made
 
@@ -1921,13 +1921,13 @@ class ChannelManager:
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
         if self.searchkeywords == self.oldsearchkeywords:
             if DEBUG:
-                print >> sys.stderr, "ChannelManager: searchLocalDB: returning old hit list", len(self.hits)
+                print("ChannelManager: searchLocalDB: returning old hit list", len(self.hits), file=sys.stderr)
             return False
 
         self.oldsearchkeywords = self.searchkeywords
 
         if DEBUG:
-            print >> sys.stderr, "ChannelManager: searchLocalDB: Want", self.searchkeywords
+            print("ChannelManager: searchLocalDB: Want", self.searchkeywords, file=sys.stderr)
 
         if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
             return False

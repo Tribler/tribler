@@ -13,7 +13,7 @@ def init_bak_tribler_sdb(backup='bak_tribler.sdb', destination= 'tribler.sdb', d
     if not os.path.isfile(backup_path) or overwrite:
         got = extract_db_files(FILES_DIR, backup_path + ".tar.gz", overwrite)
         if not got:
-            print >> sys.stderr, "Missing", backup_path + ".tar.gz"
+            print("Missing", backup_path + ".tar.gz", file=sys.stderr)
             sys.exit(1)
 
     for f in os.listdir(FILES_DIR):
@@ -31,7 +31,7 @@ def extract_db_files(file_dir, file_name, overwrite=False):
         import tarfile
         tar = tarfile.open(file_name, 'r|gz')
         for member in tar:
-            print "extract file", member
+            print("extract file", member)
             tar.extract(member)
             dest = os.path.join(file_dir, member.name)
             dest_dir = os.path.dirname(dest)

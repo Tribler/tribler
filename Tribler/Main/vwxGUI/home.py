@@ -294,7 +294,7 @@ class Stats(XRCPanel):
         torrentdb = TorrentDBHandler.getInstance()
         tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         for table, in tables:
-            print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table)
+            print(table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table), file=sys.stderr)
 
     def Show(self, show=True):
         if show:

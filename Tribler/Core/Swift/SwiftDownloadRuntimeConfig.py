@@ -30,7 +30,7 @@ class SwiftDownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     """
     def set_max_speed(self, direct, speed):
         if DEBUG:
-            print >>sys.stderr, "SwiftDownload: set_max_speed", self.get_def().get_name(), direct, speed
+            print("SwiftDownload: set_max_speed", self.get_def().get_name(), direct, speed, file=sys.stderr)
         # print_stack()
 
         self.dllock.acquire()

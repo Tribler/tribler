@@ -88,7 +88,7 @@ def data2wxImage(type, data, dim=ICON_MAX_DIM):
         im.Rescale(dim, dim)
         return im
     except:
-        print >> sys.stderr, 'data2wxImage called (%s, %s)' % (repr(type), repr(dim))
+        print('data2wxImage called (%s, %s)' % (repr(type), repr(dim)), file=sys.stderr)
         print_exc()
         return None
 
@@ -103,6 +103,6 @@ def data2wxBitmap(type, data, dim=ICON_MAX_DIM):
 
         return bm
     except:
-        print >> sys.stderr, 'data2wxBitmap called (%s, %s)' % (repr(type), repr(dim))
+        print('data2wxBitmap called (%s, %s)' % (repr(type), repr(dim)), file=sys.stderr)
         print_exc()
         return None

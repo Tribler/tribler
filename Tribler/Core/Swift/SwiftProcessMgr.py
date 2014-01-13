@@ -54,13 +54,13 @@ class SwiftProcessMgr:
                         if len(sp2.get_downloads()) < self.dlsperproc:
                             sp = sp2
                             if DEBUG:
-                                print >> sys.stderr, "spm: get_or_create_sp: Reusing", sp.get_pid()
+                                print("spm: get_or_create_sp: Reusing", sp.get_pid(), file=sys.stderr)
                             break
 
                 if sp is None:
                     # Create new process
                     sp = SwiftProcess(self.binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, self)
-                    print >> sys.stderr, "spm: get_or_create_sp: Creating new", sp.get_pid()
+                    print("spm: get_or_create_sp: Creating new", sp.get_pid(), file=sys.stderr)
                     self.sps.append(sp)
 
                     # Arno, 2011-10-13: On Linux swift is slow to start and
@@ -69,7 +69,7 @@ class SwiftProcessMgr:
                     # connect when the first fails, so not timing dependent,
                     # just ensures no send_()s get lost. Executed by NetworkThread.
                     if sys.platform == "linux2" or sys.platform == "darwin":
-                        print >> sys.stderr, "spm: Need to sleep 1 second for swift to start on Linux?! FIXME"
+                        print("spm: Need to sleep 1 second for swift to start on Linux?! FIXME", file=sys.stderr)
                         time.sleep(1)
 
                     sp.start_cmd_connection()
@@ -94,7 +94,7 @@ class SwiftProcessMgr:
             self.sesslock.release()
 
     def destroy_sp(self, sp):
-        print >> sys.stderr, "spm: destroy_sp:", sp.get_pid()
+        print("spm: destroy_sp:", sp.get_pid(), file=sys.stderr)
         self.sesslock.acquire()
         try:
             self.sps.remove(sp)
@@ -109,7 +109,7 @@ class SwiftProcessMgr:
         deads = []
         for sp in self.sps:
             if not sp.is_alive():
-                print >> sys.stderr, "spm: clean_sps: Garbage collecting dead", sp.get_pid()
+                print("spm: clean_sps: Garbage collecting dead", sp.get_pid(), file=sys.stderr)
                 deads.append(sp)
         for sp in deads:
             self.sps.remove(sp)
@@ -119,7 +119,7 @@ class SwiftProcessMgr:
         gracetime (see Session.shutdown()).
         """
         # Called by any thread, assume sessionlock is held
-        print >> sys.stderr, "spm: early_shutdown"
+        print("spm: early_shutdown", file=sys.stderr)
         try:
             self.sesslock.acquire()
             self.done = True
@@ -135,7 +135,7 @@ class SwiftProcessMgr:
     def network_shutdown(self):
         """ Gracetime expired, kill procs """
         # Called by network thread
-        print >> sys.stderr, "spm: network_shutdown"
+        print("spm: network_shutdown", file=sys.stderr)
         for sp in self.sps:
             try:
                 sp.network_shutdown()
@@ -150,7 +150,7 @@ class SwiftProcessMgr:
         try:
             for sp in self.sps:
                 if sp.get_cmdport() == port:
-                    print >> sys.stderr, "spm: connection_lost: Restart", sp.get_pid()
+                    print("spm: connection_lost: Restart", sp.get_pid(), file=sys.stderr)
                     sp.start_cmd_connection()
         finally:
             self.sesslock.release()

@@ -112,7 +112,7 @@ def check_ut_pex(d):
         # raise ValueError('ut_pex: added.f: missing')
 
     if DEBUG:
-        print >> sys.stderr, "ut_pex: Got", apeers
+        print("ut_pex: Got", apeers, file=sys.stderr)
 
     return (same_apeers, apeers, dpeers)
 

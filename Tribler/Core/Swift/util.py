@@ -41,7 +41,7 @@ def torrent2swiftspec(metainfo):
             filelist.append((pathname, flen))
     else:
         filelist.append(info["name"], info["length"])
-        print "WARNING: Torrent contains single file, better seed via swift directly"
+        print("WARNING: Torrent contains single file, better seed via swift directly")
 
     return filelist2swiftspec(filelist)
 

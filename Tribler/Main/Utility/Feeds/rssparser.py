@@ -74,7 +74,7 @@ class RssParser(Thread):
 
             self.isRegistered = True
         elif DEBUG:
-            print >> sys.stderr, "RssParser is already registered, ignoring"
+            print("RssParser is already registered, ignoring", file=sys.stderr)
 
     def getdir(self):
         return os.path.join(self.session.get_state_dir(), "subscriptions")
@@ -114,11 +114,11 @@ class RssParser(Thread):
                     if state == 'active':
                         self.addURL(url, key, dowrite=False)
                 else:
-                    print >> sys.stderr, "RssParser: Ignoring line", line
+                    print("RssParser: Ignoring line", line, file=sys.stderr)
             f.close()
         except:
             if DEBUG:
-                print >> sys.stderr, "RssParser: subscriptions.txt does not yet exist"
+                print("RssParser: subscriptions.txt does not yet exist", file=sys.stderr)
 
     def writefile(self):
         filename = self.getfilename()
@@ -172,7 +172,7 @@ class RssParser(Thread):
 
     def doRefresh(self):
         if DEBUG:
-            print >> sys.stderr, "RssParser: refresh"
+            print("RssParser: refresh", file=sys.stderr)
 
         self.doStart()
 
@@ -188,17 +188,17 @@ class RssParser(Thread):
 
         while self.isRegistered and len(self.key_url) and len(self.key_callbacks):
             if DEBUG:
-                print >> sys.stderr, "RssParser: running"
+                print("RssParser: running", file=sys.stderr)
 
             self._refresh()
             self.urls_changed.clear()
 
             if DEBUG:
-                print >> sys.stderr, "RssParser: finished, waiting", RSS_RELOAD_FREQUENCY
+                print("RssParser: finished, waiting", RSS_RELOAD_FREQUENCY, file=sys.stderr)
             self.urls_changed.wait(RSS_RELOAD_FREQUENCY)
         else:
             if DEBUG:
-                print >> sys.stderr, "RssParser: not registered unable to run or exiting"
+                print("RssParser: not registered unable to run or exiting", file=sys.stderr)
 
     def shutdown(self):
         self.isRegistered = False
@@ -217,7 +217,7 @@ class RssParser(Thread):
                 if key in self.key_callbacks:
                     for url in urls:
                         if DEBUG:
-                            print >> sys.stderr, "RssParser: getting rss", url, len(urls)
+                            print("RssParser: getting rss", url, len(urls), file=sys.stderr)
 
                         historyfile = self.gethistfilename(url, key)
                         urls_already_seen = URLHistory(historyfile)
@@ -231,7 +231,7 @@ class RssParser(Thread):
 
                                 try:
                                     if DEBUG:
-                                        print >> sys.stderr, "RssParser: trying", new_url
+                                        print("RssParser: trying", new_url, file=sys.stderr)
 
                                     referer = urlparse(new_url)
                                     referer = referer.scheme + "://" + referer.netloc + "/"
@@ -257,14 +257,14 @@ class RssParser(Thread):
 
                                 except:
                                     if DEBUG:
-                                        print >> sys.stderr, "RssParser: could not download", new_url
+                                        print("RssParser: could not download", new_url, file=sys.stderr)
                                     pass
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
 
     def readUrl(self, url, urls_already_seen):
         if DEBUG:
-            print >> sys.stderr, "RssParser: reading url", url
+            print("RssParser: reading url", url, file=sys.stderr)
 
         newItems = []
 
@@ -305,7 +305,7 @@ class RssParser(Thread):
                     newItems.append((title, new_urls, description, thumbnail))
         except URLError:
             if DEBUG:
-                print >> sys.stderr, "RssParser: could not open url", url
+                print("RssParser: could not open url", url, file=sys.stderr)
 
         return newItems
 
@@ -342,7 +342,7 @@ class URLHistory:
 
     def read(self):
         if DEBUG:
-            print >> sys.stderr, "subscrip: Reading cached", self.filename
+            print("subscrip: Reading cached", self.filename, file=sys.stderr)
         try:
             file_handle = open(self.filename, "rb")
         except IOError:
@@ -359,10 +359,10 @@ class URLHistory:
                     timestamp = float(timestamp)
                     if not self.timedout(timestamp, now):
                         if DEBUG:
-                            print >> sys.stderr, "subscrip: Cached url is", url
+                            print("subscrip: Cached url is", url, file=sys.stderr)
                         self.urls[url] = timestamp
                     elif DEBUG:
-                        print >> sys.stderr, "subscrip: Timed out cached url is %s" % url
+                        print("subscrip: Timed out cached url is %s" % url, file=sys.stderr)
 
             file_handle.close()
 
@@ -392,7 +392,7 @@ if __name__ == '__main__':
     DEBUG = True
 
     def callback(key, torrent, extraInfo):
-        print >> sys.stderr, "RssParser: Found torrent", key, torrent, extraInfo
+        print("RssParser: Found torrent", key, torrent, extraInfo, file=sys.stderr)
 
     class FakeSession:
 

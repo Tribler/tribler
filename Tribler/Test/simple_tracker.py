@@ -29,7 +29,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET(self):
 
-        print >>sys.stderr, "test: tracker: Got GET request", self.path
+        print("test: tracker: Got GET request", self.path, file=sys.stderr)
 
         p = []
         p1 = {'peer id': self.server.myid, 'ip': self.server.myip,'port':self.server.myport}

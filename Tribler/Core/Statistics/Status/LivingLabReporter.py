@@ -96,7 +96,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
             report.appendChild(self.new_element(doc, "timestamp",
                                                long(round(time.time()))))
             for element in elements:
-                print element.__class__
+                print(element.__class__)
                 report.appendChild(self.new_element(doc,
                                                    element.get_name(),
                                                    element.get_value()))
@@ -126,7 +126,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
         if self.print_post:
-            print >> sys.stderr, xml_printer.to_pretty_xml()
+            print(xml_printer.to_pretty_xml(), file=sys.stderr)
         xml_str = xml_printer.to_xml()
 
         # Now we send this to the service using a HTTP POST
@@ -185,7 +185,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         resp = h.getresponse()
         if DEBUG:
             # print >>sys.stderr, "LivingLabReporter:\n", xml_str
-            print >>sys.stderr, "LivingLabReporter:", repr(resp.status), repr(resp.reason), "\n", resp.getheaders(), "\n", resp.read().replace("\\n", "\n")
+            print("LivingLabReporter:", repr(resp.status), repr(resp.reason), "\n", resp.getheaders(), "\n", resp.read().replace("\\n", "\n"), file=sys.stderr)
 
         if resp.status != 200:
             if self.error_handler:
@@ -194,8 +194,8 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
                 except Exception as e:
                     pass
             else:
-                print >> sys.stderr, "Error posting but no error handler:", resp.status
-                print >> sys.stderr, resp.read()
+                print("Error posting but no error handler:", resp.status, file=sys.stderr)
+                print(resp.read(), file=sys.stderr)
 
 
 if __name__ == "__main__":
@@ -209,7 +209,7 @@ if __name__ == "__main__":
         """
         Test error-handler
         """
-        print "Error:", code, message
+        print("Error:", code, message)
 
     reporter = LivingLabPeriodicReporter("Living lab test reporter",
                                          1.0, test_error_handler)
@@ -219,7 +219,7 @@ if __name__ == "__main__":
 
     time.sleep(2)
 
-    print "Stopping reporter"
+    print("Stopping reporter")
     reporter.stop()
 
-    print "Sent %d reports" % reporter.num_reports
+    print("Sent %d reports" % reporter.num_reports)

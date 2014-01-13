@@ -120,7 +120,7 @@ class SwiftTracker(threading.Thread):
             reply = ''.join(reply)
             self.socket.sendto(reply, channel.remote_addr)
         # droid.log('DHT got %d peers' % len(channel.peers))
-        print 'got %d peer' % len(peers), peers
+        print('got %d peer' % len(peers), peers)
 
     def handle(self, data, addr):
         # droid.log("New connection")
@@ -157,18 +157,18 @@ class SwiftTracker(threading.Thread):
             elif msg_type == PEX_REQ:
                 i += PEER_SIZE
             elif msg_type == SIGNED_HASH:
-                print repr(data)
+                print(repr(data))
                 raise NotImplemented
             elif msg_type == HINT:
                 i += BIN_SIZE
             elif msg_type == MSGTYPE_RCVD:
-                print repr(data)
+                print(repr(data))
                 raise NotImplemented
             elif msg_type == VERSION:
                 i += VERSION_SIZE
             else:
-                print 'UNKNOWN: ', msg_type,
-                print repr(data)
+                print('UNKNOWN: ', msg_type, end=' ')
+                print(repr(data))
                 # raise NotImplemented
                 return
         if remote_cid == CHANNEL_ZERO and channel.rhash:

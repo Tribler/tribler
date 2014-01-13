@@ -37,7 +37,7 @@ def define_communities(session):
                                    {},
                                    load=True)
     dispersy.define_auto_load(ChannelCommunity, load=True)
-    print >> sys.stderr, "tribler: Dispersy communities are ready"
+    print("tribler: Dispersy communities are ready", file=sys.stderr)
 
 def dispersy_started(session, opt):
     from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, ChannelManager
@@ -55,15 +55,15 @@ def dispersy_started(session, opt):
     createdNewChannel = False
     myChannelId = channelManager.channelcast_db.getMyChannelId()
     if not myChannelId:
-        print >> sys.stderr, "creating a new channel"
+        print("creating a new channel", file=sys.stderr)
         channelManager.createChannel(myChannelName, u'')
         createdNewChannel = True
 
     else:
-        print >> sys.stderr, "reusing previously created channel"
+        print("reusing previously created channel", file=sys.stderr)
         myChannel = channelManager.getChannel(myChannelId)
         if myChannel.name != myChannelName:
-            print >> sys.stderr, "renaming channel to", myChannelName
+            print("renaming channel to", myChannelName, file=sys.stderr)
             channelManager.modifyChannel(myChannelId, {'name': myChannelName})
 
     def createTorrentFeed():
@@ -102,7 +102,7 @@ def dispersy_started(session, opt):
         myChannelId = channelManager.channelcast_db.getMyChannelId()
         community = channelManager._disp_get_community_from_channel_id(myChannelId)
 
-        print >> sys.stderr, "Using community:", community._cid.encode('HEX')
+        print("Using community:", community._cid.encode('HEX'), file=sys.stderr)
 
         items = json.load(open(opt.file, 'rb'))
         for item in items:
@@ -112,18 +112,18 @@ def dispersy_started(session, opt):
                 infohash = sha1(str(random.randint(0, 1000000))).digest()
             message = community._disp_create_torrent(infohash, long(time.time()), unicode(item['name']), ((u'fake.file', 10),), tuple(), update=False, forward=False)
 
-            print >> sys.stderr, "Created a new torrent"
+            print("Created a new torrent", file=sys.stderr)
 
             latest_review = None
             for modification in item['modifications']:
                 reviewmessage = community._disp_create_modification('description', unicode(modification['text']), long(time.time()), message, latest_review, update=False, forward=False)
 
-                print >> sys.stderr, "Created a new modification"
+                print("Created a new modification", file=sys.stderr)
 
                 if modification['revert']:
                     community._disp_create_moderation('reverted', long(time.time()), 0, reviewmessage.packet_id, update=False, forward=False)
 
-                    print >> sys.stderr, "Reverted the last modification"
+                    print("Reverted the last modification", file=sys.stderr)
                 else:
                     latest_review = reviewmessage
 
@@ -145,10 +145,10 @@ def main():
 
     if not (opt.rss or opt.dir or opt.file):
         command_line_parser.print_help()
-        print "\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies"
+        print("\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies")
         sys.exit()
 
-    print "Type Q followed by <ENTER> to stop the metadata-injector"
+    print("Type Q followed by <ENTER> to stop the metadata-injector")
 
     sscfg = SessionStartupConfig()
     if opt.statedir:
@@ -173,7 +173,7 @@ def main():
     try:
         while True:
             x = sys.stdin.readline()
-            print >> sys.stderr, x
+            print(x, file=sys.stderr)
             if x.strip() == 'Q':
                 break
     except:
@@ -186,7 +186,7 @@ def main():
     dirfeed.shutdown()
 
     session.shutdown()
-    print "Shutting down..."
+    print("Shutting down...")
     time.sleep(5)
 
 if __name__ == "__main__":

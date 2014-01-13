@@ -69,7 +69,7 @@ class BundleListItem(ListItem):
             self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
 
             if DEBUG:
-                print >> sys.stderr, "*** BundleListItem.RefreshData: bundle changed: %s #1+%s" % (original_data['key'], len(bundled))
+                print("*** BundleListItem.RefreshData: bundle changed: %s #1+%s" % (original_data['key'], len(bundled)), file=sys.stderr)
         else:
             if infohash == self.original_data.infohash:  # update top row
                 ListItem.RefreshData(self, data)
@@ -126,7 +126,7 @@ class BundleListItem(ListItem):
             self.Freeze()
 
             if DEBUG:
-                print >> sys.stderr, "BundleListItem: ShowExpandedPanel", show, self.expanded_panel_shown
+                print("BundleListItem: ShowExpandedPanel", show, self.expanded_panel_shown, file=sys.stderr)
 
             panel.Show(show)
 
@@ -290,7 +290,7 @@ class BundlePanel(wx.BoxSizer):
         didChange = len(children) < min(N, self.nrhits)
         if not didChange:
             if DEBUG:
-                print >> sys.stderr, "*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only"
+                print("*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only", file=sys.stderr)
 
             # total nr items did not change
             for i in range(items_to_add):
@@ -314,7 +314,7 @@ class BundlePanel(wx.BoxSizer):
 
         if didChange:
             if DEBUG:
-                print >> sys.stderr, "*** BundlePanel.UpdateGrid: something did change rebuilding grid", len(children), min(N, self.nrhits)
+                print("*** BundlePanel.UpdateGrid: something did change rebuilding grid", len(children), min(N, self.nrhits), file=sys.stderr)
 
             curRows = len(children) / BUNDLE_NUM_COLS
             newRows = min(self.nrhits / BUNDLE_NUM_COLS, BUNDLE_NUM_ROWS)
@@ -436,7 +436,7 @@ class BundlePanel(wx.BoxSizer):
 
             if DEBUG:
                 statestr = lambda st: ['COLLAPSED', 'PARTIAL', 'FULL'][st]
-                print >> sys.stderr, '*** BundlePanel.ChangeState: %s --> %s' % (statestr(old_state), statestr(new_state))
+                print('*** BundlePanel.ChangeState: %s --> %s' % (statestr(old_state), statestr(new_state)), file=sys.stderr)
 
     def ExpandHit(self, hit):
         id = hit.infohash

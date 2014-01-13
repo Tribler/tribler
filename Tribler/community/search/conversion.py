@@ -253,11 +253,11 @@ class SearchConversion(BinaryConversion):
         import sys
         for torrent in message.payload.torrents:
             if torrent[2] > 2 ** 16 or torrent[2] < 0:
-                print >> sys.stderr, "seeder value is incorrect", torrent[2]
+                print("seeder value is incorrect", torrent[2], file=sys.stderr)
             if torrent[3] > 2 ** 16 or torrent[3] < 0:
-                print >> sys.stderr, "leecher value is incorrect", torrent[3]
+                print("leecher value is incorrect", torrent[3], file=sys.stderr)
             if torrent[4] > 2 ** 16 or torrent[4] < 0:
-                print >> sys.stderr, "since value is incorrect", torrent[4]
+                print("since value is incorrect", torrent[4], file=sys.stderr)
 
         hashpack = '20s20sHHH' * len(message.payload.torrents)
         torrents = [item for sublist in message.payload.torrents for item in sublist]

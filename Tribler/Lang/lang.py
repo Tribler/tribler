@@ -34,7 +34,7 @@ class Lang:
         langpath = os.path.join(self.utility.getPath(), LIBRARYNAME, "Lang")
 
         sys.stdout.write("Setting up languages\n")
-        print >> sys.stderr, "Language file:", langpath, filename
+        print("Language file:", langpath, filename, file=sys.stderr)
 
         # Set up user language file (stored in user's config directory)
         self.user_lang = None
@@ -114,7 +114,7 @@ class Lang:
 
         # if we get to this point, we weren't able to read anything
         if giveerror:
-            print >> sys.stderr, "Language file: Got an error finding:", label
+            print("Language file: Got an error finding:", label, file=sys.stderr)
             self.error(label)
         return ""
 

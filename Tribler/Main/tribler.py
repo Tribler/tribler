@@ -3,7 +3,7 @@ import logging.config
 try:
     logging.config.fileConfig("logger.conf")
 except:
-    print >> sys.stderr, "Unable to load logging config from 'logger.conf' file."
+    print("Unable to load logging config from 'logger.conf' file.", file=sys.stderr)
 logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
 
 

@@ -299,12 +299,12 @@ def encode_dict(x, r):
     for k, v in ilist:
 
         if DEBUG:
-            print >>sys.stderr, "bencode: Encoding", repr(k), repr(v)
+            print("bencode: Encoding", repr(k), repr(v), file=sys.stderr)
 
         try:
             r.extend((str(len(k)), ':', k))
         except:
-            print >> sys.stderr, "k: %s" % k
+            print("k: %s" % k, file=sys.stderr)
             raise
 
         encode_func[type(v)](v, r)
@@ -332,7 +332,7 @@ def bencode(x):
     try:
         encode_func[type(x)](x, r)
     except:
-        print >>sys.stderr, "bencode: *** error *** could not encode type %s (value: %s)" % (type(x), x)
+        print("bencode: *** error *** could not encode type %s (value: %s)" % (type(x), x), file=sys.stderr)
         print_stack()
 
         print_exc()
@@ -341,9 +341,9 @@ def bencode(x):
         return ''.join(r)
     except:
         if DEBUG:
-            print >>sys.stderr, "bencode: join error", x
+            print("bencode: join error", x, file=sys.stderr)
             for elem in r:
-                print >>sys.stderr, "elem", elem, "has type", type(elem)
+                print("elem", elem, "has type", type(elem), file=sys.stderr)
             print_exc()
         return ''
 

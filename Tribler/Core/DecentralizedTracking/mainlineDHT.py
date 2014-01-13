@@ -23,7 +23,7 @@ if sys.version.split()[0] >= '2.5':
 def init(addr, conf_path, swift_port):
     global dht_imported
     if DEBUG:
-        print >> sys.stderr, 'dht: DHT initialization', dht_imported
+        print('dht: DHT initialization', dht_imported, file=sys.stderr)
         log_level = logging.DEBUG
     else:
         log_level = logging.ERROR
@@ -39,7 +39,7 @@ def init(addr, conf_path, swift_port):
                             log_level,
                             swift_port=swift_port)
         if DEBUG:
-            print >> sys.stderr, 'dht: DHT running'
+            print('dht: DHT running', file=sys.stderr)
     return dht
 
 

@@ -498,9 +498,9 @@ if __debug__:
             s = encode(value)
             length, v = decode(s)
             if verbose:
-                print "dispersy A", length, ":", value, "->", s
+                print("dispersy A", length, ":", value, "->", s)
             else:
-                print "dispersy A", length
+                print("dispersy A", length)
             assert len(s) == length, (len(s), length)
             assert value == v, (value, v)
 
@@ -517,7 +517,7 @@ if __debug__:
 
             value = in_
             if isinstance(value, (float, type(None), set)):
-                print "bittorrent", "not supported"
+                print("bittorrent", "not supported")
             else:
                 # exception: tuple types are encoded as list
                 if isinstance(value, tuple):
@@ -532,11 +532,11 @@ if __debug__:
                 v = bdecode(s)
 
                 if verbose:
-                    print "bittorrent", len(s), ":", value, "->", s
+                    print("bittorrent", len(s), ":", value, "->", s)
                 else:
-                    print "bittorrent", len(s)
+                    print("bittorrent", len(s))
                 assert value == v, (value, v)
-            print
+            print()
 
         test(4242)
         test(42)

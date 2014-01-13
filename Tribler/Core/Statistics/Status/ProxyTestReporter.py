@@ -70,7 +70,7 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
                 report.appendChild(self.new_element(doc, "timestamp",
                                                     long(round(time.time()))))
                 for element in elements:
-                    print element.__class__
+                    print(element.__class__)
                     report.appendChild(self.new_element(doc,
                                                        element.get_name(),
                                                        element.get_value()))
@@ -100,7 +100,7 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
         if self.print_post:
-            print >> sys.stderr, xml_printer.to_pretty_xml()
+            print(xml_printer.to_pretty_xml(), file=sys.stderr)
         xml_str = xml_printer.to_xml()
 
         # Now we send this to the service using a HTTP POST

@@ -10,7 +10,7 @@ DEBUG = False
 
 def parse_playtime_to_secs(hhmmss):
     if DEBUG:
-        print >>sys.stderr, "miscutils: Playtime is", hhmmss
+        print("miscutils: Playtime is", hhmmss, file=sys.stderr)
     r = re.compile("([0-9\.]+):*")
     occ = r.findall(hhmmss)
     t = None

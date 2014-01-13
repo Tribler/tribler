@@ -130,7 +130,7 @@ class RemoteSearchManager(BaseManager):
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
             if DEBUG:
-                print >> sys.stderr, 'RemoteSearchManager: refresh returning results took', time() - begintime, time()
+                print('RemoteSearchManager: refresh returning results took', time() - begintime, time(), file=sys.stderr)
 
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
@@ -150,9 +150,9 @@ class RemoteSearchManager(BaseManager):
                 self.list.SetData(data_files)
             else:
                 if DEBUG:
-                    print >> sys.stderr, "RemoteSearchManager: not refreshing list, no new items"
+                    print("RemoteSearchManager: not refreshing list, no new items", file=sys.stderr)
         elif DEBUG:
-            print >> sys.stderr, "RemoteSearchManager: ignoring old keywords"
+            print("RemoteSearchManager: ignoring old keywords", file=sys.stderr)
 
     def refresh_channel(self):
         def db_callback():
@@ -230,11 +230,11 @@ class LocalSearchManager(BaseManager):
     def refresh_if_exists(self, infohashes, force=False):
         def db_call():
             if self.library_manager.exists(infohashes):
-                print >> sys.stderr, long(time()), "Scheduling a refresh, missing some infohashes in the Library"
+                print(long(time()), "Scheduling a refresh, missing some infohashes in the Library", file=sys.stderr)
 
                 self.refresh()
             else:
-                print >> sys.stderr, long(time()), "Not scheduling a refresh"
+                print(long(time()), "Not scheduling a refresh", file=sys.stderr)
 
         diff = time() - self.prev_refresh_if
         if force or diff > 30:
@@ -242,7 +242,7 @@ class LocalSearchManager(BaseManager):
 
             startWorker(None, db_call, uId=u"LocalSearchManager_refresh_if_exists", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
-            print >> sys.stderr, long(time()), "Not scheduling a refresh, update limit", long(time()), long(self.prev_refresh_if)
+            print(long(time()), "Not scheduling a refresh, update limit", long(time()), long(self.prev_refresh_if), file=sys.stderr)
 
     def refresh_or_expand(self, infohash):
         if not self.list.InList(infohash):
@@ -315,7 +315,7 @@ class ChannelSearchManager(BaseManager):
 
     def refresh(self, search_results=None):
         if DEBUG:
-            print >> sys.stderr, "ChannelManager complete refresh"
+            print("ChannelManager complete refresh", file=sys.stderr)
 
         if self.category != 'searchresults':
             category = self.category
@@ -359,7 +359,7 @@ class ChannelSearchManager(BaseManager):
             self.list.SetCategory(category)
             self.list.SetData(data)
             if DEBUG:
-                print >> sys.stderr, "ChannelManager complete refresh done"
+                print("ChannelManager complete refresh done", file=sys.stderr)
 
     def refresh_partial(self, ids=None):
         if ids:

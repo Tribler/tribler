@@ -20,14 +20,14 @@ def win32_retrieve_video_play_command(ext, videourl):
     registry = Win32RegChecker()
 
     if DEBUG:
-        print >>sys.stderr, "videoplay: Looking for player for", unicode2str(videourl)
+        print("videoplay: Looking for player for", unicode2str(videourl), file=sys.stderr)
     if ext == '':
         return [None, None]
 
     contenttype = None
     winfiletype = registry.readRootKey(ext)
     if DEBUG:
-        print >>sys.stderr, "videoplay: winfiletype is", winfiletype, type(winfiletype)
+        print("videoplay: winfiletype is", winfiletype, type(winfiletype), file=sys.stderr)
     if winfiletype is None or winfiletype == '':
         # Darn.... Try this: (VLC seems to be the one messing the registry up in the
         # first place)
@@ -36,7 +36,7 @@ def win32_retrieve_video_play_command(ext, videourl):
             return [None, None]
         # Get MIME type
     if DEBUG:
-        print >>sys.stderr, "videoplay: Looking for player for ext", ext, "which is type", winfiletype
+        print("videoplay: Looking for player for ext", ext, "which is type", winfiletype, file=sys.stderr)
 
     contenttype = registry.readRootKey(ext, value_name="Content Type")
 
@@ -85,7 +85,7 @@ def win32_retrieve_video_play_command(ext, videourl):
             return [None, None]
         suo = qprogpath + suo[end:]
         if DEBUG:
-            print >>sys.stderr, "videoplay: new urlopen is", suo
+            print("videoplay: new urlopen is", suo, file=sys.stderr)
     return [contenttype, suo.replace(replace, videourl)]
 
 
@@ -94,7 +94,7 @@ def win32_retrieve_playcmd_from_mimetype(mimetype, videourl):
     registry = Win32RegChecker()
 
     if DEBUG:
-        print >>sys.stderr, "videoplay: Looking for player for", unicode2str(videourl)
+        print("videoplay: Looking for player for", unicode2str(videourl), file=sys.stderr)
     if mimetype == '' or mimetype is None:
         return [None, None]
 
@@ -102,11 +102,11 @@ def win32_retrieve_playcmd_from_mimetype(mimetype, videourl):
     valuename = 'Extension'
     ext = registry.readKeyRecursively(HKLM, keyname, value_name=valuename)
     if DEBUG:
-        print >>sys.stderr, "videoplay: ext winfiletype is", ext
+        print("videoplay: ext winfiletype is", ext, file=sys.stderr)
     if ext is None or ext == '':
         return [None, None]
     if DEBUG:
-        print >>sys.stderr, "videoplay: Looking for player for mime", mimetype, "which is ext", ext
+        print("videoplay: Looking for player for mime", mimetype, "which is ext", ext, file=sys.stderr)
 
     return win32_retrieve_video_play_command(ext, videourl)
 
@@ -117,7 +117,7 @@ def quote_program_path(progpath):
         # Contains spaces, should quote if it's really path
         if not os.access(progpath, os.R_OK):
             if DEBUG:
-                print >>sys.stderr, "videoplay: Could not find assumed progpath", progpath
+                print("videoplay: Could not find assumed progpath", progpath, file=sys.stderr)
             return None
         return '"' + progpath +'"'
     else:

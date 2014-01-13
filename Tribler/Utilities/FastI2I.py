@@ -74,7 +74,7 @@ class FastI2IConnection(Thread):
         # data may come in in parts, not lines! Or multiple lines at same time
 
         if DEBUG:
-            print >> sys.stderr, "fasti2i: data_came_in", repr(data), len(data)
+            print("fasti2i: data_came_in", repr(data), len(data), file=sys.stderr)
 
         if len(self.buffer) == 0:
             self.buffer = data

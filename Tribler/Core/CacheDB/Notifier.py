@@ -127,7 +127,7 @@ class Notifier:
                         self.observerscache[ofunc].append(args)
             except:
                 print_exc()
-                print >> sys.stderr, "notify: OIDs were", repr(oid), repr(obj_id)
+                print("notify: OIDs were", repr(oid), repr(obj_id), file=sys.stderr)
 
         self.observerLock.release()
         for task in tasks:

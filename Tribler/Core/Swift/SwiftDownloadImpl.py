@@ -134,7 +134,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                     self.total_down = dlstate['total_down']
 
             if DEBUG:
-                print >> sys.stderr, "SwiftDownloadImpl: setup: initialdlstatus", repr(self.sdef.get_roothash_as_hex()), initialdlstatus
+                print("SwiftDownloadImpl: setup: initialdlstatus", repr(self.sdef.get_roothash_as_hex()), initialdlstatus, file=sys.stderr)
 
             # Note: initialdlstatus now only works for STOPPED
             if initialdlstatus != DLSTATUS_STOPPED:
@@ -153,7 +153,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None):
         """ Called by any thread, assume dllock already acquired """
         if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: create_engine_wrapper()"
+            print("SwiftDownloadImpl: create_engine_wrapper()", file=sys.stderr)
 
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
@@ -223,7 +223,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
     def i2ithread_vod_event_callback(self, event, httpurl):
         if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER", event, httpurl, "mode", self.get_mode()
+            print("SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER", event, httpurl, "mode", self.get_mode(), file=sys.stderr)
 
         self.dllock.acquire()
         try:
@@ -248,7 +248,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 #
 
                 if DEBUG:
-                    print >> sys.stderr, "SwiftDownloadImpl: i2ithread_vod_event_callback", event, httpurl
+                    print("SwiftDownloadImpl: i2ithread_vod_event_callback", event, httpurl, file=sys.stderr)
 
                 # Arno: No threading violation, lm_network_* is safe at the moment
                 self.lm_network_vod_event_callback(videoinfo, VODEVENT_START, {
@@ -438,7 +438,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         try:
             if self.sp is None:
                 if DEBUG:
-                    print >> sys.stderr, "SwiftDownloadImpl: network_get_state: Download not running"
+                    print("SwiftDownloadImpl: network_get_state: Download not running", file=sys.stderr)
                 ds = DownloadState(self, DLSTATUS_STOPPED, self.error, self.progressbeforestop, seeding_stats=self.get_seeding_statistics())
             else:
                 (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
@@ -486,7 +486,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.dllock.acquire()
         try:
             if DEBUG:
-                print >> sys.stderr, "SwiftDownloadImpl: network_stop", repr(self.sdef.get_name())
+                print("SwiftDownloadImpl: network_stop", repr(self.sdef.get_name()), file=sys.stderr)
 
             pstate = self.network_get_persistent_state()
             if self.sp is not None:
@@ -519,7 +519,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Restart the Download """
         # Called by any thread
         if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: restart:", repr(self.sdef.get_name())
+            print("SwiftDownloadImpl: restart:", repr(self.sdef.get_name()), file=sys.stderr)
         self.dllock.acquire()
         try:
             if self.sp is None:
@@ -535,7 +535,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     def set_max_desired_speed(self, direct, speed):
         if DEBUG:
-            print >> sys.stderr, "Download: set_max_desired_speed", direct, speed
+            print("Download: set_max_desired_speed", direct, speed, file=sys.stderr)
         # if speed < 10:
         #    print_stack()
 
@@ -614,7 +614,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate['dlstate'].update(ds.get_seeding_statistics())
 
         if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: netw_get_pers_state: status", dlstatus_strings[ds.get_status()], "progress", ds.get_progress()
+            print("SwiftDownloadImpl: netw_get_pers_state: status", dlstatus_strings[ds.get_status()], "progress", ds.get_progress(), file=sys.stderr)
 
         # Swift stores own state in .mhash and .mbinmap file
         pstate['engineresumedata'] = None
@@ -672,7 +672,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         try:
             if self.sp is not None and not self.done:
                 if not self.sp.is_alive():
-                    print >> sys.stderr, "SwiftDownloadImpl: network_check_swift_alive: Restarting", repr(self.sdef.get_name())
+                    print("SwiftDownloadImpl: network_check_swift_alive: Restarting", repr(self.sdef.get_name()), file=sys.stderr)
                     self.sp = None
                     self.restart()
         except:

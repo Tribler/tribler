@@ -37,7 +37,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         newKeys = DownloadStartupConfig.updateToCurrentVersion(self)
         if newKeys:
             for key in newKeys:
-                print >> sys.stderr, "DefaultDownloadStartupConfig: Adding field", key
+                print("DefaultDownloadStartupConfig: Adding field", key, file=sys.stderr)
     #
     # Class method
     #

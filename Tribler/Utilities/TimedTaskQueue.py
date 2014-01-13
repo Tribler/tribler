@@ -55,7 +55,7 @@ class TimedTaskQueue:
         when = time() + t
         if DEBUG:
             debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
-            print >>sys.stderr, "ttqueue: ADD EVENT", t, task, debug_call_name
+            print("ttqueue: ADD EVENT", t, task, debug_call_name, file=sys.stderr)
 
         if __debug__:
             self.callstack[self.count] = format_stack()
@@ -104,18 +104,18 @@ class TimedTaskQueue:
 
                 (when, count, task, id) = self.queue[0]
                 if DEBUG:
-                    print >>sys.stderr, "ttqueue: EVENT IN QUEUE", when, task
+                    print("ttqueue: EVENT IN QUEUE", when, task, file=sys.stderr)
                 now = time()
                 if now < when:
                     # Event not due, wait some more
                     if DEBUG:
-                        print >>sys.stderr, "ttqueue: EVENT NOT TILL", when - now
+                        print("ttqueue: EVENT NOT TILL", when - now, file=sys.stderr)
                     timeout = when - now
                     flag = True
                 else:
                     # Event due, execute
                     if DEBUG:
-                        print >>sys.stderr, "ttqueue: EVENT DUE"
+                        print("ttqueue: EVENT DUE", file=sys.stderr)
                     self.queue.pop(0)
                     if __debug__:
                         assert count in self.callstack
@@ -145,11 +145,11 @@ class TimedTaskQueue:
                         took = time() - t1
                         if took > 0.2:
                             debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
-                            print >> sys.stderr, "ttqueue: EVENT TOOK", took, debug_call_name
+                            print("ttqueue: EVENT TOOK", took, debug_call_name, file=sys.stderr)
             except:
                 print_exc()
                 if __debug__:
-                    print >> sys.stderr, "<<<<<<<<<<<<<<<<"
-                    print >> sys.stderr, "TASK QUEUED FROM"
-                    print >> sys.stderr, "".join(stack)
-                    print >> sys.stderr, ">>>>>>>>>>>>>>>>"
+                    print("<<<<<<<<<<<<<<<<", file=sys.stderr)
+                    print("TASK QUEUED FROM", file=sys.stderr)
+                    print("".join(stack), file=sys.stderr)
+                    print(">>>>>>>>>>>>>>>>", file=sys.stderr)

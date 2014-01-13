@@ -104,7 +104,7 @@ def warnWxThread(func):
         if not wx.Thread_IsMain():
             caller = inspect.stack()[1]
             callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-            print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            print(long(time()), "NOT ON GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr), file=sys.stderr)
 
         return func(*args, **kwargs)
 
@@ -120,7 +120,7 @@ def forceWxThread(func):
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
                 callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+                print(long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr), file=sys.stderr)
             wx.CallAfter(func, *args, **kwargs)
 
     invoke_func.__name__ = func.__name__
@@ -136,7 +136,7 @@ def forceAndReturnWxThread(func):
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
                 callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+                print(long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr), file=sys.stderr)
 
             event = Event()
 
@@ -154,7 +154,7 @@ def forceAndReturnWxThread(func):
 
             from traceback import print_stack
             print_stack()
-            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnWxThread", func.__name__
+            print("GOT TIMEOUT ON forceAndReturnWxThread", func.__name__, file=sys.stderr)
 
     invoke_func.__name__ = func.__name__
     return invoke_func

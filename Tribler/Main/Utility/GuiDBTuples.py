@@ -33,7 +33,7 @@ def getValidArgs(func, argsDict):
 
     notOk = set(args).difference(argsDict)
     if notOk:
-        print >> sys.stderr, "Missing", notOk, "arguments for", func
+        print("Missing", notOk, "arguments for", func, file=sys.stderr)
     return argsDict
 
 # Niels: from http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
@@ -199,7 +199,7 @@ class Torrent(Helper):
     @cacheProperty
     def torrent_id(self):
         if DEBUGDB:
-            print >> sys.stderr, "Torrent: fetching getTorrentID from DB", self
+            print("Torrent: fetching getTorrentID from DB", self, file=sys.stderr)
         return self.torrent_db.getTorrentID(self.infohash)
 
     def update_torrent_id(self, torrent_id):
@@ -212,7 +212,7 @@ class Torrent(Helper):
     @cacheProperty
     def channel(self):
         if DEBUGDB:
-            print >> sys.stderr, "Torrent: fetching getMostPopularChannelFromTorrent from DB", self
+            print("Torrent: fetching getMostPopularChannelFromTorrent from DB", self, file=sys.stderr)
 
         channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
         if channel:
@@ -403,7 +403,7 @@ class CollectedTorrent(Helper):
     @cacheProperty
     def swarminfo(self):
         if DEBUGDB:
-            print >> sys.stderr, "CollectedTorrent: fetching getTorrent from DB", self
+            print("CollectedTorrent: fetching getTorrent from DB", self, file=sys.stderr)
 
         swarminfo = self.torrent_db.getTorrent(self.infohash,
             keys=(u'num_seeders', u'num_leechers', u'last_tracker_check'),
@@ -516,7 +516,7 @@ class ChannelTorrent(Torrent):
     @cacheProperty
     def getPlaylist(self):
         if DEBUGDB:
-            print >> sys.stderr, "ChannelTorrent: fetching getPlaylistForTorrent from DB", self
+            print("ChannelTorrent: fetching getPlaylistForTorrent from DB", self, file=sys.stderr)
 
         playlist = self.channelcast_db.getPlaylistForTorrent(self.channeltorrent_id, PLAYLIST_REQ_COLUMNS)
         if playlist:
@@ -592,7 +592,7 @@ class Channel(Helper):
                 from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
                 if DEBUGDB:
-                    print >> sys.stderr, "Channel: fetching getChannelStateByCID from DB", self
+                    print("Channel: fetching getChannelStateByCID from DB", self, file=sys.stderr)
 
                 searchManager = ChannelManager.getInstance()
                 result = searchManager.getChannelStateByCID(self.dispersy_cid)
@@ -705,7 +705,7 @@ class Comment(Helper):
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
             if DEBUGDB:
-                print >> sys.stderr, "Comment: fetching getTorrentFromChannelTorrentId from DB", self
+                print("Comment: fetching getTorrentFromChannelTorrentId from DB", self, file=sys.stderr)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id, False)
@@ -784,7 +784,7 @@ class Modification(Helper):
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
             if DEBUGDB:
-                print >> sys.stderr, "Modification: fetching getTorrentFromChannelTorrentId from DB", self
+                print("Modification: fetching getTorrentFromChannelTorrentId from DB", self, file=sys.stderr)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id, False)
@@ -839,7 +839,7 @@ class Marking(Helper):
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
             if DEBUGDB:
-                print >> sys.stderr, "Marking: fetching getTorrentFromChannelTorrentId from DB", self
+                print("Marking: fetching getTorrentFromChannelTorrentId from DB", self, file=sys.stderr)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id, False)

@@ -61,7 +61,7 @@ def onDispersyThread():
 def warnDispersyThread(func):
     def invoke_func(*args, **kwargs):
         if not onDispersyThread():
-            print >> sys.stderr, "This method MUST be called on the DispersyThread"
+            print("This method MUST be called on the DispersyThread", file=sys.stderr)
             print_stack()
             return None
         else:
@@ -117,7 +117,7 @@ def forceAndReturnDispersyThread(func):
                 return result[0]
 
             print_stack()
-            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDispersyThread", func.__name__
+            print("GOT TIMEOUT ON forceAndReturnDispersyThread", func.__name__, file=sys.stderr)
         else:
             return func(*args, **kwargs)
 
@@ -714,7 +714,7 @@ class ChannelCommunity(Community):
             if message_name == u"torrent":
                 channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
                 if not channeltorrent_id:
-                    print >> sys.stderr, "CANNOT FIND channeltorrent_id", modifying_dispersy_id
+                    print("CANNOT FIND channeltorrent_id", modifying_dispersy_id, file=sys.stderr)
                 channeltorrentDict[modifying_dispersy_id] = channeltorrent_id
 
             elif message_name == u"playlist":
@@ -765,7 +765,7 @@ class ChannelCommunity(Community):
         if __debug__:
             for message in messages:
                 if message.payload.modification_on.name == u"torrent" and message.payload.modification_type == "video-info":
-                    print >> sys.stderr, "Incoming video-info with value", message.payload.modification_value
+                    print("Incoming video-info with value", message.payload.modification_value, file=sys.stderr)
 
     def _disp_undo_modification(self, descriptors, redo=False):
         for _, _, packet in descriptors:

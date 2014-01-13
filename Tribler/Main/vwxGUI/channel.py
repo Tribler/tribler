@@ -81,7 +81,7 @@ class ChannelManager(BaseManager):
     def _refresh_list(self, stateChanged=False):
         if DEBUG:
             t1 = time()
-            print >> sys.stderr, "SelChannelManager complete refresh", t1
+            print("SelChannelManager complete refresh", t1, file=sys.stderr)
 
         self.list.dirty = False
 
@@ -105,7 +105,7 @@ class ChannelManager(BaseManager):
 
                 if DEBUG:
                     t3 = time()
-                    print >> sys.stderr, "SelChannelManager complete refresh took", t3 - t1, t2 - t1, t3
+                    print("SelChannelManager complete refresh took", t3 - t1, t2 - t1, t3, file=sys.stderr)
 
                 return total_items, nrfiltered, torrentList, playlists, state, iamModerator
 
@@ -149,7 +149,7 @@ class ChannelManager(BaseManager):
 
         self.list.SetData(playlists, torrents)
         if DEBUG:
-            print >> sys.stderr, "SelChannelManager complete refresh done"
+            print("SelChannelManager complete refresh done", file=sys.stderr)
 
     @forceDBThread
     def refresh_partial(self, ids):

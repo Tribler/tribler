@@ -121,14 +121,14 @@ def _get_bootstrap_nodes():
 
     # Arno, 2012-05-25: py2exe support
     if hasattr(sys, "frozen"):
-        print >>sys.stderr, "pymdht: bootstrap: Frozen mode"
+        print("pymdht: bootstrap: Frozen mode", file=sys.stderr)
         installdir = os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding()))
         if sys.platform == "darwin":
             installdir = installdir.replace("MacOS", "Resources")
         mainfile = os.path.join(installdir, "Tribler", "Core", "DecentralizedTracking", "pymdht", "core", "bootstrap.main")
         backfile = os.path.join(installdir, "Tribler", "Core", "DecentralizedTracking", "pymdht", "core", "bootstrap.backup")
-    print >>sys.stderr, "pymdht: bootstrap: mainfile", mainfile
-    print >>sys.stderr, "pymdht: bootstrap: backfile", backfile
+    print("pymdht: bootstrap: mainfile", mainfile, file=sys.stderr)
+    print("pymdht: bootstrap: backfile", backfile, file=sys.stderr)
     try:
         f = open(mainfile)
         main = [_sanitize_bootstrap_node(n) for n in f]

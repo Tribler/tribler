@@ -227,7 +227,7 @@ class ConfigReader(ConfigParser):
             section = self.section
 
         if DEBUG:
-            print >> sys.stderr, "ConfigReader: Read(", param, "type", type, "section", section
+            print("ConfigReader: Read(", param, "type", type, "section", section, file=sys.stderr)
 
         if param is None or param == "":
             return ""
@@ -261,7 +261,7 @@ class ConfigReader(ConfigParser):
 #            sys.stderr.write(data.getvalue())
 
         if DEBUG:
-            print >> sys.stderr, "ConfigReader: Read", param, type, section, "got", value
+            print("ConfigReader: Read", param, type, section, "got", value, file=sys.stderr)
 
         value = self.StringToValue(value, type)
 

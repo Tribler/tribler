@@ -61,7 +61,7 @@ class TorrentStateManager:
 
             for filename, destname in dest_files:
                 if filename == largest_file:
-                    print >> sys.stderr, 'Can run post-download scripts for', torrent, filename, destname
+                    print('Can run post-download scripts for', torrent, filename, destname, file=sys.stderr)
                     self.create_and_seed_metadata(destname, torrent)
 
     def create_and_seed_metadata(self, videofile, torrent):
@@ -85,11 +85,11 @@ class TorrentStateManager:
 
         if os.path.exists(abs_thumbdir):
             if DEBUG:
-                print >> sys.stderr, 'create_and_seed_metadata: already downloaded thumbnails for torrent', torrent.name
+                print('create_and_seed_metadata: already downloaded thumbnails for torrent', torrent.name, file=sys.stderr)
             return
 
         if DEBUG:
-            print >> sys.stderr, 'create_and_seed_metadata: going to seed metadata for torrent', torrent.name
+            print('create_and_seed_metadata: going to seed metadata for torrent', torrent.name, file=sys.stderr)
 
         duration, bitrate, resolution = get_videoinfo(videofile, videoanalyser)
         video_info = {'duration': duration,
@@ -97,7 +97,7 @@ class TorrentStateManager:
                       'resolution': resolution}
 
         if DEBUG:
-            print >> sys.stderr, 'create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s' % (duration, bitrate, resolution)
+            print('create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s' % (duration, bitrate, resolution), file=sys.stderr)
 
         if not os.path.exists(abs_thumbdir):
             os.makedirs(abs_thumbdir)
@@ -111,7 +111,7 @@ class TorrentStateManager:
             get_thumbnail(videofile, filename, thumb_res, videoanalyser, timecode)
             if DEBUG:
                 path_exists = os.path.exists(filename)
-                print >> sys.stderr, 'create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d' % (path_exists, timecode)
+                print('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d' % (path_exists, timecode), file=sys.stderr)
 
         sdef = SwiftDef()
         sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
@@ -141,6 +141,6 @@ class TorrentStateManager:
                          'video-info': json.dumps(video_info)}
 
         if DEBUG:
-            print >> sys.stderr, 'create_and_seed_metadata: modifications =', modifications
+            print('create_and_seed_metadata: modifications =', modifications, file=sys.stderr)
 
         self.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, modifications)

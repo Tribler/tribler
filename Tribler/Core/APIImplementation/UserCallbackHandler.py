@@ -34,7 +34,7 @@ class UserCallbackHandler:
     def perform_vod_usercallback(self, d, usercallback, event, params):
         """ Called by network thread """
         if DEBUG:
-            print >> sys.stderr, "Session: perform_vod_usercallback()", repr(d.get_def().get_name())
+            print("Session: perform_vod_usercallback()", repr(d.get_def().get_name()), file=sys.stderr)
 
         def session_vod_usercallback_target():
             try:
@@ -46,7 +46,7 @@ class UserCallbackHandler:
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
         """ Called by network thread """
         if DEBUG:
-            print >> sys.stderr, "Session: perform_getstate_usercallback()"
+            print("Session: perform_getstate_usercallback()", file=sys.stderr)
 
         def session_getstate_usercallback_target():
             try:
@@ -59,11 +59,11 @@ class UserCallbackHandler:
     def perform_removestate_callback(self, infohash, contentdests, removecontent):
         """ Called by network thread """
         if DEBUG:
-            print >> sys.stderr, "Session: perform_removestate_callback()"
+            print("Session: perform_removestate_callback()", file=sys.stderr)
 
         def session_removestate_callback_target():
             if DEBUG:
-                print >> sys.stderr, "Session: session_removestate_callback_target called", currentThread().getName()
+                print("Session: session_removestate_callback_target called", currentThread().getName(), file=sys.stderr)
             try:
                 self.sesscb_removestate(infohash, contentdests, removecontent)
             except:
@@ -78,11 +78,11 @@ class UserCallbackHandler:
         """  See DownloadImpl.setup().
         Called by SessionCallbackThread """
         if DEBUG:
-            print >> sys.stderr, "Session: sesscb_removestate called", repr(infohash), contentdests, removecontent
+            print("Session: sesscb_removestate called", repr(infohash), contentdests, removecontent, file=sys.stderr)
         self.sesslock.acquire()
         try:
             if self.session.lm.download_exists(infohash):
-                print >> sys.stderr, "Session: sesscb_removestate: Download is back, restarted? Canceling removal!", repr(infohash)
+                print("Session: sesscb_removestate: Download is back, restarted? Canceling removal!", repr(infohash), file=sys.stderr)
                 return
 
             dlpstatedir = os.path.join(self.session.get_state_dir(), STATEDIR_DLPSTATE_DIR)
@@ -95,7 +95,7 @@ class UserCallbackHandler:
             basename = hexinfohash + '.pickle'
             filename = os.path.join(dlpstatedir, basename)
             if DEBUG:
-                print >> sys.stderr, "Session: sesscb_removestate: removing dlcheckpoint entry", filename
+                print("Session: sesscb_removestate: removing dlcheckpoint entry", filename, file=sys.stderr)
             if os.access(filename, os.F_OK):
                 os.remove(filename)
         except:
@@ -105,7 +105,7 @@ class UserCallbackHandler:
         # Remove downloaded content from disk
         if removecontent:
             if DEBUG:
-                print >> sys.stderr, "Session: sesscb_removestate: removing saved content", contentdests
+                print("Session: sesscb_removestate: removing saved content", contentdests, file=sys.stderr)
 
             contentdirs = set()
             for filename in contentdests:
@@ -140,5 +140,5 @@ class UserCallbackHandler:
         Notify all interested observers about an event with threads from the pool
         """
         if DEBUG:
-            print >> sys.stderr, "ucb: notify called:", subject, changeType, repr(obj_id), args
+            print("ucb: notify called:", subject, changeType, repr(obj_id), args, file=sys.stderr)
         self.notifier.notify(subject, changeType, obj_id, *args)

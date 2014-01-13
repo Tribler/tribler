@@ -35,15 +35,15 @@ class Win32RegChecker:
         try:
             # test that shell/open association with ABC exist
             if DEBUG:
-                print >>sys.stderr, "win32regcheck: Opening", key_name, value_name
+                print("win32regcheck: Opening", key_name, value_name, file=sys.stderr)
             full_key = _winreg.OpenKey(hkey, key_name, 0, _winreg.KEY_READ)
 
             if DEBUG:
-                print >>sys.stderr, "win32regcheck: Open returned", full_key
+                print("win32regcheck: Open returned", full_key, file=sys.stderr)
 
             value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
             if DEBUG:
-                print >>sys.stderr, "win32regcheck: Read", value_data, value_type
+                print("win32regcheck: Read", value_data, value_type, file=sys.stderr)
             _winreg.CloseKey(full_key)
 
             return value_data
@@ -62,22 +62,22 @@ class Win32RegChecker:
         try:
             toclose = []
             keyparts = key_name.split('\\')
-            print >>sys.stderr, "win32regcheck: keyparts", keyparts
+            print("win32regcheck: keyparts", keyparts, file=sys.stderr)
             for keypart in keyparts:
                 if keypart == '':
                     continue
                 if DEBUG:
-                    print >>sys.stderr, "win32regcheck: Opening", keypart
+                    print("win32regcheck: Opening", keypart, file=sys.stderr)
                 full_key = _winreg.OpenKey(lasthkey, keypart, 0, _winreg.KEY_READ)
                 lasthkey = full_key
                 toclose.append(full_key)
 
             if DEBUG:
-                print >>sys.stderr, "win32regcheck: Open returned", full_key
+                print("win32regcheck: Open returned", full_key, file=sys.stderr)
 
             value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
             if DEBUG:
-                print >>sys.stderr, "win32regcheck: Read", value_data, value_type
+                print("win32regcheck: Read", value_data, value_type, file=sys.stderr)
             for hkey in toclose:
                 _winreg.CloseKey(hkey)
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     winfiletype = w.readRootKey(".wmv")
     playkey = winfiletype + "\shell\play\command"
     urlplay = w.readRootKey(playkey)
-    print urlplay
+    print(urlplay)
     openkey = winfiletype + "\shell\open\command"
     urlopen = w.readRootKey(openkey)
-    print urlopen
+    print(urlopen)

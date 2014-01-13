@@ -210,7 +210,7 @@ def do_verify_torrent_signature(digest, sigstr, permid):
         intret = ecpub.verify_dsa_asn1(digest, sigstr)
         return intret == 1
     except Exception as e:
-        print >> sys.stderr, "permid: Exception in verify_torrent_signature:", str(e)
+        print("permid: Exception in verify_torrent_signature:", str(e), file=sys.stderr)
         return False
 
 

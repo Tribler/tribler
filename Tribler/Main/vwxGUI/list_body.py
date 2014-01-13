@@ -218,7 +218,7 @@ class ListItem(wx.Panel):
     @warnWxThread
     def RefreshData(self, data):
         if DEBUG:
-            print >> sys.stderr, "LISTITEM: refreshdata"
+            print("LISTITEM: refreshdata", file=sys.stderr)
 
         if isinstance(data[2], dict):  # update original_data
             for key in data[2].keys():
@@ -736,7 +736,7 @@ class AbstractListBody():
     @warnWxThread
     def OnChange(self, scrollToTop=False):
         if DEBUG:
-            print >> sys.stderr, "ListBody: OnChange"
+            print("ListBody: OnChange", file=sys.stderr)
         self.Freeze()
 
         self.vSizer.Layout()
@@ -750,17 +750,17 @@ class AbstractListBody():
                 height = self.vSizer.GetSize()[1]
                 self.rate = height / nritems
                 if DEBUG:
-                    print >> sys.stderr, "ListBody: setting scrollrate to", self.rate
+                    print("ListBody: setting scrollrate to", self.rate, file=sys.stderr)
 
                 self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
             else:
                 if DEBUG:
-                    print >> sys.stderr, "ListBody: setting scrollrate to default"
+                    print("ListBody: setting scrollrate to default", file=sys.stderr)
 
                 self.SetupScrolling(scrollToTop=scrollToTop)
         else:
             if DEBUG:
-                print >> sys.stderr, "ListBody: using scrollrate", self.rate
+                print("ListBody: using scrollrate", self.rate, file=sys.stderr)
             self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
 
         self.Thaw()
@@ -768,7 +768,7 @@ class AbstractListBody():
     @warnWxThread
     def Reset(self):
         if DEBUG:
-            print >> sys.stderr, "ListBody: Reset"
+            print("ListBody: Reset", file=sys.stderr)
 
         self.Freeze()
 
@@ -838,7 +838,7 @@ class AbstractListBody():
     @warnWxThread
     def ShowMessage(self, message, header=None, altControl=None, clearitems=True):
         if DEBUG:
-            print >> sys.stderr, "ListBody: ShowMessage", message, header
+            print("ListBody: ShowMessage", message, header, file=sys.stderr)
 
         self.Freeze()
 
@@ -893,14 +893,14 @@ class AbstractListBody():
     def RefreshData(self, key, data):
         if key in self.items:
             if DEBUG:
-                print >> sys.stderr, "ListBody: refresh item", self.items[key]
+                print("ListBody: refresh item", self.items[key], file=sys.stderr)
             self.items[key].RefreshData(data)
 
             # forward update to expandedPanel
             panel = self.items[key].GetExpandedPanel()
             if panel and getattr(panel, 'RefreshData', False):
                 if DEBUG:
-                    print >> sys.stderr, "ListBody: refresh item (Calling expandedPanel refreshdata)", self.items[key]
+                    print("ListBody: refresh item (Calling expandedPanel refreshdata)", self.items[key], file=sys.stderr)
 
                 panel.RefreshData(data)
 
@@ -919,7 +919,7 @@ class AbstractListBody():
             nr_items = -1
             if data:
                 nr_items = len(data)
-            print >> sys.stderr, "ListBody: new data", time(), nr_items
+            print("ListBody: new data", time(), nr_items, file=sys.stderr)
 
         if highlight is None:
             highlight = not self.IsEmpty()
@@ -947,10 +947,10 @@ class AbstractListBody():
 
     def __SetData(self, highlight=True):
         if DEBUG:
-            print >> sys.stderr, "ListBody: __SetData", time()
+            print("ListBody: __SetData", time(), file=sys.stderr)
 
         if __debug__ and not wx.Thread_IsMain():
-            print >> sys.stderr, "ListBody: __SetData thread", currentThread().getName(), "is NOT MAIN THREAD"
+            print("ListBody: __SetData thread", currentThread().getName(), "is NOT MAIN THREAD", file=sys.stderr)
             print_stack()
 
         # apply quickfilter
@@ -1012,7 +1012,7 @@ class AbstractListBody():
 
     def OnIdle(self, event):
         if DEBUG:
-            print >> sys.stderr, "ListBody: OnIdle"
+            print("ListBody: OnIdle", file=sys.stderr)
         if not self.done:
             if self.data and len(self.data) > 0:
                 self.CreateItems()
@@ -1068,7 +1068,7 @@ class AbstractListBody():
             nr_items_to_add = self.list_cur_max
 
         if DEBUG:
-            print >> sys.stderr, "ListBody: Creating items", time()
+            print("ListBody: Creating items", time(), file=sys.stderr)
 
         initial_nr_items_to_add = nr_items_to_add
         done = True
@@ -1158,7 +1158,7 @@ class AbstractListBody():
 
         self.done = done
         if DEBUG:
-            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()), "rows of", len(self.data), "took", time() - t1, "done:", self.done, time()
+            print("List created", len(self.vSizer.GetChildren()), "rows of", len(self.data), "took", time() - t1, "done:", self.done, time(), file=sys.stderr)
 
     def HasItem(self, key):
         return key in self.items

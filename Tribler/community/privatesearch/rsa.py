@@ -98,5 +98,5 @@ if __name__ == "__main__":
     for cipher in encrypted_values:
         rsa_decrypt(key, cipher)
 
-    print "Encrypting took", t2 - t1
-    print "Decrypting took", time() - t2
+    print("Encrypting took", t2 - t1)
+    print("Decrypting took", time() - t2)

@@ -18,7 +18,7 @@ class SmartCachingStream:
     """
     def __init__(self, inputstream, blocksize=1024 * 1024):
         if DEBUG:
-            print >> sys.stderr, "CachingStream: __init__"
+            print("CachingStream: __init__", file=sys.stderr)
         self.instream = inputstream
         self.inblocksize = blocksize
         self.inpos = 0
@@ -30,8 +30,8 @@ class SmartCachingStream:
 
     def read(self, nwant=None):
         if DEBUG:
-            print >> sys.stderr, "read: ", nwant
-            print >> sys.stderr, "bufpos", self.bufpos, "inpos", self.inpos, "bufs", self.bufstart, "bufe", self.bufend
+            print("read: ", nwant, file=sys.stderr)
+            print("bufpos", self.bufpos, "inpos", self.inpos, "bufs", self.bufstart, "bufe", self.bufend, file=sys.stderr)
 
         if self.buffer is None:
             self.read_new(nwant)
@@ -50,7 +50,7 @@ class SmartCachingStream:
 
     def seek(self, offset, whence=0):
         if DEBUG:
-            print >> sys.stderr, "seek: ", offset
+            print("seek: ", offset, file=sys.stderr)
         if self.buffer is not None:
             if self.bufstart <= offset and offset < self.bufend:
                 # Seeking within current buffer
@@ -68,7 +68,7 @@ class SmartCachingStream:
 
     def read_new(self, nwant):
         if DEBUG:
-            print >> sys.stderr, "read_new: ", nwant
+            print("read_new: ", nwant, file=sys.stderr)
         avail = self.inblocksize
 
         # Core specific: we only return a single piece on each read, so
@@ -76,32 +76,32 @@ class SmartCachingStream:
         #
         buffer1 = self.instream.read(avail)
         if DEBUG:
-            print >> sys.stderr, "read_new: 1got", len(buffer1)
+            print("read_new: 1got", len(buffer1), file=sys.stderr)
         buffer2 = self.instream.read(avail)
         if DEBUG:
-            print >> sys.stderr, "read_new: 2got", len(buffer2)
+            print("read_new: 2got", len(buffer2), file=sys.stderr)
         buffer3 = self.instream.read(avail)
         if DEBUG:
-            print >> sys.stderr, "read_new: 3got", len(buffer3)
+            print("read_new: 3got", len(buffer3), file=sys.stderr)
         buffer4 = self.instream.read(avail)
         if DEBUG:
-            print >> sys.stderr, "read_new: 4got", len(buffer4)
+            print("read_new: 4got", len(buffer4), file=sys.stderr)
 
         self.buffer = buffer1 + buffer2 + buffer3 + buffer4
         if DEBUG:
-            print >> sys.stderr, "read_new: got", len(self.buffer)
+            print("read_new: got", len(self.buffer), file=sys.stderr)
         self.bufstart = self.inpos
         self.inpos += len(self.buffer)
         self.bufend = self.inpos
 
     def read_buf(self, nwant):
         if DEBUG:
-            print >> sys.stderr, "read_buf: ", nwant
+            print("read_buf: ", nwant, file=sys.stderr)
         ngot = min(nwant, self.bufend - self.bufpos)
         bufoff = self.bufpos - self.bufstart
         ret = self.buffer[bufoff:bufoff + ngot]
         # TODO: opt if buffer == pos+nwant
         self.bufpos += ngot
         if DEBUG:
-            print >> sys.stderr, "read_buf: ngot", ngot, "returned", len(ret)
+            print("read_buf: ngot", ngot, "returned", len(ret), file=sys.stderr)
         return ret

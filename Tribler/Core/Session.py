@@ -568,7 +568,7 @@ class Session(SessionRuntimeConfig):
 
             # Checkpoint all Downloads and stop NetworkThread
             if DEBUG or stop:
-                print >> sys.stderr, "Session: checkpoint_shutdown"
+                print("Session: checkpoint_shutdown", file=sys.stderr)
             self.lm.checkpoint(stop=stop, checkpoint=checkpoint, gracetime=gracetime)
         finally:
             self.sesslock.release()

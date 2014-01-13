@@ -220,14 +220,14 @@ class TestLivingLabPeriodicReporter(LivingLabReporter.LivingLabPeriodicReporter)
 
     def post(self, xml):
         # TODO: Check the XML?
-        print xml
+        print(xml)
         self.xml = xml
         self.cond.acquire()
         self.cond.notifyAll()
         self.cond.release()
 
     def count_errors(self, zero, error):
-        print "ERROR", error
+        print("ERROR", error)
         self.errors.append(error)
 
     def get_errors(self):
@@ -235,8 +235,8 @@ class TestLivingLabPeriodicReporter(LivingLabReporter.LivingLabPeriodicReporter)
 
 if __name__ == "__main__":
 
-    print "Testing Status module"
+    print("Testing Status module")
 
     unittest.main()
 
-    print "All done"
+    print("All done")

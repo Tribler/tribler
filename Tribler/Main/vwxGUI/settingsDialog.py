@@ -89,7 +89,7 @@ class SettingsDialog(wx.Dialog):
         for element in self.elementsName:
             xrcElement = xrc.XRCCTRL(dialog, element)
             if not xrcElement:
-                print 'settingsOverviewPanel: Error: Could not identify xrc element:', element
+                print('settingsOverviewPanel: Error: Could not identify xrc element:', element)
             self.elements[element] = xrcElement
 
         # Building tree

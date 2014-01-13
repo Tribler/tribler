@@ -32,9 +32,9 @@ class TestSeeding(TestAsServer):
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
-        print >> sys.stderr, "test: Giving Session time to startup"
+        print("test: Giving Session time to startup", file=sys.stderr)
         time.sleep(5)
-        print >> sys.stderr, "test: Session should have started up"
+        print("test: Session should have started up", file=sys.stderr)
 
     def setUpPreSession(self):
         """ override TestAsServer """
@@ -74,7 +74,7 @@ class TestSeeding(TestAsServer):
         self.tdef.set_piece_length(piecesize)
         self.tdef.finalize()
 
-        print >> sys.stderr, "test: setup_seeder: name is", self.tdef.metainfo['info']['name']
+        print("test: setup_seeder: name is", self.tdef.metainfo['info']['name'], file=sys.stderr)
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(self.getDestDir())
@@ -90,7 +90,7 @@ class TestSeeding(TestAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", dlstatus_strings[ds.get_status()], ds.get_progress()
+        print("test: seeder:", dlstatus_strings[ds.get_status()], ds.get_progress(), file=sys.stderr)
         return (1.0, False)
 
     def subtest_download(self):
@@ -98,7 +98,7 @@ class TestSeeding(TestAsServer):
         self.session2 = Session(self.config2, ignore_singleton=True)
 
         # Allow session2 to start
-        print >> sys.stderr, "test: downloader: Sleeping 3 secs to let Session2 start"
+        print("test: downloader: Sleeping 3 secs to let Session2 start", file=sys.stderr)
         time.sleep(3)
 
         tdef2 = TorrentDef.load(self.torrentfn)
@@ -117,7 +117,7 @@ class TestSeeding(TestAsServer):
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: download:", dlstatus_strings[ds.get_status()], ds.get_progress()
+        print("test: download:", dlstatus_strings[ds.get_status()], ds.get_progress(), file=sys.stderr)
 
         return (1.0, False)
 
@@ -134,7 +134,7 @@ class TestSeeding(TestAsServer):
 
     def subtest_connect2downloader(self):
 
-        print >> sys.stderr, "test: verifier: Connecting to seeder to check bitfield"
+        print("test: verifier: Connecting to seeder to check bitfield", file=sys.stderr)
 
         infohash = self.tdef.get_infohash()
         s = BTConnection('localhost', self.session2.get_listen_port(), user_infohash=infohash)
@@ -144,14 +144,14 @@ class TestSeeding(TestAsServer):
             s.s.settimeout(10.0)
             resp = s.recv()
             self.assert_(len(resp) > 0)
-            print >> sys.stderr, "test: verifier: Got message", getMessageName(resp[0])
+            print("test: verifier: Got message", getMessageName(resp[0]), file=sys.stderr)
             self.assert_(resp[0] == EXTEND)
             resp = s.recv()
             self.assert_(len(resp) > 0)
-            print >> sys.stderr, "test: verifier: Got 2nd message", getMessageName(resp[0])
+            print("test: verifier: Got 2nd message", getMessageName(resp[0]), file=sys.stderr)
             self.assert_(resp[0] == BITFIELD)
             b = Bitfield(self.npieces, resp[1:])
-            print >> sys.stderr, "test: verifier: Bitfield is", repr(b.toboollist())
+            print("test: verifier: Bitfield is", repr(b.toboollist()), file=sys.stderr)
 
             b2 = Bitfield(self.npieces)
             b2[0] = True
@@ -161,7 +161,7 @@ class TestSeeding(TestAsServer):
             time.sleep(5)
 
         except socket.timeout:
-            print >> sys.stderr, "test: verifier: Timeout, peer didn't reply"
+            print("test: verifier: Timeout, peer didn't reply", file=sys.stderr)
             self.assert_(False)
         s.close()
 

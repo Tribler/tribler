@@ -161,7 +161,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
         outpath = file['outpath']
 
         if DEBUG:
-            print >> sys.stderr, "makeinfo: inpath", inpath, "outpath", outpath
+            print("makeinfo: inpath", inpath, "outpath", outpath, file=sys.stderr)
 
         if os.path.isdir(inpath):
             dirsubs = subfiles(inpath)
@@ -461,7 +461,7 @@ def get_bitrate_from_metainfo(file, metainfo):
             if playtime is not None:
                 bitrate = info['length'] / playtime
                 if DEBUG:
-                    print >> sys.stderr, "TorrentDef: get_bitrate: Found bitrate", bitrate
+                    print("TorrentDef: get_bitrate: Found bitrate", bitrate, file=sys.stderr)
         except:
             print_exc()
 

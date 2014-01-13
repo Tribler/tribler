@@ -47,13 +47,13 @@ class TestVideoHTTPServer(unittest.TestCase):
     def videoservthread_error_callback(self, e, url):
         """ Called by HTTP serving thread """
         if DEBUG:
-            print >> sys.stderr, "test: ERROR", e, url
+            print("test: ERROR", e, url, file=sys.stderr)
         self.assert_(False)
 
     def videoservthread_set_status_callback(self, status):
         """ Called by HTTP serving thread """
         if DEBUG:
-            print >> sys.stderr, "test: STATUS", status
+            print("test: STATUS", status, file=sys.stderr)
 
     #
     # Tests
@@ -97,7 +97,7 @@ class TestVideoHTTPServer(unittest.TestCase):
 
     def range_check(self, firstbyte, lastbyte, sourcesize, setset=False):
         if DEBUG:
-            print >> sys.stderr, "test: range_test:", firstbyte, lastbyte, sourcesize, "setset", setset
+            print("test: range_test:", firstbyte, lastbyte, sourcesize, "setset", setset, file=sys.stderr)
         self.register_file_stream()
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -132,7 +132,7 @@ class TestVideoHTTPServer(unittest.TestCase):
         expsize = explastbyte - expfirstbyte + 1
 
         if DEBUG:
-            print >> sys.stderr, "test: Expecting first", expfirstbyte, "last", explastbyte, "size", sourcesize
+            print("test: Expecting first", expfirstbyte, "last", explastbyte, "size", sourcesize, file=sys.stderr)
         s.send(head)
 
         # Parse header
@@ -140,11 +140,11 @@ class TestVideoHTTPServer(unittest.TestCase):
         while True:
             line = self.readline(s)
             if DEBUG:
-                print >> sys.stderr, "test: Got line", repr(line)
+                print("test: Got line", repr(line), file=sys.stderr)
 
             if len(line) == 0:
                 if DEBUG:
-                    print >> sys.stderr, "test: server closed conn"
+                    print("test: server closed conn", file=sys.stderr)
                 self.assert_(False)
                 return
 
@@ -175,7 +175,7 @@ class TestVideoHTTPServer(unittest.TestCase):
         data = s.recv(expsize)
         if len(data) == 0:
             if DEBUG:
-                print >> sys.stderr, "test: server closed conn2"
+                print("test: server closed conn2", file=sys.stderr)
             self.assert_(False)
             return
         else:
@@ -196,7 +196,7 @@ class TestVideoHTTPServer(unittest.TestCase):
 
             except socket.timeout:
                 if DEBUG:
-                    print >> sys.stderr, "test: Timeout, video server didn't respond with requested bytes, possibly bug in Python impl of HTTP"
+                    print("test: Timeout, video server didn't respond with requested bytes, possibly bug in Python impl of HTTP", file=sys.stderr)
                     print_exc()
 
     def readline(self, s):

@@ -142,7 +142,7 @@ class SaveAs(wx.Dialog):
                 try:
                     pos = self.listCtrl.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                 except:
-                    print >> sys.stderr, "Could not format filename", self.torrent.name
+                    print("Could not format filename", self.torrent.name, file=sys.stderr)
             self.listCtrl.SetItemData(pos, pos)
             self.listCtrl.SetStringItem(pos, 1, self.guiutility.utility.size_format(size))
 

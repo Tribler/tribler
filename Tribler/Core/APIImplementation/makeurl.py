@@ -101,7 +101,7 @@ def p2purl2metainfo(url):
     """ Returns (metainfo,swarmid) """
 
     if DEBUG:
-        print >>sys.stderr, "p2purl2metainfo: URL", url
+        print("p2purl2metainfo: URL", url, file=sys.stderr)
 
     # Python's urlparse only supports a defined set of schemes, if not
     # recognized, everything becomes path. Handy.
@@ -166,7 +166,7 @@ def p2purl2metainfo(url):
     swarmid = metainfo2swarmid(metainfo)
 
     if DEBUG:
-        print >>sys.stderr, "p2purl2metainfo: parsed", repr(metainfo)
+        print("p2purl2metainfo: parsed", repr(metainfo), file=sys.stderr)
 
     return (metainfo, swarmid)
 
@@ -181,7 +181,7 @@ def metainfo2swarmid(metainfo):
 
 def p2purl_parse_query(query):
     if DEBUG:
-        print >>sys.stderr, "p2purl_parse_query: query", query
+        print("p2purl_parse_query: query", query, file=sys.stderr)
 
     gotname = False
     gotkey = False
@@ -262,7 +262,7 @@ def pubkey2swarmid(livedict):
     Make X.509 Subject Key Identifier compatible?
     """
     if DEBUG:
-        print >>sys.stderr, "pubkey2swarmid:", livedict.keys()
+        print("pubkey2swarmid:", livedict.keys(), file=sys.stderr)
 
     if livedict['authmethod'] == "None":
         # No live-source auth

@@ -58,8 +58,8 @@ class DelayTimer(wx.Timer):
     def Notify(self):
         if self.embedplay.GetState() != MEDIASTATE_PLAYING:
             if DEBUG:
-                print >>sys.stderr, "embedplay: VLC has stopped playing previous video, starting it on new"
+                print("embedplay: VLC has stopped playing previous video, starting it on new", file=sys.stderr)
             self.Stop()
             self.embedplay.Play()
         elif DEBUG:
-            print >>sys.stderr, "embedplay: VLC is still playing old video"
+            print("embedplay: VLC is still playing old video", file=sys.stderr)
