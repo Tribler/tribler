@@ -212,7 +212,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
             self.dlstatus = dlstatus
             self.dynasize = dynasize
-            # Temporary fix for very high progress even though nothing has been downloaded yet.
+            # TODO: Temporary fix for very high progress even though nothing has been downloaded yet.
             self.progress = progress if progress <= 1.0 else 0.0
             self.curspeeds[DOWNLOAD] = dlspeed
             self.curspeeds[UPLOAD] = ulspeed
