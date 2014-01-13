@@ -1830,7 +1830,7 @@ class LibraryList(SizeList):
             if self.statefilter != None:
                 self.list.SetData()  # basically this means execute filter again
 
-        for item in self.list.items.itervalues():
+        for infohash, item in self.list.items.iteritems():
             ds = item.original_data.ds
             id = ds.get_download().get_def().get_id() if ds else None
             if newFilter or not self.__ds__eq__(ds, self.oldDS.get(id, None)):
@@ -1916,10 +1916,14 @@ class LibraryList(SizeList):
                 item.icons[0].Show(torrent_enabled)
                 item.icons[1].Show(swift_enabled)
 
+                self.oldDS[infohash] = ds
+
         if newFilter:
             self.newfilter = False
 
-        self.oldDS = dict([(infohash, item.original_data.ds) for infohash, item in self.list.items.iteritems()])
+        # Clean old downloadstates
+        for infohash in set(self.oldDS.iterkeys()) - set(self.list.items.iterkeys()):
+            self.oldDS.pop(infohash)
 
     @warnWxThread
     def RefreshBandwidthHistory(self, dslist, magnetlist):
