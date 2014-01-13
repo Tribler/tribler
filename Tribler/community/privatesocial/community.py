@@ -99,7 +99,12 @@ class SocialCommunity(Community):
                         print >> sys.stderr, "GOT sync-request from", message.candidate, tb
 
                     keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
-                    yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ")) ORDER BY global_time DESC", (time_low, time_high, offset, modulo) + keyhashes))
+                    sync_ids = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ")",
+                                                       (time_low, time_high, offset, modulo) + keyhashes)
+
+                    sync_ids = tuple(str(sync_id) for sync_id, in sync_ids)
+                    yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ",".join(sync_ids) + ") ORDER BY global_time DESC"))
+
                 elif DEBUG:
                     print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
 
@@ -130,11 +135,11 @@ class SocialCommunity(Community):
                     del data[-1]
 
             # next get actual packets from sync table, friendsync does not contain any non-syncable_messages hence this variable isn't used
-            sync_ids = tuple(sync_id for _, sync_id in data)
+            sync_ids = tuple(str(sync_id) for _, sync_id in data)
             if higher:
-                data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time ASC", sync_ids))
+                data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ",".join(sync_ids) + ") ORDER BY global_time ASC"))
             else:
-                data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ", ".join("?" * len(sync_ids)) + ") ORDER BY global_time DESC", sync_ids))
+                data = list(self._dispersy._database.execute(u"SELECT global_time, packet FROM sync WHERE undone = 0 AND id IN (" + ",".join(sync_ids) + ") ORDER BY global_time DESC"))
 
             if not higher:
                 data.reverse()
