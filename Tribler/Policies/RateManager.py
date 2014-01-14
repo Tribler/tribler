@@ -25,7 +25,7 @@ class RateManager:
 
     def add_downloadstate(self, ds):
         """ Returns the number of unique states currently stored """
-        self._logger.debug("RateManager: add_downloadstate %s", repr(ds.get_download().get_def().get_infohash()))
+        self._logger.debug("RateManager: add_downloadstate %s", repr(ds.get_download().get_def().get_roothash()))
 
         self.lock.acquire()
         try:
