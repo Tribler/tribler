@@ -593,8 +593,7 @@ class TorrentRequester(Requester):
                 doMagnet = True
 
             else:
-                self._logger.debug("rtorrent: start swift download for %s" %\
-                    (repr(bin2str(roothash)), repr(ip), repr(port)))
+                self._logger.debug("rtorrent: start swift download for %s %s %s", bin2str(roothash), ip, port)
                 attempting_download = True
 
             if download and candidates:
