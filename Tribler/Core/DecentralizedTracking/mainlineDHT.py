@@ -28,7 +28,7 @@ def init(addr, conf_path, swift_port):
         log_level = logging.DEBUG
     else:
         log_level = logging.ERROR
-    logger.debug('dht: DHT initialization %' % repr(dht_imported))
+    logger.debug('dht: DHT initialization %s', dht_imported)
 
     if dht_imported:
         my_node = node.Node(addr, None, version=pymdht.VERSION_LABEL)
