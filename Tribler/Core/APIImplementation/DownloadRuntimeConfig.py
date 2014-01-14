@@ -3,13 +3,12 @@
 # see LICENSE.txt for license information
 
 import sys
+import logging
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Core.APIImplementation.DownloadRuntimeConfigBaseImpl import DownloadRuntimeConfigBaseImpl
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
-
-DEBUG = False
 
 # 10/02/10 Boudewijn: pylint points out that member variables used in
 # DownloadRuntimeConfig do not exist.  This is because they are set in
@@ -21,6 +20,9 @@ DEBUG = False
 
 class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
 
+    def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
     """
     Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface
 
@@ -30,8 +32,8 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     DownloadConfigInterface: All methods called by any thread
     """
     def set_max_speed(self, direct, speed):
-        if DEBUG:
-            print("Download: set_max_speed", repr(self.get_def().get_metainfo()['info']['name']), direct, speed, file=sys.stderr)
+        self._logger.debug("Download: set_max_speed %s, %s, %s" %\
+            (repr(self.get_def().get_metainfo()['info']['name']), repr(direct), repr(speed)))
         # print_stack()
 
         self.dllock.acquire()

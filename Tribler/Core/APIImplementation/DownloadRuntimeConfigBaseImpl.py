@@ -7,8 +7,6 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 
-DEBUG = False
-
 # 10/02/10 Boudewijn: pylint points out that member variables used in
 # DownloadRuntimeConfig do not exist.  This is because they are set in
 # Tribler.Core.Download which is a subclass of DownloadRuntimeConfig.

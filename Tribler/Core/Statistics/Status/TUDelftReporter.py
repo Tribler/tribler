@@ -2,10 +2,9 @@ from Tribler.Core.Utilities.encoding import encode
 from bz2 import compress
 from time import time
 import sys
+import logging
 
 from LivingLabReporter import LivingLabPeriodicReporter
-
-DEBUG = False
 
 
 class TUDelftReporter(LivingLabPeriodicReporter):
@@ -15,21 +14,19 @@ class TUDelftReporter(LivingLabPeriodicReporter):
     def __init__(self, name, frequency, public_key):
         LivingLabPeriodicReporter.__init__(self, name, frequency, public_key)
         # note: public_key is set to self.device_id
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def report(self):
-        if DEBUG:
-            print("TUDelftReporter: report", file=sys.stderr)
+        self._logger.debug("TUDelftReporter: report")
         events = self.get_events()
         if events:
             events = [{"name": event.get_name(), "time": event.get_time(), "values": event.get_values()} for event in events]
             data = (time(), self.device_id.encode("HEX"), events)
             compressed = compress(encode(data))
-            if DEBUG:
-                print("TUDelftReporter: posting", len(compressed), "bytes payload", file=sys.stderr)
+            self._logger.debug("TUDelftReporter: posting %d bytes payload" % len(compressed))
             self.post(compressed)
         else:
-            if DEBUG:
-                print("TUDelftReporter: Nothing to report", file=sys.stderr)
+            self._logger.debug("TUDelftReporter: Nothing to report")
 
 if __debug__:
     if __name__ == "__main__":

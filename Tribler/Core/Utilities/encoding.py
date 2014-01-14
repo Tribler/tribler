@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 def _a_encode_int(value, mapping):
     """
     42 --> ('2', 'i', '42')
@@ -498,9 +502,10 @@ if __debug__:
             s = encode(value)
             length, v = decode(s)
             if verbose:
-                print("dispersy A", length, ":", value, "->", s)
+                logger.info("dispersy A %s : %s -> %s" %\
+                    (repr(length), repr(value), repr(s)))
             else:
-                print("dispersy A", length)
+                logger.info("dispersy A %s" % repr(length))
             assert len(s) == length, (len(s), length)
             assert value == v, (value, v)
 
@@ -517,7 +522,7 @@ if __debug__:
 
             value = in_
             if isinstance(value, (float, type(None), set)):
-                print("bittorrent", "not supported")
+                logger.info("bittorrent not supported")
             else:
                 # exception: tuple types are encoded as list
                 if isinstance(value, tuple):
@@ -532,11 +537,10 @@ if __debug__:
                 v = bdecode(s)
 
                 if verbose:
-                    print("bittorrent", len(s), ":", value, "->", s)
+                    logger.info("bittorrent %d : %s -> %s" % (len(s), repr(value), repr(s)))
                 else:
-                    print("bittorrent", len(s))
+                    logger.info("bittorrent %d" % len(s))
                 assert value == v, (value, v)
-            print()
 
         test(4242)
         test(42)

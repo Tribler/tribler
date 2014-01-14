@@ -1,8 +1,11 @@
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 f = open("sum_total_records.txt")
 f2 = open("received_records_10.txt", 'w')
-print("#nrpeers, took, partnr", file=f2)
+f2.write("#nrpeers, took, partnr")
 
 piece_created = {}
 
@@ -24,7 +27,7 @@ for line in f:
     if created not in piece_created:
         piece_created[created] = time
         # piece_created[created] = 120 * created
-        print("new part", peers.index(created), time, created * 120, piece_received.get(created - 1, 0))
+        logger.info("new part %s %s %s %s", peers.index(created), time, created * 120, piece_received.get(created - 1, 0))
 
     updated_parts = set()
 
@@ -37,10 +40,10 @@ for line in f:
 
             took = time - piece_created[part]
 
-            print(piece_received[part], took, part, file=f2)
+            f2.write("%s %s %s" % piece_received[part], took, part)
             if piece_received[part] == 1000:
                 took_list.append(took)
-                print("received part", part, took, sum(took_list) / float(len(took_list)))
+                logger.info("received part %s %s %s", part, took, sum(took_list) / float(len(took_list)))
 
 f.close()
 f2.close()

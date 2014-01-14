@@ -4,11 +4,10 @@
 import wx
 import sys
 import os
+import logging
 
 from Tribler.Video.defs import *
 from Tribler.__init__ import LIBRARYNAME
-
-DEBUG = False
 
 
 class VideoBaseFrame:
@@ -51,15 +50,16 @@ class DelayTimer(wx.Timer):
         Wait until it is and then tell it to play the new item
     """
     def __init__(self, embedplay):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         wx.Timer.__init__(self)
         self.embedplay = embedplay
         self.Start(100)
 
     def Notify(self):
         if self.embedplay.GetState() != MEDIASTATE_PLAYING:
-            if DEBUG:
-                print("embedplay: VLC has stopped playing previous video, starting it on new", file=sys.stderr)
+            self._logger.debug("embedplay: VLC has stopped playing previous video, starting it on new")
             self.Stop()
             self.embedplay.Play()
-        elif DEBUG:
-            print("embedplay: VLC is still playing old video", file=sys.stderr)
+        else:
+            self._logger.debug("embedplay: VLC is still playing old video")

@@ -147,7 +147,7 @@ class TestMagnet(TestAsServer):
     def test_good_transfer(self):
         def do_transfer():
             def torrentdef_retrieved(tdef):
-                print(tdef.get_metainfo())
+                print tdef.get_metainfo()
                 event.set()
 
             event = threading.Event()
@@ -293,7 +293,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
             self.seeder_setup_complete.set()
 
         d = ds.get_download()
-        print("test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), file=sys.stderr)
+        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
         return (1.0, False)
 
     def test_good_request(self):

@@ -235,21 +235,21 @@ class TestMerkleHashes(unittest.TestCase):
             hashes = self.read_and_calc_hashes(datafilename, piece_size)
             npieces = len(hashes)
             if DEBUG:
-                print("npieces is", npieces)
+                print "npieces is", npieces
             height = log(npieces, 2) + 1
             if height > int(height):
                 height += 1
             height = int(height)
             if DEBUG:
-                print("height is", height)
+                print "height is", height
 
             starto = (2 ** (height - 1)) -1
 
             if DEBUG:
-                print("starto is", starto)
+                print "starto is", starto
             tree = [0] * ((2 ** (height)) - 1)
             if DEBUG:
-                print("len tree is", len(tree))
+                print "len tree is", len(tree)
             # put hashes in tree
             for i in range(len(hashes)):
                 o = starto + i
@@ -267,7 +267,7 @@ class TestMerkleHashes(unittest.TestCase):
                 for o in range(len(tree) - starto -2, -1, -1):
                     co = self.get_child_offset(o, height)
                     if DEBUG:
-                        print("offset is", o, "co is", co)
+                        print "offset is", o, "co is", co
                     data = tree[co] + tree[co +1]
                     digest = self.calc_digest(data)
                     tree[o] = digest
@@ -294,7 +294,7 @@ class TestMerkleHashes(unittest.TestCase):
 
     def get_child_offset(self, offset, height):
         if DEBUG:
-            print("get_child(", offset, ",", height, ")")
+            print "get_child(", offset, ",", height, ")"
         if offset == 0:
             level = 1
         else:

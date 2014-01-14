@@ -3,6 +3,7 @@ import wx
 import sys
 import os
 import random
+import logging
 from time import strftime, time
 
 from Tribler.__init__ import LIBRARYNAME
@@ -147,6 +148,9 @@ class Stats(XRCPanel):
 
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.createTimer = None
         self.isReady = False
 
@@ -294,7 +298,7 @@ class Stats(XRCPanel):
         torrentdb = TorrentDBHandler.getInstance()
         tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         for table, in tables:
-            print(table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table), file=sys.stderr)
+            self._logger.info("%s %s", table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table))
 
     def Show(self, show=True):
         if show:

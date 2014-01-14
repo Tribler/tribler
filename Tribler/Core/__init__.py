@@ -1,6 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 from threading import RLock
+import logging
 
 # Written by BitTornado authors and Arno Bakker
 # see LICENSE.txt for license information
@@ -12,6 +13,8 @@ from threading import RLock
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.version import version_id
+
+logger = logging.getLogger(__name__)
 
 if LIBRARYNAME == "Tribler":
     product_name = 'Tribler'
@@ -125,7 +128,8 @@ def warnDisperyThread(func):
 
             from time import time
             import sys
-            print(long(time()), "CANNOT BE ON DISPERSYTHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr), file=sys.stderr)
+            logger.info("%d CANNOT BE ON DISPERSYTHREAD %s %s:%s called by %s" %\
+                (long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr))
             print_stack()
 
         return func(*args, **kwargs)

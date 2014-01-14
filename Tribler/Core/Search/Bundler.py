@@ -4,6 +4,7 @@ import re
 import sys
 from itertools import islice
 import time
+import logging
 
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
@@ -137,6 +138,8 @@ class GroupsList(object):
         @param max_bundles The maximum number of bundles to be created. Default: None (no limit).
         @param two_step Constructs the object in two steps. Default: False. See also: finalize().
         """
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.query = query
         self.algorithm = algorithm
         self.prev_grouplist = prev_grouplist
@@ -197,8 +200,7 @@ class GroupsList(object):
         reuse = self.prev_grouplist and not new_hits and not missing_hits
         self.algorithm.update_context_state(new_hits, self.context_state)
 
-        if DEBUG:
-            print('>> Bundler.py, new hits:', len(new_hits), file=sys.stderr)
+        self._logger.debug('>> Bundler.py, new hits: %d' % len(new_hits))
 
         return old_representatives, old_index, reuse
 
@@ -250,8 +252,7 @@ class GroupsList(object):
 
         # Niels: Used bundler.py from 5.4.x, i'll fix it afterwards.
         if self.reuse:
-            if DEBUG:
-                print('>> Bundler.py: No new hits, no missing hits, reusing the old groupings', file=sys.stderr)
+            self._logger.debug('>> Bundler.py: No new hits, no missing hits, reusing the old groupings')
 
             self.__dict__ = self.prev_grouplist.__dict__
             # self.index = self.prev_grouplist.index
@@ -277,8 +278,7 @@ class GroupsList(object):
                     # to a newer group.
                     # We might want to reuse that old group's id
                     if group.reassignable_id and hit_infohash in old_representatives:
-                        if DEBUG:
-                            print('>> Bundler.py: How often does this situation actually occur?', file=sys.stderr)
+                        self._logger.debug('>> Bundler.py: How often does this situation actually occur?')
                         old_group = old_index[key]
                         group.reassign_id(old_group.id)
                         group.prev_group = old_group
@@ -298,9 +298,8 @@ class GroupsList(object):
                     # the computation of simkeys
                     if len(grouped_hits) == max_bundles:
                         create_new_group = disabled_bundling
-                        if DEBUG:
-                            print('>> Bundler.py, reached limit of %s bundles,' % max_bundles, file=sys.stderr)
-                            print('     disabling the computation of simkeys after processing %s hits' % processed_hits, file=sys.stderr)
+                        self._logger.debug('>> Bundler.py, reached limit of %s bundles,' % max_bundles)
+                        self._logger.debug('     disabling the computation of simkeys after processing %s hits' % processed_hits)
 
                 group.add(hit)
                 infohashes.add(hit_infohash)
@@ -736,14 +735,15 @@ class LevenshteinTrie(object):
 
         if LOG_COSTS and len(self._costs) > 1:
             _logfh = open('bundle_lev_costs.txt', 'a')
-            print(repr(word), file=_logfh)
-            print('-' * 76, file=_logfh)
+
+            _logfh.write(repr(word) + '\n')
+            _logfh.write('-' * 76 + '\n')
 
             for r, c in zip(results, self._costs):
                 if c != 0:
-                    print(c, '\t #', repr(r), file=_logfh)
+                    _logfh.write('%d\t #\n' % (c, repr(r)))
 
-            print('\n\n', file=_logfh)
+            _logfh.write('\n\n')
             _logfh.close()
 
         return results
@@ -777,7 +777,7 @@ class LevenshteinTrie(object):
                 self.do_search(node.children[letter], letter, word, row_index + 1, results, max_cost)
         elif LOG_DEPTH:
             _logfh = open('bundle_lev_depth.txt', 'a')
-            print(row_index, file=_logfh)
+            _logfh.write(repr(row_index))
             _logfh.close()
 
     def _dynamic_penalty(self, i):
@@ -946,6 +946,8 @@ class Bundler:
     REDUCTION_MAX_RESULTS = 100
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.clear()
 
     def clear(self):
@@ -957,8 +959,7 @@ class Bundler:
         self._benchmark_ts = time.time()
 
     def _benchmark_end(self):
-        if DEBUG:
-            print('>> Bundler.py, benchmark: %ss' % (time.time() - self._benchmark_ts), file=sys.stderr)
+        self._logger.debug('>> Bundler.py, benchmark: %ss' % (time.time() - self._benchmark_ts))
 
     def bundle(self, hits, bundle_mode, searchkeywords):
         """
@@ -1006,10 +1007,11 @@ class Bundler:
 
                 levtrie_root = grouped_hits.context_state.levtrie.root
                 levtrie_width = levtrie_root.width(level=Bundler.LEVTRIE_DEPTH)
-                if DEBUG:
-                    print('>> Bundler.py MAGIC: levtrie_width =', levtrie_width, '(depth %s)' % Bundler.LEVTRIE_DEPTH, file=sys.stderr)
-                    print('>> Bundler.py MAGIC: levtrie_width =', levtrie_root.width(2), '(depth 2)', file=sys.stderr)
-                    print('>> Bundler.py MAGIC: rel_levtrie_width =', levtrie_root.width(2) / (len(hits1) * 1.0), '(depth 2)', file=sys.stderr)
+                self._logger.debug('>> Bundler.py MAGIC: levtrie_width = %s (depth %s)' %\
+                    (repr(levtrie_width), repr(Bundler.LEVTRIE_DEPTH)))
+                self._logger.debug('>> Bundler.py MAGIC: levtrie_width = %s (depth 2)' % repr(levtrie_root.width(2)))
+                self._logger.debug('>> Bundler.py MAGIC: rel_levtrie_width = %s (depth 2)' %\
+                    repr(levtrie_root.width(2) / (len(hits1) * 1.0)))
 
                 if levtrie_width >= Bundler.MIN_LEVTRIE_WIDTH:
                     grouped_hits.finalize()
@@ -1034,16 +1036,14 @@ class Bundler:
                 if bundled_hits:
                     reduction = float(len(hits1) - len(bundled_hits) + 1) / len(hits1)
                     if len(bundled_hits) < Bundler.REDUCTION_MAX_RESULTS and reduction >= Bundler.REDUCTION_THRESHOLD:
-                        if DEBUG:
-                            print('>> Bundler.py MAGIC: FAILURE; %0.2f reduction rate using %s' \
-                            % (reduction, Bundler.PRINTABLE_ALG_CONSTANTS[selected_bundle_mode]), file=sys.stderr)
+                        self._logger.debug('>> Bundler.py MAGIC: FAILURE; %0.2f reduction rate using %s' %\
+                            (reduction, Bundler.PRINTABLE_ALG_CONSTANTS[selected_bundle_mode]))
                         selected_bundle_mode = Bundler.ALG_OFF
                         bundled_hits = hits
 
                 # FALLBACK => OFF
                 elif not success:
-                    if DEBUG:
-                        print('>> Bundler.py MAGIC: FALLBACK', file=sys.stderr)
+                    self._logger.debug('>> Bundler.py MAGIC: FALLBACK')
                     selected_bundle_mode = Bundler.ALG_OFF
                     bundled_hits = hits
 
@@ -1092,8 +1092,7 @@ class Bundler:
 
     def __gc(self):
         # GC is rather simple. Just cut the links to old versions
-        if DEBUG:
-            print('>> Bundler.py, garbage collecting...', file=sys.stderr)
+        self._logger.debug('>> Bundler.py, garbage collecting...')
 
         for groupslist in self.previous_groups.itervalues():
             groupslist.prev_grouplist = None

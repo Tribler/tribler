@@ -18,19 +18,21 @@ logs_level = logging.DEBUG  # This generates HUGE (and useful) logs
 import identifier
 import kadtracker
 
+logger = logging.getLogger(__name__)
+
 
 # hp = guppy.hpy()
 
 def peers_found(peers):
-    print('Peers found:', time.time())
+    logger.info('Peers found: %s' % repr(time.time()))
     return
     for peer in peers:
-        print(peer)
-    print('-' * 20)
+        logger.info(repr(peer))
+    logger.info('-' * 20)
 
 
 def lookup_done():
-    print('Lookup DONE')
+    logger.info('Lookup DONE')
 
 
 info_hashes = (
@@ -91,15 +93,15 @@ if len(sys.argv) == 1:
     RUN_DHT = True
     my_addr = ('192.16.125.242', 2222)  # (sys.argv[1], int(sys.argv[2])) #
     logs_path = '.'  # sys.argv[3]
-    print('logs_path:', logs_path)
+    logger.info('logs_path: %s' % logs_path)
     logging_conf.setup(logs_path, logs_level)
     dht = kadtracker.KadTracker(my_addr, logs_path)
 else:
     RUN_DHT = False
-    print('usage: python server_dht.py dht_ip dht_port path')
+    logger.info('usage: python server_dht.py dht_ip dht_port path')
 
 try:
-    print('Type Control-C to exit.')
+    logger.info('Type Control-C to exit.')
     i = 0
     if RUN_DHT:
         time.sleep(10 * 60)
@@ -107,7 +109,7 @@ try:
             # splitted_heap_str = str(hp.heap()).split()
             # print i, splitted_heap_str[10]
             # dht.print_routing_table_stats()
-            print('>>>>>>>>>>>>>>>>>>> [%d] Lookup:' % (i))
+            logger.info('>>>>>>>>>>>>>>>>>>> [%d] Lookup:' % (i))
             dht.get_peers(info_hash, peers_found)
             time.sleep(1 * 60)
             # time.sleep(1.5)

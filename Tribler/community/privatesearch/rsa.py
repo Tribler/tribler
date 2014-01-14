@@ -6,11 +6,14 @@ from gmpy import mpz
 
 from hashlib import sha1
 
+import logging
 from time import time
 from random import randint
 from collections import namedtuple
 
 RSAKey = namedtuple('RSAKey', ['n', 'e', 'p', 'q', 'd', 'size'])
+
+logger = logging.getLogger(__name__)
 
 
 def rsa_init(bits=1024):
@@ -98,5 +101,5 @@ if __name__ == "__main__":
     for cipher in encrypted_values:
         rsa_decrypt(key, cipher)
 
-    print("Encrypting took", t2 - t1)
-    print("Decrypting took", time() - t2)
+    logger.info("Encrypting took %s", t2 - t1)
+    logger.info("Decrypting took %s", time() - t2)

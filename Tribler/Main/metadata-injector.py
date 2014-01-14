@@ -19,6 +19,7 @@ import tempfile
 import time
 import json
 from hashlib import sha1
+import logging
 
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -26,6 +27,8 @@ from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
 
 from Tribler.community.channel.community import forceDispersyThread
+
+logger = logging.getLogger(__name__)
 
 def define_communities(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
@@ -37,7 +40,7 @@ def define_communities(session):
                                    {},
                                    load=True)
     dispersy.define_auto_load(ChannelCommunity, load=True)
-    print("tribler: Dispersy communities are ready", file=sys.stderr)
+    logger.info("tribler: Dispersy communities are ready")
 
 def dispersy_started(session, opt):
     from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, ChannelManager
@@ -55,15 +58,15 @@ def dispersy_started(session, opt):
     createdNewChannel = False
     myChannelId = channelManager.channelcast_db.getMyChannelId()
     if not myChannelId:
-        print("creating a new channel", file=sys.stderr)
+        logger.info("creating a new channel")
         channelManager.createChannel(myChannelName, u'')
         createdNewChannel = True
 
     else:
-        print("reusing previously created channel", file=sys.stderr)
+        logger.info("reusing previously created channel")
         myChannel = channelManager.getChannel(myChannelId)
         if myChannel.name != myChannelName:
-            print("renaming channel to", myChannelName, file=sys.stderr)
+            logger.info("renaming channel to %s" % myChannelName)
             channelManager.modifyChannel(myChannelId, {'name': myChannelName})
 
     def createTorrentFeed():
@@ -102,7 +105,7 @@ def dispersy_started(session, opt):
         myChannelId = channelManager.channelcast_db.getMyChannelId()
         community = channelManager._disp_get_community_from_channel_id(myChannelId)
 
-        print("Using community:", community._cid.encode('HEX'), file=sys.stderr)
+        logger.info("Using community: %s" % repr(community._cid.encode('HEX')))
 
         items = json.load(open(opt.file, 'rb'))
         for item in items:
@@ -112,18 +115,18 @@ def dispersy_started(session, opt):
                 infohash = sha1(str(random.randint(0, 1000000))).digest()
             message = community._disp_create_torrent(infohash, long(time.time()), unicode(item['name']), ((u'fake.file', 10),), tuple(), update=False, forward=False)
 
-            print("Created a new torrent", file=sys.stderr)
+            logger.info("Created a new torrent")
 
             latest_review = None
             for modification in item['modifications']:
                 reviewmessage = community._disp_create_modification('description', unicode(modification['text']), long(time.time()), message, latest_review, update=False, forward=False)
 
-                print("Created a new modification", file=sys.stderr)
+                logger.info("Created a new modification")
 
                 if modification['revert']:
                     community._disp_create_moderation('reverted', long(time.time()), 0, reviewmessage.packet_id, update=False, forward=False)
 
-                    print("Reverted the last modification", file=sys.stderr)
+                    logger.info("Reverted the last modification")
                 else:
                     latest_review = reviewmessage
 
@@ -145,10 +148,10 @@ def main():
 
     if not (opt.rss or opt.dir or opt.file):
         command_line_parser.print_help()
-        print("\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies")
+        logger.info("\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies")
         sys.exit()
 
-    print("Type Q followed by <ENTER> to stop the metadata-injector")
+    logger.info("Type Q followed by <ENTER> to stop the metadata-injector")
 
     sscfg = SessionStartupConfig()
     if opt.statedir:
@@ -173,7 +176,7 @@ def main():
     try:
         while True:
             x = sys.stdin.readline()
-            print(x, file=sys.stderr)
+            logger.info(repr(x))
             if x.strip() == 'Q':
                 break
     except:
@@ -186,7 +189,7 @@ def main():
     dirfeed.shutdown()
 
     session.shutdown()
-    print("Shutting down...")
+    logger.info("Shutting down...")
     time.sleep(5)
 
 if __name__ == "__main__":

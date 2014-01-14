@@ -6,6 +6,7 @@ import json
 import shutil
 import thread
 import binascii
+import logging
 
 try:
     prctlimported = True
@@ -18,8 +19,6 @@ from Tribler.Video.VideoUtility import *
 from threading import currentThread, Thread
 from traceback import print_exc
 
-DEBUG = True
-
 
 class TorrentStateManager:
     # Code to make this a singleton
@@ -29,6 +28,8 @@ class TorrentStateManager:
         if TorrentStateManager.__single:
             raise RuntimeError("TorrentStateManager is singleton")
         TorrentStateManager.__single = self
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def getInstance(*args, **kw):
         if TorrentStateManager.__single is None:
@@ -61,7 +62,7 @@ class TorrentStateManager:
 
             for filename, destname in dest_files:
                 if filename == largest_file:
-                    print('Can run post-download scripts for', torrent, filename, destname, file=sys.stderr)
+                    self._logger.info('Can run post-download scripts for %s %s %s', torrent, filename, destname)
                     self.create_and_seed_metadata(destname, torrent)
 
     def create_and_seed_metadata(self, videofile, torrent):
@@ -84,20 +85,17 @@ class TorrentStateManager:
         videoname = os.path.basename(videofile)
 
         if os.path.exists(abs_thumbdir):
-            if DEBUG:
-                print('create_and_seed_metadata: already downloaded thumbnails for torrent', torrent.name, file=sys.stderr)
+            self._logger.debug('create_and_seed_metadata: already downloaded thumbnails for torrent %s', torrent.name)
             return
 
-        if DEBUG:
-            print('create_and_seed_metadata: going to seed metadata for torrent', torrent.name, file=sys.stderr)
+        self._logger.debug('create_and_seed_metadata: going to seed metadata for torrent %s', torrent.name)
 
         duration, bitrate, resolution = get_videoinfo(videofile, videoanalyser)
         video_info = {'duration': duration,
                       'bitrate': bitrate,
                       'resolution': resolution}
 
-        if DEBUG:
-            print('create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s' % (duration, bitrate, resolution), file=sys.stderr)
+        self._logger.debug('create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s' % (duration, bitrate, resolution))
 
         if not os.path.exists(abs_thumbdir):
             os.makedirs(abs_thumbdir)
@@ -109,9 +107,9 @@ class TorrentStateManager:
         for filename, max_res, timecode in zip(thumb_filenames, thumb_resolutions, thumb_timecodes):
             thumb_res = limit_resolution(resolution, max_res)
             get_thumbnail(videofile, filename, thumb_res, videoanalyser, timecode)
-            if DEBUG:
-                path_exists = os.path.exists(filename)
-                print('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d' % (path_exists, timecode), file=sys.stderr)
+
+            path_exists = os.path.exists(filename)
+            self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d' % (path_exists, timecode))
 
         sdef = SwiftDef()
         sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
@@ -134,13 +132,11 @@ class TorrentStateManager:
             shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
 
         except:
-            if DEBUG:
-                print_exc()
+            print_exc()
 
         modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())),
                          'video-info': json.dumps(video_info)}
 
-        if DEBUG:
-            print('create_and_seed_metadata: modifications =', modifications, file=sys.stderr)
+        self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
 
         self.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, modifications)

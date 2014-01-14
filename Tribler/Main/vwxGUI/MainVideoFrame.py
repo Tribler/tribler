@@ -4,13 +4,12 @@
 import wx
 import sys
 import os
+import logging
 
 from Tribler.Video.VideoFrame import VideoBaseFrame
 from Tribler.Main.vwxGUI.EmbeddedPlayer import EmbeddedPlayerPanel
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
-
-DEBUG = False
 
 
 class VideoMacFrame(wx.Frame, VideoBaseFrame):
@@ -23,6 +22,8 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
 
     """
     def __init__(self, parent, utility, title, iconpath, vlcwrap):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.utility = utility
         self.vlcwrap = vlcwrap
         self.videopanel = None
@@ -42,8 +43,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
         self.Show(False)
 
     def show_videoframe(self):
-        if DEBUG:
-            print("videoframe: Swap IN videopanel", file=sys.stderr)
+        self._logger.debug("videoframe: Swap IN videopanel")
 
         if not self.videopanel:
             self.get_videopanel()
@@ -61,8 +61,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
         wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
 
     def hide_videoframe(self):
-        if DEBUG:
-            print("videoframe: Swap OUT videopanel", file=sys.stderr)
+        self._logger.debug("videoframe: Swap OUT videopanel")
 
         if self.videopanel is not None:
             self.videopanel.Reset()

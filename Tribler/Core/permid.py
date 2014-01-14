@@ -7,11 +7,12 @@ from base64 import encodestring
 from copy import deepcopy
 import traceback
 import os
+import logging
 
 from M2Crypto import Rand, EC
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1
@@ -210,7 +211,7 @@ def do_verify_torrent_signature(digest, sigstr, permid):
         intret = ecpub.verify_dsa_asn1(digest, sigstr)
         return intret == 1
     except Exception as e:
-        print("permid: Exception in verify_torrent_signature:", str(e), file=sys.stderr)
+        logger.error("permid: Exception in verify_torrent_signature: %s" % str(e))
         return False
 
 

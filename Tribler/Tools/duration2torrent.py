@@ -28,10 +28,10 @@ def get_usage(defs):
 if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
-    print("config is", config, file=sys.stderr)
+    print >>sys.stderr, "config is", config
 
     if config['torrent'] == '':
-        print("Usage:  ", get_usage(argsdef))
+        print "Usage:  ", get_usage(argsdef)
         sys.exit(0)
 
     tdef = TorrentDef.load(config['torrent'])

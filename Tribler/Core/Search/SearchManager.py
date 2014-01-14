@@ -5,10 +5,9 @@
 
 import re
 import sys
+import logging
 
 # from Tribler.Core.Search.KeywordSearch import KeywordSearch
-
-DEBUG = False
 
 re_keywordsplit = re.compile(r"[\W_]", re.UNICODE)
 dialog_stopwords = set(['an', 'and', 'by', 'for', 'from', 'of', 'the', 'to', 'with'])
@@ -60,13 +59,13 @@ class SearchManager:
     """
 
     def __init__(self, dbhandler):
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.dbhandler = dbhandler
         # self.keywordsearch = KeywordSearch()
 
     def search(self, kws, maxhits=None):
         """ Called by any thread """
-        if DEBUG:
-            print("SearchManager: search", kws, file=sys.stderr)
+        self._logger.debug("SearchManager: search %s" % repr(kws))
 
         hits = self.dbhandler.searchNames(kws)
         if maxhits is None:

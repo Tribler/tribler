@@ -50,7 +50,7 @@ def generate_key(config):
         else:
             target = os.path.join(a, b)
     target += ".torrent"
-    print("Generating key to '%s.tkey' and '%s.pub'" % (target, target))
+    print "Generating key to '%s.tkey' and '%s.pub'" % (target, target)
 
     keypair, pubkey = ClosedSwarm.generate_cs_keypair(target + ".tkey",
                                                       target + ".pub")
@@ -67,19 +67,19 @@ def publish_key(torrent, keypair, target_directory="."):
     filename = filename.replace("\\", "")
     key_file = os.path.join(target_directory, filename + ".tkey")
     ClosedSwarm.save_cs_keypair(keypair, key_file)
-    print("Key saved to:", key_file)
+    print "Key saved to:", key_file
 
 
 def progress(perc):
-    print(int(100.0 * perc), "%", end=' ')
+    print int(100.0 * perc), "%",
 
 if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
-    print("config is", config, file=sys.stderr)
+    print >>sys.stderr, "config is", config
 
     if config['source'] == '':
-        print("Usage:  ", get_usage(argsdef))
+        print "Usage:  ", get_usage(argsdef)
         sys.exit(0)
 
     if isinstance(config['source'], unicode):
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     cs_keypair = None  # Save for publishing later
     if config['generate_cs'].lower() == "yes":
         if config['cs_keys']:
-            print("Refusing to generate keys when key is given")
+            print "Refusing to generate keys when key is given"
             raise SystemExit(1)
         cs_keypair, cs_pubkey = generate_key(config)
         tdef.set_cs_keys([cs_pubkey])

@@ -54,7 +54,7 @@ class TestCachingStream(unittest.TestCase):
                 break
             self.g.write(data)
             if DEBUG:
-                print(".", end=' ', file=sys.stderr)
+                print >> sys.stderr, ".",
 
         self.g.close()
         self.cmp_files()
@@ -63,12 +63,12 @@ class TestCachingStream(unittest.TestCase):
         while True:
             data = self.c.read(32768)
             if DEBUG:
-                print("test: Got bytes", len(data), file=sys.stderr)
+                print >> sys.stderr, "test: Got bytes", len(data)
             if len(data) == 0:
                 break
             self.g.write(data)
             if DEBUG:
-                print(".", end=' ', file=sys.stderr)
+                print >> sys.stderr, ".",
 
         self.g.close()
         self.cmp_files()
@@ -77,12 +77,12 @@ class TestCachingStream(unittest.TestCase):
         while True:
             data = self.c.read(32767)
             if DEBUG:
-                print("test: Got bytes", len(data), file=sys.stderr)
+                print >> sys.stderr, "test: Got bytes", len(data)
             if len(data) == 0:
                 break
             self.g.write(data)
             if DEBUG:
-                print(".", end=' ', file=sys.stderr)
+                print >> sys.stderr, ".",
 
         self.g.close()
         self.cmp_files()
@@ -92,7 +92,7 @@ class TestCachingStream(unittest.TestCase):
         while True:
             data = self.c.read(32767)
             if DEBUG:
-                print("test: Got bytes", len(data), file=sys.stderr)
+                print >> sys.stderr, "test: Got bytes", len(data)
             if len(data) == 0:
                 break
             self.g.write(data)
@@ -100,7 +100,7 @@ class TestCachingStream(unittest.TestCase):
             pos += len(data)
             self.c.seek(pos)
             if DEBUG:
-                print(".", end=' ', file=sys.stderr)
+                print >> sys.stderr, ".",
 
         self.g.close()
         self.cmp_files()
@@ -108,27 +108,27 @@ class TestCachingStream(unittest.TestCase):
     def test_read1sttwice(self):
         data1 = self.c.read(32768)
         if DEBUG:
-            print("test: Got bytes", len(data1), file=sys.stderr)
+            print >> sys.stderr, "test: Got bytes", len(data1)
         self.c.seek(0)
         data2 = self.c.read(32768)
         if DEBUG:
-            print("test: Got bytes", len(data2), file=sys.stderr)
+            print >> sys.stderr, "test: Got bytes", len(data2)
         self.assert_(data1 == data2)
 
     def test_inside_1stblock(self):
         data1 = self.c.read(32768)
         if DEBUG:
-            print("test: Got bytes", len(data1), file=sys.stderr)
+            print >> sys.stderr, "test: Got bytes", len(data1)
         self.c.seek(16384)
         data2 = self.c.read(16384)
         if DEBUG:
-            print("test: Got bytes", len(data2), file=sys.stderr)
+            print >> sys.stderr, "test: Got bytes", len(data2)
         self.assert_(data1[16384:] == data2)
 
         self.c.seek(10000)
         data3 = self.c.read(20000)
         if DEBUG:
-            print("test: Got bytes", len(data3), file=sys.stderr)
+            print >> sys.stderr, "test: Got bytes", len(data3)
         self.assert_(data1[10000:10000 + 20000] == data3)
 
     def cmp_files(self):

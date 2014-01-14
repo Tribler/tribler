@@ -107,13 +107,13 @@ class TestRemoteQuery(TestGuiAsServer):
     def startTest(self, callback, searchComm=True):
         if searchComm:
             def wait_for_search():
-                print("tgs: frame ready, staring to wait for search to be ready", file=sys.stderr)
+                print >> sys.stderr, "tgs: frame ready, staring to wait for search to be ready"
                 self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.5, callback, 'did not connect to 50% of expected peers within 300s')
             TestGuiAsServer.startTest(self, wait_for_search)
 
         else:
             def wait_for_chansearch():
-                print("tgs: frame ready, staring to wait for channelsearch to be ready", file=sys.stderr)
+                print >> sys.stderr, "tgs: frame ready, staring to wait for channelsearch to be ready"
                 self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 5, callback, 'did not connect to more than 5 peers within 300s')
             TestGuiAsServer.startTest(self, wait_for_chansearch)
 

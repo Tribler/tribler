@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
+import logging
 from cStringIO import StringIO
 from binascii import b2a_hex
 from Tribler.Core.MessageID import protocol_name
@@ -18,18 +19,19 @@ def toint(s):
 
 default_task_id = []
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def show(s):
     for i in xrange(len(s)):
-        print(ord(s[i]), end=' ')
-    print()
+        logger.info(repr(ord(s[i])))
 
 
 class SingleRawServer:
 
     def __init__(self, info_hash, multihandler, doneflag, protocol):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.info_hash = info_hash
         self.doneflag = doneflag
         self.protocol = protocol
@@ -45,8 +47,7 @@ class SingleRawServer:
             self.multihandler.shutdown_torrent(self.info_hash)
 
     def _shutdown(self):
-        if DEBUG:
-            print("SingleRawServer: _shutdown", file=sys.stderr)
+        self._logger.debug("SingleRawServer: _shutdown")
         if not self.finished:
             self.finished = True
             self.running = False
@@ -55,8 +56,7 @@ class SingleRawServer:
                 self.handler.close_all()
 
     def _external_connection_made(self, c, options, msg_remainder):
-        if DEBUG:
-            print("SingleRawServer: _external_conn_made, running?", self.running, file=sys.stderr)
+        self._logger.debug("SingleRawServer: _external_conn_made, running? %s" % repr(self.running))
         if self.running:
             c.set_handler(self.handler)
             self.handler.externally_handshaked_connection_made(
@@ -97,6 +97,8 @@ class SingleRawServer:
 class NewSocketHandler:     # hand a new socket off where it belongs
 
     def __init__(self, multihandler, connection):    # connection: SingleSocket
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.multihandler = multihandler
         self.connection = connection
         connection.set_handler(self)
@@ -121,8 +123,7 @@ class NewSocketHandler:     # hand a new socket off where it belongs
         if s == 'G':
             self.protocol = 'HTTP'
             self.firstbyte = s
-            if DEBUG:
-                print("NewSocketHandler: Got HTTP connection", file=sys.stderr)
+            self._logger.debug("NewSocketHandler: Got HTTP connection")
             return True
         else:
             l = ord(s)
@@ -137,15 +138,13 @@ class NewSocketHandler:     # hand a new socket off where it belongs
         return 20, self.read_download_id
 
     def read_download_id(self, s):
-        if DEBUG:
-            print("NewSocketHandler: Swarm id is", repr(s), self.connection.socket.getpeername(), file=sys.stderr)
+        self._logger.debug("NewSocketHandler: Swarm id is %s %s" %\
+            (repr(s), repr(self.connection.socket.getpeername())))
         if s in self.multihandler.singlerawservers:
             if self.multihandler.singlerawservers[s].protocol == self.protocol:
-                if DEBUG:
-                    print("NewSocketHandler: Found rawserver for swarm id", file=sys.stderr)
+                self._logger.debug("NewSocketHandler: Found rawserver for swarm id")
                 return True
-        if DEBUG:
-            print("NewSocketHandler: No rawserver found for swarm id", repr(s), file=sys.stderr)
+        self._logger.debug("NewSocketHandler: No rawserver found for swarm id %s" % repr(s))
         return None
 
     def read_dead(self, s):
@@ -172,20 +171,18 @@ class NewSocketHandler:     # hand a new socket off where it belongs
                 self.next_len, self.next_func = 1, self.read_dead
                 raise
             if x is None:
-                if DEBUG:
-                    print("NewSocketHandler:", self.next_func, "returned None", file=sys.stderr)
+                self._logger.debug("NewSocketHandler: %s returned None" % self.next_func)
                 self.close()
                 return
             if x == True:       # ready to process
                 if self.protocol == 'HTTP' and self.multihandler.httphandler:
-                    if DEBUG:
-                        print("NewSocketHandler: Reporting HTTP connection", file=sys.stderr)
+                    self._logger.debug("NewSocketHandler: Reporting HTTP connection")
                     self.multihandler.httphandler.external_connection_made(self.connection)
                     self.multihandler.httphandler.data_came_in(self.connection, self.firstbyte)
                     self.multihandler.httphandler.data_came_in(self.connection, s)
                 else:
-                    if DEBUG:
-                        print("NewSocketHandler: Reporting connection via", self.multihandler.singlerawservers[m]._external_connection_made, file=sys.stderr)
+                    self._logger.debug("NewSocketHandler: Reporting connection via %s" %\
+                        repr(self.multihandler.singlerawservers[m]._external_connection_made))
                     self.multihandler.singlerawservers[m]._external_connection_made(self.connection, self.options, s)
                 self.complete = True
                 return
@@ -201,6 +198,8 @@ class NewSocketHandler:     # hand a new socket off where it belongs
 class MultiHandler:
 
     def __init__(self, rawserver, doneflag):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.rawserver = rawserver
         self.masterdoneflag = doneflag
         self.singlerawservers = {}
@@ -214,14 +213,12 @@ class MultiHandler:
         return new
 
     def shutdown_torrent(self, info_hash):
-        if DEBUG:
-            print("MultiHandler: shutdown_torrent", repr(info_hash), file=sys.stderr)
+        self._logger.debug("MultiHandler: shutdown_torrent %s" % repr(info_hash))
         self.singlerawservers[info_hash]._shutdown()
         del self.singlerawservers[info_hash]
 
     def listen_forever(self):
-        if DEBUG:
-            print("MultiHandler: listen_forever()", file=sys.stderr)
+        self._logger.debug("MultiHandler: listen_forever()")
         self.rawserver.listen_forever(self)
         for srs in self.singlerawservers.values():
             srs.finished = True

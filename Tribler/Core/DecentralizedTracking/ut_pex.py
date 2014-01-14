@@ -31,13 +31,14 @@ ran BitTorrent and was downloading this swarm (assuming the tracker is trustwort
 
 """
 import sys
+import logging
 from types import DictType, StringType
 from Tribler.Core.Utilities.bencode import bencode
 
 EXTEND_MSG_UTORRENT_PEX_ID = chr(1)  # Can be any value, the name 'ut_pex' is standardized
 EXTEND_MSG_UTORRENT_PEX = 'ut_pex'  # note case sensitive
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def create_ut_pex(addedconns, droppedconns, thisconn):
@@ -111,8 +112,7 @@ def check_ut_pex(d):
     # else:
         # raise ValueError('ut_pex: added.f: missing')
 
-    if DEBUG:
-        print("ut_pex: Got", apeers, file=sys.stderr)
+    logger.debug("ut_pex: Got %s" % repr(apeers))
 
     return (same_apeers, apeers, dpeers)
 

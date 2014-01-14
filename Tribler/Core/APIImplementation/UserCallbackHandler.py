@@ -7,17 +7,18 @@ import shutil
 import binascii
 from threading import currentThread
 from traceback import print_exc
+import logging
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.APIImplementation.ThreadPool import ThreadNoPool
 from Tribler.Core.CacheDB.Notifier import Notifier
 
-DEBUG = False
-
 
 class UserCallbackHandler:
 
     def __init__(self, session):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.session = session
         self.sesslock = session.sesslock
 
@@ -33,8 +34,8 @@ class UserCallbackHandler:
 
     def perform_vod_usercallback(self, d, usercallback, event, params):
         """ Called by network thread """
-        if DEBUG:
-            print("Session: perform_vod_usercallback()", repr(d.get_def().get_name()), file=sys.stderr)
+        self._logger.debug("Session: perform_vod_usercallback() %s" %\
+            repr(d.get_def().get_name()))
 
         def session_vod_usercallback_target():
             try:
@@ -45,8 +46,7 @@ class UserCallbackHandler:
 
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
         """ Called by network thread """
-        if DEBUG:
-            print("Session: perform_getstate_usercallback()", file=sys.stderr)
+        self._logger.debug("Session: perform_getstate_usercallback()")
 
         def session_getstate_usercallback_target():
             try:
@@ -58,12 +58,11 @@ class UserCallbackHandler:
 
     def perform_removestate_callback(self, infohash, contentdests, removecontent):
         """ Called by network thread """
-        if DEBUG:
-            print("Session: perform_removestate_callback()", file=sys.stderr)
+        self._logger.debug("Session: perform_removestate_callback()")
 
         def session_removestate_callback_target():
-            if DEBUG:
-                print("Session: session_removestate_callback_target called", currentThread().getName(), file=sys.stderr)
+            self._logger.debug("Session: session_removestate_callback_target called %s" %\
+                currentThread().getName())
             try:
                 self.sesscb_removestate(infohash, contentdests, removecontent)
             except:
@@ -77,12 +76,12 @@ class UserCallbackHandler:
     def sesscb_removestate(self, infohash, contentdests, removecontent):
         """  See DownloadImpl.setup().
         Called by SessionCallbackThread """
-        if DEBUG:
-            print("Session: sesscb_removestate called", repr(infohash), contentdests, removecontent, file=sys.stderr)
+        self._logger.debug("Session: sesscb_removestate called %s, %s, %s" %\
+            (repr(infohash), repr(contentdests), repr(removecontent)))
         self.sesslock.acquire()
         try:
             if self.session.lm.download_exists(infohash):
-                print("Session: sesscb_removestate: Download is back, restarted? Canceling removal!", repr(infohash), file=sys.stderr)
+                self._logger.info("Session: sesscb_removestate: Download is back, restarted? Canceling removal! %s" % repr(infohash))
                 return
 
             dlpstatedir = os.path.join(self.session.get_state_dir(), STATEDIR_DLPSTATE_DIR)
@@ -94,8 +93,7 @@ class UserCallbackHandler:
         try:
             basename = hexinfohash + '.pickle'
             filename = os.path.join(dlpstatedir, basename)
-            if DEBUG:
-                print("Session: sesscb_removestate: removing dlcheckpoint entry", filename, file=sys.stderr)
+            self._logger.debug("Session: sesscb_removestate: removing dlcheckpoint entry %s" % filename)
             if os.access(filename, os.F_OK):
                 os.remove(filename)
         except:
@@ -104,8 +102,7 @@ class UserCallbackHandler:
 
         # Remove downloaded content from disk
         if removecontent:
-            if DEBUG:
-                print("Session: sesscb_removestate: removing saved content", contentdests, file=sys.stderr)
+            self._logger.debug("Session: sesscb_removestate: removing saved content %s" % contentdests)
 
             contentdirs = set()
             for filename in contentdests:
@@ -139,6 +136,6 @@ class UserCallbackHandler:
         """
         Notify all interested observers about an event with threads from the pool
         """
-        if DEBUG:
-            print("ucb: notify called:", subject, changeType, repr(obj_id), args, file=sys.stderr)
+        self._logger.debug("ucb: notify called: %s, %s, %s, %s" %\
+            (repr(subject), repr(changeType), repr(obj_id), repr(args)))
         self.notifier.notify(subject, changeType, obj_id, *args)

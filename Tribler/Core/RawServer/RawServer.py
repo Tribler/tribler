@@ -12,6 +12,7 @@ from thread import get_ident
 from Tribler.Core.Utilities.clock import clock
 import sys
 import time
+import logging
 from Tribler.Core import NoDispersyRLock
 
 from Tribler.dispersy.decorator import attach_profiler
@@ -21,8 +22,6 @@ try:
 except:
     True = 1
     False = 0
-
-DEBUG = False
 
 
 def autodetect_ipv6():
@@ -56,6 +55,8 @@ class RawServer:
     def __init__(self, doneflag, timeout_check_interval, timeout, noisy=True,
                  ipv6_enable=True, failfunc= lambda x: None, errorfunc = None,
                  sockethandler=None, excflag= Event()):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.timeout_check_interval = timeout_check_interval
         self.timeout = timeout
         self.servers = {}
@@ -137,8 +138,7 @@ class RawServer:
 
     @attach_profiler
     def listen_forever(self, handler):
-        if DEBUG:
-            print("rawserver: listen forever()", file=sys.stderr)
+        self._logger.debug("rawserver: listen forever()")
         # handler=btlanuchmany: MultiHandler, btdownloadheadless: Encoder
         self.thread_ident = get_ident()
         self.sockethandler.set_handler(handler)
@@ -159,8 +159,7 @@ class RawServer:
                     events = self.sockethandler.do_poll(period)
 
                     if self.doneflag.isSet():
-                        if DEBUG:
-                            print("rawserver: stopping because done flag set", file=sys.stderr)
+                        self._logger.debug("rawserver: stopping because done flag set")
                         return
 
                     # print >>sys.stderr,"RawServer: funcs is",`self.funcs`
@@ -171,9 +170,8 @@ class RawServer:
                             pass
                         try:
 #                            print func.func_name
-                            if DEBUG:
-                                if func.func_name != "_bgalloc":
-                                    print("RawServer:f", func.func_name, file=sys.stderr)
+                            if func.func_name != "_bgalloc":
+                                self._logger.debug("RawServer:f %s" % repr(func.func_name))
                             # st = time.time()
                             func()
                             # et = time.time()
@@ -187,9 +185,8 @@ class RawServer:
 #                            self.exception(e)
                             return
                         except error:
-                            if DEBUG:
-                                print("rawserver: func: ERROR exception", file=sys.stderr)
-                                print_exc()
+                            self._logger.debug("rawserver: func: ERROR exception")
+                            print_exc()
                             pass
                         except Exception as e:
                             # boudewijn: someone made a big mistake,
@@ -198,9 +195,8 @@ class RawServer:
                             # of silently hiding the problem and
                             # continuing...
                             # raise
-                            if DEBUG:
-                                print("rawserver: func: any exception", file=sys.stderr)
-                                print_exc()
+                            self._logger.debug("rawserver: func: any exception")
+                            print_exc()
                             if self.noisy:
                                 self.exception(e)
 
@@ -208,15 +204,13 @@ class RawServer:
                     self.sockethandler.handle_events(events)
 
                 except (SystemError, MemoryError) as e:
-                    if DEBUG:
-                        print("rawserver: SYS/MEM exception", e, file=sys.stderr)
+                    self._logger.debug("rawserver: SYS/MEM exception %s" % repr(e))
                     self.failfunc(e)
                     return
 
                 except error:
-                    if DEBUG:
-                        print("rawserver: ERROR exception", file=sys.stderr)
-                        print_exc()
+                    self._logger.debug("rawserver: ERROR exception")
+                    print_exc()
 
                 except KeyboardInterrupt as e:
                     self.failfunc(e)
@@ -228,8 +222,7 @@ class RawServer:
                     # for *uck sake!  instead of silently hiding the
                     # problem and continuing...
                     # raise
-                    if DEBUG:
-                        print("rawserver: other exception", file=sys.stderr)
+                    self._logger.debug("rawserver: other exception")
                     print_exc()
                     self.exception(e)
                 # Arno: Don't stop till we drop
@@ -275,16 +268,13 @@ class RawServer:
     # Interface for Khashmir
     #
     def create_udpsocket(self, port, host):
-        if DEBUG:
-            print("rawudp: create_udp_socket", host, port, file=sys.stderr)
+        self._logger.debug("rawudp: create_udp_socket %s %s" % (repr(host), repr(port)))
         return self.sockethandler.create_udpsocket(port, host)
 
     def start_listening_udp(self, serversocket, handler):
-        if DEBUG:
-            print("rawudp: start_listen:", serversocket, handler, file=sys.stderr)
+        self._logger.debug("rawudp: start_listen: %s %s" % (repr(serversocket), repr(handler)))
         self.sockethandler.start_listening_udp(serversocket, handler)
 
     def stop_listening_udp(self, serversocket):
-        if DEBUG:
-            print("rawudp: stop_listen:", serversocket, file=sys.stderr)
+        self._logger.debug("rawudp: stop_listen: %s" % repr(serversocket))
         self.sockethandler.stop_listening_udp(serversocket)

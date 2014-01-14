@@ -192,8 +192,8 @@ class RoutingTable(object):
         num_nodes = 0
         for i, sbucket in enumerate(self.sbuckets):
             if sbucket and len(sbucket.main):
-                print(i, len(sbucket.main), len(sbucket.replacement))
-        print('Total:', self.num_rnodes)
+                logger.info('%d %d %d' % (i, len(sbucket.main), len(sbucket.replacement)))
+        logger.info('Total: %d' % self.num_rnodes)
 
     def __repr__(self):
         begin = ['==============RoutingTable============= BEGIN']

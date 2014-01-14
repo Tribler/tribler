@@ -34,7 +34,7 @@ argsdef = [('name', '', 'name of the stream'),
 
 def state_callback(ds):
     d = ds.get_download()
-    print(repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD), file=sys.stderr)
+    print >> sys.stderr, repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD)
 
     return (1.0, False)
 
@@ -43,7 +43,7 @@ def vod_ready_callback(d, mimetype, stream, filename):
     """ Called by the Session when the content of the Download is ready
 
     Called by Session thread """
-    print("main: VOD ready callback called ###########################################################", mimetype, file=sys.stderr)
+    print >> sys.stderr, "main: VOD ready callback called ###########################################################", mimetype
 
 
 def generate_key(source, config):
@@ -58,7 +58,7 @@ def generate_key(source, config):
     else:
         target = os.path.join(a, b)
     target += ".torrent"
-    print("Generating key to '%s.tkey' and '%s.pub'" % (target, target))
+    print "Generating key to '%s.tkey' and '%s.pub'" % (target, target)
 
     keypair, pubkey = ClosedSwarm.generate_cs_keypair(target + ".tkey",
                                                       target + ".pub")
@@ -89,14 +89,14 @@ class FileLoopStream:
 if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
-    print("config is", config, file=sys.stderr)
-    print("fileargs is", fileargs)
+    print >> sys.stderr, "config is", config
+    print "fileargs is", fileargs
 
     if config['name'] == '':
-        print("Usage:  ", get_usage(argsdef))
+        print "Usage:  ", get_usage(argsdef)
         sys.exit(0)
 
-    print("Press Ctrl-C to stop the download")
+    print "Press Ctrl-C to stop the download"
 
     try:
         os.remove(os.path.join(config['destdir'], config['name']))
@@ -128,7 +128,7 @@ if __name__ == "__main__":
             authcfg = ECDSALiveSourceAuthConfig()
             authcfg.save(authfilename)
 
-    print("main: Source auth pubkey", repr(str(authcfg.get_pubkey())), file=sys.stderr)
+    print >> sys.stderr, "main: Source auth pubkey", repr(str(authcfg.get_pubkey()))
 
     tdef = TorrentDef()
     # hint: to derive bitrate and duration from a file, use
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
     if config['generate_cs'].lower() == "yes":
         if config['cs_keys']:
-            print("Refusing to generate keys when key is given")
+            print "Refusing to generate keys when key is given"
             raise SystemExit(1)
 
         cs_keypair, config['cs_keys'] = generate_key(config['name'], config)
@@ -149,10 +149,10 @@ if __name__ == "__main__":
         # TODO: Read POA if keys are already given (but generate_cs is "no")
         # Will also create POA for this node - which will seed it!
     if len(config['cs_keys']) > 0:
-        print("Setting torrent keys to:", config['cs_keys'].split(";"), file=sys.stderr)
+        print >> sys.stderr, "Setting torrent keys to:", config['cs_keys'].split(";")
         tdef.set_cs_keys(config['cs_keys'].split(";"))
     else:
-        print("No keys", file=sys.stderr)
+        print >> sys.stderr, "No keys"
     # tdef2 = TorrentDef.load(torrentfilename)
     # print >>sys.stderr,"main: Source auth pubkey2",`tdef2.metainfo['info']['live']`
 
@@ -180,9 +180,9 @@ if __name__ == "__main__":
                                              authcfg.get_pubkey(),
                                              tdef.infohash,
                                              poa)
-                print("POA saved", file=sys.stderr)
+                print >> sys.stderr, "POA saved"
             except Exception as e:
-                print("Could not save POA", file=sys.stderr)
+                print >> sys.stderr, "Could not save POA"
 
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(config['destdir'])

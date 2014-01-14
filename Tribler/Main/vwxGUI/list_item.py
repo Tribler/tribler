@@ -4,6 +4,7 @@ import sys
 import json
 import shutil
 import urllib
+import logging
 from datetime import timedelta
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -47,6 +48,8 @@ class DoubleLineListItem(ListItem):
     def __init__(self, *args, **kwargs):
         self.guiutility = GUIUtility.getInstance()
         ListItem.__init__(self, *args, **kwargs)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
@@ -608,7 +611,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             _, old_file = os.path.split(old)
             new = os.path.join(new_dir, old_file)
 
-        print("Creating new downloadconfig", file=sys.stderr)
+        self._logger.info("Creating new downloadconfig")
         if isinstance(download_state, MergedDs):
             dslist = download_state.dslist
         else:
@@ -626,14 +629,14 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         for ds in dslist:
             download = ds.get_download()
             if download.get_def().get_def_type() == 'torrent':
-                print("Moving from", old, "to", new, "newdir", new_dir, file=sys.stderr)
+                self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
                 download.move_storage(new_dir)
                 if download.get_save_path() == new_dir:
                     storage_moved = True
 
         # If libtorrent hasn't moved the files yet, move them now
         if not storage_moved:
-            print("Moving from", old, "to", new, "newdir", new_dir, file=sys.stderr)
+            self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
             movelambda = lambda: rename_or_merge(old, new)
             self.guiutility.utility.session.lm.rawserver.add_task(movelambda, 0.0)
 

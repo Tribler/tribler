@@ -12,6 +12,7 @@ import binascii
 import random
 import urllib
 import time
+import logging
 
 import socket
 from threading import RLock
@@ -38,7 +39,6 @@ HTTP_TRACKER_MAX_RETRIES = 0
 MAX_TRACKER_MULTI_SCRAPE = 74
 
 # some settings
-DEBUG = False
 
 # ============================================================
 # The abstract TrackerSession class. It represents a session with a tracker.
@@ -52,6 +52,8 @@ class TrackerSession(object):
     # ----------------------------------------
     def __init__(self, tracker, tracker_type, tracker_address, announce_page, \
             update_result_callback):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self._tracker = tracker
         self._tracker_type = tracker_type
         self._tracker_address = tracker_address
@@ -339,9 +341,7 @@ class HttpTrackerSession(TrackerSession):
         except Exception as e:
             # Error number 115 means the opertion is in progress.
             if e[0] not in [115, 10035]:
-                if DEBUG:
-                    print('TrackerSession: Failed to connect to HTTP tracker [%s,%s]: %s' % \
-                        (self._tracker, self._tracker_address, str(e)), file=sys.stderr)
+                self._logger.debug('TrackerSession: Failed to connect to HTTP tracker [%s,%s]: %s' % (self._tracker, self._tracker_address, str(e)))
                 self.setFailed()
                 return False
 
@@ -378,13 +378,10 @@ class HttpTrackerSession(TrackerSession):
             self._socket.sendall(message)
 
         except Exception as e:
-            if DEBUG:
-                print('TrackerSession: Failed to send HTTP SCRAPE message:', \
-                    e, file=sys.stderr)
+            self._logger.debug('TrackerSession: Failed to send HTTP SCRAPE message: %s', e)
             self.setFailed()
 
-        if DEBUG:
-            print('TrackerSession: send', message, file=sys.stderr)
+        self._logger.debug('TrackerSession: send %s', message)
 
         # no more requests can be appended to this session
         self._action = TRACKER_ACTION_SCRAPE
@@ -399,14 +396,11 @@ class HttpTrackerSession(TrackerSession):
             response = self._socket.recv(8192)
 
         except Exception as e:
-            if DEBUG:
-                print('TrackerSession: Failed to receive HTTP SCRAPE response:', \
-                    e, file=sys.stderr)
+            self._logger.debug('TrackerSession: Failed to receive HTTP SCRAPE response: %s', e)
             self.setFailed()
             return
 
-        if DEBUG:
-            print('TrackerSession: Got [%s] as a response' % response, file=sys.stderr)
+        self._logger.debug('TrackerSession: Got [%s] as a response' % response)
 
         if not response:
             self.setFailed()
@@ -473,8 +467,7 @@ class HttpTrackerSession(TrackerSession):
                         raise RuntimeError('cannot redirect to different trackertype')
 
                     else:
-                        if True or DEBUG:
-                            print('TrackerSession: we are being redirected', new_location, file=sys.stderr)
+                        self._logger.debug('TrackerSession: we are being redirected %s', new_location)
 
                         self._tracker_address = tracker_address
                         self._announce_page = announce_page
@@ -483,17 +476,14 @@ class HttpTrackerSession(TrackerSession):
                         self.reestablishConnection()
 
                 except:
-                    if DEBUG:
-                        print('TrackerSession: cannot redirect trackertype changed', new_location, file=sys.stderr)
+                    self._logger.debug('TrackerSession: cannot redirect trackertype changed %s', new_location)
                     print_exc()
                     self.setFailed()
             return
 
         if code != '200':
             # error response code
-            if DEBUG:
-                print('TrackerSession: Error HTTP SCRAPE response code [%s, %s].' % \
-                (code, msg), file=sys.stderr)
+            self._logger.debug('TrackerSession: Error HTTP SCRAPE response code [%s, %s].' %(code, msg))
             self.setFailed()
             return
 
@@ -531,8 +521,7 @@ class HttpTrackerSession(TrackerSession):
         try:
             response_dict = bdecode(self._message_buffer)
         except Exception as e:
-            if DEBUG:
-                print('TrackerSession: Failed to decode bcode[%s].' % self._message_buffer, file=sys.stderr)
+            self._logger.debug('TrackerSession: Failed to decode bcode[%s].' % self._message_buffer)
             return False
 
         unprocessed_infohash_list = self._infohash_list[:]
@@ -553,8 +542,7 @@ class HttpTrackerSession(TrackerSession):
                     unprocessed_infohash_list.remove(infohash)
 
         elif 'failure reason' in response_dict:
-            if DEBUG:
-                print('TrackerSession: Failure as reported by tracker [%s]' % response_dict['failure reason'], file=sys.stderr)
+            self._logger.debug('TrackerSession: Failure as reported by tracker [%s]' % response_dict['failure reason'])
 
             return False
 
@@ -657,9 +645,7 @@ class UdpTrackerSession(TrackerSession):
         try:
             self._socket.send(message)
         except Exception as e:
-            if DEBUG:
-                print('TrackerSession: Failed to send message to UDP tracker [%s]: %s' % \
-                (self._tracker, str(e)), file=sys.stderr)
+            self._logger.debug('TrackerSession: Failed to send message to UDP tracker [%s]: %s' % (self._tracker, str(e)))
             self.setFailed()
             return False
 
@@ -674,15 +660,13 @@ class UdpTrackerSession(TrackerSession):
             # TODO: this number may be increased
             response = self._socket.recv(32)
         except Exception as e:
-            if DEBUG:
-                print('TrackerSession: Failed to receive UDP CONNECT response:', e, file=sys.stderr)
+            self._logger.debug('TrackerSession: Failed to receive UDP CONNECT response: %s', e)
             self.setFailed()
             return
 
         # check message size
         if len(response) < 16:
-            if DEBUG:
-                print('TrackerSession: Invalid response for UDP CONNECT [%s].' % response, file=sys.stderr)
+            self._logger.debug('TrackerSession: Invalid response for UDP CONNECT [%s].' % response)
             self.setFailed()
             return
 
@@ -695,9 +679,7 @@ class UdpTrackerSession(TrackerSession):
             error_message = \
                 struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
-            if DEBUG:
-                print('TrackerSession: Error response for UDP CONNECT [%s]: %s.' % \
-                (response, error_message), file=sys.stderr)
+            self._logger.debug('TrackerSession: Error response for UDP CONNECT [%s]: %s.' % (response, error_message))
             self.setFailed()
             return
 
@@ -715,8 +697,7 @@ class UdpTrackerSession(TrackerSession):
         try:
             self._socket.send(message)
         except Exception as e:
-            if DEBUG:
-                print('TrackerSession: Failed to send UDP SCRAPE message:', e, file=sys.stderr)
+            self._logger.debug('TrackerSession: Failed to send UDP SCRAPE message: %s', e)
             self.setFailed()
             return
 
@@ -733,15 +714,13 @@ class UdpTrackerSession(TrackerSession):
             # TODO: the number may be changed
             response = self._socket.recv(1024)
         except Exception as e:
-            if DEBUG:
-                print('TrackerSession: Failed to receive UDP SCRAPE response:', e, file=sys.stderr)
+            self._logger.debug('TrackerSession: Failed to receive UDP SCRAPE response: %s', e)
             self.setFailed()
             return
 
         # check message size
         if len(response) < 8:
-            if DEBUG:
-                print('TrackerSession: Invalid response for UDP SCRAPE [%s].' % response, file=sys.stderr)
+            self._logger.debug('TrackerSession: Invalid response for UDP SCRAPE [%s].' % response)
             self.setFailed()
             return
 
@@ -753,9 +732,7 @@ class UdpTrackerSession(TrackerSession):
             error_message = \
                 struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
-            if DEBUG:
-                print('TrackerSession: Error response for UDP SCRAPE [%s]: [%s].' % \
-                (response, error_message), file=sys.stderr)
+            self._logger.debug('TrackerSession: Error response for UDP SCRAPE [%s]: [%s].' % (response, error_message))
             self.setFailed()
             return
 

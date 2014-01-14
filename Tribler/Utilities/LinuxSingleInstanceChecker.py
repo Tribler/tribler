@@ -3,6 +3,7 @@
 
 import sys
 import commands
+import logging
 
 
 class LinuxSingleInstanceChecker:
@@ -10,6 +11,8 @@ class LinuxSingleInstanceChecker:
     """ Looks for a process with argument basename.py """
 
     def __init__(self, basename):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.basename = basename
 
     def IsAnotherRunning(self):
@@ -18,7 +21,7 @@ class LinuxSingleInstanceChecker:
         cmd = 'pgrep -fl "%s\.py" | grep -v pgrep' % (self.basename)
         progressInfo = commands.getoutput(cmd)
 
-        print("LinuxSingleInstanceChecker returned", progressInfo, file=sys.stderr)
+        self._logger.info("LinuxSingleInstanceChecker returned %s", progressInfo)
 
         numProcesses = len(progressInfo.split('\n'))
         # if DEBUG:

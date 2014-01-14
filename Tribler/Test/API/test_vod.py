@@ -9,11 +9,11 @@ from Tribler.Test.test_as_server import TestAsServer
 
 
 def state_callback(d, ds):
-    print("main: Stats", dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), file=sys.stderr)
+    print >> sys.stderr, "main: Stats", dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error()
 
 
 def vod_ready_callback(d, event, params):
-    print("main: VOD ready callback called", currentThread().getName(), "###########################################################", params["mimetype"], file=sys.stderr)
+    print >> sys.stderr, "main: VOD ready callback called", currentThread().getName(), "###########################################################", params["mimetype"]
 
     """
     f = open("video.avi","wb")

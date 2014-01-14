@@ -9,6 +9,7 @@ import wx
 import os
 import sys
 import time
+import logging
 
 from threading import currentThread
 from traceback import print_exc
@@ -22,8 +23,6 @@ from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread,
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED
 from Tribler.Core.CacheDB.Notifier import Notifier
 
-DEBUG = False
-
 class EmbeddedPlayerPanel(wx.Panel):
     """
     The Embedded Player consists of a VLCWindow and the media controls such
@@ -34,6 +33,8 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def __init__(self, parent, utility, vlcwrap, bg):
         wx.Panel.__init__(self, parent, -1)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.utility = utility
         self.guiutility = utility.guiUtility
@@ -149,8 +150,8 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     @warnWxThread
     def Load(self, url, streaminfo=None):
-        if DEBUG:
-            print("embedplay: Load:", url, streaminfo, currentThread().getName(), file=sys.stderr)
+        self._logger.debug("embedplay: Load: %s %s %s" %\
+            (repr(url), repr(streaminfo), repr(currentThread().getName())))
 
         if streaminfo is not None:
             self.estduration = streaminfo.get('estduration', None)
@@ -180,15 +181,13 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def StartPlay(self):
         """ Start playing the new item after VLC has stopped playing the old one """
-        if DEBUG:
-            print("embedplay: PlayWhenStopped", file=sys.stderr)
+        self._logger.debug("embedplay: PlayWhenStopped")
 
         self.playtimer = DelayTimer(self)
 
     @warnWxThread
     def Play(self, evt=None):
-        if DEBUG:
-            print("embedplay: Play pressed", file=sys.stderr)
+        self._logger.debug("embedplay: Play pressed")
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -197,13 +196,12 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.vlcwrap.start()
                 self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
                 self.ppbtn.Enable(True)
-            elif DEBUG:
-                print("embedplay: Play pressed, already playing", file=sys.stderr)
+            else:
+                self._logger.debug("embedplay: Play pressed, already playing")
 
     @warnWxThread
     def Pause(self, evt=None, gui_vod_event=False):
-        if DEBUG:
-            print("embedplay: Pause pressed", file=sys.stderr)
+        self._logger.debug("embedplay: Pause pressed")
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -213,13 +211,12 @@ class EmbeddedPlayerPanel(wx.Panel):
                 if gui_vod_event:
                     self.ppbtn.Enable(False)
                     self.ShowLoading()
-            elif DEBUG:
-                print("embedplay: Pause pressed, not playing", file=sys.stderr)
+            else:
+                self._logger.debug("embedplay: Pause pressed, not playing")
 
     @warnWxThread
     def Resume(self, evt=None):
-        if DEBUG:
-            print("embedplay: Resume pressed", file=sys.stderr)
+        self._logger.debug("embedplay: Resume pressed")
 
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
@@ -230,8 +227,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     @warnWxThread
     def PlayPause(self, evt=None):
-        if DEBUG:
-            print("embedplay: PlayPause pressed", file=sys.stderr)
+        self._logger.debug("embedplay: PlayPause pressed")
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -245,8 +241,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     @warnWxThread
     def Seek(self, evt=None):
-        if DEBUG:
-            print("embedplay: Seek", file=sys.stderr)
+        self._logger.debug("embedplay: Seek")
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -270,8 +265,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.update = True
             except:
                 print_exc()
-                if DEBUG:
-                    print('embedplay: Could not seek', file=sys.stderr)
+                self._logger.debug('embedplay: Could not seek')
 
     def FullScreen(self, evt=None):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
@@ -359,8 +353,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.save_callback()
 
     def SetVolume(self, volume, evt=None):
-        if DEBUG:
-            print("embedplay: SetVolume:", self.volume, file=sys.stderr)
+        self._logger.debug("embedplay: SetVolume: %s" % repr(self.volume))
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -375,8 +368,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     @forceWxThread
     def Stop(self):
-        if DEBUG:
-            print("embedplay: Stop", file=sys.stderr)
+        self._logger.debug("embedplay: Stop")
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -399,8 +391,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             status = self.vlcwrap.get_our_state()
-            if DEBUG:
-                print("embedplay: GetState", status, file=sys.stderr)
+            self._logger.debug("embedplay: GetState %s" % status)
 
             return status
 

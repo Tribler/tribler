@@ -10,14 +10,13 @@ from __init__ import SEPARATOR_GREY, FILTER_GREY
 import sys
 import wx
 import os
+import logging
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
 from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_item import ColumnsManager, TorrentListItem, ChannelListItem, LibraryListItem, ChannelListItemNoButton, PlaylistItemNoButton, PlaylistItem
-
-DEBUG = False
 
 
 class ListHeaderIcon:
@@ -28,6 +27,8 @@ class ListHeaderIcon:
             raise RuntimeError("ListHeaderIcon is singleton")
         ListHeaderIcon.__single = self
         self.icons = {}
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def getInstance(*args, **kw):
         if ListHeaderIcon.__single is None:
@@ -48,8 +49,7 @@ class ListHeaderIcon:
 
     @warnWxThread
     def __createBitmap(self, parent, background, type, flag=0):
-        if DEBUG:
-            print("Creating new sorting bitmaps", parent, background, type, file=sys.stderr)
+        self._logger.debug("Creating new sorting bitmaps %s %s %s", parent, background, type)
         nativeIcon = NativeIcon.getInstance()
         down = nativeIcon.getBitmap(parent, type, background, flag)
 
@@ -151,7 +151,7 @@ class ListHeader(wx.Panel):
                         if remainingWidth > 0:
                             sizer.AddSpacer((remainingWidth, 1))
                         else:
-                            print("LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width'], remainingWidth, file=sys.stderr)
+                            self._logger.info("LIST_HEADER: specified width is too small %s %s %s", columns[i]['name'], columns[i]['width'], remainingWidth)
                             label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
 
                     self.columnHeaders.append(label)

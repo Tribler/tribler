@@ -4,6 +4,7 @@
 import sys
 import wx
 import os
+import logging
 
 from cStringIO import StringIO
 
@@ -17,7 +18,6 @@ bt1_defaults = []
 for k, v in dldefaults.iteritems():
     bt1_defaults.append((k, v, "See triblerAPI"))
 
-DEBUG = False
 
 #
 #
@@ -35,6 +35,8 @@ class ConfigReader(ConfigParser):
     def __init__(self, filename, section, defaults=None):
         if defaults is None:
             defaults = {}
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         ConfigParser.__init__(self)
         self.defaults = defaults
@@ -226,8 +228,7 @@ class ConfigReader(ConfigParser):
         if section is None:
             section = self.section
 
-        if DEBUG:
-            print("ConfigReader: Read(", param, "type", type, "section", section, file=sys.stderr)
+        self._logger.debug("ConfigReader: Read(%s type %s section %s", param, type, section)
 
         if param is None or param == "":
             return ""
@@ -241,17 +242,11 @@ class ConfigReader(ConfigParser):
         except:
             param = param.lower()
             value = self.defaults.get(param, None)
-            if DEBUG:
-                sys.stderr.write("ConfigReader: Error while reading parameter: (" + str(param) + ")\n")
+            self._logger.debug("ConfigReader: Error while reading parameter: (" + str(param) + ")\n")
             # Arno, 2007-03-21: The ABCOptions dialog tries to read config values
             # via this mechanism. However, that doesn't take into account the
             # values from BitTornado/download_bt1.py defaults. I added that.
             if value is None:
-                if not DEBUG:
-                    pass
-                    # sys.stderr.write("ConfigReader: Error while reading parameter, no def: (" + str(param) + ")\n")
-                    # print_stack()
-
                 for k, v, d in bt1_defaults:
                     if k == param:
                         value = v
@@ -260,8 +255,7 @@ class ConfigReader(ConfigParser):
 #            print_exc(file = data)
 #            sys.stderr.write(data.getvalue())
 
-        if DEBUG:
-            print("ConfigReader: Read", param, type, section, "got", value, file=sys.stderr)
+        self._logger.debug("ConfigReader: Read %s %s %s got %s", param, type, section, value)
 
         value = self.StringToValue(value, type)
 

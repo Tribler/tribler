@@ -52,7 +52,7 @@ def vod_event_callback(d, event, params):
         if FIRST_ITERATION:
 
             if config['debug']:
-                print("main: Seeking to second: ", config['start'], "estimated duration: ", estduration, file=sys.stderr)
+                print >> sys.stderr, "main: Seeking to second: ", config['start'], "estimated duration: ", estduration
 
             file = None
             blocksize = d.get_def().get_piece_length()
@@ -64,7 +64,7 @@ def vod_event_callback(d, event, params):
                 estduration = float(length) / float(bitrate)
 
             if config['debug']:
-                print("main: Seeking: bitrate: ", bitrate, "duration: ", estduration, file=sys.stderr)
+                print >> sys.stderr, "main: Seeking: bitrate: ", bitrate, "duration: ", estduration
 
             if start < int(estduration):
                 seekbyte = float(bitrate * start)
@@ -78,12 +78,12 @@ def vod_event_callback(d, event, params):
                     stream.seek(int(seekbyte))
 
                     if config['debug']:
-                        print("main: Seeking: seekbyte: ", seekbyte, "start time: ", config['start'], file=sys.stderr)
+                        print >> sys.stderr, "main: Seeking: seekbyte: ", seekbyte, "start time: ", config['start']
 
                 FIRST_ITERATION = False
 
             else:
-                print("main: Starting time exceeds video duration!!", file=sys.stderr)
+                print >> sys.stderr, "main: Starting time exceeds video duration!!"
 
         if end != '':
             # Determine the final size of the stream depending on the end Time
@@ -91,7 +91,7 @@ def vod_event_callback(d, event, params):
             partialSize = endbyte - seekbyte
 
         else:
-            print("Seeking to the the beginning", file=sys.stderr)
+            print >> sys.stderr, "Seeking to the the beginning"
             stream.seek(0)
 
         basename = config['videoOut'] + '.mpeg'
@@ -102,7 +102,7 @@ def vod_event_callback(d, event, params):
         filename = os.path.join(config['destdir'], basename)
 
         if config['debug']:
-            print("main: Saving the file in the following location: ", filename, file=sys.stderr)
+            print >> sys.stderr, "main: Saving the file in the following location: ", filename
 
         f = open(filename, "wb")
         prev_data = None
@@ -110,11 +110,11 @@ def vod_event_callback(d, event, params):
         while not FIRST_ITERATION and (currentSize < partialSize):
             data = stream.read()
             if config['debug']:
-                print("main: VOD ready callback: reading", type(data), file=sys.stderr)
-                print("main: VOD ready callback: reading", len(data), file=sys.stderr)
+                print >> sys.stderr, "main: VOD ready callback: reading", type(data)
+                print >> sys.stderr, "main: VOD ready callback: reading", len(data)
             if len(data) == 0 or data == prev_data:
                 if config['debug']:
-                    print("main: Same data replicated: we reached the end of the stream", file=sys.stderr)
+                    print >> sys.stderr, "main: Same data replicated: we reached the end of the stream"
                 break
             f.write(data)
             currentSize += len(data)
@@ -133,7 +133,7 @@ def vod_event_callback(d, event, params):
         f.close()
         stream.close()
 
-        print("main: Seeking: END!!", file=sys.stderr)
+        print >> sys.stderr, "main: Seeking: END!!"
 
         if config['createNewTorr']:
             createTorr(filename)
@@ -149,14 +149,14 @@ def createTorr(filename):
     humantime = "%02d:%02d:%02d" % (h, m, s)
 
     if config['debug']:
-        print("duration for the newly created torrent: ", humantime, file=sys.stderr)
+        print >> sys.stderr, "duration for the newly created torrent: ", humantime
 
     dcfg = DownloadStartupConfig()
 #  dcfg.set_dest_dir(basename)
     tdef = TorrentDef()
     tdef.add_content(filename, playtime=humantime)
     tdef.set_tracker(SESSION.get_internal_tracker_url())
-    print(tdef.get_tracker(), file=sys.stderr)
+    print >> sys.stderr, tdef.get_tracker()
     tdef.finalize()
 
     if config['torrName'] == '':
@@ -169,7 +169,7 @@ def createTorr(filename):
 
     if config['seedAfter']:
         if config['debug']:
-            print("Seeding the newly created torrent", file=sys.stderr)
+            print >> sys.stderr, "Seeding the newly created torrent"
         d = SESSION.start_download(tdef, dcfg)
         d.set_state_callback(state_callback)
 
@@ -180,7 +180,7 @@ def state_callback(ds):
         p = "%.0f %%" % (100.0 * ds.get_progress())
         dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
         ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
-        print(dlstatus_strings[ds.get_status()], p, dl, ul, "=====", d.get_def().get_name(), file=sys.stderr)
+        print >> sys.stderr, dlstatus_strings[ds.get_status()], p, dl, ul, "=====", d.get_def().get_name()
     except:
         print_exc()
 
@@ -189,11 +189,11 @@ def state_callback(ds):
 if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
-    print("config is", config, file=sys.stderr)
-    print("fileargs is", fileargs)
+    print >> sys.stderr, "config is", config
+    print "fileargs is", fileargs
 
     if config['torr'] == '' or config['start'] == '':
-        print("Usage:  ", get_usage(argsdef))
+        print "Usage:  ", get_usage(argsdef)
         sys.exit(0)
 
     scfg = SessionStartupConfig()

@@ -21,15 +21,15 @@ class HTTPSeeder:
     # VideoServer status/error reporting
     #
     def videoservthread_error_callback(self, e, url):
-        print("httpseed: Video server reported error", url, str(e), file=sys.stderr)
+        print >>sys.stderr, "httpseed: Video server reported error", url, str(e)
 
     def videoservthread_set_status_callback(self, status):
-        print("httpseed: Video server sets status callback", status, file=sys.stderr)
+        print >>sys.stderr, "httpseed: Video server sets status callback", status
 
 
 if __name__ == '__main__':
 
-    print("httpseed: Starting", file=sys.stderr)
+    print >>sys.stderr, "httpseed: Starting"
 
     httpseed = HTTPSeeder()
 
@@ -48,10 +48,10 @@ if __name__ == '__main__':
         streaminfo = {'mimetype': 'application/ogg', 'stream': f, 'length': fsize, 'blocksize': 2 ** 16}
 
         urlpath = "/" + filename
-        print("httpseed: Hosting", urlpath, file=sys.stderr)
+        print >>sys.stderr, "httpseed: Hosting", urlpath
         httpseed.videoHTTPServer.set_inputstream(streaminfo, urlpath)
 
-    print("httpseed: Waiting", file=sys.stderr)
+    print >>sys.stderr, "httpseed: Waiting"
     try:
         while True:
             time.sleep(sys.maxsize / 2048)

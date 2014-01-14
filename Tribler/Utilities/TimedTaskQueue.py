@@ -7,6 +7,7 @@
 # MainThread via the wx.CallAfter mechanism.
 #
 import sys
+import logging
 
 from threading import Thread, Condition, RLock, currentThread
 from traceback import print_exc, print_stack, format_stack
@@ -17,15 +18,13 @@ try:
 except ImportError as e:
     prctlimported = False
 
-DEBUG = False
-
 
 class TimedTaskQueue:
 
     __single = None
 
-    def __init__(self, nameprefix="TimedTaskQueue", isDaemon=True, inDEBUG= DEBUG):
-        self.inDEBUG = inDEBUG
+    def __init__(self, nameprefix="TimedTaskQueue", isDaemon=True):
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.cond = Condition(RLock())
         self.queue = []
@@ -53,9 +52,9 @@ class TimedTaskQueue:
 
         self.cond.acquire()
         when = time() + t
-        if DEBUG:
-            debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
-            print("ttqueue: ADD EVENT", t, task, debug_call_name, file=sys.stderr)
+
+        debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
+        self._logger.debug("ttqueue: ADD EVENT %s %s %s", t, task, debug_call_name)
 
         if __debug__:
             self.callstack[self.count] = format_stack()
@@ -103,19 +102,16 @@ class TimedTaskQueue:
                 self.queue.sort()
 
                 (when, count, task, id) = self.queue[0]
-                if DEBUG:
-                    print("ttqueue: EVENT IN QUEUE", when, task, file=sys.stderr)
+                self._logger.debug("ttqueue: EVENT IN QUEUE %s %s", when, task)
                 now = time()
                 if now < when:
                     # Event not due, wait some more
-                    if DEBUG:
-                        print("ttqueue: EVENT NOT TILL", when - now, file=sys.stderr)
+                    self._logger.debug("ttqueue: EVENT NOT TILL %s", when - now)
                     timeout = when - now
                     flag = True
                 else:
                     # Event due, execute
-                    if DEBUG:
-                        print("ttqueue: EVENT DUE", file=sys.stderr)
+                    self._logger.debug("ttqueue: EVENT DUE")
                     self.queue.pop(0)
                     if __debug__:
                         assert count in self.callstack
@@ -136,20 +132,18 @@ class TimedTaskQueue:
                         t = when - time() +0.001
                         self.add_task('quit', t)
                 else:
-                    if self.inDEBUG:
-                        t1 = time()
+                    t1 = time()
 
                     task()
 
-                    if self.inDEBUG:
-                        took = time() - t1
-                        if took > 0.2:
-                            debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
-                            print("ttqueue: EVENT TOOK", took, debug_call_name, file=sys.stderr)
+                    took = time() - t1
+                    if took > 0.2:
+                        debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
+                        self._logger.debug("ttqueue: EVENT TOOK %s %s", took, debug_call_name)
             except:
                 print_exc()
                 if __debug__:
-                    print("<<<<<<<<<<<<<<<<", file=sys.stderr)
-                    print("TASK QUEUED FROM", file=sys.stderr)
-                    print("".join(stack), file=sys.stderr)
-                    print(">>>>>>>>>>>>>>>>", file=sys.stderr)
+                    self._logger.debug("<<<<<<<<<<<<<<<<")
+                    self._logger.debug("TASK QUEUED FROM")
+                    self._logger.debug("".join(stack))
+                    self._logger.debug(">>>>>>>>>>>>>>>>")

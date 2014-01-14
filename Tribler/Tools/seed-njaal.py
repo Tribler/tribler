@@ -26,7 +26,7 @@ argsdef = [('nuploads', 200, 'the max number of peers to serve directly'),
 
 def state_callback(ds):
     d = ds.get_download()
-    print(repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD), file=sys.stderr)
+    print >> sys.stderr, repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD)
 
     return (1.0, False)
 
@@ -44,8 +44,8 @@ class PrintStatusReporter(Status.OnChangeStatusReporter):
         """
         print to screen
         """
-        print("STATUS: %s=%s" % (event.get_name(),
-                                               event.get_value()), file=sys.stderr)
+        print >> sys.stderr, "STATUS: %s=%s" % (event.get_name(),
+                                               event.get_value())
 
 
 if __name__ == "__main__":
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     s = Session(sscfg)
 
-    print("My permid:", encodestring(s.get_permid()).replace("\n", ""), file=sys.stderr)
+    print >> sys.stderr, "My permid:", encodestring(s.get_permid()).replace("\n", "")
 
     source = sys.argv[1]
     if source.startswith("http://"):
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     dscfg.set_max_uploads(config['nuploads'])
 
-    print("Press Ctrl-C to stop seeding")
+    print "Press Ctrl-C to stop seeding"
 
     status = Status.get_status_holder("LivingLab")
     id = "seed_" + socket.getfqdn()

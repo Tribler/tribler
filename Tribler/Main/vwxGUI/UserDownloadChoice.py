@@ -2,9 +2,8 @@ import sys
 import os
 import json
 import thread
+import logging
 import cPickle
-
-DEBUG = False
 
 
 class UserDownloadChoice:
@@ -27,6 +26,8 @@ class UserDownloadChoice:
         self._config = None
         self._choices = {"download_state": {}}
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         if config:
             self.set_config(config)
 
@@ -45,8 +46,7 @@ class UserDownloadChoice:
 
     def flush(self):
         if self._config:
-            if DEBUG:
-                print("UserDownloadChoice: saving to config file", file=sys.stderr)
+            self._logger.debug("UserDownloadChoice: saving to config file")
             self._config.Write("user_download_choice", json.dumps(self._choices))
 
     def set_download_state(self, infohash, choice, flush=True):

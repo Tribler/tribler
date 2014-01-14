@@ -23,12 +23,12 @@ from struct import pack, unpack
 from base64 import b64encode, b64decode
 from M2Crypto import Rand  # TODO REMOVE FOR LICHT
 from traceback import print_exc, print_stack
+import logging
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.Crypto import sha
 
-
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def metainfo2p2purl(metainfo):
@@ -100,8 +100,7 @@ def metainfo2p2purl(metainfo):
 def p2purl2metainfo(url):
     """ Returns (metainfo,swarmid) """
 
-    if DEBUG:
-        print("p2purl2metainfo: URL", url, file=sys.stderr)
+    logger.debug("p2purl2metainfo: URL %s" % url)
 
     # Python's urlparse only supports a defined set of schemes, if not
     # recognized, everything becomes path. Handy.
@@ -165,8 +164,7 @@ def p2purl2metainfo(url):
 
     swarmid = metainfo2swarmid(metainfo)
 
-    if DEBUG:
-        print("p2purl2metainfo: parsed", repr(metainfo), file=sys.stderr)
+    logger.debug("p2purl2metainfo: parsed %s" % repr(metainfo))
 
     return (metainfo, swarmid)
 
@@ -180,8 +178,7 @@ def metainfo2swarmid(metainfo):
 
 
 def p2purl_parse_query(query):
-    if DEBUG:
-        print("p2purl_parse_query: query", query, file=sys.stderr)
+    logger.debug("p2purl_parse_query: query %s" % query)
 
     gotname = False
     gotkey = False
@@ -261,8 +258,7 @@ def pubkey2swarmid(livedict):
     """ Calculate SHA1 of pubkey (or cert).
     Make X.509 Subject Key Identifier compatible?
     """
-    if DEBUG:
-        print("pubkey2swarmid:", livedict.keys(), file=sys.stderr)
+    logger.debug("pubkey2swarmid: %s" % repr(livedict.keys()))
 
     if livedict['authmethod'] == "None":
         # No live-source auth

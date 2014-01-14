@@ -40,9 +40,9 @@ class TestMerkleMessage(TestAsServer):
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
-        print("test: Giving Session time to startup", file=sys.stderr)
+        print >> sys.stderr, "test: Giving Session time to startup"
         time.sleep(5)
-        print("test: Session should have started up", file=sys.stderr)
+        print >> sys.stderr, "test: Session should have started up"
 
     def setUpPreSession(self):
         """ override TestAsServer """
@@ -90,34 +90,34 @@ class TestMerkleMessage(TestAsServer):
         metainfo = tdef2.get_metainfo()
 
         piecesstr = metainfo['info']['pieces']
-        print("test: pieces has len", len(piecesstr), file=sys.stderr)
+        print >> sys.stderr, "test: pieces has len", len(piecesstr)
         piece_hashes = []
         for i in range(0, len(piecesstr), 20):
             hash = piecesstr[i:i + 20]
-            print("test: piece", i / 20, "hash", repr(hash), file=sys.stderr)
+            print >> sys.stderr, "test: piece", i / 20, "hash", repr(hash)
             piece_hashes.append(hash)
 
-        print("test: Putting", len(piece_hashes), "into MerkleTree, size", self.tdef.get_piece_length(), tdef2.get_piece_length(), file=sys.stderr)
+        print >> sys.stderr, "test: Putting", len(piece_hashes), "into MerkleTree, size", self.tdef.get_piece_length(), tdef2.get_piece_length()
 
         self.tree = MerkleTree(self.tdef.get_piece_length(), self.tdef.get_length(), None, piece_hashes)
 
         f = open(self.sourcefn, "rb")
         piece1 = f.read(2 ** 18)
         piece2 = f.read(2 ** 18)
-        print("read piece1", len(piece1), file=sys.stderr)
-        print("read piece2", len(piece2), file=sys.stderr)
+        print >> sys.stderr, "read piece1", len(piece1)
+        print >> sys.stderr, "read piece2", len(piece2)
         f.close()
         hash1 = sha(piece1).digest()
         hash2 = sha(piece2).digest()
-        print("hash piece1", repr(hash1), file=sys.stderr)
-        print("hash piece2", repr(hash2), file=sys.stderr)
+        print >> sys.stderr, "hash piece1", repr(hash1)
+        print >> sys.stderr, "hash piece2", repr(hash2)
         f2 = open("piece1.bin", "wb")
         f2.write(piece2)
         f2.close()
 
     def setUpDownloadConfig(self):
         dscfg = DownloadStartupConfig()
-        print("test: Downloading to", self.config_path, file=sys.stderr)
+        print >> sys.stderr, "test: Downloading to", self.config_path
         dscfg.set_dest_dir(self.config_path)
         dscfg.set_breakup_seed_bitfield(False)
 
@@ -140,7 +140,7 @@ class TestMerkleMessage(TestAsServer):
         # Let Session download file first
         self.subtest_good_hashpiece(False)
         # Now connect as different peer and download
-        print("\n\ntest: test_good_request: STARTING", file=sys.stderr)
+        print >> sys.stderr, "\n\ntest: test_good_request: STARTING"
         self._test_good_request()
 
     def singtest_bad_hashpiece_bepstyle(self):
@@ -153,7 +153,7 @@ class TestMerkleMessage(TestAsServer):
     # Good hashpiece message
     #
     def subtest_good_hashpiece(self, oldstyle):
-        print("test: Testing good hashpiece, oldstyle", oldstyle, file=sys.stderr)
+        print >> sys.stderr, "test: Testing good hashpiece, oldstyle", oldstyle
         if oldstyle:
             self._test_good(self.create_good_hashpiece, oldstyle, self.create_good_tribler_extend_hs, infohash=self.infohash)
         else:
@@ -169,20 +169,20 @@ class TestMerkleMessage(TestAsServer):
             s = BTConnection('localhost', self.hisport, user_option_pattern=options)
         else:
             s = BTConnection('localhost', self.hisport, user_option_pattern=options, user_infohash=infohash)
-        print("test: test_good: Create EXTEND HS", file=sys.stderr)
+        print >> sys.stderr, "test: test_good: Create EXTEND HS"
         msg = extend_hs_gen_func()
-        print("test: test_good: Sending EXTEND HS", repr(msg), file=sys.stderr)
+        print >> sys.stderr, "test: test_good: Sending EXTEND HS", repr(msg)
         s.send(msg)
-        print("test: test_good: Waiting for BT HS", file=sys.stderr)
+        print >> sys.stderr, "test: test_good: Waiting for BT HS"
         s.read_handshake_medium_rare()
 
         # Tribler should send an EXTEND message back
         try:
-            print("test: Waiting for reply", file=sys.stderr)
+            print >> sys.stderr, "test: Waiting for reply"
             s.s.settimeout(10.0)
             resp = s.recv()
             self.assert_(len(resp) > 0)
-            print("test: Got reply", getMessageName(resp[0]), file=sys.stderr)
+            print >> sys.stderr, "test: Got reply", getMessageName(resp[0])
             self.assert_(resp[0] == EXTEND)
             self.check_tribler_extend_hs(resp[1:])
 
@@ -191,11 +191,11 @@ class TestMerkleMessage(TestAsServer):
             s.send(msg)
             msg = UNCHOKE
             s.send(msg)
-            print("test: Pretend we are seeder", file=sys.stderr)
+            print >> sys.stderr, "test: Pretend we are seeder"
             while True:
                 resp = s.recv()
                 self.assert_(len(resp) > 0)
-                print("test: Got reply2", getMessageName(resp[0]), file=sys.stderr)
+                print >> sys.stderr, "test: Got reply2", getMessageName(resp[0])
                 self.assert_(resp[0] == REQUEST or resp[0] == INTERESTED or resp[0] == UNCHOKE or resp[0] == HAVE or resp[0] == NOT_INTERESTED)
                 if resp[0] == REQUEST:
                     chunkid = self.check_request(resp)
@@ -208,7 +208,7 @@ class TestMerkleMessage(TestAsServer):
 
             # s.close()
         except socket.timeout:
-            print("test: Timeout, bad, peer didn't reply in time", file=sys.stderr)
+            print >> sys.stderr, "test: Timeout, bad, peer didn't reply in time"
             self.assert_(False)
 
         destfn = os.path.join(self.config_path, "file2.wmv")
@@ -271,7 +271,7 @@ class TestMerkleMessage(TestAsServer):
         chunk = self.read_chunk(index, begin, length)
         bohlist = bencode(ohlist)
 
-        print("test: create_good_hashpiece:", index, begin, length, "==len", len(chunk), file=sys.stderr)
+        print >> sys.stderr, "test: create_good_hashpiece:", index, begin, length, "==len", len(chunk)
 
         payload = tobinary(index) + tobinary(begin) + tobinary(len(bohlist)) + bohlist + chunk
         if oldstyle:
@@ -303,24 +303,24 @@ class TestMerkleMessage(TestAsServer):
 
         # Tribler should send an EXTEND message back
         try:
-            print("test: Waiting for reply", file=sys.stderr)
+            print >> sys.stderr, "test: Waiting for reply"
             s.s.settimeout(10.0)
             resp = s.recv()
             self.assert_(len(resp) > 0)
-            print("test: Got reply", getMessageName(resp[0]), file=sys.stderr)
+            print >> sys.stderr, "test: Got reply", getMessageName(resp[0])
             self.assert_(resp[0] == EXTEND)
             self.check_tribler_extend_hs(resp[1:])
 
             # 1. Pretend we're leecher: send INTERESTED
             msg = INTERESTED
             s.send(msg)
-            print("test: Pretend we are leecher", file=sys.stderr)
+            print >> sys.stderr, "test: Pretend we are leecher"
             while True:
                 resp = s.recv()
                 self.assert_(len(resp) > 0)
-                print("test: Got reply2", getMessageName(resp[0]), file=sys.stderr)
+                print >> sys.stderr, "test: Got reply2", getMessageName(resp[0])
                 if resp[0] == EXTEND:
-                    print("test: Got EXTEND type", getMessageName(resp[1]), file=sys.stderr)
+                    print >> sys.stderr, "test: Got EXTEND type", getMessageName(resp[1])
                 self.assert_(resp[0] == UNCHOKE or resp[0] == BITFIELD or resp[0] == EXTEND or resp[0] == HAVE)
                 if resp[0] == UNCHOKE:
                     # 2. Reply with REQUESTs
@@ -329,7 +329,7 @@ class TestMerkleMessage(TestAsServer):
 
                         for begin in range(0, plen, 2 ** 14):
                             length = self.get_chunk_length(index, begin)
-                            print("RETRIEVE", index, begin, length, file=sys.stderr)
+                            print >> sys.stderr, "RETRIEVE", index, begin, length
                             chunkid = (index, begin, length)
                             msg = self.create_request(chunkid)
                             s.send(msg)
@@ -345,7 +345,7 @@ class TestMerkleMessage(TestAsServer):
 
             # s.close()
         except socket.timeout:
-            print("test: Timeout, bad, peer didn't reply in time", file=sys.stderr)
+            print >> sys.stderr, "test: Timeout, bad, peer didn't reply in time"
             self.assert_(False)
 
         time.sleep(3)
@@ -372,13 +372,13 @@ class TestMerkleMessage(TestAsServer):
 
     def check_hashpiece(self, resp):
         """ Merkle BEP style """
-        print("test: good_request: check_hashpiece", file=sys.stderr)
+        print >> sys.stderr, "test: good_request: check_hashpiece"
         self.assert_(resp[0] == EXTEND)
         self.assert_(resp[1] == HASHPIECE)
         index = toint(resp[2:2 + 4])
         begin = toint(resp[6:6 + 4])
         ohlen = toint(resp[10:10 + 4])
-        print("test: good_request: check_hashpiece", index, begin, ohlen, file=sys.stderr)
+        print >> sys.stderr, "test: good_request: check_hashpiece", index, begin, ohlen
         bohlist = resp[14:14 + ohlen]
         hisohlist = bdecode(bohlist)
         hischunk = resp[14 + ohlen:]
@@ -392,7 +392,7 @@ class TestMerkleMessage(TestAsServer):
                 self.assert_(isinstance(oh[1], StringType))
 
             hisohlist.sort()
-            print("test: good_request: check_hashpiece", repr(hisohlist), file=sys.stderr)
+            print >> sys.stderr, "test: good_request: check_hashpiece", repr(hisohlist)
             myohlist = self.tree.get_hashes_for_piece(index)
             myohlist.sort()
 
@@ -442,7 +442,7 @@ class TestMerkleMessage(TestAsServer):
     # Main test code for bad EXTEND handshake messages
     #
     def _test_bad(self, msg_gen_func, oldstyle):
-        print("test: test_BAD: Create EXTEND HS", repr(msg_gen_func), oldstyle, file=sys.stderr)
+        print >> sys.stderr, "test: test_BAD: Create EXTEND HS", repr(msg_gen_func), oldstyle
         if oldstyle:
             options = None
             exthsmsg = self.create_good_tribler_extend_hs()
@@ -456,11 +456,11 @@ class TestMerkleMessage(TestAsServer):
 
         # Tribler should send an EXTEND message back
         try:
-            print("test: Waiting for reply", file=sys.stderr)
+            print >> sys.stderr, "test: Waiting for reply"
             s.s.settimeout(10.0)
             resp = s.recv()
             self.assert_(len(resp) > 0)
-            print("test: Got reply", getMessageName(resp[0]), file=sys.stderr)
+            print >> sys.stderr, "test: Got reply", getMessageName(resp[0])
             self.assert_(resp[0] == EXTEND)
             self.check_tribler_extend_hs(resp[1:])
 
@@ -469,11 +469,11 @@ class TestMerkleMessage(TestAsServer):
             s.send(msg)
             msg = UNCHOKE
             s.send(msg)
-            print("test: Pretend we are seeder", file=sys.stderr)
+            print >> sys.stderr, "test: Pretend we are seeder"
             while True:
                 resp = s.recv()
                 self.assert_(len(resp) > 0)
-                print("test: Got reply 2", getMessageName(resp[0]), file=sys.stderr)
+                print >> sys.stderr, "test: Got reply 2", getMessageName(resp[0])
                 self.assert_(resp[0] == REQUEST or resp[0] == INTERESTED or resp[0] == UNCHOKE or resp[0] == HAVE or resp[0] == NOT_INTERESTED)
                 if resp[0] == REQUEST:
                     chunkid = self.check_request(resp)
@@ -490,7 +490,7 @@ class TestMerkleMessage(TestAsServer):
 
             # s.close()
         except socket.timeout:
-            print("test: Timeout, bad, peer didn't reply in time", file=sys.stderr)
+            print >> sys.stderr, "test: Timeout, bad, peer didn't reply in time"
             self.assert_(False)
 
         time.sleep(3)
@@ -596,7 +596,7 @@ def test_suite():
     # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
-        print("Usage: python test_merkle_msg.py <method name>")
+        print "Usage: python test_merkle_msg.py <method name>"
     else:
         suite.addTest(TestMerkleMessage(sys.argv[1]))
 

@@ -75,7 +75,7 @@ class TestTorrentCollecting(TestAsServer):
         starttime = time.time()
         self.session2.lm.rtorrent_handler.download_torrent(candidate, infohash3, roothash3, lambda filename: event.set(), prio=1, timeout=60)
         assert event.wait(60)
-        print("took", time.time() - starttime, file=sys.stderr)
+        print >> sys.stderr, "took", time.time() - starttime
 
     def _create_and_reseed(self, session):
         # 1. Create a 500K randomdata file
@@ -109,7 +109,7 @@ class TestTorrentCollecting(TestAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print(long(time.time()), "test: seeder:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress(), file=sys.stderr)
+        print >> sys.stderr, long(time.time()), "test: seeder:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
 
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeding_event.set()

@@ -3,6 +3,7 @@ import core.message as message
 from core.node import Node
 import core.ptime as time
 import pickle
+import logging
 
 STATUS_PINGED = 'PINGED'
 STATUS_OK = 'OK'
@@ -12,6 +13,8 @@ STATUS_FAIL = 'FAIL'
 class ExperimentalManager:
 
     def __init__(self, my_id):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.my_id = my_id
         self._stop = False
         # TODO data structure to keep track of things
@@ -25,7 +28,7 @@ class ExperimentalManager:
         if not self._stop and msg.query == 'ping':
             self._stop = True
             self.pinged_ips[msg.src_node.ip] = msg.src_node.ip
-            print('\nExperimentalModule got query (%s) from  node  %r =' % (msg.query, msg.src_node))
+            self._logger.info('\nExperimentalModule got query (%s) from  node  %r =' % (msg.query, msg.src_node))
             if msg.src_node.ip not in self.pinged_ips:
                 # prepare to ping to the node from which it got ping
                 probe_query = message.OutgoingPingQuery(msg.src_node,
@@ -40,19 +43,19 @@ class ExperimentalManager:
 
     def on_response_received(self, msg, related_query):
         if self.pinged_ips.get(msg.src_node.ip) == STATUS_PINGED:
-            print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+            self._logger.info('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
         if related_query.experimental_obj:
-            print("probe OK (%r) (%r)" % (related_query.experimental_obj.value, msg.src_node))
+            self._logger.info("probe OK (%r) (%r)" % (related_query.experimental_obj.value, msg.src_node))
             self.pinged_ips[msg.src_node.ip] = STATUS_OK
             elapsed_time = time.time() - related_query.experimental_obj.query_ts
-            print('RTT = ', elapsed_time)
+            self._logger.info('RTT = %s' % repr(elapsed_time))
         pass
 
     def on_timeout(self, related_query):
         if related_query.experimental_obj:
             elapsed_time = time.time() - related_query.experimental_obj.query_ts
-            print('prove FAILED Due to Time-Out', related_query.experimental_obj.value)
-            print('RTT = ', elapsed_time)
+            self._logger.info('prove FAILED Due to Time-Out %s' % repr(related_query.experimental_obj.value))
+            self._logger.info('RTT = %s' % repr(elapsed_time))
             self.pinged_ips[related_query.dst_node.ip] = STATUS_FAIL
 #
 
@@ -69,7 +72,9 @@ class ExperimentalManager:
 class ExpObj:
 
     def __init__(self, value):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.value = value
         self.query_ts = time.time()
-        print('Got query at Time :', self.query_ts)
+        self._logger.info('Got query at Time : %s' % repr(self.query_ts))
         pass

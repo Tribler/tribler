@@ -62,7 +62,10 @@ TOAST_EACH = 20
 class SwiftTracker(threading.Thread):
 
     def __init__(self, pymdht, swift_port):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         threading.Thread.__init__(self, name="SwiftTracker")
+
         self.daemon = True
 
         self.pymdht = pymdht
@@ -120,7 +123,7 @@ class SwiftTracker(threading.Thread):
             reply = ''.join(reply)
             self.socket.sendto(reply, channel.remote_addr)
         # droid.log('DHT got %d peers' % len(channel.peers))
-        print('got %d peer' % len(peers), peers)
+        self._logger.info('got %d peer %s' % (len(peers), repr(peers)))
 
     def handle(self, data, addr):
         # droid.log("New connection")
@@ -157,18 +160,18 @@ class SwiftTracker(threading.Thread):
             elif msg_type == PEX_REQ:
                 i += PEER_SIZE
             elif msg_type == SIGNED_HASH:
-                print(repr(data))
+                self._logger.info(repr(data))
                 raise NotImplemented
             elif msg_type == HINT:
                 i += BIN_SIZE
             elif msg_type == MSGTYPE_RCVD:
-                print(repr(data))
+                self._logger.info(repr(data))
                 raise NotImplemented
             elif msg_type == VERSION:
                 i += VERSION_SIZE
             else:
-                print('UNKNOWN: ', msg_type, end=' ')
-                print(repr(data))
+                self._logger.info('UNKNOWN: %s' % repr(msg_type))
+                self._logger.info(repr(data))
                 # raise NotImplemented
                 return
         if remote_cid == CHANNEL_ZERO and channel.rhash:

@@ -66,13 +66,13 @@ class TestVideoOnDemand(TestAsServer):
         ds = dslist[0]
         d = ds.get_download()
     #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
-        print('%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
+        print >> sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
             (d.get_def().get_name(),
                 dlstatus_strings[ds.get_status()],
                 ds.get_progress() * 100,
                 ds.get_error(),
                 ds.get_current_speed(UPLOAD),
-                ds.get_current_speed(DOWNLOAD)), file=sys.stderr)
+                ds.get_current_speed(DOWNLOAD))
 
         return (1.0, [])
 
@@ -81,14 +81,14 @@ class TestVideoOnDemand(TestAsServer):
             return
         self.vodstarted = True
 
-        print("Test: vod_event_callback", event, params, file=sys.stderr)
+        print >> sys.stderr, "Test: vod_event_callback", event, params
         if event == VODEVENT_START:
             stream = params['stream']
 
             # Read last piece
             lastpieceoff = ((self.contentlen - 1) / self.piecelen) * self.piecelen
             lastpiecesize = self.contentlen - lastpieceoff
-            print("Test: stream: lastpieceoff", lastpieceoff, lastpiecesize, file=sys.stderr)
+            print >> sys.stderr, "Test: stream: lastpieceoff", lastpieceoff, lastpiecesize
             self.stream_read(stream, lastpieceoff, lastpiecesize, self.piecelen)
 
             # Read second,3rd,4th byte, only
@@ -105,7 +105,7 @@ class TestVideoOnDemand(TestAsServer):
     def stream_read(self, stream, off, size, blocksize):
         stream.seek(off)
         data = stream.read(blocksize)
-        print("Test: stream: Got data", len(data), file=sys.stderr)
+        print >> sys.stderr, "Test: stream: Got data", len(data)
         self.assertEquals(len(data), size)
         self.assertEquals(data, self.content[off:off + size])
 
@@ -114,7 +114,7 @@ class TestVideoOnDemand(TestAsServer):
         self.piecelen = 10
         self.create_torrent()
 
-        print("Test: Letting network thread create Download, sleeping", file=sys.stderr)
+        print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
         time.sleep(5)
 
         dlist = self.session.get_downloads()
@@ -135,7 +135,7 @@ class TestVideoOnDemand(TestAsServer):
         self.piecelen = 10
         self.create_torrent()
 
-        print("Test: Letting network thread create Download, sleeping", file=sys.stderr)
+        print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
         time.sleep(5)
 
         dlist = self.session.get_downloads()
@@ -156,7 +156,7 @@ class TestVideoOnDemand(TestAsServer):
         self.piecelen = 10
         self.create_torrent()
 
-        print("Test: Letting network thread create Download, sleeping", file=sys.stderr)
+        print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
         time.sleep(5)
 
         dlist = self.session.get_downloads()

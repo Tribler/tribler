@@ -13,6 +13,8 @@ from traceback import print_exc, print_stack
 import traceback
 from Tribler.Core.ServerPortHandler import MultiHandler
 
+import logging
+
 try:
     prctlimported = True
     import prctl
@@ -40,7 +42,6 @@ else:
 
 SPECIAL_VALUE = 481
 
-DEBUG = False
 PROFILE = False
 
 # Internal classes
@@ -52,12 +53,16 @@ class TriblerLaunchMany(Thread):
     def __init__(self):
         """ Called only once (unless we have multiple Sessions) by MainThread """
         Thread.__init__(self)
+
         self.setDaemon(True)
-        self.setName("Network" + self.getName())
+        name = "Network" + self.getName()
+        self.setName(name)
         self.initComplete = False
         self.registered = False
         self.dispersy = None
         self.database_thread = None
+
+        self._logger = logging.getLogger(self.__class__.__name__ + '-' + name)
 
     def register(self, session, sesslock):
         if not self.registered:
@@ -97,7 +102,7 @@ class TriblerLaunchMany(Thread):
 
                 except OSError:
                     # could not find/run swift
-                    print("lmc: could not start a swift process", file=sys.stderr)
+                    self._logger.error("lmc: could not start a swift process")
 
             else:
                 self.spm = None
@@ -111,7 +116,7 @@ class TriblerLaunchMany(Thread):
                 from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
                 from Tribler.dispersy.community import HardKilledCommunity
 
-                print("lmc: Starting Dispersy...", file=sys.stderr)
+                self._logger.info("lmc: Starting Dispersy...")
                 now = timemod.time()
 
                 # set communication endpoint
@@ -132,9 +137,9 @@ class TriblerLaunchMany(Thread):
                 success = self.dispersy.start()
                 diff = timemod.time() - now
                 if success:
-                    print("lmc: Dispersy started successfully in %.2f seconds [port: %d]" % (diff, self.dispersy.wan_address[1]), file=sys.stderr)
+                    self._logger.info("lmc: Dispersy started successfully in %.2f seconds [port: %d]" % (diff, self.dispersy.wan_address[1]))
                 else:
-                    print("lmc: Dispersy failed to start in %.2f seconds" % (diff,), file=sys.stderr)
+                    self._logger.error("lmc: Dispersy failed to start in %.2f seconds" % (diff,))
 
                 self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
@@ -202,8 +207,7 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Core.Tag.Extraction import TermExtraction
                 from Tribler.Core.CacheDB.sqlitecachedb import try_register
 
-                if DEBUG:
-                    print('tlm: Reading Session state from', self.session.get_state_dir(), file=sys.stderr)
+                self._logger.debug('tlm: Reading Session state from %s' % repr(self.session.get_state_dir()))
 
                 nocachedb = cachedb.init(self.session.get_state_dir(), self.session.get_install_dir(), self.rawserver_fatalerrorfunc)
                 try_register(nocachedb, self.database_thread)
@@ -294,8 +298,7 @@ class TriblerLaunchMany(Thread):
             if pstate is None and not tdef.get_live():  # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
-                    if DEBUG:
-                        print("tlm: add: pstate is", dlstatus_strings[pstate['dlstate']['status']], pstate['dlstate']['progress'], file=sys.stderr)
+                    self._logger.debug("tlm: add: pstate is " + repr(dlstatus_strings[pstate['dlstate']['status']]) + ", " + repr(pstate['dlstate']['progress']))
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
@@ -421,14 +424,12 @@ class TriblerLaunchMany(Thread):
 
     def rawserver_fatalerrorfunc(self, e):
         """ Called by network thread """
-        if DEBUG:
-            print("tlm: RawServer fatal error func called", e, file=sys.stderr)
+        self._logger.debug("tlm: RawServer fatal error func called : %s" % e)
         print_exc()
 
     def rawserver_nonfatalerrorfunc(self, e):
         """ Called by network thread """
-        if DEBUG:
-            print("tlm: RawServer non fatal error func called", e, file=sys.stderr)
+        self._logger.debug("tlm: RawServer non fatal error func called: %s" % e)
         print_exc()
         # Could log this somewhere, or phase it out
 
@@ -571,7 +572,7 @@ class TriblerLaunchMany(Thread):
             if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
                 current_port = int(sdef.get_tracker().split(":")[1])
                 if current_port != self.session.get_swift_dht_listen_port():
-                    print("Modified SwiftDef to new tracker port", file=sys.stderr)
+                    self._logger.info("Modified SwiftDef to new tracker port")
                     sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
 
             dscfg = DownloadStartupConfig(dlconfig)
@@ -609,12 +610,11 @@ class TriblerLaunchMany(Thread):
                         if os.path.isdir(preferences[2]) or preferences[2] == '':
                             dscfg.set_dest_dir(preferences[2])
 
-        if DEBUG:
-            print("tlm: load_checkpoint: pstate is", dlstatus_strings[pstate['dlstate']['status']], pstate['dlstate']['progress'], file=sys.stderr)
-            if pstate['engineresumedata'] is None:
-                print("tlm: load_checkpoint: resumedata None", file=sys.stderr)
-            else:
-                print("tlm: load_checkpoint: resumedata len", len(pstate['engineresumedata']), file=sys.stderr)
+        self._logger.debug("tlm: load_checkpoint: pstate is " + repr(dlstatus_strings[pstate['dlstate']['status']]) + ", " + repr(pstate['dlstate']['progress']))
+        if pstate['engineresumedata'] is None:
+            self._logger.debug("tlm: load_checkpoint: resumedata None")
+        else:
+            self._logger.debug("tlm: load_checkpoint: resumedata len %d" % len(pstate['engineresumedata']))
 
         if (tdef or sdef) and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
@@ -627,15 +627,17 @@ class TriblerLaunchMany(Thread):
                             initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
                             self.swift_add(sdef, dscfg, pstate, initialdlstatus)
                     else:
-                        print("tlm: not resuming checkpoint because download has already been added", file=sys.stderr)
+                        self._logger.info("tlm: not resuming checkpoint because download has already been added")
 
                 except Exception as e:
                     self.rawserver_nonfatalerrorfunc(e)
             else:
-                print("tlm: removing checkpoint", filename, "destdir is", dscfg.get_dest_dir(), file=sys.stderr)
+                self._logger.info("tlm: removing checkpoint %s destdir is %s" %\
+                    (filename, dscfg.get_dest_dir()))
                 os.remove(filename)
         else:
-            print("tlm: could not resume checkpoint", filename, tdef, dscfg, file=sys.stderr)
+            self._logger.info("tlm: could not resume checkpoint %s, %s, %s" %\
+                (repr(filename), repr(tdef), repr(dscfg)))
 
     def checkpoint(self, stop=False, checkpoint=True, gracetime=2.0):
         """ Called by any thread, assume sesslock already held """
@@ -645,8 +647,8 @@ class TriblerLaunchMany(Thread):
         # in list of states returned via callback.
         #
         dllist = self.downloads.values()
-        if DEBUG or stop:
-            print("tlm: checkpointing", len(dllist), "stopping", stop, file=sys.stderr)
+        self._logger.debug("tlm: checkpointing %s, stopping %s" %\
+            (repr(len(dllist)), repr(stop)))
 
         network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint, gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda, 0.0)
@@ -666,8 +668,8 @@ class TriblerLaunchMany(Thread):
                     else:
                         (infohash, pstate) = d.network_checkpoint()
 
-                    if DEBUG:
-                        print("tlm: network checkpointing:", d.get_def().get_name(), pstate, file=sys.stderr)
+                    self._logger.debug("tlm: network checkpointing: %s, %s" %\
+                        (d.get_def().get_name(), pstate))
 
                     self.save_download_pstate(infohash, pstate)
                 except Exception as e:
@@ -679,7 +681,7 @@ class TriblerLaunchMany(Thread):
                 now = timemod.time()
                 diff = now - self.shutdownstarttime
                 if diff < gracetime:
-                    print("tlm: shutdown: delaying for early shutdown tasks", gracetime - diff, file=sys.stderr)
+                    self._logger.info("tlm: shutdown: delaying for early shutdown tasks" + repr(gracetime - diff))
                     delay = gracetime - diff
                     network_shutdown_callback_lambda = lambda: self.network_shutdown()
                     self.rawserver.add_task(network_shutdown_callback_lambda, delay)
@@ -692,7 +694,7 @@ class TriblerLaunchMany(Thread):
         shutdown tasks that takes some time and that can run in parallel
         to checkpointing, etc.
         """
-        print("tlm: early_shutdown", file=sys.stderr)
+        self._logger.info("tlm: early_shutdown")
 
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
@@ -704,14 +706,14 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking.delInstance()
 
         if self.dispersy:
-            print("lmc: Shutting down Dispersy...", file=sys.stderr)
+            self._logger.info("lmc: Shutting down Dispersy...")
             now = timemod.time()
             success = self.dispersy.stop(666.666)
             diff = timemod.time() - now
             if success:
-                print("lmc: Dispersy successfully shutdown in %.2f seconds" % diff, file=sys.stderr)
+                self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds" % diff)
             else:
-                print("lmc: Dispersy failed to shutdown in %.2f seconds" % diff, file=sys.stderr)
+                self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds" % diff)
         else:
             self.database_thread.shutdown(True)
 
@@ -740,7 +742,7 @@ class TriblerLaunchMany(Thread):
 
     def network_shutdown(self):
         try:
-            print("tlm: network_shutdown", file=sys.stderr)
+            self._logger.info("tlm: network_shutdown")
 
             # Arno, 2012-07-04: Obsolete, each thread must close the DBHandler
             # it uses in its own shutdown procedure. There is no global close
@@ -752,9 +754,10 @@ class TriblerLaunchMany(Thread):
                 self.spm.network_shutdown()
 
             ts = enumerate_threads()
-            print("tlm: Number of threads still running", len(ts), file=sys.stderr)
+            self._logger.info("tlm: Number of threads still running %d" % len(ts))
             for t in ts:
-                print("tlm: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t, file=sys.stderr)
+                self._logger.info("tlm: Thread still running=%s, daemon=%s, instance=%s" %\
+                    (repr(t.getName()), repr(t.isDaemon()), repr(t)))
         except:
             print_exc()
 
@@ -774,8 +777,7 @@ class TriblerLaunchMany(Thread):
         basename = binascii.hexlify(infohash) + '.pickle'
         filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
-        if DEBUG:
-            print("tlm: network checkpointing: to file", filename, file=sys.stderr)
+        self._logger.debug("tlm: network checkpointing: to file %s" % filename)
         f = open(filename, "wb")
         pickle.dump(pstate, f)
         f.close()
@@ -799,7 +801,7 @@ class TriblerLaunchMany(Thread):
             import cProfile
             cProfile.runctx("self._run()", globals(), locals(), filename=fname)
             import pstats
-            print("profile: data for %s" % self.getName(), file=sys.stderr)
+            self._logger.info("profile: data for %s" % self.getName())
             pstats.Stats(fname, stream=sys.stderr).sort_stats("cumulative").print_stats(20)
         else:
             self._run()
@@ -809,8 +811,7 @@ class TriblerLaunchMany(Thread):
             self.set_activity(NTFY_ACT_UPNP)
 
             for port, protocol in self.upnp_ports:
-                if DEBUG:
-                    print("tlm: adding upnp mapping for %d %s" % (port, protocol), file=sys.stderr)
+                self._logger.debug("tlm: adding upnp mapping for %d %s" % (port, protocol))
                 self.ltmgr.add_mapping(port, protocol)
 
     def stop_upnp(self):
@@ -831,8 +832,7 @@ class TriblerLaunchMany(Thread):
     def network_vod_event_callback(self, videoinfo, event, params):
         """ Called by network thread """
 
-        if DEBUG:
-            print("tlm: network_vod_event_callback: event %s, params %s" % (event, params), file=sys.stderr)
+        self._logger.debug("tlm: network_vod_event_callback: event %s, params %s" % (event, params))
 
         # Call Session threadpool to call user's callback
         try:

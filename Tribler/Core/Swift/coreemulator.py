@@ -10,11 +10,16 @@ import sys
 import socket
 import urlparse
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PluginEmulator:
 
     def __init__(self, port, cmd, param):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('127.0.0.1', port))
         # s.connect(('130.37.193.64',port))
@@ -27,7 +32,7 @@ class PluginEmulator:
 
         time.sleep(1)
 
-        print("SENDING", msg, file=sys.stderr)
+        self._logger.info("SENDING %s" % msg)
         s.send(msg)
 
         # msg2 = "SETMOREINFO 836e482197b3db76914a19fd4ae6debd725c3284 1\r\n";
@@ -45,9 +50,9 @@ class PluginEmulator:
             except:
                 data = "#"
 
-            print("pe: Got BG ", data, file=sys.stderr)
+            self._logger.info("pe: Got BG %s" % data)
             if len(data) == 0:
-                print("pe: BG closes IC", file=sys.stderr)
+                self._logger.info("pe: BG closes IC")
                 return
 
             lines = data.splitlines()
@@ -98,7 +103,7 @@ class PluginEmulator:
         readbufsize = 100000
 
         links = []
-        print("pe: GET", path, file=sys.stderr)
+        self._logger.info("pe: GET %s" % path)
         s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s2.connect(('127.0.0.1', 8192))
         s2.send("GET " + path +" HTTP/1.1\r\nHost: localhost:6878\r\n\r\n")
@@ -106,7 +111,7 @@ class PluginEmulator:
             data = s2.recv(readbufsize)
             if len(data) == 0:
                 break
-            print("pe: Got HTTP data", repr(data), file=sys.stderr)
+            self._logger.info("pe: Got HTTP data %s" % repr(data))
 
             eidx = 0
             while True:
@@ -130,7 +135,7 @@ class PluginEmulator:
                 idx = hitpath.find("</MediaUri>")
                 if idx != -1:
                     hitpath = hitpath[0:idx]
-                print("pe: FINAL link", hitpath, "EOT", file=sys.stderr)
+                self._logger.info("pe: FINAL link %s EOT" % repr(hitpath))
                 self.retrieve_path(hitpath, recurse=recurse)
 
 
@@ -138,7 +143,7 @@ class PluginEmulator:
 # pe = PluginEmulator(62062,"START","http://www.vuze.com/download/XUGIN6PEJJCQ5777C3WUMMBRFI6HYIHJ.torrent?referal=torrentfilelinkcdp&title=Gopher")
 
 if len(sys.argv) < 2:
-    print("Missing URL to play")
+    logger.info("Missing URL to play")
     raise SystemExit(1)
 
 # pe =  PluginEmulator(62062,"START",sys.argv[1])

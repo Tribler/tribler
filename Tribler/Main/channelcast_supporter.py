@@ -14,9 +14,12 @@ import shutil
 import sys
 import tempfile
 import time
+import logging
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
+
+logger = logging.getLogger(__name__)
 
 def define_allchannel(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
@@ -28,10 +31,10 @@ def define_allchannel(session):
                                    {"auto_join_channel": True},
                                    load=True)
     dispersy.define_auto_load(ChannelCommunity, load=True)
-    print("tribler: Dispersy communities are ready", file=sys.stderr)
+    logger.info("tribler: Dispersy communities are ready")
 
     def on_incoming_torrent(subject, type_, infohash):
-        print("Incoming torrent:", infohash.encode("HEX"), file=sys.stdout)
+        logger.info("Incoming torrent: %s" % infohash.encode("HEX"))
     session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
 
 def main(define_communities):
@@ -43,7 +46,7 @@ def main(define_communities):
     # parse command-line arguments
     opt, args = command_line_parser.parse_args()
 
-    print("Press Q followed by <ENTER> to stop the channelcast-supporter")
+    logger.info("Press Q followed by <ENTER> to stop the channelcast-supporter")
 
     sscfg = SessionStartupConfig()
     if opt.statedir:
@@ -66,14 +69,14 @@ def main(define_communities):
     try:
         while True:
             x = sys.stdin.readline()
-            print(x, file=sys.stderr)
+            logger.info(repr(x))
             if x.strip() == 'Q':
                 break
     except:
         print_exc()
 
     session.shutdown()
-    print("Shutting down...")
+    logger.info("Shutting down...")
     time.sleep(5)
 
 if __name__ == "__main__":

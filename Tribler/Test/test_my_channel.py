@@ -158,7 +158,7 @@ class TestMyChannel(TestGuiAsServer):
         def get_and_modify_dispersy():
             from Tribler.dispersy.endpoint import NullEndpoint
 
-            print("tgs: frame ready, replacing dispersy endpoint", file=sys.stderr)
+            print >> sys.stderr, "tgs: frame ready, replacing dispersy endpoint"
             dispersy = self.session.get_dispersy_instance()
             dispersy._endpoint = NullEndpoint()
             dispersy._endpoint.open(dispersy)
@@ -195,7 +195,7 @@ class TestMyChannel(TestGuiAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print("test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), file=sys.stderr)
+        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
         return (5.0, False)
 
     def setUp(self):
