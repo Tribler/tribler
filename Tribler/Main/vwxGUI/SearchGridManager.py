@@ -770,6 +770,9 @@ class LibraryManager:
     def __init__(self, guiUtility):
         if LibraryManager.__single:
             raise RuntimeError("LibraryManager is singleton")
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.guiUtility = guiUtility
         self.connected = False
 
