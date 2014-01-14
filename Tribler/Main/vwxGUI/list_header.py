@@ -69,6 +69,8 @@ class ListHeaderIcon:
 class ListHeader(wx.Panel):
 
     def __init__(self, parent, parent_list, columns, radius=0, spacers=[3, 3]):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         wx.Panel.__init__(self, parent)
         self.parent_list = parent_list
         self.columnHeaders = []
