@@ -15,8 +15,8 @@ class PongMessage:
     pass
 
 class CreateMessage:
-    def __init__(self, encrypted_key):
-        self.encrypted_key = encrypted_key
+    def __init__(self, key):
+        self.key = key
 
 class CreatedMessage:
     def __init__(self, key, candidate_list):
@@ -24,9 +24,9 @@ class CreatedMessage:
         self.candidate_list = candidate_list
 
 class ExtendMessage:
-    def __init__(self, extend_with, encrypted_secret):
+    def __init__(self, extend_with, key):
         self.extend_with = extend_with
-        self.encrypted_secret = encrypted_secret
+        self.key = key
     
     @property
     def host(self):
@@ -38,7 +38,7 @@ class ExtendMessage:
 
 class ExtendedMessage:
     def __init__(self, key, candidate_list):
-        self.hashed_key = key
+        self.key = key
         self.candidate_list = candidate_list
 
 class PunctureMessage:

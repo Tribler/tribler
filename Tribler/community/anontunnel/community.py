@@ -54,8 +54,8 @@ class Hop:
     def session_key(self):
         return self.session_key
     @property
-    def dh_first(self):
-        return self.dh_first
+    def dh_first_part(self):
+        return self.dh_first_part
 
     @property
     def host(self):
@@ -282,7 +282,10 @@ class ProxyCommunity(Community):
 
         sr = random.SystemRandom()
         sys.modules["random"] = sr
-        self.dh_secret = getrandbits(128)
+        dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
+            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        self.dh_secret = dh_secret
 
 
         # Stats
@@ -525,10 +528,10 @@ class ProxyCommunity(Community):
 
                 elif circuit_id in self.session_keys:
                     # last node in circuit, circuit already exists
+                    logger.debug("Removing AES layer with key %s" % (self.session_keys[circuit_id]))
                     data = AESdecode(self.session_keys[circuit_id], data)
                 else:
                     # last node in circuit, circuit does not exist yet
-                    logger.warning("Gotta decrypt with private key, circuit = {}, my circuitkeys so far are {}".format(circuit_id, self.session_keys))
                     data = data
 
                 _, payload = self.proxy_conversion.decode(data)
@@ -579,14 +582,20 @@ class ProxyCommunity(Community):
 
         def on_extended(self, extended_message):
             """
-
             :type extended_message : Tribler.community.anontunnel.payload.ExtendedMessage
             """
             unverified_hop = self.circuit.unverified_hop
             logger.error("Not really verifying hop! Check hashes etc")
 
-            session_key = str(pow(extended_message.key, unverified_hop.dh_first_part, DIFFIE_HELLMAN_MODULUS))
-            unverified_hop.session_key = session_key
+            session_key = pow(extended_message.key, unverified_hop.dh_first_part, DIFFIE_HELLMAN_MODULUS)
+            m = hashlib.sha1()
+            m.update(str(session_key))
+            key = m.digest()[0:16]
+            #logger.debug("The extended message's key : {}".format(extended_message.key))
+            #logger.debug("The unverified hop's key   : {}".format(unverified_hop.dh_first_part))
+            #logger.debug("CALCULATED SECRET {} FOR THE EXTENDED NODE".format(key))
+
+            unverified_hop.session_key = key
 
             self.circuit.hops.append(unverified_hop)
             self.circuit.unverified_hop = None
@@ -645,9 +654,10 @@ class ProxyCommunity(Community):
             self.circuits[circuit_id] = circuit
 
             pub_key = None
+            
 
             dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, self.dh_secret, DIFFIE_HELLMAN_MODULUS)
-            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_first_part)
+            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, self.dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
             self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(dh_first_part))
 
@@ -680,15 +690,22 @@ class ProxyCommunity(Community):
     def on_create(self, circuit_id, candidate, message):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
         logger.info('We joined circuit %d with neighbour %s', circuit_id, candidate)
-        logger.info('Received secret %s', message.encrypted_key)
+        logger.info('Received secret %s', message.key)
 
         self.directions[circuit_id] = ORIGINATOR
 
-        key = str(pow(message.encrypted_key, self.dh_secret, DIFFIE_HELLMAN_MODULUS))
+        key = pow(message.key, self.dh_secret, DIFFIE_HELLMAN_MODULUS)
 
+        m = hashlib.sha1()
+        m.update(str(key))
+        key = m.digest()[0:16]
         self.session_keys[circuit_id] = key
+        #logger.debug("The create message's key   : {}".format(message.key))
+        #logger.debug("My diffie secret           : {}".format(self.dh_secret))
+        #logger.debug("CALCULATED SECRET {} FOR THE ORIGINATOR NODE".format(key))
 
-        return_key = str(pow(DIFFIE_HELLMAN_GENERATOR, self.dh_secret, DIFFIE_HELLMAN_MODULUS))
+        return_key = pow(DIFFIE_HELLMAN_GENERATOR, self.dh_secret, DIFFIE_HELLMAN_MODULUS)
+
         cand_dict = {}
         for i in range(1, 5):
             candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
@@ -780,12 +797,12 @@ class ProxyCommunity(Community):
         self.relay_from_to[to_key] = RelayRoute(circuit_id, candidate)
         self.relay_from_to[relay_key] = RelayRoute(new_circuit_id, extend_with)
 
-        encrypted_secret = message.encrypted_secret
+        key = message.key
 
         self.directions[new_circuit_id] = ORIGINATOR
         self.directions[circuit_id] = ENDPOINT
 
-        return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_secret))
+        return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage(key))
 
     def on_extended(self, circuit_id, candidate, message):
         """ A circuit has been extended, forward the acknowledgment back

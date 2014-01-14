@@ -47,7 +47,8 @@ class NeighbourSubset:
         if not sock_addr:
             raise ValueError("No candidates to extend, bailing out ")
 
-        session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+        #session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+        session_key = pow(DIFFIE_HELLMAN_GENERATOR, self.proxy.dh_secret, DIFFIE_HELLMAN_MODULUS)
         self.circuit.unverified_hop = Hop(sock_addr, pub_key, session_key)
 
         logger.debug("still have to encrypt the session key in the xtend message")
