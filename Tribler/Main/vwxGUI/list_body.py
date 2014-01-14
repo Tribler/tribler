@@ -1147,7 +1147,7 @@ class AbstractListBody():
                 wx.CallLater(1000, self.Revert, revertList)
 
         self.done = done
-        self._logger.debug("List created %s rows of %s took %s done:", len(self.vSizer.GetChildren()), len(self.data), time() - t1, self.done, time())
+        self._logger.debug("List created %s rows of %s took %s done: %s %s", len(self.vSizer.GetChildren()), len(self.data), time() - t1, self.done, time())
 
     def HasItem(self, key):
         return key in self.items
