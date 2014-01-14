@@ -161,7 +161,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
         inpath = file['inpath']
         outpath = file['outpath']
 
-        logger.debug("makeinfo: inpath=%s, outpath=%s" % (inpath, outpath))
+        logger.debug("makeinfo: inpath=%s, outpath=%s", inpath, outpath)
 
         if os.path.isdir(inpath):
             dirsubs = subfiles(inpath)
@@ -460,7 +460,7 @@ def get_bitrate_from_metainfo(file, metainfo):
                         # print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in Azureus metainfo",bitrate
             if playtime is not None:
                 bitrate = info['length'] / playtime
-                logger.debug("TorrentDef: get_bitrate: Found bitrate %s" % repr(bitrate))
+                logger.debug("TorrentDef: get_bitrate: Found bitrate %s", bitrate)
         except:
             print_exc()
 

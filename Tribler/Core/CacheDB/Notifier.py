@@ -130,7 +130,7 @@ class Notifier:
                         self.observerscache[ofunc].append(args)
             except:
                 print_exc()
-                self._logger.error("notify: OIDs were %s, %s" % (repr(oid), repr(obj_id)))
+                self._logger.error("notify: OIDs were %s %s", repr(oid), repr(obj_id))
 
         self.observerLock.release()
         for task in tasks:

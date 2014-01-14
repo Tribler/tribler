@@ -34,8 +34,7 @@ class UserCallbackHandler:
 
     def perform_vod_usercallback(self, d, usercallback, event, params):
         """ Called by network thread """
-        self._logger.debug("Session: perform_vod_usercallback() %s" %\
-            repr(d.get_def().get_name()))
+        self._logger.debug("Session: perform_vod_usercallback() %s", repr(d.get_def().get_name()))
 
         def session_vod_usercallback_target():
             try:
@@ -61,8 +60,7 @@ class UserCallbackHandler:
         self._logger.debug("Session: perform_removestate_callback()")
 
         def session_removestate_callback_target():
-            self._logger.debug("Session: session_removestate_callback_target called %s" %\
-                currentThread().getName())
+            self._logger.debug("Session: session_removestate_callback_target called %s", currentThread().getName())
             try:
                 self.sesscb_removestate(infohash, contentdests, removecontent)
             except:
@@ -76,12 +74,11 @@ class UserCallbackHandler:
     def sesscb_removestate(self, infohash, contentdests, removecontent):
         """  See DownloadImpl.setup().
         Called by SessionCallbackThread """
-        self._logger.debug("Session: sesscb_removestate called %s, %s, %s" %\
-            (repr(infohash), repr(contentdests), repr(removecontent)))
+        self._logger.debug("Session: sesscb_removestate called %s %s %s", repr(infohash), contentdests, removecontent)
         self.sesslock.acquire()
         try:
             if self.session.lm.download_exists(infohash):
-                self._logger.info("Session: sesscb_removestate: Download is back, restarted? Canceling removal! %s" % repr(infohash))
+                self._logger.info("Session: sesscb_removestate: Download is back, restarted? Canceling removal! %s", repr(infohash))
                 return
 
             dlpstatedir = os.path.join(self.session.get_state_dir(), STATEDIR_DLPSTATE_DIR)
@@ -93,7 +90,7 @@ class UserCallbackHandler:
         try:
             basename = hexinfohash + '.pickle'
             filename = os.path.join(dlpstatedir, basename)
-            self._logger.debug("Session: sesscb_removestate: removing dlcheckpoint entry %s" % filename)
+            self._logger.debug("Session: sesscb_removestate: removing dlcheckpoint entry %s", filename)
             if os.access(filename, os.F_OK):
                 os.remove(filename)
         except:
@@ -102,7 +99,7 @@ class UserCallbackHandler:
 
         # Remove downloaded content from disk
         if removecontent:
-            self._logger.debug("Session: sesscb_removestate: removing saved content %s" % contentdests)
+            self._logger.debug("Session: sesscb_removestate: removing saved content %s", contentdests)
 
             contentdirs = set()
             for filename in contentdests:
@@ -136,6 +133,5 @@ class UserCallbackHandler:
         """
         Notify all interested observers about an event with threads from the pool
         """
-        self._logger.debug("ucb: notify called: %s, %s, %s, %s" %\
-            (repr(subject), repr(changeType), repr(obj_id), repr(args)))
+        self._logger.debug("ucb: notify called: %s %s %s %s", subject, changeType, repr(obj_id), args)
         self.notifier.notify(subject, changeType, obj_id, *args)

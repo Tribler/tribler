@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def parse_playtime_to_secs(hhmmss):
-    logger.debug("miscutils: Playtime is %s" % hhmmss)
+    logger.debug("miscutils: Playtime is %s", hhmmss)
     r = re.compile("([0-9\.]+):*")
     occ = r.findall(hhmmss)
     t = None

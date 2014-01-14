@@ -32,8 +32,7 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     DownloadConfigInterface: All methods called by any thread
     """
     def set_max_speed(self, direct, speed):
-        self._logger.debug("Download: set_max_speed %s, %s, %s" %\
-            (repr(self.get_def().get_metainfo()['info']['name']), repr(direct), repr(speed)))
+        self._logger.debug("Download: set_max_speed %s, %s, %s", repr(self.get_def().get_metainfo()['info']['name']), direct, speed)
         # print_stack()
 
         self.dllock.acquire()

@@ -95,7 +95,7 @@ class ThreadPool:
     def getNextTask(self):
         """ Retrieve the next task from the task queue.  For use
         only by ThreadPoolThread objects contained in the pool."""
-        self._logger.debug('%d' % len(self.__tasks))
+        self._logger.debug('%d', len(self.__tasks))
 
         self.__taskCond.acquire()
         try:
