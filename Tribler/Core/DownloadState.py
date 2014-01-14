@@ -5,14 +5,13 @@
 import time
 
 import sys
+import logging
 from traceback import print_exc, print_stack
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
-
-DEBUG = False
 
 
 class DownloadState(Serializable):
@@ -35,6 +34,8 @@ class DownloadState(Serializable):
         this range. This is used for playing a video in a multi-torrent file.
         @param logmsgs A list of messages from the BT engine which may be of
         """
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.download = download
         self.filepieceranges = filepieceranges  # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
@@ -47,8 +48,7 @@ class DownloadState(Serializable):
 
         if stats is None:
             # No info available yet from download engine
-            if DEBUG:
-                print("DownloadState.__init__: stats is None", file=sys.stderr)
+            self._logger.debug("DownloadState.__init__: stats is None")
             self.error = error  # readonly access
             self.progress = progress
             if self.error is not None:
@@ -57,16 +57,14 @@ class DownloadState(Serializable):
                 self.status = status
 
         elif error is not None:
-            if DEBUG:
-                print("DownloadState.__init__: error is not None", file=sys.stderr)
+            self._logger("DownloadState.__init__: error is not None")
             self.error = error  # readonly access
             self.progress = 0.0  # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
 
         elif status is not None and not status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
-            if DEBUG:
-                print("DownloadState.__init__: we have status and it is not downloading or seeding", file=sys.stderr)
+            self._logger.debug("DownloadState.__init__: we have status and it is not downloading or seeding")
             self.error = error
             self.status = status
             if self.status == DLSTATUS_WAITING4HASHCHECK:
@@ -78,8 +76,7 @@ class DownloadState(Serializable):
 
         else:
             # Copy info from stats
-            if DEBUG:
-                print("DownloadState.__init__: copy from stats", file=sys.stderr)
+            self._logger.debug("DownloadState.__init__: copy from stats")
             self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:

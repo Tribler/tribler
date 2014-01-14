@@ -7,6 +7,7 @@ import libtorrent as lt
 
 from binascii import hexlify
 from traceback import print_exc
+import logging
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import *
@@ -30,12 +31,12 @@ if sys.platform == "win32":
     except:
         pass
 
-DEBUG = False
-
 
 class VODFile(object):
 
     def __init__(self, f, d):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self._file = f
         self._download = d
 
@@ -161,6 +162,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.dllock = NoDispersyRLock()
         self.session = session
         self.tdef = tdef
@@ -1152,8 +1155,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: Win32 reg said MIME type is", mimetype
             except:
-                if DEBUG:
-                    print_exc()
+                print_exc()
                 pass
         else:
             try:

@@ -1,4 +1,5 @@
 import sys
+import logging
 
 from threading import current_thread, local, setprofile
 from time import sleep, time
@@ -7,6 +8,7 @@ from Tribler.Main.tribler import run
 stats = {}
 threadlocal = local()
 
+logger = logging.getLogger(__name__)
 
 def lock_profile(frame, event, arg):
     global stats, threadlocal

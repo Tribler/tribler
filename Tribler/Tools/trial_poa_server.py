@@ -35,7 +35,7 @@ class MyWebServer(BaseHTTPServer.HTTPServer):
                                                server_address,
                                                RequestHandlerClass)
         except:
-            print("Failed to use IPv6, using IPv4 instead", file=sys.stderr)
+            print >>sys.stderr, "Failed to use IPv6, using IPv4 instead"
             self.address_family = socket.AF_INET
             BaseHTTPServer.HTTPServer.__init__(self,
                                                server_address,
@@ -81,7 +81,7 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         """
 
-        print(format % args)
+        print format % args
 
     def failed(self, code, message=None):
         """
@@ -90,22 +90,22 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         try:
             if message:
-                print("Sending %d (%s)" % (code, message))
+                print "Sending %d (%s)" % (code, message)
                 self.send_error(code, message)
             else:
-                print("Sending %d " % code)
+                print "Sending %d " % code
                 self.send_error(code)
 
             try:  # Should this be here?
                 self.end_headers()
             except Exception as e:
-                print("Error sending end_headers - I guess I shouldn't do  it then", file=sys.stderr)
+                print >>sys.stderr, "Error sending end_headers - I guess I shouldn't do  it then"
 
             # self.wfile.close()
         except Exception as e:
 
             # Error sending error...  Log and ingnore
-            print("Error sending error %s, ignoring (%s)" % (code, e), file=sys.stderr)
+            print >>sys.stderr, "Error sending error %s, ignoring (%s)" % (code, e)
 
             # TODO: Remove this error thingy
             raise Exception("Could not send error")
@@ -118,7 +118,7 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             self.send_response(response)
         except Exception as e:
-            print("Error sending response: %s" % e, file=sys.stderr)
+            print >>sys.stderr, "Error sending response: %s" % e
             return
 
         # self.send_header("date", makeRFC1123time(time.time()))
@@ -158,7 +158,7 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             poa = self.generate_poa(swarm_id, perm_id)
         except Exception as e:
-            print("Missing key for swarm '%s'" % swarm_id, e, file=sys.stderr)
+            print >>sys.stderr, "Missing key for swarm '%s'" % swarm_id, e
             return self.failed(404)
 
         self.prepareSend("application/octet-stream", len(poa))
@@ -202,7 +202,7 @@ class WebServer(threading.Thread):
 
     def __init__(self, port):
         threading.Thread.__init__(self)
-        print("Starting WebServer on port %s" % port)
+        print "Starting WebServer on port %s" % port
         self.server = MyWebServer(('', int(port)), WebHandler)
         self.port = port
         self.running = False
@@ -211,21 +211,21 @@ class WebServer(threading.Thread):
 
         self.running = True
 
-        print("WebServer Running on port %s" % self.port)
+        print "WebServer Running on port %s" % self.port
 
         while self.running:
             try:
-                print("Waiting...")
+                print "Waiting..."
                 self.server.handle_request()
             except Exception as e:
                 if e.args[0] != "unpack non-sequence":
-                    print("Error handling request", e, file=sys.stderr)
+                    print >>sys.stderr, "Error handling request", e
 
                 # Ignore these, Just means that there was no request
                 # waiting for us
                 pass
 
-        print("Web server Stopped")
+        print "Web server Stopped"
 
     def stop(self):
         self.running = False
@@ -252,6 +252,6 @@ if __name__ == "__main__":
 
     raw_input("WebServer running, press ENTER to stop it")
 
-    print("Stopping server")
+    print "Stopping server"
     reporter.stop()
     ws.stop()

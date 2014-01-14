@@ -9,13 +9,16 @@ import Tribler.Debug.console
 import sys
 from datetime import date
 from time import time
+import logging
 
 from channelcast_supporter import main
+
+logger = logging.getLogger(__name__)
 
 def log_search(sock_addr, keywords):
     d = date.today()
     f = open('incomming-searches-%s' % d.isoformat(), 'a')
-    print(time(), sock_addr[0], sock_addr[1], ";".join(keywords), file=f)
+    f.write("%s %s %s %s" % (repr(time()), repr(sock_addr[0]), repr(sock_addr[1]), ";".join(keywords)))
     f.close()
 
 def define_search(session):
@@ -26,7 +29,7 @@ def define_search(session):
                                      (session.dispersy_member,),
                                      {"log_incomming_searches": log_search},
                                      load=True)
-    print("tribler: Dispersy communities are ready", file=sys.stderr)
+    logger.info("tribler: Dispersy communities are ready")
 
 if __name__ == "__main__":
     main(define_search)

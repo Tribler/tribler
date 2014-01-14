@@ -6,6 +6,7 @@
 #
 
 import sys
+import logging
 from threading import Thread, Lock, currentThread, Event
 import socket
 from traceback import print_exc
@@ -17,15 +18,17 @@ except ImportError as e:
 
 from Tribler.dispersy.decorator import attach_profiler
 
-DEBUG = False
-
 
 class FastI2IConnection(Thread):
 
     def __init__(self, port, readlinecallback, closecallback):
         Thread.__init__(self)
-        self.setName("FastI2I" + self.getName())
+
+        name = "FastI2I" + self.getName()
+        self.setName(name)
         self.setDaemon(True)
+
+        self._logger = logging.getLogger(name)
 
         self.port = port
         self.readlinecallback = readlinecallback

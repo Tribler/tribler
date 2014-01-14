@@ -3,6 +3,7 @@
 
 import socket
 import errno
+import logging
 try:
     from select import poll, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1000
@@ -20,8 +21,6 @@ try:
 except:
     True = 1
     False = 0
-
-DEBUG = False
 
 all = POLLIN | POLLOUT
 
@@ -45,6 +44,8 @@ class InterruptSocket:
     will send some data to the InterruptSocket and discard the data.
     """
     def __init__(self, socket_handler):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.socket_handler = socket_handler
         self.handler = InterruptSocketHandler
 
@@ -94,6 +95,8 @@ class SingleSocket:
     """
 
     def __init__(self, socket_handler, sock, handler, ip=None):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.socket_handler = socket_handler
         self.socket = sock
         self.handler = handler
@@ -238,6 +241,8 @@ class SingleSocket:
 class SocketHandler:
 
     def __init__(self, timeout, ipv6_enable, readsize=100000):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.timeout = timeout
         self.ipv6_enable = ipv6_enable
         self.readsize = readsize
@@ -481,8 +486,7 @@ class SocketHandler:
                                 dmh = DialbackMsgHandler.getInstance()
                                 dmh.network_btengine_reachable_callback()
                             except ImportError:
-                                if DEBUG:
-                                    print_exc()
+                                print_exc()
                                 pass
                             self.btengine_said_reachable = True
 

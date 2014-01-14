@@ -8,8 +8,9 @@ standardized in http://www.bittorrent.org/beps/bep_0030.html (yay!)
 from math import log, pow, floor
 from Tribler.Core.Utilities.Crypto import sha
 import sys
+import logging
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 # External classes
 
@@ -96,23 +97,20 @@ def calc_total_length(info):
 
 
 def get_tree_height(npieces):
-    if DEBUG:
-        print("merkle: number of pieces is", npieces, file=sys.stderr)
+    logger.debug("merkle: number of pieces is %s" % repr(npieces))
     height = log(npieces, 2)
     if height - floor(height) > 0.0:
         height = int(height) + 1
     else:
         height = int(height)
-    if DEBUG:
-        print("merkle: tree height is", height, file=sys.stderr)
+    logger.debug("merkle: tree height is %s" % repr(height))
     return height
 
 
 def create_tree(height):
     # Create tree that has enough leaves to hold all hashes
     treesize = int(pow(2, height + 1) -1) # subtract unused tail
-    if DEBUG:
-        print("merkle: treesize", treesize, file=sys.stderr)
+    logger.debug("merkle: treesize %s" % repr(treesize))
     tree = ['\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'] * treesize
     return tree
 
@@ -120,8 +118,7 @@ def create_tree(height):
 def fill_tree(tree, height, npieces, hashes):
     # 1. Fill bottom of tree with hashes
     startoffset = int(pow(2, height) - 1)
-    if DEBUG:
-        print("merkle: bottom of tree starts at", startoffset, file=sys.stderr)
+    logger.debug("merkle: bottom of tree starts at %s" % repr(startoffset))
     for offset in range(startoffset, startoffset + npieces):
         # print >> sys.stderr,"merkle: copying",offset
         # print >> sys.stderr,"merkle: hashes[",offset-startoffset,"]=",str(hashes[offset-startoffset])
@@ -137,8 +134,7 @@ def fill_tree(tree, height, npieces, hashes):
 
     # 3. Calculate higher level hashes from leaves
     for level in range(height, 0, -1):
-        if DEBUG:
-            print("merkle: calculating level", level, file=sys.stderr)
+        logger.debug("merkle: calculating level %s" % repr(level))
         for offset in range(int(pow(2, level) - 1), int(pow(2, level +1)-2), 2):
             # print >> sys.stderr,"merkle: data offset",offset
             [parentstartoffset, parentoffset] = get_parent_offset(offset, level)
@@ -156,8 +152,7 @@ def fill_tree(tree, height, npieces, hashes):
 def get_hashes_for_piece(tree, height, index):
     startoffset = int(pow(2, height) - 1)
     myoffset = startoffset + index
-    if DEBUG:
-        print("merkle: myoffset", myoffset, file=sys.stderr)
+    logger.debug("merkle: myoffset %s" % repr(myoffset))
     # 1. Add piece's own hash
     hashlist = [[myoffset, tree[myoffset]]]
     # 2. Add hash of piece's sibling, left or right
@@ -165,16 +160,14 @@ def get_hashes_for_piece(tree, height, index):
         siblingoffset = myoffset - 1
     else:
         siblingoffset = myoffset + 1
-    if DEBUG:
-        print("merkle: siblingoffset", siblingoffset, file=sys.stderr)
+    logger.debug("merkle: siblingoffset %s" % repr(siblingoffset))
     if siblingoffset != -1:
         hashlist.append([siblingoffset, tree[siblingoffset]])
     # 3. Add hashes of uncles
     uncleoffset = myoffset
     for level in range(height, 0, -1):
         uncleoffset = get_uncle_offset(uncleoffset, level)
-        if DEBUG:
-            print("merkle: uncleoffset", uncleoffset, file=sys.stderr)
+        logger.debug("merkle: uncleoffset %s" % repr(uncleoffset))
         hashlist.append([uncleoffset, tree[uncleoffset]])
     return hashlist
 
@@ -200,15 +193,13 @@ def check_tree_path(root_hash, height, hashlist):
     myindex = a[0] - mystartoffset
     sibindex = b[0] - mystartoffset
     for level in range(height, 0, -1):
-        if DEBUG:
-            print("merkle: checking level", level, file=sys.stderr)
+        logger.debug("merkle: checking level %s" % repr(level))
         a = check_fork(a, b, level)
         b = hashlist[i]
         if b[0] < 0 or b[0] > maxoffset:
             return False
         i += 1
-    if DEBUG:
-        print("merkle: ROOT HASH", repr(str(root_hash)), "==", repr(str(a[1])), file=sys.stderr)
+    logger.debug("merkle: ROOT HASH %s == %s" % (repr(str(root_hash)), repr(str(a[1]))))
     if a[1] == root_hash:
         return True
     else:
@@ -223,8 +214,7 @@ def update_hash_admin(hashlist, tree, height, hashes):
             index = hashlist[i][0] - mystartoffset
             # ignore siblings that are just tree filler
             if index < len(hashes):
-                if DEBUG:
-                    print("merkle: update_hash_admin: saving hash of", index, file=sys.stderr)
+                logger.debug("merkle: update_hash_admin: saving hash of %s" % repr(index))
                 hashes[index] = hashlist[i][1]
         # put all hashes in tree, such that we incrementally learn it
         # and can pass them on to others
@@ -236,12 +226,10 @@ def check_fork(a, b, level):
     siblingoffset = b[0]
     if myoffset > siblingoffset:
         data = b[1] + a[1]
-        if DEBUG:
-            print("merkle: combining", siblingoffset, myoffset, file=sys.stderr)
+        logger.debug("merkle: combining %s %s" % (repr(siblingoffset), repr(myoffset)))
     else:
         data = a[1] + b[1]
-        if DEBUG:
-            print("merkle: combining", myoffset, siblingoffset, file=sys.stderr)
+        logger.debug("merkle: combining %s %s" % (repr(myoffset), repr(siblingoffset)))
     digester = sha()
     digester.update(data)
     digest = digester.digest()
@@ -260,8 +248,7 @@ def get_uncle_offset(myoffset, level):
     if level == 1:
         return 0
     [parentstartoffset, parentoffset] = get_parent_offset(myoffset, level - 1)
-    if DEBUG:
-        print("merkle: parent offset", parentoffset, file=sys.stderr)
+    logger.debug("merkle: parent offset %s" % repr(parentoffset))
     parentindex = parentoffset - parentstartoffset
     if parentoffset % 2 == 0:
         uncleoffset = parentoffset - 1

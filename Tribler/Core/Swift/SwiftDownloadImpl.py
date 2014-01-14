@@ -29,6 +29,7 @@
 
 import sys
 import copy
+import logging
 
 from traceback import print_exc, print_stack
 from threading import RLock, currentThread
@@ -47,9 +48,6 @@ CMDGW_PREBUFFER_BYTES = (2 ** 8) * 1024
 SWIFT_ALIVE_CHECK_INTERVAL = 60.0
 
 
-DEBUG = False
-
-
 class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
     """ Download subclass that represents a swift download.
@@ -57,6 +55,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     """
 
     def __init__(self, session, sdef):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.dllock = NoDispersyRLock()
         self.session = session
         self.sdef = sdef

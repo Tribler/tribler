@@ -1,5 +1,8 @@
 # Written by Njaal Borch
 # see LICENSE.txt for license information
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def to_unicode(string):
@@ -15,7 +18,7 @@ def to_unicode(string):
         return unicode(string, "utf-8")
     except:
         pass
-    print("Warning: Fallback to latin-1 for unicode conversion")
+    logger.warn("Warning: Fallback to latin-1 for unicode conversion")
     return unicode(string, "latin-1")
 
 
@@ -33,6 +36,7 @@ class XmlPrinter:
         doc should be a xml.dom.minidom document
 
         """
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.root = doc
         self.namespace_counter = 0
@@ -176,10 +180,10 @@ class XmlPrinter:
             try:
                 return buffer
             except Exception as e:
-                print("-----------------")
-                print("Exception:", e)
-                print("Buffer:", buffer)
-                print("-----------------")
+                self._logger.error("-----------------")
+                self._logger.error("Exception: %s" % repr(e))
+                self._logger.error("Buffer: %s" % repr(buffer))
+                self._logger.error("-----------------")
                 raise e
 
         raise Exception("Could not serialize DOM")

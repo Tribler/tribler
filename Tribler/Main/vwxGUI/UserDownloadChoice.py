@@ -2,9 +2,8 @@ import sys
 import os
 import json
 import thread
+import logging
 import cPickle
-
-DEBUG = False
 
 
 class UserDownloadChoice:
@@ -26,6 +25,8 @@ class UserDownloadChoice:
         assert self._singleton is None
         self._config = None
         self._choices = {"download_state": {}}
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         if config:
             self.set_config(config)

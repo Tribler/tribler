@@ -7,6 +7,7 @@ import tempfile
 import threading
 import libtorrent as lt
 
+import logging
 from copy import deepcopy
 from binascii import hexlify
 
@@ -31,6 +32,8 @@ class LibtorrentMgr:
                 raise RuntimeError("LibtorrentMgr is singleton")
             LibtorrentMgr.__single = self
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.trsession = trsession
         self.notifier = Notifier.getInstance()
         settings = lt.session_settings()
@@ -51,7 +54,7 @@ class LibtorrentMgr:
         self.set_download_rate_limit(-1)
         self.upnp_mapper = self.ltsession.start_upnp()
 
-        print("LibtorrentMgr: listening on %d" % self.ltsession.listen_port(), file=sys.stderr)
+        self._logger.info("LibtorrentMgr: listening on %d" % self.ltsession.listen_port())
 
         # Start DHT
         self.dht_ready = False
@@ -59,7 +62,7 @@ class LibtorrentMgr:
             dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
             self.ltsession.start_dht(lt.bdecode(dht_state))
         except:
-            print("LibtorrentMgr: could not restore dht state, starting from scratch", file=sys.stderr)
+            self._logger.error("LibtorrentMgr: could not restore dht state, starting from scratch")
             self.ltsession.start_dht(None)
 
         self.ltsession.add_dht_router('router.bittorrent.com', 6881)
@@ -200,7 +203,7 @@ class LibtorrentMgr:
                 infohash = str(atp["info_hash"])
 
             if infohash in self.metainfo_requests:
-                print("LibtorrentMgr: killing get_metainfo request for", infohash, file=sys.stderr)
+                self._logger.info("LibtorrentMgr: killing get_metainfo request for %s" % repr(infohash))
                 handle, _, _ = self.metainfo_requests.pop(infohash)
                 if handle:
                     self.ltsession.remove_torrent(handle, 0)
@@ -212,8 +215,7 @@ class LibtorrentMgr:
                     raise DuplicateDownloadException()
                 self.torrents[infohash] = torrentdl
 
-            if DEBUG:
-                print("LibtorrentMgr: added torrent", infohash, file=sys.stderr)
+            self._logger.debug("LibtorrentMgr: added torrent %s" % repr(infohash))
 
             return handle
 
@@ -225,12 +227,11 @@ class LibtorrentMgr:
                 if infohash in self.torrents:
                     self.ltsession.remove_torrent(handle, int(removecontent))
                     del self.torrents[infohash]
-                    if DEBUG:
-                        print("LibtorrentMgr: remove torrent", infohash, file=sys.stderr)
-                elif DEBUG:
-                    print("LibtorrentMgr: cannot remove torrent", infohash, "because it does not exists", file=sys.stderr)
-        elif DEBUG:
-            print("LibtorrentMgr: cannot remove invalid torrent", file=sys.stderr)
+                    self._logger.debug("LibtorrentMgr: remove torrent %s" % repr(infohash))
+                else:
+                    self._logger.debug("LibtorrentMgr: cannot remove torrent %s because it does not exists" % repr(infohash))
+        else:
+            self._logger.debug("LibtorrentMgr: cannot remove invalid torrent")
 
     def add_mapping(self, port, protocol='TCP'):
         if self.upnp_mapper:
@@ -256,7 +257,7 @@ class LibtorrentMgr:
                     external_ip = str(alert).split()[-1]
                     if self.external_ip != external_ip:
                         self.external_ip = external_ip
-                        print('LibtorrentMgr: external IP is now', self.external_ip, file=sys.stderr)
+                        self._logger.info('LibtorrentMgr: external IP is now %s' % repr(self.external_ip))
                 handle = getattr(alert, 'handle', None)
                 if handle:
                     if handle.is_valid():
@@ -267,10 +268,10 @@ class LibtorrentMgr:
                             elif infohash in self.metainfo_requests:
                                 if type(alert) == lt.metadata_received_alert:
                                     self.got_metainfo(infohash)
-                            elif DEBUG:
-                                print("LibtorrentMgr: could not find torrent", infohash, file=sys.stderr)
-                    elif DEBUG:
-                        print("LibtorrentMgr: alert for invalid torrent", file=sys.stderr)
+                            else:
+                                self._logger.debug("LibtorrentMgr: could not find torrent %s" % repr(infohash))
+                    else:
+                        self._logger.debug("LibtorrentMgr: alert for invalid torrent")
                 alert = self.ltsession.pop_alert()
             self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
 
@@ -285,14 +286,14 @@ class LibtorrentMgr:
         if self.ltsession:
             if self.get_dht_nodes() <= 25:
                 if self.get_dht_nodes() >= 5 and chances_remaining:
-                    print("LibtorrentMgr: giving the dht a chance (%d, %d)" % (self.ltsession.status().dht_nodes, chances_remaining), file=sys.stderr)
+                    self._logger.info("LibtorrentMgr: giving the dht a chance (%d, %d)" % (self.ltsession.status().dht_nodes, chances_remaining))
                     self.trsession.lm.rawserver.add_task(lambda: self.monitor_dht(chances_remaining - 1), 5)
                 else:
-                    print("LibtorrentMgr: restarting dht because not enough nodes are found (%d, %d)" % (self.ltsession.status().dht_nodes, chances_remaining), file=sys.stderr)
+                    self._logger.info("LibtorrentMgr: restarting dht because not enough nodes are found (%d, %d)" % (self.ltsession.status().dht_nodes, chances_remaining))
                     self.ltsession.start_dht(None)
                     self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
             else:
-                print("LibtorrentMgr: dht is working enough nodes are found (%d)" % self.ltsession.status().dht_nodes, file=sys.stderr)
+                self._logger.info("LibtorrentMgr: dht is working enough nodes are found (%d)" % self.ltsession.status().dht_nodes)
                 self.dht_ready = True
                 return
         else:
@@ -305,7 +306,7 @@ class LibtorrentMgr:
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, notify=True):
         if not self.is_dht_ready() and timeout > 5:
-            print("LibtorrentDownloadImpl: DHT not ready, rescheduling get_metainfo", file=sys.stderr)
+            self._logger.info("LibtorrentDownloadImpl: DHT not ready, rescheduling get_metainfo")
             self.trsession.lm.rawserver.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5, n=notify: self.get_metainfo(i, c, t, n), 5)
             return
 
@@ -318,9 +319,8 @@ class LibtorrentMgr:
                 return
 
         with self.metainfo_lock:
-
-            if DEBUG:
-                print('LibtorrentMgr: get_metainfo', infohash_or_magnet, callback, timeout, file=sys.stderr)
+            self._logger.debug('LibtorrentMgr: get_metainfo %s %s %s' %\
+                (repr(infohash_or_magnet), repr(callback), repr(timeout)))
 
             cache_result = self._get_cached_metainfo(infohash)
             if cache_result:
@@ -345,8 +345,8 @@ class LibtorrentMgr:
                 callbacks = self.metainfo_requests[infohash][1]
                 if callback not in callbacks:
                     callbacks.append(callback)
-                elif DEBUG:
-                    print('LibtorrentMgr: get_metainfo duplicate detected, ignoring', file=sys.stderr)
+                else:
+                    self._logger.debug('LibtorrentMgr: get_metainfo duplicate detected, ignoring')
 
     def got_metainfo(self, infohash, timeout=False):
         with self.metainfo_lock:
@@ -355,8 +355,8 @@ class LibtorrentMgr:
             if infohash in self.metainfo_requests:
                 handle, callbacks, notify = self.metainfo_requests.pop(infohash)
 
-                if DEBUG:
-                    print('LibtorrentMgr: got_metainfo', infohash, handle, timeout, file=sys.stderr)
+                self._logger.debug('LibtorrentMgr: got_metainfo %s %s %s' %\
+                    (repr(infohash), repr(handle), repr(timeout)))
 
                 if handle and callbacks and not timeout:
                     metainfo = {"info": lt.bdecode(handle.get_torrent_info().metadata())}
@@ -378,8 +378,7 @@ class LibtorrentMgr:
                     for callback in callbacks:
                         self.trsession.uch.perform_usercallback(lambda cb=callback, mi=deepcopy(metainfo): cb(mi))
 
-                    if DEBUG:
-                        print('LibtorrentMgr: got_metainfo result', metainfo, file=sys.stderr)
+                    self._logger.debug('LibtorrentMgr: got_metainfo result %s' % repr(metainfo))
 
                 if handle:
                     self.ltsession.remove_torrent(handle, 1)

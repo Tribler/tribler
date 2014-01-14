@@ -10,14 +10,13 @@ from __init__ import SEPARATOR_GREY, FILTER_GREY
 import sys
 import wx
 import os
+import logging
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
 from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_item import ColumnsManager, TorrentListItem, ChannelListItem, LibraryListItem, ChannelListItemNoButton, PlaylistItemNoButton, PlaylistItem
-
-DEBUG = False
 
 
 class ListHeaderIcon:
@@ -28,6 +27,8 @@ class ListHeaderIcon:
             raise RuntimeError("ListHeaderIcon is singleton")
         ListHeaderIcon.__single = self
         self.icons = {}
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def getInstance(*args, **kw):
         if ListHeaderIcon.__single is None:

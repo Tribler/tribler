@@ -4,6 +4,7 @@
 import sys
 import os
 import pickle
+import logging
 
 STATEDIR_DLCONFIG = "dlconfig.pickle"
 
@@ -23,6 +24,8 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
 
         DownloadStartupConfig.__init__(self, dlconfig=dlconfig)
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
     def getInstance(*args, **kw):
         if DefaultDownloadStartupConfig.__single is None:
             DefaultDownloadStartupConfig(*args, **kw)
@@ -37,7 +40,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         newKeys = DownloadStartupConfig.updateToCurrentVersion(self)
         if newKeys:
             for key in newKeys:
-                print("DefaultDownloadStartupConfig: Adding field", key, file=sys.stderr)
+                self._logger.info("DefaultDownloadStartupConfig: Adding field %s" % repr(key))
     #
     # Class method
     #

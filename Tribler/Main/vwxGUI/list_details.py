@@ -2,6 +2,7 @@
 import os
 import re
 import binascii
+import logging
 
 from __init__ import *
 from Tribler.Core.osutils import startfile
@@ -21,8 +22,6 @@ from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
 from Tribler.Video.VideoPlayer import VideoPlayer
 import copy
-
-DEBUG = False
 
 
 class AbstractDetails(FancyPanel):
@@ -109,6 +108,8 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def __init__(self, parent):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         FancyPanel.__init__(self, parent)
         self.Hide()
 
@@ -952,6 +953,8 @@ class LibraryDetails(TorrentDetails):
 
     @warnWxThread
     def __init__(self, parent):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.old_progress = -1
         self.refresh_counter = 0
         self.bw_history = []
@@ -1863,6 +1866,8 @@ class StringProgressPanel(wx.BoxSizer):
 class MyChannelDetails(wx.Panel):
 
     def __init__(self, parent, torrent, channel_id):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.parent = parent
         self.torrent = torrent
         self.channel_id = channel_id

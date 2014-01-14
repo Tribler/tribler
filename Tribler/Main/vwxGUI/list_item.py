@@ -4,6 +4,7 @@ import sys
 import json
 import shutil
 import urllib
+import logging
 from datetime import timedelta
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -47,6 +48,8 @@ class DoubleLineListItem(ListItem):
     def __init__(self, *args, **kwargs):
         self.guiutility = GUIUtility.getInstance()
         ListItem.__init__(self, *args, **kwargs)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):

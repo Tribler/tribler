@@ -7,7 +7,7 @@ import random
 import binascii
 import urllib
 import json
-import binascii
+import logging
 from threading import RLock
 from traceback import print_exc, print_stack
 from collections import defaultdict
@@ -22,8 +22,6 @@ try:
 except NameError:
     WindowsError = Exception
 
-DEBUG = False
-
 DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1
 DONE_STATE_SHUTDOWN = 2
@@ -35,6 +33,8 @@ class SwiftProcess:
     A swift engine can participate in one or more swarms."""
 
     def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         # Called by any thread, assume sessionlock is held
         self.splock = RLock()
         self.binpath = binpath

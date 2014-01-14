@@ -69,7 +69,7 @@ class BTConnection:
         handshake += self.expected_infohash
         handshake += self.myid
         if DEBUG:
-            print("btconn: Sending handshake len", len(handshake), file=sys.stderr)
+            print >> sys.stderr, "btconn: Sending handshake len", len(handshake)
         self.s.send(handshake)
 
     def get_my_id(self):
@@ -126,7 +126,7 @@ class BTConnection:
             return size_data
         size = toint(size_data)
         if DEBUG and size > 10000:
-            print("btconn: waiting for message size", size, file=sys.stderr)
+            print >> sys.stderr, "btconn: waiting for message size", size
         if size == 0:
             # BT keep alive message, don't report upwards
             return self.recv()
@@ -145,12 +145,12 @@ class BTConnection:
                     continue
                 elif e[0] == 10054:
                     # WSAECONNRESET on Windows
-                    print("btconn:", e, "converted to EOF", file=sys.stderr)
+                    print >> sys.stderr, "btconn:", e, "converted to EOF"
                     return ''  # convert to EOF
                 else:
                     raise e
             if DEBUG:
-                print("btconn: _readn got", len(data), "bytes", file=sys.stderr)
+                print >> sys.stderr, "btconn: _readn got", len(data), "bytes"
             if len(data) == 0:
                 # raise socket.error(ECONNRESET,'arno says connection closed')
                 return data

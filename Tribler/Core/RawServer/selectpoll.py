@@ -3,6 +3,7 @@
 # Arno,2007-02-23: this poll class is used on win32
 
 import sys
+import logging
 from select import select
 from time import sleep
 from types import IntType
@@ -13,12 +14,12 @@ POLLOUT = 2
 POLLERR = 8
 POLLHUP = 16
 
-DEBUG = False
-
 
 class poll:
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.rlist = []
         self.wlist = []
 

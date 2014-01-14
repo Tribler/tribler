@@ -11,9 +11,10 @@
 
 import sys
 import os
+import logging
 from cStringIO import StringIO
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def is_ogg(name):
@@ -160,6 +161,7 @@ OGGMAGIC_REST_OF_INPUT = 2
 class OggMagicLiveStream:
 
     def __init__(self, tdef, input):
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.tdef = tdef
         self.input = input

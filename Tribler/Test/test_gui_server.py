@@ -21,7 +21,7 @@ class TestGUITaskQueue(unittest.TestCase):
         self.completed.sort()
         if self.completed != range(self.ntasks):
             if DEBUG:
-                print("test failed", self.completed)
+                print "test failed", self.completed
             self.assert_(False)
 
         self.guiserver.shutdown()
@@ -44,7 +44,7 @@ class TestGUITaskQueue(unittest.TestCase):
 
         self.guiserver.add_task(lambda: self.task(0), 3)
         if DEBUG:
-            print("test: sleeping 5 secs so tasks get executed")
+            print "test: sleeping 5 secs so tasks get executed"
         sleep(5)
 
     def test_delay2(self):
@@ -53,7 +53,7 @@ class TestGUITaskQueue(unittest.TestCase):
         self.guiserver.add_task(lambda: self.task(1), 3)
         self.guiserver.add_task(lambda: self.task(0), 1)
         if DEBUG:
-            print("test: sleeping 5 secs so tasks get executed")
+            print "test: sleeping 5 secs so tasks get executed"
         sleep(5)
 
     def define_task(self, num):
@@ -61,5 +61,5 @@ class TestGUITaskQueue(unittest.TestCase):
 
     def task(self, num):
         if DEBUG:
-            print("Running task", num)
+            print "Running task", num
         self.completed.append(num)

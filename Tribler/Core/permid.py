@@ -7,11 +7,12 @@ from base64 import encodestring
 from copy import deepcopy
 import traceback
 import os
+import logging
 
 from M2Crypto import Rand, EC
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1

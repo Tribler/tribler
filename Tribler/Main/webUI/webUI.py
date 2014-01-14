@@ -2,6 +2,7 @@ import cherrypy
 import random
 import sys
 import os
+import logging
 from binascii import hexlify, unhexlify
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
@@ -10,9 +11,6 @@ from functools import wraps
 from cherrypy import response, expose
 from cherrypy.lib.auth_basic import checkpassword_dict
 from traceback import print_exc
-
-
-DEBUG = False
 
 
 def jsonify(func):
@@ -36,6 +34,8 @@ class WebUI():
         if WebUI.__single:
             raise RuntimeError("WebUI is singleton")
         WebUI.__single = self
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.currentTokens = set()
         self.currentTorrents = {}

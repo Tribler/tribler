@@ -4,6 +4,7 @@ import re
 import sys
 from itertools import islice
 import time
+import logging
 
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
@@ -137,6 +138,8 @@ class GroupsList(object):
         @param max_bundles The maximum number of bundles to be created. Default: None (no limit).
         @param two_step Constructs the object in two steps. Default: False. See also: finalize().
         """
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.query = query
         self.algorithm = algorithm
         self.prev_grouplist = prev_grouplist
@@ -946,6 +949,8 @@ class Bundler:
     REDUCTION_MAX_RESULTS = 100
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.clear()
 
     def clear(self):

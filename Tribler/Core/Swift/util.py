@@ -5,9 +5,12 @@
 #
 
 import sys
+import logging
 from Tribler.Core.Utilities.bencode import bdecode
 
 MULTIFILE_PATHNAME = "META-INF-multifilespec.txt"
+
+logger = logging.getLogger(__name__)
 
 
 def torrent2swiftspec(metainfo):

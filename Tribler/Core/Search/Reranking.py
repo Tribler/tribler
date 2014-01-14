@@ -3,8 +3,7 @@
 
 import sys
 import time
-
-DEBUG = False
+import logging
 
 
 class Reranker:
@@ -47,6 +46,8 @@ class SwapFirstTwoReranker(Reranker):
     """ swaps first and second place if second place has been frequently selected from bad position """
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.MAX_SEEN_BEFORE_RERANK = 5
         self.MAX_POPULAR_RATIO = 5
 

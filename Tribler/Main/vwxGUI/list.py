@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 import os
 import sys
+import logging
 from threading import currentThread
 from traceback import print_stack
 from math import log
@@ -35,7 +36,6 @@ from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Category.Category import Category
 
-DEBUG = False
 DEBUG_RELEVANCE = False
 MAX_REFRESH_PARTIAL = 5
 
@@ -43,6 +43,8 @@ MAX_REFRESH_PARTIAL = 5
 class BaseManager:
 
     def __init__(self, list):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.list = list
         self.dirtyset = set()
         self.guiutility = GUIUtility.getInstance()
@@ -122,8 +124,7 @@ class RemoteSearchManager(BaseManager):
 
     def refresh(self, remote=False):
         def db_callback():
-            if DEBUG:
-                begintime = time()
+            begintime = time()
 
             keywords = self.oldkeywords
 

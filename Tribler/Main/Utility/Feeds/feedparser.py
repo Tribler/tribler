@@ -99,6 +99,10 @@ try:
 except:
     base64 = binascii = None
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def _s2bytes(s):
     # Convert a UTF-8 str to bytes if the interpreter is Python 3
@@ -4061,7 +4065,7 @@ if __name__ == '__main__':
             sys.exit(0)
     else:
         if not sys.argv[1:]:
-            print(__doc__)
+            logger.info(repr(__doc__))
             sys.exit(0)
 
         class _Options:

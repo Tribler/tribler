@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
+import logging
 from cStringIO import StringIO
 from binascii import b2a_hex
 from Tribler.Core.MessageID import protocol_name
@@ -18,7 +19,7 @@ def toint(s):
 
 default_task_id = []
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def show(s):
@@ -30,6 +31,8 @@ def show(s):
 class SingleRawServer:
 
     def __init__(self, info_hash, multihandler, doneflag, protocol):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.info_hash = info_hash
         self.doneflag = doneflag
         self.protocol = protocol
@@ -97,6 +100,8 @@ class SingleRawServer:
 class NewSocketHandler:     # hand a new socket off where it belongs
 
     def __init__(self, multihandler, connection):    # connection: SingleSocket
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.multihandler = multihandler
         self.connection = connection
         connection.set_handler(self)
@@ -201,6 +206,8 @@ class NewSocketHandler:     # hand a new socket off where it belongs
 class MultiHandler:
 
     def __init__(self, rawserver, doneflag):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.rawserver = rawserver
         self.masterdoneflag = doneflag
         self.singlerawservers = {}

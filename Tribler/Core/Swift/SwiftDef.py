@@ -8,6 +8,7 @@ from traceback import print_exc, print_stack
 import subprocess
 import random
 import time
+import logging
 
 from Tribler.Core.Base import *
 from Tribler.Core.simpledefs import *
@@ -20,6 +21,8 @@ class SwiftDef(ContentDefinition):
     and any optional peer-address sources. """
 
     def __init__(self, roothash=None, tracker=None, chunksize=None,duration=None):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.readonly = False
         self.roothash = roothash
         self.tracker = tracker

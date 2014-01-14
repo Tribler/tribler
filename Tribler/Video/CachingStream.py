@@ -4,8 +4,7 @@
 
 
 import sys
-
-DEBUG = False
+import logging
 
 
 class SmartCachingStream:

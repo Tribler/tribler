@@ -23,12 +23,12 @@ from struct import pack, unpack
 from base64 import b64encode, b64decode
 from M2Crypto import Rand  # TODO REMOVE FOR LICHT
 from traceback import print_exc, print_stack
+import logging
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.Crypto import sha
 
-
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def metainfo2p2purl(metainfo):

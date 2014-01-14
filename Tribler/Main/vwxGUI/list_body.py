@@ -3,6 +3,7 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 
 import sys
+import logging
 from threading import currentThread
 from traceback import print_stack, print_exc
 from time import time
@@ -16,14 +17,14 @@ from __init__ import *
 from wx._core import PyDeadObjectError
 from _abcoll import Iterable
 
-DEBUG = False
-
 
 class ListItem(wx.Panel):
 
     @warnWxThread
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED, list_selected_and_expanded=LIST_DARKBLUE):
         wx.Panel.__init__(self, parent)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.parent_list = parent_list
         from Tribler.Main.vwxGUI.list_item import ColumnsManager
@@ -515,6 +516,8 @@ class AbstractListBody():
 
     @warnWxThread
     def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer

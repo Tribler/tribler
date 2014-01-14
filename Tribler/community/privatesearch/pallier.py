@@ -4,12 +4,15 @@ from Crypto.PublicKey import RSA
 
 from gmpy import mpz
 
+import logging
 from random import randint
 from time import time
 from Tribler.community.privatesearch.rsa import rsa_init
 from collections import namedtuple
 
 PallierKey = namedtuple('PallierKey', ['n', 'n2', 'g', 'lambda_', 'd'])
+
+logger = logging.getLogger(__name__)
 
 # using same variable names as implementation by Zeki
 

@@ -6,11 +6,14 @@ from gmpy import mpz
 
 from hashlib import sha1
 
+import logging
 from time import time
 from random import randint
 from collections import namedtuple
 
 RSAKey = namedtuple('RSAKey', ['n', 'e', 'p', 'q', 'd', 'size'])
+
+logger = logging.getLogger(__name__)
 
 
 def rsa_init(bits=1024):

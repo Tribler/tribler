@@ -7,6 +7,7 @@ import sys
 import os
 from hashlib import md5
 import zlib
+import logging
 
 from Tribler.Core.Utilities.Crypto import sha
 from copy import copy
@@ -25,7 +26,7 @@ from Tribler.Core.Utilities.utilities import validTorrentFile
 
 ignore = []  # Arno: was ['core', 'CVS']
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: None):
     """ Create a torrent file from the supplied input.
@@ -160,8 +161,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
         inpath = file['inpath']
         outpath = file['outpath']
 
-        if DEBUG:
-            print("makeinfo: inpath", inpath, "outpath", outpath, file=sys.stderr)
+        logger.debug("makeinfo: inpath=%s, outpath=%s" % (inpath, outpath))
 
         if os.path.isdir(inpath):
             dirsubs = subfiles(inpath)
@@ -460,8 +460,7 @@ def get_bitrate_from_metainfo(file, metainfo):
                         # print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in Azureus metainfo",bitrate
             if playtime is not None:
                 bitrate = info['length'] / playtime
-                if DEBUG:
-                    print("TorrentDef: get_bitrate: Found bitrate", bitrate, file=sys.stderr)
+                logger.debug("TorrentDef: get_bitrate: Found bitrate %s" % repr(bitrate))
         except:
             print_exc()
 

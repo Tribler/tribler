@@ -13,9 +13,11 @@ import urlparse
 from traceback import print_exc, print_stack
 from urlparse import urlsplit, parse_qsl
 import binascii
+import logging
+
+logger = logging.getLogger(__name__)
 
 STRICT_CHECK = True
-DEBUG = False
 
 infohash_len = 20
 
@@ -264,26 +266,26 @@ def validTorrentFile(metainfo):
         if 'files' in metainfo['info']:
             # Only single-file mode allowed for http seeding
             del metainfo['url-list']
-            print("Warning: Only single-file mode supported with HTTP seeding. HTTP seeding disabled", file=sys.stderr)
+            logger.warn("Warning: Only single-file mode supported with HTTP seeding. HTTP seeding disabled")
         elif not isinstance(metainfo['url-list'], ListType):
             del metainfo['url-list']
-            print("Warning: url-list is not of type list. HTTP seeding disabled", file=sys.stderr)
+            logger.warn("Warning: url-list is not of type list. HTTP seeding disabled")
         else:
             for url in metainfo['url-list']:
                 if not isValidURL(url):
                     del metainfo['url-list']
-                    print("Warning: url-list url is not valid: ", repr(url), "HTTP seeding disabled", file=sys.stderr)
+                    logger.warn("Warning: url-list url is not valid: %s HTTP seeding disabled" % repr(url))
                     break
 
     if 'httpseeds' in metainfo:
         if not isinstance(metainfo['httpseeds'], ListType):
             del metainfo['httpseeds']
-            print("Warning: httpseeds is not of type list. HTTP seeding disabled", file=sys.stderr)
+            logger.warn("Warning: httpseeds is not of type list. HTTP seeding disabled")
         else:
             for url in metainfo['httpseeds']:
                 if not isValidURL(url):
                     del metainfo['httpseeds']
-                    print("Warning: httpseeds url is not valid: ", repr(url), "HTTP seeding disabled", file=sys.stderr)
+                    logger.warn("Warning: httpseeds url is not valid: %s HTTP seeding disabled" % repr(url))
                     break
 
 
@@ -292,8 +294,7 @@ def isValidTorrentFile(metainfo):
         validTorrentFile(metainfo)
         return True
     except:
-        if DEBUG:
-            print_exc()
+        print_exc()
         return False
 
 
@@ -335,20 +336,17 @@ def show_permid_shorter(permid):
 
 def print_dict(data, level=0):
     if isinstance(data, dict):
-        print()
         for i in data:
-            print("  " * level, str(i) + ':', end=' ')
+            logger.info("  " * level + str(i) + ':')
             print_dict(data[i], level + 1)
     elif isinstance(data, list):
         if not data:
-            print("[]")
-        else:
-            print()
+            logger.info("[]")
         for i in xrange(len(data)):
-            print("  " * level, '[' + str(i) + ']:', end=' ')
+            logger.info("  " * level + '[' + str(i) + ']:')
             print_dict(data[i], level + 1)
     else:
-        print(data)
+        logger.info(repr(data))
 
 
 def friendly_time(old_time):
@@ -430,7 +428,7 @@ def multisort_dictlist(dict_list, keys):
 def find_content_in_dictlist(dict_list, content, key='infohash'):
     title = content.get(key)
     if not title:
-        print('Error: content had no content_name')
+        logger.error('Error: content had no content_name')
         return False
     for i in xrange(len(dict_list)):
         if title == dict_list[i].get(key):
@@ -491,10 +489,11 @@ def hostname_or_ip2ip(hostname_or_ip):
             # dns-lookup for hostname_or_ip into an ip address
             ip = socket.gethostbyname(hostname_or_ip)
             if not hostname_or_ip.startswith("superpeer"):
-                print("hostname_or_ip2ip: resolved ip from hostname, an ip should have been provided", hostname_or_ip, file=sys.stderr)
+                logger.info("hostname_or_ip2ip: resolved ip from hostname, an ip should have been provided %s" %\
+                    repr(hostname_or_ip))
 
         except:
-            print("hostname_or_ip2ip: invalid hostname", hostname_or_ip, file=sys.stderr)
+            logger.error("hostname_or_ip2ip: invalid hostname %s" % repr(hostname_or_ip))
             print_exc()
 
     return ip
@@ -513,8 +512,7 @@ def parse_magnetlink(url):
     xt = None
     trs = []
 
-    if DEBUG:
-        print("parse_magnetlink()", url, file=sys.stderr)
+    logger.debug("parse_magnetlink() %s" % url)
 
     schema, netloc, path, query, fragment = urlsplit(url)
     if schema == "magnet":
@@ -544,12 +542,9 @@ def parse_magnetlink(url):
             elif key == "tr":
                 trs.append(value)
 
-        if DEBUG:
-            print("parse_magnetlink() NAME:", dn, file=sys.stderr)
-        if DEBUG:
-            print("parse_magnetlink() HASH:", xt, file=sys.stderr)
-        if DEBUG:
-            print("parse_magnetlink() TRACS:", trs, file=sys.stderr)
+        logger.debug("parse_magnetlink() NAME: %s" % repr(dn))
+        logger.debug("parse_magnetlink() HASH: %s" % repr(xt))
+        logger.debug("parse_magnetlink() TRACS: %s" % repr(trs))
 
     return (dn, xt, trs)
 
@@ -562,7 +557,7 @@ if __name__ == '__main__':
     torrentd = {'name': 'b', 'swarmsize': 36, 'Web2': True}
 
     torrents = [torrenta, torrentb, torrentc, torrentd]
-    print(multisort_dictlist(torrents, ["Web2", ("swarmsize", "decrease")]))
+    logger.debug(repr(multisort_dictlist(torrents, ["Web2", ("swarmsize", "decrease")])))
 
 
     # d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}

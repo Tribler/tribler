@@ -1,5 +1,6 @@
 # Written by Niels Zeilemaker
 import wx
+import logging
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
@@ -27,13 +28,14 @@ from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
 from random import sample
 
-DEBUG = False
-
 
 class ChannelManager(BaseManager):
 
     def __init__(self, list):
         BaseManager.__init__(self, list)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.library_manager = self.guiutility.library_manager
 
@@ -88,8 +90,7 @@ class ChannelManager(BaseManager):
         def db_callback():
             channel = self.list.channel
             if channel:
-                if DEBUG:
-                    t2 = time()
+                t2 = time()
 
                 if stateChanged:
                     state, iamModerator = channel.refreshState()

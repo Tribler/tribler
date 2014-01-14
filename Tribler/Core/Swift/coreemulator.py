@@ -10,11 +10,16 @@ import sys
 import socket
 import urlparse
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PluginEmulator:
 
     def __init__(self, port, cmd, param):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('127.0.0.1', port))
         # s.connect(('130.37.193.64',port))

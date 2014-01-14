@@ -3,7 +3,9 @@
 
 from types import *
 from cStringIO import StringIO
+import logging
 
+logger = logging.getLogger(__name__)
 
 def splitLine(line, COLS=80, indent=10):
     indent = " " * indent

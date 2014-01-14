@@ -35,7 +35,7 @@ def create_poa(torrent, torrent_keypair, node_id, target_file):
     # if the node_id is base64 encoded, decode it
     try:
         actual_node_id = decodestring(node_id)
-        print("Node ID was base64 encoded")
+        print "Node ID was base64 encoded"
     except:
         actual_node_id = node_id
 
@@ -49,12 +49,12 @@ def create_poa(torrent, torrent_keypair, node_id, target_file):
     else:
         tf = ClosedSwarm.trivial_save_poa("./", decodestring(node_id), t.infohash, poa)
 
-    print("Proof of access written to file '%s'" % tf)
+    print "Proof of access written to file '%s'" % tf
 
 
 def get_usage(defs):
-    print("Usage: ", sys.argv[0], "<torrentfile> [options]\n")
-    print(parseargs.formatDefinitions(defs, 80))
+    print "Usage: ", sys.argv[0], "<torrentfile> [options]\n"
+    print parseargs.formatDefinitions(defs, 80)
 
 
 if __name__ == "__main__":
@@ -67,35 +67,35 @@ if __name__ == "__main__":
 
     torrent = fileargs[1]
     if not os.path.exists(torrent):
-        print("Error: Could not find torrent file '%s'" % torrent)
+        print "Error: Could not find torrent file '%s'" % torrent
         raise SystemExit(1)
 
     if not config['key_file']:
         config['key_file'] = torrent + ".tkey"
 
     if not os.path.exists(config['key_file']):
-        print("Error: Could not find key file '%s'" % config['key_file'])
+        print "Error: Could not find key file '%s'" % config['key_file']
         raise SystemExit(1)
 
     # Load the torrent file
     try:
         t = TorrentDef.load(torrent)
     except Exception as e:
-        print("Bad torrent file:", e)
+        print "Bad torrent file:", e
         raise SystemExit(1)
     if not t.get_cs_keys():
-        print("Not a closed swarm torrent")
+        print "Not a closed swarm torrent"
         raise SystemExit(1)
 
     try:
         torrent_keypair = ClosedSwarm.read_cs_keypair(config['key_file'])
     except Exception as e:
-        print("Bad torrent key file", e)
+        print "Bad torrent key file", e
         raise SystemExit(1)
 
     # Need permid of the receiving node
     if not config['node_id']:
-        print("Missing nodeid")
+        print "Missing nodeid"
         raise SystemExit(1)
 
     create_poa(t, torrent_keypair,

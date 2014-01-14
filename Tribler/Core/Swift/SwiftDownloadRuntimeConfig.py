@@ -2,13 +2,12 @@
 # see LICENSE.txt for license information
 
 import sys
+import logging
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Core.APIImplementation.DownloadRuntimeConfigBaseImpl import DownloadRuntimeConfigBaseImpl
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
-
-DEBUG = False
 
 # 10/02/10 Boudewijn: pylint points out that member variables used in
 # DownloadRuntimeConfig do not exist.  This is because they are set in
@@ -19,6 +18,9 @@ DEBUG = False
 
 
 class SwiftDownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
+
+    def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     """
     Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface

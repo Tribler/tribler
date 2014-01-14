@@ -12,6 +12,7 @@
 
 import sys
 import time
+import logging
 from threading import RLock
 
 from Tribler.Core.Session import Session
@@ -21,8 +22,6 @@ from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core import NoDispersyRLock
 
 # some default configurations
-DEBUG = False
-
 DEFAULT_MAX_TRACKER_FAILURES = 5  # A tracker that have failed for this
                                         # times will be regarded as "dead"
 DEFAULT_DEAD_TRACKER_RETRY_INTERVAL = 60  # A "dead" tracker will be retired
@@ -39,6 +38,8 @@ class TrackerInfoCache(object):
     def __init__(self, \
             max_failures=DEFAULT_MAX_TRACKER_FAILURES, \
             dead_tracker_recheck_interval=60):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self._torrentdb = TorrentDBHandler.getInstance()
         self._tracker_info_dict = dict()
 
@@ -84,8 +85,7 @@ class TrackerInfoCache(object):
         with self._lock:
             # new tracker insertion callback
             for tracker in objectID:
-                if DEBUG:
-                    print('[D] New tracker[%s].' % tracker, file=sys.stderr)
+                self._logger.debug('New tracker[%s].' % tracker)
                 self._tracker_info_dict[tracker] = {'last_check':0, 'failures':0, 'alive':True, 'updated':False}
 
                 # check all the pending update requests
@@ -93,8 +93,7 @@ class TrackerInfoCache(object):
                     continue
 
                 for request in self._tracker_update_request_dict[tracker]:
-                    if DEBUG:
-                        print('[D] Handling new tracker[%s] request: %s' % request, file=sys.stderr)
+                    self._logger.debug('Handling new tracker[%s] request: %s', tracker, request)
                     self.updateTrackerInfo(tracker, request)
                 del self._tracker_update_request_dict[tracker]
 

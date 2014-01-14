@@ -3,6 +3,7 @@ import shutil
 import sys
 import os
 import time
+import logging
 from Tribler.Core.TorrentDef import TorrentDef
 DIR_CHECK_FREQUENCY = 10  # Check directories every 10 seconds
 
@@ -14,6 +15,8 @@ class DirectoryFeedThread(Thread):
         if DirectoryFeedThread.__single:
             raise RuntimeError("DirectoryFeedThread is singleton")
         DirectoryFeedThread.__single = self
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         Thread.__init__(self)
         self.setName("DirectoryFeed" + self.getName())
@@ -31,7 +34,7 @@ class DirectoryFeedThread(Thread):
     getInstance = staticmethod(getInstance)
 
     def _on_torrent_found(self, dirpath, torrentpath, infohash, torrent_data):
-        print('DirectoryFeedThread: Adding', torrentpath, file=sys.stderr)
+        self._logger.info('DirectoryFeedThread: Adding %s' % repr(torrentpath))
         imported_dir = os.path.join(dirpath, 'imported')
         if not os.path.exists(imported_dir):
             os.makedirs(imported_dir)
@@ -64,7 +67,7 @@ class DirectoryFeedThread(Thread):
     def run(self):
         time.sleep(60)  # Let other Tribler components, in particular, Session startup
 
-        print('*** DirectoryFeedThread: Starting first refresh round', file=sys.stderr)
+        self._logger.info('*** DirectoryFeedThread: Starting first refresh round')
         while not self.done.isSet():
             self.refresh()
             time.sleep(DIR_CHECK_FREQUENCY)

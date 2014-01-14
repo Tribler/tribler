@@ -5,14 +5,13 @@ import sys
 import time
 from traceback import print_exc
 import threading
+import logging
 from Queue import Queue
 try:
     prctlimported = True
     import prctl
 except ImportError as e:
     prctlimported = False
-
-DEBUG = False
 
 
 class ThreadPool:
@@ -23,6 +22,8 @@ class ThreadPool:
 
     def __init__(self, numThreads):
         """Initialize the thread pool with numThreads workers."""
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.__threads = []
         self.__resizeLock = threading.Condition(threading.Lock())
@@ -94,8 +95,7 @@ class ThreadPool:
     def getNextTask(self):
         """ Retrieve the next task from the task queue.  For use
         only by ThreadPoolThread objects contained in the pool."""
-        if DEBUG:
-            print(len(self.__tasks), file=sys.stderr)
+        self._logger.debug('%d' % len(self.__tasks))
 
         self.__taskCond.acquire()
         try:

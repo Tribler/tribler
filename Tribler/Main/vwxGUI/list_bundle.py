@@ -4,6 +4,7 @@
 import os
 import sys
 import wx
+import logging
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
@@ -14,8 +15,6 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterText as StaticText
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from __init__ import *
-
-DEBUG = False
 
 BUNDLE_FONT_SIZE_DECREMENT = 0
 BUNDLE_FONT_COLOR = (50, 50, 50)
@@ -28,6 +27,8 @@ BUNDLE_NUM_ROWS = 3
 class BundleListItem(ListItem):
 
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         # fetch bundle and descriptions
         self.bundle = original_data['bundle']
         self.general_description = original_data.get('bundle_general_description')
@@ -184,6 +185,8 @@ class BundlePanel(wx.BoxSizer):
 
     def __init__(self, parent, parent_list, hits, general_description=None, description=None, font_increment=0):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         # preload icons
         self.load_icons()

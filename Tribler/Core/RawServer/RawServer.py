@@ -12,6 +12,7 @@ from thread import get_ident
 from Tribler.Core.Utilities.clock import clock
 import sys
 import time
+import logging
 from Tribler.Core import NoDispersyRLock
 
 from Tribler.dispersy.decorator import attach_profiler
@@ -21,8 +22,6 @@ try:
 except:
     True = 1
     False = 0
-
-DEBUG = False
 
 
 def autodetect_ipv6():
@@ -56,6 +55,8 @@ class RawServer:
     def __init__(self, doneflag, timeout_check_interval, timeout, noisy=True,
                  ipv6_enable=True, failfunc= lambda x: None, errorfunc = None,
                  sockethandler=None, excflag= Event()):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.timeout_check_interval = timeout_check_interval
         self.timeout = timeout
         self.servers = {}

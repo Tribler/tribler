@@ -1,5 +1,9 @@
 import sys
+import logging
 import logging.config
+
+logger = logging.getLogger(__name__)
+
 try:
     logging.config.fileConfig("logger.conf")
 except:

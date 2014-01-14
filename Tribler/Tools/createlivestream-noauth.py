@@ -28,7 +28,7 @@ argsdef = [('name', '', 'name of the stream'),
 
 def state_callback(ds):
     d = ds.get_download()
-    print(repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD), file=sys.stderr)
+    print >> sys.stderr, repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD)
 
     return (1.0, False)
 
@@ -37,7 +37,7 @@ def vod_ready_callback(d, mimetype, stream, filename):
     """ Called by the Session when the content of the Download is ready
 
     Called by Session thread """
-    print("main: VOD ready callback called ###########################################################", mimetype, file=sys.stderr)
+    print >> sys.stderr, "main: VOD ready callback called ###########################################################", mimetype
 
 
 def get_usage(defs):
@@ -47,14 +47,14 @@ def get_usage(defs):
 if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
-    print("config is", config, file=sys.stderr)
-    print("fileargs is", fileargs)
+    print >> sys.stderr, "config is", config
+    print "fileargs is", fileargs
 
     if config['name'] == '':
-        print("Usage:  ", get_usage(argsdef))
+        print "Usage:  ", get_usage(argsdef)
         sys.exit(0)
 
-    print("Press Ctrl-C to stop the download")
+    print "Press Ctrl-C to stop the download"
 
     try:
         os.remove(os.path.join(config['destdir'], config['name']))

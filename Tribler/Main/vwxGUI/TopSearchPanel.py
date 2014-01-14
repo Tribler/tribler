@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 import os
 import sys
+import logging
 import wx.animate
 
 from Tribler.__init__ import LIBRARYNAME
@@ -19,8 +20,6 @@ from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker, \
     cancelWorker
 import time
 from Tribler.Video.VideoPlayer import VideoPlayer
-
-DEBUG = False
 
 
 class TopSearchPanelStub():

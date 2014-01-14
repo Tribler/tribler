@@ -82,11 +82,11 @@ class AbstractServer(unittest.TestCase):
             f = open(filename, 'a')
         else:
             f = open(filename, 'w')
-            print("time remark start", file=f)
+            print >> f, "time remark start"
 
         annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
 
-        print(time.time(), annotation, '1' if start else '0', file=f)
+        print >> f, time.time(), annotation, '1' if start else '0'
         f.close()
 
 
@@ -138,9 +138,9 @@ class TestAsServer(AbstractServer):
         gc.collect()
 
         ts = enumerate_threads()
-        print("test_as_server: Number of threads still running", len(ts), file=sys.stderr)
+        print >> sys.stderr, "test_as_server: Number of threads still running", len(ts)
         for t in ts:
-            print("test_as_server: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t, file=sys.stderr)
+            print >> sys.stderr, "test_as_server: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
 
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
@@ -157,10 +157,10 @@ class TestAsServer(AbstractServer):
             diff = time.time() - session_shutdown_start
             assert diff < waittime, "test_as_server: took too long for Session to shutdown"
 
-            print("test_as_server: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff), file=sys.stderr)
+            print >> sys.stderr, "test_as_server: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
             time.sleep(1)
 
-        print("test_as_server: Session is shutdown", file=sys.stderr)
+        print >> sys.stderr, "test_as_server: Session is shutdown"
 
     def assert_(self, boolean, reason=None, do_assert=True):
         if not boolean:
@@ -184,12 +184,12 @@ class TestAsServer(AbstractServer):
             if not self.quitting:
                 if time.time() - t < timeout:
                     if condition():
-                        print("test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t), file=sys.stderr)
+                        print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t)
                         callback()
                     else:
                         self.Call(0.5, DoCheck)
                 else:
-                    print("test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg"), file=sys.stderr)
+                    print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
                     self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
         self.Call(0, DoCheck)
 
@@ -246,22 +246,22 @@ class TestGuiAsServer(TestAsServer):
                 self.Call(min_timeout - took, callback)
 
         def wait_for_frame():
-            print("tgs: GUIUtility ready, staring to wait for frame to be ready", file=sys.stderr)
+            print >> sys.stderr, "tgs: GUIUtility ready, staring to wait for frame to be ready"
             self.frame = self.guiUtility.frame
             self.frame.Maximize()
             self.CallConditional(30, lambda: self.frame.ready, call_callback)
 
         def wait_for_init():
-            print("tgs: lm initcomplete, staring to wait for GUIUtility to be ready", file=sys.stderr)
+            print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
             self.guiUtility = GUIUtility.getInstance()
             self.CallConditional(30, lambda: self.guiUtility.registered, wait_for_frame)
 
         def wait_for_guiutility():
-            print("tgs: waiting for guiutility instance", file=sys.stderr)
+            print >> sys.stderr, "tgs: waiting for guiutility instance"
             self.CallConditional(30, lambda: GUIUtility.hasInstance(), wait_for_init)
 
         def wait_for_instance():
-            print("tgs: found instance, staring to wait for lm to be initcomplete", file=sys.stderr)
+            print >> sys.stderr, "tgs: found instance, staring to wait for lm to be initcomplete"
             self.session = Session.get_instance()
             self.lm = self.session.lm
 
@@ -269,7 +269,7 @@ class TestGuiAsServer(TestAsServer):
 
         def wait_for_session():
             self.hadSession = True
-            print("tgs: waiting for session instance", file=sys.stderr)
+            print >> sys.stderr, "tgs: waiting for session instance"
             self.CallConditional(30, lambda: Session.has_instance(), wait_for_instance)
 
         self.CallConditional(30, lambda: Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_session))
@@ -315,20 +315,20 @@ class TestGuiAsServer(TestAsServer):
         gc.collect()
 
         ts = enumerate_threads()
-        print("teardown: Number of threads still running", len(ts), file=sys.stderr)
+        print >> sys.stderr, "teardown: Number of threads still running", len(ts)
         for t in ts:
-            print("teardown: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t, file=sys.stderr)
+            print >> sys.stderr, "teardown: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
 
         dhtlog = os.path.join(STATE_DIR, 'pymdht.log')
         if os.path.exists(dhtlog):
-            print("teardown: content of pymdht.log", file=sys.stderr)
+            print >> sys.stderr, "teardown: content of pymdht.log"
             f = open(dhtlog, 'r')
             for line in f:
                 line = line.strip()
                 if line:
-                    print(line, file=sys.stderr)
+                    print >> sys.stderr, line
             f.close()
-            print("teardown: finished printing content of pymdht.log", file=sys.stderr)
+            print >> sys.stderr, "teardown: finished printing content of pymdht.log"
 
         self.tearDownCleanup()
 

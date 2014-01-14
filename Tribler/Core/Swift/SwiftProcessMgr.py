@@ -8,6 +8,7 @@ import random
 import time
 from traceback import print_exc, print_stack
 import threading
+import logging
 
 from Tribler.Core.Swift.SwiftProcess import *
 from Tribler.Utilities.Instance2Instance import *
@@ -21,6 +22,8 @@ class SwiftProcessMgr:
     """ Class that manages a number of SwiftProcesses """
 
     def __init__(self, binpath, i2iport, dlsperproc, tunnellistenport, sesslock):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.binpath = binpath
         self.i2iport = i2iport
         # ARNOSMPTODO: Implement such that a new proc is created when needed

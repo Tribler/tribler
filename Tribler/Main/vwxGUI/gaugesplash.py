@@ -30,10 +30,9 @@ http://boa-constructor.cvs.sourceforge.net/boa-constructor/boa/About.py?revision
 for inspiration and code.
 """
 
+import logging
 import wx
 from wx.lib.statbmp import GenStaticBitmap
-
-DEBUG = False
 
 
 class GaugeSplash(wx.Frame):
@@ -41,6 +40,8 @@ class GaugeSplash(wx.Frame):
     """Placeholder for a gauge-bar splash screen."""
     def __init__(self, bmp):
         wx.Frame.__init__(self, None, style=wx.FRAME_NO_TASKBAR)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.count = 0
         self.border = 2

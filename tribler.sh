@@ -11,7 +11,7 @@ fi
 
 UNAME=$(uname -s)
 
-if [ $UNAME == "Linux"]; then
+if [ $UNAME == "Linux" ]; then
     # Find the Tribler dir
     TRIBLER_DIR=$( dirname $(readlink -f "$0"))
     if [ ! -d "$TRIBLER_DIR" ]; then

@@ -13,8 +13,9 @@ except ImportError:
 
 from traceback import print_exc, print_stack
 import sys
+import logging
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def decode_int(x, f):
@@ -103,8 +104,7 @@ def sloppy_bdecode(x):
         r, l = decode_func[x[0]](x, 0)
 #    except (IndexError, KeyError):
     except (IndexError, KeyError, ValueError):
-        if DEBUG:
-            print_exc()
+        print_exc()
         raise ValueError("bad bencoded data")
     return r, l
 
