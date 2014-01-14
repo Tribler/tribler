@@ -282,10 +282,6 @@ class ProxyCommunity(Community):
 
         sr = random.SystemRandom()
         sys.modules["random"] = sr
-        dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-        self.dh_secret = dh_secret
 
 
         # Stats
@@ -522,9 +518,6 @@ class ProxyCommunity(Community):
                     for hop in self.circuits[circuit_id].hops:
                         logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                         data = AESdecode(hop.session_key, data)
-            #       if self.circuits[circuit_id].unverified_hop:
-            #            logger.debug("Removing AES layer for unverified hop %s:%s with key %s" % (self.circuits[circuit_id].unverified_hop.host, self.circuits[circuit_id].unverified_hop.port, self.circuits[circuit_id].unverified_hop.session_key))
-            #           data = AESdecode(self.circuits[circuit_id].unverified_hop.session_key, data)
 
                 elif circuit_id in self.session_keys:
                     # last node in circuit, circuit already exists
@@ -654,10 +647,13 @@ class ProxyCommunity(Community):
             self.circuits[circuit_id] = circuit
 
             pub_key = None
-            
 
-            dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, self.dh_secret, DIFFIE_HELLMAN_MODULUS)
-            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, self.dh_secret)
+            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+            while dh_secret >= DIFFIE_HELLMAN_MODULUS:
+                dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+
+            dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
+            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
             self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(dh_first_part))
 
@@ -694,7 +690,12 @@ class ProxyCommunity(Community):
 
         self.directions[circuit_id] = ORIGINATOR
 
-        key = pow(message.key, self.dh_secret, DIFFIE_HELLMAN_MODULUS)
+        dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
+            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+
+
+        key = pow(message.key, dh_secret, DIFFIE_HELLMAN_MODULUS)
 
         m = hashlib.sha1()
         m.update(str(key))
@@ -704,7 +705,7 @@ class ProxyCommunity(Community):
         #logger.debug("My diffie secret           : {}".format(self.dh_secret))
         #logger.debug("CALCULATED SECRET {} FOR THE ORIGINATOR NODE".format(key))
 
-        return_key = pow(DIFFIE_HELLMAN_GENERATOR, self.dh_secret, DIFFIE_HELLMAN_MODULUS)
+        return_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
 
         cand_dict = {}
         for i in range(1, 5):
