@@ -93,7 +93,7 @@ def init(state_dir, install_dir, db_exception_handler=None):
     CREATE_SQL_FILE = os.path.join(install_dir, CREATE_SQL_FILE_POSTFIX)
 
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
-    logger.info("cachedb: init: SQL FILE %s" % sqlite_db_path)
+    logger.info("cachedb: init: SQL FILE %s", sqlite_db_path)
 
     sqlitedb = SQLiteCacheDB.getInstance(db_exception_handler)
     sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE)  # the first place to create db in Tribler
@@ -449,7 +449,7 @@ class SQLiteCacheDBBase:
 
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
-            self._logger.info('===' + repr(thread_name) + '===\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
+            self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
         try:
             if args is None:
@@ -464,7 +464,7 @@ class SQLiteCacheDBBase:
             else:
                 print_exc()
                 print_stack()
-                self._logger.error("cachedb: execute error: %s, %s" % (repr(Exception), repr(msg)))
+                self._logger.error("cachedb: execute error: %s, %s", Exception, msg)
                 thread_name = threading.currentThread().getName()
                 self._logger.error('===' + repr(thread_name) + '===\nSQL Type:' + repr(type(sql)) + '\n-----\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
 
