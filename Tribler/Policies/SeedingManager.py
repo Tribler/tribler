@@ -82,7 +82,7 @@ class SeedingManager:
                     self.download_state.get_download().stop()
         else:
             if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
-                if not self.policy.apply(None, self.download_state, self.download_state.get_seeding_statistics()):
+                if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
                     self._logger.debug("Stop seeding with libswift: %s", self.download_state.get_download().get_dest_files())
                     self.download_state.get_download().stop()
 

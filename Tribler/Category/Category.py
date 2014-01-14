@@ -35,7 +35,7 @@ class Category:
 
         self.xxx_filter = XXXFilter(install_dir)
 
-        self._logger.debug("category: Categories defined by user: %s" % self.getCategoryNames())
+        self._logger.debug("category: Categories defined by user: %s", self.getCategoryNames())
 
         self.ffEnabled = ffEnabled
         self.set_family_filter(None)
@@ -77,7 +77,7 @@ class Category:
         try:
             name = torrent['category'][0]
         except:
-            self._logger.error('Torrent: %s has no valid category' % repr(torrent['content_name']))
+            self._logger.error('Torrent: %s has no valid category', torrent['content_name'])
             return False
         for category in [{'name': 'other', 'rank': 1}] + self.category_info:
             rank = category['rank']
@@ -124,7 +124,7 @@ class Category:
             if self.xxx_filter.isXXXTorrent(files_list, display_name, tracker, comment):
                 return ['xxx']
         except:
-            self._logger.critical('Category: Exception in explicit terms filter in torrent: %s' % display_name, exc_info=True)
+            self._logger.critical('Category: Exception in explicit terms filter in torrent: %s', display_name, exc_info=True)
 
         torrent_category = None
         # filename_list ready

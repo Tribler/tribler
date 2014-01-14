@@ -58,7 +58,7 @@ def readCategorisationFile(filename):
                 tdict[parts[0]] = bool(int(parts[1]))
         f.close()
     except IOError:
-        logger.error('No file %s found, starting with empty file' % filename)
+        logger.error('No file %s found, starting with empty file', filename)
 
 
 def getTorrentData(path, max_num=-1):
@@ -68,11 +68,11 @@ def getTorrentData(path, max_num=-1):
         if fname.endswith('.torrent'):
             torrents.append(os.path.join(path, fname))
         if i % 1000 == 0 and i:
-            logger.info('Loaded: %d torrents' % i)
+            logger.info('Loaded: %d torrents', i)
         if i == int(max_num):
             break
         i += 1
-    logger.info('Loaded %d torrents' % len(torrents))
+    logger.info('Loaded %d torrents', len(torrents))
     return torrents
 
 
@@ -91,9 +91,9 @@ def showTorrent(path):
         # single mode
         files_list.append((torrent['info']["name"], torrent['info']['length'] / float(__size_change)))
     for fname, fsize in files_list:
-        logger.info('\t\t%s\t%d kb' % (fname, fsize))
-    logger.info('Torrent name: %s' % name)
-    logger.info('\ttracker:%s' % torrent['announce'])
+        logger.info('\t\t%s\t%d kb', fname, fsize)
+    logger.info('Torrent name: %s', name)
+    logger.info('\ttracker:%s', torrent['announce'])
     logger.info('------------------------------')
 
 
@@ -136,13 +136,13 @@ def initSaveFile(filename):
             tset.add(line.split('\t')[0])
         f.close()
     except IOError:
-        logger.error('No file %s found, starting with empty file' % filename)
+        logger.error('No file %s found, starting with empty file', filename)
 
 
 def main(args):
     if len(args) != 4 or args[1] not in ['categorise', 'test']:
-        logger.info('Usage 1: %s categorise [torrent-dir] [torrent-data-file]' % args[0])
-        logger.info('Usage 2: %s test [torrent-dir] [torrent-data-file]' % args[0])
+        logger.info('Usage 1: %s categorise [torrent-dir] [torrent-data-file]', args[0])
+        logger.info('Usage 2: %s test [torrent-dir] [torrent-data-file]', args[0])
         sys.exit(1)
     if args[1] == 'categorise':
         createTorrentDataSet(args[3], args[2])

@@ -34,9 +34,9 @@ class XXXFilter:
                     terms.add(line)
             f.close()
         except:
-            self._logger.critical('', exc_info=True)
+            print_exc()
 
-        self._logger.debug('Read %d XXX terms from file %s' % (len(terms) + len(searchterms), filename))
+        self._logger.debug('Read %d XXX terms from file %s', len(terms) + len(searchterms), filename)
         return terms, searchterms
 
     def _getWords(self, string):
@@ -54,9 +54,9 @@ class XXXFilter:
                   (comment and self.isXXX(comment, False))
                   )
         if is_xxx:
-            self._logger.debug('Torrent is XXX: %s %s' % (torrent_name, tracker))
+            self._logger.debug('Torrent is XXX: %s %s', torrent_name, tracker)
         else:
-            self._logger.debug('Torrent is NOT XXX: %s %s' % (torrent_name, tracker))
+            self._logger.debug('Torrent is NOT XXX: %s %s', torrent_name, tracker)
         return is_xxx
 
     def isXXX(self, s, isFilename=True):
@@ -76,7 +76,7 @@ class XXXFilter:
     def foundXXXTerm(self, s):
         for term in self.xxx_searchterms:
             if term in s:
-                self._logger.debug('XXXFilter: Found term "%s" in %s' % (term, s))
+                self._logger.debug('XXXFilter: Found term "%s" in %s', term, s)
                 return True
         return False
 
@@ -84,15 +84,15 @@ class XXXFilter:
         # check if term-(e)s is in xxx-terms
         s = s.lower()
         if s in self.xxx_terms:
-            self._logger.debug('XXXFilter: "%s" is dirty%s' % (s, title and ' in %s' % title or ''))
+            self._logger.debug('XXXFilter: "%s" is dirty%s', s, title and ' in %s' % title or '')
             return True
         if s.endswith('es'):
             if s[:-2] in self.xxx_terms:
-                self._logger.debug('XXXFilter: "%s" is dirty%s' % (s[:-2], title and ' in %s' % title or ''))
+                self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-2], title and ' in %s' % title or '')
                 return True
         elif s.endswith('s') or s.endswith('n'):
             if s[:-1] in self.xxx_terms:
-                self._logger.debug('XXXFilter: "%s" is dirty%s' % (s[:-1], title and ' in %s' % title or ''))
+                self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-1], title and ' in %s' % title or '')
                 return True
 
         return False
