@@ -57,7 +57,7 @@ class DownloadState(Serializable):
                 self.status = status
 
         elif error is not None:
-            self._logger("DownloadState.__init__: error is not None")
+            self._logger.debug("DownloadState.__init__: error is not None")
             self.error = error  # readonly access
             self.progress = 0.0  # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
