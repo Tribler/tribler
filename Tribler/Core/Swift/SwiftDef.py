@@ -200,7 +200,7 @@ class SwiftDef(ContentDefinition):
 
             self.multifilespec = filelist2swiftspec(filelist)
 
-            print >>sys.stderr, "SwiftDef: multifile", self.multifilespec
+            self._logger.info("SwiftDef: multifile %s", self.multifilespec)
 
             return self.multifilespec
         else:
@@ -283,8 +283,7 @@ class SwiftDef(ContentDefinition):
             args.append(filename)
         # args.append("-B") # DEBUG Hack
 
-        if DEBUG:
-            print >>sys.stderr, "SwiftDef: finalize: Running", args
+        self._logger.debug("SwiftDef: finalize: Running %s", args)
 
         if sys.platform == "win32":
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -318,7 +317,7 @@ class SwiftDef(ContentDefinition):
 
         if url is None or len(url) == 0:
             self.roothash = '0' * 20
-            print >>sys.stderr, "swift: finalize: Error calculating roothash"
+            self._logger.info("swift: finalize: Error calculating roothash")
             return None
 
         if userprogresscallback is not None:

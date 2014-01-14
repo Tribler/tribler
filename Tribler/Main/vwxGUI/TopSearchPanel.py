@@ -43,8 +43,9 @@ class TopSearchPanelStub():
 class TopSearchPanel(FancyPanel):
 
     def __init__(self, parent):
-        if DEBUG:
-            print >> sys.stderr, "TopSearchPanel: __init__"
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        self._logger.debug("TopSearchPanel: __init__")
 
         self.loaded_bitmap = None
 
@@ -64,8 +65,7 @@ class TopSearchPanel(FancyPanel):
     def AddComponents(self):
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))
 
-        if DEBUG:
-            print >> sys.stderr, "TopSearchPanel: OnCreate"
+        self._logger.debug("TopSearchPanel: OnCreate")
 
         if sys.platform == 'darwin':
             self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER | wx.NO_BORDER)
@@ -166,8 +166,7 @@ class TopSearchPanel(FancyPanel):
 
     def OnSearchKeyDown(self, event=None):
         if self.go.IsEnabled():
-            if DEBUG:
-                print >> sys.stderr, "TopSearchPanel: OnSearchKeyDown"
+            self._logger.debug("TopSearchPanel: OnSearchKeyDown")
 
             if getattr(self.searchField, 'ShowDropDown', False):
                 self.searchField.ShowDropDown(False)

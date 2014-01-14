@@ -138,8 +138,7 @@ class RawServer:
 
     @attach_profiler
     def listen_forever(self, handler):
-        if DEBUG:
-            print >>sys.stderr, "rawserver: listen forever()"
+        self._logger.debug("rawserver: listen forever()")
         # handler=btlanuchmany: MultiHandler, btdownloadheadless: Encoder
         self.thread_ident = get_ident()
         self.sockethandler.set_handler(handler)
@@ -160,8 +159,7 @@ class RawServer:
                     events = self.sockethandler.do_poll(period)
 
                     if self.doneflag.isSet():
-                        if DEBUG:
-                            print >> sys.stderr, "rawserver: stopping because done flag set"
+                        self._logger.debug("rawserver: stopping because done flag set")
                         return
 
                     # print >>sys.stderr,"RawServer: funcs is",`self.funcs`
@@ -172,9 +170,8 @@ class RawServer:
                             pass
                         try:
 #                            print func.func_name
-                            if DEBUG:
-                                if func.func_name != "_bgalloc":
-                                    print >> sys.stderr, "RawServer:f", func.func_name
+                            if func.func_name != "_bgalloc":
+                                self._logger.debug("RawServer:f %s", func.func_name)
                             # st = time.time()
                             func()
                             # et = time.time()
@@ -188,9 +185,8 @@ class RawServer:
 #                            self.exception(e)
                             return
                         except error:
-                            if DEBUG:
-                                print >> sys.stderr, "rawserver: func: ERROR exception"
-                                print_exc()
+                            self._logger.debug("rawserver: func: ERROR exception")
+                            print_exc()
                             pass
                         except Exception as e:
                             # boudewijn: someone made a big mistake,
@@ -199,9 +195,8 @@ class RawServer:
                             # of silently hiding the problem and
                             # continuing...
                             # raise
-                            if DEBUG:
-                                print >> sys.stderr, "rawserver: func: any exception"
-                                print_exc()
+                            self._logger.debug("rawserver: func: any exception")
+                            print_exc()
                             if self.noisy:
                                 self.exception(e)
 
@@ -209,15 +204,13 @@ class RawServer:
                     self.sockethandler.handle_events(events)
 
                 except (SystemError, MemoryError) as e:
-                    if DEBUG:
-                        print >> sys.stderr, "rawserver: SYS/MEM exception", e
+                    self._logger.debug("rawserver: SYS/MEM exception %s", e)
                     self.failfunc(e)
                     return
 
                 except error:
-                    if DEBUG:
-                        print >> sys.stderr, "rawserver: ERROR exception"
-                        print_exc()
+                    self._logger.debug("rawserver: ERROR exception")
+                    print_exc()
 
                 except KeyboardInterrupt as e:
                     self.failfunc(e)
@@ -229,8 +222,7 @@ class RawServer:
                     # for *uck sake!  instead of silently hiding the
                     # problem and continuing...
                     # raise
-                    if DEBUG:
-                        print >> sys.stderr, "rawserver: other exception"
+                    self._logger.debug("rawserver: other exception")
                     print_exc()
                     self.exception(e)
                 # Arno: Don't stop till we drop
@@ -276,16 +268,13 @@ class RawServer:
     # Interface for Khashmir
     #
     def create_udpsocket(self, port, host):
-        if DEBUG:
-            print >>sys.stderr, "rawudp: create_udp_socket", host, port
+        self._logger.debug("rawudp: create_udp_socket %s %s", host, port)
         return self.sockethandler.create_udpsocket(port, host)
 
     def start_listening_udp(self, serversocket, handler):
-        if DEBUG:
-            print >>sys.stderr, "rawudp: start_listen:", serversocket, handler
+        self._logger.debug("rawudp: start_listen: %s %s", serversocket, handler)
         self.sockethandler.start_listening_udp(serversocket, handler)
 
     def stop_listening_udp(self, serversocket):
-        if DEBUG:
-            print >>sys.stderr, "rawudp: stop_listen:", serversocket
+        self._logger.debug("rawudp: stop_listen: %s", serversocket)
         self.sockethandler.stop_listening_udp(serversocket)

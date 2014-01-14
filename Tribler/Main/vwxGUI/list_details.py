@@ -514,7 +514,7 @@ class TorrentDetails(AbstractDetails):
                     try:
                         pos = self.filesList.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                     except:
-                        print >> sys.stderr, "Could not format filename", self.torrent.name
+                        self._logger.error("Could not format filename %s", self.torrent.name)
                 self.filesList.SetItemData(pos, pos)
 
                 size = "%.1f MB" % (size / 1048576.0)
@@ -940,8 +940,7 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def __del__(self):
-        if DEBUG:
-            print >> sys.stderr, "TorrentDetails: destroying", self.torrent['name']
+        self._logger.debug("TorrentDetails: destroying %s", self.torrent['name'])
         self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
 
         if self.markWindow:
@@ -1099,7 +1098,7 @@ class LibraryDetails(TorrentDetails):
                     try:
                         pos = self.filesList.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                     except:
-                        print >> sys.stderr, "Could not format filename", self.torrent.name
+                        self._logger.error("Could not format filename %s", self.torrent.name)
                 self.filesList.SetItemData(pos, pos)
 
                 size = "%.1f MB" % (size / 1048576.0)
@@ -1196,7 +1195,7 @@ class LibraryDetails(TorrentDetails):
                         try:
                             self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8', 'ignore'))
                         except:
-                            print >> sys.stderr, "Could not format peer client version"
+                            self._logger.error("Could not format peer client version")
                 else:
                     self.peerList.SetStringItem(index, 3, '')
 
@@ -1902,7 +1901,7 @@ class MyChannelDetails(wx.Panel):
                 try:
                     pos = listCtrl.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                 except:
-                    print >> sys.stderr, "Could not format filename", torrent.name
+                    self._logger.error("Could not format filename %s", torrent.name)
             listCtrl.SetItemData(pos, pos)
             size = self.guiutility.utility.size_format(size)
             listCtrl.SetStringItem(pos, 1, size)

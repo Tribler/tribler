@@ -31,8 +31,7 @@ class SwiftDownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     DownloadConfigInterface: All methods called by any thread
     """
     def set_max_speed(self, direct, speed):
-        if DEBUG:
-            print >>sys.stderr, "SwiftDownload: set_max_speed", self.get_def().get_name(), direct, speed
+        self._logger.debug("SwiftDownload: set_max_speed %s %s %s", self.get_def().get_name(), direct, speed)
         # print_stack()
 
         self.dllock.acquire()

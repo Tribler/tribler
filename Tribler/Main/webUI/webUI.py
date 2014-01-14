@@ -92,9 +92,8 @@ class WebUI():
     @cherrypy.expose
     @jsonify
     def index(self, **args):
-        if DEBUG:
-            for key, value in args.iteritems():
-                print >> sys.stderr, "webUI: request", key, value
+        for key, value in args.iteritems():
+            self._logger.debug("webUI: request %s %s", key, value)
 
         if len(args) == 0:
             raise cherrypy.HTTPRedirect("/gui/index.html")
@@ -111,16 +110,14 @@ class WebUI():
                 returnDict = self.doList(args)
 
         returnDict['build'] = 1
-        if DEBUG:
-            print >> sys.stderr, "webUI: result", returnDict
+        self._logger.debug("webUI: result %s", returnDict)
         return returnDict
 
     @cherrypy.expose(alias='token.html')
     def token(self, **args):
         newToken = ''.join(random.choice('0123456789ABCDEF') for i in range(60))
         self.currentTokens.add(newToken)
-        if DEBUG:
-            print >> sys.stderr, "webUI: newToken", newToken
+        self._logger.debug("webUI: newToken %s", newToken)
         return "<html><body><div id='token' style='display:none;'>%s</div></body></html>" % newToken
 
     def doList(self, args):

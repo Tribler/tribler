@@ -49,17 +49,14 @@ class poll:
                 elist = Set(self.rlist)
                 elist = elist.union(self.wlist)
                 elist = list(elist)    # in Python2.3, elist must be a list type
-                if DEBUG:
-                    print >>sys.stderr, "selectpoll: elist = ", elist
+                self._logger.debug("selectpoll: elist = %s", elist)
 
                 # print >>sys.stderr,"selectpoll: rlist",self.rlist,"wlist",self.wlist,"elist",elist
 
                 r, w, e = select(self.rlist, self.wlist, elist, timeout)
-                if DEBUG:
-                    print >>sys.stderr, "selectpoll: e = ", e
+                self._logger.debug("selectpoll: e = %s", e)
             except ValueError:
-                if DEBUG:
-                    print >>sys.stderr, "selectpoll: select: bad param"
+                self._logger.debug("selectpoll: select: bad param")
                 return None
         else:
             sleep(timeout)

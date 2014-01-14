@@ -101,5 +101,5 @@ if __name__ == "__main__":
     for cipher in encrypted_values:
         rsa_decrypt(key, cipher)
 
-    print "Encrypting took", t2 - t1
-    print "Decrypting took", time() - t2
+    logger.info("Encrypting took %s", t2 - t1)
+    logger.info("Decrypting took %s", time() - t2)

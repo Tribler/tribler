@@ -46,8 +46,7 @@ class UserDownloadChoice:
 
     def flush(self):
         if self._config:
-            if DEBUG:
-                print >> sys.stderr, "UserDownloadChoice: saving to config file"
+            self._logger.debug("UserDownloadChoice: saving to config file")
             self._config.Write("user_download_choice", json.dumps(self._choices))
 
     def set_download_state(self, infohash, choice, flush=True):

@@ -52,8 +52,7 @@ def ogg_grab_page(input, checkcrc=False):
     if page_size > 65307:
         raise ValueError("Page too big")
 
-    if DEBUG:
-        print >>sys.stderr, "ogg: type", ord(header_type_flag)
+    logger.debug("ogg: type %s", ord(header_type_flag))
 
     header = capture_pattern + stream_structure_version +header_type_flag+granule_position+bitstream_serial_number+page_sequence_number+CRC_checksum+number_page_segments+segment_table
     body = input.read(page_size - header_size)
@@ -70,8 +69,7 @@ def ogg_grab_page(input, checkcrc=False):
         newcrcstr = "%08x" % newcrcnbo
 
         oldcrcstr = binascii.hexlify(CRC_checksum)
-        if DEBUG:
-            print >>sys.stderr, "ogg: CRC exp", oldcrcstr, "got", newcrcstr
+        logger.debug("ogg: CRC exp %s got %s", oldcrcstr, newcrcstr)
         if oldcrcstr != newcrcstr:
             raise ValueError("Page fails CRC check")
 
@@ -92,35 +90,32 @@ def ogg_grab_page(input, checkcrc=False):
 
 
 def vorbis_grab_header(input):
-    if DEBUG:
-        header_type = input.read(1)
-        if header_type == '\x01':
-            codec = input.read(6)
-            print >>sys.stderr, "ogg: Got vorbis ident header", codec
-        elif header_type == '\x03':
-            print >>sys.stderr, "ogg: Got vorbis comment header"
-        elif header_type == '\x05':
-            print >>sys.stderr, "ogg: Got vorbis setup header"
+    header_type = input.read(1)
+    if header_type == '\x01':
+        codec = input.read(6)
+        logger.debug("ogg: Got vorbis ident header %s", codec)
+    elif header_type == '\x03':
+        logger.debug("ogg: Got vorbis comment header")
+    elif header_type == '\x05':
+        logger.debug("ogg: Got vorbis setup header")
 
 
 def theora_grab_header(input):
-    if DEBUG:
-        header_type = input.read(1)
-        if header_type == '\x80':
-            codec = input.read(6)
-            print >>sys.stderr, "ogg: Got theora ident header", codec
-        elif header_type == '\x81':
-            print >>sys.stderr, "ogg: Got theora comment header"
-        elif header_type == '\x82':
-            print >>sys.stderr, "ogg: Got theora setup header"
+    header_type = input.read(1)
+    if header_type == '\x80':
+        codec = input.read(6)
+        logger.debug("ogg: Got theora ident header %s", codec)
+    elif header_type == '\x81':
+        logger.debug("ogg: Got theora comment header")
+    elif header_type == '\x82':
+        logger.debug("ogg: Got theora setup header")
 
 
 def flac_grab_header(input):
-    if DEBUG:
-        header_type = input.read(1)
-        if header_type == '\x7f':
-            codec = input.read(4)
-            print >>sys.stderr, "ogg: Got flac ident header", codec
+    header_type = input.read(1)
+    if header_type == '\x7f':
+        codec = input.read(4)
+        logger.debug("ogg: Got flac ident header %s", codec)
 
 
 """
@@ -175,7 +170,7 @@ class OggMagicLiveStream:
         nwant = 65307 + 4
         firstpagedata = ''
         while len(firstpagedata) < nwant:  # Max Ogg page size
-            print >>sys.stderr, "OggMagicLiveStream: Reading first page, avail", self.input.available()
+            self._logger.info("OggMagicLiveStream: Reading first page, avail %s", self.input.available())
             data = self.input.read(nwant)
             firstpagedata += data
             if len(data) == 0 and len(firstpagedata < nwant):
@@ -191,7 +186,7 @@ class OggMagicLiveStream:
                 rest = self.firstpagestream.read(3)
                 if rest == 'ggS':
                     # Found page boundary
-                    print >>sys.stderr, "OggMagicLiveStream: Found page"
+                    self._logger.info("OggMagicLiveStream: Found page")
                     self.firstpagestream.seek(-4, os.SEEK_CUR)
                     # For real reliability we should parse the page here
                     # and look further if the "OggS" was just video data.
@@ -218,16 +213,14 @@ class OggMagicLiveStream:
 
         if self.mode == OGGMAGIC_TDEF:
             data = self.tdef.get_live_ogg_headers()
-            if DEBUG:
-                print >>sys.stderr, "OggMagicLiveStream: Writing TDEF", len(data)
+            self._logger.debug("OggMagicLiveStream: Writing TDEF %s", len(data))
             if len(data) > numbytes:
                 raise ValueError("OggMagicLiveStream: Not implemented, Ogg headers too big, need more code")
             self.mode = OGGMAGIC_FIRSTPAGE
             return data
         elif self.mode == OGGMAGIC_FIRSTPAGE:
             data = self.firstpagestream.read(numbytes)
-            if DEBUG:
-                print >>sys.stderr, "OggMagicLiveStream: Writing 1st remain", len(data)
+            self._logger.debug("OggMagicLiveStream: Writing 1st remain %s", len(data))
             if len(data) == 0:
                 self.mode = OGGMAGIC_REST_OF_INPUT
                 return self.input.read(numbytes)
@@ -239,7 +232,7 @@ class OggMagicLiveStream:
             return data
 
     def seek(self, offset, whence=None):
-        print >>sys.stderr, "OggMagicLiveStream: SEEK CALLED", offset, whence
+        self._logger.info("OggMagicLiveStream: SEEK CALLED %s %s", offset, whence)
         if offset == 0:
             if self.mode != OGGMAGIC_TDEF:
                 self.mode = OGGMAGIC_TDEF
@@ -275,7 +268,7 @@ if __name__ == "__main__":
             rest = g.read(3)
             if rest == 'ggS':
                 # Found page boundary
-                print >>sys.stderr, "Found page"
+                logger.info("Found page")
                 g.seek(-4, os.SEEK_CUR)
                 (isheader, pheader, pbody) = ogg_grab_page(g)
                 break

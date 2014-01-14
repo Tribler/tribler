@@ -32,7 +32,7 @@ class PluginEmulator:
 
         time.sleep(1)
 
-        print >>sys.stderr, "SENDING", msg
+        self._logger.info("SENDING %s", msg)
         s.send(msg)
 
         # msg2 = "SETMOREINFO 836e482197b3db76914a19fd4ae6debd725c3284 1\r\n";
@@ -50,9 +50,9 @@ class PluginEmulator:
             except:
                 data = "#"
 
-            print >>sys.stderr, "pe: Got BG ", data
+            self._logger.info("pe: Got BG %s", data)
             if len(data) == 0:
-                print >>sys.stderr, "pe: BG closes IC"
+                self._logger.info("pe: BG closes IC")
                 return
 
             lines = data.splitlines()
@@ -103,7 +103,7 @@ class PluginEmulator:
         readbufsize = 100000
 
         links = []
-        print >>sys.stderr, "pe: GET", path
+        self._logger.info("pe: GET %s", path)
         s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s2.connect(('127.0.0.1', 8192))
         s2.send("GET " + path +" HTTP/1.1\r\nHost: localhost:6878\r\n\r\n")
@@ -111,7 +111,7 @@ class PluginEmulator:
             data = s2.recv(readbufsize)
             if len(data) == 0:
                 break
-            print >>sys.stderr, "pe: Got HTTP data", repr(data)
+            self._logger.info("pe: Got HTTP data %s", data)
 
             eidx = 0
             while True:
@@ -135,7 +135,7 @@ class PluginEmulator:
                 idx = hitpath.find("</MediaUri>")
                 if idx != -1:
                     hitpath = hitpath[0:idx]
-                print >>sys.stderr, "pe: FINAL link", hitpath, "EOT"
+                self._logger.info("pe: FINAL link %s EOT", hitpath)
                 self.retrieve_path(hitpath, recurse=recurse)
 
 
@@ -143,7 +143,7 @@ class PluginEmulator:
 # pe = PluginEmulator(62062,"START","http://www.vuze.com/download/XUGIN6PEJJCQ5777C3WUMMBRFI6HYIHJ.torrent?referal=torrentfilelinkcdp&title=Gopher")
 
 if len(sys.argv) < 2:
-    print "Missing URL to play"
+    logger.info("Missing URL to play")
     raise SystemExit(1)
 
 # pe =  PluginEmulator(62062,"START",sys.argv[1])

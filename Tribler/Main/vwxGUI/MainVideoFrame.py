@@ -43,8 +43,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
         self.Show(False)
 
     def show_videoframe(self):
-        if DEBUG:
-            print >> sys.stderr, "videoframe: Swap IN videopanel"
+        self._logger.debug("videoframe: Swap IN videopanel")
 
         if not self.videopanel:
             self.get_videopanel()
@@ -62,8 +61,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
         wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
 
     def hide_videoframe(self):
-        if DEBUG:
-            print >> sys.stderr, "videoframe: Swap OUT videopanel"
+        self._logger.debug("videoframe: Swap OUT videopanel")
 
         if self.videopanel is not None:
             self.videopanel.Reset()

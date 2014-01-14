@@ -49,8 +49,7 @@ class ListHeaderIcon:
 
     @warnWxThread
     def __createBitmap(self, parent, background, type, flag=0):
-        if DEBUG:
-            print >> sys.stderr, "Creating new sorting bitmaps", parent, background, type
+        self._logger.debug("Creating new sorting bitmaps %s %s %s", parent, background, type)
         nativeIcon = NativeIcon.getInstance()
         down = nativeIcon.getBitmap(parent, type, background, flag)
 
@@ -154,7 +153,7 @@ class ListHeader(wx.Panel):
                         if remainingWidth > 0:
                             sizer.AddSpacer((remainingWidth, 1))
                         else:
-                            print >> sys.stderr, "LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width'], remainingWidth
+                            self._logger.info("LIST_HEADER: specified width is too small %s %s %s", columns[i]['name'], columns[i]['width'], remainingWidth)
                             label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
 
                     self.columnHeaders.append(label)

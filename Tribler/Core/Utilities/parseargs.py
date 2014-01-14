@@ -95,7 +95,7 @@ def parseargs(argv, options, minargs=None, maxargs= None, presets = {}):
                 elif t is BooleanType:
                     config[longname] = bool(value)
                 else:
-                    print 'parseargs: unknown type is', t
+                    logger.info('parseargs: unknown type is %s', t)
                     assert 0
             except ValueError as e:
                 usage('wrong format of --%s - %s' % (key, str(e)))
