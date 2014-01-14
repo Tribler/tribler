@@ -490,7 +490,7 @@ class TorrentManager:
 
                 self.bundle_mode = None
                 self.searchkeywords = [kw for kw in wantkeywords if kw != '']
-                self._logger.debug("TorrentSearchGridManager: keywords: %s ;time:% %s", self.searchkeywords, time())
+                self._logger.debug("TorrentSearchGridManager: keywords: %s; time: %s", self.searchkeywords, time())
 
                 self.filteredResults = 0
 
