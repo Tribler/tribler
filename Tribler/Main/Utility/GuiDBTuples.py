@@ -83,7 +83,7 @@ def cacheProperty(func):
 
 
 class Helper(object):
-    __slots__ = ('_cache')
+    __slots__ = ('_logger', '_cache')
 
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
