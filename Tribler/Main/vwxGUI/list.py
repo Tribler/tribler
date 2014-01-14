@@ -130,7 +130,7 @@ class RemoteSearchManager(BaseManager):
 
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
-            self._logger.debug('RemoteSearchManager: refresh returning results took %s', time() - begintime, time())
+            self._logger.debug('RemoteSearchManager: refresh returning results took %s %s', time() - begintime, time())
 
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
