@@ -14,7 +14,7 @@ WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 class XXXFilter:
 
     def __init__(self, install_dir):
-        self._logger = logging.getLogger(self.__name__)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         termfilename = os.path.join(install_dir, LIBRARYNAME, 'Category', 'filter_terms.filter')
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
