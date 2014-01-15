@@ -374,7 +374,7 @@ class SQLiteCacheDBBase:
         except Exception as exception:
             if isinstance(exception, Warning):
                 # user friendly warning to log the creation of a new database
-                self._logger.error(repr(exception))
+                self._logger.error(exception)
 
             else:
                 # user unfriendly exception message because something went wrong
@@ -466,7 +466,7 @@ class SQLiteCacheDBBase:
                 print_stack()
                 self._logger.error("cachedb: execute error: %s, %s", Exception, msg)
                 thread_name = threading.currentThread().getName()
-                self._logger.error('===' + repr(thread_name) + '===\nSQL Type:' + repr(type(sql)) + '\n-----\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
+                self._logger.error('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
 
             raise msg
 
@@ -475,7 +475,7 @@ class SQLiteCacheDBBase:
 
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
-            self._logger.info('===' + repr(thread_name) + '===\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
+            self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
         try:
             if args is None:
@@ -489,9 +489,9 @@ class SQLiteCacheDBBase:
             else:
                 print_exc()
                 print_stack()
-                self._logger.error("cachedb: execute error: %s, %s" % (repr(Exception), repr(msg)))
+                self._logger.error("cachedb: execute error: %s, %s", Exception, msg)
                 thread_name = threading.currentThread().getName()
-                self._logger.error('===' + repr(thread_name) + '===\nSQL Type:' + repr(type(sql)) + '\n-----\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
+                self._logger.error('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
 
             raise msg
 
@@ -586,7 +586,7 @@ class SQLiteCacheDBBase:
             find = list(find)
             if len(find) > 0:
                 if len(find) > 1:
-                    self._logger.debug("FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement %s, %s" % (repr(sql), repr(len(find))))
+                    self._logger.debug("FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement %s, %s", sql, len(find))
                 find = find[0]
             else:
                 return NULL
@@ -704,7 +704,7 @@ class SQLiteCacheDBBase:
         try:
             return self.fetchall(sql, arg) or []
         except Exception as msg:
-            self._logger.error("sqldb: Wrong getAll sql statement: " + repr(sql))
+            self._logger.error("sqldb: Wrong getAll sql statement: %s", sql)
             print_exc()
             raise Exception(msg)
 
@@ -1269,7 +1269,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     # upgradation is complete and hence delete the temp file
                     if os.path.exists(tmpfilename):
                         os.remove(tmpfilename)
-                        self._logger.info("DB Upgradation: temp-file deleted %s" % tmpfilename)
+                        self._logger.info("DB Upgradation: temp-file deleted %s", tmpfilename)
 
                     self.database_update.release()
                     return
@@ -1299,7 +1299,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     if len(keywords) > 0:
                         values = [(keyword, torrent_id) for keyword in keywords]
                         self.executemany(u"INSERT OR REPLACE INTO InvertedIndex VALUES(?, ?)", values)
-                        self._logger.debug("DB Upgradation: Extending the InvertedIndex table with %d new keywords for %s" % (len(values), torrent_name))
+                        self._logger.debug("DB Upgradation: Extending the InvertedIndex table with %d new keywords for %s", len(values), torrent_name)
 
                 # upgradation not yet complete; comeback after 5 sec
                 tqueue.add_task(upgradeTorrents, SUCCESIVE_UPGRADE_PAUSE)
@@ -1311,9 +1311,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # ensure the temp-file is created, if it is not already
             try:
                 open(tmpfilename, "w")
-                self._logger.info("DB Upgradation: temp-file successfully created %s" % tmpfilename)
+                self._logger.info("DB Upgradation: temp-file successfully created %s", tmpfilename)
             except:
-                self._logger.error("DB Upgradation: failed to create temp-file %s" % tmpfilename)
+                self._logger.error("DB Upgradation: failed to create temp-file %s", tmpfilename)
 
             self._logger.debug("Upgrading DB .. inserting into InvertedIndex")
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
@@ -1366,7 +1366,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.executemany(ins_phrase_sql, phrases)
 
             dbg_ts2 = time()
-            self._logger.debug('DB Upgradation: extracting and inserting terms took %ss' % (dbg_ts2 - dbg_ts1))
+            self._logger.debug('DB Upgradation: extracting and inserting terms took %s s', dbg_ts2 - dbg_ts1)
 
             self.database_update.release()
 
@@ -1394,8 +1394,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             t2 = time.time()
 
             self.executemany(u"INSERT OR IGNORE INTO InvertedIndex VALUES(?, ?)", values)
-            self._logger.debug("INSERTING NEW KEYWORDS TOOK %s INSERTING took %s" %\
-                (repr(time.time() - t1), repr(time.time() - t2)))
+            self._logger.debug("INSERTING NEW KEYWORDS TOOK %s INSERTING took %s", time.time() - t1, time.time() - t2)
 
             self.database_update.release()
 
@@ -1417,9 +1416,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # ensure the temp-file is created, if it is not already
             try:
                 open(tmpfilename2, "w")
-                self._logger.info("DB Upgradation: temp-file successfully created %s" % tmpfilename2)
+                self._logger.info("DB Upgradation: temp-file successfully created %s", tmpfilename2)
             except:
-                self._logger.error("DB Upgradation: failed to create temp-file %s" % tmpfilename2)
+                self._logger.error("DB Upgradation: failed to create temp-file %s", tmpfilename2)
 
             # start converting channelcastdb to new format
             finished_convert = "SELECT name FROM sqlite_master WHERE name='ChannelCast'"
@@ -1654,7 +1653,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         if os.path.exists(tmpfilename2):
                             # upgradation is complete and hence delete the temp file
                             os.remove(tmpfilename2)
-                            self._logger.info("DB Upgradation: temp-file deleted %s" % tmpfilename2)
+                            self._logger.info("DB Upgradation: temp-file deleted %s", tmpfilename2)
 
                         self.database_update.release()
                         return
@@ -1797,9 +1796,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # ensure the temp-file is created, if it is not already
             try:
                 open(tmpfilename3, "w")
-                self._logger.info("DB Upgradation: temp-file successfully created %s" % tmpfilename3)
+                self._logger.info("DB Upgradation: temp-file successfully created %s", tmpfilename3)
             except:
-                self._logger.error("DB Upgradation: failed to create temp-file %s" % tmpfilename3)
+                self._logger.error("DB Upgradation: failed to create temp-file %s", tmpfilename3)
 
             def upgradeTorrents3():
                 if not (os.path.exists(tmpfilename2) or os.path.exists(tmpfilename)):
@@ -1819,7 +1818,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         if len(records) == 0:
                             if os.path.exists(tmpfilename3):
                                 os.remove(tmpfilename3)
-                                self._logger.info("DB Upgradation: temp-file deleted %s" % tmpfilename3)
+                                self._logger.info("DB Upgradation: temp-file deleted %s", tmpfilename3)
 
                             self.database_update.release()
                             return
@@ -2033,7 +2032,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             insert_mapping_set.add((torrent_id, tracker_url))
 
                 except Exception as e:
-                    self._logger.error('[ERROR] fetching tracker from TorrentTracker %s' % repr(e))
+                    self._logger.error('fetching tracker from TorrentTracker %s', e)
 
                 insert = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
                 self.executemany(insert, list(insert_tracker_set))
@@ -2060,9 +2059,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # ensure the temp-file is created, if it is not already
             try:
                 open(tmpfilename4, "w")
-                self._logger.info("DB v19 Upgradation: temp-file successfully created %s" % tmpfilename4)
+                self._logger.info("DB v19 Upgradation: temp-file successfully created %s", tmpfilename4)
             except:
-                self._logger.error("DB v19 Upgradation: failed to create temp-file %s" % tmpfilename4)
+                self._logger.error("DB v19 Upgradation: failed to create temp-file %s", tmpfilename4)
 
             from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
@@ -2090,7 +2089,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
                         if os.path.exists(tmpfilename4):
                             os.remove(tmpfilename4)
-                            self._logger.info('DB v19 Upgrade: temp-file deleted %s' % tmpfilename4)
+                            self._logger.info('DB v19 Upgrade: temp-file deleted %s', tmpfilename4)
 
                         self._logger.info('DB v19 upgrade complete.')
                         self.database_update.release()
@@ -2205,7 +2204,7 @@ def try_register(db, callback=None):
             # check again if _callback hasn't been set, but now we are thread safe
             if not _callback:
                 if callback and callback.is_running:
-                    logger.info("Using actual DB thread %s" % repr(callback))
+                    logger.info("Using actual DB thread %s", callback)
                     _callback = callback
 
                     if db:
@@ -2259,7 +2258,7 @@ def forceDBThread(func):
                 for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
-                logger.info("%d SWITCHING TO DBTHREAD %s %s:%s called by %s" % (long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr))
+                logger.debug("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
             register_task(None, func, args, kwargs)
         else:
@@ -2278,7 +2277,7 @@ def forcePrioDBThread(func):
                 for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
-                logger.info("%d SWITCHING TO DBTHREAD %s %s:%s called by %s" % (long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr))
+                logger.debug("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
             register_task(None, func, args, kwargs, priority=99)
         else:
@@ -2299,7 +2298,7 @@ def forceAndReturnDBThread(func):
                 for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s" % (caller[3], caller[1], caller[2])
-                logger.info("%d SWITCHING TO DBTHREAD %s %s:%s called by %s" % (long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr))
+                logger.debug("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
             return call_task(None, func, args, kwargs, timeout=15.0, priority=99)
         else:
@@ -2310,7 +2309,6 @@ def forceAndReturnDBThread(func):
 
 
 class SQLiteNoCacheDB(SQLiteCacheDBV5):
-    DEBUG = False
     if __debug__:
         __counter = 0
 
@@ -2340,7 +2338,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         global _shouldCommit
         if _shouldCommit and onDBThread():
             try:
-                self._logger.debug("SQLiteNoCacheDB.commitNow: COMMIT")
+                self._logger.info("SQLiteNoCacheDB.commitNow: COMMIT")
                 self._execute("COMMIT;")
             except:
                 self._logger.error("COMMIT FAILED")
@@ -2400,7 +2398,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
-            self._logger.info('===' + repr(thread_name) + '===\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
+            self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
         if __DEBUG_QUERIES__:
             f = open(DB_DEBUG_FILE, 'a')
@@ -2427,12 +2425,11 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             return result
 
         except Exception as msg:
-            if DEBUG:
-                print_exc()
-                print_stack()
-                self._logger.error("cachedb: execute error: %s, %s" % (repr(Exception), repr(msg)))
-                thread_name = threading.currentThread().getName()
-                self._logger.error('===' + repr(thread_name) + '===\nSQL Type:' + repr(type(sql)) + '\n-----\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
+            print_exc()
+            print_stack()
+            self._logger.error("cachedb: execute error: %s, %s", Exception, msg)
+            thread_name = threading.currentThread().getName()
+            self._logger.error('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
             raise msg
 
     @forceAndReturnDBThread
@@ -2441,7 +2438,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
-            self._logger.info('===' + repr(thread_name) + '===\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
+            self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
         if __DEBUG_QUERIES__:
             f = open(DB_DEBUG_FILE, 'a')
@@ -2468,12 +2465,12 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             return result
 
         except Exception as msg:
+            self._logger.debug("cachedb: execute error: %s %s", Exception, msg)
             print_exc()
             print_stack()
-            self._logger.debug("cachedb: execute error: %s" % (repr(Exception), repr(msg)))
 
             thread_name = threading.currentThread().getName()
-            self._logger.debug('===' + repr(thread_name) + '===\nSQL Type:' + repr(type(sql)) + '\n-----\n' + repr(sql) + '\n-----\n' + repr(args) + '\n======\n')
+            self._logger.debug('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
             raise msg
 
 # Arno, 2012-08-02: If this becomes multithreaded again, reinstate safe_dict() in caches
