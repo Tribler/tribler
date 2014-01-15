@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # hp = guppy.hpy()
 
 def peers_found(peers):
-    logger.info('Peers found: %s' % repr(time.time()))
+    logger.info('Peers found: %s', time.time())
     return
     for peer in peers:
         logger.info(repr(peer))
@@ -93,7 +93,7 @@ if len(sys.argv) == 1:
     RUN_DHT = True
     my_addr = ('192.16.125.242', 2222)  # (sys.argv[1], int(sys.argv[2])) #
     logs_path = '.'  # sys.argv[3]
-    logger.info('logs_path: %s' % logs_path)
+    logger.info('logs_path: %s', logs_path)
     logging_conf.setup(logs_path, logs_level)
     dht = kadtracker.KadTracker(my_addr, logs_path)
 else:
@@ -109,7 +109,7 @@ try:
             # splitted_heap_str = str(hp.heap()).split()
             # print i, splitted_heap_str[10]
             # dht.print_routing_table_stats()
-            logger.info('>>>>>>>>>>>>>>>>>>> [%d] Lookup:' % (i))
+            logger.info('>>>>>>>>>>>>>>>>>>> [%d] Lookup:', i)
             dht.get_peers(info_hash, peers_found)
             time.sleep(1 * 60)
             # time.sleep(1.5)

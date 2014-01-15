@@ -33,7 +33,7 @@ class mainlineDHTChecker:
         self.dht = dht
 
     def lookup(self, infohash):
-        self._logger.debug("mainlineDHTChecker: Lookup %s" % repr(infohash))
+        self._logger.debug("mainlineDHTChecker: Lookup %s", repr(infohash))
 
         try:
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
@@ -43,11 +43,9 @@ class mainlineDHTChecker:
 
     def got_peers_callback(self, infohash, peers, node=None):
         if peers:
-            self._logger.debug("mainlineDHTChecker: Got %d peers for torrent %s %s" %\
-                (len(peers), repr(infohash), currentThread().getName()))
+            self._logger.debug("mainlineDHTChecker: Got %d peers for torrent %s %s", len(peers), repr(infohash), currentThread().getName())
         else:
-            self._logger.debug("mainlineDHTChecker: Got no peers for torrent %s %s" %\
-                (repr(infohash), currentThread().getName()))
+            self._logger.debug("mainlineDHTChecker: Got no peers for torrent %s %s", repr(infohash), currentThread().getName())
 
         if peers:
             # Arno, 2010-02-19: this can be called frequently with the new DHT,

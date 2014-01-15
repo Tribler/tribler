@@ -127,8 +127,8 @@ def _get_bootstrap_nodes():
             installdir = installdir.replace("MacOS", "Resources")
         mainfile = os.path.join(installdir, "Tribler", "Core", "DecentralizedTracking", "pymdht", "core", "bootstrap.main")
         backfile = os.path.join(installdir, "Tribler", "Core", "DecentralizedTracking", "pymdht", "core", "bootstrap.backup")
-    logger.info("pymdht: bootstrap: mainfile %s" % repr(mainfile))
-    logger.info("pymdht: bootstrap: backfile %s" % repr(backfile))
+    logger.info("pymdht: bootstrap: mainfile %s", mainfile)
+    logger.info("pymdht: bootstrap: backfile %s", backfile)
     try:
         f = open(mainfile)
         main = [_sanitize_bootstrap_node(n) for n in f]

@@ -26,10 +26,10 @@ modnames = sorted([filename[:-3] for filename in os.listdir('.') if
 for modname in modnames:
     if modname.startswith('DEPRECATED'):
         continue
-    logger.info('doctesting %s...' % modname)
+    logger.info('doctesting %s...', modname)
     mod = __import__(modname)
     failure_count, test_count = doctest.testmod(mod)
     if failure_count:
         logger.info('>>>>>>>>>>>>>>>>>>>>>ERROR<<<<<<<<<<<<<<<<<')
     else:
-        logger.info('%d test(s) OK' % test_count)
+        logger.info('%d test(s) OK', test_count)

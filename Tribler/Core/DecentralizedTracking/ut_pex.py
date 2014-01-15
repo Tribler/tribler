@@ -112,7 +112,7 @@ def check_ut_pex(d):
     # else:
         # raise ValueError('ut_pex: added.f: missing')
 
-    logger.debug("ut_pex: Got %s" % repr(apeers))
+    logger.debug("ut_pex: Got %s", apeers)
 
     return (same_apeers, apeers, dpeers)
 

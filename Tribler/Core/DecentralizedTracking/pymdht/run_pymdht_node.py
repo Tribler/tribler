@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 def main(options, args):
     if not os.path.isdir(options.path):
         if os.path.exists(options.path):
-            logger.critical('FATAL: %s must be a directory' % repr(options.path))
+            logger.critical('FATAL: %s must be a directory', options.path)
             return
-        logger.info(options.path, 'does not exist. Creating directory...')
+        logger.info('%s does not exist. Creating directory...', options.path)
         os.mkdir(options.path)
     logs_path = options.path
     if options.lookup_delay and not options.daemon:
@@ -33,8 +33,7 @@ def main(options, args):
         # redirect output
         stdout_file = os.path.join(options.path, 'pymdht.stdout')
         stderr_file = os.path.join(options.path, 'pymdht.stderr')
-        logger.info('Redirecting output to %s and %s' %\
-            (stdout_file, stderr_file))
+        logger.info('Redirecting output to %s and %s', stdout_file, stderr_file)
         sys.stdout = open(stdout_file, 'w')
         sys.stderr = open(stderr_file, 'w')
 
@@ -52,14 +51,14 @@ def main(options, args):
         logs_level = logging.WARNING  # This generates warning and error logs
 
     logger.info('Using the following plug-ins:')
-    logger.info('* %s' % repr(options.routing_m_file))
-    logger.info('* %s' % repr(options.lookup_m_file))
-    logger.info('* %s' % repr(options.experimental_m_file))
-    logger.info('Path: %s' % repr(options.path))
-    logger.info('Private DHT name: %s' % repr(options.private_dht_name))
-    logger.info('debug mode: %s' % repr(options.debug))
-    logger.info('bootstrap mode: %s' % repr(options.bootstrap_mode))
-    logger.info('Swift tracker port: %s' % repr(options.swift_port))
+    logger.info('* %s', options.routing_m_file)
+    logger.info('* %s', options.lookup_m_file)
+    logger.info('* %s', options.experimental_m_file)
+    logger.info('Path: %s', options.path)
+    logger.info('Private DHT name: %s', options.private_dht_name)
+    logger.info('debug mode: %s', options.debug)
+    logger.info('bootstrap mode: %s', options.bootstrap_mode)
+    logger.info('Swift tracker port: %s', options.swift_port)
     routing_m_name = '.'.join(os.path.split(options.routing_m_file))[:-3]
     routing_m_mod = __import__(routing_m_name, fromlist=[''])
     lookup_m_name = '.'.join(os.path.split(options.lookup_m_file))[:-3]
@@ -84,7 +83,7 @@ def main(options, args):
                 target = identifier.Id(options.lookup_target)
             else:
                 target = identifier.RandomId()
-            logger.info('lookup %s' % repr(target))
+            logger.info('lookup %s', target)
             dht.get_peers(None, target, None, options.announce_port)
             remaining_lookups = remaining_lookups - 1
         time.sleep(options.stop_delay)
