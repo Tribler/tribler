@@ -20,13 +20,13 @@ def runCommand(cmd):
 if __name__ == '__main__':
     cmd = ['git', 'describe', '--tags', 'HEAD']
     version_id = runCommand(cmd).strip()[1:]
-    logger.info("Version: %s" % repr(version_id))
+    logger.info("Version: %s", version_id)
     cmd = ['git', 'rev-parse', 'HEAD']
     commit_id = runCommand(cmd).strip()[1:]
-    logger.info("Commit: %s" % repr(commit_id))
+    logger.info("Commit: %s", commit_id)
 
     build_date = ctime()
-    logger.info("Build date: %s" % repr(build_date))
+    logger.info("Build date: %s", build_date)
 
     logger.info('Writing runtime version info.')
     f = open(path.join('Tribler', 'Core', 'version.py'), 'w')

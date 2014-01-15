@@ -34,7 +34,7 @@ class DirectoryFeedThread(Thread):
     getInstance = staticmethod(getInstance)
 
     def _on_torrent_found(self, dirpath, torrentpath, infohash, torrent_data):
-        self._logger.info('DirectoryFeedThread: Adding %s' % repr(torrentpath))
+        self._logger.info('DirectoryFeedThread: Adding %s', torrentpath)
         imported_dir = os.path.join(dirpath, 'imported')
         if not os.path.exists(imported_dir):
             os.makedirs(imported_dir)

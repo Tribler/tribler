@@ -1,7 +1,6 @@
 # Written by Niels Zeilemaker
 import wx
 import os
-import logging
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import NativeIcon, TransparentText as StaticText, HorizontalGauge, ActionButton
@@ -15,8 +14,6 @@ class SRstatusbar(wx.StatusBar):
 
     def __init__(self, parent):
         wx.StatusBar.__init__(self, parent, style=wx.ST_SIZEGRIP)
-
-        self._logger = logging.getLogger(self.__class__.__name__)
 
         # On Linux/OS X the resize handle and icons overlap, therefore we add an extra field.
         # On Windows this field is automatically set to 1 when the wx.ST_SIZEGRIP is set.

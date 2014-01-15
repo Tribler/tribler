@@ -502,10 +502,9 @@ if __debug__:
             s = encode(value)
             length, v = decode(s)
             if verbose:
-                logger.info("dispersy A %s : %s -> %s" %\
-                    (repr(length), repr(value), repr(s)))
+                logger.info("dispersy A %s : %s -> %s", length, value, s)
             else:
-                logger.info("dispersy A %s" % repr(length))
+                logger.info("dispersy A %s", length)
             assert len(s) == length, (len(s), length)
             assert value == v, (value, v)
 
@@ -537,9 +536,9 @@ if __debug__:
                 v = bdecode(s)
 
                 if verbose:
-                    logger.info("bittorrent %d : %s -> %s" % (len(s), repr(value), repr(s)))
+                    logger.info("bittorrent %d : %s -> %s", len(s), value, s)
                 else:
-                    logger.info("bittorrent %d" % len(s))
+                    logger.info("bittorrent %d", len(s))
                 assert value == v, (value, v)
 
         test(4242)

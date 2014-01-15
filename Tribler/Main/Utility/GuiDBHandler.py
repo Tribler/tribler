@@ -78,7 +78,7 @@ class GUIDBProducer():
         workerFn(*args, **kwargs) to the main thread.
         """
         if self.utility.abcquitting:
-            self._logger.debug("GUIDBHandler: abcquitting ignoring Task(%s)" % name)
+            self._logger.debug("GUIDBHandler: abcquitting ignoring Task(%s)", name)
             return
 
         assert uId is None or isinstance(uId, unicode), type(uId)
@@ -88,7 +88,7 @@ class GUIDBProducer():
             try:
                 self.uIdsLock.acquire()
                 if uId in self.uIds:
-                    self._logger.debug("GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s" % (name, uId))
+                    self._logger.debug("GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s", name, uId)
                     return
                 else:
                     self.uIds.add(uId)
@@ -99,13 +99,13 @@ class GUIDBProducer():
         else:
             callbackId = name
 
-        self._logger.debug("GUIDBHandler: adding Task(%s)" % callbackId)
+        self._logger.debug("GUIDBHandler: adding Task(%s)", callbackId)
 
         if __debug__:
             self.uIdsLock.acquire()
             self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) + 1
             if self.nrCallbacks[callbackId] > 10:
-                self._logger.debug("GUIDBHandler: Scheduled Task(%s) %d times" % (callbackId, self.nrCallbacks[callbackId]))
+                self._logger.debug("GUIDBHandler: Scheduled Task(%s) %d times", callbackId, self.nrCallbacks[callbackId])
 
             self.uIdsLock.release()
 
@@ -126,7 +126,7 @@ class GUIDBProducer():
 
             except Exception as exc:
                 if str(exc).startswith("BusyError") and retryOnBusy:
-                    self._logger.error("GUIDBHandler: BusyError, retrying Task(%s) in 0.5s" % name)
+                    self._logger.error("GUIDBHandler: BusyError, retrying Task(%s) in 0.5s", name)
                     self.database_thread.register(wrapper, delay=0.5, id_=name)
 
                     return
@@ -136,7 +136,7 @@ class GUIDBProducer():
                 return
 
             t3 = time()
-            self._logger.debug("GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s" % (name, t2 - t1, delay, t3 - t2, workerType))
+            self._logger.debug("GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s", name, t2 - t1, delay, t3 - t2, workerType)
 
             if uId:
                 try:
@@ -155,7 +155,7 @@ class GUIDBProducer():
                 sender.sendResult(result)
             except:
                 print_exc()
-                self._logger.error("GUIDBHandler: Could not send result of Task(%s)" % name)
+                self._logger.error("GUIDBHandler: Could not send result of Task(%s)", name)
 
         wrapper.__name__ = str(name)
 
@@ -172,12 +172,12 @@ class GUIDBProducer():
             elif workerType == "guiTaskQueue":
                 self.guitaskqueue.add_task(wrapper, t=delay)
         else:
-            self._logger.debug("GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately" % name)
+            self._logger.debug("GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately", name)
             wrapper()
 
     def Remove(self, uId):
         if uId in self.uIds:
-            self._logger.debug("GUIDBHandler: removing Task(%s)" % uId)
+            self._logger.debug("GUIDBHandler: removing Task(%s)", uId)
 
             try:
                 self.uIdsLock.acquire()

@@ -171,7 +171,7 @@ class SwiftProcess:
             roothash = binascii.unhexlify(words[1])
 
             if words[0] == "ERROR":
-                self._logger.info("sp: i2ithread_readlinecallback: %s" % repr(cmd))
+                self._logger.info("sp: i2ithread_readlinecallback: %s" % cmd)
 
             elif words[0] == "CLOSE_EVENT":
                 roothash_hex = words[1]

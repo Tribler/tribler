@@ -741,7 +741,7 @@ class LevenshteinTrie(object):
 
             for r, c in zip(results, self._costs):
                 if c != 0:
-                    _logfh.write('%d\t #\n' % (c, repr(r)))
+                    _logfh.write('%s \t # %s\n' % (c, repr(r)))
 
             _logfh.write('\n\n')
             _logfh.close()
@@ -959,7 +959,7 @@ class Bundler:
         self._benchmark_ts = time.time()
 
     def _benchmark_end(self):
-        self._logger.debug('>> Bundler.py, benchmark: %ss' % (time.time() - self._benchmark_ts))
+        self._logger.debug('>> Bundler.py, benchmark: %s s', time.time() - self._benchmark_ts)
 
     def bundle(self, hits, bundle_mode, searchkeywords):
         """

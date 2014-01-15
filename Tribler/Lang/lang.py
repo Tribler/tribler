@@ -37,7 +37,7 @@ class Lang:
         langpath = os.path.join(self.utility.getPath(), LIBRARYNAME, "Lang")
 
         sys.stdout.write("Setting up languages\n")
-        self._logger.info("Language file: %s %s" % (langpath, filename))
+        self._logger.info("Language file: %s %s", langpath, filename)
 
         # Set up user language file (stored in user's config directory)
         self.user_lang = None
@@ -117,7 +117,7 @@ class Lang:
 
         # if we get to this point, we weren't able to read anything
         if giveerror:
-            self._logger.info("Language file: Got an error finding: %s" % label)
+            self._logger.info("Language file: Got an error finding: %s", label)
             self.error(label)
         return ""
 

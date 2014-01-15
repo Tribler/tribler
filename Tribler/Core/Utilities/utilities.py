@@ -274,7 +274,7 @@ def validTorrentFile(metainfo):
             for url in metainfo['url-list']:
                 if not isValidURL(url):
                     del metainfo['url-list']
-                    logger.warn("Warning: url-list url is not valid: %s HTTP seeding disabled" % repr(url))
+                    logger.warn("Warning: url-list url is not valid: %s HTTP seeding disabled", repr(url))
                     break
 
     if 'httpseeds' in metainfo:
@@ -285,7 +285,7 @@ def validTorrentFile(metainfo):
             for url in metainfo['httpseeds']:
                 if not isValidURL(url):
                     del metainfo['httpseeds']
-                    logger.warn("Warning: httpseeds url is not valid: %s HTTP seeding disabled" % repr(url))
+                    logger.warn("Warning: httpseeds url is not valid: %s HTTP seeding disabled", repr(url))
                     break
 
 
@@ -493,7 +493,7 @@ def hostname_or_ip2ip(hostname_or_ip):
                     repr(hostname_or_ip))
 
         except:
-            logger.error("hostname_or_ip2ip: invalid hostname %s" % repr(hostname_or_ip))
+            logger.error("hostname_or_ip2ip: invalid hostname %s", hostname_or_ip)
             print_exc()
 
     return ip
@@ -512,7 +512,7 @@ def parse_magnetlink(url):
     xt = None
     trs = []
 
-    logger.debug("parse_magnetlink() %s" % url)
+    logger.debug("parse_magnetlink() %s", url)
 
     schema, netloc, path, query, fragment = urlsplit(url)
     if schema == "magnet":
@@ -542,9 +542,9 @@ def parse_magnetlink(url):
             elif key == "tr":
                 trs.append(value)
 
-        logger.debug("parse_magnetlink() NAME: %s" % repr(dn))
-        logger.debug("parse_magnetlink() HASH: %s" % repr(xt))
-        logger.debug("parse_magnetlink() TRACS: %s" % repr(trs))
+        logger.debug("parse_magnetlink() NAME: %s", dn)
+        logger.debug("parse_magnetlink() HASH: %s", xt)
+        logger.debug("parse_magnetlink() TRACS: %s", trs)
 
     return (dn, xt, trs)
 

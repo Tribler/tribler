@@ -35,14 +35,13 @@ class Win32RegChecker:
 
         try:
             # test that shell/open association with ABC exist
-            self._logger.debug("win32regcheck: Opening %s %s" %\
-                (repr(key_name), repr(value_name)))
+            self._logger.debug("win32regcheck: Opening %s %s", key_name, value_name)
             full_key = _winreg.OpenKey(hkey, key_name, 0, _winreg.KEY_READ)
 
-            self._logger.debug("win32regcheck: Open returned %s" % repr(full_key))
+            self._logger.debug("win32regcheck: Open returned %s", full_key)
 
             value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
-            self._logger.debug("win32regcheck: Read %s %s" % (repr(value_data), repr(value_type)))
+            self._logger.debug("win32regcheck: Read %s %s", value_data, value_type)
             _winreg.CloseKey(full_key)
 
             return value_data
@@ -61,19 +60,19 @@ class Win32RegChecker:
         try:
             toclose = []
             keyparts = key_name.split('\\')
-            self._logger.info("win32regcheck: keyparts %s" % repr(keyparts))
+            self._logger.info("win32regcheck: keyparts %s", keyparts)
             for keypart in keyparts:
                 if keypart == '':
                     continue
-                self._logger.debug("win32regcheck: Opening %s" % repr(keypart))
+                self._logger.debug("win32regcheck: Opening %s", keypart)
                 full_key = _winreg.OpenKey(lasthkey, keypart, 0, _winreg.KEY_READ)
                 lasthkey = full_key
                 toclose.append(full_key)
 
-            self._logger.debug("win32regcheck: Open returned %s" % repr(full_key))
+            self._logger.debug("win32regcheck: Open returned %s", full_key)
 
             value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
-            self._logger.debug("win32regcheck: Read %s %s" % (repr(value_data), repr(value_type)))
+            self._logger.debug("win32regcheck: Read %s %s", value_data, value_type)
             for hkey in toclose:
                 _winreg.CloseKey(hkey)
 

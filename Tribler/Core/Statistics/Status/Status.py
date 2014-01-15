@@ -245,7 +245,7 @@ class StatusHolder:
 
     def create_and_add_event(self, name, values=[]):
         if len(self.reporters) == 0:
-            self._logger.debug("NO REPORTERS FOR THIS STATUSHOLDER (%s), WILL CAUSE MEMORY LEAK" % self.name)
+            self._logger.debug("NO REPORTERS FOR THIS STATUSHOLDER (%s), WILL CAUSE MEMORY LEAK", self.name)
 
         self.add_event(self.create_event(name, values))
 
@@ -337,8 +337,7 @@ class BaseElement:
             try:
                 callback(self)
             except Exception as e:
-                self._logger.error("Exception in callback %s for parameter %s : %s" %\
-                    (repr(callback), repr(self.name), repr(e)))
+                self._logger.error("Exception in callback %s for parameter %s : %s", callback, self.name, e)
 
 
 class StatusElement(BaseElement):
@@ -602,14 +601,14 @@ class PeriodicStatusReporter(StatusReporter):
             try:
                 self.report()
             except Exception as e:
-                self._logger.error("Status: error while reporting: %s" % repr(e))
+                self._logger.error("Status: error while reporting: %s", e)
                 if self.error_handler:
                     try:
                         self.error_handler(0, str(e))
                     except:
                         pass
                 else:
-                    self._logger.error("Error but no error handler: %s" % repr(e))
+                    self._logger.error("Error but no error handler: %s", e)
                     # import traceback
                     # traceback.print_stack()
 
@@ -620,14 +619,14 @@ class PeriodicStatusReporter(StatusReporter):
         try:
             self.report()
         except Exception as e:
-            self._logger.error("Status: error while reporting: %s" % repr(e))
+            self._logger.error("Status: error while reporting: %s", e)
             if self.error_handler:
                 try:
                     self.error_handler(0, str(e))
                 except:
                     pass
             else:
-                self._logger.error("Error but no error handler: %s" % repr(e))
+                self._logger.error("Error but no error handler: %s", e)
                 # import traceback
                 # traceback.print_stack()
 

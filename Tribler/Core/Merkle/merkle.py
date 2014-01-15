@@ -229,7 +229,7 @@ def check_fork(a, b, level):
         logger.debug("merkle: combining %s %s", siblingoffset, myoffset)
     else:
         data = a[1] + b[1]
-        logger.debug("merkle: combining %s %s" , myoffset, siblingoffset)
+        logger.debug("merkle: combining %s %s", myoffset, siblingoffset)
     digester = sha()
     digester.update(data)
     digest = digester.digest()

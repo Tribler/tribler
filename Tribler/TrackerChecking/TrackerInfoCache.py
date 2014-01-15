@@ -85,7 +85,7 @@ class TrackerInfoCache(object):
         with self._lock:
             # new tracker insertion callback
             for tracker in objectID:
-                self._logger.debug('New tracker[%s].' % tracker)
+                self._logger.debug('New tracker[%s].', tracker)
                 self._tracker_info_dict[tracker] = {'last_check':0, 'failures':0, 'alive':True, 'updated':False}
 
                 # check all the pending update requests

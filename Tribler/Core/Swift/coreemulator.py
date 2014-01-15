@@ -111,7 +111,7 @@ class PluginEmulator:
             data = s2.recv(readbufsize)
             if len(data) == 0:
                 break
-            self._logger.info("pe: Got HTTP data %s", data)
+            self._logger.info("pe: Got HTTP data %s", repr(data))
 
             eidx = 0
             while True:

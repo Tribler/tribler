@@ -34,7 +34,7 @@ def define_allchannel(session):
     logger.info("tribler: Dispersy communities are ready")
 
     def on_incoming_torrent(subject, type_, infohash):
-        logger.info("Incoming torrent: %s" % infohash.encode("HEX"))
+        logger.info("Incoming torrent: %s", infohash.encode("HEX"))
     session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
 
 def main(define_communities):

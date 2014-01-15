@@ -14,18 +14,7 @@ except:
     False = 0
 
 
-def toint(s):
-    return long(b2a_hex(s), 16)
-
 default_task_id = []
-
-logger = logging.getLogger(__name__)
-
-
-def show(s):
-    for i in xrange(len(s)):
-        logger.info(repr(ord(s[i])))
-
 
 class SingleRawServer:
 

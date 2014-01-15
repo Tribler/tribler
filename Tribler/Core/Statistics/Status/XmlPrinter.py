@@ -181,8 +181,8 @@ class XmlPrinter:
                 return buffer
             except Exception as e:
                 self._logger.error("-----------------")
-                self._logger.error("Exception: %s" % repr(e))
-                self._logger.error("Buffer: %s" % repr(buffer))
+                self._logger.error("Exception: %s", e)
+                self._logger.error("Buffer: %s", buffer)
                 self._logger.error("-----------------")
                 raise e
 

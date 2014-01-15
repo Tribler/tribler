@@ -76,7 +76,7 @@ class FastI2IConnection(Thread):
         """ Read \r\n ended lines from data and call readlinecallback(self,line) """
         # data may come in in parts, not lines! Or multiple lines at same time
 
-        self._logger.debug("fasti2i: data_came_in %s %s", data, len(data))
+        self._logger.debug("fasti2i: data_came_in %s %s", repr(data), len(data))
 
         if len(self.buffer) == 0:
             self.buffer = data

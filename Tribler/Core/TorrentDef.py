@@ -751,8 +751,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             pl = float(self.get_piece_length())
             length = float(self.input['bps'] * secs)
 
-            self._logger.debug("TorrentDef: finalize: length %s, piecelen %s" %\
-                (repr(length), repr(pl)))
+            self._logger.debug("TorrentDef: finalize: length %s, piecelen %s", length, pl)
             diff = length % pl
             add = (pl - diff) % pl
             newlen = int(length + add)
@@ -883,8 +882,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                         if 0 < ord(char) < 128:
                             return char
                         else:
-                            self._logger.debug("Bad character filter %s, isalnum? %s" %\
-                                (repr(ord(char)), repr(char.isalnum())))
+                            self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
                 return unicode(filter_characters(self.metainfo["info"]["name"]))
@@ -1020,8 +1018,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                                 if 0 < ord(char) < 128:
                                     return char
                                 else:
-                                    self._logger.debug("Bad character filter %s, isalnum? %s" %\
-                                        (repr(ord(char)), repr(char.isalnum())))
+                                    self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
                         yield join(*[unicode(filter_characters(element)) for element in file_dict["path"]]), file_dict["length"]

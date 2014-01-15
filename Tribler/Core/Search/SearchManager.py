@@ -65,7 +65,7 @@ class SearchManager:
 
     def search(self, kws, maxhits=None):
         """ Called by any thread """
-        self._logger.debug("SearchManager: search %s" % repr(kws))
+        self._logger.debug("SearchManager: search %s", kws)
 
         hits = self.dbhandler.searchNames(kws)
         if maxhits is None:

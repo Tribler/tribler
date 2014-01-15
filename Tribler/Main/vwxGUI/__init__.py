@@ -107,7 +107,7 @@ def warnWxThread(func):
         if not wx.Thread_IsMain():
             caller = inspect.stack()[1]
             callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-            logger.info("%s NOT ON GUITHREAD %s %s:%s called by %s" % (long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr))
+            logger.info("%s NOT ON GUITHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
         return func(*args, **kwargs)
 
@@ -123,7 +123,7 @@ def forceWxThread(func):
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
                 callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-                logger.debug("%s SWITCHING TO GUITHREAD %s %s:%s called by %s" % (long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr))
+                logger.debug("%s SWITCHING TO GUITHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             wx.CallAfter(func, *args, **kwargs)
 
     invoke_func.__name__ = func.__name__
@@ -139,7 +139,7 @@ def forceAndReturnWxThread(func):
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
                 callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-                logger.debug("%s SWITCHING TO GUITHREAD %s %s:%s called by %s" % (long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr))
+                logger.debug("%s SWITCHING TO GUITHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
             event = Event()
 

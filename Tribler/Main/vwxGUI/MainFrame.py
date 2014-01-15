@@ -449,8 +449,7 @@ class MainFrame(wx.Frame):
         return False
 
     def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, doemode=None, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
-        self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s" %\
-            (repr(torrentfilename), repr(destdir), repr(sdef), repr(tdef), repr(vodmode), repr(selectedFiles)))
+        self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
@@ -616,8 +615,7 @@ class MainFrame(wx.Frame):
 
     def startReseedSwiftDownload(self, tdef, storagepath, sdef):
         # Arno, 2012-05-07:
-        self._logger.info("main: frame: startReseedSwift %s %s %s" %\
-            (repr(tdef), repr(storagepath), repr(sdef)))
+        self._logger.info("main: frame: startReseedSwift %s %s %s", tdef, storagepath, sdef)
 
         # 1. Tell library_manager that we have a 'swift_hash' for this infohash
         self.guiUtility.library_manager.updateTorrent(tdef.get_infohash(), sdef.get_roothash())
@@ -688,7 +686,7 @@ class MainFrame(wx.Frame):
             else:
                 self.guiUtility.Notify("Download started", "A new torrent has been added to the download queue.", icon='download')
 
-            self._logger.info("Allowing refresh in 3 seconds %s" % repr(long(time.time() + 3)))
+            self._logger.info("Allowing refresh in 3 seconds %s", long(time.time() + 3))
             self.librarylist.GetManager().prev_refresh_if = time.time() - 27
 
     def checkVersion(self):
@@ -735,8 +733,7 @@ class MainFrame(wx.Frame):
             # Also check new version of web2definitions for youtube etc. search
             # Web2Updater(self.utility).checkUpdate()
         except Exception as e:
-            self._logger.error("Tribler: Version check failed %s %s" %\
-                (repr(time.ctime(time.time())), repr(str(e))))
+            self._logger.error("Tribler: Version check failed %s %s", time.ctime(time.time()), str(e))
             # print_exc()
 
     def _upgradeVersion(self, my_version, latest_version, info):
@@ -744,7 +741,7 @@ class MainFrame(wx.Frame):
         torrent_key = "torrent-%s" % sys.platform
         notes_key = "notes-txt-%s" % sys.platform
         if torrent_key in info:
-            self._logger.info("-- Upgrade %s -> %s" % (repr(my_version), repr(latest_version)))
+            self._logger.info("-- Upgrade %s -> %s", my_version, latest_version)
             notes = []
             if "notes-txt" in info:
                 notes.append(info["notes-txt"])
@@ -753,18 +750,18 @@ class MainFrame(wx.Frame):
             notes = "\n".join(notes)
             if notes:
                 for line in notes.split("\n"):
-                    self._logger.info("-- Notes: %s" % repr(line))
+                    self._logger.info("-- Notes: %s", line)
             else:
                 notes = "No release notes found"
-            self._logger.info("-- Downloading %s for upgrade" % repr(info[torrent_key]))
+            self._logger.info("-- Downloading %s for upgrade", info[torrent_key])
 
             # prepare directort and .torrent file
             location = os.path.join(self.utility.session.get_state_dir(), "upgrade")
             if not os.path.exists(location):
                 os.mkdir(location)
-            self._logger.info("-- Dir: %s" % location)
+            self._logger.info("-- Dir: %s", location)
             filename = os.path.join(location, os.path.basename(urlparse.urlparse(info[torrent_key])[2]))
-            self._logger.info("-- File: %s" % filename)
+            self._logger.info("-- File: %s", filename)
             if not os.path.exists(filename):
                 urllib.urlretrieve(info[torrent_key], filename)
 
@@ -778,17 +775,17 @@ class MainFrame(wx.Frame):
             executable = None
             for file_ in files:
                 if sys.platform == "win32" and file_.endswith(u".exe"):
-                    self._logger.info("-- exe: %s" % repr(file_))
+                    self._logger.info("-- exe: %s", file_)
                     executable = file_
                     break
 
                 elif sys.platform == "linux2" and file_.endswith(u".deb"):
-                    self._logger.info("-- deb: %s" % repr(file_))
+                    self._logger.info("-- deb: %s", file_)
                     executable = file_
                     break
 
                 elif sys.platform == "darwin" and file_.endswith(u".dmg"):
-                    self._logger.info("-- dmg: %s" % repr(file_))
+                    self._logger.info("-- dmg: %s", file_)
                     executable = file_
                     break
 
@@ -828,7 +825,7 @@ class MainFrame(wx.Frame):
                         args = ["open", executable_path]
 
                     self._logger.info("-- Tribler closed, starting upgrade")
-                    self._logger.info("-- Start: %s" % repr(args))
+                    self._logger.info("-- Start: %s", args)
                     subprocess.Popen(args)
 
                 def wxthread_upgrade():
@@ -847,8 +844,7 @@ class MainFrame(wx.Frame):
                     Called every n seconds with an update on the
                     .torrent download that we need to upgrade
                     """
-                    self._logger.debug("-- State: %s %s" %\
-                        (repr(dlstatus_strings[state.get_status()]), repr(state.get_progress())))
+                    self._logger.debug("-- State: %s %s", dlstatus_strings[state.get_status()], state.get_progress())
                     # todo: does DLSTATUS_STOPPED mean it has completely downloaded?
                     if state.get_status() == DLSTATUS_SEEDING:
                         self.shutdown_and_upgrade_notes = notes
@@ -942,7 +938,7 @@ class MainFrame(wx.Frame):
         # Arno, 2010-01-15: on Win7 with wxPython2.8-win32-unicode-2.8.10.1-py26
         # there is no event on restore :-(
         if event is not None:
-            self._logger.debug("main: onIconify( %s" % repr(event.Iconized()))
+            self._logger.debug("main: onIconify( %s", event.Iconized())
         else:
             self._logger.debug("main: onIconify event None")
 
@@ -975,7 +971,7 @@ class MainFrame(wx.Frame):
         # remains turned off. The wxWidgets wiki on the TaskBarIcon suggests
         # catching the onSize event.
         if event is not None:
-            self._logger.debug("main: onSize: %s" % repr(self.GetSize()))
+            self._logger.debug("main: onSize: %s", self.GetSize())
         else:
             self._logger.debug("main: onSize: None")
 
@@ -1044,8 +1040,7 @@ class MainFrame(wx.Frame):
                 nr = lookup[nr]
                 found = True
 
-            self._logger.info("mainframe: Closing due to event %s %s" %\
-                (repr(nr), repr(event)))
+            self._logger.info("mainframe: Closing due to event %s %s", nr, repr(event))
         else:
             self._logger.info("mainframe: Closing untriggered by event")
 
@@ -1110,7 +1105,7 @@ class MainFrame(wx.Frame):
         self._logger.debug("mainframe: OnCloseWindow END")
         ts = enumerate()
         for t in ts:
-            self._logger.info("mainframe: Thread still running %s daemon %s", repr(t.getName()), repr(t.isDaemon()))
+            self._logger.info("mainframe: Thread still running %s daemon %s", t.getName(), t.isDaemon())
 
     @forceWxThread
     def onWarning(self, exc):

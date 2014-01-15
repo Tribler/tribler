@@ -187,8 +187,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         h.send(body)
 
         resp = h.getresponse()
-        self._logger.debug("LivingLabReporter: %s %s\n %s\n %s" %\
-            (repr(resp.status), repr(resp.reason), repr(resp.getheaders()), repr(resp.read().replace("\\n", "\n"))))
+        self._logger.debug("LivingLabReporter: %s %s\n %s\n %s", resp.status, resp.reason, resp.getheaders(), resp.read().replace("\\n", "\n"))
 
         if resp.status != 200:
             if self.error_handler:
@@ -197,7 +196,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
                 except Exception as e:
                     pass
             else:
-                self._logger.info("Error posting but no error handler: %s" % repr(resp.status))
+                self._logger.info("Error posting but no error handler: %s", resp.status)
                 self._logger.info(repr(resp.read()))
 
 
@@ -212,7 +211,7 @@ if __name__ == "__main__":
         """
         Test error-handler
         """
-        logger.info("Error: %s %s" % (repr(code), repr(message)))
+        logger.info("Error: %s %s", code, message)
 
     reporter = LivingLabPeriodicReporter("Living lab test reporter",
                                          1.0, test_error_handler)
@@ -225,4 +224,4 @@ if __name__ == "__main__":
     logger.info("Stopping reporter")
     reporter.stop()
 
-    logger.info("Sent %d reports" % reporter.num_reports)
+    logger.info("Sent %d reports", reporter.num_reports)

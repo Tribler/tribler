@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 import wx
 import logging
+from time import time
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel

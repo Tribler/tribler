@@ -150,8 +150,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     @warnWxThread
     def Load(self, url, streaminfo=None):
-        self._logger.debug("embedplay: Load: %s %s %s" %\
-            (repr(url), repr(streaminfo), repr(currentThread().getName())))
+        self._logger.debug("embedplay: Load: %s %s %s", url, streaminfo, currentThread().getName())
 
         if streaminfo is not None:
             self.estduration = streaminfo.get('estduration', None)
@@ -353,7 +352,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.save_callback()
 
     def SetVolume(self, volume, evt=None):
-        self._logger.debug("embedplay: SetVolume: %s" % repr(self.volume))
+        self._logger.debug("embedplay: SetVolume: %s", self.volume)
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -391,7 +390,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             status = self.vlcwrap.get_our_state()
-            self._logger.debug("embedplay: GetState %s" % status)
+            self._logger.debug("embedplay: GetState %s", status)
 
             return status
 

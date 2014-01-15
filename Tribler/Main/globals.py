@@ -40,7 +40,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         newKeys = DownloadStartupConfig.updateToCurrentVersion(self)
         if newKeys:
             for key in newKeys:
-                self._logger.info("DefaultDownloadStartupConfig: Adding field %s" % repr(key))
+                self._logger.info("DefaultDownloadStartupConfig: Adding field %s", key)
     #
     # Class method
     #

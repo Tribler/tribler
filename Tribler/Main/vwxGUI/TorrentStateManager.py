@@ -95,7 +95,7 @@ class TorrentStateManager:
                       'bitrate': bitrate,
                       'resolution': resolution}
 
-        self._logger.debug('create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s' % (duration, bitrate, resolution))
+        self._logger.debug('create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s', duration, bitrate, resolution)
 
         if not os.path.exists(abs_thumbdir):
             os.makedirs(abs_thumbdir)
@@ -109,7 +109,7 @@ class TorrentStateManager:
             get_thumbnail(videofile, filename, thumb_res, videoanalyser, timecode)
 
             path_exists = os.path.exists(filename)
-            self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d' % (path_exists, timecode))
+            self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
 
         sdef = SwiftDef()
         sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())

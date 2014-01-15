@@ -48,10 +48,10 @@ def _get_list_footprint(obj, depth):
         return 8 + 4 * len(obj)
     else:
         if len(obj) in (2, 3):
-            logger.info("Len: %s %s" % (repr(type(obj[0])), repr(type(obj[1]))))
+            logger.info("Len: %s %s", type(obj[0]), type(obj[1]))
             logger.info(repr(obj))
             return 42
-        logger.info("Len: %d" % len(obj))
+        logger.info("Len: %d", len(obj))
         return 8 + 4 * len(obj) + sum(map(lambda obj: get_memory_footprint(obj, depth), obj))
 
 
@@ -154,8 +154,7 @@ def monitor(delay=10.0, interval=60.0, min_footprint=100000):
             history = history[-2:]
             low_foot = min(history)
             datetime = get_datetime()
-            logger.info("Memory: %s using minimal footprint: %s" %\
-                (repr(datetime), repr(byte_uint_to_human(low_foot))))
+            logger.info("Memory: %s using minimal footprint: %s", datetime, byte_uint_to_human(low_foot))
 
             gc.collect()
             for obj in gc.get_objects():
@@ -163,17 +162,14 @@ def monitor(delay=10.0, interval=60.0, min_footprint=100000):
                     try:
                         footprint = get_memory_footprint(obj)
                     except:
-                        logger.error("Memory: %s unable to get footprint for %s" %\
-                            (repr(datetime), repr(get_description(obj))))
+                        logger.error("Memory: %s unable to get footprint for %s", datetime, get_description(obj))
                     else:
                         if footprint > high_foot:
                             high_foot = footprint
                         if footprint >= low_foot:
-                            logger.info("Memory: %s, %s footprint: %s" %\
-                                (repr(datetime), repr(get_description(obj)), repr(byte_uint_to_human(footprint))))
+                            logger.info("Memory: %s, %s footprint: %s", datetime, get_description(obj), byte_uint_to_human(footprint))
                             for referrer in gc.get_referrers(obj):
-                                logger.info("Memory: %s REF %s" %\
-                                    (repr(datetime), repr(get_description(referrer))))
+                                logger.info("Memory: %s REF %s", datetime, get_description(referrer))
                             logger.info("Memory")
 
             history.append(high_foot)

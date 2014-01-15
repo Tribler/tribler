@@ -381,12 +381,12 @@ class TorrentManager:
             beginlocalsearch = time()
             new_local_hits = self.searchLocalDatabase()
 
-            self._logger.debug('TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch))
+            self._logger.debug('TorrentSearchGridManager: getHitsInCat: search found: %d items took %s', len(self.hits), time() - beginlocalsearch)
 
             # 2. Add remote hits that may apply.
             new_remote_hits, modified_hits = self.addStoredRemoteResults()
 
-            self._logger.debug('TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits))
+            self._logger.debug('TorrentSearchGridManager: getHitsInCat: found after remote search: %d items', len(self.hits))
 
             beginsort = time()
 
@@ -414,7 +414,7 @@ class TorrentManager:
         # Niels: important, we should not change self.hits otherwise prefetching will not work
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
 
-        self._logger.debug('TorrentSearchGridManager: getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle))
+        self._logger.debug('TorrentSearchGridManager: getHitsInCat took: %s of which sort took %s, bundle took %s', time() - begintime, beginbundle - beginsort, time() - beginbundle)
 
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
@@ -442,7 +442,7 @@ class TorrentManager:
             # find the original hit
             for hit in self.hits:
                 if hit.infohash == infohash:
-                    self._logger.debug("Prefetch: in %s %s", "%.1fs" % (time() - begin_time), hit.name)
+                    self._logger.debug("Prefetch: in %.1fs %s", time() - begin_time, hit.name)
                     return
             self._logger.debug("Prefetch BUG. We got a hit from something we didn't ask for")
 
@@ -557,7 +557,7 @@ class TorrentManager:
             results = map(create_torrent, results)
         self.hits = results
 
-        self._logger.debug('TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s' % (time() - begintime, time() - begintuples))
+        self._logger.debug('TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s', time() - begintime, time() - begintuples)
         return True
 
     def addStoredRemoteResults(self):
@@ -1831,7 +1831,7 @@ class ChannelManager:
         begintime = time()
 
         hitsUpdated = self.searchLocalDatabase()
-        self._logger.debug('ChannelManager: getChannelHits: search found: %d items' % len(self.hits))
+        self._logger.debug('ChannelManager: getChannelHits: search found: %d items', len(self.hits))
 
         try:
             # merge remoteHits

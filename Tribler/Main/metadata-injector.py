@@ -66,7 +66,7 @@ def dispersy_started(session, opt):
         logger.info("reusing previously created channel")
         myChannel = channelManager.getChannel(myChannelId)
         if myChannel.name != myChannelName:
-            logger.info("renaming channel to %s" % myChannelName)
+            logger.info("renaming channel to %s", myChannelName)
             channelManager.modifyChannel(myChannelId, {'name': myChannelName})
 
     def createTorrentFeed():
@@ -105,7 +105,7 @@ def dispersy_started(session, opt):
         myChannelId = channelManager.channelcast_db.getMyChannelId()
         community = channelManager._disp_get_community_from_channel_id(myChannelId)
 
-        logger.info("Using community: %s" % repr(community._cid.encode('HEX')))
+        logger.info("Using community: %s", community._cid.encode('HEX'))
 
         items = json.load(open(opt.file, 'rb'))
         for item in items:

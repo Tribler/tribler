@@ -210,7 +210,7 @@ except:
                     size = long(sizestring)
 
                     if size == 0:
-                        logger.info("getfreespace: can't determine freespace of %s" % path)
+                        logger.info("getfreespace: can't determine freespace of %s", path)
                         for line in mystdout:
                             logger.info(line)
 

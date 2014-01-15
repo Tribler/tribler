@@ -181,12 +181,12 @@ class ABCApp():
             self.splash.Show()
 
             self._logger.info('Client Starting Up.')
-            self._logger.info("Tribler is using %s as working directory" % self.installdir)
+            self._logger.info("Tribler is using %s as working directory", self.installdir)
 
             self.splash.tick('Starting API')
             s = self.startAPI(self.splash.tick)
 
-            self._logger.info("Tribler is expecting swift in %s" % self.sconfig.get_swift_path())
+            self._logger.info("Tribler is expecting swift in %s", self.sconfig.get_swift_path())
 
             self.dispersy = s.lm.dispersy
 
@@ -196,8 +196,7 @@ class ABCApp():
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance(self.dispersy.callback)
 
-            self._logger.info('Tribler Version: %s Build: %s' %\
-                (repr(self.utility.lang.get('version')), repr(self.utility.lang.get('build'))))
+            self._logger.info('Tribler Version: %s Build: %s', self.utility.lang.get('version'), self.utility.lang.get('build'))
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -403,7 +402,7 @@ class ABCApp():
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         progress('Loading sessionconfig')
-        self._logger.debug("main: Session config %s" % cfgfilename)
+        self._logger.debug("main: Session config %s", cfgfilename)
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
         except:
@@ -433,7 +432,7 @@ class ABCApp():
 
         progress('Loading downloadconfig')
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
-        self._logger.debug("main: Download config %s" % dlcfgfilename)
+        self._logger.debug("main: Download config %s", dlcfgfilename)
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
@@ -484,7 +483,7 @@ class ABCApp():
             dispersy.define_auto_load(PreviewChannelCommunity)
 
             diff = time() - now
-            self._logger.info("tribler: communities are ready in %.2f seconds" % (diff,))
+            self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
         swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
@@ -584,10 +583,10 @@ class ABCApp():
                 if self.ratestatecallbackcount % 5 == 0:
                     for ds in dslist:
                         safename = repr(ds.get_download().get_def().get_name())
-                        self._logger.debug("%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()))
+                        self._logger.debug("%s %s %.1f%% dl %.1f ul %.1f n %d", safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers())
                         # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                         if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                            self._logger.debug("main: Error: %s" % repr(ds.get_error()))
+                            self._logger.debug("main: Error: %s", repr(ds.get_error()))
 
             # Pass DownloadStates to libaryView
             no_collected_list = []
@@ -690,11 +689,9 @@ class ABCApp():
                         state = ds.get_status()
                         if cdef.get_def_type() == 'swift':
                             safename = cdef.get_name()
-                            self._logger.debug("tribler: SW %s %s %s" %\
-                                (repr(dlstatus_strings[state]), repr(safename), repr(ds.get_current_speed(UPLOAD))))
+                            self._logger.debug("tribler: SW %s %s %s", dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD))
                         else:
-                            self._logger.debug("tribler: BT %s %s %s" %\
-                                (repr(dlstatus_strings[state]), repr(cdef.get_name()), repr(ds.get_current_speed(UPLOAD))))
+                            self._logger.debug("tribler: BT %s %s %s", dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD))
 
         except:
             print_exc()
@@ -940,7 +937,7 @@ class ABCApp():
                     self._logger.info("main: ONEXIT NOT Waiting for Session to shutdown, took too long")
                     break
 
-                self._logger.info("main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff))
+                self._logger.info("main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds", waittime - diff)
                 sleep(3)
             self._logger.info("main: ONEXIT Session is shutdown")
 
@@ -967,16 +964,14 @@ class ABCApp():
         return 0
 
     def db_exception_handler(self, e):
-        self._logger.debug("main: Database Exception handler called %s value %s #" %\
-            (repr(e), repr(e.args)))
+        self._logger.debug("main: Database Exception handler called %s value %s #", e, e.args)
         try:
             if e.args[1] == "DB object has been closed":
                 return  # We caused this non-fatal error, don't show.
             if self.error is not None and self.error.args[1] == e.args[1]:
                 return  # don't repeat same error
         except:
-            self._logger.error("main: db_exception_handler error %s %s" %\
-                (repr(e), repr(type(e))))
+            self._logger.error("main: db_exception_handler error %s %s", e, type(e))
             print_exc()
             # print_stack()
 
@@ -992,7 +987,7 @@ class ABCApp():
     def i2ithread_readlinecallback(self, ic, cmd):
         """ Called by Instance2Instance thread """
 
-        self._logger.info("main: Another instance called us with cmd %s" % repr(cmd))
+        self._logger.info("main: Another instance called us with cmd %s", cmd)
         ic.close()
 
         if cmd.startswith('START '):

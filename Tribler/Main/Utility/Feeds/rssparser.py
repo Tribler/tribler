@@ -116,7 +116,7 @@ class RssParser(Thread):
                     if state == 'active':
                         self.addURL(url, key, dowrite=False)
                 else:
-                    self._logger.info("RssParser: Ignoring line %s" % repr(line))
+                    self._logger.info("RssParser: Ignoring line %s", line)
             f.close()
         except:
             self._logger.debug("RssParser: subscriptions.txt does not yet exist")
@@ -192,7 +192,7 @@ class RssParser(Thread):
             self._refresh()
             self.urls_changed.clear()
 
-            self._logger.debug("RssParser: finished, waiting %s" % repr(RSS_RELOAD_FREQUENCY))
+            self._logger.debug("RssParser: finished, waiting %s", RSS_RELOAD_FREQUENCY)
             self.urls_changed.wait(RSS_RELOAD_FREQUENCY)
         else:
             self._logger.debug("RssParser: not registered unable to run or exiting")
@@ -213,7 +213,7 @@ class RssParser(Thread):
             for key, urls in channel_url.iteritems():
                 if key in self.key_callbacks:
                     for url in urls:
-                        self._logger.debug("RssParser: getting rss %s %d" % (url, len(urls)))
+                        self._logger.debug("RssParser: getting rss %s %d", url, len(urls))
 
                         historyfile = self.gethistfilename(url, key)
                         urls_already_seen = URLHistory(historyfile)
@@ -226,7 +226,7 @@ class RssParser(Thread):
                                 urls_already_seen.write()
 
                                 try:
-                                    self._logger.debug("RssParser: trying %s" % self._logger.debug)
+                                    self._logger.debug("RssParser: trying %s", new_url)
 
                                     referer = urlparse(new_url)
                                     referer = referer.scheme + "://" + referer.netloc + "/"
@@ -251,13 +251,13 @@ class RssParser(Thread):
                                         processCallbacks(key)
 
                                 except:
-                                    self._logger.debug("RssParser: could not download %s" % new_url)
+                                    self._logger.debug("RssParser: could not download %s", new_url)
                                     pass
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
 
     def readUrl(self, url, urls_already_seen):
-        self._logger.debug("RssParser: reading url %s" % url)
+        self._logger.debug("RssParser: reading url %s", url)
 
         newItems = []
 
@@ -297,7 +297,7 @@ class RssParser(Thread):
                 if len(new_urls) > 0:
                     newItems.append((title, new_urls, description, thumbnail))
         except URLError:
-            self._logger.debug("RssParser: could not open url %s" % url)
+            self._logger.debug("RssParser: could not open url %s", url)
 
         return newItems
 
@@ -335,7 +335,7 @@ class URLHistory:
         return (t + URLHIST_TIMEOUT) < now
 
     def read(self):
-        self._logger.debug("subscrip: Reading cached %s" % self.filename)
+        self._logger.debug("subscrip: Reading cached %s", self.filename)
         try:
             file_handle = open(self.filename, "rb")
         except IOError:
@@ -351,10 +351,10 @@ class URLHistory:
                     timestamp, url = match.groups()
                     timestamp = float(timestamp)
                     if not self.timedout(timestamp, now):
-                        self._logger.debug("subscrip: Cached url is %s" % url)
+                        self._logger.debug("subscrip: Cached url is %s", url)
                         self.urls[url] = timestamp
                     else:
-                        self._logger.debug("subscrip: Timed out cached url is %s" % url)
+                        self._logger.debug("subscrip: Timed out cached url is %s", url)
 
             file_handle.close()
 
@@ -383,8 +383,7 @@ class URLHistory:
 if __name__ == '__main__':
 
     def callback(key, torrent, extraInfo):
-        self._logger.info("RssParser: Found torrent %s %s %s" %\
-            (repr(key), repr(torrent), repr(extraInfo)))
+        self._logger.info("RssParser: Found torrent %s %s %s", key, torrent, extraInfo)
 
     class FakeSession:
 

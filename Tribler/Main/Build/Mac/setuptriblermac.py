@@ -43,17 +43,17 @@ import wx
 v = wx.__version__
 
 if v < "2.6":
-    logger.warn("WARNING: You need wxPython 2.6 or higher but are using %s." % v)
+    logger.warn("WARNING: You need wxPython 2.6 or higher but are using %s.", v)
 
 if v < "2.8.4.2":
-    logger.warn("WARNING: wxPython before 2.8.4.2 could crash when loading non-present fonts. You are using %s." % v)
+    logger.warn("WARNING: wxPython before 2.8.4.2 could crash when loading non-present fonts. You are using %s.", v)
 
 # ----- import and verify M2Crypto
 
 import M2Crypto
 import M2Crypto.m2
 if "ec_init" not in M2Crypto.m2.__dict__:
-    logger.warn("WARNING: Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__)
+    logger.warn("WARNING: Could not import specialistic M2Crypto (imported %s)", M2Crypto.__file__)
 
 # ----- import Growl
 try:

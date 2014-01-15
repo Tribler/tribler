@@ -133,7 +133,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 if 'total_down' in dlstate:
                     self.total_down = dlstate['total_down']
 
-            self._logger.debug("SwiftDownloadImpl: setup: initialdlstatus %s %s", self.sdef.get_roothash_as_hex(), initialdlstatus)
+            self._logger.debug("SwiftDownloadImpl: setup: initialdlstatus %s %s", repr(self.sdef.get_roothash_as_hex()), initialdlstatus)
 
             # Note: initialdlstatus now only works for STOPPED
             if initialdlstatus != DLSTATUS_STOPPED:
@@ -481,7 +481,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Called by network thread, but safe for any """
         self.dllock.acquire()
         try:
-            self._logger.debug("SwiftDownloadImpl: network_stop %s", self.sdef.get_name())
+            self._logger.debug("SwiftDownloadImpl: network_stop %s", repr(self.sdef.get_name()))
 
             pstate = self.network_get_persistent_state()
             if self.sp is not None:
@@ -664,7 +664,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         try:
             if self.sp is not None and not self.done:
                 if not self.sp.is_alive():
-                    self._logger.debug("SwiftDownloadImpl: network_check_swift_alive: Restarting %s", self.sdef.get_name())
+                    self._logger.debug("SwiftDownloadImpl: network_check_swift_alive: Restarting %s", repr(self.sdef.get_name()))
                     self.sp = None
                     self.restart()
         except:
