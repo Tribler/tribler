@@ -34,8 +34,7 @@ def getValidArgs(func, argsDict):
 
     notOk = set(args).difference(argsDict)
     if notOk:
-        logger.info("Missing %s arguments for %s" %\
-            (repr(notOk), repr(func)))
+        logger.info("Missing %s arguments for %s", notOk, func)
     return argsDict
 
 # Niels: from http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
@@ -201,7 +200,7 @@ class Torrent(Helper):
 
     @cacheProperty
     def torrent_id(self):
-        self._logger.debug("Torrent: fetching getTorrentID from DB %s" % repr(self))
+        self._logger.debug("Torrent: fetching getTorrentID from DB %s", self)
         return self.torrent_db.getTorrentID(self.infohash)
 
     def update_torrent_id(self, torrent_id):
@@ -213,7 +212,7 @@ class Torrent(Helper):
 
     @cacheProperty
     def channel(self):
-        self._logger.debug("Torrent: fetching getMostPopularChannelFromTorrent from DB %s" % repr(self))
+        self._logger.debug("Torrent: fetching getMostPopularChannelFromTorrent from DB %s", self)
 
         channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
         if channel:
@@ -403,7 +402,7 @@ class CollectedTorrent(Helper):
 
     @cacheProperty
     def swarminfo(self):
-        self._logger.debug("CollectedTorrent: fetching getTorrent from DB %s" % repr(self))
+        self._logger.debug("CollectedTorrent: fetching getTorrent from DB %s", self)
 
         swarminfo = self.torrent_db.getTorrent(self.infohash,
             keys=(u'num_seeders', u'num_leechers', u'last_tracker_check'),
@@ -515,7 +514,7 @@ class ChannelTorrent(Torrent):
 
     @cacheProperty
     def getPlaylist(self):
-        self._logger.debug("ChannelTorrent: fetching getPlaylistForTorrent from DB %s" % repr(self))
+        self._logger.debug("ChannelTorrent: fetching getPlaylistForTorrent from DB %s", self)
 
         playlist = self.channelcast_db.getPlaylistForTorrent(self.channeltorrent_id, PLAYLIST_REQ_COLUMNS)
         if playlist:
@@ -590,7 +589,7 @@ class Channel(Helper):
             def do_dispersy():
                 from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-                self._logger.debug("Channel: fetching getChannelStateByCID from DB %s" % repr(self))
+                self._logger.debug("Channel: fetching getChannelStateByCID from DB %s", self)
 
                 searchManager = ChannelManager.getInstance()
                 result = searchManager.getChannelStateByCID(self.dispersy_cid)
@@ -702,7 +701,7 @@ class Comment(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-            self._logger.debug("Comment: fetching getTorrentFromChannelTorrentId from DB %s" % repr(self))
+            self._logger.debug("Comment: fetching getTorrentFromChannelTorrentId from DB %s", self)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id, False)
@@ -780,7 +779,7 @@ class Modification(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-            self._logger.debug("Modification: fetching getTorrentFromChannelTorrentId from DB %s" % repr(self))
+            self._logger.debug("Modification: fetching getTorrentFromChannelTorrentId from DB %s", self)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id, False)
@@ -834,7 +833,7 @@ class Marking(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-            self._logger.debug("Marking: fetching getTorrentFromChannelTorrentId from DB %s" % repr(self))
+            self._logger.debug("Marking: fetching getTorrentFromChannelTorrentId from DB %s", self)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id, False)
