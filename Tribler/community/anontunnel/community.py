@@ -64,6 +64,21 @@ ORIGINATOR = "originator"
 ENDPOINT = "endpoint"
 
 
+class CircuitReturnFactory(object):
+    def create(self, proxy, raw_server, circuit_id, address):
+
+        # There is a special case where the circuit_id is None, then we act as EXIT node ourselves. In this case we
+        # create a ShortCircuitHandler that bypasses dispersy by patching ENTER packets directly into the Proxy's
+        # on_data event.
+        if circuit_id is 0:
+            return_handler = ShortCircuitReturnHandler(raw_server, proxy, address)
+        else:
+            # Otherwise incoming ENTER packets should propagate back over the Dispersy tunnel, we use the
+            # CircuitReturnHandler. It will use the DispersyTunnelProxy.send_data method to forward the data packet
+            return_handler = CircuitReturnHandler(raw_server, proxy, circuit_id, address)
+
+        return return_handler
+
 class ProxySettings:
     def __init__(self):
         length = randint(1, 4)
@@ -72,6 +87,7 @@ class ProxySettings:
         self.extend_strategy = ExtendStrategies.NeighbourSubset
         self.select_strategy = RandomSelectionStrategy(1)
         self.length_strategy = ConstantCircuitLengthStrategy(length)
+        self.return_handler_factory = CircuitReturnFactory()
 
 
 class TunnelObserver():
@@ -211,6 +227,7 @@ class ProxyCommunity(Community):
         changed = value != self._online
 
         if changed:
+            logger.error("Proxy is now ONLINE" if value else "Proxy is now OFFLINE")
             self._online = value
             for o in self.__observers:
                 o.on_state_change(self, value)
@@ -286,6 +303,7 @@ class ProxyCommunity(Community):
         self.circuit_length_strategy = settings.length_strategy
         self.circuit_selection_strategy = settings.select_strategy
         self.extend_strategy = settings.extend_strategy
+        self.return_handler_factory = settings.return_handler_factory
 
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
@@ -684,6 +702,8 @@ class ProxyCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
+        logger.warning("Returning candidate dict {}".format(cand_dict))
+
         return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(hashed_key, cand_dict))
 
     def on_created(self, circuit_id, candidate, message):
@@ -922,34 +942,18 @@ class ProxyCommunity(Community):
 
     def exit_data(self, circuit_id, return_candidate, destination, data):
         logger.debug("EXIT DATA packet to %s", destination)
-
         self.stats['bytes_exit'] += len(data)
 
         try:
-            self.get_exit_socket(circuit_id, return_candidate).sendto(data, destination)
+            self.get_exit_handler(circuit_id, return_candidate).sendto(data, destination)
         except socket.error:
             self.stats['dropped_exit'] += 1
-            pass
 
-    def get_exit_socket(self, circuit_id, address):
-
+    def get_exit_handler(self, circuit_id, address):
         # If we don't have an exit socket yet for this socket, create one
-
         if not (circuit_id in self._exit_sockets):
-            self._exit_sockets[circuit_id] = self.raw_server.create_udpsocket(0, "0.0.0.0")
-
-            # There is a special case where the circuit_id is None, then we act as EXIT node ourselves. In this case we
-            # create a ShortCircuitHandler that bypasses dispersy by patching ENTER packets directly into the Proxy's
-            # on_data event.
-            if circuit_id is 0:
-                return_handler = ShortCircuitReturnHandler(self._exit_sockets[circuit_id], self, address)
-            else:
-                # Otherwise incoming ENTER packets should propagate back over the Dispersy tunnel, we use the
-                # CircuitReturnHandler. It will use the DispersyTunnelProxy.send_data method to forward the data packet
-                return_handler = CircuitReturnHandler(self._exit_sockets[circuit_id], self, circuit_id, address)
-
-            self.raw_server.start_listening_udp(self._exit_sockets[circuit_id], return_handler)
-
+            return_handler = self.return_handler_factory.create(self, self.raw_server, circuit_id, address)
+            self._exit_sockets[circuit_id] = return_handler
         return self._exit_sockets[circuit_id]
 
     def unlink_destinations(self, destinations):
