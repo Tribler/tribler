@@ -205,13 +205,10 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
     RANGE_REQUESTS_ENABLED = True
-    """
-    def __init__(self,request, client_address, server):
-        self.count = 0
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self,request,client_address,server)
-    """
 
-    def __init__(self):
+    def __init__(self, request, client_address, server):
+        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def log_message(self, format, *args):
