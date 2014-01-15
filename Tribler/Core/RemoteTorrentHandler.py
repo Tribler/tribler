@@ -616,7 +616,7 @@ class TorrentRequester(Requester):
             remove_lambda = lambda d = d: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
 
-            self._logger.debug("rtorrent: swift finished for %s %s", cdef.get_name(), bin2str(infohash))
+            self._logger.debug("rtorrent: swift finished for %s %s", cdef.get_name(), bin2str(infohash or ''))
 
             self.remote_th.notify_possible_torrent_roothash(roothash)
             self.requests_success += 1
@@ -627,10 +627,10 @@ class TorrentRequester(Requester):
                 remove_lambda = lambda d = d: self._remove_download(d)
                 self.scheduletask(remove_lambda)
 
-                self._logger.debug("rtorrent: swift failed download for %s %s", cdef.get_name(), bin2str(infohash))
+                self._logger.debug("rtorrent: swift failed download for %s %s", cdef.get_name(), bin2str(infohash or ''))
 
                 if not didMagnet and self.magnet_requester:
-                    self._logger.debug("rtorrent: switching to magnet for %s %s", cdef.get_name(), bin2str(infohash))
+                    self._logger.debug("rtorrent: switching to magnet for %s %s", cdef.get_name(), bin2str(infohash or ''))
                     self.magnet_requester.add_request(infohash, None, timeout=SWIFTFAILED_TIMEOUT)
 
                 self.requests_fail += 1
