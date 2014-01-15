@@ -97,20 +97,20 @@ def calc_total_length(info):
 
 
 def get_tree_height(npieces):
-    logger.debug("merkle: number of pieces is %s" % repr(npieces))
+    logger.debug("merkle: number of pieces is %s", npieces)
     height = log(npieces, 2)
     if height - floor(height) > 0.0:
         height = int(height) + 1
     else:
         height = int(height)
-    logger.debug("merkle: tree height is %s" % repr(height))
+    logger.debug("merkle: tree height is %s", height)
     return height
 
 
 def create_tree(height):
     # Create tree that has enough leaves to hold all hashes
     treesize = int(pow(2, height + 1) -1) # subtract unused tail
-    logger.debug("merkle: treesize %s" % repr(treesize))
+    logger.debug("merkle: treesize %s", treesize)
     tree = ['\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'] * treesize
     return tree
 
@@ -118,7 +118,7 @@ def create_tree(height):
 def fill_tree(tree, height, npieces, hashes):
     # 1. Fill bottom of tree with hashes
     startoffset = int(pow(2, height) - 1)
-    logger.debug("merkle: bottom of tree starts at %s" % repr(startoffset))
+    logger.debug("merkle: bottom of tree starts at %s", startoffset)
     for offset in range(startoffset, startoffset + npieces):
         # print >> sys.stderr,"merkle: copying",offset
         # print >> sys.stderr,"merkle: hashes[",offset-startoffset,"]=",str(hashes[offset-startoffset])
@@ -134,7 +134,7 @@ def fill_tree(tree, height, npieces, hashes):
 
     # 3. Calculate higher level hashes from leaves
     for level in range(height, 0, -1):
-        logger.debug("merkle: calculating level %s" % repr(level))
+        logger.debug("merkle: calculating level %s", level)
         for offset in range(int(pow(2, level) - 1), int(pow(2, level +1)-2), 2):
             # print >> sys.stderr,"merkle: data offset",offset
             [parentstartoffset, parentoffset] = get_parent_offset(offset, level)
@@ -152,7 +152,7 @@ def fill_tree(tree, height, npieces, hashes):
 def get_hashes_for_piece(tree, height, index):
     startoffset = int(pow(2, height) - 1)
     myoffset = startoffset + index
-    logger.debug("merkle: myoffset %s" % repr(myoffset))
+    logger.debug("merkle: myoffset %s", myoffset)
     # 1. Add piece's own hash
     hashlist = [[myoffset, tree[myoffset]]]
     # 2. Add hash of piece's sibling, left or right
@@ -160,14 +160,14 @@ def get_hashes_for_piece(tree, height, index):
         siblingoffset = myoffset - 1
     else:
         siblingoffset = myoffset + 1
-    logger.debug("merkle: siblingoffset %s" % repr(siblingoffset))
+    logger.debug("merkle: siblingoffset %s", siblingoffset)
     if siblingoffset != -1:
         hashlist.append([siblingoffset, tree[siblingoffset]])
     # 3. Add hashes of uncles
     uncleoffset = myoffset
     for level in range(height, 0, -1):
         uncleoffset = get_uncle_offset(uncleoffset, level)
-        logger.debug("merkle: uncleoffset %s" % repr(uncleoffset))
+        logger.debug("merkle: uncleoffset %s", uncleoffset)
         hashlist.append([uncleoffset, tree[uncleoffset]])
     return hashlist
 
@@ -193,13 +193,13 @@ def check_tree_path(root_hash, height, hashlist):
     myindex = a[0] - mystartoffset
     sibindex = b[0] - mystartoffset
     for level in range(height, 0, -1):
-        logger.debug("merkle: checking level %s" % repr(level))
+        logger.debug("merkle: checking level %s", level)
         a = check_fork(a, b, level)
         b = hashlist[i]
         if b[0] < 0 or b[0] > maxoffset:
             return False
         i += 1
-    logger.debug("merkle: ROOT HASH %s == %s" % (repr(str(root_hash)), repr(str(a[1]))))
+    logger.debug("merkle: ROOT HASH %s == %s", repr(str(root_hash)), repr(str(a[1])))
     if a[1] == root_hash:
         return True
     else:
@@ -214,7 +214,7 @@ def update_hash_admin(hashlist, tree, height, hashes):
             index = hashlist[i][0] - mystartoffset
             # ignore siblings that are just tree filler
             if index < len(hashes):
-                logger.debug("merkle: update_hash_admin: saving hash of %s" % repr(index))
+                logger.debug("merkle: update_hash_admin: saving hash of %s", index)
                 hashes[index] = hashlist[i][1]
         # put all hashes in tree, such that we incrementally learn it
         # and can pass them on to others
@@ -226,10 +226,10 @@ def check_fork(a, b, level):
     siblingoffset = b[0]
     if myoffset > siblingoffset:
         data = b[1] + a[1]
-        logger.debug("merkle: combining %s %s" % (repr(siblingoffset), repr(myoffset)))
+        logger.debug("merkle: combining %s %s", siblingoffset, myoffset)
     else:
         data = a[1] + b[1]
-        logger.debug("merkle: combining %s %s" % (repr(myoffset), repr(siblingoffset)))
+        logger.debug("merkle: combining %s %s" , myoffset, siblingoffset)
     digester = sha()
     digester.update(data)
     digest = digester.digest()
@@ -248,7 +248,7 @@ def get_uncle_offset(myoffset, level):
     if level == 1:
         return 0
     [parentstartoffset, parentoffset] = get_parent_offset(myoffset, level - 1)
-    logger.debug("merkle: parent offset %s" % repr(parentoffset))
+    logger.debug("merkle: parent offset %s", parentoffset)
     parentindex = parentoffset - parentstartoffset
     if parentoffset % 2 == 0:
         uncleoffset = parentoffset - 1

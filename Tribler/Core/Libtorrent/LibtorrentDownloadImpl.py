@@ -86,7 +86,7 @@ class VODFile(object):
 
         frompiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), frompos, 0)
         topiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), topos, 0)
-        self._logger.info("VODFile: Libtorrent says we read pieces %s %s" % (repr(frompiece.piece), repr(topiece.piece)))
+        self._logger.info("VODFile: Libtorrent says we read pieces %s %s", frompiece.piece, topiece.piece)
 
         if frompiece.start:
             if frompos - frompiece.start < 0:
@@ -601,7 +601,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         elif alert.message().endswith("max outstanding disk writes reached"):
             settings = self.ltmgr.ltsession.settings()
             if settings.max_queued_disk_bytes <= 33554432:
-                self._logger.info("LibtorrentDownloadImpl: setting max_queued_disk_bytes to %d", 2 * settings.max_queued_disk_bytes)
+                self._logger.info("LibtorrentDownloadImpl: setting max_queued_disk_bytes to %s", 2 * settings.max_queued_disk_bytes)
                 settings.max_queued_disk_bytes = 2 * settings.max_queued_disk_bytes
                 self.ltmgr.ltsession.set_settings(settings)
 
