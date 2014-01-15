@@ -3,7 +3,6 @@
 import os
 import ast
 import sys
-import socket
 
 from random import gauss
 
@@ -35,8 +34,6 @@ class Utility:
         # Find the directory to save config files, etc.
         self.dir_root = configpath
 
-        self.randomly_selected_ports = {}
-
         self.setupConfig()
 
         # Setup language files
@@ -66,8 +63,8 @@ class Utility:
                             'window_width': 1024,
                             'window_height': 670,
                             'sash_position':-185,
-                            't4t_option': 0,  # Seeding items added by Boxun
-                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
+                            't4t_option': 0, # Seeding items added by Boxun
+                            't4t_ratio': 100, # T4T seeding ratio added by Niels
                             't4t_hours': 0,
                             't4t_mins': 30,
                             'g2g_option': 1,
@@ -82,8 +79,7 @@ class Utility:
                             'use_webui': 0,
                             'webui_port': 8080,
                             # Swift reseed
-                            'swiftreseed': 1,
-                            'videohttpport':-1}
+                            'swiftreseed': 1}
 
         if sys.platform == 'win32':
             tribler_defaults['mintray'] = '2'
@@ -104,7 +100,6 @@ class Utility:
 
         # Load the config file.
         self.config.read(self.configfilepath)
- 
         if not self.config.has_section('Tribler'):
             self.config.add_section('Tribler')
 
@@ -116,15 +111,6 @@ class Utility:
 
     def getPath(self):
         return self.abcpath
-
-    def get_free_random_port(self, option, section='Tribler'):
-        key = (option, section)
-        if key not in self.randomly_selected_ports:
-            s = socket.socket()
-            s.bind(('', 0))
-            self.randomly_selected_ports[key] = s.getsockname()[1]
-            s.close()
-        return self.randomly_selected_ports[key]
 
     def read_config(self, option, section='Tribler', literal_eval=True):
         if not self.config.has_option(section, option):
