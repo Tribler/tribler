@@ -297,8 +297,7 @@ def encode_dict(x, r):
     ilist = x.items()
     ilist.sort()
     for k, v in ilist:
-
-        logger.debug("bencode: Encoding %s %s", k, v)
+        #logger.debug("bencode: Encoding %s %s", k, v)
 
         try:
             r.extend((str(len(k)), ':', k))
