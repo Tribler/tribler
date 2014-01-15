@@ -33,7 +33,7 @@ class CircuitReturnHandler(object):
         self.circuit_id = circuit_id
         self.socket = socket
 
-    def send(self, data, destination):
+    def sendto(self, data, destination):
         self.socket.sendto(data, destination)
 
     def data_came_in(self, packets):
@@ -91,5 +91,5 @@ class ShortCircuitReturnHandler(object):
             message = DataMessage(("0.0.0.0",0), packet, source_address)
             self.proxy.on_data(0, None, message)
 
-    def send(self, data, destination):
+    def sendto(self, data, destination):
         self.socket.sendto(data, destination)
