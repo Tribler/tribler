@@ -26,11 +26,11 @@ class Instance2InstanceServer(Thread):
     def __init__(self, i2iport, connhandler, timeout=300.0):
         Thread.__init__(self)
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         name = 'Instance2Instance' + self.getName()
         self.setDaemon(True)
         self.setName(name)
-
-        self._logger = logging.getLogger(name)
 
         self.i2iport = i2iport
         self.connhandler = connhandler

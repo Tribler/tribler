@@ -24,11 +24,11 @@ class FastI2IConnection(Thread):
     def __init__(self, port, readlinecallback, closecallback):
         Thread.__init__(self)
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         name = "FastI2I" + self.getName()
         self.setName(name)
         self.setDaemon(True)
-
-        self._logger = logging.getLogger(name)
 
         self.port = port
         self.readlinecallback = readlinecallback

@@ -36,12 +36,12 @@ class RssParser(Thread):
             raise RuntimeError("RssParser is singleton")
         RssParser.__single = self
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         Thread.__init__(self)
         name = "RssParser" + self.getName()
         self.setName(name)
         self.setDaemon(True)
-
-        self._logger = logging.getLogger(name)
 
         self.key_url_lock = RLock()
         self.key_url = {}

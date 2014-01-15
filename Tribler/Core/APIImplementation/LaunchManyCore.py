@@ -62,7 +62,7 @@ class TriblerLaunchMany(Thread):
         self.dispersy = None
         self.database_thread = None
 
-        self._logger = logging.getLogger(self.__class__.__name__ + '-' + name)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def register(self, session, sesslock):
         if not self.registered:

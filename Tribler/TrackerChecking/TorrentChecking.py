@@ -80,9 +80,10 @@ class TorrentChecking(Thread):
 
         Thread.__init__(self)
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         name = 'TorrentChecking' + self.getName()
         self.setName(name)
-        self._logger = logging.getLogger(name)
 
         self._logger.debug('Starting TorrentChecking from %s.', threading.currentThread().getName())
         self.setDaemon(True)
