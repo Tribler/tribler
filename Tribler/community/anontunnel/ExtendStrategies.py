@@ -1,4 +1,5 @@
 import logging
+from random import getrandbits
 import string
 
 logger = logging.getLogger(__name__)
@@ -47,14 +48,19 @@ class NeighbourSubset:
         if not sock_addr:
             raise ValueError("No candidates to extend, bailing out ")
 
-        session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
-        self.circuit.unverified_hop = Hop(sock_addr, pub_key, session_key)
+        dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
+            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
-        logger.debug("still have to encrypt the session key in the xtend message")
+        #session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(32))
+        session_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
+        self.circuit.unverified_hop = Hop(sock_addr, pub_key, dh_secret)
+
+        logger.debug("still have to encrypt the session key in the xtend message with the elgamal key of the candidate")
         encrypted_key = session_key
 
         logger.info("We chose %s from the list to extend circuit %d with session key %s" % (sock_addr, self.circuit.circuit_id, session_key))
-        self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(sock_addr, encrypted_key))
+        self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(sock_addr, session_key))
 
 
 class RandomAPriori:

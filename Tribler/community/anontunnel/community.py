@@ -27,7 +27,7 @@ from Tribler.community.anontunnel.conversion import ProxyConversion, \
     CustomProxyConversion
 
 from Tribler.community.anontunnel.payload import StatsPayload, CreatedMessage, \
-    PongMessage, CreateMessage, PingMessage, DataMessage
+    PongMessage, CreateMessage, PingMessage, DataMessage, ExtendedMessage
 
 from Tribler.dispersy.candidate import BootstrapCandidate, WalkCandidate, \
     Candidate
@@ -41,10 +41,18 @@ from Tribler.dispersy.resolution import PublicResolution
 
 
 class Hop:
-    def __init__(self, address, pub_key, session_key):
+    def __init__(self, address, pub_key, dh_first_part):
         self.address = address
         self.pub_key = pub_key
-        self.session_key = session_key
+        self.session_key = None
+        self.dh_first_part = dh_first_part
+
+    @property
+    def session_key(self):
+        return self.session_key
+    @property
+    def dh_first_part(self):
+        return self.dh_first_part
 
     @property
     def host(self):
@@ -227,7 +235,6 @@ class ProxyCommunity(Community):
         changed = value != self._online
 
         if changed:
-            logger.error("Proxy is now ONLINE" if value else "Proxy is now OFFLINE")
             self._online = value
             for o in self.__observers:
                 o.on_state_change(self, value)
@@ -285,6 +292,9 @@ class ProxyCommunity(Community):
 
         self.key = self.my_member.private_key
         self.session_keys = {}
+
+        sr = random.SystemRandom()
+        sys.modules["random"] = sr
 
 
         # Stats
@@ -518,18 +528,17 @@ class ProxyCommunity(Community):
         else:
             try:
                 if circuit_id in self.circuits:
-                    # I am the originator
+                    # I am the originator so I'll peel the onion skins
                     for hop in self.circuits[circuit_id].hops:
-             #           logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
+                        logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                         data = AESdecode(hop.session_key, data)
-                    if self.circuits[circuit_id].unverified_hop:
-            #            logger.debug("Removing AES layer for unverified hop %s:%s with key %s" % (self.circuits[circuit_id].unverified_hop.host, self.circuits[circuit_id].unverified_hop.port, self.circuits[circuit_id].unverified_hop.session_key))
-                        data = AESdecode(self.circuits[circuit_id].unverified_hop.session_key, data)
 
                 elif circuit_id in self.session_keys:
+                    # last node in circuit, circuit already exists
+                    logger.debug("Removing AES layer with key %s" % (self.session_keys[circuit_id]))
                     data = AESdecode(self.session_keys[circuit_id], data)
                 else:
-             #       logger.warning("Gotta decrypt with private key, circuit = {}, my circuitkeys so far are {}".format(circuit_id, self.session_keys))
+                    # last node in circuit, circuit does not exist yet
                     data = data
 
                 _, payload = self.proxy_conversion.decode(data)
@@ -578,18 +587,27 @@ class ProxyCommunity(Community):
         def cleanup_delay(self):
             return 0.0
 
-        def on_created(self, created_message):
+        def on_extended(self, extended_message):
             """
-
-            :type created_message : Tribler.community.anontunnel.payload.CreatedMessage
+            :type extended_message : Tribler.community.anontunnel.payload.ExtendedMessage
             """
             unverified_hop = self.circuit.unverified_hop
             logger.error("Not really verifying hop! Check hashes etc")
 
+            session_key = pow(extended_message.key, unverified_hop.dh_first_part, DIFFIE_HELLMAN_MODULUS)
+            m = hashlib.sha1()
+            m.update(str(session_key))
+            key = m.digest()[0:16]
+            #logger.debug("The extended message's key : {}".format(extended_message.key))
+            #logger.debug("The unverified hop's key   : {}".format(unverified_hop.dh_first_part))
+            #logger.debug("CALCULATED SECRET {} FOR THE EXTENDED NODE".format(key))
+
+            unverified_hop.session_key = key
+
             self.circuit.hops.append(unverified_hop)
             self.circuit.unverified_hop = None
 
-            candidate_list = created_message.candidate_list
+            candidate_list = extended_message.candidate_list
 
             dispersy = self.community.dispersy
             if dispersy.lan_address in candidate_list:
@@ -639,15 +657,19 @@ class ProxyCommunity(Community):
             goal_hops = self.circuit_length_strategy.circuit_length()
             circuit = cache.circuit = Circuit(circuit_id, goal_hops, first_hop_candidate)
 
-
             circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
             self.circuits[circuit_id] = circuit
 
             pub_key = None
-            session_key = "".join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(AES_KEY_SIZE))
-            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, session_key)
+
+            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+            while dh_secret >= DIFFIE_HELLMAN_MODULUS:
+                dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+
+            dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
+            circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
-            self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(session_key))
+            self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(dh_first_part))
 
             return circuit
 
@@ -678,18 +700,26 @@ class ProxyCommunity(Community):
     def on_create(self, circuit_id, candidate, message):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
         logger.info('We joined circuit %d with neighbour %s', circuit_id, candidate)
-        logger.info('Received secret %s', message.encrypted_key)
+        logger.info('Received secret %s', message.key)
 
         self.directions[circuit_id] = ORIGINATOR
 
-        # todo: decrypt
-        key = message.encrypted_key
+        dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
+            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
+
+        key = pow(message.key, dh_secret, DIFFIE_HELLMAN_MODULUS)
+
+        m = hashlib.sha1()
+        m.update(str(key))
+        key = m.digest()[0:16]
         self.session_keys[circuit_id] = key
+        #logger.debug("The create message's key   : {}".format(message.key))
+        #logger.debug("My diffie secret           : {}".format(self.dh_secret))
+        #logger.debug("CALCULATED SECRET {} FOR THE ORIGINATOR NODE".format(key))
 
-        m = hashlib.sha256()
-        m.update(key)
-        hashed_key = m.digest()
+        return_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
 
         cand_dict = {}
         for i in range(1, 5):
@@ -702,16 +732,21 @@ class ProxyCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-        logger.warning("Returning candidate dict {}".format(cand_dict))
-
-        return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(hashed_key, cand_dict))
+        return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(return_key, cand_dict))
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
+        relay_key = (circuit_id, candidate)
+        if relay_key in self.relay_from_to:
+            extended_message = ExtendedMessage(message.key, message.candidate_list)
+            forwarding_relay = self.relay_from_to[relay_key]
+            return self.send_message(forwarding_relay.candidate, forwarding_relay.circuit_id, MESSAGE_EXTENDED, extended_message)
+
+
         self.directions[circuit_id] = ENDPOINT
         request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
-            request.on_created(message)
+            request.on_extended(message)
             return True
 
         return False
@@ -777,12 +812,12 @@ class ProxyCommunity(Community):
         self.relay_from_to[to_key] = RelayRoute(circuit_id, candidate)
         self.relay_from_to[relay_key] = RelayRoute(new_circuit_id, extend_with)
 
-        encrypted_secret = message.encrypted_secret
+        key = message.key
 
         self.directions[new_circuit_id] = ORIGINATOR
         self.directions[circuit_id] = ENDPOINT
 
-        return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_secret))
+        return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage(key))
 
     def on_extended(self, circuit_id, candidate, message):
         """ A circuit has been extended, forward the acknowledgment back
@@ -882,10 +917,13 @@ class ProxyCommunity(Community):
                 logger.debug("Adding AES layer for hop %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                 content = AESencode(hop.session_key, content)
         elif circuit_id in self.session_keys:
-            content = AESencode(self.session_keys[circuit_id], content)
-            logger.debug("Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[circuit_id]))
-
-        #packet = self.proxy_conversion.add_circuit(content, circuit_id)
+           if message_type == MESSAGE_CREATED:
+                logger.debug("Adding public key encryption for circuit %s" % (circuit_id))
+                logger.error("Still have to implement public key encryption for CREATED message")
+           else:
+                content = AESencode(self.session_keys[circuit_id], content)
+                logger.debug("Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[circuit_id]))
+          #packet = self.proxy_conversion.add_circuit(content, circuit_id)
 
         return self.send_packet(destination, circuit_id, message_type, content)
 
