@@ -1,10 +1,9 @@
 import logging
 import socket
-import string
 from threading import RLock
 import uuid
 import random
-import M2Crypto
+import sys
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
 from Tribler.dispersy.requestcache import NumberCache
 
@@ -14,9 +13,9 @@ from AES import AESencode
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
-from random import randint, randrange
+from random import randint, getrandbits
 from Tribler.community.anontunnel import ExtendStrategies
-from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy, RandomCircuitLengthStrategy
+from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
 from traceback import print_exc
 
