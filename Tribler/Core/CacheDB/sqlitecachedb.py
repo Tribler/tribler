@@ -1344,7 +1344,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
                                     FROM TermFrequency TF1, TermFrequency TF2
                                     WHERE TF1.term = ? AND TF2.term = ?"""
-            dbg_ts1 = time()
+            import time
+            dbg_ts1 = time.time()
 
             records = self.fetchall(sql)
             termcount = {}
@@ -1365,7 +1366,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.executemany(ins_terms_sql, termcount.items())
             self.executemany(ins_phrase_sql, phrases)
 
-            dbg_ts2 = time()
+            dbg_ts2 = time.time()
             self._logger.debug('DB Upgradation: extracting and inserting terms took %s s', dbg_ts2 - dbg_ts1)
 
             self.database_update.release()
