@@ -34,7 +34,7 @@ class UserDownloadChoice:
         self._utility = utility
 
         try:
-            self._choices = json.loads(utility.read_config("user_download_choice", literal_eval=False))
+            self._choices = json.loads(utility.read_config("user_download_choice"))
         except:
             self._choices = {}
 

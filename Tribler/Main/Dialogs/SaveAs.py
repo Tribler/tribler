@@ -25,7 +25,7 @@ class SaveAs(wx.Dialog):
         self.utility = self.guiutility.utility
         self.filehistory = []
         try:
-            self.filehistory = json.loads(self.utility.read_config("recent_download_history", literal_eval=False))
+            self.filehistory = json.loads(self.utility.read_config("recent_download_history"))
         except:
             pass
 
