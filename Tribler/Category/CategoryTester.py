@@ -26,7 +26,7 @@ def testFilter(catfilename, torrentpath):
         total += 1
         porn += int(isporn)
         if isporn == fporn:
-            logger.debug((isporn, fporn), 'good', name)
+            logger.debug('%s %s %s', (isporn, fporn), 'good', name)
 
         elif isporn and not fporn:
             fn += 1

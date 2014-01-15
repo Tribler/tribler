@@ -715,6 +715,8 @@ class Playlist(Helper):
     __slots__ = ('id', 'dispersy_id', 'channel_id', 'name', 'description', 'nr_torrents', 'channel')
 
     def __init__(self, id, dispersy_id, channel_id, name, description, nr_torrents, channel):
+        Helper.__init__(self)
+
         self.id = id
         self.dispersy_id = dispersy_id
         self.channel_id = channel_id
@@ -757,6 +759,8 @@ class Modification(Helper):
     __slots__ = ('id', 'dispersy_id', 'peer_id', 'type_id', 'value', 'time_stamp', 'inserted', 'moderation', 'channeltorrent_id', 'channelcast_db', 'get_nickname')
 
     def __init__(self, id, dispersy_id, peer_id, type_id, value, time_stamp, inserted, channeltorrent_id):
+        Helper.__init__(self)
+
         self.id = id
         self.dispersy_id = dispersy_id
         self.peer_id = peer_id
@@ -793,6 +797,8 @@ class Moderation(Helper):
     __slots__ = ('id', 'channel_id', 'peer_id', 'by_peer_id', 'severity', 'message', 'time_stamp', 'inserted', 'modification', 'channelcast_db', 'get_nickname')
 
     def __init__(self, id, channel_id, peer_id, by_peer_id, severity, message, time_stamp, inserted):
+        Helper.__init__(self)
+
         self.id = id
         self.channel_id = channel_id
         self.peer_id = peer_id
@@ -820,6 +826,8 @@ class Marking(Helper):
     __slots__ = ('dispersy_id', 'channeltorrent_id', 'peer_id', 'type', 'time_stamp', 'get_nickname')
 
     def __init__(self, dispersy_id, channeltorrent_id, peer_id, type, time_stamp):
+        Helper.__init__(self)
+
         self.dispersy_id = dispersy_id
         self.channeltorrent_id = channeltorrent_id
         self.peer_id = peer_id
