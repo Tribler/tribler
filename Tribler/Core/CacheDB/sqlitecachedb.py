@@ -162,8 +162,7 @@ class SQLiteCacheDBBase:
         self.exception_handler = db_exception_handler
 
         self.cursor_lock = RLock()
-        self.cursor_table = {}  # {thread_name:cur}
-        self.class_variables = safe_dict({'db_path': None, 'busytimeout': None})  # busytimeout is in milliseconds
+        self.cursor_table = {}
 
         self.database_update = None
 
@@ -232,8 +231,6 @@ class SQLiteCacheDBBase:
 
             if create_sql_filename is not None:
                 self._checkDB()
-
-            self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
 
             return self.getCursor()
 
