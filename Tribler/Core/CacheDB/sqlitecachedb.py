@@ -43,6 +43,7 @@ import logging
 # Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
 # Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables, removed indices
 # Changed from 17 to 18 added swift-thumbnails/video-info metadatatypes
+# Changed from 18 to 19 added torrent checking, cleaned Peer table
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is
 # written to the DB in the schema_sdb_v*.sql file!!!
