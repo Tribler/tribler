@@ -289,7 +289,6 @@ class SQLiteCacheDBBase:
     def initDB(self, sqlite_filepath,
                create_sql_filename=None,
                busytimeout=DEFAULT_BUSY_TIMEOUT,
-               check_version=True,
                current_db_version=CURRENT_MAIN_DB_VERSION):
         """
         Create and initialize a SQLite database given a sql script.
@@ -320,7 +319,7 @@ class SQLiteCacheDBBase:
                     # sys.exit(0)
                     # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
                     # it will update the db if necessary by checking the version number
-                    self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout, check_version=check_version, current_db_version=current_db_version)
+                    self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout, current_db_version=current_db_version)
 
                     self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
 
@@ -332,7 +331,7 @@ class SQLiteCacheDBBase:
         finally:
             self.lock.release()
 
-    def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT, check_version=False, current_db_version=None):
+    def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT, current_db_version=None):
         """
         open the db if possible, otherwise create a new one
         update the db if necessary by checking the version number
@@ -365,10 +364,10 @@ class SQLiteCacheDBBase:
                 raise Warning("No existing database found. Attempting to creating a new database %s" % repr(dbfile_path))
 
             cur = self.openDB(dbfile_path, busytimeout)
-            if check_version:
-                sqlite_db_version = self.readDBVersion()
-                if sqlite_db_version == NULL or int(sqlite_db_version) < 1:
-                    raise NotImplementedError
+
+            sqlite_db_version = self.readDBVersion()
+            if sqlite_db_version == NULL or int(sqlite_db_version) < 1:
+                raise NotImplementedError
         except Exception as exception:
             if isinstance(exception, Warning):
                 # user friendly warning to log the creation of a new database
@@ -390,11 +389,9 @@ class SQLiteCacheDBBase:
                 raise Exception("Cannot open sql script at %s" % os.path.realpath(sql_create))
 
             self.createDBTable(sql_create_tables, dbfile_path, busytimeout)
-            if check_version:
-                sqlite_db_version = self.readDBVersion()
+            sqlite_db_version = self.readDBVersion()
 
-        if check_version:
-            self.checkDB(sqlite_db_version, current_db_version)
+        self.checkDB(sqlite_db_version, current_db_version)
 
     def checkDB(self, db_ver, curr_ver):
         # read MyDB and check the version number.
