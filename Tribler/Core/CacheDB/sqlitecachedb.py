@@ -2394,6 +2394,12 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 class SQLiteCacheDB(SQLiteNoCacheDB):
     __single = None  # used for multithreaded singletons pattern
 
+    def __init__(self, *args, **kargs):
+        # always use getInstance() to create this object
+        if self.__single != None:
+            raise RuntimeError("SQLiteCacheDB is singleton")
+        SQLiteNoCacheDB.__init__(self, *args, **kargs)
+
     @classmethod
     def getInstance(cls, *args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
@@ -2411,19 +2417,5 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
     def hasInstance(cls, *args, **kw):
         return cls.__single != None
 
-    def __init__(self, *args, **kargs):
-        # always use getInstance() to create this object
-        if self.__single != None:
-            raise RuntimeError("SQLiteCacheDB is singleton")
-        SQLiteNoCacheDB.__init__(self, *args, **kargs)
-
     def schedule_task(self, task, delay=0.0):
         register_task(None, task, delay=delay)
-
-if __name__ == '__main__':
-    configure_dir = sys.argv[1]
-    config = {}
-    config['state_dir'] = configure_dir
-    config['install_dir'] = u'.'
-    sqlite_test = init(config)
-    sqlite_test.test()
