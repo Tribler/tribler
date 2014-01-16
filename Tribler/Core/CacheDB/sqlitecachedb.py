@@ -301,17 +301,14 @@ class SQLiteCacheDBBase:
 
         if create_sql_filename is None:
             create_sql_filename = CREATE_SQL_FILE
-        try:
-            # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
-            # it will update the db if necessary by checking the version number
-            self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout)
 
-            self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
+        # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
+        # it will update the db if necessary by checking the version number
+        self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout)
 
-            return self.openDB()  # return the cursor, won't reopen the db
+        self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
 
-        finally:
-            pass
+        return self.openDB()  # return the cursor, won't reopen the db
 
     def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT):
         """
