@@ -56,7 +56,6 @@ CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'  # db file path = DB_DIR_NAME/DB_FILE_NAME
 DEFAULT_BUSY_TIMEOUT = 10000
-NULL = None
 SHOW_ALL_EXECUTE = False
 TEST_OVERRIDE = False
 
@@ -322,7 +321,7 @@ class SQLiteCacheDBBase:
             cur = self.openDB(dbfile_path, busytimeout)
 
             sqlite_db_version = self.readDBVersion()
-            if sqlite_db_version == NULL or int(sqlite_db_version) < 1:
+            if sqlite_db_version is None or int(sqlite_db_version) < 1:
                 raise NotImplementedError
         except Exception as exception:
             if isinstance(exception, Warning):
@@ -528,11 +527,9 @@ class SQLiteCacheDBBase:
         return result
 
     def fetchone(self, sql, args=None):
-        # returns NULL: if the result is null
-        # return None: if it doesn't found any match results
         find = self.execute_read(sql, args)
         if not find:
-            return NULL
+            return None
         else:
             find = list(find)
             if len(find) > 0:
@@ -540,7 +537,7 @@ class SQLiteCacheDBBase:
                     self._logger.debug("FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement %s, %s", sql, len(find))
                 find = find[0]
             else:
-                return NULL
+                return None
         if len(find) > 1:
             return find
         else:
