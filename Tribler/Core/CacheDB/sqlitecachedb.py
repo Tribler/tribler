@@ -2284,7 +2284,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         if not _shouldCommit:
             _shouldCommit = True
 
-        self._execute(sql, args)
+        self.__execute(sql, args)
 
     def executemany(self, sql, args):
         global _shouldCommit
@@ -2308,7 +2308,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         return SQLiteCacheDBV5.fetchall(self, sql, args)
 
     @forceAndReturnDBThread
-    def _execute(self, sql, args=None):
+    def __execute(self, sql, args=None):
         cur = self.getCursor()
 
         if SHOW_ALL_EXECUTE:
