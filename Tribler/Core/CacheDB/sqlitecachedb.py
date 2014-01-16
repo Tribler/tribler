@@ -158,8 +158,6 @@ class SQLiteCacheDBBase:
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._connection = None
-        self._db_initialized = False
-        self._db_init_condition = threading.Condition()
 
         self.exception_handler = db_exception_handler
 
@@ -224,8 +222,7 @@ class SQLiteCacheDBBase:
         """
         assert sqlite_filepath is not None
 
-        self._logger.info(u'Initializing SQLite DB.')
-        self._db_init_condition.acquire()
+        self._logger.info(u"Initializing SQLite DB.")
         try:
             if create_sql_filename is None:
                 create_sql_filename = CREATE_SQL_FILE
@@ -239,14 +236,11 @@ class SQLiteCacheDBBase:
             self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
 
             return self.getCursor()
+
         except Exception as err:
-            self._logger.error('Cannot initialize SQLite DB.')
-            self._logger.debug('Error: %s', err)
+            self._logger.error(u"Cannot initialize SQLite DB.")
+            self._logger.debug(u"Error: %s", err)
             return None
-        finally:
-            self._db_initialized = True
-            self._db_init_condition.notifyAll()
-            self._db_init_condition.release()
 
     def _openDb(self, dbfile_path, sql_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
         """
@@ -268,17 +262,17 @@ class SQLiteCacheDBBase:
             else:
                 # db is not a file
                 if not os.path.isfile(dbfile_path):
-                    self._logger.error(u'DB path is not a file.')
-                    self._logger.debug(u'DB path: %s', dbfile_path)
+                    self._logger.error(u"DB path is not a file.")
+                    self._logger.debug(u"DB path: %s", dbfile_path)
                     return False
 
         # create DB connection
         try:
             self._connection = apsw.Connection(dbfile_path)
         except Exception as err:
-            self._logger.error(u'Cannot create SQLite connection.')
-            self._logger.debug(u'Error: %s', err)
-            self._logger.debug(u'DB path: %s', dbfile_path)
+            self._logger.error(u"Cannot create SQLite connection.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"DB path: %s", dbfile_path)
             return False
         # some settings
         self._connection.setbusytimeout(busytimeout)
@@ -291,18 +285,18 @@ class SQLiteCacheDBBase:
             sql = sql_file.read()
             sql_file.close()
         except Exception as err:
-            self._logger.error(u'Cannot create SQLite connection.')
-            self._logger.debug(u'Error: %s', err)
-            self._logger.debug(u'SQL file path: %s', sql_path)
+            self._logger.error(u"Cannot create SQLite connection.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"SQL file path: %s", sql_path)
             return False
 
         # create tables
         try:
             cursor.execute(sql)
         except Exception as err:
-            self._logger.error(u'Cannot create SQL tables.')
-            self._logger.debug(u'Error: %s', err)
-            self._logger.debug(u'SQL statement: %s', sql)
+            self._logger.error(u"Cannot create SQL tables.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"SQL statement: %s", sql)
             return False
 
         # set PRAGMA options
@@ -2248,10 +2242,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     @forceDBThread
     def initialBegin(self):
         global _shouldCommit
-        self._db_init_condition.acquire()
-        if not self._db_initialized:
-            self._db_init_condition.wait()
-        self._db_init_condition.release()
         try:
             self._logger.info("SQLiteNoCacheDB.initialBegin: BEGIN")
             self._execute("BEGIN;")
