@@ -92,9 +92,9 @@ class TestMyChannel(TestGuiAsServer):
             self.screenshot('Playlist has been created')
 
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())
-            download.add_peer(("127.0.0.1", self.session2.get_listen_port()))
 
             self.guiUtility.ShowPage('my_files')
+            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
             self.CallConditional(10, lambda: download.get_progress() == 1.0, lambda: do_thumbnails(torrentfilename), 'Failed to download torrent in time')
 
         def do_create_playlist(torrentfilename):
