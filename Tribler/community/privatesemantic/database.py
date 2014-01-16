@@ -60,12 +60,12 @@ class SemanticDatabase(Database):
                 pass
 
         return LATEST_VERSION
-    
+
     def get_database_stats(self):
         stats_dict = {}
-        
+
         for tablename, in list(self.execute(u'SELECT name FROM sqlite_master WHERE type = "table"')):
-            count, = self.execute(u"SELECT COUNT(*) FROM "+tablename).next()
+            count, = self.execute(u"SELECT COUNT(*) FROM " + tablename).next()
             stats_dict[str(tablename)] = count
         return stats_dict
 
@@ -73,11 +73,11 @@ class SemanticDatabase(Database):
         assert isinstance(overlap, (list, int, long, float)), type(overlap)
         if isinstance(overlap, list):
             assert all(isinstance(cur_overlap, (int, long, float)) for cur_overlap in overlap)
-            
+
         if isinstance(overlap, list):
             overlap = ",".join(map(str, overlap))
             overlap = buffer(overlap)
-            
+
         try:
             self.execute(u"INSERT INTO peercache (ip, port, overlap, last_connected) VALUES (?,?,?,?)", (unicode(ip), port, overlap, last_connected or time()))
         except:
@@ -88,10 +88,10 @@ class SemanticDatabase(Database):
         for i in range(len(peers)):
             peers[i] = list(peers[i])
             if isinstance(peers[i][0], buffer):
-                peers[i][0] = [long(overlap) for overlap in str(peers[i][0]).split(",") if overlap]
+                peers[i][0] = [long(overlap) for overlap in str(peers[i][0]).split(",") if overlap and overlap != 'None']
             else:
                 peers[i][0] = float(peers[i][0])
             peers[i][1] = str(peers[i][1])
-        
-        peers.sort(reverse = True)
+
+        peers.sort(reverse=True)
         return peers
