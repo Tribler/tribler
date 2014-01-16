@@ -72,7 +72,7 @@ class SemanticDatabase(Database):
     def add_peer(self, overlap, ip, port, last_connected=None):
         assert isinstance(overlap, (list, int, long, float)), type(overlap)
         if isinstance(overlap, list):
-            assert all(isinstance(cur_overlap, (int, long, float)) for cur_overlap in overlap)
+            assert all(isinstance(cur_overlap, (int, long, float)) for cur_overlap in overlap), [type(cur_overlap) for cur_overlap in overlap]
 
         if isinstance(overlap, list):
             overlap = ",".join(map(str, overlap))
@@ -88,7 +88,7 @@ class SemanticDatabase(Database):
         for i in range(len(peers)):
             peers[i] = list(peers[i])
             if isinstance(peers[i][0], buffer):
-                peers[i][0] = [long(overlap) for overlap in str(peers[i][0]).split(",") if overlap and overlap != 'None']
+                peers[i][0] = [long(overlap) for overlap in str(peers[i][0]).split(",") if overlap]
             else:
                 peers[i][0] = float(peers[i][0])
             peers[i][1] = str(peers[i][1])
