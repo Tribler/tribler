@@ -1,13 +1,6 @@
 #!/bin/bash
 # Run Tribler from source tree
 
-if [ ! -e Tribler/Main/tribler.py ]; then
-    echo "ERROR: Script must be called from source tree root"
-    echo "  Try the following commands:"
-    echo "cd $(dirname $0)"
-    echo "./$(basename $0)"
-    exit 1
-fi
 
 UNAME=$(uname -s)
 
@@ -33,6 +26,14 @@ if [ $UNAME == "Linux" ]; then
 
 else
     if [ $UNAME == "Darwin" ]; then
+
+        if [ ! -e Tribler/Main/tribler.py ]; then
+            echo "ERROR: Script must be called from source tree root"
+            echo "  Try the following commands:"
+            echo "cd $(dirname $0)"
+            echo "./$(basename $0)"
+            exit 1
+        fi
 
         PYTHONVER=2.5
         PYTHON=/usr/local/bin/python$PYTHONVER

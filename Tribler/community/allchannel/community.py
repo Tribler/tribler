@@ -7,7 +7,7 @@ from time import time
 
 from conversion import AllChannelConversion
 
-from Tribler.dispersy.dispersy import MissingMessageCache
+from Tribler.dispersy.cache import MissingMessageCache
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion

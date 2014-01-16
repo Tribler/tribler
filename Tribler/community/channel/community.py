@@ -8,7 +8,7 @@ from time import sleep
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
 
-from Tribler.dispersy.dispersy import MissingMessageCache, MissingSomethingCache
+from Tribler.dispersy.cache import MissingMessageCache, MissingSomethingCache
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
