@@ -376,21 +376,13 @@ class SQLiteCacheDBBase:
                 self.database_update.release()
 
     def readDBVersion(self):
-        cur = self.getCursor()
-        sql = u"select value from MyInfo where entry='version'"
-        res = self.fetchone(sql)
-        if res:
-            return res
-        else:
-            return None
+        sql = u"SELECT value FROM MyInfo WHERE entry = 'version'"
+        result = self.fetchone(sql)
+        return result
 
     def writeDBVersion(self, version):
-        sql = u"UPDATE MyInfo SET value=? WHERE entry='version'"
-        self.execute_write(sql, [version])
-
-    def show_sql(self, switch):
-        # temporary show the sql executed
-        self.show_execute = switch
+        sql = u"UPDATE MyInfo SET value = ? WHERE entry = 'version'"
+        self.execute_write(sql, (version,))
 
     # --------- generic functions -------------
 
