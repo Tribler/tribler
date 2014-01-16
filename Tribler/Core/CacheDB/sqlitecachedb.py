@@ -194,21 +194,46 @@ class SQLiteCacheDBBase:
             assert self.cursor_table
             del self.cursor_table[thread_name]
 
-    # --------- static functions --------
     def getCursor(self, create=True):
         thread_name = threading.currentThread().getName()
 
         with self.cursor_lock:
             assert self.cursor_table != None
 
-            cur = self.cursor_table.get(thread_name, None)  # return [cur, cur, lib] or None
-            # print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
+            cur = self.cursor_table.get(thread_name, None)
             if cur is None and create:
                 cur = self._connection.cursor()
                 self.cursor_table[thread_name] = cur
             cur = self.cursor_table.get(thread_name)
 
         return cur
+
+    def initDB(self, sqlite_filepath,
+               create_sql_filename=None,
+               busytimeout=DEFAULT_BUSY_TIMEOUT):
+        """
+        Create and initialize a SQLite database given a sql script.
+        Only one db can be opened. If the given dbfile_path is different with the opened DB file, warn and exit
+        @configure_dir     The directory containing 'bsddb' directory
+        @sql_filename      The path of sql script to create the tables in the database
+                           Every statement must end with a ';'.
+        @busytimeout       Set the maximum time, in milliseconds, to wait and retry
+                           if failed to acquire a lock. Default = 5000 milliseconds
+        """
+        assert sqlite_filepath is not None
+
+        if create_sql_filename is None:
+            create_sql_filename = CREATE_SQL_FILE
+
+        # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
+        # it will update the db if necessary by checking the version number
+        self._openDb(sqlite_filepath, create_sql_filename, busytimeout)
+        if create_sql_filename:
+            self._checkDB()
+
+        self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
+
+        return self.getCursor()  # return the cursor, won't reopen the db
 
     def _openDb(self, dbfile_path, sql_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
         """
@@ -225,7 +250,7 @@ class SQLiteCacheDBBase:
             if not os.path.exists(dbfile_path):
                 to_create_new_db = True
 
-                db_dir, = os.path.split(dbfile_path)
+                db_dir, _ = os.path.split(dbfile_path)
                 if db_dir and not os.path.exists(db_dir):
                     os.makedirs(db_dir)
 
@@ -271,7 +296,7 @@ class SQLiteCacheDBBase:
                 return False
 
         # set PRAGMA options
-        page_size, = next(cursor.execute("PRAGMA page_size"))
+        page_size = next(cursor.execute("PRAGMA page_size"))
         if page_size < 8192:
             # journal_mode and page_size only need to be set once.  because of the VACUUM this
             # is very expensive
@@ -299,33 +324,6 @@ class SQLiteCacheDBBase:
 
         return True
 
-    def initDB(self, sqlite_filepath,
-               create_sql_filename=None,
-               busytimeout=DEFAULT_BUSY_TIMEOUT):
-        """
-        Create and initialize a SQLite database given a sql script.
-        Only one db can be opened. If the given dbfile_path is different with the opened DB file, warn and exit
-        @configure_dir     The directory containing 'bsddb' directory
-        @sql_filename      The path of sql script to create the tables in the database
-                           Every statement must end with a ';'.
-        @busytimeout       Set the maximum time, in milliseconds, to wait and retry
-                           if failed to acquire a lock. Default = 5000 milliseconds
-        """
-        assert sqlite_filepath is not None
-
-        if create_sql_filename is None:
-            create_sql_filename = CREATE_SQL_FILE
-
-        # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
-        # it will update the db if necessary by checking the version number
-        self._openDb(sqlite_filepath, create_sql_filename, busytimeout)
-        if create_sql_filename:
-            self._checkDB()
-
-        self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
-
-        return self.getCursor()  # return the cursor, won't reopen the db
-
     def _checkDB(self):
         db_ver = self.readDBVersion()
         curr_ver = CURRENT_MAIN_DB_VERSION
@@ -345,17 +343,6 @@ class SQLiteCacheDBBase:
             self.database_update = threading.Semaphore(self.db_diff)
             self.updateDB(db_ver, curr_ver)
 
-    def updateDB(self, db_ver, curr_ver):
-        pass  # TODO
-
-    def waitForUpdateComplete(self):
-        if self.database_update:
-            for _ in range(self.db_diff):
-                self.database_update.acquire()
-
-            for _ in range(self.db_diff):
-                self.database_update.release()
-
     def readDBVersion(self):
         sql = u"SELECT value FROM MyInfo WHERE entry = 'version'"
         result = self.fetchone(sql)
@@ -364,6 +351,17 @@ class SQLiteCacheDBBase:
     def writeDBVersion(self, version):
         sql = u"UPDATE MyInfo SET value = ? WHERE entry = 'version'"
         self.execute_write(sql, (version,))
+
+    def updateDB(self, db_ver, curr_ver):
+        pass
+
+    def waitForUpdateComplete(self):
+        if self.database_update:
+            for _ in range(self.db_diff):
+                self.database_update.acquire()
+
+            for _ in range(self.db_diff):
+                self.database_update.release()
 
     # --------- generic functions -------------
 
