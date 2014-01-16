@@ -153,7 +153,6 @@ class safe_dict(dict):
 
 
 class SQLiteCacheDBBase:
-    lock = threading.RLock()
 
     def __init__(self, db_exception_handler=None):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -303,8 +302,6 @@ class SQLiteCacheDBBase:
         if create_sql_filename is None:
             create_sql_filename = CREATE_SQL_FILE
         try:
-            self.lock.acquire()
-
             # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
             # it will update the db if necessary by checking the version number
             self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout)
@@ -314,7 +311,7 @@ class SQLiteCacheDBBase:
             return self.openDB()  # return the cursor, won't reopen the db
 
         finally:
-            self.lock.release()
+            pass
 
     def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT):
         """
