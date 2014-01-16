@@ -120,13 +120,15 @@ class TestLibtorrentDownload(TestGuiAsServer):
     def test_playdownload(self):
         t = time()
 
-        def take_screenshot():
-            self.screenshot("After streaming a libtorrent download (buffering took %.2f s)" % (time() - t))
+        def take_screenshot(buffer_complete):
+            self.screenshot("After streaming a libtorrent download (buffering took %.2f s)" % (buffer_complete - t))
             self.quit()
 
         def check_playlist():
             from Tribler.Video.VideoPlayer import VideoPlayer
             from Tribler.Video.utils import videoextdefaults
+
+            buffer_complete = time()
 
             d = VideoPlayer.getInstance().get_vod_download()
             videofiles = []
@@ -138,7 +140,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
                     videofiles.append(filename)
 
             playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
-            self.CallConditional(10, lambda: len(playlist.links) == len(videofiles), take_screenshot, "lists did not match length")
+            self.CallConditional(10, lambda: len(playlist.links) == len(videofiles), lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "lists did not match length")
 
         def do_monitor():
             from Tribler.Video.VideoPlayer import VideoPlayer

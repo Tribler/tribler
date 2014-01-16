@@ -192,7 +192,7 @@ class TestAsServer(AbstractServer):
 
                     except:
                         print_exc()
-                        self.assert_(False, 'Condition raised an exception, quitting (%s)' % (assertMsg or "no-assert-msg"), do_assert=False)
+                        self.assert_(False, 'Condition or callback raised an exception, quitting (%s)' % (assertMsg or "no-assert-msg"), do_assert=False)
                 else:
                     print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
                     self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)

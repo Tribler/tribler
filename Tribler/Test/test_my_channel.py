@@ -11,7 +11,7 @@ import threading
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings, UPLOAD
 
 DEBUG = True
 class TestMyChannel(TestGuiAsServer):
