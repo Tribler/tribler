@@ -8,6 +8,7 @@ from time import sleep, time
 from base64 import encodestring, decodestring
 import threading
 from traceback import print_exc, print_stack
+import logging
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_DISPERSY, NTFY_STARTED
 from Tribler.__init__ import LIBRARYNAME
@@ -156,6 +157,8 @@ class SQLiteCacheDBBase:
     def __init__(self, db_exception_handler=None):
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self._connection = None
+
         self.exception_handler = db_exception_handler
 
         self.cursor_lock = RLock()
@@ -180,6 +183,8 @@ class SQLiteCacheDBBase:
         if cur:
             self._close_cur(thread_name, cur)
 
+        self._connection.close()
+
     def close_all(self):
         with self.cursor_lock:
             if self.cursor_table:
@@ -189,9 +194,7 @@ class SQLiteCacheDBBase:
                 self.cursor_table = None
 
     def _close_cur(self, thread_name, cur):
-        con = cur.getconnection()
         cur.close()
-        con.close()
 
         with self.cursor_lock:
             assert self.cursor_table
@@ -206,8 +209,9 @@ class SQLiteCacheDBBase:
 
             cur = self.cursor_table.get(thread_name, None)  # return [cur, cur, lib] or None
             # print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
-            if cur is None and create and self.class_variables['db_path']:
-                self.openDB(self.class_variables['db_path'], self.class_variables['busytimeout'])  # create a new db obj for this thread
+            if cur is None and create:
+                cur = self._connection.cursor()
+                self.cursor_table[thread_name] = cur
             cur = self.cursor_table.get(thread_name)
 
         return cur
@@ -217,13 +221,12 @@ class SQLiteCacheDBBase:
         Opens or creates the database.
         """
         assert dbfile_path is not None
-        assert sql_path is not None
         assert busytimeout > 0
 
         to_create_tables = False
 
         # pre-checks
-        if dbfile_path.lower() != u':memory:':
+        if dbfile_path.lower() != u":memory:":
             # create db if it doesn't exist
             if not os.path.exists(dbfile_path):
                 to_create_new_db = True
@@ -240,14 +243,14 @@ class SQLiteCacheDBBase:
 
         # create DB connection
         try:
-            connection = aspw.Connection(dbfile_path)
+            self._connection = apsw.Connection(dbfile_path)
         except Exception as err:
             self._logger.error(u'Cannot create SQLite connection.')
             self._logger.debug(u'Error: %s', err)
             self._logger.debug(u'DB path: %s', dbfile_path)
             return False
         # some settings
-        connection.setbusytimeout(busytimeout)
+        self._connection.setbusytimeout(busytimeout)
 
         cursor = self.getCursor()
 
@@ -302,78 +305,6 @@ class SQLiteCacheDBBase:
 
         return True
 
-    def openDB(self, dbfile_path=None, busytimeout=DEFAULT_BUSY_TIMEOUT):
-        """
-        Open a SQLite database. Only one and the same database can be opened.
-        @dbfile_path       The path to store the database file.
-                           Set dbfile_path=':memory:' to create a db in memory.
-        @busytimeout       Set the maximum time, in milliseconds, that SQLite will wait if the database is locked.
-        """
-
-        # already opened a db in this thread, reuse it
-        thread_name = threading.currentThread().getName()
-        # print >>sys.stderr,"sqlcachedb: openDB",dbfile_path,thread_name
-        with self.cursor_lock:
-            assert self.cursor_table != None
-
-            if thread_name in self.cursor_table:
-                # assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
-                return self.cursor_table[thread_name]
-
-            assert dbfile_path, "You must specify the path of database file"
-
-            if dbfile_path.lower() != ':memory:':
-                db_dir, db_filename = os.path.split(dbfile_path)
-                if db_dir and not os.path.isdir(db_dir):
-                    os.makedirs(db_dir)
-
-            con = apsw.Connection(dbfile_path)
-            con.setbusytimeout(busytimeout)
-
-            cur = con.cursor()
-            self.cursor_table[thread_name] = cur
-
-        page_size, = next(cur.execute("PRAGMA page_size"))
-        if page_size < 8192:
-            # journal_mode and page_size only need to be set once.  because of the VACUUM this
-            # is very expensive
-            print >> sys.stderr, "begin page_size upgrade..."
-            cur.execute("PRAGMA journal_mode = DELETE;")
-            cur.execute("PRAGMA page_size = 8192;")
-            cur.execute("VACUUM;")
-            print >> sys.stderr, "...end page_size upgrade"
-
-        # http://www.sqlite.org/pragma.html
-        # When synchronous is NORMAL, the SQLite database engine will still
-        # pause at the most critical moments, but less often than in FULL
-        # mode. There is a very small (though non-zero) chance that a power
-        # failure at just the wrong time could corrupt the database in
-        # NORMAL mode. But in practice, you are more likely to suffer a
-        # catastrophic disk failure or some other unrecoverable hardware
-        # fault.
-        #
-        cur.execute("PRAGMA synchronous = NORMAL;")
-        cur.execute("PRAGMA cache_size = 10000;")
-
-        # Niels 19-09-2012: even though my database upgraded to increase the pagesize it did not keep wal mode?
-        # Enabling WAL on every starup
-        cur.execute("PRAGMA journal_mode = WAL;")
-
-        return cur
-
-    def createDBTable(self, sql_create_table, dbfile_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
-        """
-        Create a SQLite database.
-        @sql_create_table  The sql statements to create tables in the database.
-                           Every statement must end with a ';'.
-        @dbfile_path       The path to store the database file. Set dbfile_path=':memory:' to creates a db in memory.
-        @busytimeout       Set the maximum time, in milliseconds, that SQLite will wait if the database is locked.
-                           Default = 10000 milliseconds
-        """
-        cur = self.openDB(dbfile_path, busytimeout)
-        self._logger.info(dbfile_path)
-        cur.execute(sql_create_table)  # it is suggested to include begin & commit in the script
-
     def initDB(self, sqlite_filepath,
                create_sql_filename=None,
                busytimeout=DEFAULT_BUSY_TIMEOUT):
@@ -393,52 +324,18 @@ class SQLiteCacheDBBase:
 
         # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
         # it will update the db if necessary by checking the version number
-        self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout)
+        self._openDb(sqlite_filepath, create_sql_filename, busytimeout)
+        if create_sql_filename:
+            self._checkDB()
 
         self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
 
-        return self.openDB()  # return the cursor, won't reopen the db
+        return self.getCursor()  # return the cursor, won't reopen the db
 
-    def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT):
-        """
-        open the db if possible, otherwise create a new one
-        update the db if necessary by checking the version number
-        """
-        try:
-            if not os.path.isfile(dbfile_path):
-                raise Warning("No existing database found. Attempting to creating a new database %s" % repr(dbfile_path))
+    def _checkDB(self):
+        db_ver = self.readDBVersion()
+        curr_ver = CURRENT_MAIN_DB_VERSION
 
-            cur = self.openDB(dbfile_path, busytimeout)
-
-            sqlite_db_version = self.readDBVersion()
-            if sqlite_db_version is None or int(sqlite_db_version) < 1:
-                raise NotImplementedError
-        except Exception as exception:
-            if isinstance(exception, Warning):
-                # user friendly warning to log the creation of a new database
-                self._logger.error(exception)
-
-            else:
-                # user unfriendly exception message because something went wrong
-                print_exc()
-
-            if os.path.isfile(dbfile_path):
-                self.close(clean=True)
-                os.remove(dbfile_path)
-
-            if os.path.isfile(sql_create):
-                f = open(sql_create)
-                sql_create_tables = f.read()
-                f.close()
-            else:
-                raise Exception("Cannot open sql script at %s" % os.path.realpath(sql_create))
-
-            self.createDBTable(sql_create_tables, dbfile_path, busytimeout)
-            sqlite_db_version = self.readDBVersion()
-
-        self.checkDB(sqlite_db_version, CURRENT_MAIN_DB_VERSION)
-
-    def checkDB(self, db_ver, curr_ver):
         # read MyDB and check the version number.
         if not db_ver or not curr_ver:
             self.updateDB(db_ver, curr_ver)
