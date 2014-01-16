@@ -212,6 +212,96 @@ class SQLiteCacheDBBase:
 
         return cur
 
+    def _openDb(self, dbfile_path, sql_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
+        """
+        Opens or creates the database.
+        """
+        assert dbfile_path is not None
+        assert sql_path is not None
+        assert busytimeout > 0
+
+        to_create_tables = False
+
+        # pre-checks
+        if dbfile_path.lower() != u':memory:':
+            # create db if it doesn't exist
+            if not os.path.exists(dbfile_path):
+                to_create_new_db = True
+
+                db_dir, = os.path.split(dbfile_path)
+                if db_dir and not os.path.exists(db_dir):
+                    os.makedirs(db_dir)
+
+            # db is not a file
+            if not os.path.isfile(dbfile_path):
+                self._logger.error(u'DB path is not a file.')
+                self._logger.debug(u'DB path: %s', dbfile_path)
+                return False
+
+        # create DB connection
+        try:
+            connection = aspw.Connection(dbfile_path)
+        except Exception as err:
+            self._logger.error(u'Cannot create SQLite connection.')
+            self._logger.debug(u'Error: %s', err)
+            self._logger.debug(u'DB path: %s', dbfile_path)
+            return False
+        # some settings
+        connection.setbusytimeout(busytimeout)
+
+        cursor = self.getCursor()
+
+        # create table if needed
+        if to_create_tables:
+            # read SQL statements
+            try:
+                sql_file = open(sql_path, 'r')
+                sql = sql_file.read()
+                sql_file.close()
+            except Exception as err:
+                self._logger.error(u'Cannot create SQLite connection.')
+                self._logger.debug(u'Error: %s', err)
+                self._logger.debug(u'SQL file path: %s', sql_path)
+                return False
+
+            # create tables
+            try:
+                cursor.execute(sql)
+            except Exception as err:
+                self._logger.error(u'Cannot create SQL tables.')
+                self._logger.debug(u'Error: %s', err)
+                self._logger.debug(u'SQL statement: %s', sql)
+                return False
+
+        # set PRAGMA options
+        page_size, = next(cursor.execute("PRAGMA page_size"))
+        if page_size < 8192:
+            # journal_mode and page_size only need to be set once.  because of the VACUUM this
+            # is very expensive
+            self._logger.debug(u"begin page_size upgrade...")
+            cursor.execute("PRAGMA journal_mode = DELETE;")
+            cursor.execute("PRAGMA page_size = 8192;")
+            cursor.execute("VACUUM;")
+            self._logger.debug(u"...end page_size upgrade")
+
+        # http://www.sqlite.org/pragma.html
+        # When synchronous is NORMAL, the SQLite database engine will still
+        # pause at the most critical moments, but less often than in FULL
+        # mode. There is a very small (though non-zero) chance that a power
+        # failure at just the wrong time could corrupt the database in
+        # NORMAL mode. But in practice, you are more likely to suffer a
+        # catastrophic disk failure or some other unrecoverable hardware
+        # fault.
+        cursor.execute("PRAGMA synchronous = NORMAL;")
+        cursor.execute("PRAGMA cache_size = 10000;")
+
+        # Niels 19-09-2012: even though my database upgraded to increase
+        # the pagesize it did not keep wal mode?
+        # Enabling WAL on every starup
+        cursor.execute("PRAGMA journal_mode = WAL;")
+
+        return True
+
     def openDB(self, dbfile_path=None, busytimeout=DEFAULT_BUSY_TIMEOUT):
         """
         Open a SQLite database. Only one and the same database can be opened.
