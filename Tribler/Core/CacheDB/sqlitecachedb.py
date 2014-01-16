@@ -2432,13 +2432,9 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
     def getInstance(cls, *args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
         if cls.__single is None:
-            cls.lock.acquire()
-            try:
-                if cls.__single is None:
-                    cls.__single = cls(*args, **kw)
-                    # print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
-            finally:
-                cls.lock.release()
+            if cls.__single is None:
+                cls.__single = cls(*args, **kw)
+                # print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
         return cls.__single
 
     @classmethod
