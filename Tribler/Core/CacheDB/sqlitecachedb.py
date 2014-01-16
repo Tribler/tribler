@@ -288,8 +288,7 @@ class SQLiteCacheDBBase:
 
     def initDB(self, sqlite_filepath,
                create_sql_filename=None,
-               busytimeout=DEFAULT_BUSY_TIMEOUT,
-               current_db_version=CURRENT_MAIN_DB_VERSION):
+               busytimeout=DEFAULT_BUSY_TIMEOUT):
         """
         Create and initialize a SQLite database given a sql script.
         Only one db can be opened. If the given dbfile_path is different with the opened DB file, warn and exit
@@ -299,65 +298,28 @@ class SQLiteCacheDBBase:
         @busytimeout       Set the maximum time, in milliseconds, to wait and retry
                            if failed to acquire a lock. Default = 5000 milliseconds
         """
+        assert sqlite_filepath is not None
+
         if create_sql_filename is None:
             create_sql_filename = CREATE_SQL_FILE
         try:
             self.lock.acquire()
 
-            # verify db path identity
-            class_db_path = self.class_variables['db_path']
-            if sqlite_filepath is None:  # reuse the opened db file?
-                if class_db_path is not None:  # yes, reuse it
-                    # reuse the busytimeout
-                    return self.openDB(class_db_path, self.class_variables['busytimeout'])
-                else:  # no db file opened
-                    raise Exception("You must specify the path of database file when open it at the first time")
-            else:
-                if class_db_path is None:  # the first time to open db path, store it
+            # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
+            # it will update the db if necessary by checking the version number
+            self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout)
 
-                    # print 'quit now'
-                    # sys.exit(0)
-                    # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
-                    # it will update the db if necessary by checking the version number
-                    self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout, current_db_version=current_db_version)
+            self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
 
-                    self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
-
-                    return self.openDB()  # return the cursor, won't reopen the db
-
-                elif sqlite_filepath != class_db_path:  # not the first time to open db path, check if it is the same
-                    raise Exception("Only one database file can be opened. You have opened %s and are trying to open %s." % (class_db_path, sqlite_filepath))
+            return self.openDB()  # return the cursor, won't reopen the db
 
         finally:
             self.lock.release()
 
-    def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT, current_db_version=None):
+    def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT):
         """
         open the db if possible, otherwise create a new one
         update the db if necessary by checking the version number
-
-        safeOpenDB():
-            try:
-                if sqlite db doesn't exist:
-                    raise Error
-                open sqlite db
-                read sqlite_db_version
-                if sqlite_db_version dosen't exist:
-                    raise Error
-            except:
-                close and delete sqlite db if possible
-                create new sqlite db file without sqlite_db_version
-                write sqlite_db_version at last
-                commit
-                open sqlite db
-                read sqlite_db_version
-                # must ensure these steps after except will not fail, otherwise force to exit
-
-            if sqlite_db_version < current_db_version:
-                updateDB(sqlite_db_version, current_db_version)
-                commit
-                update sqlite_db_version at last
-                commit
         """
         try:
             if not os.path.isfile(dbfile_path):
@@ -391,7 +353,7 @@ class SQLiteCacheDBBase:
             self.createDBTable(sql_create_tables, dbfile_path, busytimeout)
             sqlite_db_version = self.readDBVersion()
 
-        self.checkDB(sqlite_db_version, current_db_version)
+        self.checkDB(sqlite_db_version, CURRENT_MAIN_DB_VERSION)
 
     def checkDB(self, db_ver, curr_ver):
         # read MyDB and check the version number.
