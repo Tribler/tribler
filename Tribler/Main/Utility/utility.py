@@ -3,6 +3,7 @@
 import wx
 import sys
 import os
+import logging
 
 from threading import Event, Semaphore
 from traceback import print_exc
@@ -21,6 +22,8 @@ from Tribler.Utilities.configreader import ConfigReader
 from Tribler.Main.Utility.constants import *  # IGNORE:W0611
 
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
+
+logger = logging.getLogger(__name__)
 
 #
 #
@@ -683,7 +686,7 @@ def printTorrent(torrent, pre=''):
         if isinstance(value, dict):
             printTorrent(value, pre + ' ' + key)
         elif key.lower() not in ['pieces', 'thumbnail', 'preview']:
-            print '%s | %s: %s' % (pre, key, value)
+            logger.info('%s | %s: %s', pre, key, value)
 
 
 def getMetainfo(src, openoptions='rb', style="file"):

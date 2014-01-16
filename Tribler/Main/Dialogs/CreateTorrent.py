@@ -4,6 +4,7 @@
 import wx
 import os
 import sys
+import logging
 
 from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -18,6 +19,8 @@ from traceback import print_exc
 class CreateTorrent(wx.Dialog):
 
     def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel=False):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(600, 200), name="CreateTorrentDialog")
         self.guiutility = GUIUtility.getInstance()
         self.toChannel = toChannel
@@ -456,13 +459,13 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
     if params['makehash_md5']:
-        print >> sys.stderr, "TorrentMaker: make MD5"
+        self._logger.info("TorrentMaker: make MD5")
         tdef.set_add_md5hash(params['makehash_md5'])
     if params['makehash_crc32']:
-        print >> sys.stderr, "TorrentMaker: make CRC32"
+        self._logger.info("TorrentMaker: make CRC32")
         tdef.set_add_crc32(params['makehash_crc32'])
     if params['makehash_sha1']:
-        print >> sys.stderr, "TorrentMaker: make SHA1"
+        self._logger.info("TorrentMaker: make SHA1")
         tdef.set_add_sha1hash(params['makehash_sha1'])
     if params['createmerkletorrent']:
         tdef.set_create_merkle_torrent(params['createmerkletorrent'])

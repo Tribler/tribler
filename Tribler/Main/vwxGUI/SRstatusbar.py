@@ -9,8 +9,6 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
 from Tribler import LIBRARYNAME
 
-DEBUG = False
-
 
 class SRstatusbar(wx.StatusBar):
 

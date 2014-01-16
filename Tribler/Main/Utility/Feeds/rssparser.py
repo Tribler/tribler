@@ -5,6 +5,7 @@ import sha
 import sys
 import time
 import re
+import logging
 from copy import deepcopy
 from shutil import copyfile
 from Tribler.Core.TorrentDef import TorrentDef
@@ -26,8 +27,6 @@ URLHIST_TIMEOUT = 7 * 24 * 3600.0  # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 30 * 60  # reload a rss source every n seconds
 RSS_CHECK_FREQUENCY = 2  # test a potential .torrent in a rss source every n seconds
 
-DEBUG = False
-
 
 class RssParser(Thread):
     __single = None
@@ -37,8 +36,11 @@ class RssParser(Thread):
             raise RuntimeError("RssParser is singleton")
         RssParser.__single = self
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         Thread.__init__(self)
-        self.setName("RssParser" + self.getName())
+        name = "RssParser" + self.getName()
+        self.setName(name)
         self.setDaemon(True)
 
         self.key_url_lock = RLock()
@@ -73,8 +75,8 @@ class RssParser(Thread):
             self.readfile()
 
             self.isRegistered = True
-        elif DEBUG:
-            print >> sys.stderr, "RssParser is already registered, ignoring"
+        else:
+            self._logger.debug("RssParser is already registered, ignoring")
 
     def getdir(self):
         return os.path.join(self.session.get_state_dir(), "subscriptions")
@@ -114,11 +116,10 @@ class RssParser(Thread):
                     if state == 'active':
                         self.addURL(url, key, dowrite=False)
                 else:
-                    print >> sys.stderr, "RssParser: Ignoring line", line
+                    self._logger.info("RssParser: Ignoring line %s", line)
             f.close()
         except:
-            if DEBUG:
-                print >> sys.stderr, "RssParser: subscriptions.txt does not yet exist"
+            self._logger.debug("RssParser: subscriptions.txt does not yet exist")
 
     def writefile(self):
         filename = self.getfilename()
@@ -171,8 +172,7 @@ class RssParser(Thread):
         return list(self.key_url.get(key, set()))
 
     def doRefresh(self):
-        if DEBUG:
-            print >> sys.stderr, "RssParser: refresh"
+        self._logger.debug("RssParser: refresh")
 
         self.doStart()
 
@@ -187,18 +187,15 @@ class RssParser(Thread):
         self.urls_changed.wait(60)  # Let other Tribler components, in particular, Session startup
 
         while self.isRegistered and len(self.key_url) and len(self.key_callbacks):
-            if DEBUG:
-                print >> sys.stderr, "RssParser: running"
+            self._logger.debug("RssParser: running")
 
             self._refresh()
             self.urls_changed.clear()
 
-            if DEBUG:
-                print >> sys.stderr, "RssParser: finished, waiting", RSS_RELOAD_FREQUENCY
+            self._logger.debug("RssParser: finished, waiting %s", RSS_RELOAD_FREQUENCY)
             self.urls_changed.wait(RSS_RELOAD_FREQUENCY)
         else:
-            if DEBUG:
-                print >> sys.stderr, "RssParser: not registered unable to run or exiting"
+            self._logger.debug("RssParser: not registered unable to run or exiting")
 
     def shutdown(self):
         self.isRegistered = False
@@ -216,8 +213,7 @@ class RssParser(Thread):
             for key, urls in channel_url.iteritems():
                 if key in self.key_callbacks:
                     for url in urls:
-                        if DEBUG:
-                            print >> sys.stderr, "RssParser: getting rss", url, len(urls)
+                        self._logger.debug("RssParser: getting rss %s %d", url, len(urls))
 
                         historyfile = self.gethistfilename(url, key)
                         urls_already_seen = URLHistory(historyfile)
@@ -230,8 +226,7 @@ class RssParser(Thread):
                                 urls_already_seen.write()
 
                                 try:
-                                    if DEBUG:
-                                        print >> sys.stderr, "RssParser: trying", new_url
+                                    self._logger.debug("RssParser: trying %s", new_url)
 
                                     referer = urlparse(new_url)
                                     referer = referer.scheme + "://" + referer.netloc + "/"
@@ -256,15 +251,13 @@ class RssParser(Thread):
                                         processCallbacks(key)
 
                                 except:
-                                    if DEBUG:
-                                        print >> sys.stderr, "RssParser: could not download", new_url
+                                    self._logger.debug("RssParser: could not download %s", new_url)
                                     pass
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
 
     def readUrl(self, url, urls_already_seen):
-        if DEBUG:
-            print >> sys.stderr, "RssParser: reading url", url
+        self._logger.debug("RssParser: reading url %s", url)
 
         newItems = []
 
@@ -304,8 +297,7 @@ class RssParser(Thread):
                 if len(new_urls) > 0:
                     newItems.append((title, new_urls, description, thumbnail))
         except URLError:
-            if DEBUG:
-                print >> sys.stderr, "RssParser: could not open url", url
+            self._logger.debug("RssParser: could not open url %s", url)
 
         return newItems
 
@@ -315,6 +307,8 @@ class URLHistory:
     read_history_expression = re.compile("(\d+(?:[.]\d+)?)\s+(\w+)", re.IGNORECASE)
 
     def __init__(self, filename):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.urls = {}
         self.filename = filename
         self.readed = False
@@ -341,8 +335,7 @@ class URLHistory:
         return (t + URLHIST_TIMEOUT) < now
 
     def read(self):
-        if DEBUG:
-            print >> sys.stderr, "subscrip: Reading cached", self.filename
+        self._logger.debug("subscrip: Reading cached %s", self.filename)
         try:
             file_handle = open(self.filename, "rb")
         except IOError:
@@ -358,11 +351,10 @@ class URLHistory:
                     timestamp, url = match.groups()
                     timestamp = float(timestamp)
                     if not self.timedout(timestamp, now):
-                        if DEBUG:
-                            print >> sys.stderr, "subscrip: Cached url is", url
+                        self._logger.debug("subscrip: Cached url is %s", url)
                         self.urls[url] = timestamp
-                    elif DEBUG:
-                        print >> sys.stderr, "subscrip: Timed out cached url is %s" % url
+                    else:
+                        self._logger.debug("subscrip: Timed out cached url is %s", url)
 
             file_handle.close()
 
@@ -389,10 +381,9 @@ class URLHistory:
             return link[:idx]
 
 if __name__ == '__main__':
-    DEBUG = True
 
     def callback(key, torrent, extraInfo):
-        print >> sys.stderr, "RssParser: Found torrent", key, torrent, extraInfo
+        self._logger.info("RssParser: Found torrent %s %s %s", key, torrent, extraInfo)
 
     class FakeSession:
 

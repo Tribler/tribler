@@ -7,6 +7,9 @@ execute doctests correctly.
 """
 import os
 import doctest
+import logging
+
+logger = logging.getLogger(__name__)
 
 EXCEPT = ('doctest_all.py',  # prevents infinite recursion
           'interactive_dht.py',  # is a command, not a module
@@ -23,10 +26,10 @@ modnames = sorted([filename[:-3] for filename in os.listdir('.') if
 for modname in modnames:
     if modname.startswith('DEPRECATED'):
         continue
-    print 'doctesting %s...' % modname,
+    logger.info('doctesting %s...', modname)
     mod = __import__(modname)
     failure_count, test_count = doctest.testmod(mod)
     if failure_count:
-        print '>>>>>>>>>>>>>>>>>>>>>ERROR<<<<<<<<<<<<<<<<<'
+        logger.info('>>>>>>>>>>>>>>>>>>>>>ERROR<<<<<<<<<<<<<<<<<')
     else:
-        print '%d test(s) OK' % test_count
+        logger.info('%d test(s) OK', test_count)

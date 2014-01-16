@@ -9,6 +9,7 @@ import os
 import cStringIO
 import tempfile
 import atexit
+import logging
 
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -28,6 +29,8 @@ from Tribler.Main.Utility.GuiDBTuples import MergedDs
 class SettingsDialog(wx.Dialog):
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.elementsName = ['myNameField',
                              'thumb',
                              'edit',
@@ -89,7 +92,7 @@ class SettingsDialog(wx.Dialog):
         for element in self.elementsName:
             xrcElement = xrc.XRCCTRL(dialog, element)
             if not xrcElement:
-                print 'settingsOverviewPanel: Error: Could not identify xrc element:', element
+                self._logger.info('settingsOverviewPanel: Error: Could not identify xrc element: %s', element)
             self.elements[element] = xrcElement
 
         # Building tree

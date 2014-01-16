@@ -7,6 +7,7 @@ import wx
 import os
 import sys
 import json
+import logging
 
 from wx import xrc
 
@@ -25,8 +26,6 @@ from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
 
-DEBUG = False
-
 
 class GUIUtility:
     __single = None
@@ -36,6 +35,8 @@ class GUIUtility:
             raise RuntimeError("GUIUtility is singleton")
         GUIUtility.__single = self
         self.registered = False
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         # do other init
         self.utility = utility
@@ -424,8 +425,7 @@ class GUIUtility:
             else:
                 self.frame.top_bg.StartSearch()
                 self.current_search_query = keywords
-                if DEBUG:
-                    print >> sys.stderr, "GUIUtil: searchFiles:", keywords, time()
+                self._logger.debug("GUIUtil: searchFiles: %s %s", keywords, time())
 
                 self.frame.searchlist.Freeze()
 

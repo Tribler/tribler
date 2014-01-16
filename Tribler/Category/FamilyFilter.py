@@ -5,16 +5,17 @@ import re
 import sys
 import os
 from traceback import print_exc
+import logging
 
 from Tribler.__init__ import LIBRARYNAME
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
-DEBUG = False
-
 
 class XXXFilter:
 
     def __init__(self, install_dir):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         termfilename = os.path.join(install_dir, LIBRARYNAME, 'Category', 'filter_terms.filter')
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
 
@@ -33,11 +34,9 @@ class XXXFilter:
                     terms.add(line)
             f.close()
         except:
-            if DEBUG:
-                print_exc()
+            print_exc()
 
-        if DEBUG:
-            print 'Read %d XXX terms from file %s' % (len(terms) + len(searchterms), filename)
+        self._logger.debug('Read %d XXX terms from file %s', len(terms) + len(searchterms), filename)
         return terms, searchterms
 
     def _getWords(self, string):
@@ -54,11 +53,10 @@ class XXXFilter:
                   any(self.isXXX(term) for term in terms) or
                   (comment and self.isXXX(comment, False))
                   )
-        if DEBUG:
-            if is_xxx:
-                print 'Torrent is XXX: %s %s' % (torrent_name, tracker)
-            else:
-                print 'Torrent is NOT XXX: %s %s' % (torrent_name, tracker)
+        if is_xxx:
+            self._logger.debug('Torrent is XXX: %s %s', torrent_name, tracker)
+        else:
+            self._logger.debug('Torrent is NOT XXX: %s %s', torrent_name, tracker)
         return is_xxx
 
     def isXXX(self, s, isFilename=True):
@@ -78,8 +76,7 @@ class XXXFilter:
     def foundXXXTerm(self, s):
         for term in self.xxx_searchterms:
             if term in s:
-                if DEBUG:
-                    print 'XXXFilter: Found term "%s" in %s' % (term, s)
+                self._logger.debug('XXXFilter: Found term "%s" in %s', term, s)
                 return True
         return False
 
@@ -87,18 +84,15 @@ class XXXFilter:
         # check if term-(e)s is in xxx-terms
         s = s.lower()
         if s in self.xxx_terms:
-            if DEBUG:
-                print 'XXXFilter: "%s" is dirty%s' % (s, title and ' in %s' % title or '')
+            self._logger.debug('XXXFilter: "%s" is dirty%s', s, title and ' in %s' % title or '')
             return True
         if s.endswith('es'):
             if s[:-2] in self.xxx_terms:
-                if DEBUG:
-                    print 'XXXFilter: "%s" is dirty%s' % (s[:-2], title and ' in %s' % title or '')
+                self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-2], title and ' in %s' % title or '')
                 return True
         elif s.endswith('s') or s.endswith('n'):
             if s[:-1] in self.xxx_terms:
-                if DEBUG:
-                    print 'XXXFilter: "%s" is dirty%s' % (s[:-1], title and ' in %s' % title or '')
+                self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-1], title and ' in %s' % title or '')
                 return True
 
         return False

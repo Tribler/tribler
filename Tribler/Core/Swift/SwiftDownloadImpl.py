@@ -29,6 +29,7 @@
 
 import sys
 import copy
+import logging
 
 from traceback import print_exc, print_stack
 from threading import RLock, currentThread
@@ -47,9 +48,6 @@ CMDGW_PREBUFFER_BYTES = (2 ** 8) * 1024
 SWIFT_ALIVE_CHECK_INTERVAL = 60.0
 
 
-DEBUG = False
-
-
 class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
     """ Download subclass that represents a swift download.
@@ -57,6 +55,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     """
 
     def __init__(self, session, sdef):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.dllock = NoDispersyRLock()
         self.session = session
         self.sdef = sdef
@@ -133,8 +133,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 if 'total_down' in dlstate:
                     self.total_down = dlstate['total_down']
 
-            if DEBUG:
-                print >> sys.stderr, "SwiftDownloadImpl: setup: initialdlstatus", repr(self.sdef.get_roothash_as_hex()), initialdlstatus
+            self._logger.debug("SwiftDownloadImpl: setup: initialdlstatus %s %s", repr(self.sdef.get_roothash_as_hex()), initialdlstatus)
 
             # Note: initialdlstatus now only works for STOPPED
             if initialdlstatus != DLSTATUS_STOPPED:
@@ -152,8 +151,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
     def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None):
         """ Called by any thread, assume dllock already acquired """
-        if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: create_engine_wrapper()"
+        self._logger.debug("SwiftDownloadImpl: create_engine_wrapper()")
 
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
@@ -223,8 +221,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.dllock.release()
 
     def i2ithread_vod_event_callback(self, event, httpurl):
-        if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER", event, httpurl, "mode", self.get_mode()
+        self._logger.debug("SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER %s %s mode %s", event, httpurl, self.get_mode())
 
         self.dllock.acquire()
         try:
@@ -248,8 +245,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 # via new "url" param.
                 #
 
-                if DEBUG:
-                    print >> sys.stderr, "SwiftDownloadImpl: i2ithread_vod_event_callback", event, httpurl
+                self._logger.debug("SwiftDownloadImpl: i2ithread_vod_event_callback %s %s", event, httpurl)
 
                 # Arno: No threading violation, lm_network_* is safe at the moment
                 self.lm_network_vod_event_callback(videoinfo, VODEVENT_START, {
@@ -438,8 +434,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.dllock.acquire()
         try:
             if self.sp is None:
-                if DEBUG:
-                    print >> sys.stderr, "SwiftDownloadImpl: network_get_state: Download not running"
+                self._logger.debug("SwiftDownloadImpl: network_get_state: Download not running")
                 ds = DownloadState(self, DLSTATUS_STOPPED, self.error, self.progressbeforestop, seeding_stats=self.get_seeding_statistics())
             else:
                 (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
@@ -486,8 +481,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Called by network thread, but safe for any """
         self.dllock.acquire()
         try:
-            if DEBUG:
-                print >> sys.stderr, "SwiftDownloadImpl: network_stop", repr(self.sdef.get_name())
+            self._logger.debug("SwiftDownloadImpl: network_stop %s", repr(self.sdef.get_name()))
 
             pstate = self.network_get_persistent_state()
             if self.sp is not None:
@@ -519,8 +513,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     def restart(self, initialdlstatus=None):
         """ Restart the Download """
         # Called by any thread
-        if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: restart:", repr(self.sdef.get_name())
+        self._logger.debug("SwiftDownloadImpl: restart: %s", self.sdef.get_name())
         self.dllock.acquire()
         try:
             if self.sp is None:
@@ -535,8 +528,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     # Config parameters that only exists at runtime
     #
     def set_max_desired_speed(self, direct, speed):
-        if DEBUG:
-            print >> sys.stderr, "Download: set_max_desired_speed", direct, speed
+        self._logger.debug("Download: set_max_desired_speed %s %s", direct, speed)
         # if speed < 10:
         #    print_stack()
 
@@ -614,8 +606,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate['dlstate']['swarmcache'] = None
         pstate['dlstate'].update(ds.get_seeding_statistics())
 
-        if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: netw_get_pers_state: status", dlstatus_strings[ds.get_status()], "progress", ds.get_progress()
+        self._logger.debug("SwiftDownloadImpl: netw_get_pers_state: status %s progress %s", dlstatus_strings[ds.get_status()], ds.get_progress())
 
         # Swift stores own state in .mhash and .mbinmap file
         pstate['engineresumedata'] = None
@@ -673,7 +664,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         try:
             if self.sp is not None and not self.done:
                 if not self.sp.is_alive():
-                    print >> sys.stderr, "SwiftDownloadImpl: network_check_swift_alive: Restarting", repr(self.sdef.get_name())
+                    self._logger.debug("SwiftDownloadImpl: network_check_swift_alive: Restarting %s", repr(self.sdef.get_name()))
                     self.sp = None
                     self.restart()
         except:

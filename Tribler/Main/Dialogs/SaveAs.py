@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import copy
+import logging
 
 from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -19,6 +20,8 @@ from Tribler.Main.vwxGUI import forceWxThread
 class SaveAs(wx.Dialog):
 
     def __init__(self, parent, tdef, defaultdir, defaultname, config, selectedFiles=None):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450), name="SaveAsDialog")
 
         self.config = config
@@ -142,7 +145,7 @@ class SaveAs(wx.Dialog):
                 try:
                     pos = self.listCtrl.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                 except:
-                    print >> sys.stderr, "Could not format filename", self.torrent.name
+                    self._logger.error("Could not format filename %s", self.torrent.name)
             self.listCtrl.SetItemData(pos, pos)
             self.listCtrl.SetStringItem(pos, 1, self.guiutility.utility.size_format(size))
 

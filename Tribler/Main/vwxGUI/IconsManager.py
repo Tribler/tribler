@@ -4,12 +4,14 @@
 import wx
 import os
 import cStringIO
+import logging
 
 from Tribler.Core.API import *
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
 
+logger = logging.getLogger(__name__)
 
 class IconsManager:
 
@@ -88,7 +90,7 @@ def data2wxImage(type, data, dim=ICON_MAX_DIM):
         im.Rescale(dim, dim)
         return im
     except:
-        print >> sys.stderr, 'data2wxImage called (%s, %s)' % (repr(type), repr(dim))
+        logger.error('data2wxImage called (%s, %s)', repr(type), repr(dim))
         print_exc()
         return None
 
@@ -103,6 +105,6 @@ def data2wxBitmap(type, data, dim=ICON_MAX_DIM):
 
         return bm
     except:
-        print >> sys.stderr, 'data2wxBitmap called (%s, %s)' % (repr(type), repr(dim))
+        logger.error('data2wxBitmap called (%s, %s)', repr(type), repr(dim))
         print_exc()
         return None

@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
+import logging
 from sets import Set
 from threading import RLock
 from traceback import print_exc
@@ -10,12 +11,12 @@ from traceback import print_exc
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
-DEBUG = False
-
 
 class RateManager:
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.lock = RLock()
         self.statusmap = {}
         self.currenttotal = {}
@@ -24,8 +25,7 @@ class RateManager:
 
     def add_downloadstate(self, ds):
         """ Returns the number of unique states currently stored """
-        if DEBUG:
-            print >> sys.stderr, "RateManager: add_downloadstate", repr(ds.get_download().get_def().get_infohash())
+        self._logger.debug("RateManager: add_downloadstate %s", repr(ds.get_download().get_def().get_roothash()))
 
         self.lock.acquire()
         try:
@@ -108,16 +108,14 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         self.lock.release()
 
     def calc_and_set_speed_limits(self, dir=UPLOAD):
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits", dir
+        self._logger.debug("RateManager: calc_and_set_speed_limits %s", dir)
 
         if dir == UPLOAD:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING] + self.statusmap[DLSTATUS_SEEDING]
         else:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: len workingset", len(workingset)
+        self._logger.debug("RateManager: calc_and_set_speed_limits: len workingset %s", len(workingset))
 
         # Limit working set to active torrents with connections:
         newws = []
@@ -126,8 +124,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                 newws.append(ds)
         workingset = newws
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: len active workingset", len(workingset)
+        self._logger.debug("RateManager: calc_and_set_speed_limits: len active workingset %s", len(workingset))
 
         # No active file, not need to calculate
         if not workingset:
@@ -142,8 +139,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                 d.set_max_speed(dir, d.get_max_desired_speed(dir))
 
         else:
-            if DEBUG:
-                print >> sys.stderr, "RateManager: calc_and_set_speed_limits: globalmaxspeed is", globalmaxspeed, dir
+            self._logger.debug("RateManager: calc_and_set_speed_limits: globalmaxspeed is %s %s", globalmaxspeed, dir)
 
             # User set priority is always granted, ignoring global limit
             todoset = []
@@ -160,8 +156,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                 localmaxspeed = globalmaxspeed / float(len(todoset))
                 # if too small than user's problem
 
-                if DEBUG:
-                    print >> sys.stderr, "RateManager: calc_and_set_speed_limits: localmaxspeed is", localmaxspeed, dir
+                self._logger.debug("RateManager: calc_and_set_speed_limits: localmaxspeed is %s %s", localmaxspeed, dir)
 
                 for ds in todoset:
                     d = ds.get_download()
@@ -206,17 +201,14 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
         self.ROOM = 5.0  # the amount of room in speed underutilizing downloads get
 
     def calc_and_set_speed_limits(self, dir=UPLOAD):
-
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits", dir
+        self._logger.debug("RateManager: calc_and_set_speed_limits %s", dir)
 
         if dir == UPLOAD:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING] + self.statusmap[DLSTATUS_SEEDING]
         else:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: len workingset", len(workingset)
+        self._logger.debug("RateManager: calc_and_set_speed_limits: len workingset %s", len(workingset))
 
         # Limit working set to active torrents with connections:
         newws = []
@@ -225,11 +217,10 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                 newws.append(ds)
         workingset = newws
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: len new workingset", len(workingset)
-            for ds in workingset:
-                d = ds.get_download()
-                print >> sys.stderr, "RateManager: calc_and_set_speed_limits: working is", d.get_def().get_name()
+        self._logger.debug("RateManager: calc_and_set_speed_limits: len new workingset %s", len(workingset))
+        for ds in workingset:
+            d = ds.get_download()
+            self._logger.debug("RateManager: calc_and_set_speed_limits: working is %s", d.get_def().get_name())
 
         # No active file, not need to calculate
         if not workingset:
@@ -244,8 +235,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                 d.set_max_speed(dir, d.get_max_desired_speed(dir))
 
         else:
-            if DEBUG:
-                print >> sys.stderr, "RateManager: calc_and_set_speed_limits: globalmaxspeed is", globalmaxspeed, dir
+            self._logger.debug("RateManager: calc_and_set_speed_limits: globalmaxspeed is %s %s", globalmaxspeed, dir)
 
             # User set priority is always granted, ignoring global limit
             todoset = []
@@ -262,8 +252,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                 localmaxspeed = globalmaxspeed / float(len(todoset))
                 # if too small than user's problem
 
-                if DEBUG:
-                    print >> sys.stderr, "RateManager: calc_and_set_speed_limits: localmaxspeed is", localmaxspeed, dir
+                self._logger.debug("RateManager: calc_and_set_speed_limits: localmaxspeed is %s %s", localmaxspeed, dir)
 
                 # See if underutilizers and overutilizers. If not, just divide equally
                 downloadsatmax = False
@@ -291,7 +280,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                             # If unterutilizing:
                             totalunused += (localmaxspeed - newmaxspeed)
                             # Give current speed + 5.0 KB/s extra so it can grow
-                            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Underutil set to", newmaxspeed
+                            self._logger.info("RateManager: calc_and_set_speed_limits: Underutil set to %s", newmaxspeed)
                             d.set_max_speed(dir, newmaxspeed)
                         else:
                             todoset2.append(ds)
@@ -302,16 +291,16 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                         piece = pie / float(len(todoset2))
                         for ds in todoset:
                             d = ds.get_download()
-                            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Overutil set to", piece
+                            self._logger.info("RateManager: calc_and_set_speed_limits: Overutil set to %s", piece)
                             d.set_max_speed(dir, piece)
                     else:
                         # what the f? No overutilizers now?
-                        print >> sys.stderr, "UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager: Internal error: No overutilizers anymore?"
+                        self._logger.info("UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager: Internal error: No overutilizers anymore?")
                 else:
                     # No over and under utilizers, just divide equally
                     for ds in todoset:
                         d = ds.get_download()
-                        print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Normal set to", piece
+                        self._logger.info("RateManager: calc_and_set_speed_limits: Normal set to %s", piece)
                         d.set_max_speed(dir, localmaxspeed)
 
         if self.ltmgr == None and LibtorrentMgr.hasInstance():
@@ -345,17 +334,14 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
         self.ROOM = 5.0  # the amount of room in speed underutilizing downloads get
 
     def calc_and_set_speed_limits(self, dir=UPLOAD):
-
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits", dir
+        self._logger.debug("RateManager: calc_and_set_speed_limits %s", dir)
 
         if dir == UPLOAD:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING] + self.statusmap[DLSTATUS_SEEDING]
         else:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: set_lim: len workingset", len(workingset)
+        self._logger.debug("RateManager: set_lim: len workingset %s", len(workingset))
 
         # Limit working set to active torrents with connections:
         newws = []
@@ -370,17 +356,15 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                 inactiveset.append(ds)
         workingset = newws
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: set_lim: len new workingset", len(workingset)
-            for ds in workingset:
-                d = ds.get_download()
-                print >> sys.stderr, "RateManager: set_lim: working is", d.get_def().get_name()
+        self._logger.debug("RateManager: set_lim: len new workingset %s", len(workingset))
+        for ds in workingset:
+            d = ds.get_download()
+            self._logger.debug("RateManager: set_lim: working is %s", d.get_def().get_name())
 
         globalmaxspeed = self.get_global_max_speed(dir)
 
         # TEST globalmaxspeed = 1.0
-        if DEBUG:
-            print >> sys.stderr, "RateManager: set_lim: globalmaxspeed is", globalmaxspeed, dir
+        self._logger.debug("RateManager: set_lim: globalmaxspeed is %s %s", globalmaxspeed, dir)
 
         # See if global speed settings are set to unlimited
         if globalmaxspeed == 0:
@@ -393,8 +377,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                 d.set_max_speed(dir, d.get_max_desired_speed(dir))  # 0 is default
 
         else:
-            if DEBUG:
-                print >> sys.stderr, "RateManager: set_lim: globalmaxspeed is", globalmaxspeed, dir
+            self._logger.debug("RateManager: set_lim: globalmaxspeed is %s %s", globalmaxspeed, dir)
 
             # User set priority is always granted, ignoring global limit
             todoset = []
@@ -411,13 +394,11 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                 localmaxspeed = globalmaxspeed / float(len(todoset))
                 # if too small than user's problem
 
-                if DEBUG:
-                    print >> sys.stderr, "RateManager: set_lim: localmaxspeed is", localmaxspeed, dir
+                self._logger.debug("RateManager: set_lim: localmaxspeed is %s %s", localmaxspeed, dir)
 
                 for ds in todoset:
                     d = ds.get_download()
-                    if DEBUG:
-                        print >> sys.stderr, "RateManager: set_lim:", d.get_def().get_name(), "WorkQ", localmaxspeed
+                    self._logger.debug("RateManager: set_lim: %s WorkQ %s", d.get_def().get_name(), localmaxspeed)
                     d.set_max_speed(dir, localmaxspeed)
 
             # For inactives set limit to user desired, with max of globalmaxspeed
@@ -432,8 +413,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                     setspeed = globalmaxspeed
                 else:
                     setspeed = min(desspeed, globalmaxspeed)
-                if DEBUG:
-                    print >> sys.stderr, "RateManager: set_lim:", d.get_def().get_name(), "InactQ", setspeed
+                self._logger.debug("RateManager: set_lim: %s InactQ %s", d.get_def().get_name(), setspeed)
                 d.set_max_speed(dir, setspeed)
 
         if self.ltmgr == None and LibtorrentMgr.hasInstance():
