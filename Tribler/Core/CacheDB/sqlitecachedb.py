@@ -165,12 +165,6 @@ class SQLiteCacheDBBase:
         self.cursor_table = {}  # {thread_name:cur}
         self.class_variables = safe_dict({'db_path': None, 'busytimeout': None})  # busytimeout is in milliseconds
 
-        # Arno, 2012-08-02: As there is just Dispersy thread here, removing
-        # safe_dict() here
-        # 24/09/12 Boudewijn: changed into LimitedOrderedDict to limit memory consumption
-        self.show_execute = False
-
-        # TODO: All global variables must be protected to be thread safe?
         self.database_update = None
 
     def __del__(self):
@@ -376,7 +370,7 @@ class SQLiteCacheDBBase:
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if SHOW_ALL_EXECUTE:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -402,7 +396,7 @@ class SQLiteCacheDBBase:
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if SHOW_ALL_EXECUTE:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -2324,7 +2318,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if SHOW_ALL_EXECUTE:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -2364,7 +2358,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if SHOW_ALL_EXECUTE:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
