@@ -422,9 +422,9 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
         else:
             return super(PoliSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality, log_text=log_text, send_simi_reveal=send_simi_reveal)
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None, send_simi_reveal=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, log_text)
-        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality, send_simi_reveal=True)
+        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality, send_simi_reveal=send_simi_reveal)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
