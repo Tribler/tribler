@@ -232,6 +232,7 @@ class VLCWrapper:
             params += ["--no-video-title-show"]
             params += ["--no-osd"]
 
+        params += ["--no-xlib"]
         # print >>sys.stderr,"VLCWrapper: get_vlc_mediactrl: params",params
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
