@@ -481,7 +481,7 @@ class VLCWindow(wx.Panel):
         self.Layout()
 
         if self.vlcwrap:
-            wx.CallAfter(self.tell_vclwrap_window_for_playback)
+            wx.CallLater(5000, self.tell_vclwrap_window_for_playback)
         self.Refresh()
 
     def tell_vclwrap_window_for_playback(self):
