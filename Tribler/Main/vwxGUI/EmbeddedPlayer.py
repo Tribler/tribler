@@ -480,10 +480,7 @@ class VLCWindow(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
 
-        if sys.platform == 'linux2':
-            self.Bind(wx.EVT_WINDOW_CREATE, lambda evt: self.tell_vclwrap_window_for_playback())
-        else:
-            wx.CallAfter(self.tell_vclwrap_window_for_playback)
+        self.Bind(wx.EVT_WINDOW_CREATE, lambda evt: self.tell_vclwrap_window_for_playback())
 
         self.Refresh()
 
