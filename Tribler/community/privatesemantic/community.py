@@ -602,7 +602,7 @@ class ForwardCommunity():
                 request.process()
 
     def create_similarity_request(self, destination, payload):
-        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=True))
+        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=self.send_simi_reveal))
         self.send_similarity_request([destination], cache.number, payload)
 
         if DEBUG:
