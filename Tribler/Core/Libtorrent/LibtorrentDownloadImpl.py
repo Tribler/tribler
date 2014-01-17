@@ -1,4 +1,4 @@
-# Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
+    # Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
 
 import sys
 import time
@@ -163,6 +163,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.session = session
         self.tdef = tdef
         self.handle = None
+        self.vod_file = None
 
         self.notifier = Notifier.getInstance()
 
@@ -376,6 +377,10 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.get_vod_fileindex() >= 0:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 
+            if self.vod_file:
+                self.vod_file.close()
+                self.vod_file = None
+
     def monitor_vod(self, ds):
         if not self.handle or self.handle.is_paused() or self.get_mode() != DLMODE_VOD:
             return (0, False)
@@ -510,11 +515,12 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def start_vod(self, complete=False):
         if not self.vod_status:
             self.vod_status = "started"
+            self.vod_file = None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self)
             self.lm_network_vod_event_callback(self.videoinfo, VODEVENT_START,
                                               {"complete": complete,
                                                "filename": self.videoinfo["outpath"][0] if complete else None,
                                                "mimetype": self.videoinfo["mimetype"],
-                                               "stream": None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self),
+                                               "stream": self.vod_file,
                                                "length": self.videoinfo['outpath'][1],
                                                "bitrate": self.videoinfo["bitrate"]})
 
