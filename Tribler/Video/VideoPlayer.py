@@ -712,6 +712,7 @@ def parse_playtime_to_secs(hhmmss):
 
 
 def return_feasible_playback_modes(syspath):
+    return [PLAYBACKMODE_EXTERNAL_DEFAULT]
     l = []
     try:
         if False and sys.platform == "darwin":
