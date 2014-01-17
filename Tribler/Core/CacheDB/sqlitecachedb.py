@@ -1402,6 +1402,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         tmpfilename2 = os.path.join(state_dir, "upgradingdb2.txt")
         if fromver < 9 or os.path.exists(tmpfilename2):
             self.database_update.acquire()
+            
+            def getPeerID(permid):
+                assert isinstance(permid, str), permid
+
+                sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
+                peer_id = self.fetchone(sql_get_peer_id, (bin2str(permid),))
+                return peer_id
 
             from Tribler.Core.Session import Session
             from time import time
@@ -1457,7 +1464,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         my_channel_name = channel_name
                         continue
 
-                    peer_id = self.getPeerID(str2bin(publisher_id))
+                    peer_id = getPeerID(str2bin(publisher_id))
                     if peer_id:
                         permid_peerid[publisher_id] = peer_id
                         to_be_inserted.append((-1, peer_id, channel_name, '', mintimestamp, maxtimestamp))
@@ -1491,7 +1498,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             if voter_id == my_permid:
                                 to_be_inserted.append((channel_id, None, -1, vote, time_stamp))
                             else:
-                                peer_id = self.getPeerID(str2bin(voter_id))
+                                peer_id = getPeerID(str2bin(voter_id))
                                 if peer_id:
                                     to_be_inserted.append((channel_id, peer_id, -1, vote, time_stamp))
 
@@ -1566,7 +1573,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
                             votes = self.fetchall(select_votes_for_me, (my_permid,))
                             for voter_id, vote, time_stamp in votes:
-                                peer_id = self.getPeerID(str2bin(voter_id))
+                                peer_id = getPeerID(str2bin(voter_id))
                                 if peer_id:
                                     to_be_inserted.append((my_channel_id, peer_id, -1, vote, time_stamp))
 
