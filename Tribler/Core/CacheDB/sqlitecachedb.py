@@ -269,7 +269,7 @@ class SQLiteCacheDBBase:
             self._connection = apsw.Connection(dbfile_path)
             self._connection.setbusytimeout(busytimeout)
         except Exception as err:
-            self._logger.error(u"Cannot create SQLite connection.")
+            self._logger.error(u"Cannot load SQL statement file.")
             self._logger.debug(u"Error: %s", err)
             self._logger.debug(u"DB path: %s", dbfile_path)
             return False
