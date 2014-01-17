@@ -43,7 +43,7 @@ OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
 
 class AbstractServer(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.setUpCleanup()
         self.annotate_dict = {}
 
@@ -101,7 +101,7 @@ class TestAsServer(AbstractServer):
     """
 
     def setUp(self):
-        self.setUpCleanup()
+        AbstractServer.setUp(self)
         self.setUpPreSession()
 
         self.quitting = False
@@ -207,7 +207,7 @@ class TestGuiAsServer(TestAsServer):
     """
 
     def setUp(self):
-        self.setUpCleanup()
+        AbstractServer.setUp(self)
 
         self.app = wx.GetApp()
         if not self.app:
