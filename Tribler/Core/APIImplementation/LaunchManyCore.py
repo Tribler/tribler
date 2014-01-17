@@ -776,7 +776,7 @@ class TriblerLaunchMany(Thread):
         basename = binascii.hexlify(infohash) + '.state'
         filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
-        self._logger.debug("tlm: network checkpointing: to file", filename)
+        self._logger.debug("tlm: network checkpointing: to file %s" % filename)
 
         with open(filename, "wb") as f:
             pstate.write(f)
