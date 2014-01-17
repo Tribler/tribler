@@ -2279,13 +2279,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         elif vacuum:
             self._execute("VACUUM;")
 
-    def _execute(self, sql, args=None):
-        global _shouldCommit
-        if not _shouldCommit:
-            _shouldCommit = True
-
-        self.__execute(sql, args)
-
     def executemany(self, sql, args):
         global _shouldCommit
         if not _shouldCommit:
@@ -2308,7 +2301,10 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         return SQLiteCacheDBV5.fetchall(self, sql, args)
 
     @forceAndReturnDBThread
-    def __execute(self, sql, args=None):
+    def _execute(self, sql, args=None):
+        global _shouldCommit
+        _shouldCommit = True
+
         cur = self.getCursor()
 
         if SHOW_ALL_EXECUTE:
