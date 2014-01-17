@@ -247,7 +247,6 @@ class SQLiteCacheDBBase:
         assert busytimeout > 0
 
         # pre-checks
-        to_create_new_db = False
         if dbfile_path.lower() != u":memory:":
             # create db if it doesn't exist
             if not os.path.exists(dbfile_path):
@@ -267,36 +266,35 @@ class SQLiteCacheDBBase:
         # create DB connection
         try:
             self._connection = apsw.Connection(dbfile_path)
-            self._connection.setbusytimeout(busytimeout)
         except Exception as err:
             self._logger.error(u"Cannot create SQLite connection.")
             self._logger.debug(u"Error: %s", err)
             self._logger.debug(u"DB path: %s", dbfile_path)
             return False
+        # some settings
+        self._connection.setbusytimeout(busytimeout)
 
         cursor = self.getCursor()
-        if to_create_new_db:
-            # load statements
-            try:
-                sql_file = open(sql_path, 'r')
-                sql = sql_file.read()
-                sql_file.close()
 
-            except Exception as err:
-                self._logger.error(u"Cannot load SQL statement file.")
-                self._logger.debug(u"Error: %s", err)
-                self._logger.debug(u"SQL file path: %s", sql_path)
-                return False
+        # create table
+        try:
+            sql_file = open(sql_path, 'r')
+            sql = sql_file.read()
+            sql_file.close()
+        except Exception as err:
+            self._logger.error(u"Cannot create SQLite connection.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"SQL file path: %s", sql_path)
+            return False
 
-            # create tables
-            try:
-                cursor.execute(sql)
-
-            except Exception as err:
-                self._logger.error(u"Cannot create SQL tables.")
-                self._logger.debug(u"Error: %s", err)
-                self._logger.debug(u"SQL statement: %s", sql)
-                return False
+        # create tables
+        try:
+            cursor.execute(sql)
+        except Exception as err:
+            self._logger.error(u"Cannot create SQL tables.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"SQL statement: %s", sql)
+            return False
 
         # set PRAGMA options
         page_size = next(cursor.execute("PRAGMA page_size"))
