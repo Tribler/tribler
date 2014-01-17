@@ -253,7 +253,7 @@ class TestGuiAsServer(TestAsServer):
         def wait_for_frame():
             print >> sys.stderr, "tgs: GUIUtility ready, staring to wait for frame to be ready"
             self.frame = self.guiUtility.frame
-            self.frame.Maximize()
+#            self.frame.Maximize()
             self.CallConditional(30, lambda: self.frame.ready, call_callback)
 
         def wait_for_init():
