@@ -10,6 +10,7 @@
 #
 import sys
 import socket
+import logging
 from traceback import print_exc
 from threading import Thread, Event, currentThread
 from Tribler.Core.RawServer.RawServer import RawServer
@@ -19,19 +20,22 @@ try:
 except ImportError as e:
     prctlimported = False
 
-DEBUG = False
-
 
 class Instance2InstanceServer(Thread):
 
     def __init__(self, i2iport, connhandler, timeout=300.0):
         Thread.__init__(self)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        name = 'Instance2Instance' + self.getName()
         self.setDaemon(True)
-        self.setName('Instance2Instance' + self.getName())
+        self.setName(name)
+
         self.i2iport = i2iport
         self.connhandler = connhandler
 
-        print >> sys.stderr, "Instance2Instance binding to %s:%d" % ("127.0.0.1", self.i2iport)
+        self._logger.info("Instance2Instance binding to %s:%d", "127.0.0.1", self.i2iport)
         self.i2idoneflag = Event()
         self.rawserver = RawServer(self.i2idoneflag,
                                    timeout / 5.0,
@@ -60,15 +64,13 @@ class Instance2InstanceServer(Thread):
     #
     def rawserver_fatalerrorfunc(self, e):
         """ Called by network thread """
-        if DEBUG:
-            print >>sys.stderr, "i2is: RawServer fatal error func called", e
+        self._logger.debug("i2is: RawServer fatal error func called %s", e)
         print_exc()
 
     def rawserver_nonfatalerrorfunc(self, e):
         """ Called by network thread """
-        if DEBUG:
-            print >>sys.stderr, "i2is: RawServer non fatal error func called", e
-            print_exc()
+        self._logger.debug("i2is: RawServer non fatal error func called %s", e)
+        print_exc()
         # Could log this somewhere, or phase it out
 
     def run(self):
@@ -78,8 +80,7 @@ class Instance2InstanceServer(Thread):
 
         try:
             try:
-                if DEBUG:
-                    print >>sys.stderr, "i2is: Ready to receive remote commands on", self.i2iport
+                self._logger.debug("i2is: Ready to receive remote commands on %s", self.i2iport)
                 self.rawserver.listen_forever(self)
             except:
                 print_exc()
@@ -88,8 +89,7 @@ class Instance2InstanceServer(Thread):
 
     def external_connection_made(self, s):
         try:
-            if DEBUG:
-                print >>sys.stderr, "i2is: external_connection_made"
+            self._logger.debug("i2is: external_connection_made")
             self.connhandler.external_connection_made(s)
         except:
             print_exc()
@@ -99,8 +99,7 @@ class Instance2InstanceServer(Thread):
         self.connhandler.connection_flushed(s)
 
     def connection_lost(self, s):
-        if DEBUG:
-            print >>sys.stderr, "i2is: connection_lost ------------------------------------------------"
+        self._logger.debug("i2is: connection_lost ------------------------------------------------")
         self.connhandler.connection_lost(s)
 
     def data_came_in(self, s, data):
@@ -120,6 +119,8 @@ class Instance2InstanceServer(Thread):
 class InstanceConnectionHandler:
 
     def __init__(self, readlinecallback=None):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.readlinecallback = readlinecallback
         self.singsock2ic = {}  # Maps Tribler/Core/BitTornado/SocketHandler.py:SingleSocket to InstanceConnection
 
@@ -128,11 +129,10 @@ class InstanceConnectionHandler:
 
     def external_connection_made(self, s):
         # Extra check in case bind() no work
-        if DEBUG:
-            print >>sys.stderr, "i2is: ich: ext_conn_made"
+        self._logger.debug("i2is: ich: ext_conn_made")
         peername = s.get_ip()
         if peername != "127.0.0.1":
-            print >>sys.stderr, "i2is: ich: ext_conn_made: Refusing non-local connection from", peername
+            self._logger.info("i2is: ich: ext_conn_made: Refusing non-local connection from %s", peername)
             s.close()
 
         ic = InstanceConnection(s, self, self.readlinecallback)
@@ -143,20 +143,18 @@ class InstanceConnectionHandler:
 
     def connection_lost(self, s):
         """ Called when peer closes connection and when we close the connection """
-        if DEBUG:
-            print >>sys.stderr, "i2is: ich: connection_lost ------------------------------------------------"
+        self._logger.debug("i2is: ich: connection_lost ------------------------------------------------")
 
         # Extra check in case bind() no work
         peername = s.get_ip()
         if peername != "127.0.0.1":
-            print >>sys.stderr, "i2is: ich: connection_lost: Refusing non-local connection from", peername
+            self._logger.info("i2is: ich: connection_lost: Refusing non-local connection from %s", peername)
             return
 
         del self.singsock2ic[s]
 
     def data_came_in(self, s, data):
-        if DEBUG:
-            print >>sys.stderr, "i2is: ich: data_came_in"
+        self._logger.debug("i2is: ich: data_came_in")
 
         ic = self.singsock2ic[s]
         try:
@@ -180,6 +178,8 @@ class InstanceConnectionHandler:
 class InstanceConnection:
 
     def __init__(self, singsock, connhandler, readlinecallback):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.singsock = singsock
         self.connhandler = connhandler
         self.readlinecallback = readlinecallback
@@ -189,8 +189,7 @@ class InstanceConnection:
         """ Read \r\n ended lines from data and call readlinecallback(self,line) """
         # data may come in in parts, not lines! Or multiple lines at same time
 
-        if DEBUG:
-            print >>sys.stderr, "i2is: ic: data_came_in", repr(data), len(data)
+        self._logger.debug("i2is: ic: data_came_in", repr(data), len(data))
 
         if len(self.buffer) == 0:
             self.buffer = data

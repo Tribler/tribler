@@ -8,12 +8,10 @@ import random
 import time
 from traceback import print_exc, print_stack
 import threading
+import logging
 
 from Tribler.Core.Swift.SwiftProcess import *
 from Tribler.Utilities.Instance2Instance import *
-
-
-DEBUG = False
 
 
 class SwiftProcessMgr:
@@ -21,6 +19,8 @@ class SwiftProcessMgr:
     """ Class that manages a number of SwiftProcesses """
 
     def __init__(self, binpath, i2iport, dlsperproc, tunnellistenport, sesslock):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.binpath = binpath
         self.i2iport = i2iport
         # ARNOSMPTODO: Implement such that a new proc is created when needed
@@ -53,14 +53,13 @@ class SwiftProcessMgr:
                     for sp2 in self.sps:
                         if len(sp2.get_downloads()) < self.dlsperproc:
                             sp = sp2
-                            if DEBUG:
-                                print >> sys.stderr, "spm: get_or_create_sp: Reusing", sp.get_pid()
+                            self._logger.debug("spm: get_or_create_sp: Reusing %s", sp.get_pid())
                             break
 
                 if sp is None:
                     # Create new process
                     sp = SwiftProcess(self.binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, self)
-                    print >> sys.stderr, "spm: get_or_create_sp: Creating new", sp.get_pid()
+                    self._logger.debug("spm: get_or_create_sp: Creating new %s", sp.get_pid())
                     self.sps.append(sp)
 
                     # Arno, 2011-10-13: On Linux swift is slow to start and
@@ -69,7 +68,7 @@ class SwiftProcessMgr:
                     # connect when the first fails, so not timing dependent,
                     # just ensures no send_()s get lost. Executed by NetworkThread.
                     if sys.platform == "linux2" or sys.platform == "darwin":
-                        print >> sys.stderr, "spm: Need to sleep 1 second for swift to start on Linux?! FIXME"
+                        self._logger.info("spm: Need to sleep 1 second for swift to start on Linux?! FIXME")
                         time.sleep(1)
 
                     sp.start_cmd_connection()
@@ -94,7 +93,7 @@ class SwiftProcessMgr:
             self.sesslock.release()
 
     def destroy_sp(self, sp):
-        print >> sys.stderr, "spm: destroy_sp:", sp.get_pid()
+        self._logger.info("spm: destroy_sp: %s", sp.get_pid())
         self.sesslock.acquire()
         try:
             self.sps.remove(sp)
@@ -109,7 +108,7 @@ class SwiftProcessMgr:
         deads = []
         for sp in self.sps:
             if not sp.is_alive():
-                print >> sys.stderr, "spm: clean_sps: Garbage collecting dead", sp.get_pid()
+                self._logger.info("spm: clean_sps: Garbage collecting dead %s", sp.get_pid())
                 deads.append(sp)
         for sp in deads:
             self.sps.remove(sp)
@@ -119,7 +118,7 @@ class SwiftProcessMgr:
         gracetime (see Session.shutdown()).
         """
         # Called by any thread, assume sessionlock is held
-        print >> sys.stderr, "spm: early_shutdown"
+        self._logger.info("spm: early_shutdown")
         try:
             self.sesslock.acquire()
             self.done = True
@@ -135,7 +134,7 @@ class SwiftProcessMgr:
     def network_shutdown(self):
         """ Gracetime expired, kill procs """
         # Called by network thread
-        print >> sys.stderr, "spm: network_shutdown"
+        self._logger.info("spm: network_shutdown")
         for sp in self.sps:
             try:
                 sp.network_shutdown()
@@ -150,7 +149,7 @@ class SwiftProcessMgr:
         try:
             for sp in self.sps:
                 if sp.get_cmdport() == port:
-                    print >> sys.stderr, "spm: connection_lost: Restart", sp.get_pid()
+                    self._logger.info("spm: connection_lost: Restart %s", sp.get_pid())
                     sp.start_cmd_connection()
         finally:
             self.sesslock.release()

@@ -7,7 +7,7 @@ import random
 import binascii
 import urllib
 import json
-import binascii
+import logging
 from threading import RLock
 from traceback import print_exc, print_stack
 from collections import defaultdict
@@ -22,8 +22,6 @@ try:
 except NameError:
     WindowsError = Exception
 
-DEBUG = False
-
 DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1
 DONE_STATE_SHUTDOWN = 2
@@ -35,6 +33,8 @@ class SwiftProcess:
     A swift engine can participate in one or more swarms."""
 
     def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         # Called by any thread, assume sessionlock is held
         self.splock = RLock()
         self.binpath = binpath
@@ -89,8 +89,7 @@ class SwiftProcess:
             args.append("180")  # seconds
         # args.append("-B")  # Enable debugging on swift
 
-        if DEBUG:
-            print >> sys.stderr, "SwiftProcess: __init__: Running", args, "workdir", workdir
+        self._logger.debug("SwiftProcess: __init__: Running %s workdir %s", args, workdir)
 
         if sys.platform == "win32":
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -109,9 +108,9 @@ class SwiftProcess:
             while True:
                 line = socket.readline()
                 if not line:
-                    print >> sys.stderr, prefix, "readline returned nothing quitting"
+                    self._logger.info("%s readline returned nothing quitting", prefix)
                     break
-                print >> sys.stderr, prefix, line.rstrip()
+                self._logger.info("%s %s", prefix, line.rstrip())
         self.popen_outputthreads = [Thread(target=read_and_print, args=(self.popen.stdout,), name="SwiftProcess_%d_stdout" % self.listenport), Thread(target=read_and_print, args=(self.popen.stderr,), name="SwiftProcess_%d_stderr" % self.listenport)]
         [thread.start() for thread in self.popen_outputthreads]
 
@@ -135,7 +134,7 @@ class SwiftProcess:
         if self.is_alive():
             self.fastconn = FastI2IConnection(self.cmdport, self.i2ithread_readlinecallback, self.connection_lost)
         else:
-            print >> sys.stderr, "sp: start_cmd_connection: Process dead? returncode", self.popen.returncode, "pid", self.popen.pid
+            self._logger.info("sp: start_cmd_connection: Process dead? returncode %s pid %s", self.popen.returncode, self.popen.pid)
 
     def i2ithread_readlinecallback(self, ic, cmd):
         # if DEBUG:
@@ -166,13 +165,13 @@ class SwiftProcess:
             except KeyError:
                 if self._warn_missing_endpoint:
                     self._warn_missing_endpoint = False
-                    print >> sys.stderr, "sp: Dispersy endpoint is not available"
+                    self._logger.error("sp: Dispersy endpoint is not available")
 
         else:
             roothash = binascii.unhexlify(words[1])
 
             if words[0] == "ERROR":
-                print >> sys.stderr, "sp: i2ithread_readlinecallback:", cmd
+                self._logger.info("sp: i2ithread_readlinecallback: %s" % cmd)
 
             elif words[0] == "CLOSE_EVENT":
                 roothash_hex = words[1]
@@ -198,8 +197,7 @@ class SwiftProcess:
             self.splock.acquire()
             try:
                 if roothash not in self.roothash2dl.keys():
-                    if DEBUG:
-                        print >> sys.stderr, "sp: i2ithread_readlinecallback: unknown roothash", words[1]
+                    self._logger.debug("sp: i2ithread_readlinecallback: unknown roothash %s", words[1])
                     return
 
                 d = self.roothash2dl[roothash]
@@ -403,7 +401,7 @@ class SwiftProcess:
 
         if self.fastconn:
             # Tell engine to shutdown so it can deregister dls from tracker
-            print >> sys.stderr, "sp: Telling process to shutdown"
+            self._logger.info("sp: Telling process to shutdown")
             self.send_shutdown()
 
     def network_shutdown(self):
@@ -415,7 +413,7 @@ class SwiftProcess:
 
         if self.popen is not None:
             try:
-                print >> sys.stderr, "sp: Terminating process"
+                self._logger.info("sp: Terminating process")
                 self.popen.terminate()
                 self.popen.wait()
                 self.popen = None
@@ -432,8 +430,7 @@ class SwiftProcess:
     #
     def send_start(self, url, roothash_hex=None, maxdlspeed=None, maxulspeed=None, destdir=None, metadir=None):
         # assume splock is held to avoid concurrency on socket
-        if DEBUG:
-            print >> sys.stderr, "sp: send_start:", url, "destdir", destdir, "metadir", metadir
+        self._logger.info("sp: send_start: %s, destdir=%s, metadir=%s", url, destdir, metadir)
 
         cmd = 'START ' + url
         if destdir is not None:
@@ -473,8 +470,7 @@ class SwiftProcess:
 
     def send_tunnel(self, session, address, data):
         # assume splock is held to avoid concurrency on socket
-        if DEBUG:
-            print >> sys.stderr, "sp: send_tunnel:", len(data), "bytes -> %s:%d" % address
+        self._logger.debug("sp: send_tunnel:" + repr(len(data)) + "bytes -> %s:%d" % address)
 
         self.write("TUNNELSEND %s:%d/%s %d\r\n" % (address[0], address[1], session.encode("HEX"), len(data)))
         self.write(data)
@@ -498,8 +494,7 @@ class SwiftProcess:
         assert event_type == "CHANNEL_CLOSE"
         assert isinstance(enable, bool), type(enable)
         # assume splock is held to avoid concurrency on socket
-        if DEBUG:
-            print >> sys.stderr, "sp: send_subscribe:", roothash_hex, event_type, enable
+        self._logger.debug("sp: send_subscribe: %s %s %s", roothash_hex, event_type, enable)
         self.write("SUBSCRIBE %s %s %d\r\n" % (roothash_hex, event_type, int(enable),))
 
     def send_peer_addr(self, roothash_hex, addrstr):

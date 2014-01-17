@@ -4,19 +4,18 @@
 
 import sys
 from threading import currentThread
+import logging
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-
-DEBUG = False
 
 
 class mainlineDHTChecker:
     __single = None
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger.debug('mainlineDHTChecker: initialization')
 
-        if DEBUG:
-            print >> sys.stderr, 'mainlineDHTChecker: initialization'
         if mainlineDHTChecker.__single:
             raise RuntimeError("mainlineDHTChecker is Singleton")
         mainlineDHTChecker.__single = self
@@ -34,21 +33,19 @@ class mainlineDHTChecker:
         self.dht = dht
 
     def lookup(self, infohash):
-        if DEBUG:
-            print >> sys.stderr, "mainlineDHTChecker: Lookup", repr(infohash)
+        self._logger.debug("mainlineDHTChecker: Lookup %s", repr(infohash))
 
         try:
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             LibtorrentMgr.getInstance().get_peers(infohash, self.got_peers_callback)
         except:
-            print >> sys.stderr, "mainlineDHTChecker: No lookup, libtorrent not loaded"
+            self._logger.error("mainlineDHTChecker: No lookup, libtorrent not loaded")
 
     def got_peers_callback(self, infohash, peers, node=None):
-        if DEBUG:
-            if peers:
-                print >> sys.stderr, "mainlineDHTChecker: Got", len(peers), "peers for torrent", repr(infohash), currentThread().getName()
-            else:
-                print >> sys.stderr, "mainlineDHTChecker: Got no peers for torrent", repr(infohash), currentThread().getName()
+        if peers:
+            self._logger.debug("mainlineDHTChecker: Got %d peers for torrent %s %s", len(peers), repr(infohash), currentThread().getName())
+        else:
+            self._logger.debug("mainlineDHTChecker: Got no peers for torrent %s %s", repr(infohash), currentThread().getName())
 
         if peers:
             # Arno, 2010-02-19: this can be called frequently with the new DHT,

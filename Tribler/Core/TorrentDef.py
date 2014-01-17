@@ -5,6 +5,7 @@ import sys
 import os
 import copy
 import math
+import logging
 from traceback import print_exc, print_stack
 from types import StringType, ListType, IntType, LongType
 from binascii import hexlify
@@ -51,6 +52,9 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         parameters are used internally to make this a copy constructor) """
         assert infohash is None or isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert infohash is None or len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.readonly = False
         if input is not None:  # copy constructor
             self.input = input
@@ -747,8 +751,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             pl = float(self.get_piece_length())
             length = float(self.input['bps'] * secs)
 
-            if DEBUG:
-                print >> sys.stderr, "TorrentDef: finalize: length", length, "piecelen", pl
+            self._logger.debug("TorrentDef: finalize: length %s, piecelen %s", length, pl)
             diff = length % pl
             add = (pl - diff) % pl
             newlen = int(length + add)
@@ -879,8 +882,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                         if 0 < ord(char) < 128:
                             return char
                         else:
-                            if DEBUG:
-                                print >> sys.stderr, "Bad character filter", ord(char), "isalnum?", char.isalnum()
+                            self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
                 return unicode(filter_characters(self.metainfo["info"]["name"]))
@@ -1016,8 +1018,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                                 if 0 < ord(char) < 128:
                                     return char
                                 else:
-                                    if DEBUG:
-                                        print >> sys.stderr, "Bad character filter", ord(char), "isalnum?", char.isalnum()
+                                    self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
                         yield join(*[unicode(filter_characters(element)) for element in file_dict["path"]]), file_dict["length"]

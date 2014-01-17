@@ -7,7 +7,7 @@ from traceback import print_exc, print_stack
 
 from Tribler.Core.simpledefs import *
 from threading import Timer
-
+import logging
 
 class Notifier:
 
@@ -20,6 +20,9 @@ class Notifier:
     def __init__(self, pool=None):
         if Notifier.__single:
             raise RuntimeError("Notifier is singleton")
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.pool = pool
 
         self.observers = []
@@ -127,7 +130,7 @@ class Notifier:
                         self.observerscache[ofunc].append(args)
             except:
                 print_exc()
-                print >> sys.stderr, "notify: OIDs were", repr(oid), repr(obj_id)
+                self._logger.error("notify: OIDs were %s %s", repr(oid), repr(obj_id))
 
         self.observerLock.release()
         for task in tasks:

@@ -16,23 +16,24 @@ import core.identifier as identifier
 import core.node as node
 import core.pymdht as pymdht
 
+logger = logging.getLogger(__name__)
+
 
 def main(options, args):
     if not os.path.isdir(options.path):
         if os.path.exists(options.path):
-            print >>sys.stderr, 'FATAL:', options.path, 'must be a directory'
+            logger.critical('FATAL: %s must be a directory', options.path)
             return
-        print >>sys.stderr, options.path, 'does not exist. Creating directory...'
+        logger.info('%s does not exist. Creating directory...', options.path)
         os.mkdir(options.path)
     logs_path = options.path
     if options.lookup_delay and not options.daemon:
-        print >>sys.stderr, 'Switching to DAEMON mode (no user interface)'
+        logger.info('Switching to DAEMON mode (no user interface)')
     if options.lookup_delay or options.daemon:
         # redirect output
         stdout_file = os.path.join(options.path, 'pymdht.stdout')
         stderr_file = os.path.join(options.path, 'pymdht.stderr')
-        print >>sys.stderr, 'Redirecting output to %s and %s' % (
-            stdout_file, stderr_file)
+        logger.info('Redirecting output to %s and %s', stdout_file, stderr_file)
         sys.stdout = open(stdout_file, 'w')
         sys.stderr = open(stderr_file, 'w')
 
@@ -49,15 +50,15 @@ def main(options, args):
         # logs_level = logging.INFO # This generates some (useful) logs
         logs_level = logging.WARNING  # This generates warning and error logs
 
-    print 'Using the following plug-ins:'
-    print '*', options.routing_m_file
-    print '*', options.lookup_m_file
-    print '*', options.experimental_m_file
-    print 'Path:', options.path
-    print 'Private DHT name:', options.private_dht_name
-    print 'debug mode:', options.debug
-    print 'bootstrap mode:', options.bootstrap_mode
-    print 'Swift tracker port:', options.swift_port
+    logger.info('Using the following plug-ins:')
+    logger.info('* %s', options.routing_m_file)
+    logger.info('* %s', options.lookup_m_file)
+    logger.info('* %s', options.experimental_m_file)
+    logger.info('Path: %s', options.path)
+    logger.info('Private DHT name: %s', options.private_dht_name)
+    logger.info('debug mode: %s', options.debug)
+    logger.info('bootstrap mode: %s', options.bootstrap_mode)
+    logger.info('Swift tracker port: %s', options.swift_port)
     routing_m_name = '.'.join(os.path.split(options.routing_m_file))[:-3]
     routing_m_mod = __import__(routing_m_name, fromlist=[''])
     lookup_m_name = '.'.join(os.path.split(options.lookup_m_file))[:-3]
@@ -82,7 +83,7 @@ def main(options, args):
                 target = identifier.Id(options.lookup_target)
             else:
                 target = identifier.RandomId()
-            print 'lookup', target
+            logger.info('lookup %s', target)
             dht.get_peers(None, target, None, options.announce_port)
             remaining_lookups = remaining_lookups - 1
         time.sleep(options.stop_delay)
@@ -209,7 +210,7 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
 
     if options.version:
-        print 'Pymdht %d.%d.%d' % pymdht.PYMDHT_VERSION
+        logger.info('Pymdht %d.%d.%d' % pymdht.PYMDHT_VERSION)
         sys.exit()
 
     options.port = int(options.port)

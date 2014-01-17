@@ -8,7 +8,7 @@ from time import sleep
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
 
-from Tribler.dispersy.dispersy import MissingMessageCache, MissingSomethingCache
+from Tribler.dispersy.cache import MissingMessageCache, MissingSomethingCache
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -61,7 +61,7 @@ def onDispersyThread():
 def warnDispersyThread(func):
     def invoke_func(*args, **kwargs):
         if not onDispersyThread():
-            print >> sys.stderr, "This method MUST be called on the DispersyThread"
+            logger.info("This method MUST be called on the DispersyThread")
             print_stack()
             return None
         else:
@@ -117,7 +117,7 @@ def forceAndReturnDispersyThread(func):
                 return result[0]
 
             print_stack()
-            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDispersyThread", func.__name__
+            logger.info("GOT TIMEOUT ON forceAndReturnDispersyThread %s", func.__name__)
         else:
             return func(*args, **kwargs)
 
@@ -130,6 +130,8 @@ class ChannelCommunity(Community):
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
     def __init__(self, dispersy, master, integrate_with_tribler=True):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.integrate_with_tribler = integrate_with_tribler
 
         self._channel_id = None
@@ -714,7 +716,7 @@ class ChannelCommunity(Community):
             if message_name == u"torrent":
                 channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
                 if not channeltorrent_id:
-                    print >> sys.stderr, "CANNOT FIND channeltorrent_id", modifying_dispersy_id
+                    self._logger.info("CANNOT FIND channeltorrent_id %s", modifying_dispersy_id)
                 channeltorrentDict[modifying_dispersy_id] = channeltorrent_id
 
             elif message_name == u"playlist":
@@ -765,7 +767,7 @@ class ChannelCommunity(Community):
         if __debug__:
             for message in messages:
                 if message.payload.modification_on.name == u"torrent" and message.payload.modification_type == "video-info":
-                    print >> sys.stderr, "Incoming video-info with value", message.payload.modification_value
+                    self._logger.debug("Incoming video-info with value %s", message.payload.modification_value)
 
     def _disp_undo_modification(self, descriptors, redo=False):
         for _, _, packet in descriptors:

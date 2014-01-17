@@ -3,6 +3,7 @@
 
 import os
 import copy
+import logging
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -20,6 +21,8 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         DefaultDownloadStartupConfig.__single = self
 
         DownloadStartupConfig.__init__(self, dlconfig=dlconfig)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def getInstance(*args, **kw):
         if DefaultDownloadStartupConfig.__single is None:

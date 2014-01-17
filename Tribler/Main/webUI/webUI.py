@@ -2,6 +2,7 @@ import cherrypy
 import random
 import sys
 import os
+import logging
 from binascii import hexlify, unhexlify
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
@@ -10,9 +11,6 @@ from functools import wraps
 from cherrypy import response, expose
 from cherrypy.lib.auth_basic import checkpassword_dict
 from traceback import print_exc
-
-
-DEBUG = False
 
 
 def jsonify(func):
@@ -36,6 +34,8 @@ class WebUI():
         if WebUI.__single:
             raise RuntimeError("WebUI is singleton")
         WebUI.__single = self
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.currentTokens = set()
         self.currentTorrents = {}
@@ -92,9 +92,8 @@ class WebUI():
     @cherrypy.expose
     @jsonify
     def index(self, **args):
-        if DEBUG:
-            for key, value in args.iteritems():
-                print >> sys.stderr, "webUI: request", key, value
+        for key, value in args.iteritems():
+            self._logger.debug("webUI: request %s %s", key, value)
 
         if len(args) == 0:
             raise cherrypy.HTTPRedirect("/gui/index.html")
@@ -111,16 +110,14 @@ class WebUI():
                 returnDict = self.doList(args)
 
         returnDict['build'] = 1
-        if DEBUG:
-            print >> sys.stderr, "webUI: result", returnDict
+        self._logger.debug("webUI: result %s", returnDict)
         return returnDict
 
     @cherrypy.expose(alias='token.html')
     def token(self, **args):
         newToken = ''.join(random.choice('0123456789ABCDEF') for i in range(60))
         self.currentTokens.add(newToken)
-        if DEBUG:
-            print >> sys.stderr, "webUI: newToken", newToken
+        self._logger.debug("webUI: newToken %s", newToken)
         return "<html><body><div id='token' style='display:none;'>%s</div></body></html>" % newToken
 
     def doList(self, args):

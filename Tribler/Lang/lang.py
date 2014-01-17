@@ -3,6 +3,7 @@
 import wx
 import sys
 import os
+import logging
 
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
@@ -28,13 +29,15 @@ from Tribler.Core.version import version_id, commit_id, build_date
 class Lang:
 
     def __init__(self, utility):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.utility = utility
 
         filename = self.utility.config.Read('language_file')
         langpath = os.path.join(self.utility.getPath(), LIBRARYNAME, "Lang")
 
         sys.stdout.write("Setting up languages\n")
-        print >> sys.stderr, "Language file:", langpath, filename
+        self._logger.info("Language file: %s %s", langpath, filename)
 
         # Set up user language file (stored in user's config directory)
         self.user_lang = None
@@ -114,7 +117,7 @@ class Lang:
 
         # if we get to this point, we weren't able to read anything
         if giveerror:
-            print >> sys.stderr, "Language file: Got an error finding:", label
+            self._logger.info("Language file: Got an error finding: %s", label)
             self.error(label)
         return ""
 

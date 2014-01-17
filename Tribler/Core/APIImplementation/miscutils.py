@@ -4,13 +4,12 @@
 import sys
 import re
 from threading import Timer
+import logging
 
-DEBUG = False
-
+logger = logging.getLogger(__name__)
 
 def parse_playtime_to_secs(hhmmss):
-    if DEBUG:
-        print >>sys.stderr, "miscutils: Playtime is", hhmmss
+    logger.debug("miscutils: Playtime is %s", hhmmss)
     r = re.compile("([0-9\.]+):*")
     occ = r.findall(hhmmss)
     t = None

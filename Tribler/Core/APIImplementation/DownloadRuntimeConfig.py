@@ -2,9 +2,9 @@
 # Modified by Egbert Bouman
 # see LICENSE.txt for license information
 
-from Tribler.Core.DownloadConfig import DownloadConfigInterface
+import logging
 
-DEBUG = False
+from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 # 10/02/10 Boudewijn: pylint points out that member variables used in
 # DownloadRuntimeConfig do not exist.  This is because they are set in
@@ -15,6 +15,9 @@ DEBUG = False
 
 
 class DownloadRuntimeConfig(DownloadConfigInterface):
+
+    def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     """
     Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface
