@@ -308,8 +308,23 @@ class Utility:
             self.config.Write('maxuploadrate', '-1')
             self.config.Write('maxseeduploadrate', '-1')
         else:
-            self.config.Write('maxuploadrate', valup)
-            self.config.Write('maxseeduploadrate', valup)
+            self.write_config('maxuploadrate', valup)
+            self.write_config('maxseeduploadrate', valup)
+
+    def read_config(self, option, section='Tribler', literal_eval=True):
+        if not self.config.has_option(section, option):
+            return self.defaults.get(section, {}).get(option, None)
+
+        return self.config.get(section, option, literal_eval=literal_eval)
+
+    def write_config(self, option, value, section='Tribler', flush=False):
+        self.config.set(section, option, value)
+        if flush:
+            self.flush_config()
+
+    def flush_config(self):
+        with open(self.configfilepath, "wb") as config_file:
+            self.config.write(config_file)
 
     def eta_value(self, n, truncate=3):
         if n == -1:

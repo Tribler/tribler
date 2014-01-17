@@ -14,7 +14,7 @@
 
 import sys
 import logging
-from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -436,7 +436,10 @@ class ABCApp():
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            try:
+                defaultDLConfig = convertDefaultDownloadConfig(os.path.join(state_dir, 'dlconfig.pickle'), dlcfgfilename)
+            except:
+                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
@@ -705,15 +708,18 @@ class ABCApp():
         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
 
         filelist = os.listdir(dir)
-        filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
+        if any([filename.endswith('.pickle') for filename in filelist]):
+            convertDownloadCheckpoints(dir)
+
+        filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
 
         for file in filelist:
             try:
                 pstate = self.utility.session.lm.load_download_pstate(file)
-                dlconfig = pstate['dlconfig']
 
-                if dlconfig.get('saveas', ''):
-                    destdir = os.path.basename(dlconfig['saveas'])
+                saveas = pstate.get('downloadconfig', 'saveas')
+                if saveas:
+                    destdir = os.path.basename(saveas)
                     if destdir == coldir:
                         os.remove(file)
             except:

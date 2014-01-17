@@ -32,5 +32,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         if name in dir(SessionConfigInterface):
             if name.startswith('get_') or name.startswith('set_'):
                 if hasattr(attr, '__call__'):
-                    return lambda *args, **kwargs: self._execute_with_sesslock(attr, *args, **kwargs)
+                    sesslock_func = SessionConfigInterface.__getattribute__(self, '_execute_with_sesslock')
+                    return lambda *args, **kwargs: sesslock_func(attr, *args, **kwargs)
         return attr
