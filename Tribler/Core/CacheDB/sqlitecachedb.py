@@ -8,6 +8,7 @@ from time import sleep, time
 from base64 import encodestring, decodestring
 import threading
 from traceback import print_exc, print_stack
+import logging
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_DISPERSY, NTFY_STARTED
 from Tribler.__init__ import LIBRARYNAME
@@ -43,6 +44,7 @@ import logging
 # Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
 # Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables, removed indices
 # Changed from 17 to 18 added swift-thumbnails/video-info metadatatypes
+# Changed from 18 to 19 added torrent checking, cleaned Peer table
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is
 # written to the DB in the schema_sdb_v*.sql file!!!
@@ -55,7 +57,6 @@ CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'  # db file path = DB_DIR_NAME/DB_FILE_NAME
 DEFAULT_BUSY_TIMEOUT = 10000
-NULL = None
 SHOW_ALL_EXECUTE = False
 TEST_OVERRIDE = False
 
@@ -152,24 +153,17 @@ class safe_dict(dict):
 
 
 class SQLiteCacheDBBase:
-    lock = threading.RLock()
 
     def __init__(self, db_exception_handler=None):
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self._connection = None
+
         self.exception_handler = db_exception_handler
 
         self.cursor_lock = RLock()
-        self.cursor_table = {}  # {thread_name:cur}
-        self.class_variables = safe_dict({'db_path': None, 'busytimeout': None})  # busytimeout is in milliseconds
+        self.cursor_table = {}
 
-        # Arno, 2012-08-02: As there is just Dispersy thread here, removing
-        # safe_dict() here
-        # 24/09/12 Boudewijn: changed into LimitedOrderedDict to limit memory consumption
-        self.show_execute = False
-
-        # TODO: All global variables must be protected to be thread safe?
-        self.applied_pragma = False
         self.database_update = None
 
     def __del__(self):
@@ -182,6 +176,8 @@ class SQLiteCacheDBBase:
         if cur:
             self._close_cur(thread_name, cur)
 
+        self._connection.close()
+
     def close_all(self):
         with self.cursor_lock:
             if self.cursor_table:
@@ -191,108 +187,29 @@ class SQLiteCacheDBBase:
                 self.cursor_table = None
 
     def _close_cur(self, thread_name, cur):
-        con = cur.getconnection()
         cur.close()
-        con.close()
 
         with self.cursor_lock:
             assert self.cursor_table
             del self.cursor_table[thread_name]
 
-    # --------- static functions --------
     def getCursor(self, create=True):
         thread_name = threading.currentThread().getName()
 
         with self.cursor_lock:
             assert self.cursor_table != None
 
-            cur = self.cursor_table.get(thread_name, None)  # return [cur, cur, lib] or None
-            # print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
-            if cur is None and create and self.class_variables['db_path']:
-                self.openDB(self.class_variables['db_path'], self.class_variables['busytimeout'])  # create a new db obj for this thread
+            cur = self.cursor_table.get(thread_name, None)
+            if cur is None and create:
+                cur = self._connection.cursor()
+                self.cursor_table[thread_name] = cur
             cur = self.cursor_table.get(thread_name)
 
         return cur
 
-    def openDB(self, dbfile_path=None, busytimeout=DEFAULT_BUSY_TIMEOUT):
-        """
-        Open a SQLite database. Only one and the same database can be opened.
-        @dbfile_path       The path to store the database file.
-                           Set dbfile_path=':memory:' to create a db in memory.
-        @busytimeout       Set the maximum time, in milliseconds, that SQLite will wait if the database is locked.
-        """
-
-        # already opened a db in this thread, reuse it
-        thread_name = threading.currentThread().getName()
-        # print >>sys.stderr,"sqlcachedb: openDB",dbfile_path,thread_name
-        with self.cursor_lock:
-            assert self.cursor_table != None
-
-            if thread_name in self.cursor_table:
-                # assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
-                return self.cursor_table[thread_name]
-
-            assert dbfile_path, "You must specify the path of database file"
-
-            if dbfile_path.lower() != ':memory:':
-                db_dir, db_filename = os.path.split(dbfile_path)
-                if db_dir and not os.path.isdir(db_dir):
-                    os.makedirs(db_dir)
-
-            con = apsw.Connection(dbfile_path)
-            con.setbusytimeout(busytimeout)
-
-            cur = con.cursor()
-            self.cursor_table[thread_name] = cur
-
-        if not self.applied_pragma:
-            self.applied_pragma = True
-            page_size, = next(cur.execute("PRAGMA page_size"))
-            if page_size < 8192:
-                # journal_mode and page_size only need to be set once.  because of the VACUUM this
-                # is very expensive
-                self._logger.info("begin page_size upgrade...")
-                cur.execute("PRAGMA journal_mode = DELETE;")
-                cur.execute("PRAGMA page_size = 8192;")
-                cur.execute("VACUUM;")
-                self._logger.info("...end page_size upgrade")
-
-            # http://www.sqlite.org/pragma.html
-            # When synchronous is NORMAL, the SQLite database engine will still
-            # pause at the most critical moments, but less often than in FULL
-            # mode. There is a very small (though non-zero) chance that a power
-            # failure at just the wrong time could corrupt the database in
-            # NORMAL mode. But in practice, you are more likely to suffer a
-            # catastrophic disk failure or some other unrecoverable hardware
-            # fault.
-            #
-            cur.execute("PRAGMA synchronous = NORMAL;")
-            cur.execute("PRAGMA cache_size = 10000;")
-
-            # Niels 19-09-2012: even though my database upgraded to increase the pagesize it did not keep wal mode?
-            # Enabling WAL on every starup
-            cur.execute("PRAGMA journal_mode = WAL;")
-
-        return cur
-
-    def createDBTable(self, sql_create_table, dbfile_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
-        """
-        Create a SQLite database.
-        @sql_create_table  The sql statements to create tables in the database.
-                           Every statement must end with a ';'.
-        @dbfile_path       The path to store the database file. Set dbfile_path=':memory:' to creates a db in memory.
-        @busytimeout       Set the maximum time, in milliseconds, that SQLite will wait if the database is locked.
-                           Default = 10000 milliseconds
-        """
-        cur = self.openDB(dbfile_path, busytimeout)
-        self._logger.info(dbfile_path)
-        cur.execute(sql_create_table)  # it is suggested to include begin & commit in the script
-
     def initDB(self, sqlite_filepath,
                create_sql_filename=None,
-               busytimeout=DEFAULT_BUSY_TIMEOUT,
-               check_version=True,
-               current_db_version=CURRENT_MAIN_DB_VERSION):
+               busytimeout=DEFAULT_BUSY_TIMEOUT):
         """
         Create and initialize a SQLite database given a sql script.
         Only one db can be opened. If the given dbfile_path is different with the opened DB file, warn and exit
@@ -302,107 +219,120 @@ class SQLiteCacheDBBase:
         @busytimeout       Set the maximum time, in milliseconds, to wait and retry
                            if failed to acquire a lock. Default = 5000 milliseconds
         """
-        if create_sql_filename is None:
-            create_sql_filename = CREATE_SQL_FILE
+        assert sqlite_filepath is not None
+
+        self._logger.info(u"Initializing SQLite DB.")
         try:
-            self.lock.acquire()
+            if create_sql_filename is None:
+                create_sql_filename = CREATE_SQL_FILE
 
-            # verify db path identity
-            class_db_path = self.class_variables['db_path']
-            if sqlite_filepath is None:  # reuse the opened db file?
-                if class_db_path is not None:  # yes, reuse it
-                    # reuse the busytimeout
-                    return self.openDB(class_db_path, self.class_variables['busytimeout'])
-                else:  # no db file opened
-                    raise Exception("You must specify the path of database file when open it at the first time")
+            if not self._openDb(sqlite_filepath, create_sql_filename, busytimeout):
+                return None
+
+            if create_sql_filename is not None:
+                self._checkDB()
+
+            return self.getCursor()
+
+        except Exception as err:
+            self._logger.error(u"Cannot initialize SQLite DB.")
+            self._logger.debug(u"Error: %s", err)
+            return None
+
+    def _openDb(self, dbfile_path, sql_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
+        """
+        Opens or creates the database.
+        """
+        assert dbfile_path is not None
+        assert busytimeout > 0
+
+        # pre-checks
+        if dbfile_path.lower() != u":memory:":
+            # create db if it doesn't exist
+            if not os.path.exists(dbfile_path):
+                to_create_new_db = True
+
+                db_dir, _ = os.path.split(dbfile_path)
+                if db_dir and not os.path.exists(db_dir):
+                    os.makedirs(db_dir)
+
             else:
-                if class_db_path is None:  # the first time to open db path, store it
+                # db is not a file
+                if not os.path.isfile(dbfile_path):
+                    self._logger.error(u"DB path is not a file.")
+                    self._logger.debug(u"DB path: %s", dbfile_path)
+                    return False
 
-                    # print 'quit now'
-                    # sys.exit(0)
-                    # open the db if it exists (by converting from bsd) and is not broken, otherwise create a new one
-                    # it will update the db if necessary by checking the version number
-                    self.safelyOpenTriblerDB(sqlite_filepath, create_sql_filename, busytimeout, check_version=check_version, current_db_version=current_db_version)
-
-                    self.class_variables = {'db_path': sqlite_filepath, 'busytimeout': int(busytimeout)}
-
-                    return self.openDB()  # return the cursor, won't reopen the db
-
-                elif sqlite_filepath != class_db_path:  # not the first time to open db path, check if it is the same
-                    raise Exception("Only one database file can be opened. You have opened %s and are trying to open %s." % (class_db_path, sqlite_filepath))
-
-        finally:
-            self.lock.release()
-
-    def safelyOpenTriblerDB(self, dbfile_path, sql_create, busytimeout=DEFAULT_BUSY_TIMEOUT, check_version=False, current_db_version=None):
-        """
-        open the db if possible, otherwise create a new one
-        update the db if necessary by checking the version number
-
-        safeOpenDB():
-            try:
-                if sqlite db doesn't exist:
-                    raise Error
-                open sqlite db
-                read sqlite_db_version
-                if sqlite_db_version dosen't exist:
-                    raise Error
-            except:
-                close and delete sqlite db if possible
-                create new sqlite db file without sqlite_db_version
-                write sqlite_db_version at last
-                commit
-                open sqlite db
-                read sqlite_db_version
-                # must ensure these steps after except will not fail, otherwise force to exit
-
-            if sqlite_db_version < current_db_version:
-                updateDB(sqlite_db_version, current_db_version)
-                commit
-                update sqlite_db_version at last
-                commit
-        """
+        # create DB connection
         try:
-            if not os.path.isfile(dbfile_path):
-                raise Warning("No existing database found. Attempting to creating a new database %s" % repr(dbfile_path))
+            self._connection = apsw.Connection(dbfile_path)
+        except Exception as err:
+            self._logger.error(u"Cannot create SQLite connection.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"DB path: %s", dbfile_path)
+            return False
+        # some settings
+        self._connection.setbusytimeout(busytimeout)
 
-            cur = self.openDB(dbfile_path, busytimeout)
-            if check_version:
-                sqlite_db_version = self.readDBVersion()
-                if sqlite_db_version == NULL or int(sqlite_db_version) < 1:
-                    raise NotImplementedError
-        except Exception as exception:
-            if isinstance(exception, Warning):
-                # user friendly warning to log the creation of a new database
-                self._logger.error(exception)
+        cursor = self.getCursor()
 
-            else:
-                # user unfriendly exception message because something went wrong
-                print_exc()
+        # create table
+        try:
+            sql_file = open(sql_path, 'r')
+            sql = sql_file.read()
+            sql_file.close()
+        except Exception as err:
+            self._logger.error(u"Cannot create SQLite connection.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"SQL file path: %s", sql_path)
+            return False
 
-            if os.path.isfile(dbfile_path):
-                self.close(clean=True)
-                os.remove(dbfile_path)
+        # create tables
+        try:
+            cursor.execute(sql)
+        except Exception as err:
+            self._logger.error(u"Cannot create SQL tables.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"SQL statement: %s", sql)
+            return False
 
-            if os.path.isfile(sql_create):
-                f = open(sql_create)
-                sql_create_tables = f.read()
-                f.close()
-            else:
-                raise Exception("Cannot open sql script at %s" % os.path.realpath(sql_create))
+        # set PRAGMA options
+        page_size = next(cursor.execute("PRAGMA page_size"))
+        if page_size < 8192:
+            # journal_mode and page_size only need to be set once.  because of the VACUUM this
+            # is very expensive
+            self._logger.debug(u"begin page_size upgrade...")
+            cursor.execute("PRAGMA journal_mode = DELETE;")
+            cursor.execute("PRAGMA page_size = 8192;")
+            cursor.execute("VACUUM;")
+            self._logger.debug(u"...end page_size upgrade")
 
-            self.createDBTable(sql_create_tables, dbfile_path, busytimeout)
-            if check_version:
-                sqlite_db_version = self.readDBVersion()
+        # http://www.sqlite.org/pragma.html
+        # When synchronous is NORMAL, the SQLite database engine will still
+        # pause at the most critical moments, but less often than in FULL
+        # mode. There is a very small (though non-zero) chance that a power
+        # failure at just the wrong time could corrupt the database in
+        # NORMAL mode. But in practice, you are more likely to suffer a
+        # catastrophic disk failure or some other unrecoverable hardware
+        # fault.
+        cursor.execute("PRAGMA synchronous = NORMAL;")
+        cursor.execute("PRAGMA cache_size = 10000;")
 
-        if check_version:
-            self.checkDB(sqlite_db_version, current_db_version)
+        # Niels 19-09-2012: even though my database upgraded to increase
+        # the pagesize it did not keep wal mode?
+        # Enabling WAL on every starup
+        cursor.execute("PRAGMA journal_mode = WAL;")
 
-    def checkDB(self, db_ver, curr_ver):
-        # read MyDB and check the version number.
+        return True
+
+    def _checkDB(self):
+        db_ver = self.readDBVersion()
+        curr_ver = CURRENT_MAIN_DB_VERSION
+
         if not db_ver or not curr_ver:
             self.updateDB(db_ver, curr_ver)
             return
+
         db_ver = int(db_ver)
         curr_ver = int(curr_ver)
 
@@ -414,8 +344,17 @@ class SQLiteCacheDBBase:
             self.database_update = threading.Semaphore(self.db_diff)
             self.updateDB(db_ver, curr_ver)
 
+    def readDBVersion(self):
+        sql = u"SELECT value FROM MyInfo WHERE entry = 'version'"
+        result = self.fetchone(sql)
+        return result
+
+    def writeDBVersion(self, version):
+        sql = u"UPDATE MyInfo SET value = ? WHERE entry = 'version'"
+        self._execute(sql, (version,))
+
     def updateDB(self, db_ver, curr_ver):
-        pass  # TODO
+        pass
 
     def waitForUpdateComplete(self):
         if self.database_update:
@@ -425,29 +364,12 @@ class SQLiteCacheDBBase:
             for _ in range(self.db_diff):
                 self.database_update.release()
 
-    def readDBVersion(self):
-        cur = self.getCursor()
-        sql = u"select value from MyInfo where entry='version'"
-        res = self.fetchone(sql)
-        if res:
-            return res
-        else:
-            return None
-
-    def writeDBVersion(self, version):
-        sql = u"UPDATE MyInfo SET value=? WHERE entry='version'"
-        self.execute_write(sql, [version])
-
-    def show_sql(self, switch):
-        # temporary show the sql executed
-        self.show_execute = switch
-
     # --------- generic functions -------------
 
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if SHOW_ALL_EXECUTE:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -473,7 +395,7 @@ class SQLiteCacheDBBase:
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if SHOW_ALL_EXECUTE:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -495,12 +417,6 @@ class SQLiteCacheDBBase:
 
             raise msg
 
-    def execute_read(self, sql, args=None):
-        return self._execute(sql, args)
-
-    def execute_write(self, sql, args=None):
-        self._execute(sql, args)
-
     def executemany(self, sql, args):
         self._executemany(sql, args)
 
@@ -511,7 +427,7 @@ class SQLiteCacheDBBase:
         else:
             questions = '?,' * len(argv)
             sql = 'INSERT OR REPLACE INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values())
+        self._execute(sql, argv.values())
 
     def insert_or_ignore(self, table_name, **argv):
         if len(argv) == 1:
@@ -519,7 +435,7 @@ class SQLiteCacheDBBase:
         else:
             questions = '?,' * len(argv)
             sql = 'INSERT OR IGNORE INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values())
+        self._execute(sql, argv.values())
 
     def insert(self, table_name, **argv):
         if len(argv) == 1:
@@ -527,7 +443,7 @@ class SQLiteCacheDBBase:
         else:
             questions = '?,' * len(argv)
             sql = 'INSERT INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values())
+        self._execute(sql, argv.values())
 
     # TODO: may remove this, only used by test_sqlitecachedb.py
     def insertMany(self, table_name, values, keys=None):
@@ -555,7 +471,7 @@ class SQLiteCacheDBBase:
             sql = sql[:-1]
             if where != None:
                 sql += u' where %s' % where
-            self.execute_write(sql, arg)
+            self._execute(sql, arg)
 
     def delete(self, table_name, **argv):
         sql = u'DELETE FROM %s WHERE ' % table_name
@@ -568,7 +484,7 @@ class SQLiteCacheDBBase:
                 sql += u'%s=? AND ' % k
                 arg.append(v)
         sql = sql[:-5]
-        self.execute_write(sql, argv.values())
+        self._execute(sql, argv.values())
 
     # -------- Read Operations --------
     def size(self, table_name):
@@ -577,11 +493,9 @@ class SQLiteCacheDBBase:
         return result
 
     def fetchone(self, sql, args=None):
-        # returns NULL: if the result is null
-        # return None: if it doesn't found any match results
-        find = self.execute_read(sql, args)
+        find = self._execute(sql, args)
         if not find:
-            return NULL
+            return None
         else:
             find = list(find)
             if len(find) > 0:
@@ -589,14 +503,14 @@ class SQLiteCacheDBBase:
                     self._logger.debug("FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement %s, %s", sql, len(find))
                 find = find[0]
             else:
-                return NULL
+                return None
         if len(find) > 1:
             return find
         else:
             return find[0]
 
     def fetchall(self, sql, args=None):
-        res = self.execute_read(sql, args)
+        res = self._execute(sql, args)
         if res != None:
             find = list(res)
             return find
@@ -742,7 +656,7 @@ CREATE INDEX idx_terms_term ON ClicklogTerm(term);
 
 """
 
-            self.execute_write(sql)
+            self._execute(sql)
 
         if fromver < 3:
             sql = """
@@ -750,7 +664,7 @@ CREATE INDEX idx_terms_term ON ClicklogTerm(term);
 
 ALTER TABLE Peer ADD COLUMN is_local integer DEFAULT 0;
 """
-            self.execute_write(sql)
+            self._execute(sql)
 
         if fromver < 4:
             sql = """
@@ -863,7 +777,7 @@ UPDATE Peer SET similarity = 0;
 UPDATE Torrent SET relevance = 0;
 
 """
-            self.execute_write(sql)
+            self._execute(sql)
         if fromver < 5:
             sql = \
                 """
@@ -935,7 +849,7 @@ on SubtitlesHave(received_ts);
 
 """
 
-            self.execute_write(sql)
+            self._execute(sql)
 
         # P2P Services (ProxyService)
         if fromver < 6:
@@ -944,7 +858,7 @@ on SubtitlesHave(received_ts);
 
 ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 """
-            self.execute_write(sql)
+            self._execute(sql)
 
         # Channelcast
         if fromver < 6:
@@ -956,13 +870,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             rows = self.fetchall(sql)
             for row in rows:
                 if row[0] in seen and row[2] in seen[row[0]]:  # duplicate entry
-                    self.execute_write(del_sql, (row[0], row[2]))
-                    self.execute_write(ins_sql, (row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+                    self._execute(del_sql, (row[0], row[2]))
+                    self._execute(ins_sql, (row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
                 else:
                     seen.setdefault(row[0], set()).add(row[2])
 
             sql = 'CREATE UNIQUE INDEX publisher_id_infohash_idx on ChannelCast (publisher_id,infohash);'
-            self.execute_write(sql)
+            self._execute(sql)
 
         if fromver < 7:
             sql = \
@@ -1007,7 +921,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               message        text
             );
             """
-            self.execute_write(sql)
+            self._execute(sql)
 
         if fromver < 8:
             sql = \
@@ -1020,7 +934,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               bundle_mode   integer
             );
             """
-            self.execute_write(sql)
+            self._execute(sql)
 
         if fromver < 9:
             sql = \
@@ -1227,7 +1141,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             INSERT INTO MetaDataTypes ('name') VALUES ('name');
             INSERT INTO MetaDataTypes ('name') VALUES ('description');
             """
-            self.execute_write(sql)
+            self._execute(sql)
 
         # updating version stepwise so if this works, we store it
         # regardless of later, potentially failing updates
@@ -1476,7 +1390,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     for torrent_id, time_stamp in torrents:
                         to_be_inserted.append((-1, torrent_id, channel_id, long(time_stamp), long(time_stamp)))
 
-                    self.execute_write(update_channel, (len(torrents), channel_id))
+                    self._execute(update_channel, (len(torrents), channel_id))
                 self.executemany(insert_channel_contents, to_be_inserted)
 
                 # convert votes
@@ -1516,8 +1430,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 update_votes = "UPDATE _Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
                 self.executemany(update_votes, channel_tuples)
 
-                self.execute_write('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid,))
-                self.execute_write('DELETE FROM ChannelCast WHERE publisher_id <> ?', (my_permid,))
+                self._execute('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid,))
+                self._execute('DELETE FROM ChannelCast WHERE publisher_id <> ?', (my_permid,))
 
                 select_mychannel_id = "SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1"
                 select_votes_for_me = "SELECT voter_id, vote, time_stamp FROM VoteCast WHERE mod_id = ? Order By time_stamp ASC"
@@ -1615,10 +1529,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
                                 else:  # done
                                     drop_channelcast = "DROP TABLE ChannelCast"
-                                    self.execute_write(drop_channelcast)
+                                    self._execute(drop_channelcast)
 
                                     drop_votecast = "DROP TABLE VoteCast"
-                                    self.execute_write(drop_votecast)
+                                    self._execute(drop_votecast)
                             else:
                                 dispersy.callback.register(insert_my_torrents, delay=float(SUCCESIVE_UPGRADE_PAUSE))
 
@@ -1631,10 +1545,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
                 else:
                     drop_channelcast = "DROP TABLE ChannelCast"
-                    self.execute_write(drop_channelcast)
+                    self._execute(drop_channelcast)
 
                     drop_votecast = "DROP TABLE VoteCast"
-                    self.execute_write(drop_votecast)
+                    self._execute(drop_votecast)
 
             def upgradeTorrents2():
                 if not os.path.exists(tmpfilename):
@@ -1649,7 +1563,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     records = self.fetchall(sql)
 
                     if len(records) == 0:
-                        self.execute_write("DROP TABLE InvertedIndex")
+                        self._execute("DROP TABLE InvertedIndex")
 
                         if os.path.exists(tmpfilename2):
                             # upgradation is complete and hence delete the temp file
@@ -1725,7 +1639,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.database_update.acquire()
 
             rename_table = "ALTER TABLE _PlaylistTorrents RENAME TO _PlaylistTorrents2"
-            self.execute_write(rename_table)
+            self._execute(rename_table)
 
             improved_table = """
             CREATE TABLE IF NOT EXISTS _PlaylistTorrents (
@@ -1738,13 +1652,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
               FOREIGN KEY (playlist_id) REFERENCES Playlists(id) ON DELETE CASCADE,
               FOREIGN KEY (channeltorrent_id) REFERENCES ChannelTorrents(id) ON DELETE CASCADE
             );"""
-            self.execute_write(improved_table)
+            self._execute(improved_table)
 
             copy_data = "INSERT INTO _PlaylistTorrents (dispersy_id, peer_id, playlist_id, channeltorrent_id, deleted_at) SELECT dispersy_id, peer_id, playlist_id, channeltorrent_id, deleted_at FROM _PlaylistTorrents2"
-            self.execute_write(copy_data)
+            self._execute(copy_data)
 
             drop_table = "DROP TABLE _PlaylistTorrents2"
-            self.execute_write(drop_table)
+            self._execute(drop_table)
 
             self.database_update.release()
 
@@ -1752,7 +1666,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.database_update.acquire()
 
             index = "CREATE INDEX IF NOT EXISTS ChannelTorIndex ON _ChannelTorrents(torrent_id)"
-            self.execute_write(index)
+            self._execute(index)
 
             self.database_update.release()
 
@@ -1761,18 +1675,18 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             remove_indexes = ["Message_receive_time_idx", "Size_calc_age_idx", "Number_of_seeders_idx", "Number_of_leechers_idx", "Torrent_length_idx", "Torrent_num_seeders_idx", "Torrent_num_leechers_idx"]
             for index in remove_indexes:
-                self.execute_write("DROP INDEX %s" % index)
+                self._execute("DROP INDEX %s" % index)
 
-            self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)")
-            self.execute_write("CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check)")
-            self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
+            self._execute("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)")
+            self._execute("CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check)")
+            self._execute("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
             self.clean_db(True)
 
             self.database_update.release()
 
         if fromver < 13:
             self.database_update.acquire()
-            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');")
+            self._execute("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');")
             self.database_update.release()
 
         tmpfilename3 = os.path.join(state_dir, "upgradingdb3.txt")
@@ -1780,11 +1694,11 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.database_update.acquire()
 
             if fromver < 14:
-                self.execute_write("ALTER TABLE Torrent ADD COLUMN dispersy_id integer;")
-                self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_hash text;")
-                self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_torrent_hash text;")
-                self.execute_write("CREATE INDEX Torrent_insert_idx ON Torrent (insert_time, swift_torrent_hash);")
-                self.execute_write("CREATE INDEX Torrent_info_roothash_idx ON Torrent (infohash, swift_torrent_hash);")
+                self._execute("ALTER TABLE Torrent ADD COLUMN dispersy_id integer;")
+                self._execute("ALTER TABLE Torrent ADD COLUMN swift_hash text;")
+                self._execute("ALTER TABLE Torrent ADD COLUMN swift_torrent_hash text;")
+                self._execute("CREATE INDEX Torrent_insert_idx ON Torrent (insert_time, swift_torrent_hash);")
+                self._execute("CREATE INDEX Torrent_info_roothash_idx ON Torrent (infohash, swift_torrent_hash);")
 
             # Create an empty file to mark the process of upgradation.
             # In case this process is terminated before completion of upgradation,
@@ -1861,17 +1775,17 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if fromver < 15:
             self.database_update.acquire()
 
-            self.execute_write("UPDATE Torrent SET swift_hash = NULL WHERE swift_hash = '' OR swift_hash = 'None'")
-            duplicates = [(id_,) for id_, count in self.execute_read("SELECT torrent_id, count(*) FROM Torrent WHERE swift_hash NOT NULL GROUP BY swift_hash") if count > 1]
+            self._execute("UPDATE Torrent SET swift_hash = NULL WHERE swift_hash = '' OR swift_hash = 'None'")
+            duplicates = [(id_,) for id_, count in self._execute("SELECT torrent_id, count(*) FROM Torrent WHERE swift_hash NOT NULL GROUP BY swift_hash") if count > 1]
             if duplicates:
                 self.executemany("UPDATE Torrent SET swift_hash = NULL WHERE torrent_id = ?", duplicates)
-            self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_hash_idx ON Torrent(swift_hash)")
+            self._execute("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_hash_idx ON Torrent(swift_hash)")
 
-            self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
-            duplicates = [(id_,) for id_, count in self.execute_read("SELECT torrent_id, count(*) FROM Torrent WHERE swift_torrent_hash NOT NULL GROUP BY swift_torrent_hash") if count > 1]
+            self._execute("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
+            duplicates = [(id_,) for id_, count in self._execute("SELECT torrent_id, count(*) FROM Torrent WHERE swift_torrent_hash NOT NULL GROUP BY swift_torrent_hash") if count > 1]
             if duplicates:
                 self.executemany("UPDATE Torrent SET swift_torrent_hash = NULL WHERE torrent_id = ?", duplicates)
-            self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_torrent_hash_idx ON Torrent(swift_torrent_hash)")
+            self._execute("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_torrent_hash_idx ON Torrent(swift_torrent_hash)")
 
             self.database_update.release()
 
@@ -1879,70 +1793,70 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if fromver < 16:
             self.database_update.acquire()
 
-            self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
+            self._execute("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
 
             self.database_update.release()
 
         if fromver < 17:
             self.database_update.acquire()
 
-            self.execute_write("DROP TABLE IF EXISTS PREFERENCE")
-            self.execute_write("DROP INDEX IF EXISTS Preference_peer_id_idx")
-            self.execute_write("DROP INDEX IF EXISTS Preference_torrent_id_idx")
-            self.execute_write("DROP INDEX IF EXISTS pref_idx")
+            self._execute("DROP TABLE IF EXISTS PREFERENCE")
+            self._execute("DROP INDEX IF EXISTS Preference_peer_id_idx")
+            self._execute("DROP INDEX IF EXISTS Preference_torrent_id_idx")
+            self._execute("DROP INDEX IF EXISTS pref_idx")
 
-            self.execute_write("DROP TABLE IF EXISTS Popularity")
-            self.execute_write("DROP INDEX IF EXISTS Popularity_idx")
+            self._execute("DROP TABLE IF EXISTS Popularity")
+            self._execute("DROP INDEX IF EXISTS Popularity_idx")
 
-            self.execute_write("DROP TABLE IF EXISTS Metadata")
-            self.execute_write("DROP INDEX IF EXISTS infohash_md_idx")
-            self.execute_write("DROP INDEX IF EXISTS pub_md_idx")
+            self._execute("DROP TABLE IF EXISTS Metadata")
+            self._execute("DROP INDEX IF EXISTS infohash_md_idx")
+            self._execute("DROP INDEX IF EXISTS pub_md_idx")
 
-            self.execute_write("DROP TABLE IF EXISTS Subtitles")
-            self.execute_write("DROP INDEX IF EXISTS metadata_sub_idx")
+            self._execute("DROP TABLE IF EXISTS Subtitles")
+            self._execute("DROP INDEX IF EXISTS metadata_sub_idx")
 
-            self.execute_write("DROP TABLE IF EXISTS SubtitlesHave")
-            self.execute_write("DROP INDEX IF EXISTS subtitles_have_idx")
-            self.execute_write("DROP INDEX IF EXISTS subtitles_have_ts")
+            self._execute("DROP TABLE IF EXISTS SubtitlesHave")
+            self._execute("DROP INDEX IF EXISTS subtitles_have_idx")
+            self._execute("DROP INDEX IF EXISTS subtitles_have_ts")
 
-            update = list(self.execute_read("SELECT peer_id, torrent_id, term_id, term_order FROM ClicklogSearch"))
-            results = self.execute_read("SELECT ClicklogTerm.term_id, TermFrequency.term_id FROM TermFrequency, ClicklogTerm WHERE TermFrequency.term == ClicklogTerm.term")
+            update = list(self._execute("SELECT peer_id, torrent_id, term_id, term_order FROM ClicklogSearch"))
+            results = self._execute("SELECT ClicklogTerm.term_id, TermFrequency.term_id FROM TermFrequency, ClicklogTerm WHERE TermFrequency.term == ClicklogTerm.term")
             updateDict = {}
             for old_termid, new_termid in results:
                 updateDict[old_termid] = new_termid
 
-            self.execute_write("DELETE FROM ClicklogSearch")
+            self._execute("DELETE FROM ClicklogSearch")
             for peer_id, torrent_id, term_id, term_order in update:
                 if term_id in updateDict:
-                    self.execute_write("INSERT INTO ClicklogSearch (peer_id, torrent_id, term_id, term_order) VALUES (?,?,?,?)", (peer_id, torrent_id, updateDict[term_id], term_order))
+                    self._execute("INSERT INTO ClicklogSearch (peer_id, torrent_id, term_id, term_order) VALUES (?,?,?,?)", (peer_id, torrent_id, updateDict[term_id], term_order))
 
-            self.execute_write("DROP TABLE IF EXISTS ClicklogTerm")
-            self.execute_write("DROP INDEX IF EXISTS idx_terms_term")
+            self._execute("DROP TABLE IF EXISTS ClicklogTerm")
+            self._execute("DROP INDEX IF EXISTS idx_terms_term")
 
-            self.execute_write("DELETE FROM Peer WHERE superpeer = 1")
-            self.execute_write("DROP VIEW IF EXISTS SuperPeer")
+            self._execute("DELETE FROM Peer WHERE superpeer = 1")
+            self._execute("DROP VIEW IF EXISTS SuperPeer")
 
-            self.execute_write("DROP INDEX IF EXISTS Peer_name_idx")
-            self.execute_write("DROP INDEX IF EXISTS Peer_ip_idx")
-            self.execute_write("DROP INDEX IF EXISTS Peer_similarity_idx")
-            self.execute_write("DROP INDEX IF EXISTS Peer_last_seen_idx")
-            self.execute_write("DROP INDEX IF EXISTS Peer_last_connected_idx")
-            self.execute_write("DROP INDEX IF EXISTS Peer_num_peers_idx")
-            self.execute_write("DROP INDEX IF EXISTS Peer_num_torrents_idx")
-            self.execute_write("DROP INDEX IF EXISTS Peer_local_oversion_idx")
-            self.execute_write("DROP INDEX IF EXISTS Torrent_creation_date_idx")
-            self.execute_write("DROP INDEX IF EXISTS Torrent_relevance_idx")
-            self.execute_write("DROP INDEX IF EXISTS Torrent_name_idx")
+            self._execute("DROP INDEX IF EXISTS Peer_name_idx")
+            self._execute("DROP INDEX IF EXISTS Peer_ip_idx")
+            self._execute("DROP INDEX IF EXISTS Peer_similarity_idx")
+            self._execute("DROP INDEX IF EXISTS Peer_last_seen_idx")
+            self._execute("DROP INDEX IF EXISTS Peer_last_connected_idx")
+            self._execute("DROP INDEX IF EXISTS Peer_num_peers_idx")
+            self._execute("DROP INDEX IF EXISTS Peer_num_torrents_idx")
+            self._execute("DROP INDEX IF EXISTS Peer_local_oversion_idx")
+            self._execute("DROP INDEX IF EXISTS Torrent_creation_date_idx")
+            self._execute("DROP INDEX IF EXISTS Torrent_relevance_idx")
+            self._execute("DROP INDEX IF EXISTS Torrent_name_idx")
 
             self.database_update.release()
 
         if fromver < 18:
             self.database_update.acquire()
 
-            self.execute_write("DROP TABLE IF EXISTS BarterCast")
-            self.execute_write("DROP INDEX IF EXISTS bartercast_idx")
-            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails')")
-            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('video-info')")
+            self._execute("DROP TABLE IF EXISTS BarterCast")
+            self._execute("DROP INDEX IF EXISTS bartercast_idx")
+            self._execute("INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails')")
+            self._execute("INSERT INTO MetaDataTypes ('name') VALUES ('video-info')")
 
             self.database_update.release()
 
@@ -1963,10 +1877,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
                 # drop Peer columns
                 drop_table = "DROP VIEW Friend"
-                self.execute_write(drop_table)
+                self._execute(drop_table)
 
                 rename_table = "ALTER TABLE Peer RENAME TO __Peer_tmp"
-                self.execute_write(rename_table)
+                self._execute(rename_table)
 
                 improved_peer_table = """
                 CREATE TABLE Peer (
@@ -1975,23 +1889,23 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     name       text,
                     thumbnail  text
                 );"""
-                self.execute_write(improved_peer_table)
+                self._execute(improved_peer_table)
 
                 copy_data = """
                 INSERT INTO Peer (peer_id, permid, name, thumbnail)
                 SELECT peer_id, permid, name, thumbnail FROM __Peer_tmp
                 """
-                self.execute_write(copy_data)
+                self._execute(copy_data)
 
                 drop_table = "DROP TABLE __Peer_tmp"
-                self.execute_write(drop_table)
+                self._execute(drop_table)
 
                 # new columns in Torrent table
-                self.execute_write(
+                self._execute(
                     "ALTER TABLE Torrent ADD COLUMN last_tracker_check integer DEFAULT 0")
-                self.execute_write(
+                self._execute(
                     "ALTER TABLE Torrent ADD COLUMN tracker_check_retries integer DEFAULT 0")
-                self.execute_write(
+                self._execute(
                     "ALTER TABLE Torrent ADD COLUMN next_tracker_check integer DEFAULT 0")
 
                 create_new_table = """
@@ -2002,7 +1916,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                       failures    integer DEFAULT 0,
                       is_alive    integer DEFAULT 1
                     );"""
-                self.execute_write(create_new_table)
+                self._execute(create_new_table)
 
                 create_new_table = """
                     CREATE TABLE TorrentTrackerMapping (
@@ -2012,7 +1926,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                       FOREIGN KEY (tracker_id) REFERENCES TrackerInfo(tracker_id),
                       PRIMARY KEY (torrent_id, tracker_id)
                     );"""
-                self.execute_write(create_new_table)
+                self._execute(create_new_table)
 
                 insert_dht_tracker = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
                 default_tracker_list = [ ('no-DHT',), ('DHT',) ]
@@ -2025,7 +1939,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 insert_tracker_set = set()
                 insert_mapping_set = set()
                 try:
-                    raw_mapping_cur = self.execute_read(sql)
+                    raw_mapping_cur = self._execute(sql)
                     for torrent_id, tracker in raw_mapping_cur:
                         tracker_url = getUniformedURL(tracker)
                         if tracker_url:
@@ -2050,7 +1964,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 insert = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id) VALUES(?, ?)'
                 self.executemany(insert, list(mapping_set))
 
-                self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
+                self._execute('DROP TABLE IF EXISTS TorrentTracker')
 
                 self.database_update.release()
 
@@ -2084,9 +1998,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         records = None
 
                     if not records:
-                        self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
-                        self.execute_write('DROP INDEX IF EXISTS torrent_tracker_idx')
-                        self.execute_write('DROP INDEX IF EXISTS torrent_tracker_last_idx')
+                        self._execute('DROP TABLE IF EXISTS TorrentTracker')
+                        self._execute('DROP INDEX IF EXISTS torrent_tracker_idx')
+                        self._execute('DROP INDEX IF EXISTS torrent_tracker_last_idx')
 
                         if os.path.exists(tmpfilename4):
                             os.remove(tmpfilename4)
@@ -2182,13 +2096,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
     def clean_db(self, vacuum=False):
         from time import time
 
-        self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)")
-        self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0")
-        self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")
-        self.execute_write("DELETE FROM Torrent where name is NULL and torrent_id not in (select torrent_id from _ChannelTorrents)")
+        self._execute("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)")
+        self._execute("DELETE FROM ClicklogSearch WHERE peer_id <> 0")
+        self._execute("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")
+        self._execute("DELETE FROM Torrent where name is NULL and torrent_id not in (select torrent_id from _ChannelTorrents)")
 
         if vacuum:
-            self.execute_read("VACUUM")
+            self._execute("VACUUM")
 
 _shouldCommit = False
 
@@ -2365,13 +2279,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         elif vacuum:
             self._execute("VACUUM;")
 
-    def execute_write(self, sql, args=None):
-        global _shouldCommit
-        if not _shouldCommit:
-            _shouldCommit = True
-
-        self._execute(sql, args)
-
     def executemany(self, sql, args):
         global _shouldCommit
         if not _shouldCommit:
@@ -2395,9 +2302,12 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
     @forceAndReturnDBThread
     def _execute(self, sql, args=None):
+        global _shouldCommit
+        _shouldCommit = True
+
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if SHOW_ALL_EXECUTE:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -2437,7 +2347,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if SHOW_ALL_EXECUTE:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -2480,17 +2390,19 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 class SQLiteCacheDB(SQLiteNoCacheDB):
     __single = None  # used for multithreaded singletons pattern
 
+    def __init__(self, *args, **kargs):
+        # always use getInstance() to create this object
+        if self.__single != None:
+            raise RuntimeError("SQLiteCacheDB is singleton")
+        SQLiteNoCacheDB.__init__(self, *args, **kargs)
+
     @classmethod
     def getInstance(cls, *args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
         if cls.__single is None:
-            cls.lock.acquire()
-            try:
-                if cls.__single is None:
-                    cls.__single = cls(*args, **kw)
-                    # print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
-            finally:
-                cls.lock.release()
+            if cls.__single is None:
+                cls.__single = cls(*args, **kw)
+                # print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
         return cls.__single
 
     @classmethod
@@ -2501,19 +2413,5 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
     def hasInstance(cls, *args, **kw):
         return cls.__single != None
 
-    def __init__(self, *args, **kargs):
-        # always use getInstance() to create this object
-        if self.__single != None:
-            raise RuntimeError("SQLiteCacheDB is singleton")
-        SQLiteNoCacheDB.__init__(self, *args, **kargs)
-
     def schedule_task(self, task, delay=0.0):
         register_task(None, task, delay=delay)
-
-if __name__ == '__main__':
-    configure_dir = sys.argv[1]
-    config = {}
-    config['state_dir'] = configure_dir
-    config['install_dir'] = u'.'
-    sqlite_test = init(config)
-    sqlite_test.test()

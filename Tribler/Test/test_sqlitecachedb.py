@@ -6,18 +6,16 @@ class TestSqliteCacheDB(unittest.TestCase):
 
     def setUp(self):
         self.sqlite_test = SQLiteCacheDB.getInstance()
-        self.db_path = ':memory:'
+        self.db_path = u":memory:"
+        self.sqlite_test.initDB(self.db_path)
 
     def tearDown(self):
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
 
-    def test_open_db(self):
-        self.sqlite_test.openDB(self.db_path, 0)
-
     def test_create_db(self):
         sql = "create table person(lastname, firstname);"
-        self.sqlite_test.createDBTable(sql, self.db_path)
+        self.sqlite_test._execute(sql)
 
     def test_get_del_instance(self):
         SQLiteCacheDB.delInstance()
