@@ -157,11 +157,11 @@ class ForwardCommunity():
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
-        self.key = rsa_init()
+        self.key = self.init_key()
 
         if not max_prefs:
-            max_len = self.dispersy_sync_bloom_filter_bits
-            max_prefs = max_len / self.key.size
+            max_len = 2 ** 16 - 60  # self.dispersy_sync_bloom_filter_bits
+            max_prefs = max_len / self.key.encsize
             max_hprefs = max_len / 20
         else:
             max_hprefs = max_prefs
@@ -205,6 +205,9 @@ class ForwardCommunity():
 
         self._peercache = SemanticDatabase(self._dispersy)
         self._peercache.open()
+
+    def init_key(self):
+        return rsa_init()
 
     def unload_community(self):
         self._peercache.close()
@@ -893,10 +896,8 @@ class ForwardCommunity():
 
 class PForwardCommunity(ForwardCommunity):
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
-        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal)
-
-        self.key = paillier_init(self.key)
+    def init_key(self):
+        return paillier_init(ForwardCommunity.init_key(self))
 
     def initiate_meta_messages(self):
         messages = ForwardCommunity.initiate_meta_messages(self)
@@ -1254,9 +1255,10 @@ class PoliForwardCommunity(ForwardCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True, send_simi_reveal=False):
         ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal)
-
-        self.key = paillier_init(self.key)
         self.use_cardinality = use_cardinality
+
+    def init_key(self):
+        return paillier_init(ForwardCommunity.init_key(self))
 
     def initiate_conversions(self):
         return [DefaultConversion(self), PoliSearchConversion(self)]
@@ -1449,7 +1451,11 @@ class PoliForwardCommunity(ForwardCommunity):
                         py += val
                     results.append(py)
 
-            shuffle(results)
+            if len(results) > self.max_prefs:
+                results = sample(results, self.max_prefs)
+            else:
+                shuffle(results)
+
             if send_messages:
                 # 4. create a messages, containing the py values
                 meta = self.get_meta_message(u"similarity-response")
