@@ -247,7 +247,6 @@ class SQLiteCacheDBBase:
         assert busytimeout > 0
 
         # pre-checks
-        db_file_exists = False
         if dbfile_path.lower() != u":memory:":
             # create db if it doesn't exist
             if not os.path.exists(dbfile_path):
@@ -263,7 +262,6 @@ class SQLiteCacheDBBase:
                     self._logger.error(u"DB path is not a file.")
                     self._logger.debug(u"DB path: %s", dbfile_path)
                     return False
-                db_file_exists = True
 
         # create DB connection
         try:
@@ -278,25 +276,25 @@ class SQLiteCacheDBBase:
 
         cursor = self.getCursor()
 
-        # create table if needed
-        if not db_file_exists:
-            try:
-                sql_file = open(sql_path, 'r')
-                sql = sql_file.read()
-                sql_file.close()
-            except Exception as err:
-                self._logger.error(u"Cannot create SQLite connection.")
-                self._logger.debug(u"Error: %s", err)
-                self._logger.debug(u"SQL file path: %s", sql_path)
-                return False
+        # create table
+        try:
+            sql_file = open(sql_path, 'r')
+            sql = sql_file.read()
+            sql_file.close()
+        except Exception as err:
+            self._logger.error(u"Cannot create SQLite connection.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"SQL file path: %s", sql_path)
+            return False
 
-            try:
-                cursor.execute(sql)
-            except Exception as err:
-                self._logger.error(u"Cannot create SQL tables.")
-                self._logger.debug(u"Error: %s", err)
-                self._logger.debug(u"SQL statement: %s", sql)
-                return False
+        # create tables
+        try:
+            cursor.execute(sql)
+        except Exception as err:
+            self._logger.error(u"Cannot create SQL tables.")
+            self._logger.debug(u"Error: %s", err)
+            self._logger.debug(u"SQL statement: %s", sql)
+            return False
 
         # set PRAGMA options
         page_size = next(cursor.execute("PRAGMA page_size"))
