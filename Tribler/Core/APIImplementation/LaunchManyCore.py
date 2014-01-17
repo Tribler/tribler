@@ -302,7 +302,7 @@ class TriblerLaunchMany(Thread):
             if pstate is None and not tdef.get_live():  # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
-                    self._logger.debug("tlm: add: pstate is %s %s", dlstatus_strings[pstate['dlstate']['status']], pstate['dlstate']['progress'])
+                    self._logger.debug("tlm: add: pstate is %s %s", pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
