@@ -1285,7 +1285,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         for filename in torrentdef.get_files_as_unicode():
                             keywords.update(split_into_keywords(filename))
 
-                    except:
+                    except ValueError:
                         # failure... most likely the .torrent file
                         # is invalid
 
@@ -1605,10 +1605,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                         torrent_file_name = os.path.join(torrent_dir, tail)
 
                                     if os.path.isfile(torrent_file_name):
-                                        torrentdef = TorrentDef.load(torrent_file_name)
-
-                                        files = torrentdef.get_files_as_unicode_with_length()
-                                        to_be_inserted.append((infohash, timestamp, torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple()))
+                                        try:
+                                            torrentdef = TorrentDef.load(torrent_file_name)
+    
+                                            files = torrentdef.get_files_as_unicode_with_length()
+                                            to_be_inserted.append((infohash, timestamp, torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple()))
+                                        except ValueError:
+                                            to_be_removed.append((bin2str(infohash),))
                                     else:
                                         to_be_removed.append((bin2str(infohash),))
 
@@ -1703,7 +1706,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 filenames.sort(cmp=popSort, reverse=True)
                                 filenames = filenames[:1000]
 
-                        except RuntimeError:
+                        except (RuntimeError, ValueError):
                             swarmname = dunno2unicode(name)
                             fileextensions = set()
                             filenames = []
@@ -2142,9 +2145,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 else:
                                     not_found_torrent_file_set.add((torrent_id,))
 
-                            except Exception as e:
-                                # some torrent files may not be loaded correctly
-                                pass
+                            except ValueError:
+                                not_found_torrent_file_set.add((torrent_id,))
 
                         else:
                             not_found_torrent_file_set.add((torrent_id,))
