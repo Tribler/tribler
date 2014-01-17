@@ -99,7 +99,7 @@ class LibtorrentMgr:
         del LibtorrentMgr.__single
         LibtorrentMgr.__single = None
     delInstance = staticmethod(delInstance)
-    
+
     def hasInstance():
         return LibtorrentMgr.__single != None
     hasInstance = staticmethod(hasInstance)
@@ -376,7 +376,10 @@ class LibtorrentMgr:
                     for callback in callbacks:
                         self.trsession.uch.perform_usercallback(lambda cb=callback, mi=deepcopy(metainfo): cb(mi))
 
-                    self._logger.debug('LibtorrentMgr: got_metainfo result %s', metainfo)
+                    # let's not print the hashes of the pieces
+                    debuginfo = metainfo.copy()
+                    del debuginfo['info']['pieces']
+                    self._logger.debug('LibtorrentMgr: got_metainfo result %s', debuginfo)
 
                 if handle:
                     self.ltsession.remove_torrent(handle, 1)
