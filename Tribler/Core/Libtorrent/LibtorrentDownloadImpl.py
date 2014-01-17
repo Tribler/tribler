@@ -972,7 +972,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def set_filepieceranges(self, metainfo):
         """ Determine which file maps to which piece ranges for progress info """
-        self._logger.debug("LibtorrentDownloadImpl: set_filepieceranges:", self.get_selected_files())
+        self._logger.debug("LibtorrentDownloadImpl: set_filepieceranges: %s", self.get_selected_files())
         self.filepieceranges = maketorrent.get_length_filepieceranges_from_metainfo(metainfo, [])[1]
 
     def restart(self, initialdlstatus=None):
