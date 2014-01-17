@@ -614,11 +614,11 @@ class TriblerLaunchMany(Thread):
                         if os.path.isdir(preferences[2]) or preferences[2] == '':
                             dscfg.set_dest_dir(preferences[2])
 
-        self._logger.debug("tlm: load_checkpoint: pstate is %s %s", dlstatus_strings[pstate['dlstate']['status']], pstate['dlstate']['progress'])
-        if pstate['engineresumedata'] is None:
+        self._logger.debug("tlm: load_checkpoint: pstate is %s %s", pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
+        if pstate.get('state', 'engineresumedata') is None:
             self._logger.debug("tlm: load_checkpoint: resumedata None")
         else:
-            self._logger.debug("tlm: load_checkpoint: resumedata len %d", len(pstate['engineresumedata']))
+            self._logger.debug("tlm: load_checkpoint: resumedata len %d", len(pstate.get('state', 'engineresumedata')))
 
         if (tdef or sdef) and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
