@@ -1285,7 +1285,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         for filename in torrentdef.get_files_as_unicode():
                             keywords.update(split_into_keywords(filename))
 
-                    except ValueError:
+                    except (ValueError, RuntimeError):
                         # failure... most likely the .torrent file
                         # is invalid
 
