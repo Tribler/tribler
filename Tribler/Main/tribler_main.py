@@ -577,7 +577,7 @@ class ABCApp():
         if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-            self._logger.debug("main: Stats: Total torrents found %s peers %s" %\
+            self._logger.debug("main: Stats: Total torrents found %s peers %s" % \
                 (repr(torrentdb.size()), repr(peerdb.size())))
 
         try:
@@ -710,6 +710,7 @@ class ABCApp():
         filelist = os.listdir(dir)
         if any([filename.endswith('.pickle') for filename in filelist]):
             convertDownloadCheckpoints(dir)
+            filelist = os.listdir(dir)
 
         filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
 
