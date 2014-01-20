@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 import os
 import sys
+import logging
 from threading import currentThread
 from traceback import print_stack
 from math import log
@@ -35,7 +36,6 @@ from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Category.Category import Category
 
-DEBUG = False
 DEBUG_RELEVANCE = False
 MAX_REFRESH_PARTIAL = 5
 
@@ -43,6 +43,8 @@ MAX_REFRESH_PARTIAL = 5
 class BaseManager:
 
     def __init__(self, list):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.list = list
         self.dirtyset = set()
         self.guiutility = GUIUtility.getInstance()
@@ -122,15 +124,13 @@ class RemoteSearchManager(BaseManager):
 
     def refresh(self, remote=False):
         def db_callback():
-            if DEBUG:
-                begintime = time()
+            begintime = time()
 
             keywords = self.oldkeywords
 
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
-            if DEBUG:
-                print >> sys.stderr, 'RemoteSearchManager: refresh returning results took', time() - begintime, time()
+            self._logger.debug('RemoteSearchManager: refresh returning results took %s %s', time() - begintime, time())
 
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
@@ -149,10 +149,9 @@ class RemoteSearchManager(BaseManager):
             if new_items or modified_hits:
                 self.list.SetData(data_files)
             else:
-                if DEBUG:
-                    print >> sys.stderr, "RemoteSearchManager: not refreshing list, no new items"
-        elif DEBUG:
-            print >> sys.stderr, "RemoteSearchManager: ignoring old keywords"
+                self._logger.debug("RemoteSearchManager: not refreshing list, no new items")
+        else:
+            self._logger.debug("RemoteSearchManager: ignoring old keywords")
 
     def refresh_channel(self):
         def db_callback():
@@ -230,11 +229,11 @@ class LocalSearchManager(BaseManager):
     def refresh_if_exists(self, infohashes, force=False):
         def db_call():
             if self.library_manager.exists(infohashes):
-                print >> sys.stderr, long(time()), "Scheduling a refresh, missing some infohashes in the Library"
+                self._logger.info("%s Scheduling a refresh, missing some infohashes in the Library", long(time()))
 
                 self.refresh()
             else:
-                print >> sys.stderr, long(time()), "Not scheduling a refresh"
+                self._logger.info("%s Not scheduling a refresh", long(time()))
 
         diff = time() - self.prev_refresh_if
         if force or diff > 30:
@@ -242,7 +241,7 @@ class LocalSearchManager(BaseManager):
 
             startWorker(None, db_call, uId=u"LocalSearchManager_refresh_if_exists", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
-            print >> sys.stderr, long(time()), "Not scheduling a refresh, update limit", long(time()), long(self.prev_refresh_if)
+            self._logger.info("%s Not scheduling a refresh, update limit %s %s", long(time()), long(time()), long(self.prev_refresh_if))
 
     def refresh_or_expand(self, infohash):
         if not self.list.InList(infohash):
@@ -314,8 +313,7 @@ class ChannelSearchManager(BaseManager):
         self.dirtyset.clear()
 
     def refresh(self, search_results=None):
-        if DEBUG:
-            print >> sys.stderr, "ChannelManager complete refresh"
+        self._logger.debug("ChannelManager complete refresh")
 
         if self.category != 'searchresults':
             category = self.category
@@ -358,8 +356,7 @@ class ChannelSearchManager(BaseManager):
 
             self.list.SetCategory(category)
             self.list.SetData(data)
-            if DEBUG:
-                print >> sys.stderr, "ChannelManager complete refresh done"
+            self._logger.debug("ChannelManager complete refresh done")
 
     def refresh_partial(self, ids=None):
         if ids:

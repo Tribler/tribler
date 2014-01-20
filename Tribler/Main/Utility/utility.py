@@ -4,17 +4,20 @@ import os
 import ast
 import sys
 import socket
+import logging
 
 from random import gauss
 
 from Tribler.Lang.lang import Lang
 from Tribler.Core.__init__ import version_id
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
-from Tribler.Core.SessionConfig import CallbackConfigParser
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 if sys.platform == 'win32':
     from Tribler.Main.Utility.regchecker import RegChecker
+
+logger = logging.getLogger(__name__)
 
 #
 #
@@ -66,8 +69,8 @@ class Utility:
                             'window_width': 1024,
                             'window_height': 670,
                             'sash_position':-185,
-                            't4t_option': 0,  # Seeding items added by Boxun
-                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
+                            't4t_option': 0, # Seeding items added by Boxun
+                            't4t_ratio': 100, # T4T seeding ratio added by Niels
                             't4t_hours': 0,
                             't4t_mins': 30,
                             'g2g_option': 1,
@@ -104,7 +107,7 @@ class Utility:
 
         # Load the config file.
         self.config.read(self.configfilepath)
- 
+
         if not self.config.has_section('Tribler'):
             self.config.add_section('Tribler')
 

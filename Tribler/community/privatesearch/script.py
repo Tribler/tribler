@@ -4,7 +4,7 @@ from community import SearchCommunity, PSearchCommunity, HSearchCommunity
 from Tribler.dispersy.script import ScenarioScriptBase
 from Tribler.dispersy.member import Member
 from Tribler.dispersy.tool.lencoder import log
-from Tribler.dispersy.dispersy import IntroductionRequestCache
+from Tribler.dispersy.cache import IntroductionRequestCache
 
 
 class SearchScript(ScenarioScriptBase):

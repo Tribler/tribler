@@ -5,15 +5,13 @@ import os
 import re
 from Tribler.Category.init_category import getCategoryInfo
 from FamilyFilter import XXXFilter
-from traceback import print_exc
 
 import sys
+import logging
 
 from Tribler.__init__ import LIBRARYNAME
 
-DEBUG = False
 category_file = "category.conf"
-
 
 class Category:
 
@@ -22,6 +20,7 @@ class Category:
     __size_change = 1024 * 1024
 
     def __init__(self, install_dir='.', ffEnabled=False):
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         if Category.__single:
             raise RuntimeError("Category is singleton")
@@ -32,13 +31,11 @@ class Category:
             self.category_info.sort(rankcmp)
         except:
             self.category_info = []
-            if DEBUG:
-                print_exc()
+            self._logger.critical('', exc_info=True)
 
         self.xxx_filter = XXXFilter(install_dir)
 
-        if DEBUG:
-            print >> sys.stderr, "category: Categories defined by user", self.getCategoryNames()
+        self._logger.debug("category: Categories defined by user: %s", self.getCategoryNames())
 
         self.ffEnabled = ffEnabled
         self.set_family_filter(None)
@@ -80,7 +77,7 @@ class Category:
         try:
             name = torrent['category'][0]
         except:
-            print >> sys.stderr, 'Torrent: %s has no valid category' % repr(torrent['content_name'])
+            self._logger.error('Torrent: %s has no valid category', torrent['content_name'])
             return False
         for category in [{'name': 'other', 'rank': 1}] + self.category_info:
             rank = category['rank']
@@ -127,8 +124,7 @@ class Category:
             if self.xxx_filter.isXXXTorrent(files_list, display_name, tracker, comment):
                 return ['xxx']
         except:
-            print >> sys.stderr, 'Category: Exception in explicit terms filter in torrent: %s' % display_name
-            print_exc()
+            self._logger.critical('Category: Exception in explicit terms filter in torrent: %s', display_name, exc_info=True)
 
         torrent_category = None
         # filename_list ready

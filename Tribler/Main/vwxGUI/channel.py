@@ -1,5 +1,7 @@
 # Written by Niels Zeilemaker
 import wx
+import logging
+from time import time
 import pickle
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -28,13 +30,14 @@ from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
 from random import sample
 
-DEBUG = False
-
 
 class ChannelManager(BaseManager):
 
     def __init__(self, list):
         BaseManager.__init__(self, list)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.library_manager = self.guiutility.library_manager
 
@@ -80,17 +83,15 @@ class ChannelManager(BaseManager):
             self.refresh(channel)
 
     def _refresh_list(self, stateChanged=False):
-        if DEBUG:
-            t1 = time()
-            print >> sys.stderr, "SelChannelManager complete refresh", t1
+        t1 = time()
+        self._logger.debug("SelChannelManager complete refresh %s", t1)
 
         self.list.dirty = False
 
         def db_callback():
             channel = self.list.channel
             if channel:
-                if DEBUG:
-                    t2 = time()
+                t2 = time()
 
                 if stateChanged:
                     state, iamModerator = channel.refreshState()
@@ -104,9 +105,8 @@ class ChannelManager(BaseManager):
                     playlists = []
                     total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(channel, self.guiutility.getFamilyFilter())
 
-                if DEBUG:
-                    t3 = time()
-                    print >> sys.stderr, "SelChannelManager complete refresh took", t3 - t1, t2 - t1, t3
+                t3 = time()
+                self._logger.debug("SelChannelManager complete refresh took %s %s %s", t3 - t1, t2 - t1, t3)
 
                 return total_items, nrfiltered, torrentList, playlists, state, iamModerator
 
@@ -149,8 +149,7 @@ class ChannelManager(BaseManager):
                 torrents = torrents[:CHANNEL_MAX_NON_FAVORITE]
 
         self.list.SetData(playlists, torrents)
-        if DEBUG:
-            print >> sys.stderr, "SelChannelManager complete refresh done"
+        self._logger.debug("SelChannelManager complete refresh done")
 
     @forceDBThread
     def refresh_partial(self, ids):

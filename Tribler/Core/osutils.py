@@ -16,6 +16,9 @@ import os
 import time
 import binascii
 import subprocess
+import logging
+
+logger = logging.getLogger(__name__)
 
 if sys.platform == "win32":
     try:
@@ -207,9 +210,9 @@ except:
                     size = long(sizestring)
 
                     if size == 0:
-                        print >>sys.stderr, "getfreespace: can't determine freespace of ", path
+                        logger.info("getfreespace: can't determine freespace of %s", path)
                         for line in mystdout:
-                            print >>sys.stderr, line
+                            logger.info(line)
 
                         size = 2 ** 80
                 except:

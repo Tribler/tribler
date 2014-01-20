@@ -2,16 +2,17 @@
 # see LICENSE.txt for license information
 
 import sys
+import logging
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLMODE_VOD
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-
-DEBUG = False
 
 
 class GlobalSeedingManager:
 
     def __init__(self, Read):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         # seeding managers containing infohash:seeding_manager pairs
         self.seeding_managers = {}
 
@@ -22,8 +23,7 @@ class GlobalSeedingManager:
         # Remove stopped seeds
         for infohash, seeding_manager in self.seeding_managers.items():
             if not seeding_manager.download_state.get_download().get_status() == DLSTATUS_SEEDING:
-                if DEBUG:
-                    print >> sys.stderr, "SeedingManager: removing seeding manager", infohash.encode("HEX")
+                self._logger.debug("SeedingManager: removing seeding manager %s", infohash.encode("HEX"))
                 del self.seeding_managers[infohash]
 
         for download_state in dslist:
@@ -33,33 +33,28 @@ class GlobalSeedingManager:
             if download_state.get_status() == DLSTATUS_SEEDING:
                 if hash not in self.seeding_managers:
                     # apply new seeding manager
-                    if DEBUG:
-                        print >> sys.stderr, "SeedingManager: apply seeding manager", hash.encode("HEX")
+                    self._logger.debug("SeedingManager: apply seeding manager %s", hash.encode("HEX"))
                     seeding_manager = SeedingManager(download_state)
 
                     policy = self.Read('t4t_option') if cdef.get_def_type() == 'torrent' else self.Read('g2g_option')
                     if policy == 0:
                         # No leeching, seeding until sharing ratio is met
-                        if DEBUG:
-                            print >> sys.stderr, "GlobalSeedingManager: RatioBasedSeeding"
+                        self._logger.debug("GlobalSeedingManager: RatioBasedSeeding")
                         seeding_manager.set_policy(TitForTatRatioBasedSeeding(self.Read) if cdef.get_def_type() == 'torrent' else GiveToGetRatioBasedSeeding(self.Read))
 
                     elif policy == 1:
                         # Unlimited seeding
-                        if DEBUG:
-                            print >> sys.stderr, "GlobalSeedingManager: UnlimitedSeeding"
+                        self._logger.debug("GlobalSeedingManager: UnlimitedSeeding")
                         seeding_manager.set_policy(UnlimitedSeeding())
 
                     elif policy == 2:
                         # Time based seeding
-                        if DEBUG:
-                            print >> sys.stderr, "GlobalSeedingManager: TimeBasedSeeding"
+                        self._logger.debug("GlobalSeedingManager: TimeBasedSeeding")
                         seeding_manager.set_policy(TitForTatTimeBasedSeeding(self.Read) if cdef.get_def_type() == 'torrent' else GiveToGetTimeBasedSeeding(self.Read))
 
                     else:
                         # No seeding
-                        if DEBUG:
-                            print >> sys.stderr, "GlobalSeedingManager: NoSeeding"
+                        self._logger.debug("GlobalSeedingManager: NoSeeding")
                         seeding_manager.set_policy(NoSeeding())
 
                     self.seeding_managers[hash] = seeding_manager
@@ -70,6 +65,8 @@ class GlobalSeedingManager:
 class SeedingManager:
 
     def __init__(self, download_state):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.download_state = download_state
         self.policy = None
         self.udc = UserDownloadChoice.get_singleton()
@@ -80,15 +77,13 @@ class SeedingManager:
         if download.get_def().get_def_type() == 'torrent':
             if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
                 if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
-                    if DEBUG:
-                        print >> sys.stderr, "Stop seeding with libtorrent: ", self.download_state.get_download().get_dest_files()
+                    self._logger.debug("Stop seeding with libtorrent: %s", self.download_state.get_download().get_dest_files())
                     self.udc.set_download_state(download.get_def().get_id(), 'stop')
                     self.download_state.get_download().stop()
         else:
             if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
                 if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
-                    if DEBUG:
-                        print >> sys.stderr, "Stop seeding with libswift: ", self.download_state.get_download().get_dest_files()
+                    self._logger.debug("Stop seeding with libswift: %s", self.download_state.get_download().get_dest_files())
                     self.download_state.get_download().stop()
 
     def set_policy(self, policy):
@@ -125,34 +120,35 @@ class NoSeeding(SeedingPolicy):
 class TitForTatTimeBasedSeeding(SeedingPolicy):
 
     def __init__(self, Read):
+        self._logger = logging.getLogger(self.__class__.__name__)
         SeedingPolicy.__init__(self)
         self.Read = Read
 
     def apply(self, _, storage):
         current = storage["time_seeding"]
         limit = long(self.Read('t4t_hours')) * 3600 + long(self.Read('t4t_mins')) * 60
-        if DEBUG:
-            print >> sys.stderr, "TitForTatTimeBasedSeeding: apply:", current, "/", limit
+        self._logger.debug("TitForTatTimeBasedSeeding: apply: %s/ %s", current, limit)
         return current <= limit
 
 
 class GiveToGetTimeBasedSeeding(SeedingPolicy):
 
     def __init__(self, Read):
+        self._logger = logging.getLogger(self.__class__.__name__)
         SeedingPolicy.__init__(self)
         self.Read = Read
 
     def apply(self, _, storage):
         current = storage["time_seeding"]
         limit = long(self.Read('g2g_hours')) * 3600 + long(self.Read('g2g_mins')) * 60
-        if DEBUG:
-            print >> sys.stderr, "GiveToGetTimeBasedSeeding: apply:", current, "/", limit
+        self._logger.debug("GiveToGetTimeBasedSeeding: apply: %s / %s", current, limit)
         return current <= limit
 
 
 class TitForTatRatioBasedSeeding(SeedingPolicy):
 
     def __init__(self, Read):
+        self._logger = logging.getLogger(self.__class__.__name__)
         SeedingPolicy.__init__(self)
         self.Read = Read
 
@@ -171,8 +167,7 @@ class TitForTatRatioBasedSeeding(SeedingPolicy):
         else:
             ratio = 1.0 * ul / dl
 
-        if DEBUG:
-            print >> sys.stderr, "TitForTatRatioBasedSeeding: apply:", dl, ul, ratio
+        self._logger.debug("TitForTatRatioBasedSeeding: apply: %s %s %s", dl, ul, ratio)
 
         return ratio < self.Read('t4t_ratio') / 100.0
 
@@ -180,6 +175,7 @@ class TitForTatRatioBasedSeeding(SeedingPolicy):
 class GiveToGetRatioBasedSeeding(SeedingPolicy):
 
     def __init__(self, Read):
+        self._logger = logging.getLogger(self.__class__.__name__)
         SeedingPolicy.__init__(self)
         self.Read = Read
 
@@ -193,6 +189,5 @@ class GiveToGetRatioBasedSeeding(SeedingPolicy):
         else:
             ratio = 1.0 * ul / dl
 
-        if True or DEBUG:
-            print >> sys.stderr, "GiveToGetRatioBasedSeedingapply:", dl, ul, ratio, self.Read('g2g_ratio') / 100.0
+        self._logger.debug("GiveToGetRatioBasedSeedingapply: %s %s %s %s", dl, ul, ratio, self.Read('g2g_ratio', "int") / 100.0)
         return ratio < self.Read('g2g_ratio') / 100.0

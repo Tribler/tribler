@@ -5,6 +5,7 @@ from time import time, sleep
 import wx
 import inspect
 import sys
+import logging
 
 from datetime import datetime
 from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker, \
@@ -12,6 +13,8 @@ from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker, \
 
 from threading import Event
 from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG, register_task, call_task
+
+logger = logging.getLogger(__name__)
 
 # batch size should be a nice divider of max size
 LIST_ITEM_BATCH_SIZE = 5
@@ -104,7 +107,7 @@ def warnWxThread(func):
         if not wx.Thread_IsMain():
             caller = inspect.stack()[1]
             callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-            print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            logger.info("%s NOT ON GUITHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
         return func(*args, **kwargs)
 
@@ -120,7 +123,7 @@ def forceWxThread(func):
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
                 callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+                logger.debug("%s SWITCHING TO GUITHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             wx.CallAfter(func, *args, **kwargs)
 
     invoke_func.__name__ = func.__name__
@@ -136,7 +139,7 @@ def forceAndReturnWxThread(func):
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
                 callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+                logger.debug("%s SWITCHING TO GUITHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
             event = Event()
 
@@ -154,7 +157,7 @@ def forceAndReturnWxThread(func):
 
             from traceback import print_stack
             print_stack()
-            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnWxThread", func.__name__
+            logger.info("GOT TIMEOUT ON forceAndReturnWxThread %s", func.__name__)
 
     invoke_func.__name__ = func.__name__
     return invoke_func

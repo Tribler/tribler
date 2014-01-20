@@ -3,6 +3,7 @@
 
 import os
 import sys
+import logging
 
 from Tribler.Core.Utilities.unicode import unicode2str
 if (sys.platform == 'win32'):
@@ -12,22 +13,20 @@ videoextdefaults = ['aac', 'asf', 'avi', 'dv', 'divx', 'flac', 'flc', 'flv', 'mk
 # Ric: added svc ext. for enhancement layers
 svcextdefaults = ['dat']
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def win32_retrieve_video_play_command(ext, videourl):
     """ Use the specified extension of to find the player in the Windows registry to play the url (or file)"""
     registry = Win32RegChecker()
 
-    if DEBUG:
-        print >>sys.stderr, "videoplay: Looking for player for", unicode2str(videourl)
+    logger.debug("videoplay: Looking for player for %s", unicode2str(videourl))
     if ext == '':
         return [None, None]
 
     contenttype = None
     winfiletype = registry.readRootKey(ext)
-    if DEBUG:
-        print >>sys.stderr, "videoplay: winfiletype is", winfiletype, type(winfiletype)
+    logger.debug("videoplay: winfiletype is %s %s", winfiletype, type(winfiletype))
     if winfiletype is None or winfiletype == '':
         # Darn.... Try this: (VLC seems to be the one messing the registry up in the
         # first place)
@@ -35,8 +34,7 @@ def win32_retrieve_video_play_command(ext, videourl):
         if winfiletype is None or winfiletype == '':
             return [None, None]
         # Get MIME type
-    if DEBUG:
-        print >>sys.stderr, "videoplay: Looking for player for ext", ext, "which is type", winfiletype
+    logger.debug("videoplay: Looking for player for ext %s which is type %s", ext, winfiletype)
 
     contenttype = registry.readRootKey(ext, value_name="Content Type")
 
@@ -84,8 +82,7 @@ def win32_retrieve_video_play_command(ext, videourl):
         if qprogpath is None:
             return [None, None]
         suo = qprogpath + suo[end:]
-        if DEBUG:
-            print >>sys.stderr, "videoplay: new urlopen is", suo
+        logger.debug("videoplay: new urlopen is %s", suo)
     return [contenttype, suo.replace(replace, videourl)]
 
 
@@ -93,20 +90,17 @@ def win32_retrieve_playcmd_from_mimetype(mimetype, videourl):
     """ Use the specified MIME type to find the player in the Windows registry to play the url (or file)"""
     registry = Win32RegChecker()
 
-    if DEBUG:
-        print >>sys.stderr, "videoplay: Looking for player for", unicode2str(videourl)
+    logger.debug("videoplay: Looking for player for %s", unicode2str(videourl))
     if mimetype == '' or mimetype is None:
         return [None, None]
 
     keyname = '\\SOFTWARE\\Classes\\MIME\\Database\\Content Type\\' + mimetype
     valuename = 'Extension'
     ext = registry.readKeyRecursively(HKLM, keyname, value_name=valuename)
-    if DEBUG:
-        print >>sys.stderr, "videoplay: ext winfiletype is", ext
+    logger.debug("videoplay: ext winfiletype is %s", ext)
     if ext is None or ext == '':
         return [None, None]
-    if DEBUG:
-        print >>sys.stderr, "videoplay: Looking for player for mime", mimetype, "which is ext", ext
+    logger.debug("videoplay: Looking for player for mime %s which is ext %s", mimetype, ext)
 
     return win32_retrieve_video_play_command(ext, videourl)
 
@@ -116,8 +110,7 @@ def quote_program_path(progpath):
     if idx != -1:
         # Contains spaces, should quote if it's really path
         if not os.access(progpath, os.R_OK):
-            if DEBUG:
-                print >>sys.stderr, "videoplay: Could not find assumed progpath", progpath
+            logger.debug("videoplay: Could not find assumed progpath %s", progpath)
             return None
         return '"' + progpath +'"'
     else:
