@@ -87,7 +87,8 @@ class Utility:
                             # Swift reseed
                             'swiftreseed': 1,
                             'videohttpport':-1,
-                            'showsaveas': 1}
+                            'showsaveas': 1,
+                            'i2ilistenport': 57891}
 
         if sys.platform == 'win32':
             tribler_defaults['mintray'] = '2'

@@ -122,8 +122,6 @@ import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 # one of those modules imports time as a module.
 from time import time, sleep
 
-I2I_LISTENPORT = 57891
-VIDEOHTTP_LISTENPORT = 6875
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
 
@@ -147,7 +145,7 @@ class ABCApp():
 
         self.params = params
         self.single_instance_checker = single_instance_checker
-        self.installdir = self.configure_install_dir(installdir)
+        self.installdir = installdir
 
         self.state_dir = None
         self.error = None
@@ -251,7 +249,7 @@ class ABCApp():
                 # Put it here so an error is shown in the startup-error popup
                 # Start server for instance2instance communication
                 self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
-                self.i2is = Instance2InstanceServer(I2I_LISTENPORT, self.i2iconnhandler)
+                self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
                 self.i2is.start()
 
             # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
@@ -491,7 +489,8 @@ class ABCApp():
         dispersy.callback.call(define_communities)
         return s
 
-    def configure_install_dir(self, installdir):
+    @staticmethod
+    def determine_install_dir():
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
 
@@ -514,7 +513,7 @@ class ABCApp():
                 return os.path.abspath(os.path.join(filedir, '..', '..'))
 
             return module_path()
-        return installdir
+        return os.getcwdu()
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
@@ -575,7 +574,7 @@ class ABCApp():
         if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-            self._logger.debug("main: Stats: Total torrents found %s peers %s" %\
+            self._logger.debug("main: Stats: Total torrents found %s peers %s" % \
                 (repr(torrentdb.size()), repr(peerdb.size())))
 
         try:
@@ -1127,24 +1126,18 @@ def run(params=None):
         else:
             single_instance_checker = LinuxSingleInstanceChecker("tribler")
 
+        installdir = ABCApp.determine_install_dir()
+
         if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
+            statedir = SessionStartupConfig().get_state_dir() or Session.get_default_state_dir()
+
             # Send  torrent info to abc single instance
             if params[0] != "":
                 torrentfilename = params[0]
-                i2ic = Instance2InstanceClient(I2I_LISTENPORT, 'START', torrentfilename)
+                i2ic = Instance2InstanceClient(Utility(installdir, statedir).read_config('i2ilistenport'), 'START', torrentfilename)
 
             logger.info("Client shutting down. Detected another instance.")
         else:
-            arg0 = sys.argv[0].lower()
-            if arg0.endswith('.exe'):
-                # supply a unicode string to ensure that the unicode filesystem API is used (applies to windows)
-                installdir = os.path.abspath(os.path.dirname(unicode(sys.argv[0])))
-            else:
-                # call the unicode specific getcwdu() otherwise homedirectories may crash
-                installdir = os.getcwdu()
-            # Arno: don't chdir to allow testing as other user from other dir.
-            # os.chdir(installdir)
-
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:
