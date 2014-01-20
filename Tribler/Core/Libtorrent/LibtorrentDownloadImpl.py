@@ -222,6 +222,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 else:
                     cdcfg = dcfg
                 self.dlconfig = cdcfg.dlconfig.copy()
+                self.dlconfig.lock = self.dllock
                 self.dlconfig.set_callback(self.dlconfig_changed_callback)
 
                 # Things that only exist at runtime

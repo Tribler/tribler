@@ -117,6 +117,7 @@ class SwiftDownloadImpl(DownloadConfigInterface):
             else:
                 cdcfg = dcfg
             self.dlconfig = cdcfg.dlconfig.copy()
+            self.dlconfig.lock = self.dllock
 
             # Things that only exist at runtime
             self.dlruntimeconfig = {}

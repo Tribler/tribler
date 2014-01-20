@@ -131,6 +131,7 @@ class Session(SessionConfigInterface):
             scfg.set_torrent_checking(0)
 
         self.sessconfig = scfg.sessconfig
+        self.sessconfig.lock = self.sesslock
 
         self.randomly_selected_ports = scfg.randomly_selected_ports
 
