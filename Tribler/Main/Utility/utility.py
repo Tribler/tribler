@@ -112,6 +112,15 @@ class Utility:
         if not self.config.has_section('Tribler'):
             self.config.add_section('Tribler')
 
+        # Tribler.conf also contains the default download config. So we need to merge it now.
+        if not self.config.has_section('downloadconfig'):
+            self.config.add_section('downloadconfig')
+        for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
+            self.config.set('downloadconfig', k, v)
+
+        # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
+        DefaultDownloadStartupConfig.getInstance().dlconfig = self.config
+
     def getVersion(self):
         return self.version
 
