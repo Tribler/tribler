@@ -325,8 +325,7 @@ class GUIUtility:
 
     def SetColumnInfo(self, itemtype, columns, hide_defaults=[]):
         # Load hidden column info
-        hide_columns = self.utility.read_config("hide_columns", literal_eval=False)
-        hide_columns = json.loads(hide_columns) if hide_columns else {}
+        hide_columns = self.ReadGuiSetting("hide_columns", default={})
         hide_columns = hide_columns.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
             if column['name'] in hide_columns:
@@ -335,8 +334,7 @@ class GUIUtility:
                 column['show'] = not (index in hide_defaults)
 
         # Load column width info
-        column_sizes = self.utility.read_config("column_sizes", literal_eval=False)
-        column_sizes = json.loads(column_sizes) if column_sizes else {}
+        column_sizes = self.ReadGuiSetting("column_sizes", default={})
         column_sizes = column_sizes.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
             if column['name'] in column_sizes:
