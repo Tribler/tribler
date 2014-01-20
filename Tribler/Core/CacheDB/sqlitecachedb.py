@@ -1971,6 +1971,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
                 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 
+                self.execute_write('BEGIN')
+
                 # drop Peer columns
                 drop_table = "DROP VIEW Friend"
                 self.execute_write(drop_table)
@@ -2061,6 +2063,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 self.executemany(insert, list(mapping_set))
 
                 self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
+
+                self.execute_write('COMMIT')
 
                 self.database_update.release()
 
