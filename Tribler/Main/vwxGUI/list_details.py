@@ -2266,7 +2266,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def SetNrFiles(self, nr):
         videoplayer_item = self.guiutility.frame.actlist.GetItem(5)
         num_items = getattr(videoplayer_item, 'num_items', None)
-        if num_items:
+        if num_items and self.guiutility.frame.videoparentpanel:
             num_items.SetValue(str(nr))
             num_items.Show(bool(nr))
             videoplayer_item.hSizer.Layout()
