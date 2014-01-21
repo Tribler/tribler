@@ -308,6 +308,9 @@ class ProxyCommunity(Community):
         self._record_stats = False
         self.download_stats = None
         self.session_id = uuid.uuid4()
+
+        if isinstance(settings.length_strategy, ConstantCircuitLengthStrategy) and settings.length_strategy.desired_length == 0:
+            self.circuits[0] = Circuit(0)
         
         self.circuit_length_strategy = settings.length_strategy
         self.circuit_selection_strategy = settings.select_strategy
@@ -944,8 +947,7 @@ class ProxyCommunity(Community):
         return self.dispersy.endpoint.send([destination], [self.prefix + packet])
 
     def dict_inc(self, statistics_dict, key, inc=1):
-        pass
-        #self.dispersy._callback.register(self._dispersy.statistics.dict_inc, args=(statistics_dict, u"anontunnel-" + key, inc))
+        self.dispersy._callback.register(self._dispersy.statistics.dict_inc, args=(statistics_dict, u"anontunnel-" + key, inc))
 
     # CIRCUIT STUFFS
     def get_circuits(self):
@@ -1014,7 +1016,7 @@ class ProxyCommunity(Community):
                         # Make sure the '0-hop circuit' is also a candidate for selection
                         circuit_id = self.circuit_selection_strategy.select(self.active_circuits).circuit_id
                         self.destination_circuit[ultimate_destination] = circuit_id
-                        logger.info("SELECT circuit %d for %s:%d", circuit_id, *ultimate_destination)
+                        logger.error("SELECT circuit %d for %s:%d", circuit_id, *ultimate_destination)
 
                 # If chosen the 0-hop circuit OR if there are no other circuits act as EXIT node ourselves
                 if circuit_id == 0:
@@ -1042,5 +1044,5 @@ class ProxyCommunity(Community):
 
                 logger.debug("Sending data with origin %s to %s over circuit %d with ultimate destination %s:%d",
                             origin, address, circuit_id, *ultimate_destination)
-            except Exception, e:
-                logger.exception(e)
+            except:
+                logger.exception("Error while sending packet")
