@@ -377,8 +377,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 
             if self.vod_file:
-                self.vod_file.close()
-                self.vod_file = None
+                with self.dllock:
+                    self.vod_file.close()
+                    self.vod_file = None
 
     def monitor_vod(self, ds):
         if not self.handle or self.handle.is_paused() or self.get_mode() != DLMODE_VOD:
