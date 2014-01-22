@@ -248,7 +248,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         with self.dllock:
             if not self.cew_scheduled:
                 self.ltmgr = self.session.lm.ltmgr
-                if not self.ltmgr or (not self.tdef.has_trackers() and not self.ltmgr.is_dht_ready()):
+                if not self.ltmgr or (isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready()):
                     self._logger.info("LibtorrentDownloadImpl: LTMGR or DHT not ready, rescheduling create_engine_wrapper")
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=initialdlstatus)
                     self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
