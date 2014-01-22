@@ -185,7 +185,7 @@ class TestAsServer(AbstractServer):
                 if time.time() - t < timeout:
                     try:
                         if condition():
-                            print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t)
+                            print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback '%s'" % (time.time() - t, callback.__name__)
                             callback()
                         else:
                             self.Call(0.5, DoCheck)
