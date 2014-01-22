@@ -42,7 +42,7 @@ class IconsManager:
         if sys.platform != "darwin":
             flags_path = os.path.join(self.guiImagePath, 'flags')
             if os.path.isdir(flags_path):
-                self.country_flags = dict([(flag.split(".")[0].lower(), wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)) for flag in os.listdir(flags_path)])
+                self.country_flags = dict([(flag.split(".")[0].lower(), wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)) for flag in os.listdir(flags_path) if flag.endswith('.png')])
 
         self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
         IconsManager.__single = self
