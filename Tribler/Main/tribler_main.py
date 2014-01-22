@@ -122,8 +122,6 @@ import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 # one of those modules imports time as a module.
 from time import time, sleep
 
-I2I_LISTENPORT = 57891
-VIDEOHTTP_LISTENPORT = 6875
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
 
@@ -147,7 +145,7 @@ class ABCApp():
 
         self.params = params
         self.single_instance_checker = single_instance_checker
-        self.installdir = self.configure_install_dir(installdir)
+        self.installdir = installdir
 
         self.state_dir = None
         self.error = None
@@ -200,17 +198,17 @@ class ABCApp():
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-            UserDownloadChoice.get_singleton().set_config(self.utility.config, s.get_state_dir())
+            UserDownloadChoice.get_singleton().set_utility(self.utility, s.get_state_dir())
 
             self.splash.tick('Initializing Family Filter')
             cat = Category.getInstance()
 
-            state = self.utility.config.Read('family_filter')
-            if state in ('1', '0'):
-                cat.set_family_filter(state == '1')
+            state = self.utility.read_config('family_filter')
+            if state in (1, 0):
+                cat.set_family_filter(state == 1)
             else:
-                self.utility.config.Write('family_filter', '1')
-                self.utility.config.Flush()
+                self.utility.write_config('family_filter', 1)
+                self.utility.flush_config()
 
                 cat.set_family_filter(True)
 
@@ -226,7 +224,7 @@ class ABCApp():
 
             # boudewijn 01/04/2010: hack to fix the seedupload speed that
             # was never used and defaulted to 0 (unlimited upload)
-            maxup = self.utility.config.Read('maxuploadrate', "int")
+            maxup = self.utility.read_config('maxuploadrate')
             if maxup == -1:  # no upload
                 self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
                 self.ratelimiter.set_global_max_seedupload_speed(0.00001)
@@ -234,10 +232,10 @@ class ABCApp():
                 self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
                 self.ratelimiter.set_global_max_seedupload_speed(maxup)
 
-            maxdown = self.utility.config.Read('maxdownloadrate', "int")
+            maxdown = self.utility.read_config('maxdownloadrate')
             self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
 
-            self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
+            self.seedingmanager = GlobalSeedingManager(self.utility.read_config)
 
             # Only allow updates to come in after we defined ratelimiter
             self.prevActiveDownloads = []
@@ -247,13 +245,11 @@ class ABCApp():
             # crashes.
             self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
 
-            self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'))
-
             if not ALLOW_MULTIPLE:
                 # Put it here so an error is shown in the startup-error popup
                 # Start server for instance2instance communication
                 self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
-                self.i2is = Instance2InstanceServer(I2I_LISTENPORT, self.i2iconnhandler)
+                self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
                 self.i2is.start()
 
             # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
@@ -265,14 +261,13 @@ class ABCApp():
 
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
-            playbackmode = self.utility.config.Read('videoplaybackmode', "int")
-            # TODO: we should do
-            # httpport = self.utility.config.Read('videohttpport', 'int')
-            if ALLOW_MULTIPLE:
-                httpport = randint(1024, 25000)
-            else:
-                httpport = VIDEOHTTP_LISTENPORT
+
+            httpport = self.utility.read_config('videohttpport')
+            if ALLOW_MULTIPLE or httpport == -1:
+                httpport = self.utility.get_free_random_port('videohttpport')
             self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
+
+            playbackmode = self.utility.read_config('videoplaybackmode')
             self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
 
             notification_init(self.utility)
@@ -285,6 +280,7 @@ class ABCApp():
                 f.close()
 
             self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
+            self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
@@ -323,10 +319,10 @@ class ABCApp():
             self.torrentfeed = RssParser.getInstance()
 
             self.webUI = None
-            if self.utility.config.Read('use_webui', "boolean"):
+            if self.utility.read_config('use_webui'):
                 try:
                     from Tribler.Main.webUI.webUI import WebUI
-                    self.webUI = WebUI.getInstance(self.guiUtility.library_manager, self.guiUtility.torrentsearch_manager, self.utility.config.Read('webui_port', "int"))
+                    self.webUI = WebUI.getInstance(self.guiUtility.library_manager, self.guiUtility.torrentsearch_manager, self.utility.read_config('webui_port'))
                     self.webUI.start()
                 except Exception:
                     print_exc()
@@ -493,7 +489,8 @@ class ABCApp():
         dispersy.callback.call(define_communities)
         return s
 
-    def configure_install_dir(self, installdir):
+    @staticmethod
+    def determine_install_dir():
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
 
@@ -516,7 +513,7 @@ class ABCApp():
                 return os.path.abspath(os.path.join(filedir, '..', '..'))
 
             return module_path()
-        return installdir
+        return os.getcwdu()
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
@@ -665,7 +662,7 @@ class ABCApp():
                             notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
 
                             # Arno, 2012-05-04: Swift reseeding
-                            if self.utility.config.Read('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
+                            if self.utility.read_config('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
                                 self.sesscb_reseed_via_swift(download)
 
                             doCheckpoint = True
@@ -1130,24 +1127,18 @@ def run(params=None):
         else:
             single_instance_checker = LinuxSingleInstanceChecker("tribler")
 
+        installdir = ABCApp.determine_install_dir()
+
         if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
+            statedir = SessionStartupConfig().get_state_dir() or Session.get_default_state_dir()
+
             # Send  torrent info to abc single instance
             if params[0] != "":
                 torrentfilename = params[0]
-                i2ic = Instance2InstanceClient(I2I_LISTENPORT, 'START', torrentfilename)
+                i2ic = Instance2InstanceClient(Utility(installdir, statedir).read_config('i2ilistenport'), 'START', torrentfilename)
 
             logger.info("Client shutting down. Detected another instance.")
         else:
-            arg0 = sys.argv[0].lower()
-            if arg0.endswith('.exe'):
-                # supply a unicode string to ensure that the unicode filesystem API is used (applies to windows)
-                installdir = os.path.abspath(os.path.dirname(unicode(sys.argv[0])))
-            else:
-                # call the unicode specific getcwdu() otherwise homedirectories may crash
-                installdir = os.getcwdu()
-            # Arno: don't chdir to allow testing as other user from other dir.
-            # os.chdir(installdir)
-
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:

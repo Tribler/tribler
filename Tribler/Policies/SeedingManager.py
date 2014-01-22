@@ -36,7 +36,7 @@ class GlobalSeedingManager:
                     self._logger.debug("SeedingManager: apply seeding manager %s", hash.encode("HEX"))
                     seeding_manager = SeedingManager(download_state)
 
-                    policy = self.Read('t4t_option', "int") if cdef.get_def_type() == 'torrent' else self.Read('g2g_option', "int")
+                    policy = self.Read('t4t_option') if cdef.get_def_type() == 'torrent' else self.Read('g2g_option')
                     if policy == 0:
                         # No leeching, seeding until sharing ratio is met
                         self._logger.debug("GlobalSeedingManager: RatioBasedSeeding")
@@ -126,7 +126,7 @@ class TitForTatTimeBasedSeeding(SeedingPolicy):
 
     def apply(self, _, storage):
         current = storage["time_seeding"]
-        limit = long(self.Read('t4t_hours', "int")) * 3600 + long(self.Read('t4t_mins', "int")) * 60
+        limit = long(self.Read('t4t_hours')) * 3600 + long(self.Read('t4t_mins')) * 60
         self._logger.debug("TitForTatTimeBasedSeeding: apply: %s/ %s", current, limit)
         return current <= limit
 
@@ -140,7 +140,7 @@ class GiveToGetTimeBasedSeeding(SeedingPolicy):
 
     def apply(self, _, storage):
         current = storage["time_seeding"]
-        limit = long(self.Read('g2g_hours', "int")) * 3600 + long(self.Read('g2g_mins', "int")) * 60
+        limit = long(self.Read('g2g_hours')) * 3600 + long(self.Read('g2g_mins')) * 60
         self._logger.debug("GiveToGetTimeBasedSeeding: apply: %s / %s", current, limit)
         return current <= limit
 
@@ -169,7 +169,7 @@ class TitForTatRatioBasedSeeding(SeedingPolicy):
 
         self._logger.debug("TitForTatRatioBasedSeeding: apply: %s %s %s", dl, ul, ratio)
 
-        return ratio < self.Read('t4t_ratio', "int") / 100.0
+        return ratio < self.Read('t4t_ratio') / 100.0
 
 
 class GiveToGetRatioBasedSeeding(SeedingPolicy):
@@ -190,4 +190,4 @@ class GiveToGetRatioBasedSeeding(SeedingPolicy):
             ratio = 1.0 * ul / dl
 
         self._logger.debug("GiveToGetRatioBasedSeedingapply: %s %s %s %s", dl, ul, ratio, self.Read('g2g_ratio', "int") / 100.0)
-        return ratio < self.Read('g2g_ratio', "int") / 100.0
+        return ratio < self.Read('g2g_ratio') / 100.0

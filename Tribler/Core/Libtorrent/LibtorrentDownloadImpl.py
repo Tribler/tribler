@@ -11,8 +11,7 @@ import logging
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
 from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
@@ -153,7 +152,7 @@ class VODFile(object):
         self._file.close(*args)
 
 
-class LibtorrentDownloadImpl(DownloadRuntimeConfig):
+class LibtorrentDownloadImpl(DownloadConfigInterface):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
@@ -223,7 +222,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 else:
                     cdcfg = dcfg
                 self.dlconfig = cdcfg.dlconfig.copy()
-                self.set_config_callback(self.dlconfig_changed_callback)
+                self.dlconfig.lock = self.dllock
+                self.dlconfig.set_callback(self.dlconfig_changed_callback)
 
                 # Things that only exist at runtime
                 self.dlruntimeconfig = {}
@@ -680,7 +680,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if selected_files is None:
                     selected_files = self.get_selected_files()
                 else:
-                    DownloadRuntimeConfig.set_selected_files(self, selected_files)
+                    DownloadConfigInterface.set_selected_files(self, selected_files)
 
                 is_multifile = len(self.tdef.get_files_as_unicode()) > 1
                 commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''

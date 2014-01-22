@@ -334,7 +334,7 @@ class MainFrame(wx.Frame):
             dragdroplist = FileDropTarget(self)
             self.SetDropTarget(dragdroplist)
         try:
-            self.SetIcon(self.utility.icon)
+            self.SetIcon(wx.Icon(os.path.join(self.utility.getPath(), 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
         except:
             pass
 
@@ -484,14 +484,14 @@ class MainFrame(wx.Frame):
             dscfg = defaultDLConfig.copy()
 
             cancelDownload = False
-            useDefault = not dscfg.get_show_saveas()
+            useDefault = not self.utility.read_config('showsaveas')
             if not useDefault and not destdir:
                 defaultname = correctedFilename
                 if not correctedFilename and tdef and tdef.is_multifile_torrent():
                     defaultname = tdef.get_name_as_unicode()
 
                 if wx.Thread_IsMain():
-                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, self.utility.config, selectedFiles)
+                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
                     dlg.CenterOnParent()
 
                     if isinstance(tdef, TorrentDefNoMetainfo):
@@ -947,7 +947,7 @@ class MainFrame(wx.Frame):
             # videoplayer = VideoPlayer.getInstance()
             # videoplayer.pause_playback() # when minimzed pause playback
 
-            if self.utility.config.Read('mintray', "int") == 1:
+            if self.utility.read_config('mintray') == 1:
                 self.tbicon.updateIcon(True)
                 self.Show(False)
 
@@ -982,15 +982,15 @@ class MainFrame(wx.Frame):
             event.Skip()
 
     def getWindowSettings(self):
-        width = self.utility.config.Read("window_width")
-        height = self.utility.config.Read("window_height")
+        width = self.utility.read_config("window_width")
+        height = self.utility.read_config("window_height")
         try:
             size = wx.Size(int(width), int(height))
         except:
             size = wx.Size(1024, 670)
 
-        x = self.utility.config.Read("window_x")
-        y = self.utility.config.Read("window_y")
+        x = self.utility.read_config("window_x")
+        y = self.utility.read_config("window_y")
         if (x == "" or y == "" or x == 0 or y == 0):
             # position = wx.DefaultPosition
 
@@ -1006,7 +1006,7 @@ class MainFrame(wx.Frame):
             size = wx.Size(width, height)
         else:
             position = wx.Point(int(x), int(y))
-        sashpos = self.utility.config.Read("sash_position")
+        sashpos = self.utility.read_config("sash_position")
         try:
             sashpos = int(sashpos)
         except:
@@ -1017,15 +1017,15 @@ class MainFrame(wx.Frame):
     def saveWindowSettings(self):
         width, height = self.GetSizeTuple()
         x, y = self.GetPositionTuple()
-        self.utility.config.Write("window_width", width)
-        self.utility.config.Write("window_height", height)
-        self.utility.config.Write("window_x", x)
-        self.utility.config.Write("window_y", y)
+        self.utility.write_config("window_width", width)
+        self.utility.write_config("window_height", height)
+        self.utility.write_config("window_x", x)
+        self.utility.write_config("window_y", y)
 
         if self.splitter.IsShownOnScreen() and self.splitter.IsSplit():
-            self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
+            self.utility.write_config("sash_position", self.splitter.GetSashPosition())
 
-        self.utility.config.Flush()
+        self.utility.flush_config()
 
     #
     # Close Program
@@ -1052,7 +1052,7 @@ class MainFrame(wx.Frame):
         # (might not be able to in case of shutting down windows)
         if event is not None:
             try:
-                if isinstance(event, wx.CloseEvent) and event.CanVeto() and self.utility.config.Read('confirmonclose', "boolean") and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
+                if isinstance(event, wx.CloseEvent) and event.CanVeto() and self.utility.read_config('confirmonclose') and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
                     if self.shutdown_and_upgrade_notes:
                         confirmmsg = self.utility.lang.get('confirmupgrademsg') + "\n\n" + self.shutdown_and_upgrade_notes
                         confirmtitle = self.utility.lang.get('confirmupgrade')

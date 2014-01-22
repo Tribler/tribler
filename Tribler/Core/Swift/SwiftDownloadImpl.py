@@ -29,6 +29,7 @@
 
 import sys
 import copy
+import shutil
 import logging
 
 from traceback import print_exc, print_stack
@@ -37,9 +38,7 @@ from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import *
-from Tribler.Core.DownloadConfig import get_default_dest_dir
-from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
-import shutil
+from Tribler.Core.DownloadConfig import get_default_dest_dir, DownloadConfigInterface
 from Tribler.Main.globals import DownloadStartupConfig
 
 # ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
@@ -48,7 +47,7 @@ CMDGW_PREBUFFER_BYTES = (2 ** 8) * 1024
 SWIFT_ALIVE_CHECK_INTERVAL = 60.0
 
 
-class SwiftDownloadImpl(DownloadRuntimeConfig):
+class SwiftDownloadImpl(DownloadConfigInterface):
 
     """ Download subclass that represents a swift download.
     The actual swift download takes places in a SwiftProcess.
@@ -118,6 +117,7 @@ class SwiftDownloadImpl(DownloadRuntimeConfig):
             else:
                 cdcfg = dcfg
             self.dlconfig = cdcfg.dlconfig.copy()
+            self.dlconfig.lock = self.dllock
 
             # Things that only exist at runtime
             self.dlruntimeconfig = {}
@@ -153,7 +153,7 @@ class SwiftDownloadImpl(DownloadRuntimeConfig):
         """ Called by any thread, assume dllock already acquired """
         self._logger.debug("SwiftDownloadImpl: create_engine_wrapper()")
 
-        self.set_config_callback(self.dlconfig_changed_callback)
+        self.dlconfig.set_callback(self.dlconfig_changed_callback)
 
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback

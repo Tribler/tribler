@@ -76,8 +76,7 @@ class TestRemoteQuery(TestGuiAsServer):
         def do_download():
             self.screenshot('After doing vodo search + pioneer filter + selecting item')
 
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            defaultDLConfig.set_show_saveas(False)
+            self.guiUtility.utility.write_config('showsaveas', 0)
 
             self.frame.top_bg.OnDownload()
             self.CallConditional(120, lambda: self.frame.librarylist.GetNrResults() > 0, do_assert, 'no download in librarylist')

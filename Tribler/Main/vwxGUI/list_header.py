@@ -850,7 +850,7 @@ class TorrentFilter(BaseFilter):
     @forceDBThread
     def SetBundleState(self, newstate, refresh=True):
         if newstate is None:
-            auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
+            auto_guess = self.guiutility.utility.read_config('use_bundle_magic')
 
             newstate = Bundler.ALG_OFF  # default
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]

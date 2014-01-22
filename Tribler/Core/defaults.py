@@ -1,6 +1,6 @@
 # Written by Arno Bakker and Bram Cohen
 # Updated by George Milescu
-# Updated by Egbert Bouman, added subsection names + using OrderedDict + cleanup 
+# Updated by Egbert Bouman, added subsection names + using OrderedDict + cleanup
 # see LICENSE.txt for license information
 
 """ Default values for all configurarable parameters of the Core"""
@@ -119,7 +119,6 @@ dldefaults = OrderedDict()
 dldefaults['downloadconfig'] = OrderedDict()
 dldefaults['downloadconfig']['version'] = DLDEFAULTS_VERSION
 dldefaults['downloadconfig']['saveas'] = None  # Set to get_default_destdir()
-dldefaults['downloadconfig']['showsaveas'] = True  # Allow users to choose directory for every new download
 dldefaults['downloadconfig']['max_upload_rate'] = 0
 dldefaults['downloadconfig']['max_download_rate'] = 0
 dldefaults['downloadconfig']['super_seeder'] = 0

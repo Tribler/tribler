@@ -493,7 +493,7 @@ class VideoPlayer:
 
     def get_video_player(self, ext, videourl, mimetype=None):
 
-        video_player_path = self.utility.config.Read('videoplayerpath')
+        video_player_path = self.utility.read_config('videoplayerpath')
         self._logger.debug("videoplay: Default player is %s", video_player_path)
 
         if mimetype is None:

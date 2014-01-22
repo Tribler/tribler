@@ -622,4 +622,3 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
     #
     def copy(self):
         return SessionStartupConfig(self.sessconfig.copy())
-

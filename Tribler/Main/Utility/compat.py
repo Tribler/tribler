@@ -108,7 +108,7 @@ def convertDefaultDownloadConfig(oldfilename, newfilename):
     # Upgrade to new config
     ddsconfig = DefaultDownloadStartupConfig()
     for key, value in dlconfig.iteritems():
-        if key in ['saveas', 'showsaveas', 'max_upload_rate', 'max_download_rate', \
+        if key in ['saveas', 'max_upload_rate', 'max_download_rate', \
                    'super_seeder', 'mode', 'selected_files', 'correctedfilename', 'vod_usercallback', \
                    'swiftlistenport', 'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
             ddsconfig.dlconfig.set('downloadconfig', key, value)
@@ -131,7 +131,7 @@ def convertDownloadCheckpoints(checkpoint_dir):
                 new_checkpoint.add_section('downloadconfig')
                 new_checkpoint.add_section('state')
                 for key, value in old_checkpoint['dlconfig'].iteritems():
-                    if key in ['saveas', 'showsaveas', 'max_upload_rate', 'max_download_rate', 'super_seeder', 'mode', \
+                    if key in ['saveas', 'max_upload_rate', 'max_download_rate', 'super_seeder', 'mode', \
                                'selected_files', 'correctedfilename', 'vod_usercallback', 'swiftlistenport', \
                                'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
                         new_checkpoint.set('downloadconfig', key, value)
