@@ -745,7 +745,7 @@ class UdpTrackerSession(TrackerSession):
             return
 
         # get results
-        if len(response) - 8 < len(self._infohash_list) * 12:
+        if len(response) - 8 != len(self._infohash_list) * 12:
             self._logger.debug('UDP SCRAPE response mismatch: [%s]', response)
             self.setFailed()
             return
