@@ -480,11 +480,10 @@ class HttpTrackerSession(TrackerSession):
                         runerr, self._tracker, self._tracker_address, self._announce_page)
 
                 except Exception as err:
-                    self._logger.debug(u'Failed to process HTTP tracker header: [%s], Tracker: %s, Tracker Address: %s, Tracker Announce: %s',
+                    self._logger.exception(u'Failed to process HTTP tracker header: [%s], Tracker: %s, Tracker Address: %s, Tracker Announce: %s',
                         err, self._tracker, self._tracker_address, self._announce_page)
                     self._logger.debug(u'Header: %s', self._header_buffer)
                     self._logger.debug('TrackerSession: cannot redirect trackertype changed %s', new_location)
-                    print_exc()
                     self.setFailed()
             return
 
