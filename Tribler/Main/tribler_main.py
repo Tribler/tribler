@@ -707,6 +707,7 @@ class ABCApp():
         filelist = os.listdir(dir)
         if any([filename.endswith('.pickle') for filename in filelist]):
             convertDownloadCheckpoints(dir)
+            filelist = os.listdir(dir)
 
         filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
 

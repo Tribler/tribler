@@ -16,8 +16,8 @@ from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRAD
 from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.vwxGUI.list_bundle import BundleListView
 from Tribler.Main.vwxGUI.channel import SelectedChannelList
-from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker, \
-    cancelWorker
+from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker, cancelWorker
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 import time
 from Tribler.Video.VideoPlayer import VideoPlayer
 
@@ -157,12 +157,16 @@ class TopSearchPanel(FancyPanel):
         self.SetSizer(mainSizer)
         self.Layout()
 
+    @forceDBThread
+    def LogEvent(self, *args, **kwargs):
+        self.uelog.addEvent(*args, **kwargs)
+
     def OnResize(self, event):
         self.Refresh()
         event.Skip()
 
     def OnAutoComplete(self):
-        self.uelog.addEvent(message="TopSearchPanel: user used autocomplete", type=2)
+        self.LogEvent(message="TopSearchPanel: user used autocomplete", type=2)
 
     def OnSearchKeyDown(self, event=None):
         if self.go.IsEnabled():
@@ -414,15 +418,48 @@ class TopSearchPanel(FancyPanel):
         if not torrent:
             return
 
-        if torrent.isPlayable():
-            self.guiutility.ShowPlayer()
-            self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
-            self.guiutility.library_manager.playTorrent(torrent)
+        play_executed = False
 
-        if not self.guiutility.frame.searchlist.IsShownOnScreen():
-            self.uelog.addEvent(message="Torrent: torrent play from channel", type=2)
+        if self.guiutility.frame.videoparentpanel:
+
+            if torrent.isPlayable():
+                self.guiutility.ShowPlayer()
+                self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
+                self.guiutility.library_manager.playTorrent(torrent)
+                play_executed = True
+
         else:
-            self.uelog.addEvent(message="Torrent: torrent play from other", type=2)
+            # If we are using an external videoplayer, ask which file the users wants to play.
+            playable_files = torrent.videofiles
+
+            if len(playable_files) > 1:  # Create a popup
+                playable_files.sort()
+                dialog = wx.SingleChoiceDialog(self, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play?', 'Which file do you want to play?', playable_files)
+                (_, selected_file) = max([(size, filename) for filename, size in torrent.files if filename in torrent.videofiles])
+
+                if selected_file in playable_files:
+                    dialog.SetSelection(playable_files.index(selected_file))
+
+                if dialog.ShowModal() == wx.ID_OK:
+                    selected_file = dialog.GetStringSelection()
+                else:
+                    selected_file = None
+
+                dialog.Destroy()
+
+                if selected_file:
+                    self.guiutility.library_manager.playTorrent(torrent, selected_file)
+                    play_executed = True
+
+            elif len(playable_files) == 1:
+                self.guiutility.library_manager.playTorrent(torrent)
+                play_executed = True
+
+        if play_executed:
+            if not self.guiutility.frame.searchlist.IsShownOnScreen():
+                self.LogEvent(message="Torrent: torrent play from channel", type=2)
+            else:
+                self.LogEvent(message="Torrent: torrent play from other", type=2)
 
         button = event.GetEventObject()
         button.Enable(False)

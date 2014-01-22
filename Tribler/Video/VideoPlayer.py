@@ -532,6 +532,7 @@ class VideoPlayer:
         if sys.platform == 'win32':
             cmd = 'start /B "TriblerVideo" ' + playcmd
         elif sys.platform == 'darwin':
+            playcmd = qprogpath + ' --args ' + qvideourl
             cmd = 'open -a ' + playcmd
         else:
             cmd = playcmd
@@ -602,11 +603,13 @@ class VideoPlayer:
             self.vod_download = d
 
         if old_download and old_download.get_def().get_def_type() == 'torrent':
-            fileindex = old_download.get_def().get_index_of_file_in_files(old_download.get_selected_files()[0]) if old_download.get_def().is_multifile_torrent() else 0
+            selected_files = old_download.get_selected_files()
+            fileindex = old_download.get_def().get_index_of_file_in_files(selected_files[0]) if old_download.get_def().is_multifile_torrent() and selected_files else 0
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STOPPED, (old_download.get_def().get_id(), fileindex))
 
         if new_download and new_download.get_def().get_def_type() == 'torrent':
-            fileindex = new_download.get_def().get_index_of_file_in_files(new_download.get_selected_files()[0]) if new_download.get_def().is_multifile_torrent() else 0
+            selected_files = new_download.get_selected_files()
+            fileindex = new_download.get_def().get_index_of_file_in_files(selected_files[0]) if new_download.get_def().is_multifile_torrent() and selected_files else 0
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (new_download.get_def().get_id(), fileindex))
 
     def get_vod_download(self):
@@ -712,15 +715,12 @@ def parse_playtime_to_secs(hhmmss):
 
 
 def return_feasible_playback_modes(syspath):
+    if sys.platform == 'darwin':
+        return [PLAYBACKMODE_EXTERNAL_DEFAULT]
+
     l = []
     try:
-        if False and sys.platform == "darwin":
-            oldpath = os.getcwd()
-            os.chdir(os.path.join(syspath, 'vlc', 'lib'))
-            import vlc.lib.vlc as vlc
-            os.chdir(oldpath)
-        else:
-            import Tribler.vlc as vlc
+        import Tribler.vlc as vlc
 
         # Niels: check version of vlc
         version = vlc.libvlc_get_version()

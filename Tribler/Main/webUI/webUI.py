@@ -71,6 +71,7 @@ class WebUI():
                             'tools.staticdir.root': current_dir,
                             'tools.staticdir.on': True,
                             'tools.staticdir.dir': "static",
+                            'response.headers.connection': "close",
                             }
                       }
 
