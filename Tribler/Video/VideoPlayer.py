@@ -532,6 +532,7 @@ class VideoPlayer:
         if sys.platform == 'win32':
             cmd = 'start /B "TriblerVideo" ' + playcmd
         elif sys.platform == 'darwin':
+            playcmd = qprogpath + ' --args ' + qvideourl
             cmd = 'open -a ' + playcmd
         else:
             cmd = playcmd
