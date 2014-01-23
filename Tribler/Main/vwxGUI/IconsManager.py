@@ -69,6 +69,10 @@ class IconsManager:
         return IconsManager.__single
     getInstance = staticmethod(getInstance)
 
+    def delInstance(*args, **kw):
+        IconsManager.__single = None
+    delInstance = staticmethod(delInstance)
+
     def get_default(self, name, dim=ICON_MAX_DIM):
         if dim not in self.defaults[name]:
             img = self.defaults[name][ICON_MAX_DIM].ConvertToImage()

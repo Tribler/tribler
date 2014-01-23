@@ -84,7 +84,6 @@ class NativeIcon:
 
         if state not in icons[background]:
             icons[background][state] = self.__createBitmap(parent, background, type, state)
-        icons[background][state] = self.__createBitmap(parent, background, type, state)
         return icons[background][state]
 
     def __createBitmap(self, parent, background, type, state):

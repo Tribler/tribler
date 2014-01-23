@@ -911,6 +911,7 @@ class ABCApp():
             self.torrentfeed.delInstance()
         if self.webUI:
             self.webUI.stop()
+            self.webUI.delInstance()
         if self.guiserver:
             self.guiserver.shutdown(True)
             self.guiserver.delInstance()

@@ -36,6 +36,10 @@ class ListHeaderIcon:
         return ListHeaderIcon.__single
     getInstance = staticmethod(getInstance)
 
+    def delInstance(*args, **kw):
+        ListHeaderIcon.__single = None
+    delInstance = staticmethod(delInstance)
+
     @warnWxThread
     def getBitmaps(self, parent, background):
         assert isinstance(background, wx.Colour), "we require a wx.colour object here"
