@@ -252,9 +252,7 @@ class ForwardCommunity():
                 elif DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no smaller than", new_taste_buddy, self.taste_buddies[-1]
 
-                # if we have any similarity, cache peer
-                if new_taste_buddy.overlap and new_taste_buddy.should_cache():
-                    self._peercache.add_peer(new_taste_buddy.overlap, *new_taste_buddy.candidate.sock_addr)
+                self.new_taste_buddy(new_taste_buddy)
 
         self.taste_buddies.sort(reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
@@ -309,6 +307,11 @@ class ForwardCommunity():
             if tb == candidate:
                 self.taste_buddies.remove(tb)
                 break
+
+    def new_taste_buddy(self, tb):
+        # if we have any similarity, cache peer
+        if tb.overlap and tb.should_cache():
+            self._peercache.add_peer(tb.overlap, *tb.candidate.sock_addr)
 
     def add_possible_taste_buddies(self, possibles):
         if __debug__:

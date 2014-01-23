@@ -7,7 +7,7 @@ from collections import defaultdict
 from hashlib import sha1
 from binascii import hexlify
 from time import time
-from random import sample
+from random import sample, shuffle
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -50,7 +50,9 @@ class SocialCommunity(Community):
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
         self.send_introduction_request = lambda destination, introduce_me_to = None, allow_sync = True, advice = True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
-        self._pending_callbacks.append(dispersy.callback.register(self.sync_with_friends))
+
+        self.friend_sync_id = dispersy.callback.register(self.sync_with_friends)
+        self._pending_callbacks.append(self.friend_sync_id)
 
         # replace _get_packets_for_bloomfilters
         self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
@@ -79,6 +81,8 @@ class SocialCommunity(Community):
     def sync_with_friends(self):
         while True:
             tbs = list(self.yield_taste_buddies())
+            shuffle(tbs)
+
             if tbs:
                 interval = max(300 / float(len(tbs)), 5.0)
                 for tb in tbs:
@@ -86,6 +90,10 @@ class SocialCommunity(Community):
                     yield interval
             else:
                 yield 15.0
+
+    def new_taste_buddy(self, tb):
+        if tb.overlap:
+            self.dispersy.callback.replace_register(self.friend_sync_id, self.sync_with_friends)
 
     def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
         if community != self:
@@ -337,6 +345,10 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
+    def new_taste_buddy(self, tb):
+        HForwardCommunity.new_taste_buddy(self, tb)
+        SocialCommunity.new_taste_buddy(self, tb)
+
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
@@ -374,6 +386,14 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
     def unload_community(self):
         PForwardCommunity.unload_community(self)
         SocialCommunity.unload_community(self)
+
+    def add_possible_taste_buddies(self, possibles):
+        PForwardCommunity.add_possible_taste_buddies(self, possibles)
+        SocialCommunity.add_possible_taste_buddies(self)
+
+    def new_taste_buddy(self, tb):
+        PForwardCommunity.new_taste_buddy(self, tb)
+        SocialCommunity.new_taste_buddy(self, tb)
 
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
@@ -417,6 +437,10 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
+    def new_taste_buddy(self, tb):
+        HForwardCommunity.new_taste_buddy(self, tb)
+        SocialCommunity.new_taste_buddy(self, tb)
+
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
@@ -458,6 +482,10 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
     def add_possible_taste_buddies(self, possibles):
         PoliForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
+
+    def new_taste_buddy(self, tb):
+        PoliForwardCommunity.new_taste_buddy(self, tb)
+        SocialCommunity.new_taste_buddy(self, tb)
 
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
