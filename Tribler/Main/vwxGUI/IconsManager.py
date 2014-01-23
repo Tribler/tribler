@@ -22,6 +22,8 @@ class IconsManager:
         if IconsManager.__single:
             raise RuntimeError("IconsManager is singleton")
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
         self.guiUtility = GUIUtility.getInstance()
@@ -42,7 +44,17 @@ class IconsManager:
         if sys.platform != "darwin":
             flags_path = os.path.join(self.guiImagePath, 'flags')
             if os.path.isdir(flags_path):
-                self.country_flags = dict([(flag.split(".")[0].lower(), wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)) for flag in os.listdir(flags_path) if flag.endswith('.png')])
+                # Size check for flag images.
+                for flag in os.listdir(flags_path):
+                    if not flag.endswith(u".png"):
+                        continue
+                    bitmap = wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)
+                    if bitmap.GetSize() is not (16, 11):
+                        self._logger.warn(u"Country flag[%s] is of size [%dx%d], NOT [%dx%d].",
+                            flag, bitmap.GetWidth(), bitmap.GetHeight(), 16, 11)
+                    self.country_flags[flag.split(".")[0].lower()] = bitmap
+            else:
+                self._logger.warn(u"Skip loading flags, flag path is not a DIR [%s].", flags_path)
 
         self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
         IconsManager.__single = self
