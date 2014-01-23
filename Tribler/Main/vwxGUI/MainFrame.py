@@ -386,7 +386,7 @@ class MainFrame(wx.Frame):
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         # Init video player
-        sys.stdout.write('GUI Complete.\n')
+        print >> sys.stderr, 'GUI ready'
         self.Thaw()
         self.ready = True
 
@@ -1071,6 +1071,7 @@ class MainFrame(wx.Frame):
             except:
                 print_exc()
 
+        print >> sys.stderr, 'GUI closing'
         self.utility.abcquitting = True
         self.GUIupdate = False
 
