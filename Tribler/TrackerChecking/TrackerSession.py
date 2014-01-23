@@ -478,6 +478,7 @@ class HttpTrackerSession(TrackerSession):
                 except RuntimeError as runerr:
                     self._logger.debug(u'Runtime Error [%s], Tracker: %s, Tracker Address: %s, Tracker Announce: %s',
                         runerr, self._tracker, self._tracker_address, self._announce_page)
+                    self.setFailed()
 
                 except Exception as err:
                     self._logger.exception(u'Failed to process HTTP tracker header: [%s], Tracker: %s, Tracker Address: %s, Tracker Announce: %s',
