@@ -352,8 +352,8 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
-    def get_tbs_from_peercache(self, nr):
-        return SocialCommunity.get_tbs_from_peercache(self, nr)
+    def get_tbs_from_peercache(self, nr, standins):
+        return SocialCommunity.get_tbs_from_peercache(self, nr, standins)
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
@@ -398,8 +398,8 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
-    def get_tbs_from_peercache(self, nr):
-        return SocialCommunity.get_tbs_from_peercache(self, nr)
+    def get_tbs_from_peercache(self, nr, standins):
+        return SocialCommunity.get_tbs_from_peercache(self, nr, standins)
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
@@ -444,8 +444,8 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
-    def get_tbs_from_peercache(self, nr):
-        return SocialCommunity.get_tbs_from_peercache(self, nr)
+    def get_tbs_from_peercache(self, nr, standins):
+        return SocialCommunity.get_tbs_from_peercache(self, nr, standins)
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
@@ -490,8 +490,8 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
-    def get_tbs_from_peercache(self, nr):
-        return SocialCommunity.get_tbs_from_peercache(self, nr)
+    def get_tbs_from_peercache(self, nr, standins):
+        return SocialCommunity.get_tbs_from_peercache(self, nr, standins)
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
