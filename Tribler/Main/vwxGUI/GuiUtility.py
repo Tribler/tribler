@@ -25,8 +25,6 @@ from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
-from Tribler.Main.vwxGUI.widgets import NativeIcon
-
 
 class GUIUtility:
     __single = None
@@ -65,6 +63,7 @@ class GUIUtility:
 
         self.lists = []
 
+        from Tribler.Main.vwxGUI.widgets import NativeIcon
         self.nativeicon = NativeIcon.getInstance()
 
     def getInstance(*args, **kw):
