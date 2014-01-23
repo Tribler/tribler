@@ -462,11 +462,8 @@ class SQLiteCacheDBBase:
                 self._logger.error("cachedb: busylock error")
 
             else:
-                print_exc()
-                print_stack()
-                self._logger.error("cachedb: execute error: %s, %s", Exception, msg)
                 thread_name = threading.currentThread().getName()
-                self._logger.error('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
+                self._logger.exception('cachedb: ===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
 
             raise msg
 
@@ -487,11 +484,8 @@ class SQLiteCacheDBBase:
             if str(msg).startswith("BusyError"):
                 self._logger.error("cachedb: busylock error")
             else:
-                print_exc()
-                print_stack()
-                self._logger.error("cachedb: execute error: %s, %s", Exception, msg)
                 thread_name = threading.currentThread().getName()
-                self._logger.error('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
+                self._logger.exception('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
 
             raise msg
 
@@ -1967,8 +1961,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             # only perform these changes once
             if fromver < 19:
-                self.database_update.acquire()
-
                 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 
                 self.execute_write('BEGIN')
@@ -2065,8 +2057,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 self.execute_write('DROP TABLE IF EXISTS TorrentTracker')
 
                 self.execute_write('COMMIT')
-
-                self.database_update.release()
 
             all_found_tracker_dict['no-DHT'] = getTrackerID('no-DHT')
             all_found_tracker_dict['DHT'] = getTrackerID('DHT')
@@ -2439,11 +2429,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             return result
 
         except Exception as msg:
-            print_exc()
-            print_stack()
-            self._logger.error("cachedb: execute error: %s, %s", Exception, msg)
             thread_name = threading.currentThread().getName()
-            self._logger.error('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
+            self._logger.exception('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
             raise msg
 
     @forceAndReturnDBThread
@@ -2479,12 +2466,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             return result
 
         except Exception as msg:
-            self._logger.debug("cachedb: execute error: %s %s", Exception, msg)
-            print_exc()
-            print_stack()
-
             thread_name = threading.currentThread().getName()
-            self._logger.debug('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
+            self._logger.exception('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
             raise msg
 
 # Arno, 2012-08-02: If this becomes multithreaded again, reinstate safe_dict() in caches
