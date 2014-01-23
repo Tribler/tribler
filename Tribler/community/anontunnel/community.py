@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 import socket
 from threading import RLock
@@ -5,10 +6,8 @@ import uuid
 import random
 import sys
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
+from Tribler.community.anontunnel.crypto import DefaultCrypto
 from Tribler.dispersy.requestcache import NumberCache
-
-from AES import AESdecode
-from AES import AESencode
 
 logger = logging.getLogger(__name__)
 
@@ -67,10 +66,6 @@ class Hop:
         return hop
 
 
-ORIGINATOR = "originator"
-ENDPOINT = "endpoint"
-
-
 class CircuitReturnFactory(object):
     def create(self, proxy, raw_server, circuit_id, address):
 
@@ -95,6 +90,7 @@ class ProxySettings:
         self.select_strategy = RandomSelectionStrategy(1)
         self.length_strategy = ConstantCircuitLengthStrategy(length)
         self.return_handler_factory = CircuitReturnFactory()
+        self.crypto = DefaultCrypto()
 
 
 class TunnelObserver():
@@ -305,6 +301,11 @@ class ProxyCommunity(Community):
             'packet_size': 0
         }
 
+        self._send_transformers = {}
+        self._receive_transformers = {}
+        self._relay_transformers = {}
+        self._message_filters = defaultdict(list)
+
         self._record_stats = False
         self.download_stats = None
         self.session_id = uuid.uuid4()
@@ -316,6 +317,7 @@ class ProxyCommunity(Community):
         self.circuit_selection_strategy = settings.select_strategy
         self.extend_strategy = settings.extend_strategy
         self.return_handler_factory = settings.return_handler_factory
+        self.crypto = settings.crypto
 
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
@@ -333,6 +335,9 @@ class ProxyCommunity(Community):
             self.notifier = Notifier.getInstance()
         else:
             self.notifier = None
+
+        # Enable Crypto
+        self.crypto.enable(self)
 
     def add_observer(self, observer):
         assert isinstance(observer, TunnelObserver)
@@ -500,15 +505,8 @@ class ProxyCommunity(Community):
         if circuit_id > 0 and relay_key in self.relay_from_to:
             next_relay = self.relay_from_to[relay_key]
 
-            if self.directions[circuit_id] == ORIGINATOR:
-                # Message is going downstream so I have to add my onion layer
-                # logger.debug("Adding AES layer with key %s to circuit %d" % (self.session_keys[next_relay.circuit_id], next_relay.circuit_id))
-                data = AESencode(self.session_keys[next_relay.circuit_id], data)
-
-            elif self.directions[circuit_id] == ENDPOINT:
-                # Message is going upstream so I have to remove my onion layer
-                # logger.debug("Removing AES layer with key %s" % self.session_keys[circuit_id])
-                data = AESdecode(self.session_keys[circuit_id], data)
+            for f in self._relay_transformers:
+                data = f(self.directions[circuit_id], candidate, circuit_id, data)
 
             next_relay.bytes[1] += len(data)
 
@@ -529,28 +527,21 @@ class ProxyCommunity(Community):
         # We don't know where to relay this message to, must be for me?
         else:
             try:
-                if circuit_id in self.circuits:
-                    # I am the originator so I'll peel the onion skins
-                    for hop in self.circuits[circuit_id].hops:
-                        logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
-                        data = AESdecode(hop.session_key, data)
-
-                elif circuit_id in self.session_keys:
-                    # last node in circuit, circuit already exists
-                    logger.debug("Removing AES layer with key %s" % (self.session_keys[circuit_id]))
-                    data = AESdecode(self.session_keys[circuit_id], data)
-                else:
-                    # last node in circuit, circuit does not exist yet
-                    data = data
+                for f in self._receive_transformers:
+                    data = f(candidate, circuit_id, data)
 
                 _, payload = self.proxy_conversion.decode(data)
-
 
                 packet_type = self.proxy_conversion.get_type(data)
                 str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
 
                 logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
+                payload = self._filter_message(circuit_id, candidate, packet_type, payload,)
+
+                if not payload:
+                    logger.warning("IGNORED %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                    return
 
                 if circuit_id in self.circuits:
                     self.circuits[circuit_id].last_incomming = time()
@@ -908,32 +899,50 @@ class ProxyCommunity(Community):
 
         return circuit_id
 
+    def add_receive_transformer(self, func):
+        self._receive_transformers[func] = 1
+
+    def remove_receive_transformer(self, func):
+        if func in self._receive_transformers:
+            del self._receive_transformers[func]
+
+    def add_relay_transformer(self, func):
+        self._relay_transformers[func] = 1
+
+    def remove_relay_transformer(self, func):
+        if func in self._relay_transformers:
+            del self._relay_transformers[func]
+
+    def add_send_transformer(self, func):
+        self._send_transformers[func] = 1
+
+    def remove_send_transformer(self, func):
+        if func in self._send_transformers:
+            del self._send_transformers[func]
+
+    def _filter_message(self, candidate, circuit_id, message_type, payload):
+        for f in self._message_filters[message_type]:
+            payload = f(candidate, circuit_id, payload)
+
+            if not payload:
+                return None
+
+        return payload
+
+    def add_message_filter(self, message_type, filter):
+        self._message_filters[message_type].append(filter)
+
     def send_message(self, destination, circuit_id, message_type, message):
         content = self.proxy_conversion.encode(message_type, message)
-        if circuit_id in self.circuits:
-            # I am the originator so I have to create the full onion
-            circuit = self.circuits[circuit_id]
-            hops = circuit.hops
 
-            for hop in reversed(hops):
-                logger.debug("Adding AES layer for hop %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
-                content = AESencode(hop.session_key, content)
-        elif circuit_id in self.session_keys:
-           if message_type == MESSAGE_CREATED:
-                logger.debug("Adding public key encryption for circuit %s" % (circuit_id))
-                logger.error("Still have to implement public key encryption for CREATED message")
-           else:
-                content = AESencode(self.session_keys[circuit_id], content)
-                logger.debug("Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[circuit_id]))
-          #packet = self.proxy_conversion.add_circuit(content, circuit_id)
+        for transformer in self._send_transformers.keys():
+            content = transformer(circuit_id, message_type, content)
 
         return self.send_packet(destination, circuit_id, message_type, content)
-
 
     def send_packet(self, destination, circuit_id, message_type, packet, relayed=False):
         assert isinstance(destination, Candidate), type(destination)
         assert isinstance(packet, str), type(packet)
-        # assert packet.startswith(self.prefix)
 
         packet = self.proxy_conversion.add_circuit(packet, circuit_id)
 
