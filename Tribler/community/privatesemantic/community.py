@@ -420,7 +420,7 @@ class ForwardCommunity():
                         break
 
             for i, tb_possibles in enumerate(tbs):
-                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(tb_possibles, 0), delay=0.005 * i))
+                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(tb_possibles,), delay=0.005 * i))
 
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
