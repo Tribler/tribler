@@ -644,6 +644,10 @@ class SelectedChannelList(GenericSearchList):
 
         SizeList.OnFilter(self, new_filter)
 
+    def GotFilter(self, keyword=None):
+        GenericSearchList.GotFilter(self, keyword)
+        self.GetManager().do_or_schedule_refresh()
+
     @warnWxThread
     def Select(self, key, raise_event=True):
         if isinstance(key, Torrent):
