@@ -107,7 +107,7 @@ def warnWxThread(func):
         if not wx.Thread_IsMain():
             caller = inspect.stack()[1]
             callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
-            logger.info("%s NOT ON GUITHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            logger.warn("%s NOT ON GUITHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
         return func(*args, **kwargs)
 
@@ -157,7 +157,7 @@ def forceAndReturnWxThread(func):
 
             from traceback import print_stack
             print_stack()
-            logger.info("GOT TIMEOUT ON forceAndReturnWxThread %s", func.__name__)
+            logger.warn("GOT TIMEOUT ON forceAndReturnWxThread %s", func.__name__)
 
     invoke_func.__name__ = func.__name__
     return invoke_func

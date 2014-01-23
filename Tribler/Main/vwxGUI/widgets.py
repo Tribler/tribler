@@ -78,8 +78,10 @@ class NativeIcon:
             icons[background][0] = fixSize(icons[background][0], width, height)
             icons[background][1] = fixSize(icons[background][1], width, height)
 
-        if state not in icons[background]:
-            icons[background][state] = self.__createBitmap(parent, background, type, state)
+        # Disabling caching of bitmaps, might cause them to be freed twice
+        # if state not in icons[background]:
+        #    icons[background][state] = self.__createBitmap(parent, background, type, state)
+        icons[background][state] = self.__createBitmap(parent, background, type, state)
         return icons[background][state]
 
     def __createBitmap(self, parent, background, type, state):
