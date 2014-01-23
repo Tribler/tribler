@@ -256,6 +256,10 @@ class RssParser(Thread):
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
 
+                                # Should we stop?
+                                if not self.isRegistered:
+                                    return
+
     def readUrl(self, url, urls_already_seen):
         self._logger.debug("RssParser: reading url %s", url)
 
