@@ -7,6 +7,7 @@ from collections import defaultdict
 from hashlib import sha1
 from binascii import hexlify
 from time import time
+from random import sample
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -214,26 +215,32 @@ class SocialCommunity(Community):
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
 
-    def get_tbs_from_peercache(self, nr):
-        peers = [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()[:nr]]
-        return self.filter_tb(peers)
+    def get_tbs_from_peercache(self, nr, nr_standins):
+        tbs = [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()]
+
+        friends, foafs = self.determine_friends_foafs(tbs)
+        if len(friends) > nr:
+            friends = sample(list(friends), nr)
+
+        peercache_candidates = []
+        for friend in friends:
+            peercache_friend = [friend] * 2
+
+            standins = set()
+            for overlapping_hash in friend.overlap:
+                standins.update(foafs.get(overlapping_hash, []))
+
+            remaining_standins = nr_standins - len(peercache_friend)
+            if len(standins) > remaining_standins:
+                standins = sample(list(standins), remaining_standins)
+
+            peercache_friend.extend(standins)
+            peercache_candidates.append(peercache_friend)
 
     def filter_tb(self, tbs):
-        _tbs = list(tbs)
+        tbs = list(tbs)
 
-        to_maintain = set()
-
-        foafs = defaultdict(list)
-        my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
-        for tb in _tbs:
-            # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
-            if any(map(tb.does_overlap, my_key_hashes)):
-                to_maintain.add(tb)
-
-            # else add this foaf as a possible candidate to be used as a backup for a friend
-            else:
-                for keyhash in tb.overlap:
-                    foafs[keyhash].append(tb)
+        to_maintain, foafs = self.determine_friends_foafs(tbs)
 
         # for each friend we maintain an additional connection to at least one foaf
         # this peer is chosen randomly to attempt to load balance these pings
@@ -241,9 +248,21 @@ class SocialCommunity(Community):
             to_maintain.add(choice(f_tbs))
 
         if DEBUG:
-            print >> sys.stderr, long(time()), "SocialCommunity: Will maintain", len(to_maintain), "connections instead of", len(_tbs)
+            print >> sys.stderr, long(time()), "SocialCommunity: Will maintain", len(to_maintain), "connections instead of", len(tbs)
 
         return to_maintain
+
+    def determine_friends_foafs(self, tbs):
+        my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
+
+        friends = self.filter_overlap(tbs, my_key_hashes)
+        foafs = defaultdict(list)
+        for tb in tbs:
+            # else add this foaf as a possible candidate to be used as a backup for a friend
+            for keyhash in tb.overlap:
+                foafs[keyhash].append(tb)
+
+        return friends, foafs
 
     def filter_overlap(self, tbs, keys):
         to_maintain = set()

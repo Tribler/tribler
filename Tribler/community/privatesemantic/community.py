@@ -45,7 +45,7 @@ ENCRYPTION = True
 
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME / 5
 PING_TIMEOUT = CANDIDATE_WALK_LIFETIME / 2
-TIME_BETWEEN_CONNECTION_ATTEMPTS = 15.0
+TIME_BETWEEN_CONNECTION_ATTEMPTS = 10.0
 
 class TasteBuddy():
     def __init__(self, overlap, sock_addr):
@@ -395,32 +395,35 @@ class ForwardCommunity():
         return list(candidates)
 
     # connect to first nr peers in peercache
-    def connect_to_peercache(self, nr=10):
+    def connect_to_peercache(self, nr=10, standins=10):
         payload = self.create_similarity_payload()
         if payload:
-            tbs = self.get_tbs_from_peercache(nr)
-            if DEBUG:
-                print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
+            tbs = self.get_tbs_from_peercache(nr, standins)
+            if True or DEBUG:
+                print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), [str(tb_possibles[0]) for tb_possibles in tbs]
 
-            def attempt_to_connect(candidate, cur_attempt):
-                while not self.is_taste_buddy_sock(candidate.sock_addr) and cur_attempt < 8:
-                    self.create_similarity_request(candidate, payload)
+            def attempt_to_connect(tbs):
+                for tb in tbs:
+                    candidate = self.get_candidate(tb.sock_addr, replace=False)
+                    if not candidate:
+                        candidate = self.create_candidate(tb.sock_addr, False, tb.sock_addr, tb.sock_addr, u"unknown")
 
-                    yield TIME_BETWEEN_CONNECTION_ATTEMPTS * 2 ** cur_attempt
-                    cur_attempt += 1
+                    if not self.is_taste_buddy_sock(candidate.sock_addr):
+                        self.create_similarity_request(candidate, payload)
 
-            for i, tb in enumerate(tbs):
-                candidate = self.get_candidate(tb.sock_addr, replace=False)
-                if not candidate:
-                    candidate = self.create_candidate(tb.sock_addr, False, tb.sock_addr, tb.sock_addr, u"unknown")
+                    yield TIME_BETWEEN_CONNECTION_ATTEMPTS
 
-                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(candidate, 0), delay=0.005 * i))
+                    if self.is_taste_buddy_sock(candidate.sock_addr):
+                        break
+
+            for i, tb_possibles in enumerate(tbs):
+                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(tb_possibles, 0), delay=0.005 * i))
 
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
 
-    def get_tbs_from_peercache(self, nr):
-        return [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()[:nr]]
+    def get_tbs_from_peercache(self, nr, standins):
+        return [[TasteBuddy(overlap, (ip, port))] * standins for overlap, ip, port in self._peercache.get_peers()[:nr]]
 
     class SimilarityAttempt(NumberCache):
         @staticmethod
