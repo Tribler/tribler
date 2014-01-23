@@ -39,6 +39,10 @@ class NativeIcon:
         return NativeIcon.__single
     getInstance = staticmethod(getInstance)
 
+    def delInstance(*args, **kw):
+        NativeIcon.__single = None
+    delInstance = staticmethod(delInstance)
+
     def getBitmap(self, parent, type, background, state):
         assert isinstance(background, wx.Colour), "we require a wx.colour object here, got %s" % type(background)
         if isinstance(background, wx.Colour):
