@@ -475,9 +475,15 @@ class HttpTrackerSession(TrackerSession):
 
                         self.reestablishConnection()
 
-                except:
+                except RuntimeError as runerr:
+                    self._logger.debug(u'Runtime Error [%s], Tracker: %s, Tracker Address: %s, Tracker Announce: %s',
+                        runerr, self._tracker, self._tracker_address, self._announce_page)
+
+                except Exception as err:
+                    self._logger.exception(u'Failed to process HTTP tracker header: [%s], Tracker: %s, Tracker Address: %s, Tracker Announce: %s',
+                        err, self._tracker, self._tracker_address, self._announce_page)
+                    self._logger.debug(u'Header: %s', self._header_buffer)
                     self._logger.debug('TrackerSession: cannot redirect trackertype changed %s', new_location)
-                    print_exc()
                     self.setFailed()
             return
 
@@ -737,6 +743,11 @@ class UdpTrackerSession(TrackerSession):
             return
 
         # get results
+        if len(response) - 8 != len(self._infohash_list) * 12:
+            self._logger.debug('UDP SCRAPE response mismatch: [%s]', response)
+            self.setFailed()
+            return
+
         offset = 8
         for infohash in self._infohash_list:
             seeders, completed, leechers = \
