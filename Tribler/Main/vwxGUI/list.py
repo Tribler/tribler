@@ -33,7 +33,6 @@ from widgets import _set_font, SwarmHealth
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
-from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Category.Category import Category
 
 DEBUG_RELEVANCE = False
