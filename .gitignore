@@ -12,4 +12,6 @@
 /swift
 /swift.exe
 \#*\#
+/.project
+/.pydevproject
 flycheck_*

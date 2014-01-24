@@ -150,12 +150,10 @@ class TriblerLaunchMany(Thread):
                 self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
                 from Tribler.Core.permid import read_keypair
-
                 keypair = read_keypair(self.session.get_permid_keypair_filename())
                 self.session.dispersy_member = callback.call(self.dispersy.get_member,
                                                              (self.dispersy.crypto.key_to_bin(keypair.pub()),
                                                               self.dispersy.crypto.key_to_bin(keypair)))
-
 
                 self.database_thread = callback
             else:
