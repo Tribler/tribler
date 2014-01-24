@@ -8,8 +8,6 @@ import logging
 
 from Tribler.Video.VideoFrame import VideoBaseFrame
 from Tribler.Main.vwxGUI.EmbeddedPlayer import EmbeddedPlayerPanel
-from Tribler.__init__ import LIBRARYNAME
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 
 class VideoDummyFrame(VideoBaseFrame):
