@@ -751,7 +751,7 @@ class ForwardCommunity():
             sync = self.dispersy_claim_sync_bloom_filter(cache)
         else:
             sync = None
-        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, sync, cache.number, introduce_me_to)
+        payload = (destination.sock_addr, self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, sync, cache.number, introduce_me_to)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),

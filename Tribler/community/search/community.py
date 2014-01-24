@@ -239,10 +239,10 @@ class SearchCommunity(Community):
             taste_bloom_filter = self.taste_bloom_filter
 
             cache = self._request_cache.add(IntroductionRequestCache(self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, num_preferences, taste_bloom_filter)
+            payload = (destination.sock_addr, self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, num_preferences, taste_bloom_filter)
         else:
             cache = self._request_cache.add(IntroductionRequestCache(self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, 0, None)
+            payload = (destination.sock_addr, self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, 0, None)
 
         destination.walk(time(), cache.timeout_delay)
         self.add_candidate(destination)
