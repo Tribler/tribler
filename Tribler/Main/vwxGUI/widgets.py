@@ -552,44 +552,6 @@ class EditText(wx.TextCtrl):
             return self.GetValue()
 
 
-class EditStaticText(wx.Panel):
-
-    def __init__(self, parent, text, multiLine=False):
-        wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
-        self.original_text = text
-
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.text = wx.StaticText(self, -1, text)
-        self.text.SetMinSize((1, -1))
-        vSizer.Add(self.text, 0, wx.EXPAND)
-
-        self.edit = EditText(parent, text, multiLine)
-        self.edit.Show(False)
-        self.edit.SetMinSize((1, -1))
-        vSizer.Add(self.edit, 0, wx.EXPAND)
-        self.SetSizer(vSizer)
-
-    def ShowEdit(self, show=True):
-        if not show:
-            self.text.SetLabel(self.edit.GetValue())
-
-        self.text.Show(not show)
-        self.edit.Show(show)
-        self.GetParent().Layout()
-
-    def IsEditShown(self):
-        return self.edit.IsShown()
-
-    def IsChanged(self):
-        return self.edit.IsChanged()
-
-    def Saved(self):
-        self.edit.Saved()
-
-    def GetChanged(self):
-        return self.edit.GetChanged()
-
-
 class NotebookPanel(wx.Panel):
 
     def __init__(self, *args, **kwargs):
