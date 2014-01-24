@@ -854,8 +854,8 @@ class AbstractListBody():
             self.messageText.altControl = None
 
         if altControl:
-            self.messageText.altControl = altControl
-            self.messageText.sizer.Insert(2, altControl, 0, wx.EXPAND)
+            self.messageText.altControl = altControl(self.messagePanel)
+            self.messageText.sizer.Insert(2, self.messageText.altControl, 0, wx.EXPAND)
 
         if clearitems:
             self.loadNext.Hide()

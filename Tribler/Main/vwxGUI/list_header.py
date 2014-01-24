@@ -1325,7 +1325,6 @@ class ListItemHeader(wx.Panel):
 
     def OnCollapse(self, item, panel, from_expand=False):
         if panel:
-            panel.Destroy()
             self.parent_list.ResetBottomWindow()
         wx.CallAfter(self.guiutility.frame.top_bg.TorrentsChanged)
 
