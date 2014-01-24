@@ -972,31 +972,6 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.SetValueFromSelected()
 
 
-class ImageScrollablePanel(ScrolledPanel):
-
-    def __init__(self, parent, id= -1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.HSCROLL | wx.VSCROLL):
-        ScrolledPanel.__init__(self, parent, id, pos, size, style)
-
-        self.bitmap = None
-        wx.EVT_PAINT(self, self.OnPaint)
-
-    def OnPaint(self, evt):
-        if self.bitmap:
-            obj = evt.GetEventObject()
-            dc = wx.BufferedPaintDC(obj)
-
-            dc.SetPen(wx.TRANSPARENT_PEN)
-            dc.SetBrush(wx.BrushFromBitmap(self.bitmap))
-            w, h = self.GetClientSize()
-            dc.DrawRectangle(0, 0, w, h)
-        else:
-            evt.Skip()
-
-    def SetBitmap(self, bitmap):
-        self.bitmap = bitmap
-        self.Refresh()
-
-
 class ChannelPopularity(wx.Panel):
 
     def __init__(self, parent, background, bitmap, bordersize=0, size=wx.DefaultSize):
