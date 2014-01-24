@@ -539,10 +539,12 @@ class LeftDispersyPanel(HomePanel):
                 header.SetToolTipString(strtooltip)
                 self.textdict[strkey].SetToolTipString(strtooltip)
 
+        self.Freeze()
         for title, tooltip, _ in self.mapping:
             addColumn(title, tooltip)
-
         self.gridpanel.Layout()
+        self.Thaw()
+
         self.gridpanel.SetupScrolling()
         self.buildColumns = True
 
