@@ -306,10 +306,6 @@ class SearchCommunity(Community):
         def timeout_delay(self):
             return 30.0
 
-        @property
-        def cleanup_delay(self):
-            return 0.0
-
         def __init__(self, request_cache, keywords, callback):
             super(SearchCommunity.SearchRequest, self).__init__(request_cache)
             self.keywords = keywords

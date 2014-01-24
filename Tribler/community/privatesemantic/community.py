@@ -443,10 +443,6 @@ class ForwardCommunity():
         def timeout_delay(self):
             return 10.5
 
-        @property
-        def cleanup_delay(self):
-            return 0.0
-
         def on_timeout(self):
             self.community.send_introduction_request(self.requested_candidate)
 

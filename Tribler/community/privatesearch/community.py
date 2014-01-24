@@ -220,10 +220,6 @@ class TTLSearchCommunity(Community):
             return self._timeout_delay
 
         @property
-        def cleanup_delay(self):
-            return 0.0
-
-        @property
         def number(self):
             return self._number
 
