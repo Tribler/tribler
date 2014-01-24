@@ -1494,28 +1494,6 @@ class FancyPanel(wx.Panel):
         self.bitmap = buffer
 
 
-class DottedBetterText(BetterText):
-
-    def __init__(self, parent, id, label, *args, **kwargs):
-        wx.StaticText.__init__(self, parent, id, label, *args, **kwargs)
-        if label:
-            self.SetLabel(label)
-
-    def SetLabel(self, text):
-        if text:
-            text = self.DetermineText(text, self.GetSize()[0])
-        wx.StaticText.SetLabel(self, text)
-
-    def DetermineText(self, text, maxWidth):
-        for i in xrange(len(text), 0, -1):
-            newText = text[0:i]
-            if i != len(text):
-                newText += ".."
-            width, _ = self.GetTextExtent(newText)
-            if width <= maxWidth:
-                return newText
-
-
 class MinMaxSlider(wx.Panel):
 
     def __init__(self, *args, **kwargs):
