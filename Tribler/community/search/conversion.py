@@ -2,6 +2,7 @@
 from struct import pack, unpack_from
 from random import choice, sample
 from math import ceil
+import logging
 
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket
@@ -15,6 +16,8 @@ from Tribler.community.search.payload import TasteIntroPayload
 class SearchConversion(BinaryConversion):
 
     def __init__(self, community):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         super(SearchConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"search-request"), lambda message: self._encode_decode(self._encode_search_request, self._decode_search_request, message), self._decode_search_request)
         self.define_meta_message(chr(2), community.get_meta_message(u"search-response"), lambda message: self._encode_decode(self._encode_search_response, self._decode_search_response, message), self._decode_search_response)
@@ -253,11 +256,11 @@ class SearchConversion(BinaryConversion):
         import sys
         for torrent in message.payload.torrents:
             if torrent[2] > 2 ** 16 or torrent[2] < 0:
-                print >> sys.stderr, "seeder value is incorrect", torrent[2]
+                self._logger.info("seeder value is incorrect %s", torrent[2])
             if torrent[3] > 2 ** 16 or torrent[3] < 0:
-                print >> sys.stderr, "leecher value is incorrect", torrent[3]
+                self._logger.info("leecher value is incorrect %s", torrent[3])
             if torrent[4] > 2 ** 16 or torrent[4] < 0:
-                print >> sys.stderr, "since value is incorrect", torrent[4]
+                self._logger.info("since value is incorrect %s", torrent[4])
 
         hashpack = '20s20sHHH' * len(message.payload.torrents)
         torrents = [item for sublist in message.payload.torrents for item in sublist]

@@ -7,6 +7,7 @@
 
 import time
 import sys
+import logging
 
 import httplib
 
@@ -17,7 +18,8 @@ import Status
 from Tribler.Core.Utilities.timeouturlopen import find_proxy
 
 STRESSTEST = False
-DEBUG = False
+
+logger = logging.getLogger(__name__)
 
 
 class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
@@ -46,6 +48,8 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         useful for debugging)
 
         """
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         Status.PeriodicStatusReporter.__init__(self,
                                                name,
                                                frequency,
@@ -96,7 +100,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
             report.appendChild(self.new_element(doc, "timestamp",
                                                long(round(time.time()))))
             for element in elements:
-                print element.__class__
+                self._logger.info(repr(element.__class__))
                 report.appendChild(self.new_element(doc,
                                                    element.get_name(),
                                                    element.get_value()))
@@ -126,7 +130,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
         if self.print_post:
-            print >> sys.stderr, xml_printer.to_pretty_xml()
+            self._logger.info(repr(xml_printer.to_pretty_xml()))
         xml_str = xml_printer.to_xml()
 
         # Now we send this to the service using a HTTP POST
@@ -183,9 +187,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         h.send(body)
 
         resp = h.getresponse()
-        if DEBUG:
-            # print >>sys.stderr, "LivingLabReporter:\n", xml_str
-            print >>sys.stderr, "LivingLabReporter:", repr(resp.status), repr(resp.reason), "\n", resp.getheaders(), "\n", resp.read().replace("\\n", "\n")
+        self._logger.debug("LivingLabReporter: %s %s\n %s\n %s", resp.status, resp.reason, resp.getheaders(), resp.read().replace("\\n", "\n"))
 
         if resp.status != 200:
             if self.error_handler:
@@ -194,8 +196,8 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
                 except Exception as e:
                     pass
             else:
-                print >> sys.stderr, "Error posting but no error handler:", resp.status
-                print >> sys.stderr, resp.read()
+                self._logger.info("Error posting but no error handler: %s", resp.status)
+                self._logger.info(repr(resp.read()))
 
 
 if __name__ == "__main__":
@@ -209,7 +211,7 @@ if __name__ == "__main__":
         """
         Test error-handler
         """
-        print "Error:", code, message
+        logger.info("Error: %s %s", code, message)
 
     reporter = LivingLabPeriodicReporter("Living lab test reporter",
                                          1.0, test_error_handler)
@@ -219,7 +221,7 @@ if __name__ == "__main__":
 
     time.sleep(2)
 
-    print "Stopping reporter"
+    logger.info("Stopping reporter")
     reporter.stop()
 
-    print "Sent %d reports" % reporter.num_reports
+    logger.info("Sent %d reports", reporter.num_reports)

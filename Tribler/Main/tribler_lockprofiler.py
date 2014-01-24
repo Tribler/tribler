@@ -1,4 +1,5 @@
 import sys
+import logging
 
 from threading import current_thread, local, setprofile
 from time import sleep, time
@@ -7,6 +8,7 @@ from Tribler.Main.tribler import run
 stats = {}
 threadlocal = local()
 
+logger = logging.getLogger(__name__)
 
 def lock_profile(frame, event, arg):
     global stats, threadlocal
@@ -54,19 +56,19 @@ def lock_profile(frame, event, arg):
             if doCheck:
                 took = stats[lockobj][name][index] - stats[lockobj][name][index - 1]
                 if took > 2:
-                    print >> sys.stderr, "%s waited more than %.2f to %s lock %s:%d" % (name, took, callname, filename, lineno)
+                    logger.info("%s waited more than %.2f to %s lock %s:%d", name, took, callname, filename, lineno)
                     if hasattr(threadlocal, "lines"):
                         for line in threadlocal.lines:
-                            print >> sys.stderr, "\t", line
+                            logger.info("\t%s", line)
 
             if index == 0:
                 for otherthread in stats[lockobj]:
                     if otherthread != name:
                         if stats[lockobj][otherthread][6]:
-                            print >> sys.stderr, "%s waiting for lock acquired by %s" % (name, otherthread)
+                            logger.info("%s waiting for lock acquired by %s", name, otherthread)
                             if False and hasattr(threadlocal, "lines"):
                                 for line in threadlocal.lines:
-                                    print >> sys.stderr, "\t", line
+                                    logger.info("\t%s", line)
 
 if __name__ == '__main__':
     sys.setprofile(lock_profile)

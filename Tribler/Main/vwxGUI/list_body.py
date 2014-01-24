@@ -3,6 +3,7 @@ import wx
 import wx.lib.scrolledpanel as scrolled
 
 import sys
+import logging
 from threading import currentThread
 from traceback import print_stack, print_exc
 from time import time
@@ -16,14 +17,14 @@ from __init__ import *
 from wx._core import PyDeadObjectError
 from _abcoll import Iterable
 
-DEBUG = False
-
 
 class ListItem(wx.Panel):
 
     @warnWxThread
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED, list_selected_and_expanded=LIST_DARKBLUE):
         wx.Panel.__init__(self, parent)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.parent_list = parent_list
         from Tribler.Main.vwxGUI.list_item import ColumnsManager
@@ -217,8 +218,7 @@ class ListItem(wx.Panel):
 
     @warnWxThread
     def RefreshData(self, data):
-        if DEBUG:
-            print >> sys.stderr, "LISTITEM: refreshdata"
+        self._logger.debug("LISTITEM: refreshdata")
 
         if isinstance(data[2], dict):  # update original_data
             for key in data[2].keys():
@@ -515,6 +515,8 @@ class AbstractListBody():
 
     @warnWxThread
     def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.columns = columns
         self.leftSpacer = leftSpacer
         self.rightSpacer = rightSpacer
@@ -735,8 +737,7 @@ class AbstractListBody():
 
     @warnWxThread
     def OnChange(self, scrollToTop=False):
-        if DEBUG:
-            print >> sys.stderr, "ListBody: OnChange"
+        self._logger.debug("ListBody: OnChange")
         self.Freeze()
 
         self.vSizer.Layout()
@@ -749,26 +750,22 @@ class AbstractListBody():
             if nritems > 0:
                 height = self.vSizer.GetSize()[1]
                 self.rate = height / nritems
-                if DEBUG:
-                    print >> sys.stderr, "ListBody: setting scrollrate to", self.rate
+                self._logger.debug("ListBody: setting scrollrate to %s", self.rate)
 
                 self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
             else:
-                if DEBUG:
-                    print >> sys.stderr, "ListBody: setting scrollrate to default"
+                self._logger.debug("ListBody: setting scrollrate to default")
 
                 self.SetupScrolling(scrollToTop=scrollToTop)
         else:
-            if DEBUG:
-                print >> sys.stderr, "ListBody: using scrollrate", self.rate
+            self._logger.debug("ListBody: using scrollrate %s", self.rate)
             self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
 
         self.Thaw()
 
     @warnWxThread
     def Reset(self):
-        if DEBUG:
-            print >> sys.stderr, "ListBody: Reset"
+        self._logger.debug("ListBody: Reset")
 
         self.Freeze()
 
@@ -837,8 +834,7 @@ class AbstractListBody():
 
     @warnWxThread
     def ShowMessage(self, message, header=None, altControl=None, clearitems=True):
-        if DEBUG:
-            print >> sys.stderr, "ListBody: ShowMessage", message, header
+        self._logger.debug("ListBody: ShowMessage %s %s", message, header)
 
         self.Freeze()
 
@@ -892,15 +888,13 @@ class AbstractListBody():
     @warnWxThread
     def RefreshData(self, key, data):
         if key in self.items:
-            if DEBUG:
-                print >> sys.stderr, "ListBody: refresh item", self.items[key]
+            self._logger.debug("ListBody: refresh item %s", self.items[key])
             self.items[key].RefreshData(data)
 
             # forward update to expandedPanel
             panel = self.items[key].GetExpandedPanel()
             if panel and getattr(panel, 'RefreshData', False):
-                if DEBUG:
-                    print >> sys.stderr, "ListBody: refresh item (Calling expandedPanel refreshdata)", self.items[key]
+                self._logger.debug("ListBody: refresh item (Calling expandedPanel refreshdata) %s", self.items[key])
 
                 panel.RefreshData(data)
 
@@ -915,11 +909,10 @@ class AbstractListBody():
         else:
             self.raw_data = data
 
-        if DEBUG:
-            nr_items = -1
-            if data:
-                nr_items = len(data)
-            print >> sys.stderr, "ListBody: new data", time(), nr_items
+        nr_items = -1
+        if data:
+            nr_items = len(data)
+        self._logger.debug("ListBody: new data %s %s", time(), nr_items)
 
         if highlight is None:
             highlight = not self.IsEmpty()
@@ -946,11 +939,10 @@ class AbstractListBody():
                     self.dataTimer.Restart(call_in)
 
     def __SetData(self, highlight=True):
-        if DEBUG:
-            print >> sys.stderr, "ListBody: __SetData", time()
+        self._logger.debug("ListBody: __SetData %s", time())
 
         if __debug__ and not wx.Thread_IsMain():
-            print >> sys.stderr, "ListBody: __SetData thread", currentThread().getName(), "is NOT MAIN THREAD"
+            self._logger.debug("ListBody: __SetData thread %s is NOT MAIN THREAD", currentThread().getName())
             print_stack()
 
         # apply quickfilter
@@ -1011,8 +1003,7 @@ class AbstractListBody():
             self.Bind(wx.EVT_IDLE, self.OnIdle)
 
     def OnIdle(self, event):
-        if DEBUG:
-            print >> sys.stderr, "ListBody: OnIdle"
+        self._logger.debug("ListBody: OnIdle")
         if not self.done:
             if self.data and len(self.data) > 0:
                 self.CreateItems()
@@ -1067,8 +1058,7 @@ class AbstractListBody():
         if not nr_items_to_add:
             nr_items_to_add = self.list_cur_max
 
-        if DEBUG:
-            print >> sys.stderr, "ListBody: Creating items", time()
+        self._logger.debug("ListBody: Creating items %s", time())
 
         initial_nr_items_to_add = nr_items_to_add
         done = True
@@ -1157,8 +1147,7 @@ class AbstractListBody():
                 wx.CallLater(1000, self.Revert, revertList)
 
         self.done = done
-        if DEBUG:
-            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()), "rows of", len(self.data), "took", time() - t1, "done:", self.done, time()
+        self._logger.debug("List created %s rows of %s took %s done: %s %s", len(self.vSizer.GetChildren()), len(self.data), time() - t1, self.done, time())
 
     def HasItem(self, key):
         return key in self.items
@@ -1247,7 +1236,7 @@ class AbstractListBody():
                     self.items[key].expanded = True
                     self.cur_expanded = self.items[key]
 
-                self.items[key].ShowSelected()
+            self.items[key].ShowSelected()
 
     @warnWxThread
     def SelectNextItem(self, next=True):

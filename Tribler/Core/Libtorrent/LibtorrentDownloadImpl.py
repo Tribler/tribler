@@ -1,18 +1,17 @@
-# Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
+    # Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
 
 import sys
-import copy
 import time
 import libtorrent as lt
 
 from binascii import hexlify
 from traceback import print_exc
+import logging
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
 from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
@@ -30,12 +29,12 @@ if sys.platform == "win32":
     except:
         pass
 
-DEBUG = False
-
 
 class VODFile(object):
 
     def __init__(self, f, d):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self._file = f
         self._download = d
 
@@ -49,8 +48,7 @@ class VODFile(object):
     def read(self, *args):
         oldpos = self._file.tell()
 
-        if DEBUG:
-            print >> sys.stderr, 'VODFile: get bytes', oldpos, '-', oldpos + args[0]
+        self._logger.debug('VODFile: get bytes %s - %s', oldpos, oldpos + args[0])
 
         while self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
             time.sleep(1)
@@ -60,8 +58,7 @@ class VODFile(object):
         if self._download.vod_seekpos == oldpos:
             self._download.vod_seekpos = newpos
 
-        if DEBUG:
-            print >> sys.stderr, 'VODFile: got bytes', oldpos, '-', newpos
+        self._logger.debug('VODFile: got bytes %s - %s', oldpos, newpos)
         # assert self.verify_pieces(result, oldpos, newpos)
 
         return result
@@ -70,17 +67,15 @@ class VODFile(object):
         self._file.seek(*args)
         newpos = self._file.tell()
 
-        if DEBUG:
-            print >> sys.stderr, 'VODFile: seek', newpos, args
+        self._logger.debug('VODFile: seek %s %s', newpos, args)
 
         if self._download.vod_seekpos == None or abs(newpos - self._download.vod_seekpos) < 1024 * 1024:
             self._download.vod_seekpos = newpos
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), 0, newpos)], 0)
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), newpos, -1)], 1)
 
-        if DEBUG:
-            print >> sys.stderr, 'VODFile: seek, get pieces', self._download.handle.piece_priorities()
-            print >> sys.stderr, 'VODFile: seek, got pieces', [int(piece) for piece in self._download.handle.status().pieces]
+        self._logger.debug('VODFile: seek, get pieces %s', self._download.handle.piece_priorities())
+        self._logger.debug('VODFile: seek, got pieces %s', [int(piece) for piece in self._download.handle.status().pieces])
 
     def verify_pieces(self, original_data, frompos, topos):
         allpiecesok = True
@@ -89,11 +84,11 @@ class VODFile(object):
 
         frompiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), frompos, 0)
         topiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), topos, 0)
-        print >> sys.stderr, "VODFile: Libtorrent says we read pieces", frompiece.piece, topiece.piece
+        self._logger.info("VODFile: Libtorrent says we read pieces %s %s", frompiece.piece, topiece.piece)
 
         if frompiece.start:
             if frompos - frompiece.start < 0:
-                print >> sys.stderr, "VODFile: Cannot verify ", frompos, "-", frompos + self.piecesize - frompiece.start
+                self._logger.info("VODFile: Cannot verify %s - %s", frompos, frompos + self.piecesize - frompiece.start)
 
                 # cannot read partial piece, skipping first X bytes
                 frompos += self.piecesize - frompiece.start
@@ -104,7 +99,7 @@ class VODFile(object):
                 frompiece = frompiece.piece
 
         if topiece.piece == self.endpiece.piece:
-            print >> sys.stderr, "VODFile: Cannot verify ", topos - topiece.start, "-", topos
+            self._logger.info("VODFile: Cannot verify %s - %s", topos - topiece.start, topos)
 
             # cannot read partial piece, truncating last X bytes
             topos -= topiece.start
@@ -145,9 +140,9 @@ class VODFile(object):
                 piecehash = sha(read_data[startindex:startindex + self.piecesize]).digest()
 
                 if piecehash == self.pieces[piece]:
-                    print >> sys.stderr, "VODFile: Correct piece read", piece
+                    self._logger.info("VODFile: Correct piece read %s", piece)
                 else:
-                    print >> sys.stderr, "VODFile: Incorrect piece read", piece, piecehash, self.pieces[piece]
+                    self._logger.info("VODFile: Incorrect piece read %s %s %s", piece, piecehash, self.pieces[piece])
                     allpiecesok = False
                 startindex += self.piecesize
 
@@ -157,14 +152,17 @@ class VODFile(object):
         self._file.close(*args)
 
 
-class LibtorrentDownloadImpl(DownloadRuntimeConfig):
+class LibtorrentDownloadImpl(DownloadConfigInterface):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.dllock = NoDispersyRLock()
         self.session = session
         self.tdef = tdef
         self.handle = None
+        self.vod_file = None
 
         self.notifier = Notifier.getInstance()
 
@@ -223,7 +221,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     cdcfg = DownloadStartupConfig()
                 else:
                     cdcfg = dcfg
-                self.dlconfig = copy.copy(cdcfg.dlconfig)
+                self.dlconfig = cdcfg.dlconfig.copy()
+                self.dlconfig.lock = self.dllock
+                self.dlconfig.set_callback(self.dlconfig_changed_callback)
 
                 # Things that only exist at runtime
                 self.dlruntimeconfig = {}
@@ -233,8 +233,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if not isinstance(self.tdef, TorrentDefNoMetainfo):
                     self.set_files()
 
-                if DEBUG:
-                    print >> sys.stderr, "LibtorrentDownloadImpl: setup: initialdlstatus", self.tdef.get_infohash(), initialdlstatus
+                self._logger.debug("LibtorrentDownloadImpl: setup: initialdlstatus %s %s", self.tdef.get_infohash(), initialdlstatus)
 
                 self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=initialdlstatus, wrapperDelay=wrapperDelay)
 
@@ -249,8 +248,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         with self.dllock:
             if not self.cew_scheduled:
                 self.ltmgr = self.session.lm.ltmgr
-                if not self.ltmgr or (not self.tdef.has_trackers() and not self.ltmgr.is_dht_ready()):
-                    print >> sys.stderr, "LibtorrentDownloadImpl: LTMGR or DHT not ready, rescheduling create_engine_wrapper"
+                if not self.ltmgr or (isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready()):
+                    self._logger.info("LibtorrentDownloadImpl: LTMGR or DHT not ready, rescheduling create_engine_wrapper")
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=initialdlstatus)
                     self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
                     self.dlstate = DLSTATUS_METADATA
@@ -261,17 +260,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None):
         # Called by any thread, assume dllock already acquired
-        if DEBUG:
-            print >> sys.stderr, "LibtorrentDownloadImpl: create_engine_wrapper()"
+        self._logger.debug("LibtorrentDownloadImpl: create_engine_wrapper()")
 
         atp = {}
-        atp["save_path"] = str(self.dlconfig['saveas'])
+        atp["save_path"] = str(self.get_dest_dir())
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = True
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
 
-        resume_data = pstate.get('engineresumedata', None) if pstate else None
+        resume_data = pstate.get('state', 'engineresumedata') if pstate else None
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             metainfo = self.tdef.get_metainfo()
             torrentinfo = lt.torrent_info(metainfo)
@@ -279,7 +277,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             torrent_files = torrentinfo.files()
             is_multifile = len(self.tdef.get_files_as_unicode()) > 1
             commonprefix = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
-            swarmname = os.path.split(commonprefix)[0] or os.path.split(commonprefix)[1]
+            swarmname = commonprefix.partition(os.path.sep)[0]
 
             if is_multifile and swarmname != self.correctedinfoname:
                 for i, file_entry in enumerate(torrent_files):
@@ -291,8 +289,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             atp["ti"] = torrentinfo
             if resume_data:
                 atp["resume_data"] = lt.bencode(resume_data)
-            print >> sys.stderr, self.tdef.get_name_as_unicode(), \
-                                 dict((k, v) for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if resume_data else None
+            self._logger.info("%s %s", self.tdef.get_name_as_unicode(), dict((k, v) for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if resume_data else None)
         else:
             if self.tdef.get_url():
                 # We prefer to use an url, since it may contain trackers
@@ -319,7 +316,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.handle.resolve_countries(True)
 
         else:
-            print >> sys.stderr, "Could not add torrent to LibtorrentManager", self.tdef.get_name_as_unicode()
+            self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
 
         with self.dllock:
             self.cew_scheduled = False
@@ -328,8 +325,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             lm_network_engine_wrapper_created_callback(self, pstate)
 
     def set_vod_mode(self, enable=True):
-        if DEBUG:
-            print >> sys.stderr, "LibtorrentDownloadImpl: set_vod_mode for", self.handle.name(), '( enable =', enable, ')'
+        self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.handle.name(), enable)
 
         if enable:
             self.vod_status = ""
@@ -339,9 +335,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.videoinfo = {'live': self.get_def().get_live()}
 
             if self.tdef.is_multifile_torrent():
-                if len(self.dlconfig['selected_files']) == 0:
+                if len(self.get_selected_files()) == 0:
                     raise VODNoFileSelectedInMultifileTorrentException()
-                filename = self.dlconfig['selected_files'][0]
+                filename = self.get_selected_files()[0]
                 self.videoinfo['index'] = self.get_def().get_index_of_file_in_files(filename)
                 self.videoinfo['inpath'] = filename
                 self.videoinfo['bitrate'] = self.get_def().get_bitrate(filename)
@@ -354,8 +350,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
             self.videoinfo['outpath'] = self.files[self.videoinfo['index']]
             self.videoinfo['mimetype'] = self.get_mimetype(filename)
-            self.videoinfo['usercallback'] = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
-            self.videoinfo['userevents'] = self.dlconfig['vod_userevents'][:]
+            self.videoinfo['usercallback'] = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.get_video_event_callback(), event, params)
             # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
             self.videoinfo['status'] = None
 
@@ -370,18 +365,21 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
             self.progress = self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)])
             if self.progress == 1.0:
-                if DEBUG:
-                    print >> sys.stderr, "LibtorrentDownloadImpl: VOD requested, but file complete on disk", self.videoinfo
+                self._logger.debug("LibtorrentDownloadImpl: VOD requested, but file complete on disk %s", self.videoinfo)
                 self.start_vod(complete=True)
             else:
-                if DEBUG:
-                    print >> sys.stderr, "LibtorrentDownloadImpl: going into VOD mode", self.videoinfo
+                self._logger.debug("LibtorrentDownloadImpl: going into VOD mode %s", self.videoinfo)
                 self.set_state_callback(self.monitor_vod, delay=1.0)
         else:
             self.handle.set_sequential_download(False)
             self.handle.set_priority(0)
             if self.get_vod_fileindex() >= 0:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+
+            if self.vod_file:
+                with self.dllock:
+                    self.vod_file.close()
+                    self.vod_file = None
 
     def monitor_vod(self, ds):
         if not self.handle or self.handle.is_paused() or self.get_mode() != DLMODE_VOD:
@@ -393,8 +391,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
-        if DEBUG:
-            print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
+        self._logger.debug('LibtorrentDownloadImpl: bufferprogress = %.2f', bufferprogress)
 
         if bufferprogress >= 1:
             if not self.vod_status:
@@ -469,7 +466,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
                         pieces += range(startpiece, endpiece)
                     else:
-                        print >> sys.stderr, "LibtorrentDownloadImpl: could not get progress for incorrect fileindex"
+                        self._logger.info("LibtorrentDownloadImpl: could not get progress for incorrect fileindex")
 
                 pieces = list(set(pieces))
                 return self.get_piece_progress(pieces, consecutive)
@@ -482,7 +479,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     if piece < len(piecepriorities):
                         piecepriorities[piece] = priority
                     else:
-                        print >> sys.stderr, "LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d" % (piece, len(piecepriorities))
+                        self._logger.info("LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d", piece, len(piecepriorities))
                 self.handle.prioritize_pieces(piecepriorities)
 
     def set_byte_priority(self, byteranges, priority):
@@ -509,7 +506,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
                             pieces += range(startpiece, endpiece)
                     else:
-                        print >> sys.stderr, "LibtorrentDownloadImpl: could not set priority for incorrect fileindex"
+                        self._logger.info("LibtorrentDownloadImpl: could not set priority for incorrect fileindex")
 
                 if pieces:
                     pieces = list(set(pieces))
@@ -518,39 +515,37 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def start_vod(self, complete=False):
         if not self.vod_status:
             self.vod_status = "started"
+            self.vod_file = None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self)
             self.lm_network_vod_event_callback(self.videoinfo, VODEVENT_START,
                                               {"complete": complete,
                                                "filename": self.videoinfo["outpath"][0] if complete else None,
                                                "mimetype": self.videoinfo["mimetype"],
-                                               "stream": None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self),
+                                               "stream": self.vod_file,
                                                "length": self.videoinfo['outpath'][1],
                                                "bitrate": self.videoinfo["bitrate"]})
 
-            if DEBUG:
-                print >> sys.stderr, "LibtorrentDownloadImpl: VOD started", self.videoinfo['outpath'][0]
+            self._logger.debug("LibtorrentDownloadImpl: VOD started %s", self.videoinfo['outpath'][0])
 
     def resume_vod(self):
         if self.vod_status == "paused":
             self.vod_status = "resumed"
             self.videoinfo["usercallback"](VODEVENT_RESUME, {})
 
-            if DEBUG:
-                print >> sys.stderr, "LibtorrentDownloadImpl: VOD resumed"
+            self._logger.debug("LibtorrentDownloadImpl: VOD resumed")
 
     def pause_vod(self):
         if self.vod_status != "paused":
             self.vod_status = "paused"
             self.videoinfo["usercallback"](VODEVENT_PAUSE, {})
 
-            if DEBUG:
-                print >> sys.stderr, "LibtorrentDownloadImpl: VOD paused"
+            self._logger.debug("LibtorrentDownloadImpl: VOD paused")
 
     def get_vod_info(self):
         return self.videoinfo
 
     def process_alert(self, alert, alert_type):
-        if DEBUG or alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
-            print >> sys.stderr, "LibtorrentDownloadImpl: alert %s with message %s" % (alert_type, alert)
+        if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
+            self._logger.debug("LibtorrentDownloadImpl: alert %s with message %s", alert_type, alert)
 
         if self.handle and self.handle.is_valid():
 
@@ -605,14 +600,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"):
             settings = self.ltmgr.ltsession.settings()
             if settings.send_buffer_watermark <= 26214400:
-                print >> sys.stderr, "LibtorrentDownloadImpl: setting send_buffer_watermark to", 2 * settings.send_buffer_watermark
+                self._logger.info("LibtorrentDownloadImpl: setting send_buffer_watermark to %s", 2 * settings.send_buffer_watermark)
                 settings.send_buffer_watermark = 2 * settings.send_buffer_watermark
                 self.ltmgr.ltsession.set_settings(settings)
         # When the write cache is too small, double the buffer size to a maximum of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif alert.message().endswith("max outstanding disk writes reached"):
             settings = self.ltmgr.ltsession.settings()
             if settings.max_queued_disk_bytes <= 33554432:
-                print >> sys.stderr, "LibtorrentDownloadImpl: setting max_queued_disk_bytes to", 2 * settings.max_queued_disk_bytes
+                self._logger.info("LibtorrentDownloadImpl: setting max_queued_disk_bytes to %s", 2 * settings.max_queued_disk_bytes)
                 settings.max_queued_disk_bytes = 2 * settings.max_queued_disk_bytes
                 self.ltmgr.ltsession.set_settings(settings)
 
@@ -661,8 +656,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.set_filepieceranges(metainfo)
 
         # Allow correctinfoname to be overwritten for multifile torrents only
-        if 'files' in metainfo['info'] and self.dlconfig['correctedfilename'] and self.dlconfig['correctedfilename'] != '':
-            self.correctedinfoname = self.dlconfig['correctedfilename']
+        if 'files' in metainfo['info'] and self.get_corrected_filename() and self.get_corrected_filename() != '':
+            self.correctedinfoname = self.get_corrected_filename()
 
         self.files = []
         if 'files' in metainfo['info']:
@@ -683,13 +678,13 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
 
                 if selected_files is None:
-                    selected_files = self.dlconfig['selected_files']
+                    selected_files = self.get_selected_files()
                 else:
-                    self.dlconfig['selected_files'] = selected_files
+                    DownloadConfigInterface.set_selected_files(self, selected_files)
 
                 is_multifile = len(self.tdef.get_files_as_unicode()) > 1
                 commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
-                swarmname = os.path.split(commonprefix)[0] or os.path.split(commonprefix)[1]
+                swarmname = commonprefix.partition(os.path.sep)[0]
                 unwanteddir = os.path.join(swarmname, '.unwanted')
                 unwanteddir_abs = os.path.join(self.handle.save_path(), unwanteddir)
 
@@ -721,7 +716,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         with self.dllock:
             if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
                 self.handle.move_storage(new_dir)
-                self.dlconfig['saveas'] = new_dir
+                self.set_dest_dir(new_dir)
                 return True
         return False
 
@@ -800,8 +795,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
         logmsgs = []
 
-        if DEBUG:
-            print >> sys.stderr, "Torrent", self.handle.name(), "PROGRESS", self.progress, "QUEUEPOS", self.queue_position, "DLSTATE", self.dlstate, "SEEDTIME", self.finished_time
+        self._logger.debug("Torrent %s PROGRESS %s QUEUEPOS %s DLSTATE %s SEEDTIME %s", self.handle.name(), self.progress, self.queue_position, self.dlstate, self.finished_time)
 
         return (self.dlstate, stats, seeding_stats, logmsgs)
 
@@ -901,8 +895,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         """ Called by network thread """
         with self.dllock:
             if self.handle is None:
-                if DEBUG:
-                    print >> sys.stderr, "LibtorrentDownloadImpl: network_get_state: Download not running"
+                self._logger.debug("LibtorrentDownloadImpl: network_get_state: Download not running")
                 ds = DownloadState(self, DLSTATUS_WAITING4HASHCHECK, self.error, self.progressbeforestop)
             else:
                 (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
@@ -937,20 +930,18 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def network_stop(self, removestate, removecontent):
         """ Called by network thread, but safe for any """
         with self.dllock:
-            if DEBUG:
-                print >> sys.stderr, "LibtorrentDownloadImpl: network_stop", self.tdef.get_name()
+            self._logger.debug("LibtorrentDownloadImpl: network_stop %s", self.tdef.get_name())
 
             pstate = self.network_get_persistent_state()
             if self.handle is not None:
-                if DEBUG:
-                    print >> sys.stderr, "LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle"
+                self._logger.debug("LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle")
                 if removestate:
                     self.ltmgr.remove_torrent(self, removecontent)
                     self.handle = None
                 else:
                     self.set_vod_mode(False)
                     self.handle.pause()
-                    pstate['engineresumedata'] = self.handle.write_resume_data() if isinstance(self.tdef, TorrentDef) else None
+                    pstate.set('state', 'engineresumedata', self.handle.write_resume_data() if isinstance(self.tdef, TorrentDef) else None)
                 self.pstate_for_restart = pstate
             else:
                 # This method is also called at Session shutdown, where one may
@@ -959,16 +950,15 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 # and that should be written into the checkpoint.
                 #
                 if self.pstate_for_restart is not None:
-                    if DEBUG:
-                        print >> sys.stderr, "LibtorrentDownloadImpl: network_stop: Reusing previously saved engineresume data for checkpoint"
+                    self._logger.debug("LibtorrentDownloadImpl: network_stop: Reusing previously saved engineresume data for checkpoint")
                     # Don't copy full pstate_for_restart, as the torrent
                     # may have gone from e.g. HASHCHECK at startup to STOPPED
                     # now, at shutdown. In other words, it was never active
                     # in this session and the pstate_for_restart still says
                     # HASHCHECK.
-                    pstate['engineresumedata'] = self.pstate_for_restart['engineresumedata']
-                elif DEBUG:
-                    print >> sys.stderr, "LibtorrentDownloadImpl: network_stop: Could not reuse engineresumedata as pstart_for_restart is None"
+                    pstate.set('state', 'engineresumedata', self.pstate_for_restart.get('state', 'engineresumedata'))
+                else:
+                    self._logger.debug("LibtorrentDownloadImpl: network_stop: Could not reuse engineresumedata as pstart_for_restart is None")
 
             # Offload the removal of the dlcheckpoint to another thread
             if removestate:
@@ -982,19 +972,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def set_filepieceranges(self, metainfo):
         """ Determine which file maps to which piece ranges for progress info """
-        if DEBUG:
-            print >> sys.stderr, "LibtorrentDownloadImpl: set_filepieceranges:", self.dlconfig['selected_files']
+        self._logger.debug("LibtorrentDownloadImpl: set_filepieceranges: %s", self.get_selected_files())
 
         self.filepieceranges = maketorrent.get_length_filepieceranges_from_metainfo(metainfo, [])[1]
-
-        # dlconfig['priority'] will propagate the selected files to Storage
-        # self.dlconfig["priority"] = maketorrent.get_length_priority_from_metainfo(metainfo, self.dlconfig['selected_files'])[1]
 
     def restart(self, initialdlstatus=None):
         """ Restart the Download """
         # Called by any thread
-        if DEBUG:
-            print >> sys.stderr, "LibtorrentDownloadImpl: restart:", self.tdef.get_name()
+        self._logger.debug("LibtorrentDownloadImpl: restart: %s", self.tdef.get_name())
 
         with self.dllock:
             if self.handle is None:
@@ -1005,8 +990,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 self.set_vod_mode(self.get_mode() == DLMODE_VOD)
 
     def set_max_desired_speed(self, direct, speed):
-        if DEBUG:
-            print >> sys.stderr, "LibtorrentDownloadImpl: set_max_desired_speed", direct, speed
+        self._logger.debug("LibtorrentDownloadImpl: set_max_desired_speed %s %s", direct, speed)
 
         with self.dllock:
             if direct == UPLOAD:
@@ -1047,8 +1031,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                         f2dlist.append(f2dtuple)
                 else:
                     # multi-file torrent
-                    if len(self.dlconfig['selected_files']) > 0:
-                        fnlist = self.dlconfig['selected_files']
+                    if len(self.get_selected_files()) > 0:
+                        fnlist = self.get_selected_files()
                     else:
                         fnlist = self.tdef.get_files(exts=exts)
 
@@ -1075,37 +1059,37 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             resdata = None
             if self.handle == None:
                 if self.pstate_for_restart is not None:
-                    resdata = self.pstate_for_restart['engineresumedata']
+                    resdata = self.pstate_for_restart.get('state', 'engineresumedata')
             elif isinstance(self.tdef, TorrentDef):
                 resdata = self.handle.write_resume_data()
-            pstate['engineresumedata'] = resdata
+            pstate.set('state', 'engineresumedata', resdata)
             return (self.tdef.get_infohash(), pstate)
 
     def network_get_persistent_state(self):
         # Assume sessionlock is held
-        pstate = {}
-        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
-        if isinstance(self.tdef, TorrentDefNoMetainfo):
-            pstate['metainfo'] = {'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode()}
-        else:
-            pstate['metainfo'] = self.tdef.get_metainfo()
 
-        dlconfig = copy.copy(self.dlconfig)
+        pstate = self.dlconfig.copy()
+
         # Reset unpicklable params
-        dlconfig['vod_usercallback'] = None
-        dlconfig['mode'] = DLMODE_NORMAL
-        pstate['dlconfig'] = dlconfig
+        pstate.set('downloadconfig', 'vod_usercallback', None)
+        pstate.set('downloadconfig', 'mode', DLMODE_NORMAL)
 
-        pstate['dlstate'] = {}
+        # Add state stuff
+        if not pstate.has_section('state'):
+            pstate.add_section('state')
+        pstate.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
+        if isinstance(self.tdef, TorrentDefNoMetainfo):
+            pstate.set('state', 'metainfo', {'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode()})
+        else:
+            pstate.set('state', 'metainfo', self.tdef.get_metainfo())
+
         ds = self.network_get_state(None, False, sessioncalling=True)
-        pstate['dlstate']['status'] = ds.get_status()
-        pstate['dlstate']['progress'] = ds.get_progress()
-        pstate['dlstate']['swarmcache'] = None
+        dlstate = {'status': ds.get_status(), 'progress': ds.get_progress(), 'swarmcache': None}
+        pstate.set('state', 'dlstate', dlstate)
 
-        if DEBUG:
-            print >> sys.stderr, "LibtorrentDownloadImpl: network_get_persistent_state: status", dlstatus_strings[ds.get_status()], "progress", ds.get_progress()
+        self._logger.debug("LibtorrentDownloadImpl: network_get_persistent_state: status %s progress %s", dlstatus_strings[ds.get_status()], ds.get_progress())
 
-        pstate['engineresumedata'] = None
+        pstate.set('state', 'engineresumedata', None)
         return pstate
 
     def get_coopdl_role_object(self, role):
@@ -1149,11 +1133,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 from Tribler.Video.utils import win32_retrieve_video_play_command
 
                 [mimetype, playcmd] = win32_retrieve_video_play_command(ext, file)
-                if DEBUG:
-                    print >> sys.stderr, "LibtorrentDownloadImpl: Win32 reg said MIME type is", mimetype
+                self._logger.debug("LibtorrentDownloadImpl: Win32 reg said MIME type is %s", mimetype)
             except:
-                if DEBUG:
-                    print_exc()
+                print_exc()
                 pass
         else:
             try:
@@ -1166,8 +1148,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 mimetypes.init(mapfiles)
                 (mimetype, encoding) = mimetypes.guess_type(file)
 
-                if DEBUG:
-                    print >> sys.stderr, "LibtorrentDownloadImpl: /etc/mimetypes+ said MIME type is", mimetype, file
+                self._logger.debug("LibtorrentDownloadImpl: /etc/mimetypes+ said MIME type is %s %s", mimetype, file)
             except:
                 print_exc()
 
@@ -1189,6 +1170,20 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             else:
                 mimetype = 'video/mpeg'
         return mimetype
+
+    def dlconfig_changed_callback(self, section, name, new_value, old_value):
+        if self.handle:
+            if section == 'downloadconfig' and name == 'max_upload_rate':
+                self.handle.set_upload_limit(int(new_value * 1024))
+            elif section == 'downloadconfig' and name == 'max_download_rate':
+                self.handle.set_download_limit(int(new_value * 1024))
+            elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
+                return False
+
+        else:
+            network_dlconfig_changed_callback = lambda: self.dlconfig_changed_callback(section, name, new_value, old_value)
+            self.session.lm.rawserver.add_task(network_dlconfig_changed_callback, 1.0)
+        return True
 
 
 class LibtorrentStatisticsResponse:

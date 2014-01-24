@@ -7,6 +7,7 @@ import wx
 import os
 import sys
 import json
+import logging
 
 from wx import xrc
 
@@ -25,8 +26,6 @@ from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
 
-DEBUG = False
-
 
 class GUIUtility:
     __single = None
@@ -36,6 +35,8 @@ class GUIUtility:
             raise RuntimeError("GUIUtility is singleton")
         GUIUtility.__single = self
         self.registered = False
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         # do other init
         self.utility = utility
@@ -324,11 +325,8 @@ class GUIUtility:
         return result
 
     def SetColumnInfo(self, itemtype, columns, hide_defaults=[]):
-        config = self.utility.config
-
         # Load hidden column info
-        hide_columns = config.Read("hide_columns")
-        hide_columns = json.loads(hide_columns) if hide_columns else {}
+        hide_columns = self.ReadGuiSetting("hide_columns", default={})
         hide_columns = hide_columns.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
             if column['name'] in hide_columns:
@@ -337,8 +335,7 @@ class GUIUtility:
                 column['show'] = not (index in hide_defaults)
 
         # Load column width info
-        column_sizes = config.Read("column_sizes")
-        column_sizes = json.loads(column_sizes) if column_sizes else {}
+        column_sizes = self.ReadGuiSetting("column_sizes", default={})
         column_sizes = column_sizes.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
             if column['name'] in column_sizes:
@@ -347,8 +344,7 @@ class GUIUtility:
         return columns
 
     def ReadGuiSetting(self, setting_name, default=None, do_json=True):
-        config = self.utility.config
-        setting_value = config.Read(setting_name)
+        setting_value = self.utility.read_config(setting_name, literal_eval=False)
         if do_json and setting_value:
             setting_value = json.loads(setting_value)
         elif not setting_value:
@@ -356,9 +352,8 @@ class GUIUtility:
         return setting_value
 
     def WriteGuiSetting(self, setting_name, setting_value, do_json=True):
-        config = self.utility.config
-        config.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
-        config.Flush()
+        self.utility.write_config(setting_name, json.dumps(setting_value) if do_json else setting_value)
+        self.utility.flush_config()
 
     @forceWxThread
     def GoBack(self, scrollTo=None, topage=None):
@@ -424,8 +419,7 @@ class GUIUtility:
             else:
                 self.frame.top_bg.StartSearch()
                 self.current_search_query = keywords
-                if DEBUG:
-                    print >> sys.stderr, "GUIUtil: searchFiles:", keywords, time()
+                self._logger.debug("GUIUtil: searchFiles: %s %s", keywords, time())
 
                 self.frame.searchlist.Freeze()
 
@@ -558,6 +552,7 @@ class GUIUtility:
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
 
+    @forceWxThread
     def Notify(self, title, msg='', icon=wx.ART_INFORMATION):
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
@@ -589,10 +584,10 @@ class GUIUtility:
             self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
 
         if newState:
-            self.utility.config.Write('family_filter', '1')
+            self.utility.write_config('family_filter', 1)
         else:
-            self.utility.config.Write('family_filter', '0')
-        self.utility.config.Flush()
+            self.utility.write_config('family_filter', 0)
+        self.utility.flush_config()
 
     def getFamilyFilter(self):
         catobj = Category.getInstance()

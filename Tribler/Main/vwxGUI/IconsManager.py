@@ -4,12 +4,14 @@
 import wx
 import os
 import cStringIO
+import logging
 
 from Tribler.Core.API import *
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
 
+logger = logging.getLogger(__name__)
 
 class IconsManager:
 
@@ -19,6 +21,8 @@ class IconsManager:
 
         if IconsManager.__single:
             raise RuntimeError("IconsManager is singleton")
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -40,7 +44,17 @@ class IconsManager:
         if sys.platform != "darwin":
             flags_path = os.path.join(self.guiImagePath, 'flags')
             if os.path.isdir(flags_path):
-                self.country_flags = dict([(flag.split(".")[0].lower(), wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)) for flag in os.listdir(flags_path)])
+                # Size check for flag images.
+                for flag in os.listdir(flags_path):
+                    if not flag.endswith(u".png"):
+                        continue
+                    bitmap = wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)
+                    if bitmap.GetSize() is not (16, 11):
+                        self._logger.warn(u"Country flag[%s] is of size [%dx%d], NOT [%dx%d].",
+                            flag, bitmap.GetWidth(), bitmap.GetHeight(), 16, 11)
+                    self.country_flags[flag.split(".")[0].lower()] = bitmap
+            else:
+                self._logger.warn(u"Skip loading flags, flag path is not a DIR [%s].", flags_path)
 
         self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
         IconsManager.__single = self
@@ -88,7 +102,7 @@ def data2wxImage(type, data, dim=ICON_MAX_DIM):
         im.Rescale(dim, dim)
         return im
     except:
-        print >> sys.stderr, 'data2wxImage called (%s, %s)' % (repr(type), repr(dim))
+        logger.error('data2wxImage called (%s, %s)', repr(type), repr(dim))
         print_exc()
         return None
 
@@ -103,6 +117,6 @@ def data2wxBitmap(type, data, dim=ICON_MAX_DIM):
 
         return bm
     except:
-        print >> sys.stderr, 'data2wxBitmap called (%s, %s)' % (repr(type), repr(dim))
+        logger.error('data2wxBitmap called (%s, %s)', repr(type), repr(dim))
         print_exc()
         return None

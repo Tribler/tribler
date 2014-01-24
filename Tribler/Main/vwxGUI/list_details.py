@@ -2,6 +2,7 @@
 import os
 import re
 import binascii
+import logging
 
 from __init__ import *
 from Tribler.Core.osutils import startfile
@@ -21,8 +22,6 @@ from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
 from Tribler.Video.VideoPlayer import VideoPlayer
 import copy
-
-DEBUG = False
 
 
 class AbstractDetails(FancyPanel):
@@ -109,6 +108,8 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def __init__(self, parent):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         FancyPanel.__init__(self, parent)
         self.Hide()
 
@@ -513,7 +514,7 @@ class TorrentDetails(AbstractDetails):
                     try:
                         pos = self.filesList.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                     except:
-                        print >> sys.stderr, "Could not format filename", self.torrent.name
+                        self._logger.error("Could not format filename %s", self.torrent.name)
                 self.filesList.SetItemData(pos, pos)
 
                 size = "%.1f MB" % (size / 1048576.0)
@@ -870,7 +871,7 @@ class TorrentDetails(AbstractDetails):
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
             uls = ds.get_current_speed('up') * 1024
-            status = 'Seeding @ %s' % self.utility.speed_format_new(uls)
+            status = 'Seeding @ %s' % self.utility.speed_format(uls)
         elif finished:
             status = 'Completed'
         elif statusflag in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK]:
@@ -879,7 +880,7 @@ class TorrentDetails(AbstractDetails):
             status = 'Checking'
         elif statusflag == DLSTATUS_DOWNLOADING:
             dls = ds.get_current_speed('down') * 1024
-            status = 'Downloading @ %s' % self.utility.speed_format_new(dls)
+            status = 'Downloading @ %s' % self.utility.speed_format(dls)
         elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
 
@@ -939,8 +940,7 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def __del__(self):
-        if DEBUG:
-            print >> sys.stderr, "TorrentDetails: destroying", self.torrent['name']
+        self._logger.debug("TorrentDetails: destroying %s", self.torrent['name'])
         self.guiutility.library_manager.remove_download_state_callback(self.OnRefresh)
 
         if self.markWindow:
@@ -952,6 +952,8 @@ class LibraryDetails(TorrentDetails):
 
     @warnWxThread
     def __init__(self, parent):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.old_progress = -1
         self.refresh_counter = 0
         self.bw_history = []
@@ -1022,7 +1024,9 @@ class LibraryDetails(TorrentDetails):
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
-        self.peerList.SetToolTipString("States:\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\tOutgoing connection\nR\t\tIncoming connection")
+        tt_string = "States:" + (" "*75 if sys.platform == 'win32' else "")
+        tt_string += "\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\t\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\toutgoing connection\nR\t\tincoming connection"
+        self.peerList.SetToolTipString(tt_string)
         self.peersTab.il = wx.ImageList(16, 11)
         self.peerList.SetImageList(self.peersTab.il, wx.IMAGE_LIST_SMALL)
         self.peersSizer.Add(self.peerList, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
@@ -1094,7 +1098,7 @@ class LibraryDetails(TorrentDetails):
                     try:
                         pos = self.filesList.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                     except:
-                        print >> sys.stderr, "Could not format filename", self.torrent.name
+                        self._logger.error("Could not format filename %s", self.torrent.name)
                 self.filesList.SetItemData(pos, pos)
 
                 size = "%.1f MB" % (size / 1048576.0)
@@ -1155,8 +1159,8 @@ class LibraryDetails(TorrentDetails):
                     self.peerList.InsertStringItem(index, peer_name)
 
                 traffic = ""
-                traffic += self.guiutility.utility.speed_format_new(peer_dict.get('downrate', 0)) + u"\u2193 "
-                traffic += self.guiutility.utility.speed_format_new(peer_dict.get('uprate', 0)) + u"\u2191"
+                traffic += self.guiutility.utility.speed_format(peer_dict.get('downrate', 0)) + u"\u2193 "
+                traffic += self.guiutility.utility.speed_format(peer_dict.get('uprate', 0)) + u"\u2191"
                 self.peerList.SetStringItem(index, 1, traffic.strip())
 
                 state = ""
@@ -1191,7 +1195,7 @@ class LibraryDetails(TorrentDetails):
                         try:
                             self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8', 'ignore'))
                         except:
-                            print >> sys.stderr, "Could not format peer client version"
+                            self._logger.error("Could not format peer client version")
                 else:
                     self.peerList.SetStringItem(index, 3, '')
 
@@ -1788,10 +1792,10 @@ class ProgressPanel(wx.BoxSizer):
 
         if self.style == ProgressPanel.ETA_EXTENDED:
             if status == DLSTATUS_SEEDING:
-                upSpeed = " @ " + self.utility.speed_format_new(uls)
+                upSpeed = " @ " + self.utility.speed_format(uls)
                 eta += upSpeed
             elif status == DLSTATUS_DOWNLOADING:
-                dlSpeed = " @ " + self.utility.speed_format_new(dls)
+                dlSpeed = " @ " + self.utility.speed_format(dls)
                 eta += dlSpeed
 
         # Update eta
@@ -1848,19 +1852,21 @@ class StringProgressPanel(wx.BoxSizer):
             eta = ds.get_eta()
 
             if progress == 1.0:
-                self.text.SetLabel("Currently uploading to %d peers @ %s." % (peers, self.utility.speed_format_new(uls)))
+                self.text.SetLabel("Currently uploading to %d peers @ %s." % (peers, self.utility.speed_format(uls)))
             else:
                 remaining = size - (size * progress)
                 eta = self.utility.eta_value(eta, truncate=2)
                 if eta == '' or eta.find('unknown') != -1:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining." % (self.utility.speed_format_new(dls), format_size(remaining)))
+                    self.text.SetLabel("Currently downloading @ %s, %s still remaining." % (self.utility.speed_format(dls), format_size(remaining)))
                 else:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining. Expected to finish in %s." % (self.utility.speed_format_new(dls), format_size(remaining), eta))
+                    self.text.SetLabel("Currently downloading @ %s, %s still remaining. Expected to finish in %s." % (self.utility.speed_format(dls), format_size(remaining), eta))
 
 
 class MyChannelDetails(wx.Panel):
 
     def __init__(self, parent, torrent, channel_id):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.parent = parent
         self.torrent = torrent
         self.channel_id = channel_id
@@ -1895,7 +1901,7 @@ class MyChannelDetails(wx.Panel):
                 try:
                     pos = listCtrl.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                 except:
-                    print >> sys.stderr, "Could not format filename", torrent.name
+                    self._logger.error("Could not format filename %s", torrent.name)
             listCtrl.SetItemData(pos, pos)
             size = self.guiutility.utility.size_format(size)
             listCtrl.SetStringItem(pos, 1, size)
@@ -2260,7 +2266,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def SetNrFiles(self, nr):
         videoplayer_item = self.guiutility.frame.actlist.GetItem(5)
         num_items = getattr(videoplayer_item, 'num_items', None)
-        if num_items:
+        if num_items and self.guiutility.frame.videoparentpanel:
             num_items.SetValue(str(nr))
             num_items.Show(bool(nr))
             videoplayer_item.hSizer.Layout()

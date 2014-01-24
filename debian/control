@@ -15,6 +15,7 @@ Architecture: all
 Depends: libav-tools,
          libjs-mootools,
          python-apsw,
+         python-cherrypy3,
          python-feedparser,
          python-libtorrent,
          python-m2crypto,

@@ -834,3 +834,4 @@ class Das4DBStub():
         assert isinstance(infohash, str), type(infohash)
         if infohash in self.myMegaCache:
             del self.myMegaCache[infohash]
+

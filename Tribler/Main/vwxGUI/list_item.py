@@ -4,6 +4,7 @@ import sys
 import json
 import shutil
 import urllib
+import logging
 from datetime import timedelta
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -47,6 +48,8 @@ class DoubleLineListItem(ListItem):
     def __init__(self, *args, **kwargs):
         self.guiutility = GUIUtility.getInstance()
         ListItem.__init__(self, *args, **kwargs)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
@@ -153,13 +156,10 @@ class DoubleLineListItem(ListItem):
                             self.columns[column_index]['width'] += self.descrSizer.GetChildren()[index - 1].GetSize().x
                         break
 
-            config = self.guiutility.utility.config
-            column_sizes = config.Read("column_sizes")
-            column_sizes = json.loads(column_sizes) if column_sizes else {}
+            column_sizes = self.guiutility.ReadGuiSetting("column_sizes", default={})
             column_sizes[type(self).__name__] = column_sizes.get(type(self).__name__, {})
             column_sizes[type(self).__name__].update({self.columns[column_index]['name']: self.columns[column_index]['width']})
-            config.Write("column_sizes", json.dumps(column_sizes))
-            config.Flush()
+            self.guiutility.WriteGuiSetting("column_sizes", column_sizes)
 
             def rebuild():
                 if hasattr(self.parent_list.parent_list, 'oldDS'):
@@ -222,15 +222,10 @@ class DoubleLineListItem(ListItem):
     def OnShowColumn(self, event, index):
         self.columns[index]['show'] = not self.columns[index].get('show', True)
 
-        config = self.guiutility.utility.config
-
-        hide_columns = config.Read("hide_columns")
-        hide_columns = json.loads(hide_columns) if hide_columns else {}
+        hide_columns = self.guiutility.ReadGuiSetting("hide_columns", default={})
         hide_columns[type(self).__name__] = hide_columns.get(type(self).__name__, {})
         hide_columns[type(self).__name__].update({self.columns[index]['name']: self.columns[index]['show']})
-
-        config.Write("hide_columns", json.dumps(hide_columns))
-        config.Flush()
+        self.guiutility.WriteGuiSetting("hide_columns", hide_columns)
 
         if getattr(self.parent_list.parent_list, 'ResetBottomWindow', False):
             self.parent_list.parent_list.ResetBottomWindow()
@@ -608,7 +603,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             _, old_file = os.path.split(old)
             new = os.path.join(new_dir, old_file)
 
-        print >> sys.stderr, "Creating new downloadconfig"
+        self._logger.info("Creating new downloadconfig")
         if isinstance(download_state, MergedDs):
             dslist = download_state.dslist
         else:
@@ -626,14 +621,14 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         for ds in dslist:
             download = ds.get_download()
             if download.get_def().get_def_type() == 'torrent':
-                print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
+                self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
                 download.move_storage(new_dir)
                 if download.get_save_path() == new_dir:
                     storage_moved = True
 
         # If libtorrent hasn't moved the files yet, move them now
         if not storage_moved:
-            print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
+            self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
             movelambda = lambda: rename_or_merge(old, new)
             self.guiutility.utility.session.lm.rawserver.add_task(movelambda, 0.0)
 

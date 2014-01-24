@@ -13,8 +13,9 @@ except ImportError:
 
 from traceback import print_exc, print_stack
 import sys
+import logging
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 def decode_int(x, f):
@@ -103,8 +104,7 @@ def sloppy_bdecode(x):
         r, l = decode_func[x[0]](x, 0)
 #    except (IndexError, KeyError):
     except (IndexError, KeyError, ValueError):
-        if DEBUG:
-            print_exc()
+        #print_exc()
         raise ValueError("bad bencoded data")
     return r, l
 
@@ -297,14 +297,12 @@ def encode_dict(x, r):
     ilist = x.items()
     ilist.sort()
     for k, v in ilist:
-
-        if DEBUG:
-            print >>sys.stderr, "bencode: Encoding", repr(k), repr(v)
+        #logger.debug("bencode: Encoding %s %s", k, v)
 
         try:
             r.extend((str(len(k)), ':', k))
         except:
-            print >> sys.stderr, "k: %s" % k
+            logger.error("k: %s", k)
             raise
 
         encode_func[type(v)](v, r)
@@ -332,7 +330,7 @@ def bencode(x):
     try:
         encode_func[type(x)](x, r)
     except:
-        print >>sys.stderr, "bencode: *** error *** could not encode type %s (value: %s)" % (type(x), x)
+        logger.error("bencode: *** error *** could not encode type %s (value: %s)", type(x), x)
         print_stack()
 
         print_exc()
@@ -340,11 +338,10 @@ def bencode(x):
     try:
         return ''.join(r)
     except:
-        if DEBUG:
-            print >>sys.stderr, "bencode: join error", x
-            for elem in r:
-                print >>sys.stderr, "elem", elem, "has type", type(elem)
-            print_exc()
+        logger.debug("bencode: join error %s", x)
+        for elem in r:
+            logger.debug("elem %s has type %s", elem, type(elem))
+        print_exc()
         return ''
 
 

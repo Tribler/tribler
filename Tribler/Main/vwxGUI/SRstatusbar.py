@@ -9,8 +9,6 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
 from Tribler import LIBRARYNAME
 
-DEBUG = False
-
 
 class SRstatusbar(wx.StatusBar):
 
@@ -78,36 +76,37 @@ class SRstatusbar(wx.StatusBar):
         self.SetTransferSpeeds(total_down * 1024, total_up * 1024)
 
     def SetTransferSpeeds(self, down, up):
-        self.speed_down.SetLabel(self.utility.speed_format_new(down))
-        self.speed_up.SetLabel(self.utility.speed_format_new(up))
+        self.speed_down.SetLabel(self.utility.speed_format(down))
+        self.speed_up.SetLabel(self.utility.speed_format(up))
         self.Reposition()
 
     def SetGlobalMaxSpeed(self, direction, value):
         if direction in [UPLOAD, DOWNLOAD]:
             if direction == UPLOAD:
-                self.utility.setMaxUp(value)
+                self.utility.write_config('maxuploadrate', value)
             else:
-                self.utility.setMaxDown(value)
-            value = 0 if value == 'unlimited' else (-1 if int(value) == 0 else int(value))
+                self.utility.write_config('maxdownloadrate', value)
             self.guiutility.app.ratelimiter.set_global_max_speed(direction, value)
+
+    def GetSpeedChoices(self, value):
+        values = self.utility.round_range(max(0, value)) if value != 0 else range(0, 1000, 100)
+        values = [value or -1 for value in values]
+        if value != 0 and value not in values:
+            values.append(value)
+            values.sort()
+        values.append(0)
+        return [('unlimited' if value == 0 else ('0' if value == -1 else str(value)), value) for value in values]
 
     def OnDownloadPopup(self, event):
         menu = wx.Menu()
-        curr_valdown = self.utility.getMaxDown()
+        current = self.utility.read_config('maxdownloadrate')
+        value_tuples = self.GetSpeedChoices(current)
 
-        # values = ['75', '300', '600']
-        values = self.utility.round_range(int(curr_valdown)) if curr_valdown.isdigit() else range(0, 1000, 100)
-        values = map(str, values)
-        if curr_valdown.isdigit() and curr_valdown not in values:
-            values.append(curr_valdown)
-            values.sort(cmp=lambda x, y: cmp(int(x), int(y)))
-        values.append('unlimited')
-
-        for valdown in values:
+        for value_str, value in value_tuples:
             itemid = wx.NewId()
-            menu.AppendRadioItem(itemid, str(valdown))
-            menu.Bind(wx.EVT_MENU, lambda x, valdown=valdown: self.SetGlobalMaxSpeed(DOWNLOAD, valdown), id=itemid)
-            menu.Check(itemid, curr_valdown == str(valdown))
+            menu.AppendRadioItem(itemid, value_str)
+            menu.Bind(wx.EVT_MENU, lambda x, v=value: self.SetGlobalMaxSpeed(DOWNLOAD, v), id=itemid)
+            menu.Check(itemid, current == value)
 
         self.speed_down.PopupMenu(menu, event.GetPosition())
         menu.Destroy()
@@ -115,21 +114,14 @@ class SRstatusbar(wx.StatusBar):
 
     def OnUploadPopup(self, event):
         menu = wx.Menu()
-        curr_valup = self.utility.getMaxUp()
+        current = self.utility.read_config('maxuploadrate')
+        value_tuples = self.GetSpeedChoices(current)
 
-        # values = ['0', '50', '100']
-        values = self.utility.round_range(int(curr_valup)) if curr_valup.isdigit() else range(0, 1000, 100)
-        values = map(str, values)
-        if curr_valup.isdigit() and curr_valup not in values:
-            values.append(curr_valup)
-            values.sort(cmp=lambda x, y: cmp(int(x), int(y)))
-        values.append('unlimited')
-
-        for valup in values:
+        for value_str, value in value_tuples:
             itemid = wx.NewId()
-            menu.AppendRadioItem(itemid, str(valup))
-            menu.Bind(wx.EVT_MENU, lambda x, valup=valup: self.SetGlobalMaxSpeed(UPLOAD, valup), id=itemid)
-            menu.Check(itemid, curr_valup == str(valup))
+            menu.AppendRadioItem(itemid, value_str)
+            menu.Bind(wx.EVT_MENU, lambda x, v=value: self.SetGlobalMaxSpeed(UPLOAD, v), id=itemid)
+            menu.Check(itemid, current == value)
 
         self.speed_up.PopupMenu(menu, event.GetPosition())
         menu.Destroy()

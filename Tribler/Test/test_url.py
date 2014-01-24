@@ -96,7 +96,7 @@ class TestP2PURLs(AbstractServer):
         for url, problem in badurllist:
             try:
                 tdef = TorrentDef.load_from_url(url)
-                self.assert_(False, 'Should not have accepted URL: "%s", %s ' % (url, problem))
+                self.assert_(tdef == None, 'Should not have accepted URL: "%s", %s ' % (url, problem))
             except AssertionError, e:
                 raise e
             except:

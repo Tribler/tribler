@@ -3,7 +3,9 @@ import wx
 import sys
 import os
 import random
+import logging
 from time import strftime, time
+from collections import defaultdict
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
@@ -147,6 +149,9 @@ class Stats(XRCPanel):
 
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.createTimer = None
         self.isReady = False
 
@@ -294,7 +299,7 @@ class Stats(XRCPanel):
         torrentdb = TorrentDBHandler.getInstance()
         tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         for table, in tables:
-            print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table)
+            self._logger.info("%s %s", table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table))
 
     def Show(self, show=True):
         if show:
@@ -498,7 +503,6 @@ class LeftDispersyPanel(HomePanel):
 
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
-            ("Walker resets", '', lambda stats: str(stats.walk_reset)),
 
             ("Bloom new", 'Total number of bloomfilters created vs IntroductionRequest sent in this session', lambda stats: ratio(sum(c.sync_bloom_new for c in stats.communities), sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))),
             ("Bloom reuse", 'Total number of bloomfilters reused vs IntroductionRequest sent in this session', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))),
@@ -803,7 +807,8 @@ class RightDispersyPanel(FancyPanel):
             self.runtime_tree.DeleteAllItems()
             parentNode = self.runtime_tree.AddRoot('runtime stats')
 
-            runtime = []
+            runtime = {}
+            combined_runtime = defaultdict(list)
             if getattr(stats, 'runtime', None):
                 for stat_dict in stats.runtime:
                     stat_list = []
@@ -811,9 +816,24 @@ class RightDispersyPanel(FancyPanel):
                         if isinstance(v, basestring):
                             v = v.replace('\n', '\n          ')
                         stat_list.append('%-10s%s' % (k, v))
-                    runtime.append(("duration = %7.2f ; entry = %s" % (stat_dict['duration'], stat_dict['entry'].split('\n')[0]), tuple(stat_list)))
-                runtime.sort(reverse=True)
-            self.AddDataToTree(dict(runtime), parentNode, self.rawinfo_tree, prepend=False, sort_dict=True)
+                        
+                    name = stat_dict['entry'].split('\n')[0]
+                    label = "duration = %7.2f ; entry = %s" % (stat_dict['duration'], name)
+                    runtime[label] = tuple(stat_list)
+                    
+                    combined_name = name.split()[0]
+                    combined_runtime[combined_name].append((stat_dict['duration'], label))
+                
+                for key, runtimes in combined_runtime.iteritems():
+                    if len(runtimes) > 1:
+                        
+                        total_duration = 0
+                        subcalls = {}
+                        for duration, label in runtimes:
+                            total_duration += duration
+                            subcalls[label] = runtime.pop(label)
+                        runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = subcalls
+            self.AddDataToTree(runtime, parentNode, self.rawinfo_tree, prepend=False, sort_dict=True)
 
         self.Layout()
 
