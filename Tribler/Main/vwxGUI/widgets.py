@@ -4,15 +4,11 @@ import os
 import sys
 import math
 
-from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
-from wx.lib.scrolledpanel import ScrolledPanel
-from wx.lib.buttons import GenBitmapButton
+from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 
-from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from __init__ import LIST_GREY, LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, GRADIENT_LGREY, GRADIENT_DGREY, SEPARATOR_GREY, FILTER_GREY
-from wx.lib.stattext import GenStaticText
+from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY
 from wx.lib.stattext import GenStaticText
 from wx.lib.colourutils import AdjustColour
 from wx.lib.wordwrap import wordwrap
@@ -21,8 +17,6 @@ from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR, \
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from wx.lib.embeddedimage import PyEmbeddedImage
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-
-DEBUG = False
 
 class NativeIcon:
     __single = None
@@ -468,65 +462,6 @@ class LinkStaticText(wx.BoxSizer):
             self.text.SetFontColour(font, colours[0])
 
 
-class ProgressStaticText(wx.Panel):
-
-    def __init__(self, parent, text, progress):
-        wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
-        self.SetBackgroundColour(parent.GetBackgroundColour())
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.text = wx.StaticText(self, -1, text)
-        sizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        sizer.AddStretchSpacer()
-
-        self.gauge = VerticalGauge(self, progress, (7, -1))
-        sizer.Add(self.gauge)
-
-        self.SetSize((-1, self.text.GetBestSize()[1]))
-        self.SetSizer(sizer)
-
-    def SetProgress(self, progress):
-        self.gauge.SetProgress(progress)
-
-
-class VerticalGauge(wx.Panel):
-
-    def __init__(self, parent, progress, size=wx.DefaultSize):
-        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
-        self.SetBackgroundColour(parent.GetBackgroundColour())
-
-        self.progress = progress
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-    def SetProgress(self, progress):
-        self.progress = progress
-        self.Refresh()
-
-    def OnPaint(self, event):
-        dc = wx.BufferedPaintDC(self)
-
-        dc.SetBackground(wx.WHITE_BRUSH)
-        dc.Clear()
-
-        width, height = self.GetClientSize()
-
-        barHeight = self.progress * height
-
-        dc.SetPen(wx.TRANSPARENT_PEN)
-        dc.SetBrush(wx.Brush(LIST_LIGHTBLUE))
-        dc.DrawRectangle(0, height - barHeight, width, height)
-
-        dc.SetPen(wx.BLACK_PEN)
-        dc.SetBrush(wx.TRANSPARENT_BRUSH)
-        dc.DrawRectangle(0, 0, width, height)
-
-    def OnEraseBackground(self, event):
-        pass
-
-
 class HorizontalGauge(wx.Control):
 
     def __init__(self, parent, background, bitmap, repeat=1, bordersize=0, size=wx.DefaultSize):
@@ -614,44 +549,6 @@ class EditText(wx.TextCtrl):
     def GetChanged(self):
         if self.IsChanged():
             return self.GetValue()
-
-
-class EditStaticText(wx.Panel):
-
-    def __init__(self, parent, text, multiLine=False):
-        wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
-        self.original_text = text
-
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.text = wx.StaticText(self, -1, text)
-        self.text.SetMinSize((1, -1))
-        vSizer.Add(self.text, 0, wx.EXPAND)
-
-        self.edit = EditText(parent, text, multiLine)
-        self.edit.Show(False)
-        self.edit.SetMinSize((1, -1))
-        vSizer.Add(self.edit, 0, wx.EXPAND)
-        self.SetSizer(vSizer)
-
-    def ShowEdit(self, show=True):
-        if not show:
-            self.text.SetLabel(self.edit.GetValue())
-
-        self.text.Show(not show)
-        self.edit.Show(show)
-        self.GetParent().Layout()
-
-    def IsEditShown(self):
-        return self.edit.IsShown()
-
-    def IsChanged(self):
-        return self.edit.IsChanged()
-
-    def Saved(self):
-        self.edit.Saved()
-
-    def GetChanged(self):
-        return self.edit.GetChanged()
 
 
 class NotebookPanel(wx.Panel):
@@ -970,77 +867,6 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
     def ListItemSelected(self, event):
         self.SetValueFromSelected()
-
-
-class ImageScrollablePanel(ScrolledPanel):
-
-    def __init__(self, parent, id= -1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.HSCROLL | wx.VSCROLL):
-        ScrolledPanel.__init__(self, parent, id, pos, size, style)
-
-        self.bitmap = None
-        wx.EVT_PAINT(self, self.OnPaint)
-
-    def OnPaint(self, evt):
-        if self.bitmap:
-            obj = evt.GetEventObject()
-            dc = wx.BufferedPaintDC(obj)
-
-            dc.SetPen(wx.TRANSPARENT_PEN)
-            dc.SetBrush(wx.BrushFromBitmap(self.bitmap))
-            w, h = self.GetClientSize()
-            dc.DrawRectangle(0, 0, w, h)
-        else:
-            evt.Skip()
-
-    def SetBitmap(self, bitmap):
-        self.bitmap = bitmap
-        self.Refresh()
-
-
-class ChannelPopularity(wx.Panel):
-
-    def __init__(self, parent, background, bitmap, bordersize=0, size=wx.DefaultSize):
-        self.background = background
-        self.bitmap = bitmap
-        self.bordersize = bordersize
-
-        if size == wx.DefaultSize:
-            size = self.bitmap.GetSize()
-            size = size[0] * 5, size[1]
-
-        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
-
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-    def SetVotes(self, votes):
-        self.votes = votes
-        self.Refresh()
-
-    def OnPaint(self, event):
-        dc = wx.BufferedPaintDC(self)
-
-        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
-        dc.Clear()
-
-        bitmapWidth, bitmapHeight = self.bitmap.GetSize()
-
-        width, height = self.GetClientSize()
-        width -= self.bordersize * 2
-        width = min(width, 5 * bitmapWidth)
-
-        xpos = self.bordersize
-        ypos = (height - bitmapHeight) / 2
-
-        for i in range(5):
-            dc.DrawBitmap(self.background, xpos + (i * bitmapWidth), ypos, True)
-
-        dc.SetClippingRegion(xpos, ypos, width * self.votes, bitmapHeight)
-        for i in range(5):
-            dc.DrawBitmap(self.bitmap, xpos + (i * bitmapWidth), ypos, True)
-
-    def OnEraseBackground(self, event):
-        pass
 
 
 class SwarmHealth(wx.Panel):
@@ -1568,28 +1394,6 @@ class FancyPanel(wx.Panel):
                 gc.DrawLines([(x, y + height - 1), (x + width - 1, y + height - 1)])
 
         self.bitmap = buffer
-
-
-class DottedBetterText(BetterText):
-
-    def __init__(self, parent, id, label, *args, **kwargs):
-        wx.StaticText.__init__(self, parent, id, label, *args, **kwargs)
-        if label:
-            self.SetLabel(label)
-
-    def SetLabel(self, text):
-        if text:
-            text = self.DetermineText(text, self.GetSize()[0])
-        wx.StaticText.SetLabel(self, text)
-
-    def DetermineText(self, text, maxWidth):
-        for i in xrange(len(text), 0, -1):
-            newText = text[0:i]
-            if i != len(text):
-                newText += ".."
-            width, _ = self.GetTextExtent(newText)
-            if width <= maxWidth:
-                return newText
 
 
 class MinMaxSlider(wx.Panel):
@@ -2374,45 +2178,6 @@ class StaticBitmaps(wx.Panel):
             dc.DrawBitmap(tmpbmp, self.pointer.x, self.pointer.y)
             dc.SetFont(self.GetFont())
             dc.DrawLabel("%d/%d" % (self.bitmaps_index + 1, len(self.bitmaps)), self.pointer, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
-
-
-class HorizontalGradientGauge(wx.Panel):
-
-    def __init__(self, *args, **kwargs):
-        wx.Panel.__init__(self, *args, **kwargs)
-
-        self.value = 0
-
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-    def SetValue(self, value):
-        self.value = min(max(0.0, value), 1.0)
-
-    def OnEraseBackground(self, event):
-        pass
-
-    def OnPaint(self, event):
-        w, h = self.GetClientSize()
-
-        dc = wx.BufferedPaintDC(self)
-        gc = wx.GraphicsContext.Create(dc)
-
-        gc.SetPen(wx.TRANSPARENT_PEN)
-        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w / 2.0, 0, wx.Colour(255, 0, 0), wx.Colour(255, 216, 0)))
-        gc.DrawRectangle(0, 0, w / 2.0, h)
-
-        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w / 2.0, 0, wx.Colour(255, 216, 0), wx.Colour(0, 255, 33)))
-        gc.DrawRectangle(w / 2.0, 0, w / 2.0, h)
-
-        gc.SetPen(wx.Pen(wx.BLACK, 1, wx.SOLID))
-        gc.SetBrush(wx.TRANSPARENT_BRUSH)
-        gc.DrawRectangle(0, 0, w - 1, h - 1)
-
-        gc.SetPen(wx.Pen(wx.BLACK, 1, wx.SOLID))
-        x = (self.value / 100.0) * w
-        gc.DrawLines([(x - 1, 0), (x - 1, h)])
-        gc.DrawLines([(x + 1, 0), (x + 1, h)])
 
 
 class Graph(wx.Panel):

@@ -32,7 +32,6 @@ for inspiration and code.
 
 import logging
 import wx
-from wx.lib.statbmp import GenStaticBitmap
 
 
 class GaugeSplash(wx.Frame):

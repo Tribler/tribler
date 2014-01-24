@@ -13,7 +13,7 @@ from time import time
 from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
+from Tribler.Main.vwxGUI.widgets import HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -29,11 +29,10 @@ from list_details import *
 from list_footer import *
 from list_header import *
 
-from widgets import _set_font, ChannelPopularity, SwarmHealth
+from widgets import _set_font, SwarmHealth
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
-from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Category.Category import Category
 
 DEBUG_RELEVANCE = False

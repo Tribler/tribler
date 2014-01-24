@@ -11,19 +11,11 @@ import tempfile
 import atexit
 import logging
 
-
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import isInteger
-from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-
-from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
-from Tribler.Main.Utility.GuiDBTuples import MergedDs
-from Tribler.Main.Utility.GuiDBTuples import MergedDs
 
 
 class SettingsDialog(wx.Dialog):

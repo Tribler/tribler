@@ -1823,45 +1823,6 @@ class ProgressPanel(wx.BoxSizer):
         return return_val
 
 
-class StringProgressPanel(wx.BoxSizer):
-
-    def __init__(self, parent, torrent):
-        wx.BoxSizer.__init__(self, wx.HORIZONTAL)
-        self.parent = parent
-        self.torrent = torrent
-
-        guiutility = GUIUtility.getInstance()
-        self.utility = guiutility.utility
-
-        self.text = StaticText(parent)
-        self.Add(self.text, 1, wx.EXPAND)
-
-    def Update(self, ds=None):
-        if ds == None:
-            ds = self.torrent.ds
-
-        if ds != None:
-            progress = ds.get_progress()
-            size = ds.get_length()
-
-            seeds, peers = ds.get_num_seeds_peers()
-
-            dls = ds.get_current_speed('down') * 1024
-            uls = ds.get_current_speed('up') * 1024
-
-            eta = ds.get_eta()
-
-            if progress == 1.0:
-                self.text.SetLabel("Currently uploading to %d peers @ %s." % (peers, self.utility.speed_format(uls)))
-            else:
-                remaining = size - (size * progress)
-                eta = self.utility.eta_value(eta, truncate=2)
-                if eta == '' or eta.find('unknown') != -1:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining." % (self.utility.speed_format(dls), format_size(remaining)))
-                else:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining. Expected to finish in %s." % (self.utility.speed_format(dls), format_size(remaining), eta))
-
-
 class MyChannelPlaylist(AbstractDetails):
 
     def __init__(self, parent, on_manage, can_edit=False, on_save=None, on_remove=None, playlist={}):

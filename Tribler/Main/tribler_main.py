@@ -81,7 +81,7 @@ import logging
 
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame, VideoMacFrame
+from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 # from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
