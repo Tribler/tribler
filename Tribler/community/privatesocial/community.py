@@ -248,8 +248,6 @@ class SocialCommunity(Community):
             peercache_friend.extend(standins)
             peercache_candidates.append(peercache_friend)
 
-            print >> sys.stderr, map(str, peercache_friend)
-
         return peercache_candidates
 
     def filter_tb(self, tbs):
