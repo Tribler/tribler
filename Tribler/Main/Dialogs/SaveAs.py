@@ -12,9 +12,7 @@ from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
 from Tribler.Main.Utility.GuiDBTuples import Torrent
-from Tribler.Main.vwxGUI import forceWxThread
 
 
 class SaveAs(wx.Dialog):
