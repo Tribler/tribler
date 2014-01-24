@@ -851,22 +851,24 @@ class AbstractListBody():
             if getattr(self.messageText.altControl, 'ShowItems', False):
                 self.messageText.altControl.ShowItems(False)
                 self.messageText.altControl.Clear(True)
+            else:
+                self.messageText.altControl.Destroy()
             self.messageText.altControl = None
 
         if altControl:
-            self.messageText.altControl = altControl
-            self.messageText.sizer.Insert(2, altControl, 0, wx.EXPAND)
+            self.messageText.altControl = altControl(self.messagePanel)
+            self.messageText.sizer.Insert(2, self.messageText.altControl, 0, wx.EXPAND)
 
         if clearitems:
             self.loadNext.Hide()
             self.vSizer.ShowItems(False)
             self.vSizer.Clear()
 
-        self.vSizer.Add(self.messagePanel, 0, wx.EXPAND | wx.BOTTOM, 1)
-        self.messagePanel.Layout()
-
         if not self.messagePanel.IsShown():
             self.messagePanel.Show()
+            self.vSizer.Add(self.messagePanel, 0, wx.EXPAND | wx.BOTTOM, 1)
+
+        self.messagePanel.Layout()
 
         self.OnChange()
         self.Thaw()
@@ -938,12 +940,9 @@ class AbstractListBody():
                 else:
                     self.dataTimer.Restart(call_in)
 
+    @warnWxThread
     def __SetData(self, highlight=True):
         self._logger.debug("ListBody: __SetData %s", time())
-
-        if __debug__ and not wx.Thread_IsMain():
-            self._logger.debug("ListBody: __SetData thread %s is NOT MAIN THREAD", currentThread().getName())
-            print_stack()
 
         # apply quickfilter
         if self.filter:

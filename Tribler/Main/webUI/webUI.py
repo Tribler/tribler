@@ -54,6 +54,10 @@ class WebUI():
         return WebUI.__single
     getInstance = staticmethod(getInstance)
 
+    def delInstance(*args, **kw):
+        WebUI.__single = None
+    delInstance = staticmethod(delInstance)
+
     def start(self):
         if not self.started:
             self.started = True
@@ -182,7 +186,7 @@ class WebUI():
                 else:
                     ratio = 0
             else:
-                ratio = 1.0 * ul /dl
+                ratio = 1.0 * ul / dl
 
             torrentList.append(int(ratio * 1000))
             torrentList.append(upS)
@@ -305,7 +309,7 @@ class WebUI():
                 else:
                     ratio = 0
             else:
-                ratio = 1.0 * ul /dl
+                ratio = 1.0 * ul / dl
 
             torrentDict['seed_ratio'] = ratio
             torrentDict['seed_time'] = stats['time_seeding']

@@ -190,8 +190,6 @@ class TestMyChannel(TestGuiAsServer):
         dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
         d = self.session2.start_download(tdef, dscfg)
         d.set_state_callback(self.seeder_state_callback)
-        # Limit the speed to make sure that the transfer takes more than 10 seconds
-        d.set_max_speed(UPLOAD, 1)
 
         return torrentfn
 

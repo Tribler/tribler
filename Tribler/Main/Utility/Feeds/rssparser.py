@@ -190,8 +190,10 @@ class RssParser(Thread):
             self._logger.debug("RssParser: running")
 
             self._refresh()
-            self.urls_changed.clear()
+            if not self.isRegistered:
+                break
 
+            self.urls_changed.clear()
             self._logger.debug("RssParser: finished, waiting %s", RSS_RELOAD_FREQUENCY)
             self.urls_changed.wait(RSS_RELOAD_FREQUENCY)
         else:
@@ -255,6 +257,10 @@ class RssParser(Thread):
                                     pass
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
+
+                                # Should we stop?
+                                if not self.isRegistered:
+                                    return
 
     def readUrl(self, url, urls_already_seen):
         self._logger.debug("RssParser: reading url %s", url)

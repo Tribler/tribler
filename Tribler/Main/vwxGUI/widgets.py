@@ -39,6 +39,10 @@ class NativeIcon:
         return NativeIcon.__single
     getInstance = staticmethod(getInstance)
 
+    def delInstance(*args, **kw):
+        NativeIcon.__single = None
+    delInstance = staticmethod(delInstance)
+
     def getBitmap(self, parent, type, background, state):
         assert isinstance(background, wx.Colour), "we require a wx.colour object here, got %s" % type(background)
         if isinstance(background, wx.Colour):
@@ -1067,14 +1071,13 @@ class SwarmHealth(wx.Panel):
             else:
                 ratio = seeders / (leechers * 1.0)
 
-            if ratio == 0:
+            pop = seeders + leechers
+            if ratio == 0 and pop == 0:
                 self.barwidth = 1
                 self.green = 0
                 self.red = 0
             else:
-                pop = seeders + leechers
                 if pop > 0:
-
                     self.barwidth = min(max(math.log(pop * 4, 10) * 2, 1.1) / 10.0, 1)  # let it max at 25k population
                 else:
                     self.barwidth = 1

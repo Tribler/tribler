@@ -37,6 +37,10 @@ class TorrentStateManager:
         return TorrentStateManager.__single
     getInstance = staticmethod(getInstance)
 
+    def delInstance(*args, **kw):
+        TorrentStateManager.__single = None
+    delInstance = staticmethod(delInstance)
+
     def connect(self, torrent_manager, library_manager, channelsearch_manager):
         self.torrent_manager = torrent_manager
         self.library_manager = library_manager

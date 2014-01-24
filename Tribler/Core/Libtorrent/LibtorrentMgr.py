@@ -377,7 +377,7 @@ class LibtorrentMgr:
                         self.trsession.uch.perform_usercallback(lambda cb=callback, mi=deepcopy(metainfo): cb(mi))
 
                     # let's not print the hashes of the pieces
-                    debuginfo = metainfo.copy()
+                    debuginfo = deepcopy(metainfo)
                     del debuginfo['info']['pieces']
                     self._logger.debug('LibtorrentMgr: got_metainfo result %s', debuginfo)
 

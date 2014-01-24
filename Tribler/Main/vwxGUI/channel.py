@@ -644,6 +644,10 @@ class SelectedChannelList(GenericSearchList):
 
         SizeList.OnFilter(self, new_filter)
 
+    def GotFilter(self, keyword=None):
+        GenericSearchList.GotFilter(self, keyword)
+        self.GetManager().do_or_schedule_refresh()
+
     @warnWxThread
     def Select(self, key, raise_event=True):
         if isinstance(key, Torrent):
@@ -2101,14 +2105,17 @@ class CommentList(List):
     def ShowPreview(self):
         altControl = None
         if isinstance(self.parent_list, SelectedChannelList):
-            altControl = wx.BoxSizer(wx.HORIZONTAL)
-            altControl.AddStretchSpacer()
+            def create_button(parentPanel):
+                hSizer = wx.BoxSizer(wx.HORIZONTAL)
+                hSizer.AddStretchSpacer()
 
-            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
-            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
-            altControl.Add(button, 0, wx.TOP, 3)
-            altControl.AddStretchSpacer()
+                button = wx.Button(parentPanel, -1, 'Mark as Favorite')
+                button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+                hSizer.Add(button, 0, wx.TOP, 3)
+                hSizer.AddStretchSpacer()
+                return hSizer
 
+            altControl = create_button
         self.list.ShowMessage('You have to mark this channel as a Favorite to start receiving comments.', 'No comments received yet', altControl)
 
     def EnableCommeting(self, enable=True):
@@ -2252,14 +2259,17 @@ class ActivityList(List):
     def ShowPreview(self):
         altControl = None
         if isinstance(self.parent_list, SelectedChannelList):
-            altControl = wx.BoxSizer(wx.HORIZONTAL)
-            altControl.AddStretchSpacer()
+            def create_button(parentPanel):
+                hSizer = wx.BoxSizer(wx.HORIZONTAL)
+                hSizer.AddStretchSpacer()
 
-            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
-            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
-            altControl.Add(button, 0, wx.TOP, 3)
-            altControl.AddStretchSpacer()
+                button = wx.Button(parentPanel, -1, 'Mark as Favorite')
+                button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+                hSizer.Add(button, 0, wx.TOP, 3)
+                hSizer.AddStretchSpacer()
+                return hSizer
 
+            altControl = create_button
         self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing activity.', 'No activity received yet', altControl)
 
     def OnShowTorrent(self, torrent):
@@ -2464,14 +2474,17 @@ class ModerationList(List):
     def ShowPreview(self):
         altControl = None
         if isinstance(self.parent_list, SelectedChannelList):
-            altControl = wx.BoxSizer(wx.HORIZONTAL)
-            altControl.AddStretchSpacer()
+            def create_button(parentPanel):
+                hSizer = wx.BoxSizer(wx.HORIZONTAL)
+                hSizer.AddStretchSpacer()
 
-            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
-            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
-            altControl.Add(button, 0, wx.TOP, 3)
-            altControl.AddStretchSpacer()
+                button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
+                button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+                hSizer.Add(button, 0, wx.TOP, 3)
+                hSizer.AddStretchSpacer()
+                return hSizer
 
+            altControl = create_button
         self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing moderations.', 'No moderations received yet', altControl)
 
     def OnShowTorrent(self, torrent):

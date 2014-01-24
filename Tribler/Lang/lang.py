@@ -36,7 +36,7 @@ class Lang:
         filename = self.utility.read_config('language_file')
         langpath = os.path.join(self.utility.getPath(), LIBRARYNAME, "Lang")
 
-        sys.stdout.write("Setting up languages\n")
+        self._logger.info("Setting up languages\n")
         self._logger.info("Language file: %s %s", langpath, filename)
 
         self.default_section = "ABC/language"

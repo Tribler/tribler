@@ -911,6 +911,7 @@ class ABCApp():
             self.torrentfeed.delInstance()
         if self.webUI:
             self.webUI.stop()
+            self.webUI.delInstance()
         if self.guiserver:
             self.guiserver.shutdown(True)
             self.guiserver.delInstance()
@@ -1139,6 +1140,15 @@ def run(params=None):
 
             logger.info("Client shutting down. Detected another instance.")
         else:
+
+            if sys.platform == 'linux2':
+                try:
+                    import ctypes
+                    x11 = ctypes.cdll.LoadLibrary('libX11.so')
+                    x11.XInitThreads()
+                except:
+                    logger.exception('Failed to call xInitThreads')
+
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:

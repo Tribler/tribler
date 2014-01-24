@@ -1189,12 +1189,14 @@ class GenericSearchList(SizeList):
             if self.guiutility.getFamilyFilter():
                 message += '\n\nAdditionally, you could disable the "Family filter".'
 
-                suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-                ffbutton = LinkStaticText(self.list.messagePanel, 'Turn off Family filter', None)
-                ffbutton.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.toggleFamilyFilter(setCheck=True))
-                suggestionSizer.Add(ffbutton)
+                def create_suggestion(parentPanel):
+                    vSizer = wx.BoxSizer(wx.VERTICAL)
+                    ffbutton = LinkStaticText(parentPanel, 'Turn off Family filter', None)
+                    ffbutton.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.toggleFamilyFilter(setCheck=True))
+                    vSizer.Add(ffbutton)
+                    return vSizer
 
-                self.list.ShowMessage(message, header, suggestionSizer)
+                self.list.ShowMessage(message, header, create_suggestion)
             else:
                 self.list.ShowMessage(message, header)
             self.SetNrResults(0)
@@ -1596,15 +1598,18 @@ class SearchList(GenericSearchList):
             suggestions = delayedResult.get()
 
             if len(suggestions) > 0:
-                suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-                suggestionSizer.Add(StaticText(self.list.messagePanel, -1, "Alternatively, try one of the following suggestions:"))
-                for suggestion, hits in suggestions:
-                    label = LinkStaticText(self.list.messagePanel, suggestion)
-                    label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
-                    suggestionSizer.Add(label)
+                def create_suggestion(parentPanel):
+                    vSizer = wx.BoxSizer(wx.VERTICAL)
+                    vSizer.Add(StaticText(parentPanel, -1, "Alternatively, try one of the following suggestions:"))
+                    for suggestion, hits in suggestions:
+                        label = LinkStaticText(parentPanel, suggestion)
+                        label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
+                        vSizer.Add(label)
+
+                    return vSizer
 
                 header, message = self.list.GetMessage()
-                self.list.ShowMessage(message, header, suggestionSizer)
+                self.list.ShowMessage(message, header, create_suggestion)
 
     def OnSearchSuggestion(self, event):
         label = event.GetEventObject()
