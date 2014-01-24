@@ -1189,12 +1189,14 @@ class GenericSearchList(SizeList):
             if self.guiutility.getFamilyFilter():
                 message += '\n\nAdditionally, you could disable the "Family filter".'
 
-                suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-                ffbutton = LinkStaticText(self.list.messagePanel, 'Turn off Family filter', None)
-                ffbutton.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.toggleFamilyFilter(setCheck=True))
-                suggestionSizer.Add(ffbutton)
+                def create_suggestion(parentPanel):
+                    vSizer = wx.BoxSizer(wx.VERTICAL)
+                    ffbutton = LinkStaticText(parentPanel, 'Turn off Family filter', None)
+                    ffbutton.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.toggleFamilyFilter(setCheck=True))
+                    vSizer.Add(ffbutton)
+                    return vSizer
 
-                self.list.ShowMessage(message, header, suggestionSizer)
+                self.list.ShowMessage(message, header, create_suggestion)
             else:
                 self.list.ShowMessage(message, header)
             self.SetNrResults(0)
