@@ -229,7 +229,7 @@ class SocialCommunity(Community):
         friends, foafs = self.determine_friends_foafs(tbs)
         print >> sys.stderr, "result of determine friends", map(str, tbs)
         print >> sys.stderr, "friends", map(str, friends)
-        print >> sys.stderr, "foafs", map(str, foafs.values())
+        print >> sys.stderr, "foafs", [(keyhash, map(str, fsf)) for keyhash, fsf in foafs.iteritems()]
 
         if len(friends) > nr:
             friends = sample(list(friends), nr)
