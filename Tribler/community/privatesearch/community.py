@@ -26,7 +26,6 @@ from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.dispersy.requestcache import Cache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate, Candidate
-from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.script import assert_
 
