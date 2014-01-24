@@ -1146,6 +1146,8 @@ def run(params=None):
                     import ctypes
                     x11 = ctypes.cdll.LoadLibrary('libX11.so')
                     x11.XInitThreads()
+                except OSError as e:
+                    logger.debug("Failed to call XInitThreads '%s'", str(e))
                 except:
                     logger.exception('Failed to call xInitThreads')
 
