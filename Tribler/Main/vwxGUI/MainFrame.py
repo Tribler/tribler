@@ -61,7 +61,6 @@ from traceback import print_exc, print_stack
 from cStringIO import StringIO
 import urllib
 
-from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import *  # IGNORE:W0611
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
