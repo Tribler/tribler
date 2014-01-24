@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 import os
 import sys
+import time
 import logging
 import wx.animate
 
@@ -13,12 +14,8 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, Net
 
 from widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButton
 from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY
-from Tribler.Main.vwxGUI.widgets import _set_font
-from Tribler.Main.vwxGUI.channel import SelectedChannelList
-from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker, cancelWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-import time
-from Tribler.Video.VideoPlayer import VideoPlayer
 
 
 class TopSearchPanelStub():
