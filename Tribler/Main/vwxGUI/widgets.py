@@ -2181,45 +2181,6 @@ class StaticBitmaps(wx.Panel):
             dc.DrawLabel("%d/%d" % (self.bitmaps_index + 1, len(self.bitmaps)), self.pointer, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
 
-class HorizontalGradientGauge(wx.Panel):
-
-    def __init__(self, *args, **kwargs):
-        wx.Panel.__init__(self, *args, **kwargs)
-
-        self.value = 0
-
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-    def SetValue(self, value):
-        self.value = min(max(0.0, value), 1.0)
-
-    def OnEraseBackground(self, event):
-        pass
-
-    def OnPaint(self, event):
-        w, h = self.GetClientSize()
-
-        dc = wx.BufferedPaintDC(self)
-        gc = wx.GraphicsContext.Create(dc)
-
-        gc.SetPen(wx.TRANSPARENT_PEN)
-        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w / 2.0, 0, wx.Colour(255, 0, 0), wx.Colour(255, 216, 0)))
-        gc.DrawRectangle(0, 0, w / 2.0, h)
-
-        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w / 2.0, 0, wx.Colour(255, 216, 0), wx.Colour(0, 255, 33)))
-        gc.DrawRectangle(w / 2.0, 0, w / 2.0, h)
-
-        gc.SetPen(wx.Pen(wx.BLACK, 1, wx.SOLID))
-        gc.SetBrush(wx.TRANSPARENT_BRUSH)
-        gc.DrawRectangle(0, 0, w - 1, h - 1)
-
-        gc.SetPen(wx.Pen(wx.BLACK, 1, wx.SOLID))
-        x = (self.value / 100.0) * w
-        gc.DrawLines([(x - 1, 0), (x - 1, h)])
-        gc.DrawLines([(x + 1, 0), (x + 1, h)])
-
-
 class Graph(wx.Panel):
 
     def __init__(self, parent, grid_size=4, max_points=120, *args, **kwargs):
