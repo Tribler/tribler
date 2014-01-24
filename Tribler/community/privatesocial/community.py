@@ -227,6 +227,10 @@ class SocialCommunity(Community):
         tbs = [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()]
 
         friends, foafs = self.determine_friends_foafs(tbs)
+        print >> sys.stderr, "result of determine friends", map(str, tbs)
+        print >> sys.stderr, "friends", map(str, friends)
+        print >> sys.stderr, "foafs", map(str, foafs.values())
+
         if len(friends) > nr:
             friends = sample(list(friends), nr)
 
@@ -270,8 +274,9 @@ class SocialCommunity(Community):
         friends = self.filter_overlap(tbs, my_key_hashes)
         foafs = defaultdict(list)
         for tb in tbs:
-            for keyhash in tb.overlap:
-                foafs[keyhash].append(tb)
+            if tb not in friends:
+                for keyhash in tb.overlap:
+                    foafs[keyhash].append(tb)
 
         return friends, foafs
 

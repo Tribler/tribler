@@ -78,6 +78,9 @@ class SemanticDatabase(Database):
             overlap = ",".join(map(str, overlap))
             overlap = buffer(overlap)
 
+        import sys
+        print >> sys.stderr, "inserting get_peers", overlap, ip, port
+
         try:
             self.execute(u"INSERT INTO peercache (ip, port, overlap, last_connected) VALUES (?,?,?,?)", (unicode(ip), port, overlap, last_connected or time()))
         except:
@@ -94,4 +97,6 @@ class SemanticDatabase(Database):
             peers[i][1] = str(peers[i][1])
 
         peers.sort(reverse=True)
+        import sys
+        print >> sys.stderr, "result of get_peers", peers
         return peers
