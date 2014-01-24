@@ -49,7 +49,7 @@ class IconsManager:
                     if not flag.endswith(u".png"):
                         continue
                     bitmap = wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)
-                    if bitmap.GetSize() is not (16, 11):
+                    if bitmap.GetWidth() != 16 or bitmap.GetHeight() != 11:
                         self._logger.warn(u"Country flag[%s] is of size [%dx%d], NOT [%dx%d].",
                             flag, bitmap.GetWidth(), bitmap.GetHeight(), 16, 11)
                     self.country_flags[flag.split(".")[0].lower()] = bitmap
