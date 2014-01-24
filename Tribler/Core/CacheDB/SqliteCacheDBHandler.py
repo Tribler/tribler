@@ -1795,7 +1795,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
     def updateProgressByHash(self, hash, progress):
         torrent_id = self._torrent_db.getTorrentID(hash)
         if not torrent_id:
-            torrent_id = self.getTorrentIDRoot(hash)
+            torrent_id = self._torrent_db.getTorrentIDRoot(hash)
 
         if torrent_id:
             self.updateProgress(torrent_id, progress)
