@@ -1396,7 +1396,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         tmpfilename2 = os.path.join(state_dir, "upgradingdb2.txt")
         if fromver < 9 or os.path.exists(tmpfilename2):
             self.database_update.acquire()
-            
+
             def getPeerID(permid):
                 assert isinstance(permid, str), permid
 
@@ -1601,7 +1601,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     if os.path.isfile(torrent_file_name):
                                         try:
                                             torrentdef = TorrentDef.load(torrent_file_name)
-    
+
                                             files = torrentdef.get_files_as_unicode_with_length()
                                             to_be_inserted.append((infohash, timestamp, torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple()))
                                         except ValueError:
@@ -1961,6 +1961,11 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             # only perform these changes once
             if fromver < 19:
+                # Niels: removing unique clause from swift_hash
+                # single file torrents with the same content but different filenames will cause the swift_hash to be equal
+                # while the infohash is not
+                self.execute_write("DROP INDEX IF EXISTS Torrent_swift_hash_idx")
+
                 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 
                 self.execute_write('BEGIN')
