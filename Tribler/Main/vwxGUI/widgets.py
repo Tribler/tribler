@@ -972,52 +972,6 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.SetValueFromSelected()
 
 
-class ChannelPopularity(wx.Panel):
-
-    def __init__(self, parent, background, bitmap, bordersize=0, size=wx.DefaultSize):
-        self.background = background
-        self.bitmap = bitmap
-        self.bordersize = bordersize
-
-        if size == wx.DefaultSize:
-            size = self.bitmap.GetSize()
-            size = size[0] * 5, size[1]
-
-        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
-
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-    def SetVotes(self, votes):
-        self.votes = votes
-        self.Refresh()
-
-    def OnPaint(self, event):
-        dc = wx.BufferedPaintDC(self)
-
-        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
-        dc.Clear()
-
-        bitmapWidth, bitmapHeight = self.bitmap.GetSize()
-
-        width, height = self.GetClientSize()
-        width -= self.bordersize * 2
-        width = min(width, 5 * bitmapWidth)
-
-        xpos = self.bordersize
-        ypos = (height - bitmapHeight) / 2
-
-        for i in range(5):
-            dc.DrawBitmap(self.background, xpos + (i * bitmapWidth), ypos, True)
-
-        dc.SetClippingRegion(xpos, ypos, width * self.votes, bitmapHeight)
-        for i in range(5):
-            dc.DrawBitmap(self.bitmap, xpos + (i * bitmapWidth), ypos, True)
-
-    def OnEraseBackground(self, event):
-        pass
-
-
 class SwarmHealth(wx.Panel):
 
     def __init__(self, parent, bordersize=0, size=wx.DefaultSize, align=wx.ALIGN_LEFT):
