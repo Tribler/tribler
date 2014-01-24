@@ -82,46 +82,6 @@ class ListFooter(wx.Panel):
         pass
 
 
-class ChannelResultFooter(ListFooter):
-
-    def GetMidPanel(self, hSizer):
-        self.message = StaticText(self)
-        font = self.message.GetFont()
-        font.SetPointSize(font.GetPointSize() + 2)
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        self.message.SetFont(font)
-
-        hSizer.Add(self.message, 0, wx.TOP | wx.BOTTOM |wx.ALIGN_BOTTOM, 3)
-        hSizer.AddStretchSpacer()
-
-        self.channelResults = wx.Button(self, -1, "Channel Results")
-        hSizer.Add(self.channelResults, 0, wx.TOP | wx.BOTTOM, 3)
-
-    def SetLabel(self, label, nr_channels):
-        haveResults = True if nr_channels and nr_channels >= 1 else False
-
-        if label != self.message.GetLabel():
-            self.message.SetLabel(label)
-
-            if haveResults:
-                self.HighLight()
-            self.Layout()
-
-        self.EnableResults(haveResults)
-
-    def SetEvents(self, channel):
-        # removing old, binding new eventhandler
-        self.channelResults.Unbind(wx.EVT_BUTTON)
-        self.channelResults.Bind(wx.EVT_BUTTON, channel)
-
-    def EnableResults(self, state):
-        self.channelResults.Enable(state)
-
-    def Reset(self):
-        self.EnableResults(False)
-        self.message.SetLabel('')
-
-
 class PlaylistFooter(ListFooter):
 
     def SetStates(self, vote, channelstate, iamModerator):
