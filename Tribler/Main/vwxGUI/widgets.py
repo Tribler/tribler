@@ -463,42 +463,6 @@ class LinkStaticText(wx.BoxSizer):
             self.text.SetFontColour(font, colours[0])
 
 
-class VerticalGauge(wx.Panel):
-
-    def __init__(self, parent, progress, size=wx.DefaultSize):
-        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
-        self.SetBackgroundColour(parent.GetBackgroundColour())
-
-        self.progress = progress
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-    def SetProgress(self, progress):
-        self.progress = progress
-        self.Refresh()
-
-    def OnPaint(self, event):
-        dc = wx.BufferedPaintDC(self)
-
-        dc.SetBackground(wx.WHITE_BRUSH)
-        dc.Clear()
-
-        width, height = self.GetClientSize()
-
-        barHeight = self.progress * height
-
-        dc.SetPen(wx.TRANSPARENT_PEN)
-        dc.SetBrush(wx.Brush(LIST_LIGHTBLUE))
-        dc.DrawRectangle(0, height - barHeight, width, height)
-
-        dc.SetPen(wx.BLACK_PEN)
-        dc.SetBrush(wx.TRANSPARENT_BRUSH)
-        dc.DrawRectangle(0, 0, width, height)
-
-    def OnEraseBackground(self, event):
-        pass
-
-
 class HorizontalGauge(wx.Control):
 
     def __init__(self, parent, background, bitmap, repeat=1, bordersize=0, size=wx.DefaultSize):
