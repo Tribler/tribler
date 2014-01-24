@@ -21,7 +21,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler,\
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
@@ -30,9 +30,6 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 from Tribler.Core.Tag.Extraction import TermExtraction
-
-import wx.lib.agw.customtreectrl as CT
-
 
 class Home(XRCPanel):
 
@@ -599,13 +596,13 @@ class RightDispersyPanel(FancyPanel):
         self.notebook.AddPage(self.community_panel, "Community info")
 
         community_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.community_tree = CT.CustomTreeCtrl(self.community_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.community_tree = wx.TreeCtrl(self.community_panel, style=wx.NO_BORDER | wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
         self.community_tree.blockUpdate = False
         self.community_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.community_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
 
         font = self.community_tree.GetFont()
-        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font = wx.Font(font.GetPointSize() - 1 , wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.community_tree.SetFont(font)
 
         community_sizer.Add(self.community_tree, 1, wx.EXPAND)
@@ -620,13 +617,13 @@ class RightDispersyPanel(FancyPanel):
         self.notebook.AddPage(self.rawinfo_panel, "Raw info")
 
         self.rawinfo_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.rawinfo_tree = CT.CustomTreeCtrl(self.rawinfo_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.rawinfo_tree = wx.TreeCtrl(self.rawinfo_panel, style=wx.NO_BORDER | wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
         self.rawinfo_tree.blockUpdate = False
         self.rawinfo_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.rawinfo_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
 
         font = self.rawinfo_tree.GetFont()
-        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font = wx.Font(font.GetPointSize() - 1, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.rawinfo_tree.SetFont(font)
 
         self.rawinfo_sizer.Add(self.rawinfo_tree, 1, wx.EXPAND)
@@ -641,13 +638,13 @@ class RightDispersyPanel(FancyPanel):
         self.notebook.AddPage(self.runtime_panel, "Runtime stats")
 
         self.runtime_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.runtime_tree = CT.CustomTreeCtrl(self.runtime_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.runtime_tree = wx.TreeCtrl(self.runtime_panel, style=wx.NO_BORDER | wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
         self.runtime_tree.blockUpdate = False
         self.runtime_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.runtime_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
 
         font = self.runtime_tree.GetFont()
-        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font = wx.Font(font.GetPointSize() - 1, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.runtime_tree.SetFont(font)
 
         self.runtime_sizer.Add(self.runtime_tree, 1, wx.EXPAND)
@@ -816,24 +813,24 @@ class RightDispersyPanel(FancyPanel):
                         if isinstance(v, basestring):
                             v = v.replace('\n', '\n          ')
                         stat_list.append('%-10s%s' % (k, v))
-                        
+
                     name = stat_dict['entry'].split('\n')[0]
                     label = "duration = %7.2f ; entry = %s" % (stat_dict['duration'], name)
                     runtime[label] = tuple(stat_list)
-                    
+
                     combined_name = name.split()[0]
                     combined_runtime[combined_name].append((stat_dict['duration'], label))
-                
+
                 for key, runtimes in combined_runtime.iteritems():
                     if len(runtimes) > 1:
-                        
+
                         total_duration = 0
                         subcalls = {}
                         for duration, label in runtimes:
                             total_duration += duration
                             subcalls[label] = runtime.pop(label)
                         runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = subcalls
-            self.AddDataToTree(runtime, parentNode, self.rawinfo_tree, prepend=False, sort_dict=True)
+            self.AddDataToTree(runtime, parentNode, self.runtime_tree, prepend=False, sort_dict=True)
 
         self.Layout()
 
