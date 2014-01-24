@@ -813,21 +813,33 @@ class RightDispersyPanel(FancyPanel):
                         stat_list.append('%-10s%s' % (k, v))
 
                     name = stat_dict['entry'].split('\n')[0]
-                    label = "duration = %7.2f ; entry = %s" % (stat_dict['duration'], name)
-                    runtime[label] = tuple(stat_list)
-
                     combined_name = name.split()[0]
-                    combined_runtime[combined_name].append((stat_dict['duration'], label))
+                    
+                    label = "duration = %7.2f ; entry = %s" % (stat_dict['duration'], name)
+                    combined_runtime[combined_name].append((stat_dict['duration'], label, tuple(stat_list)))
 
                 for key, runtimes in combined_runtime.iteritems():
                     if len(runtimes) > 1:
-
                         total_duration = 0
-                        subcalls = {}
-                        for duration, label in runtimes:
+                        
+                        subcalls = defaultdict(list) 
+                        for duration, label, stat_list in runtimes:
                             total_duration += duration
-                            subcalls[label] = runtime.pop(label)
-                        runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = subcalls
+                            subcalls[label].append(stat_list)
+                        
+                        _subcalls = {}
+                        for label, subcall_list in subcalls.iteritems():
+                            if len(subcall_list) > 1:
+                                _subcalls[label] = subcall_list
+                            else:
+                                _subcalls[label] = subcall_list[0]
+                                
+                        runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = _subcalls
+                        
+                    else:
+                        duration, label, stat_list = runtimes[0]
+                        runtime[label] = stat_list
+                    
             self.AddDataToTree(runtime, parentNode, self.runtime_tree, prepend=False, sort_dict=True)
 
         self.Layout()
