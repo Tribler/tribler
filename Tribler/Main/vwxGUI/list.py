@@ -1596,15 +1596,18 @@ class SearchList(GenericSearchList):
             suggestions = delayedResult.get()
 
             if len(suggestions) > 0:
-                suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-                suggestionSizer.Add(StaticText(self.list.messagePanel, -1, "Alternatively, try one of the following suggestions:"))
-                for suggestion, hits in suggestions:
-                    label = LinkStaticText(self.list.messagePanel, suggestion)
-                    label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
-                    suggestionSizer.Add(label)
+                def create_suggestion(parentPanel):
+                    vSizer = wx.BoxSizer(wx.VERTICAL)
+                    vSizer.Add(StaticText(parentPanel, -1, "Alternatively, try one of the following suggestions:"))
+                    for suggestion, hits in suggestions:
+                        label = LinkStaticText(parentPanel, suggestion)
+                        label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
+                        vSizer.Add(label)
+
+                    return vSizer
 
                 header, message = self.list.GetMessage()
-                self.list.ShowMessage(message, header, suggestionSizer)
+                self.list.ShowMessage(message, header, create_suggestion)
 
     def OnSearchSuggestion(self, event):
         label = event.GetEventObject()
