@@ -7,27 +7,23 @@ import logging
 from time import strftime, time
 from collections import defaultdict
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
 from Tribler.Main.vwxGUI.list_footer import *
 from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.widgets import BetterListCtrl, SelectableListCtrl, \
+from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, FancyPanel
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
-from __init__ import LIST_GREY, LIST_LIGHTBLUE
-
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler,\
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
-from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 from Tribler.Core.Tag.Extraction import TermExtraction
 
