@@ -245,6 +245,8 @@ class SocialCommunity(Community):
             peercache_friend.extend(standins)
             peercache_candidates.append(peercache_friend)
 
+            print >> sys.stderr, map(str, peercache_friend)
+
         return peercache_candidates
 
     def filter_tb(self, tbs):
@@ -268,7 +270,6 @@ class SocialCommunity(Community):
         friends = self.filter_overlap(tbs, my_key_hashes)
         foafs = defaultdict(list)
         for tb in tbs:
-            # else add this foaf as a possible candidate to be used as a backup for a friend
             for keyhash in tb.overlap:
                 foafs[keyhash].append(tb)
 
