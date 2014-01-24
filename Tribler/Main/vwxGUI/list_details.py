@@ -1823,43 +1823,62 @@ class ProgressPanel(wx.BoxSizer):
         return return_val
 
 
-class StringProgressPanel(wx.BoxSizer):
+class MyChannelDetails(wx.Panel):
 
-    def __init__(self, parent, torrent):
-        wx.BoxSizer.__init__(self, wx.HORIZONTAL)
+    def __init__(self, parent, torrent, channel_id):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.parent = parent
         self.torrent = torrent
+        self.channel_id = channel_id
 
-        guiutility = GUIUtility.getInstance()
-        self.utility = guiutility.utility
+        self.uelog = UserEventLogDBHandler.getInstance()
+        self.guiutility = GUIUtility.getInstance()
 
-        self.text = StaticText(parent)
-        self.Add(self.text, 1, wx.EXPAND)
+        wx.Panel.__init__(self, parent)
 
-    def Update(self, ds=None):
-        if ds == None:
-            ds = self.torrent.ds
+        self.borderSizer = wx.BoxSizer()
+        self.SetSizer(self.borderSizer)
 
-        if ds != None:
-            progress = ds.get_progress()
-            size = ds.get_length()
+        self.SetBackgroundColour(LIST_DESELECTED)
+        self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback=self.showTorrent)
 
-            seeds, peers = ds.get_num_seeds_peers()
+    @forceWxThread
+    def showTorrent(self, torrent):
+        notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME)
+        listCtrl = BetterListCtrl(notebook)
+        listCtrl.InsertColumn(0, 'Name')
+        listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
 
-            dls = ds.get_current_speed('down') * 1024
-            uls = ds.get_current_speed('up') * 1024
+        self.il = wx.ImageList(16, 16)
+        play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
+        file_img = self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, size=(16, 16)))
+        listCtrl.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
-            eta = ds.get_eta()
+        for filename, size in torrent.files:
+            try:
+                pos = listCtrl.InsertStringItem(sys.maxsize, filename)
+            except:
+                try:
+                    pos = listCtrl.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
+                except:
+                    self._logger.error("Could not format filename %s", torrent.name)
+            listCtrl.SetItemData(pos, pos)
+            size = self.guiutility.utility.size_format(size)
+            listCtrl.SetStringItem(pos, 1, size)
 
-            if progress == 1.0:
-                self.text.SetLabel("Currently uploading to %d peers @ %s." % (peers, self.utility.speed_format(uls)))
+            if filename in torrent.videofiles:
+                listCtrl.SetItemColumnImage(pos, 0, play_img)
             else:
-                remaining = size - (size * progress)
-                eta = self.utility.eta_value(eta, truncate=2)
-                if eta == '' or eta.find('unknown') != -1:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining." % (self.utility.speed_format(dls), format_size(remaining)))
-                else:
-                    self.text.SetLabel("Currently downloading @ %s, %s still remaining. Expected to finish in %s." % (self.utility.speed_format(dls), format_size(remaining), eta))
+                listCtrl.SetItemColumnImage(pos, 0, file_img)
+
+        listCtrl.setResizeColumn(0)
+        listCtrl.SetMinSize((1, -1))
+        listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE)  # autosize only works after adding rows
+        notebook.AddPage(listCtrl, "Files")
+
+        self.borderSizer.Add(notebook, 1, wx.EXPAND)
+        self.Layout()
 
 
 class MyChannelPlaylist(AbstractDetails):
