@@ -82,24 +82,6 @@ class ListFooter(wx.Panel):
         pass
 
 
-class TitleFooter(ListFooter):
-
-    def GetMidPanel(self, hSizer):
-        hSizer.AddStretchSpacer()
-
-        self.title = StaticText(self)
-        hSizer.Add(self.title)
-
-        self.scrollBar = hSizer.AddSpacer((0, 0))
-        self.scrollBar.sizer = hSizer
-
-    def SetTitle(self, title):
-        self.Freeze()
-        self.title.SetLabel(title)
-        self.Layout()
-        self.Thaw()
-
-
 class ChannelResultFooter(ListFooter):
 
     def GetMidPanel(self, hSizer):
