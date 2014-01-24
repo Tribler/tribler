@@ -15,9 +15,6 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 
-if sys.platform == 'win32':
-    from Tribler.Main.Utility.regchecker import RegChecker
-
 logger = logging.getLogger(__name__)
 
 #
@@ -45,13 +42,6 @@ class Utility:
 
         # Setup language files
         self.lang = Lang(self)
-
-        warned = self.read_config('torrentassociationwarned')
-        if (sys.platform == 'win32' and not warned):
-            self.regchecker = RegChecker(self)
-            self.write_config('torrentassociationwarned', 1)
-        else:
-            self.regchecker = None
 
         # Is ABC in the process of shutting down?
         self.abcquitting = False
