@@ -29,7 +29,7 @@ from list_details import *
 from list_footer import *
 from list_header import *
 
-from widgets import _set_font, ChannelPopularity, SwarmHealth
+from widgets import _set_font, SwarmHealth
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
