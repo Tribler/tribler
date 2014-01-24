@@ -463,29 +463,6 @@ class LinkStaticText(wx.BoxSizer):
             self.text.SetFontColour(font, colours[0])
 
 
-class ProgressStaticText(wx.Panel):
-
-    def __init__(self, parent, text, progress):
-        wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
-        self.SetBackgroundColour(parent.GetBackgroundColour())
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.text = wx.StaticText(self, -1, text)
-        sizer.Add(self.text, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        sizer.AddStretchSpacer()
-
-        self.gauge = VerticalGauge(self, progress, (7, -1))
-        sizer.Add(self.gauge)
-
-        self.SetSize((-1, self.text.GetBestSize()[1]))
-        self.SetSizer(sizer)
-
-    def SetProgress(self, progress):
-        self.gauge.SetProgress(progress)
-
-
 class VerticalGauge(wx.Panel):
 
     def __init__(self, parent, progress, size=wx.DefaultSize):

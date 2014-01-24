@@ -13,7 +13,7 @@ from time import time
 from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
+from Tribler.Main.vwxGUI.widgets import HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
