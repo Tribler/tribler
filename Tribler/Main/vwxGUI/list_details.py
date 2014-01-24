@@ -1823,64 +1823,6 @@ class ProgressPanel(wx.BoxSizer):
         return return_val
 
 
-class MyChannelDetails(wx.Panel):
-
-    def __init__(self, parent, torrent, channel_id):
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.parent = parent
-        self.torrent = torrent
-        self.channel_id = channel_id
-
-        self.uelog = UserEventLogDBHandler.getInstance()
-        self.guiutility = GUIUtility.getInstance()
-
-        wx.Panel.__init__(self, parent)
-
-        self.borderSizer = wx.BoxSizer()
-        self.SetSizer(self.borderSizer)
-
-        self.SetBackgroundColour(LIST_DESELECTED)
-        self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback=self.showTorrent)
-
-    @forceWxThread
-    def showTorrent(self, torrent):
-        notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME)
-        listCtrl = BetterListCtrl(notebook)
-        listCtrl.InsertColumn(0, 'Name')
-        listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
-
-        self.il = wx.ImageList(16, 16)
-        play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
-        file_img = self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, size=(16, 16)))
-        listCtrl.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
-
-        for filename, size in torrent.files:
-            try:
-                pos = listCtrl.InsertStringItem(sys.maxsize, filename)
-            except:
-                try:
-                    pos = listCtrl.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
-                except:
-                    self._logger.error("Could not format filename %s", torrent.name)
-            listCtrl.SetItemData(pos, pos)
-            size = self.guiutility.utility.size_format(size)
-            listCtrl.SetStringItem(pos, 1, size)
-
-            if filename in torrent.videofiles:
-                listCtrl.SetItemColumnImage(pos, 0, play_img)
-            else:
-                listCtrl.SetItemColumnImage(pos, 0, file_img)
-
-        listCtrl.setResizeColumn(0)
-        listCtrl.SetMinSize((1, -1))
-        listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE)  # autosize only works after adding rows
-        notebook.AddPage(listCtrl, "Files")
-
-        self.borderSizer.Add(notebook, 1, wx.EXPAND)
-        self.Layout()
-
-
 class MyChannelPlaylist(AbstractDetails):
 
     def __init__(self, parent, on_manage, can_edit=False, on_save=None, on_remove=None, playlist={}):
