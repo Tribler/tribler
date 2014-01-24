@@ -14,7 +14,6 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, Net
 from widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButton
 from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY
 from Tribler.Main.vwxGUI.widgets import _set_font
-from Tribler.Main.vwxGUI.list_bundle import BundleListView
 from Tribler.Main.vwxGUI.channel import SelectedChannelList
 from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker, cancelWorker
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
