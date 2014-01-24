@@ -100,41 +100,6 @@ class TitleFooter(ListFooter):
         self.Thaw()
 
 
-class TotalFooter(TitleFooter):
-
-    def __init__(self, parent, columns, radius=LIST_RADIUS):
-        self.columns = columns
-        ListFooter.__init__(self, parent, radius)
-
-    def GetMidPanel(self, hSizer):
-        self.totals = []
-
-        for i in xrange(len(self.columns)):
-            if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
-                option = 1
-                size = wx.DefaultSize
-            else:
-                option = 0
-                size = (self.columns[i]['width'], -1)
-
-            label = StaticText(self, i, '', style= self.columns[i].get('footer_style', 0) | wx.ST_NO_AUTORESIZE, size = size)
-            hSizer.Add(label, option, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.TOP|wx.BOTTOM, 3)
-
-            if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
-                label.SetMinSize((1, -1))
-
-            self.totals.append(label)
-
-        self.scrollBar = hSizer.AddSpacer((3, 0))
-        self.scrollBar.sizer = hSizer
-
-    def SetTotal(self, column, total, tooltip=None):
-        str_data = self.columns[column].get('fmt', str)(total)
-        self.totals[column].SetLabel(str_data)
-        if tooltip:
-            self.totals[column].SetToolTipString(tooltip)
-
-
 class ChannelResultFooter(ListFooter):
 
     def GetMidPanel(self, hSizer):
