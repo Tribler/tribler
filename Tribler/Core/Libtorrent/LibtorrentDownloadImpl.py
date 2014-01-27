@@ -690,7 +690,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 filepriorities = []
                 for index, orig_path in enumerate(self.orig_files):
-                    filename = orig_path[len(swarmname) + 1:]
+                    filename = orig_path[len(swarmname) + 1:] if swarmname else orig_path
 
                     if filename in selected_files or not selected_files:
                         filepriorities.append(1)
