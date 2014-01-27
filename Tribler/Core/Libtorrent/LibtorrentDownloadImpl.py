@@ -37,6 +37,7 @@ class VODFile(object):
 
         self._file = f
         self._download = d
+        self._closing = False
 
         pieces = self._download.tdef.get_pieces()
         self.pieces = [pieces[x:x + 20]for x in xrange(0, len(pieces), 20)]
@@ -50,7 +51,7 @@ class VODFile(object):
 
         self._logger.debug('VODFile: get bytes %s - %s', oldpos, oldpos + args[0])
 
-        while self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
+        while not self._closing and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
             time.sleep(1)
         result = self._file.read(*args)
 
@@ -149,6 +150,7 @@ class VODFile(object):
         return allpiecesok
 
     def close(self, *args):
+        self._closing = True
         self._file.close(*args)
 
 
