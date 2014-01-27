@@ -348,7 +348,6 @@ class ABCApp():
 
         except Exception as e:
             self.onError(e)
-            return False
 
     def PostInit2(self):
         self.frame.Raise()
@@ -454,8 +453,8 @@ class ABCApp():
                     self.sconfig.set_swift_meta_dir(os.path.join(new_dest_dir, STATEDIR_SWIFTRESEED_DIR))
                     self.sconfig.save(cfgfilename)
                 else:
-                    # Silently quit
-                    self.onError = lambda e:None
+                    # Quit
+                    self.onError = lambda e: self._logger.error("tribler: quitting due to non-existing destination directory")
                     raise Exception()
 
         # Setting torrent collection dir based on default download dir
