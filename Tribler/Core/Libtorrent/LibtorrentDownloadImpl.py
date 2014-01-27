@@ -623,9 +623,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.update_lt_stats()
         if self.get_mode() == DLMODE_VOD:
             if self.progress == 1.0:
-                self.set_vod_mode(False)
+                self.handle.set_sequential_download(False)
+                if self.get_vod_fileindex() >= 0:
+                    self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
             elif self.progress < 1.0:
-                # If we are in VOD mode and still need to download pieces and but libtorrent says we are finished, reset the piece priorities to 1.
+                # If we are in VOD mode and still need to download pieces and libtorrent says we are finished, reset the piece priorities to 1.
                 def reset_priorities():
                     if self.handle.status().progress == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
