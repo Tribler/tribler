@@ -35,7 +35,7 @@ defaults.sessdefaults['general']['maxport'] = -1
 defaults.sessdefaults['swift']['swifttunnellistenport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
-defaults.dldefaults["saveas"] = DEST_DIR
+defaults.dldefaults["downloadconfig"]["saveas"] = DEST_DIR
 
 DEBUG = False
 
@@ -43,8 +43,9 @@ OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
 
 class AbstractServer(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.setUpCleanup()
+        self.annotate_dict = {}
 
     def setUpCleanup(self):
         # Elric: If the files are still there it means that either the last run segfaulted or
@@ -77,17 +78,20 @@ class AbstractServer(unittest.TestCase):
         if not os.path.exists(destdir):
             os.makedirs(destdir)
 
-        filename = os.path.join(destdir, "annotations.txt")
-        if os.path.exists(filename):
-            f = open(filename, 'a')
+        if start:
+            self.annotate_dict[annotation] = time.time()
         else:
-            f = open(filename, 'w')
-            print >> f, "time remark start"
+            filename = os.path.join(destdir, "annotations.txt")
+            if os.path.exists(filename):
+                f = open(filename, 'a')
+            else:
+                f = open(filename, 'w')
+                print >> f, "annotation start end"
 
-        annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
+            _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
 
-        print >> f, time.time(), annotation, '1' if start else '0'
-        f.close()
+            print >> f, _annotation, self.annotate_dict[annotation], time.time()
+            f.close()
 
 
 class TestAsServer(AbstractServer):
@@ -97,7 +101,7 @@ class TestAsServer(AbstractServer):
     """
 
     def setUp(self):
-        self.setUpCleanup()
+        AbstractServer.setUp(self)
         self.setUpPreSession()
 
         self.quitting = False
@@ -183,11 +187,16 @@ class TestAsServer(AbstractServer):
         def DoCheck():
             if not self.quitting:
                 if time.time() - t < timeout:
-                    if condition():
-                        print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t)
-                        callback()
-                    else:
-                        self.Call(0.5, DoCheck)
+                    try:
+                        if condition():
+                            print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback '%s'" % (time.time() - t, callback.__name__)
+                            callback()
+                        else:
+                            self.Call(0.5, DoCheck)
+
+                    except:
+                        print_exc()
+                        self.assert_(False, 'Condition or callback raised an exception, quitting (%s)' % (assertMsg or "no-assert-msg"), do_assert=False)
                 else:
                     print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
                     self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
@@ -203,7 +212,7 @@ class TestGuiAsServer(TestAsServer):
     """
 
     def setUp(self):
-        self.setUpCleanup()
+        AbstractServer.setUp(self)
 
         self.app = wx.GetApp()
         if not self.app:

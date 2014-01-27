@@ -3,6 +3,7 @@
 
 import socket
 import errno
+import logging
 try:
     from select import poll, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1000
@@ -20,8 +21,6 @@ try:
 except:
     True = 1
     False = 0
-
-DEBUG = False
 
 all = POLLIN | POLLOUT
 
@@ -45,6 +44,8 @@ class InterruptSocket:
     will send some data to the InterruptSocket and discard the data.
     """
     def __init__(self, socket_handler):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.socket_handler = socket_handler
         self.handler = InterruptSocketHandler
 
@@ -56,8 +57,7 @@ class InterruptSocket:
         # we assume that one port in the range below is free
         for self.port in xrange(10000, 12345):
             try:
-                if DEBUG:
-                    print >> sys.stderr, "InterruptSocket: Trying to start InterruptSocket on port", self.port
+                self._logger.debug("InterruptSocket: Trying to start InterruptSocket on port %s", self.port)
                 self.socket.bind((self.ip, self.port))
                 break
             except:
@@ -94,6 +94,8 @@ class SingleSocket:
     """
 
     def __init__(self, socket_handler, sock, handler, ip=None):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.socket_handler = socket_handler
         self.socket = sock
         self.handler = handler
@@ -174,7 +176,7 @@ class SingleSocket:
         try:
             self.socket_handler.poll.unregister(sock)
         except Exception as e:
-            print >> sys.stderr, "SocketHandler: close: sock is", sock
+            self._logger.error("SocketHandler: close: sock is %s", sock)
             print_exc()
         sock.close()
 
@@ -238,6 +240,8 @@ class SingleSocket:
 class SocketHandler:
 
     def __init__(self, timeout, ipv6_enable, readsize=100000):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.timeout = timeout
         self.ipv6_enable = ipv6_enable
         self.readsize = readsize
@@ -247,7 +251,6 @@ class SocketHandler:
         self.dead_from_write = []
         self.max_connects = 1000
         self.servers = {}
-        self.interfaces = []
         self.btengine_said_reachable = False
         self.interrupt_socket = None
         self.udp_sockets = {}
@@ -261,13 +264,14 @@ class SocketHandler:
                 tokill.append(s)
         for k in tokill:
             if k.socket is not None:
-                if DEBUG:
-                    print >> sys.stderr, "SocketHandler: scan_timeout closing connection", k.get_ip()
+                self._logger.debug("SocketHandler: scan_timeout closing connection %s", k.get_ip())
                 self._close_socket(k)
 
-    def bind(self, port, bind=[], reuse=False, ipv6_socket_style=1, handler=None):
+    def bind(self, port, bind=[], reuse= False, ipv6_socket_style = 1):
         port = int(port)
         addrinfos = []
+        self.servers = {}
+        self.interfaces = []
         # if bind != [] bind to all specified addresses (can be IPs or hostnames)
         # else bind to default ipv6 and ipv4 address
         if bind:
@@ -292,18 +296,16 @@ class SocketHandler:
                 if reuse:
                     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 server.setblocking(0)
-                if DEBUG:
-                    print >> sys.stderr, "SocketHandler: Try to bind socket on", addrinfo[4], "..."
+                self._logger.debug("SocketHandler: Try to bind socket on %s ...", addrinfo[4])
                 server.bind(addrinfo[4])
-                self.servers[server.fileno()] = (server, handler)
+                self.servers[server.fileno()] = server
                 if bind:
                     self.interfaces.append(server.getsockname()[0])
-                if DEBUG:
-                    print >> sys.stderr, "SocketHandler: OK"
+                self._logger.debug("SocketHandler: OK")
                 server.listen(64)
                 self.poll.register(server, POLLIN)
             except socket.error as e:
-                for server, _ in self.servers.values():
+                for server in self.servers.values():
                     try:
                         server.close()
                     except:
@@ -315,8 +317,8 @@ class SocketHandler:
             raise socket.error('unable to open server port')
         self.port = port
 
-    def find_and_bind(self, first_try, minport, maxport, bind='', reuse=False,
-                      ipv6_socket_style=1, randomizer=False, handler=None):
+    def find_and_bind(self, first_try, minport, maxport, bind='', reuse= False,
+                      ipv6_socket_style=1, randomizer= False):
         e = 'maxport less than minport - no ports to check'
         if maxport - minport < 50 or not randomizer:
             portrange = range(minport, maxport + 1)
@@ -332,7 +334,7 @@ class SocketHandler:
         if first_try != 0:    # try 22 first, because TU only opens port 22 for SSH...
             try:
                 self.bind(first_try, bind, reuse=reuse,
-                         ipv6_socket_style=ipv6_socket_style, handler=handler)
+                         ipv6_socket_style=ipv6_socket_style)
                 return first_try
             except socket.error as e:
                 pass
@@ -340,7 +342,7 @@ class SocketHandler:
             try:
                 # print >> sys.stderr, listen_port, bind, reuse
                 self.bind(listen_port, bind, reuse=reuse,
-                               ipv6_socket_style=ipv6_socket_style, handler=handler)
+                               ipv6_socket_style=ipv6_socket_style)
                 return listen_port
             except socket.error as e:
                 raise
@@ -349,26 +351,24 @@ class SocketHandler:
     def set_handler(self, handler):
         self.handler = handler
 
-    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler=None):
+    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler= None):
         # handler = Encoder, self.handler = Multihandler
         if handler is None:
             handler = self.handler
         sock = socket.socket(socktype, socket.SOCK_STREAM)
         sock.setblocking(0)
         try:
-            if DEBUG:
-                print >> sys.stderr, "SocketHandler: Initiate connection to", dns, "with socket #", sock.fileno()
+            self._logger.debug("SocketHandler: Initiate connection to %s with socket #%s", dns, sock.fileno())
             # Arno,2007-01-23: http://docs.python.org/lib/socket-objects.html
             # says that connect_ex returns an error code (and can still throw
             # exceptions). The original code never checked the return code.
             #
             err = sock.connect_ex(dns)
-            if DEBUG:
-                if err == 0:
-                    msg = 'No error'
-                else:
-                    msg = errno.errorcode[err]
-                print >> sys.stderr, "SocketHandler: connect_ex on socket #", sock.fileno(), "returned", err, msg
+            if err == 0:
+                msg = 'No error'
+            else:
+                msg = errno.errorcode[err]
+            self._logger.debug("SocketHandler: connect_ex on socket #%s returned %s %s", sock.fileno(), err, msg)
             if err != 0:
                 if sys.platform == 'win32' and err == 10035:
                     # Arno, 2007-02-23: win32 always returns WSAEWOULDBLOCK, whether
@@ -382,12 +382,10 @@ class SocketHandler:
                 else:
                     raise socket.error((err, errno.errorcode[err]))
         except socket.error as e:
-            if DEBUG:
-                print >> sys.stderr, "SocketHandler: SocketError in connect_ex", str(e)
+            self._logger.debug("SocketHandler: SocketError in connect_ex %s", e)
             raise
         except Exception as e:
-            if DEBUG:
-                print >> sys.stderr, "SocketHandler: Exception in connect_ex", str(e)
+            self._logger.debug("SocketHandler: Exception in connect_ex %s", e)
             raise socket.error(str(e))
 
         s = SingleSocket(self, sock, handler, dns[0])    # create socket to connect the peers obtained from tracker
@@ -397,7 +395,7 @@ class SocketHandler:
         #    print >> sys.stderr,"SocketHandler: Created Socket"
         return s
 
-    def start_connection(self, dns, handler=None, randomize=False):
+    def start_connection(self, dns, handler=None, randomize= False):
         if handler is None:
             handler = self.handler
         if sys.version_info < (2, 2):
@@ -462,26 +460,23 @@ class SocketHandler:
     def handle_events(self, events):
         for sock, event in events:
             # print >>sys.stderr,"SocketHandler: event on sock#",sock
-            s, h = self.servers.get(sock, (None, None))    # socket.socket
+            s = self.servers.get(sock)    # socket.socket
             if s:
                 if event & (POLLHUP | POLLERR) != 0:
-                    if DEBUG:
-                        print >> sys.stderr, "SocketHandler: Got event, close server socket"
+                    self._logger.debug("SocketHandler: Got event, close server socket")
                     self.poll.unregister(s)
                     del self.servers[sock]
                 else:
                     try:
                         newsock, addr = s.accept()
-                        if DEBUG:
-                            print >> sys.stderr, "SocketHandler: Got connection from", newsock.getpeername()
+                        self._logger.debug("SocketHandler: Got connection from %s", newsock.getpeername())
                         if not self.btengine_said_reachable:
                             try:
                                 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
                                 dmh = DialbackMsgHandler.getInstance()
                                 dmh.network_btengine_reachable_callback()
                             except ImportError:
-                                if DEBUG:
-                                    print_exc()
+                                print_exc()
                                 pass
                             self.btengine_said_reachable = True
 
@@ -490,17 +485,16 @@ class SocketHandler:
                         # the connection.
                         if len(self.single_sockets) < self.max_connects:
                             newsock.setblocking(0)
-                            nss = SingleSocket(self, newsock, (h or self.handler))    # create socket for incoming peers and tracker
+                            nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
                             self.single_sockets[newsock.fileno()] = nss
                             self.poll.register(newsock, POLLIN)
-                            (h or self.handler).external_connection_made(nss)
+                            self.handler.external_connection_made(nss)
                         else:
-                            print >> sys.stderr, "SocketHandler: too many connects"
+                            self._logger.info("SocketHandler: too many connects")
                             newsock.close()
 
                     except socket.error as e:
-                        if DEBUG:
-                            print >> sys.stderr, "SocketHandler: SocketError while accepting new connection", str(e)
+                        self._logger.debug("SocketHandler: SocketError while accepting new connection %s", e)
                         self._sleep()
                 continue
 
@@ -512,17 +506,14 @@ class SocketHandler:
                         while True:
                             (data, addr) = s.socket.recvfrom(65535)
                             if not data:
-                                if DEBUG:
-                                    print >> sys.stderr, "SocketHandler: UDP no-data", addr
+                                self._logger.debug("SocketHandler: UDP no-data %s", addr)
                                 break
                             else:
-                                if DEBUG:
-                                    print >> sys.stderr, "SocketHandler: Got UDP data", addr, "len", len(data)
+                                self._logger.debug("SocketHandler: Got UDP data %s len %s", addr, len(data))
                                 packets.append((addr, data))
 
                     except socket.error as e:
-                        if DEBUG:
-                            print >> sys.stderr, "SocketHandler: UDP Socket error", str(e)
+                        self._logger.debug("SocketHandler: UDP Socket error %s", e)
 
                 finally:
                     s.handler.data_came_in(packets)
@@ -532,9 +523,8 @@ class SocketHandler:
             s = self.single_sockets.get(sock)
             if s:
                 if (event & (POLLHUP | POLLERR)):
-                    if DEBUG:
-                        print >> sys.stderr, "SocketHandler: Got event, connect socket got error", sock
-                        print >> sys.stderr, "SocketHandler: Got event, connect socket got error", s.ip, s.port
+                    self._logger.debug("SocketHandler: Got event, connect socket got error %s", sock)
+                    self._logger.debug("SocketHandler: Got event, connect socket got error %s %s", s.ip, s.port)
                     self._close_socket(s)
                     continue
                 if (event & POLLIN):
@@ -542,8 +532,7 @@ class SocketHandler:
                         s.last_hit = clock()
                         data = s.socket.recv(100000)
                         if not data:
-                            if DEBUG:
-                                print >> sys.stderr, "SocketHandler: no-data closing connection", s.get_ip(), s.get_port()
+                            self._logger.debug("SocketHandler: no-data closing connection %s %s", s.get_ip(), s.get_port())
                             self._close_socket(s)
                         else:
                             # if DEBUG:
@@ -552,12 +541,10 @@ class SocketHandler:
                             # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
                             s.handler.data_came_in(s, data)
                     except socket.error as e:
-                        if DEBUG:
-                            print >> sys.stderr, "SocketHandler: Socket error", str(e)
+                        self._logger.debug("SocketHandler: Socket error %s", e)
                         code, msg = e
                         if code != SOCKET_BLOCK_ERRORCODE:
-                            if DEBUG:
-                                print >> sys.stderr, "SocketHandler: closing connection because not WOULDBLOCK", s.get_ip(), "error", code
+                            self._logger.debug("SocketHandler: closing connection because not WOULDBLOCK %s, error %s", s.get_ip(), code)
                             self._close_socket(s)
                             continue
                 if (event & POLLOUT) and s.socket and not s.is_flushed():
@@ -567,7 +554,7 @@ class SocketHandler:
                         s.handler.connection_flushed(s)
             else:
                 # Arno, 2012-08-1: Extra protection.
-                print >> sys.stderr, "SocketHandler: got event on unregistered sock", sock
+                self._logger.info("SocketHandler: got event on unregistered sock %s", sock)
                 try:
                     self.poll.unregister(sock)
                 except:
@@ -579,13 +566,11 @@ class SocketHandler:
             self.dead_from_write = []
             for s in old:
                 if s.socket:
-                    if DEBUG:
-                        print >> sys.stderr, "SocketHandler: close_dead closing connection", s.get_ip()
+                    self._logger.debug("SocketHandler: close_dead closing connection %s", s.get_ip())
                     self._close_socket(s)
 
     def _close_socket(self, s):
-        if DEBUG:
-            print >> sys.stderr, "SocketHandler: closing connection to ", s.get_ip()
+        self._logger.debug("SocketHandler: closing connection to %s", s.get_ip())
         s.close()
         s.handler.connection_lost(s)
 
@@ -593,14 +578,13 @@ class SocketHandler:
         r = self.poll.poll(t * timemult)
         if r is None:
             connects = len(self.single_sockets)
-            to_close = int(connects * 0.05) + 1 # close 5% of sockets
+            to_close = int(connects * 0.05) +1 # close 5% of sockets
             self.max_connects = connects - to_close
             closelist = [sock for sock in self.single_sockets.values() if not isinstance(sock, InterruptSocket)]
             shuffle(closelist)
             closelist = closelist[:to_close]
             for sock in closelist:
-                if DEBUG:
-                    print >> sys.stderr, "SocketHandler: do_poll closing connection", sock.get_ip()
+                self._logger.debug("SocketHandler: do_poll closing connection %s", sock.get_ip())
                 self._close_socket(sock)
             return []
         return r
@@ -615,7 +599,7 @@ class SocketHandler:
                 ss.close()
             except:
                 pass
-        for server, _ in self.servers.values():
+        for server in self.servers.values():
             try:
                 server.close()
             except:

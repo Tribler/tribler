@@ -6,6 +6,7 @@
 #
 
 import sys
+import logging
 from threading import Thread, Lock, currentThread, Event
 import socket
 from traceback import print_exc
@@ -17,14 +18,16 @@ except ImportError as e:
 
 from Tribler.dispersy.decorator import attach_profiler
 
-DEBUG = False
-
 
 class FastI2IConnection(Thread):
 
     def __init__(self, port, readlinecallback, closecallback):
         Thread.__init__(self)
-        self.setName("FastI2I" + self.getName())
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        name = "FastI2I" + self.getName()
+        self.setName(name)
         self.setDaemon(True)
 
         self.port = port
@@ -73,8 +76,7 @@ class FastI2IConnection(Thread):
         """ Read \r\n ended lines from data and call readlinecallback(self,line) """
         # data may come in in parts, not lines! Or multiple lines at same time
 
-        if DEBUG:
-            print >> sys.stderr, "fasti2i: data_came_in", repr(data), len(data)
+        self._logger.debug("fasti2i: data_came_in %s %s", repr(data), len(data))
 
         if len(self.buffer) == 0:
             self.buffer = data

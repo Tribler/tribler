@@ -6,30 +6,30 @@ import os
 import sys
 import json
 import copy
+import logging
 
 from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
 from Tribler.Main.Utility.GuiDBTuples import Torrent
-from Tribler.Main.vwxGUI import forceWxThread
 
 
 class SaveAs(wx.Dialog):
 
-    def __init__(self, parent, tdef, defaultdir, defaultname, config, selectedFiles=None):
+    def __init__(self, parent, tdef, defaultdir, defaultname, selectedFiles=None):
+        self._logger = logging.getLogger(self.__class__.__name__)
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450), name="SaveAsDialog")
 
-        self.config = config
+        self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
         self.filehistory = []
         try:
-            self.filehistory = json.loads(self.config.Read("recent_download_history"))
+            self.filehistory = json.loads(self.utility.read_config("recent_download_history", literal_eval=False))
         except:
             pass
 
         self.defaultdir = defaultdir
-        self.guiutility = GUIUtility.getInstance()
         self.listCtrl = None
         self.collected = None
 
@@ -142,7 +142,7 @@ class SaveAs(wx.Dialog):
                 try:
                     pos = self.listCtrl.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
                 except:
-                    print >> sys.stderr, "Could not format filename", self.torrent.name
+                    self._logger.error("Could not format filename %s", self.torrent.name)
             self.listCtrl.SetItemData(pos, pos)
             self.listCtrl.SetStringItem(pos, 1, self.guiutility.utility.size_format(size))
 
@@ -182,7 +182,7 @@ class SaveAs(wx.Dialog):
         return self.collected
 
     def GetPath(self):
-        return self.dirTextCtrl.GetValue().strip()
+        return self.dirTextCtrl.GetValue().strip().rstrip(os.path.sep)
 
     def GetSelectedFiles(self):
         if self.listCtrl:
@@ -213,8 +213,8 @@ class SaveAs(wx.Dialog):
         self.filehistory.insert(0, path)
         self.filehistory = self.filehistory[:25]
 
-        self.config.Write("recent_download_history", json.dumps(self.filehistory))
-        self.config.Flush()
+        self.utility.write_config("recent_download_history", json.dumps(self.filehistory))
+        self.utility.flush_config()
 
         self.EndModal(wx.ID_OK)
 

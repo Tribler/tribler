@@ -105,7 +105,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(10, lambda : 'stopped' in self.frame.librarylist.list.GetItem(infohash).original_data.state, do_resume, 'download not stopped')
 
         def item_shown_in_list():
-            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, do_stop, 'no download progress')
+            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, do_stop, 'no download progress')
 
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(infohash), item_shown_in_list, 'no download in librarylist')
@@ -120,13 +120,15 @@ class TestLibtorrentDownload(TestGuiAsServer):
     def test_playdownload(self):
         t = time()
 
-        def take_screenshot():
-            self.screenshot("After streaming a libtorrent download (buffering took %.2f s)" % (time() - t))
+        def take_screenshot(buffer_complete):
+            self.screenshot("After streaming a libtorrent download (buffering took %.2f s)" % (buffer_complete - t))
             self.quit()
 
         def check_playlist():
             from Tribler.Video.VideoPlayer import VideoPlayer
             from Tribler.Video.utils import videoextdefaults
+
+            buffer_complete = time()
 
             d = VideoPlayer.getInstance().get_vod_download()
             videofiles = []
@@ -138,21 +140,21 @@ class TestLibtorrentDownload(TestGuiAsServer):
                     videofiles.append(filename)
 
             playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
-            self.CallConditional(10, lambda: len(playlist.links) == len(videofiles), take_screenshot, "lists did not match length")
+            self.CallConditional(10, lambda: len(playlist.links) == len(videofiles), lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "lists did not match length")
 
         def do_monitor():
             from Tribler.Video.VideoPlayer import VideoPlayer
-
             d = VideoPlayer.getInstance().get_vod_download()
-            self.assert_(bool(d), "No VOD download found")
 
             self.screenshot('After starting a VOD download')
             self.CallConditional(60, lambda: d.network_get_vod_stats()['status'] == "started", check_playlist, "streaming did not start")
 
         def do_vod():
-            self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/8-blue---a-short-film.torrent', self.getDestDir(), selectedFiles=[os.path.join('Content', 'blue-a-short-film-divx.avi')], vodmode=True)
+            from Tribler.Video.VideoPlayer import VideoPlayer
+
+            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir(), selectedFiles=[os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')], vodmode=True)
             self.guiUtility.ShowPlayer()
-            self.Call(30, do_monitor)
+            self.CallConditional(30, lambda: VideoPlayer.getInstance().get_vod_download(), do_monitor, "VOD download not found")
 
         self.startTest(do_vod)
 

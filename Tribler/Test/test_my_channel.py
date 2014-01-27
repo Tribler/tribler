@@ -10,8 +10,8 @@ import threading
 
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings, UPLOAD
 
 DEBUG = True
 class TestMyChannel(TestGuiAsServer):
@@ -32,7 +32,7 @@ class TestMyChannel(TestGuiAsServer):
             self.CallConditional(60, lambda: len(managefiles.GetItems()) > 0, do_files_check, 'Channel did not have torrents')
 
         def do_rss():
-            self.managechannel.rss_url.SetValue('http://www.clearbits.net/feeds/creator/184-pioneer-one.rss')
+            self.managechannel.rss_url.SetValue(r'http://torrent.fedoraproject.org/rss20.xml')
             self.managechannel.OnAddRss()
 
             # switch to manage tab
@@ -92,9 +92,9 @@ class TestMyChannel(TestGuiAsServer):
             self.screenshot('Playlist has been created')
 
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())
-            download.add_peer(("127.0.0.1", self.session2.get_listen_port()))
 
             self.guiUtility.ShowPage('my_files')
+            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
             self.CallConditional(10, lambda: download.get_progress() == 1.0, lambda: do_thumbnails(torrentfilename), 'Failed to download torrent in time')
 
         def do_create_playlist(torrentfilename):
@@ -125,7 +125,7 @@ class TestMyChannel(TestGuiAsServer):
             managefiles = self.managechannel.fileslist
             manager = managefiles.GetManager()
             manager.startDownload(torrentfilename, fixtorrent=True)
-            manager.startDownloadFromUrl(r'http://www.clearbits.net/get/1678-zenith-part-1.torrent', fixtorrent=True)
+            manager.startDownloadFromUrl(r'http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent', fixtorrent=True)
             manager.startDownloadFromMagnet(r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', fixtorrent=True)
 
             self.CallConditional(10, lambda: self.managechannel.notebook.GetPageCount() > 1, lambda: do_switch_tab(torrentfilename))

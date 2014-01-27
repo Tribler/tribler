@@ -9,8 +9,6 @@
 
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 
-DEBUG = False
-
 
 class GUITaskQueue(TimedTaskQueue):
 

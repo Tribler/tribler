@@ -39,14 +39,14 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
     def updateIcon(self, iconifying=False):
         remove = True
 
-        mintray = self.utility.config.Read('mintray', "int")
+        mintray = self.utility.read_config('mintray')
         if (mintray >= 2) or ((mintray >= 1) and iconifying):
             remove = False
 
         if remove and self.IsIconInstalled():
             self.RemoveIcon()
         elif not remove and not self.IsIconInstalled():
-            self.SetIcon(self.utility.icon, "Tribler")
+            self.SetIcon(self.parent.GetIcon(), "Tribler")
 
     def CreatePopupMenu(self):
         menu = wx.Menu()
@@ -85,7 +85,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
 
         lpdata = (self.__GetIconHandle(),
                   99,
-                  win32gui.NIF_MESSAGE | win32gui.NIF_TIP |win32gui.NIF_INFO|win32gui.NIF_ICON,
+                  win32gui.NIF_MESSAGE | win32gui.NIF_TIP | win32gui.NIF_INFO | win32gui.NIF_ICON,
                   0,
                   hicon,
                   '',

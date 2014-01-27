@@ -1,5 +1,8 @@
 # Written by Niels Zeilemaker
 import wx
+import logging
+from time import time
+import pickle
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
@@ -27,13 +30,14 @@ from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
 from random import sample
 
-DEBUG = False
-
 
 class ChannelManager(BaseManager):
 
     def __init__(self, list):
         BaseManager.__init__(self, list)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.library_manager = self.guiutility.library_manager
 
@@ -79,17 +83,15 @@ class ChannelManager(BaseManager):
             self.refresh(channel)
 
     def _refresh_list(self, stateChanged=False):
-        if DEBUG:
-            t1 = time()
-            print >> sys.stderr, "SelChannelManager complete refresh", t1
+        t1 = time()
+        self._logger.debug("SelChannelManager complete refresh %s", t1)
 
         self.list.dirty = False
 
         def db_callback():
             channel = self.list.channel
             if channel:
-                if DEBUG:
-                    t2 = time()
+                t2 = time()
 
                 if stateChanged:
                     state, iamModerator = channel.refreshState()
@@ -103,9 +105,8 @@ class ChannelManager(BaseManager):
                     playlists = []
                     total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(channel, self.guiutility.getFamilyFilter())
 
-                if DEBUG:
-                    t3 = time()
-                    print >> sys.stderr, "SelChannelManager complete refresh took", t3 - t1, t2 - t1, t3
+                t3 = time()
+                self._logger.debug("SelChannelManager complete refresh took %s %s %s", t3 - t1, t2 - t1, t3)
 
                 return total_items, nrfiltered, torrentList, playlists, state, iamModerator
 
@@ -148,8 +149,7 @@ class ChannelManager(BaseManager):
                 torrents = torrents[:CHANNEL_MAX_NON_FAVORITE]
 
         self.list.SetData(playlists, torrents)
-        if DEBUG:
-            print >> sys.stderr, "SelChannelManager complete refresh done"
+        self._logger.debug("SelChannelManager complete refresh done")
 
     @forceDBThread
     def refresh_partial(self, ids):
@@ -242,8 +242,8 @@ class SelectedChannelList(GenericSearchList):
         misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
         for key, name in Category.getInstance().getCategoryNames(filter=False):
-            if key in misc_db._torrent_status_name2id_dict:
-                self.category_names[misc_db._torrent_status_name2id_dict[key]] = name
+            if key in misc_db._category_name2id_dict:
+                self.category_names[misc_db._category_name2id_dict[key]] = name
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 
@@ -644,6 +644,10 @@ class SelectedChannelList(GenericSearchList):
 
         SizeList.OnFilter(self, new_filter)
 
+    def GotFilter(self, keyword=None):
+        GenericSearchList.GotFilter(self, keyword)
+        self.GetManager().do_or_schedule_refresh()
+
     @warnWxThread
     def Select(self, key, raise_event=True):
         if isinstance(key, Torrent):
@@ -918,15 +922,20 @@ class ManageChannelFilesManager(BaseManager):
     def startDownloadFromUrl(self, url, *args, **kwargs):
         try:
             tdef = TorrentDef.load_from_url(url)
-            return self.AddTDef(tdef)
+            if tdef:
+                return self.AddTDef(tdef)
         except:
-            return False
+            print_exc()
+
+        return False
 
     def startDownloadFromMagnet(self, url, *args, **kwargs):
         try:
             return TorrentDef.retrieve_from_magnet(url, self.AddTDef, timeout=300)
+
         except:
-            return False
+            print_exc()
+        return False
 
     def startDownload(self, torrentfilename, *args, **kwargs):
         try:
@@ -939,8 +948,10 @@ class ManageChannelFilesManager(BaseManager):
                 download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
                 self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
             return self.AddTDef(tdef)
+
         except:
-            return False
+            print_exc()
+        return False
 
     def startDownloads(self, filenames, *args, **kwargs):
         torrentdefs = []
@@ -2094,14 +2105,17 @@ class CommentList(List):
     def ShowPreview(self):
         altControl = None
         if isinstance(self.parent_list, SelectedChannelList):
-            altControl = wx.BoxSizer(wx.HORIZONTAL)
-            altControl.AddStretchSpacer()
+            def create_button(parentPanel):
+                hSizer = wx.BoxSizer(wx.HORIZONTAL)
+                hSizer.AddStretchSpacer()
 
-            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
-            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
-            altControl.Add(button, 0, wx.TOP, 3)
-            altControl.AddStretchSpacer()
+                button = wx.Button(parentPanel, -1, 'Mark as Favorite')
+                button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+                hSizer.Add(button, 0, wx.TOP, 3)
+                hSizer.AddStretchSpacer()
+                return hSizer
 
+            altControl = create_button
         self.list.ShowMessage('You have to mark this channel as a Favorite to start receiving comments.', 'No comments received yet', altControl)
 
     def EnableCommeting(self, enable=True):
@@ -2245,14 +2259,17 @@ class ActivityList(List):
     def ShowPreview(self):
         altControl = None
         if isinstance(self.parent_list, SelectedChannelList):
-            altControl = wx.BoxSizer(wx.HORIZONTAL)
-            altControl.AddStretchSpacer()
+            def create_button(parentPanel):
+                hSizer = wx.BoxSizer(wx.HORIZONTAL)
+                hSizer.AddStretchSpacer()
 
-            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
-            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
-            altControl.Add(button, 0, wx.TOP, 3)
-            altControl.AddStretchSpacer()
+                button = wx.Button(parentPanel, -1, 'Mark as Favorite')
+                button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+                hSizer.Add(button, 0, wx.TOP, 3)
+                hSizer.AddStretchSpacer()
+                return hSizer
 
+            altControl = create_button
         self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing activity.', 'No activity received yet', altControl)
 
     def OnShowTorrent(self, torrent):
@@ -2457,14 +2474,17 @@ class ModerationList(List):
     def ShowPreview(self):
         altControl = None
         if isinstance(self.parent_list, SelectedChannelList):
-            altControl = wx.BoxSizer(wx.HORIZONTAL)
-            altControl.AddStretchSpacer()
+            def create_button(parentPanel):
+                hSizer = wx.BoxSizer(wx.HORIZONTAL)
+                hSizer.AddStretchSpacer()
 
-            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
-            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
-            altControl.Add(button, 0, wx.TOP, 3)
-            altControl.AddStretchSpacer()
+                button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
+                button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+                hSizer.Add(button, 0, wx.TOP, 3)
+                hSizer.AddStretchSpacer()
+                return hSizer
 
+            altControl = create_button
         self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing moderations.', 'No moderations received yet', altControl)
 
     def OnShowTorrent(self, torrent):

@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 import os
 import sys
+import logging
 from threading import currentThread
 from traceback import print_stack
 from math import log
@@ -12,7 +13,7 @@ from time import time
 from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
+from Tribler.Main.vwxGUI.widgets import HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -28,14 +29,12 @@ from list_details import *
 from list_footer import *
 from list_header import *
 
-from widgets import _set_font, ChannelPopularity, SwarmHealth
+from widgets import _set_font, SwarmHealth
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
-from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Category.Category import Category
 
-DEBUG = False
 DEBUG_RELEVANCE = False
 MAX_REFRESH_PARTIAL = 5
 
@@ -43,6 +42,8 @@ MAX_REFRESH_PARTIAL = 5
 class BaseManager:
 
     def __init__(self, list):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.list = list
         self.dirtyset = set()
         self.guiutility = GUIUtility.getInstance()
@@ -122,15 +123,13 @@ class RemoteSearchManager(BaseManager):
 
     def refresh(self, remote=False):
         def db_callback():
-            if DEBUG:
-                begintime = time()
+            begintime = time()
 
             keywords = self.oldkeywords
 
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
-            if DEBUG:
-                print >> sys.stderr, 'RemoteSearchManager: refresh returning results took', time() - begintime, time()
+            self._logger.debug('RemoteSearchManager: refresh returning results took %s %s', time() - begintime, time())
 
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
@@ -149,10 +148,9 @@ class RemoteSearchManager(BaseManager):
             if new_items or modified_hits:
                 self.list.SetData(data_files)
             else:
-                if DEBUG:
-                    print >> sys.stderr, "RemoteSearchManager: not refreshing list, no new items"
-        elif DEBUG:
-            print >> sys.stderr, "RemoteSearchManager: ignoring old keywords"
+                self._logger.debug("RemoteSearchManager: not refreshing list, no new items")
+        else:
+            self._logger.debug("RemoteSearchManager: ignoring old keywords")
 
     def refresh_channel(self):
         def db_callback():
@@ -230,11 +228,11 @@ class LocalSearchManager(BaseManager):
     def refresh_if_exists(self, infohashes, force=False):
         def db_call():
             if self.library_manager.exists(infohashes):
-                print >> sys.stderr, long(time()), "Scheduling a refresh, missing some infohashes in the Library"
+                self._logger.info("%s Scheduling a refresh, missing some infohashes in the Library", long(time()))
 
                 self.refresh()
             else:
-                print >> sys.stderr, long(time()), "Not scheduling a refresh"
+                self._logger.info("%s Not scheduling a refresh", long(time()))
 
         diff = time() - self.prev_refresh_if
         if force or diff > 30:
@@ -242,7 +240,7 @@ class LocalSearchManager(BaseManager):
 
             startWorker(None, db_call, uId=u"LocalSearchManager_refresh_if_exists", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
-            print >> sys.stderr, long(time()), "Not scheduling a refresh, update limit", long(time()), long(self.prev_refresh_if)
+            self._logger.info("%s Not scheduling a refresh, update limit %s %s", long(time()), long(time()), long(self.prev_refresh_if))
 
     def refresh_or_expand(self, infohash):
         if not self.list.InList(infohash):
@@ -314,8 +312,7 @@ class ChannelSearchManager(BaseManager):
         self.dirtyset.clear()
 
     def refresh(self, search_results=None):
-        if DEBUG:
-            print >> sys.stderr, "ChannelManager complete refresh"
+        self._logger.debug("ChannelManager complete refresh")
 
         if self.category != 'searchresults':
             category = self.category
@@ -358,8 +355,7 @@ class ChannelSearchManager(BaseManager):
 
             self.list.SetCategory(category)
             self.list.SetData(data)
-            if DEBUG:
-                print >> sys.stderr, "ChannelManager complete refresh done"
+            self._logger.debug("ChannelManager complete refresh done")
 
     def refresh_partial(self, ids=None):
         if ids:
@@ -1192,12 +1188,14 @@ class GenericSearchList(SizeList):
             if self.guiutility.getFamilyFilter():
                 message += '\n\nAdditionally, you could disable the "Family filter".'
 
-                suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-                ffbutton = LinkStaticText(self.list.messagePanel, 'Turn off Family filter', None)
-                ffbutton.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.toggleFamilyFilter(setCheck=True))
-                suggestionSizer.Add(ffbutton)
+                def create_suggestion(parentPanel):
+                    vSizer = wx.BoxSizer(wx.VERTICAL)
+                    ffbutton = LinkStaticText(parentPanel, 'Turn off Family filter', None)
+                    ffbutton.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.toggleFamilyFilter(setCheck=True))
+                    vSizer.Add(ffbutton)
+                    return vSizer
 
-                self.list.ShowMessage(message, header, suggestionSizer)
+                self.list.ShowMessage(message, header, create_suggestion)
             else:
                 self.list.ShowMessage(message, header)
             self.SetNrResults(0)
@@ -1599,15 +1597,18 @@ class SearchList(GenericSearchList):
             suggestions = delayedResult.get()
 
             if len(suggestions) > 0:
-                suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-                suggestionSizer.Add(StaticText(self.list.messagePanel, -1, "Alternatively, try one of the following suggestions:"))
-                for suggestion, hits in suggestions:
-                    label = LinkStaticText(self.list.messagePanel, suggestion)
-                    label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
-                    suggestionSizer.Add(label)
+                def create_suggestion(parentPanel):
+                    vSizer = wx.BoxSizer(wx.VERTICAL)
+                    vSizer.Add(StaticText(parentPanel, -1, "Alternatively, try one of the following suggestions:"))
+                    for suggestion, hits in suggestions:
+                        label = LinkStaticText(parentPanel, suggestion)
+                        label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
+                        vSizer.Add(label)
+
+                    return vSizer
 
                 header, message = self.list.GetMessage()
-                self.list.ShowMessage(message, header, suggestionSizer)
+                self.list.ShowMessage(message, header, create_suggestion)
 
     def OnSearchSuggestion(self, event):
         label = event.GetEventObject()
@@ -1664,8 +1665,8 @@ class LibraryList(SizeList):
                    {'name': 'Progress', 'type': 'method', 'width': '20em', 'method': self.CreateProgress, 'showColumname': False, 'autoRefresh': False},
                    {'name': 'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format},
                    {'name': 'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True, 'autoRefresh': False},
-                   {'name': 'Down speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False},
-                   {'name': 'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False},
+                   {'name': 'Down speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
+                   {'name': 'Up speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
                    {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
@@ -1786,6 +1787,10 @@ class LibraryList(SizeList):
         if ds1.get_current_speed('up') != ds2.get_current_speed('up'):
             return False
 
+        # Compare seeding stats
+        if ds1.get_seeding_statistics() != ds2.get_seeding_statistics():
+            return False
+
         seeds1, peers1 = ds1.get_num_seeds_peers()
         seeds2, peers2 = ds2.get_num_seeds_peers()
         if seeds1 != seeds2:
@@ -1810,9 +1815,9 @@ class LibraryList(SizeList):
 
         newFilter = self.newfilter
         show_seeding_colours = False
-        if self.statefilter == 'active' and self.utility.config.Read('t4t_option', 'int') == 0:
+        if self.statefilter == 'active' and self.utility.read_config('t4t_option') == 0:
             show_seeding_colours = True
-            t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
+            t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
 
             orange = LIST_ORANGE
             orange = rgb_to_hsv(orange.Red() / 255.0, orange.Green() / 255.0, orange.Blue() / 255.0)
@@ -1830,10 +1835,10 @@ class LibraryList(SizeList):
             if self.statefilter != None:
                 self.list.SetData()  # basically this means execute filter again
 
-        for item in self.list.items.itervalues():
+        for infohash, item in self.list.items.iteritems():
             ds = item.original_data.ds
             id = ds.get_download().get_def().get_id() if ds else None
-            if newFilter or not self.__ds__eq__(ds, self.oldDS.get(id, None)):
+            if True or newFilter or not self.__ds__eq__(ds, self.oldDS.get(id, None)):
                 if ds and hasattr(item, 'progressPanel'):
                     progress = item.progressPanel.Update(item.original_data)
                     item.data[1] = progress
@@ -1910,16 +1915,20 @@ class LibraryList(SizeList):
                 # For updating torrent icons
                 torrent_ds, swift_ds = item.original_data.dslist
                 torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
-                                  torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]
+                                  torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 swift_enabled = bool(swift_ds) and swift_ds.get_download().get_def().get_def_type() == 'swift' and \
-                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]
+                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 item.icons[0].Show(torrent_enabled)
                 item.icons[1].Show(swift_enabled)
+
+                self.oldDS[infohash] = ds
 
         if newFilter:
             self.newfilter = False
 
-        self.oldDS = dict([(infohash, item.original_data.ds) for infohash, item in self.list.items.iteritems()])
+        # Clean old downloadstates
+        for infohash in set(self.oldDS.iterkeys()) - set(self.list.items.iterkeys()):
+            self.oldDS.pop(infohash)
 
     @warnWxThread
     def RefreshBandwidthHistory(self, dslist, magnetlist):
@@ -2013,8 +2022,8 @@ class LibraryList(SizeList):
 
         if self.statefilter:
             message += " with state %s" % self.statefilter
-            if self.statefilter == 'active'and self.utility.config.Read('t4t_option', 'int') == 0:
-                t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
+            if self.statefilter == 'active'and self.utility.read_config('t4t_option') == 0:
+                t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
                 message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of %.1f" % t4t_ratio
         return header, message
 

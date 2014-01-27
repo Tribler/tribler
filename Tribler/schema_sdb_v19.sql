@@ -121,11 +121,6 @@ CREATE INDEX Torrent_info_roothash_idx
   ON Torrent
   (infohash, swift_torrent_hash);
 
- -- Arno, 2012-07-05: speed up
-CREATE UNIQUE INDEX Torrent_swift_hash_idx
-  ON Torrent
-  (swift_hash);
-
 -- Arno, 2012-07-30: speed up on_torrent_collect_response
 CREATE UNIQUE INDEX Torrent_swift_torrent_hash_idx
   ON Torrent

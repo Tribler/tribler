@@ -4,6 +4,7 @@
 import sys
 import os
 import random
+import logging
 from traceback import print_exc, print_stack
 from threading import currentThread
 
@@ -15,13 +16,14 @@ from Tribler.Video.defs import *
 #                 vlc.EndStatus:'vlc.EndStatus',
 #                 vlc.UndefinedStatus:'vlc.UndefinedStatus'}
 
-DEBUG = False
 VLC_MAXVOLUME = 200  # Also for 0.3
+
+logger = logging.getLogger(__name__)
 
 
 def check_threading():
     if currentThread().getName() != "MainThread":
-        print >> sys.stderr, "VLCWrapper: Thread violation!"
+        logger.info("VLCWrapper: Thread violation!")
         print_stack()
 
 
@@ -35,6 +37,8 @@ class VLCWrapper:
     """
 
     def __init__(self, installdir):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         check_threading()
         self.installdir = installdir
         self.window = None
@@ -88,7 +92,7 @@ class VLCWrapper:
         self.media = self.get_vlc_mediactrl()
         self.videorawserv = VideoRawVLCServer.getInstance()
 
-        print >> sys.stderr, "VLCWrapper is using API %s" % self.VLC_MEDIACONTROL_API_VERSION
+        self._logger.info("VLCWrapper is using API %s", self.VLC_MEDIACONTROL_API_VERSION)
 
         if not self.window is None:
             self.set_window(self.window)
@@ -105,12 +109,10 @@ class VLCWrapper:
         check_threading()
         xid = wxwindow.GetHandle()
         if xid == 0:
-            if DEBUG:
-                print >> sys.stderr, "VLCWrapper: set_window: WARNING: window not yet materialized, XID=0"
+            self._logger.debug("VLCWrapper: set_window: WARNING: window not yet materialized, XID=0")
             return
 
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper: set_window, XID=", xid
+        self._logger.debug("VLCWrapper: set_window, XID=%s", xid)
 
         if self.windowpassedtovlc == xid:
             return
@@ -249,7 +251,7 @@ class VLCWrapper:
             self._init_vlc()
 
         check_threading()
-        print >> sys.stderr, "VLCWrapper: load:", url, streaminfo
+        self._logger.info("VLCWrapper: load: %s %s", url, streaminfo)
 
         # self.media.exit()
         # self.media = self.get_vlc_mediactrl()
@@ -265,16 +267,14 @@ class VLCWrapper:
             sid = random.randint(0, sys.maxsize)
             self.videorawserv.set_inputstream(streaminfo, sid)
 
-            if DEBUG:
-                print >> sys.stderr, "VLCWrapper: load: stream", sid, "size", streaminfo['length']
+            self._logger.debug("VLCWrapper: load: stream %s size %s", sid, streaminfo['length'])
             length = streaminfo['length']
             if length is None:
                 length = -1
 
             self.media.set_raw_callbacks(self.videorawserv.ReadDataCallback, self.videorawserv.SeekDataCallback, length, sid)
         else:
-            if DEBUG:
-                print >> sys.stderr, "VLCWrapper: load: calling playlist_add_item"
+            self._logger.debug("VLCWrapper: load: calling playlist_add_item")
 
             if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
                 if os.path.exists(url):
@@ -293,13 +293,13 @@ class VLCWrapper:
         if not self.initialized:
             self._init_vlc()
         check_threading()
-        if DEBUG:
-            if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
-                print >> sys.stderr, "VLCWrapper: start"
-            elif self.VLC_MEDIACONTROL_API_VERSION == "0.2":
-                print >> sys.stderr, "VLCWrapper: start: item is", self.media.get_mrl()
-            else:
-                print >> sys.stderr, "VLCWrapper: start: list is", self.media.playlist_get_list()
+
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            self._logger.debug("VLCWrapper: start")
+        elif self.VLC_MEDIACONTROL_API_VERSION == "0.2":
+            self._logger.debug("VLCWrapper: start: item is %s", self.media.get_mrl())
+        else:
+            self._logger.debug("VLCWrapper: start: list is %s", self.media.playlist_get_list())
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             self.vlc.libvlc_media_player_play(self.player)
@@ -316,8 +316,7 @@ class VLCWrapper:
             self._init_vlc()
 
         check_threading()
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper: stop"
+        self._logger.debug("VLCWrapper: stop")
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             self.vlc.libvlc_media_player_stop(self.player)
@@ -328,8 +327,7 @@ class VLCWrapper:
         if not self.initialized:
             self._init_vlc()
         check_threading()
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper: pause"
+        self._logger.debug("VLCWrapper: pause")
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             self.vlc.libvlc_media_player_set_pause(self.player, 1)
@@ -340,8 +338,7 @@ class VLCWrapper:
         if not self.initialized:
             self._init_vlc()
         check_threading()
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper: resume"
+        self._logger.debug("VLCWrapper: resume")
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             self.vlc.libvlc_media_player_pause(self.player)
@@ -433,8 +430,7 @@ class VLCWrapper:
         if not self.initialized:
             self._init_vlc()
         check_threading()
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper: set_position"
+        self._logger.debug("VLCWrapper: set_position")
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             if start:
@@ -446,8 +442,7 @@ class VLCWrapper:
         if not self.initialized:
             self._init_vlc()
         check_threading()
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper: sound_set_volume"
+        self._logger.debug("VLCWrapper: sound_set_volume")
 
         vol = int(frac * VLC_MAXVOLUME)
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
@@ -473,8 +468,7 @@ class VLCWrapper:
         if not self.initialized:
             self._init_vlc()
         check_threading()
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper set_fullscreen"
+        self._logger.debug("VLCWrapper set_fullscreen")
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             self.vlc.libvlc_set_fullscreen(self.player, b)
@@ -489,8 +483,7 @@ class VLCWrapper:
             self._init_vlc()
 
         check_threading()
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper: playlist_get_list"
+        self._logger.debug("VLCWrapper: playlist_get_list")
         if self.VLC_MEDIACONTROL_API_VERSION == "0.2":
             return [self.media.get_mrl()]
         else:
@@ -501,8 +494,7 @@ class VLCWrapper:
             self._init_vlc()
 
         check_threading()
-        if DEBUG:
-            print >> sys.stderr, "VLCWrapper: playlist_clear"
+        self._logger.debug("VLCWrapper: playlist_clear")
 
         if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
             # Arno, 2010-11-17: playlist is a specific object in libVLC 1.1, we

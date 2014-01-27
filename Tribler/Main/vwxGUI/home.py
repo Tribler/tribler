@@ -13,22 +13,21 @@ try:
 except:
     pass
 import random
+import logging
 import threading
 from time import strftime, time
+from collections import defaultdict
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
 from Tribler.Main.vwxGUI.list_footer import *
 from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.widgets import BetterListCtrl, SelectableListCtrl, \
+from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, FancyPanel
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-
-from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler,\
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
@@ -168,6 +167,9 @@ class Stats(XRCPanel):
 
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.createTimer = None
         self.isReady = False
 
@@ -315,7 +317,7 @@ class Stats(XRCPanel):
         torrentdb = TorrentDBHandler.getInstance()
         tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         for table, in tables:
-            print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table)
+            self._logger.info("%s %s", table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table))
 
     def Show(self, show=True):
         if show:
@@ -519,7 +521,6 @@ class LeftDispersyPanel(HomePanel):
 
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
-            ("Walker resets", '', lambda stats: str(stats.walk_reset)),
 
             ("Bloom new", 'Total number of bloomfilters created vs IntroductionRequest sent in this session', lambda stats: ratio(sum(c.sync_bloom_new for c in stats.communities), sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))),
             ("Bloom reuse", 'Total number of bloomfilters reused vs IntroductionRequest sent in this session', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))),
@@ -559,10 +560,12 @@ class LeftDispersyPanel(HomePanel):
                 header.SetToolTipString(strtooltip)
                 self.textdict[strkey].SetToolTipString(strtooltip)
 
+        self.Freeze()
         for title, tooltip, _ in self.mapping:
             addColumn(title, tooltip)
-
         self.gridpanel.Layout()
+        self.Thaw()
+
         self.gridpanel.SetupScrolling()
         self.buildColumns = True
 
@@ -616,13 +619,13 @@ class RightDispersyPanel(FancyPanel):
         self.notebook.AddPage(self.community_panel, "Community info")
 
         community_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.community_tree = CT.CustomTreeCtrl(self.community_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.community_tree = wx.TreeCtrl(self.community_panel, style=wx.NO_BORDER | wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
         self.community_tree.blockUpdate = False
         self.community_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.community_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
 
         font = self.community_tree.GetFont()
-        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font = wx.Font(font.GetPointSize() - 1 , wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.community_tree.SetFont(font)
 
         community_sizer.Add(self.community_tree, 1, wx.EXPAND)
@@ -637,13 +640,13 @@ class RightDispersyPanel(FancyPanel):
         self.notebook.AddPage(self.rawinfo_panel, "Raw info")
 
         self.rawinfo_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.rawinfo_tree = CT.CustomTreeCtrl(self.rawinfo_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.rawinfo_tree = wx.TreeCtrl(self.rawinfo_panel, style=wx.NO_BORDER | wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
         self.rawinfo_tree.blockUpdate = False
         self.rawinfo_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.rawinfo_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
 
         font = self.rawinfo_tree.GetFont()
-        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font = wx.Font(font.GetPointSize() - 1, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.rawinfo_tree.SetFont(font)
 
         self.rawinfo_sizer.Add(self.rawinfo_tree, 1, wx.EXPAND)
@@ -658,13 +661,13 @@ class RightDispersyPanel(FancyPanel):
         self.notebook.AddPage(self.runtime_panel, "Runtime stats")
 
         self.runtime_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.runtime_tree = CT.CustomTreeCtrl(self.runtime_panel, agwStyle=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
+        self.runtime_tree = wx.TreeCtrl(self.runtime_panel, style=wx.NO_BORDER | wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_HAS_VARIABLE_ROW_HEIGHT)
         self.runtime_tree.blockUpdate = False
         self.runtime_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.runtime_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
 
         font = self.runtime_tree.GetFont()
-        font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        font = wx.Font(font.GetPointSize() - 1, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.runtime_tree.SetFont(font)
 
         self.runtime_sizer.Add(self.runtime_tree, 1, wx.EXPAND)
@@ -824,7 +827,8 @@ class RightDispersyPanel(FancyPanel):
             self.runtime_tree.DeleteAllItems()
             parentNode = self.runtime_tree.AddRoot('runtime stats')
 
-            runtime = []
+            runtime = {}
+            combined_runtime = defaultdict(list)
             if getattr(stats, 'runtime', None):
                 for stat_dict in stats.runtime:
                     stat_list = []
@@ -832,9 +836,36 @@ class RightDispersyPanel(FancyPanel):
                         if isinstance(v, basestring):
                             v = v.replace('\n', '\n          ')
                         stat_list.append('%-10s%s' % (k, v))
-                    runtime.append(("duration = %7.2f ; entry = %s" % (stat_dict['duration'], stat_dict['entry'].split('\n')[0]), tuple(stat_list)))
-                runtime.sort(reverse=True)
-            self.AddDataToTree(dict(runtime), parentNode, self.rawinfo_tree, prepend=False, sort_dict=True)
+
+                    name = stat_dict['entry'].split('\n')[0]
+                    combined_name = name.split()[0]
+                    
+                    label = "duration = %7.2f ; entry = %s" % (stat_dict['duration'], name)
+                    combined_runtime[combined_name].append((stat_dict['duration'], label, tuple(stat_list)))
+
+                for key, runtimes in combined_runtime.iteritems():
+                    if len(runtimes) > 1:
+                        total_duration = 0
+                        
+                        subcalls = defaultdict(list) 
+                        for duration, label, stat_list in runtimes:
+                            total_duration += duration
+                            subcalls[label].append(stat_list)
+                        
+                        _subcalls = {}
+                        for label, subcall_list in subcalls.iteritems():
+                            if len(subcall_list) > 1:
+                                _subcalls[label] = subcall_list
+                            else:
+                                _subcalls[label] = subcall_list[0]
+                                
+                        runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = _subcalls
+                        
+                    else:
+                        duration, label, stat_list = runtimes[0]
+                        runtime[label] = stat_list
+                    
+            self.AddDataToTree(runtime, parentNode, self.runtime_tree, prepend=False, sort_dict=True)
 
         self.Layout()
 

@@ -42,7 +42,7 @@ class TestGuiDialogs(TestGuiAsServer):
             except:
                 print_exc()
             dialog.EndModal(wx.ID_CANCEL)
-            
+
             self.assert_(saved_event.is_set(), 'did not save dialog')
             self.Call(1, self.quit)
 
@@ -94,12 +94,11 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(isinstance(dialog, AddTorrent), 'could not find AddTorrent')
 
             self.Call(1, lambda: do_assert(dialog))
-            dialog.magnet.SetValue(r'http://www.clearbits.net/get/1763-zenith-part-2.torrent')
+            dialog.magnet.SetValue(r'http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent')
             dialog.OnAdd(None)
 
         def do_add_dialog():
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            defaultDLConfig.set_show_saveas(True)
+            self.guiUtility.utility.write_config('showsaveas', 1)
 
             self.Call(1, do_save_dialog)
             self.frame.top_bg.OnAdd(None)
