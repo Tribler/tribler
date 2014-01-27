@@ -90,7 +90,7 @@ class ProxySettings:
         self.select_strategy = RandomSelectionStrategy(1)
         self.length_strategy = ConstantCircuitLengthStrategy(length)
         self.return_handler_factory = CircuitReturnFactory()
-        self.crypto = NoCrypto() #DefaultCrypto()
+        self.crypto = DefaultCrypto()
 
 
 class TunnelObserver():
@@ -535,7 +535,8 @@ class ProxyCommunity(Community):
                 packet_type = self.proxy_conversion.get_type(data)
                 str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
 
-                logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                if packet_type != MESSAGE_DATA:
+                    logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
                 payload = self._filter_message(circuit_id, candidate, packet_type, payload,)
 
@@ -956,7 +957,7 @@ class ProxyCommunity(Community):
         return self.dispersy.endpoint.send([destination], [self.prefix + packet])
 
     def dict_inc(self, statistics_dict, key, inc=1):
-        self.dispersy._callback.register(self._dispersy.statistics.dict_inc, args=(statistics_dict, u"anontunnel-" + key, inc))
+        self._dispersy.statistics.dict_inc(statistics_dict, u"anontunnel-" + key, inc)
 
     # CIRCUIT STUFFS
     def get_circuits(self):
