@@ -440,7 +440,23 @@ class ABCApp():
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
         if not os.path.isdir(defaultDLConfig.get_dest_dir()):
-            os.makedirs(defaultDLConfig.get_dest_dir())
+            try:
+                os.makedirs(defaultDLConfig.get_dest_dir())
+            except:
+                # Could not create directory, ask user to select a different location
+                dlg = wx.DirDialog(None, "Could not find download directory, please select a new location to store your downloads", style=wx.DEFAULT_DIALOG_STYLE)
+                dlg.SetPath(get_default_dest_dir())
+                if dlg.ShowModal() == wx.ID_OK:
+                    new_dest_dir = dlg.GetPath()
+                    defaultDLConfig.set_dest_dir(new_dest_dir)
+                    defaultDLConfig.save(dlcfgfilename)
+                    self.sconfig.set_torrent_collecting_dir(os.path.join(new_dest_dir, STATEDIR_TORRENTCOLL_DIR))
+                    self.sconfig.set_swift_meta_dir(os.path.join(new_dest_dir, STATEDIR_SWIFTRESEED_DIR))
+                    self.sconfig.save(cfgfilename)
+                else:
+                    # Silently quit
+                    self.onError = lambda e:None
+                    raise Exception()
 
         # Setting torrent collection dir based on default download dir
         if not self.sconfig.get_torrent_collecting_dir():
