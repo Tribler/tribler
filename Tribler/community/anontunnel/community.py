@@ -930,6 +930,9 @@ class ProxyCommunity(Community):
 
         return payload
 
+    def remove_message_filter(self, message_type, filter):
+        self._message_filters[message_type].remove(filter)
+
     def add_message_filter(self, message_type, filter):
         self._message_filters[message_type].append(filter)
 
@@ -949,7 +952,7 @@ class ProxyCommunity(Community):
 
         str_type = MESSAGE_STRING_REPRESENTATION.get(message_type, "unknown-type-"+str(ord(message_type)))
 
-        logger.debug("SEND %s to %s:%d over circuit %d", str_type, destination.sock_addr[0], destination.sock_addr[1], circuit_id)
+        # logger.debug("SEND %s to %s:%d over circuit %d", str_type, destination.sock_addr[0], destination.sock_addr[1], circuit_id)
 
         self.dict_inc(self.dispersy.statistics.outgoing, str_type + ('-relayed' if relayed else ''), 1)
 
@@ -1052,7 +1055,7 @@ class ProxyCommunity(Community):
                 if not ultimate_destination:
                     ultimate_destination = ("0.0.0.0", 0)
 
-                logger.debug("Sending data with origin %s to %s over circuit %d with ultimate destination %s:%d",
-                            origin, address, circuit_id, *ultimate_destination)
+                # logger.debug("Sending data with origin %s to %s over circuit %d with ultimate destination %s:%d",
+                #             origin, address, circuit_id, *ultimate_destination)
             except:
                 logger.exception("Error while sending packet")

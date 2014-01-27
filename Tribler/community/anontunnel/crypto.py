@@ -11,10 +11,14 @@ class NoCrypto(object):
     def enable(self, proxy):
         pass
 
+    def disable(self):
+        pass
+
 
 class DefaultCrypto(object):
     def __init__(self):
         self.proxy = None
+        """ :type proxy: Tribler.community.anontunnel.community.ProxyCommunity """
 
     @property
     def session_keys(self):
@@ -32,6 +36,12 @@ class DefaultCrypto(object):
         proxy.add_receive_transformer(self._crypto_incoming)
         proxy.add_send_transformer(self._crypto_outgoing)
         proxy.add_message_filter(MESSAGE_CREATE, self._on_create)
+
+    def disable(self):
+        self.proxy.remove_relay_transformer(self._crypto_relay)
+        self.proxy.remove_receive_transformer(self._crypto_incoming)
+        self.proxy.remove_send_transformer(self._crypto_outgoing)
+        self.proxy.remove_message_filter(MESSAGE_CREATE, self._on_create)
 
     def _on_create(self, candidate, circuit_id, payload):
         return payload

@@ -30,7 +30,7 @@ class HackyEndpoint(RawserverEndpoint):
 
         RawserverEndpoint.data_came_in(self, normal_packets)
 
-    def send(self, candidates, packets):
-        for c in candidates:
-            for p in packets:
-                self._socket.sendto(p, c.sock_addr)
+    # def send(self, candidates, packets):
+    #     for c in candidates:
+    #         for p in packets:
+    #             self._socket.sendto(p, c.sock_addr)
