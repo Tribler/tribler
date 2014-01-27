@@ -18,7 +18,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText, ProgressButton, FancyPanel, TransparentText, LinkText, \
+    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, ProgressButton, FancyPanel, TransparentText, LinkText, \
     StaticBitmaps, TransparentStaticBitmap, Graph, ProgressBar
 
 from list_body import ListBody

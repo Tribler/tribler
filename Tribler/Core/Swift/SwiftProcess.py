@@ -73,6 +73,8 @@ class SwiftProcess:
         args.append("127.0.0.1:" + str(self.cmdport))
         args.append("-g")  # HTTP gateway port
         args.append("127.0.0.1:" + str(self.httpport))
+        args.append("--proxy")
+        args.append("127.0.0.1:1080")
         args.append("-w")
         if zerostatedir is not None:
             if sys.platform == "win32":
@@ -91,7 +93,11 @@ class SwiftProcess:
 
         self._logger.debug("SwiftProcess: __init__: Running %s workdir %s", args, workdir)
 
+        startupinfo = None
         if sys.platform == "win32":
+            startupinfo = subprocess.STARTUPINFO()
+            import _subprocess
+            startupinfo.dwFlags |= _subprocess.STARTF_USESHOWWINDOW
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             creationflags = 0
@@ -270,7 +276,7 @@ class SwiftProcess:
 
             metadir = d.get_swift_meta_dir()
 
-            self.send_start(url, roothash_hex=roothash_hex, maxdlspeed=maxdlspeed, maxulspeed=maxulspeed, destdir=d.get_dest_dir(), metadir=metadir)
+            self.send_start(url, roothash_hex=roothash_hex, maxdlspeed=maxdlspeed, maxulspeed=maxulspeed, destdir=d.get_dest_dir(), metadir=None) #metadir)
 
         finally:
             self.splock.release()

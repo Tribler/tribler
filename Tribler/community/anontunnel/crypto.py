@@ -15,7 +15,10 @@ class NoCrypto(object):
 class DefaultCrypto(object):
     def __init__(self):
         self.proxy = None
-        self.session_keys = {}
+
+    @property
+    def session_keys(self):
+        return self.proxy.session_keys if self.proxy else {}
 
     def enable(self, proxy):
 
@@ -42,12 +45,12 @@ class DefaultCrypto(object):
             for hop in reversed(hops):
                 logger.debug("Adding AES layer for hop %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                 content = AESencode(hop.session_key, content)
-        elif circuit_id in self.proxy.session_keys:
+        elif circuit_id in self.session_keys:
             if message_type == MESSAGE_CREATED:
                 logger.debug("Adding public key encryption for circuit %s" % (circuit_id))
                 logger.error("Still have to implement public key encryption for CREATED message")
             else:
-                content = AESencode(self.proxy.session_keys[circuit_id], content)
+                content = AESencode(self.session_keys[circuit_id], content)
                 logger.debug(
                     "Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[circuit_id]))
 
@@ -60,12 +63,12 @@ class DefaultCrypto(object):
         if direction == ORIGINATOR:
             # Message is going downstream so I have to add my onion layer
             # logger.debug("Adding AES layer with key %s to circuit %d" % (self.session_keys[next_relay.circuit_id], next_relay.circuit_id))
-            data = AESencode(self.proxy.session_keys[next_relay.circuit_id], data)
+            data = AESencode(self.session_keys[next_relay.circuit_id], data)
 
         elif direction == ENDPOINT:
             # Message is going upstream so I have to remove my onion layer
             # logger.debug("Removing AES layer with key %s" % self.session_keys[circuit_id])
-            data = AESdecode(self.proxy.session_keys[circuit_id], data)
+            data = AESdecode(self.session_keys[circuit_id], data)
 
         return data
 
@@ -76,10 +79,10 @@ class DefaultCrypto(object):
                 logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                 data = AESdecode(hop.session_key, data)
 
-        elif circuit_id in self.proxy.session_keys:
+        elif circuit_id in self.session_keys:
             # last node in circuit, circuit already exists
-            logger.debug("Removing AES layer with key %s" % (self.proxy.session_keys[circuit_id]))
-            data = AESdecode(self.proxy.session_keys[circuit_id], data)
+            logger.debug("Removing AES layer with key %s" % (self.session_keys[circuit_id]))
+            data = AESdecode(self.session_keys[circuit_id], data)
         else:
             # last node in circuit, circuit does not exist yet
             data = data

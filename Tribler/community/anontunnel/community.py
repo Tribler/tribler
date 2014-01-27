@@ -6,7 +6,7 @@ import uuid
 import random
 import sys
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
-from Tribler.community.anontunnel.crypto import DefaultCrypto
+from Tribler.community.anontunnel.crypto import DefaultCrypto, NoCrypto
 from Tribler.dispersy.requestcache import NumberCache
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class ProxySettings:
         self.select_strategy = RandomSelectionStrategy(1)
         self.length_strategy = ConstantCircuitLengthStrategy(length)
         self.return_handler_factory = CircuitReturnFactory()
-        self.crypto = DefaultCrypto()
+        self.crypto = NoCrypto() #DefaultCrypto()
 
 
 class TunnelObserver():

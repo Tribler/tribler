@@ -251,6 +251,7 @@ class SocketHandler:
         self.dead_from_write = []
         self.max_connects = 1000
         self.servers = {}
+        self.interfaces = []
         self.btengine_said_reachable = False
         self.interrupt_socket = None
         self.udp_sockets = {}
@@ -267,11 +268,9 @@ class SocketHandler:
                 self._logger.debug("SocketHandler: scan_timeout closing connection %s", k.get_ip())
                 self._close_socket(k)
 
-    def bind(self, port, bind=[], reuse= False, ipv6_socket_style = 1):
+    def bind(self, port, bind=[], reuse= False, ipv6_socket_style = 1, handler=None):
         port = int(port)
         addrinfos = []
-        self.servers = {}
-        self.interfaces = []
         # if bind != [] bind to all specified addresses (can be IPs or hostnames)
         # else bind to default ipv6 and ipv4 address
         if bind:
@@ -298,14 +297,14 @@ class SocketHandler:
                 server.setblocking(0)
                 self._logger.debug("SocketHandler: Try to bind socket on %s ...", addrinfo[4])
                 server.bind(addrinfo[4])
-                self.servers[server.fileno()] = server
+                self.servers[server.fileno()] = (server, handler)
                 if bind:
                     self.interfaces.append(server.getsockname()[0])
                 self._logger.debug("SocketHandler: OK")
                 server.listen(64)
                 self.poll.register(server, POLLIN)
             except socket.error as e:
-                for server in self.servers.values():
+                for server, _ in self.servers.values():
                     try:
                         server.close()
                     except:
@@ -318,7 +317,7 @@ class SocketHandler:
         self.port = port
 
     def find_and_bind(self, first_try, minport, maxport, bind='', reuse= False,
-                      ipv6_socket_style=1, randomizer= False):
+                      ipv6_socket_style=1, randomizer= False, handler=None):
         e = 'maxport less than minport - no ports to check'
         if maxport - minport < 50 or not randomizer:
             portrange = range(minport, maxport + 1)
@@ -334,7 +333,7 @@ class SocketHandler:
         if first_try != 0:    # try 22 first, because TU only opens port 22 for SSH...
             try:
                 self.bind(first_try, bind, reuse=reuse,
-                         ipv6_socket_style=ipv6_socket_style)
+                         ipv6_socket_style=ipv6_socket_style, handler=handler)
                 return first_try
             except socket.error as e:
                 pass
@@ -342,7 +341,7 @@ class SocketHandler:
             try:
                 # print >> sys.stderr, listen_port, bind, reuse
                 self.bind(listen_port, bind, reuse=reuse,
-                               ipv6_socket_style=ipv6_socket_style)
+                               ipv6_socket_style=ipv6_socket_style, handler=handler)
                 return listen_port
             except socket.error as e:
                 raise
@@ -460,7 +459,7 @@ class SocketHandler:
     def handle_events(self, events):
         for sock, event in events:
             # print >>sys.stderr,"SocketHandler: event on sock#",sock
-            s = self.servers.get(sock)    # socket.socket
+            s, h = self.servers.get(sock, (None, None))    # socket.socket
             if s:
                 if event & (POLLHUP | POLLERR) != 0:
                     self._logger.debug("SocketHandler: Got event, close server socket")
@@ -485,10 +484,10 @@ class SocketHandler:
                         # the connection.
                         if len(self.single_sockets) < self.max_connects:
                             newsock.setblocking(0)
-                            nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
+                            nss = SingleSocket(self, newsock, (h or self.handler))    # create socket for incoming peers and tracker
                             self.single_sockets[newsock.fileno()] = nss
                             self.poll.register(newsock, POLLIN)
-                            self.handler.external_connection_made(nss)
+                            (h or self.handler).external_connection_made(nss)
                         else:
                             self._logger.info("SocketHandler: too many connects")
                             newsock.close()
@@ -599,7 +598,7 @@ class SocketHandler:
                 ss.close()
             except:
                 pass
-        for server in self.servers.values():
+        for server, _ in self.servers.values():
             try:
                 server.close()
             except:

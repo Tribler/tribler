@@ -586,7 +586,7 @@ class ABCApp():
 
             _callback.download_completed = False
             _callback.download_started_at = None
-            _callback.peer_added = False
+            _callback.peer_added = True
 
             return _callback
 
@@ -598,6 +598,9 @@ class ABCApp():
 
         #host = "devristo.dyndns.org:20001"
         #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
+
+        host = "devristo.com:21000"
+        root_hash = "b9e244ca68204631b9b69b5330c69b8704948f94"
 
         #host = "127.0.0.1:21000"
         #root_hash = "b25eb5a4eb94fad36aa373d3b85434894961b1c5"
