@@ -10,10 +10,6 @@
 /output
 /swift
 /swift.exe
-
-.project
-.pydevproject
-Tribler/.idea/
-/.idea
-
-/.TriblerAnonTunnel
+\#*\#
+/.project
+/.pydevproject

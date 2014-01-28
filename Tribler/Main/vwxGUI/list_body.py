@@ -1247,7 +1247,7 @@ class AbstractListBody():
                     self.items[key].expanded = True
                     self.cur_expanded = self.items[key]
 
-            self.items[key].ShowSelected()
+                self.items[key].ShowSelected()
 
     @warnWxThread
     def SelectNextItem(self, next=True):
