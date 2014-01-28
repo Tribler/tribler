@@ -2,13 +2,16 @@ import logging
 import os
 import socket
 import string
+import struct
 from threading import RLock
 from random import getrandbits
 import uuid
 import sys
 import random
 import M2Crypto
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
+from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.requestcache import NumberCache
 
 from AES import AESdecode
@@ -27,7 +30,7 @@ from time import time
 import hashlib
 
 from Tribler.community.anontunnel.conversion import ProxyConversion, \
-    CustomProxyConversion
+    CustomProxyConversion, int_to_packed, packed_to_int
 
 from Tribler.community.anontunnel.payload import StatsPayload, CreatedMessage, \
     PongMessage, CreateMessage, PingMessage, DataMessage, ExtendedMessage
@@ -584,16 +587,13 @@ class ProxyCommunity(Community):
             m = hashlib.sha1()
             m.update(str(session_key))
             key = m.digest()[0:16]
-            #logger.debug("The extended message's key : {}".format(extended_message.key))
-            #logger.debug("The unverified hop's key   : {}".format(unverified_hop.dh_first_part))
-            #logger.debug("CALCULATED SECRET {} FOR THE EXTENDED NODE".format(key))
 
             unverified_hop.session_key = key
 
             self.circuit.hops.append(unverified_hop)
             self.circuit.unverified_hop = None
 
-            candidate_list = extended_message.candidate_list
+            candidate_list = self.decrypt_candidate_list(key, extended_message.candidate_list)
 
             dispersy = self.community.dispersy
             if dispersy.lan_address in candidate_list:
@@ -646,16 +646,18 @@ class ProxyCommunity(Community):
             circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
             self.circuits[circuit_id] = circuit
 
-            pub_key = None
+            pub_key = iter(first_hop_candidate.get_members()).next()._ec
 
             dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
             while dh_secret >= DIFFIE_HELLMAN_MODULUS:
                 dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
             dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
+
+            encrypted_dh_first_part = ElgamalCrypto.encrypt(pub_key, int_to_packed(dh_first_part, 2048))
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
-            self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(dh_first_part))
+            self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_dh_first_part))
 
             return circuit
 
@@ -694,8 +696,11 @@ class ProxyCommunity(Community):
         while dh_secret >= DIFFIE_HELLMAN_MODULUS:
             dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
+        my_key = self.my_member._ec
 
-        key = pow(message.key, dh_secret, DIFFIE_HELLMAN_MODULUS)
+        decrypted_dh_first_part = ElgamalCrypto.decrypt(my_key, packed_to_int(message.key, 2048))
+
+        key = pow(decrypted_dh_first_part, dh_secret, DIFFIE_HELLMAN_MODULUS)
 
         m = hashlib.sha1()
         m.update(str(key))
@@ -712,13 +717,34 @@ class ProxyCommunity(Community):
             candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
             if not candidate_temp:
                 break
-            cand_dict[candidate_temp.sock_addr] = "mykey"
+            # first member of candidate contains elgamal key
+            ec_key = iter(candidate_temp.get_members()).next()._ec
+            """:type : Tribler.community.privatesemantic.ecutils.ECELgamalKey_Pub"""
+            #logger.warning("ECelgamal_KEY VALUES:  ec = {}, Q = {}, size = {}, encsize = {}".format(ec_key.ec, ec_key.Q, ec_key.size, ec_key.encsize))
+
+            key_string = ElgamalCrypto.key_to_bin(ec_key)
+
+            cand_dict[candidate_temp.sock_addr] = key_string
+            logger.debug("Found candidate {} with key {}".format(candidate_temp.sock_addr, key_string))
+
+
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-        return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(return_key, cand_dict))
+        encrypted_cand_dict = self.encrypt_candidate_list(self.session_keys[circuit_id], cand_dict)
+
+        return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(return_key, encrypted_cand_dict))
+
+    def encrypt_candidate_list(self, key, cand_dict):
+        encoded_dict = encode(cand_dict)
+        return AESencode(key, encoded_dict)
+
+    def decrypt_candidate_list(self, key, encrypted_cand_dict):
+        encoded_dict = AESdecode(key, encrypted_cand_dict)
+        offset, cand_dict = decode(struct.unpack(encoded_dict))
+        return cand_dict
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
