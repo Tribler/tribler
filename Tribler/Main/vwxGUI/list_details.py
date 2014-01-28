@@ -2067,7 +2067,6 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.bg_colour = LIST_LIGHTBLUE
         self.SetBackgroundColour(self.bg_colour)
         self.AddComponents()
-        self.SetNrFiles(0)
 
         self.guiutility.utility.session.add_observer(self.OnVideoStarted, NTFY_TORRENTS, [NTFY_VIDEO_STARTED])
         self.guiutility.utility.session.add_observer(self.OnVideoStopped, NTFY_TORRENTS, [NTFY_VIDEO_STOPPED])
@@ -2119,7 +2118,6 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.links = []
         if not isinstance(self.torrent, NotCollectedTorrent):
             self.AddLinks()
-            self.SetNrFiles(len(self.links))
         else:
             text = wx.StaticText(self, -1, "Fetching torrent...")
             ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.vwxGUI_path, 'images', 'search_new.gif'))
@@ -2129,7 +2127,6 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
             self.vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
-            self.SetNrFiles(0)
         self.Layout()
         self.OnChange()
         self.Thaw()
@@ -2162,7 +2159,6 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 link.Clear(deleteWindows=True)
                 self.vSizer.Remove(link)
                 self.OnChange()
-                self.SetNrFiles(len(self.links))
                 self.library_manager.stopTorrent(self.torrent)
                 self.library_manager.last_vod_torrent = None
 
@@ -2183,6 +2179,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.SetMinSize((-1, best_height))
         self.GetParent().parent_list.Layout()
         self.SetupScrolling(scroll_x=False, scroll_y=True)
+        self.SetNrFiles(len(self.links))
 
         self.Thaw()
 
