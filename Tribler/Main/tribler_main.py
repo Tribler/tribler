@@ -650,7 +650,8 @@ class ABCApp():
                         progress = playds.get_vod_prebuffering_progress()
                         progress_consec = playds.get_vod_prebuffering_progress_consec()
                     self.videoplayer.set_player_status_and_progress(progress, progress_consec, \
-                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True])
+                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True], \
+                                                                    playds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
                 wx.CallAfter(do_video)
 
             # Check to see if a download has finished
