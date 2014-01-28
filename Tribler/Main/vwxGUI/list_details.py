@@ -2152,15 +2152,18 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 self.torrentsearch_manager.getTorrent(torrent, load_torrent)
 
     def RemoveFileindex(self, fileindex):
-        for index, link in enumerate(self.links):
+        for index, link in reversed(list(enumerate(self.links))):
             if link.fileindex == fileindex:
                 self.links.pop(index)
                 link.ShowItems(False)
                 link.Clear(deleteWindows=True)
                 self.vSizer.Remove(link)
                 self.OnChange()
-                self.library_manager.stopTorrent(self.torrent)
-                self.library_manager.last_vod_torrent = None
+
+        vod_dl = VideoPlayer.getInstance().get_vod_download()
+        if vod_dl and vod_dl.get_vod_fileindex() == fileindex:
+            self.library_manager.stopTorrent(self.torrent)
+            self.library_manager.last_vod_torrent = None
 
     def SetNrFiles(self, nr):
         videoplayer_item = self.guiutility.frame.actlist.GetItem(5)
