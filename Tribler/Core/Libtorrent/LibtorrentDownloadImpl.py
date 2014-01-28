@@ -265,7 +265,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self._logger.debug("LibtorrentDownloadImpl: create_engine_wrapper()")
 
         atp = {}
-        atp["save_path"] = str(self.get_dest_dir())
+        atp["save_path"] = os.path.abspath(str(self.get_dest_dir()))
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = True
         atp["auto_managed"] = False
