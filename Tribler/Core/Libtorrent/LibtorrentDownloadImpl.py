@@ -626,6 +626,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         if self.get_mode() == DLMODE_VOD:
             if self.progress == 1.0:
                 self.handle.set_sequential_download(False)
+                self.handle.set_priority(0)
                 if self.get_vod_fileindex() >= 0:
                     self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
             elif self.progress < 1.0:
@@ -706,9 +707,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     cur_path = self.handle.get_torrent_info().files()[index].path
                     if cur_path != new_path:
                         if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
-                            os.makedirs(unwanteddir_abs)
-                            if sys.platform == "win32":
-                                win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
+                            try:
+                                os.makedirs(unwanteddir_abs)
+                                if sys.platform == "win32":
+                                    win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
+                            except:
+                                self._logger.error("LibtorrentDownloadImpl: could not create %s" % unwanteddir_abs)
+                                # Note: If the destination directory can't be accessed, libtorrent will not be able to store the files.
+                                # This will result in a DLSTATUS_STOPPED_ON_ERROR.
 
                         self.handle.rename_file(index, new_path)
 
