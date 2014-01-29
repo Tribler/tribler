@@ -53,6 +53,11 @@ class VODFile(object):
 
         while not self._closing and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
             time.sleep(1)
+
+        if self._closing:
+            self._logger.debug('VODFile: got no bytes, file is closed')
+            return
+
         result = self._file.read(*args)
 
         newpos = self._file.tell()
