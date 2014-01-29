@@ -167,10 +167,13 @@ REM get password for swarmplayerprivatekey.pfx
 set /p PASSWORD="Enter the PFX password:"
 
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
+:: --- Doing this in ugly way for now
+SET PATH=%PATH%;C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin
+
+signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
 
 REM Arno: Sign swift.exe so MS "Block / Unblock" dialog has publisher info.
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" swift.exe
+signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" swift.exe
 
 
 :makeinstaller
