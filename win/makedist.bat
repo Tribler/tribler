@@ -3,9 +3,9 @@ REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
 REM Check that we are running from the expected directory
 IF NOT EXIST Tribler\Main (
- echo .
- echo Please, execute this script from the repository root
- exit /b
+ ECHO .
+ ECHO Please, execute this script from the repository root
+ ECHO /b
 )
 
 REM locate Python directory and set up Python environment
@@ -14,10 +14,8 @@ SET /p PYTHONHOME= < tmp_pythonhome.txt
 DEL /f /q tmp_pythonhome.txt
 REM set PYTHONHOME=c:\Python273
 REM Arno: Add . to find our core
-set PYTHONPATH=.;%PYTHONHOME%
-echo PYTHONPATH SET TO %PYTHONPATH%
-
-set NSIS="\Program Files\NSIS\makensis.exe"
+SET PYTHONPATH=.;%PYTHONHOME%
+ECHO PYTHONPATH SET TO %PYTHONPATH%
 
 REM ----- Check for Python and essential site-packages
 
@@ -43,12 +41,16 @@ IF NOT EXIST %PYTHONHOME%\Lib\site-packages\py2exe (
 )
 
 REM ----- Check for NSIS installer
+SET NSIS="\Program Files\NSIS\makensis.exe"
 
 IF NOT EXIST %NSIS% (
-  echo .
-  echo Could not locate the NSIS installer at %NSIS%.
-  echo Please modify this script or install NSIS [nsis.sf.net]
-  exit /b
+  SET NSIS="\Program Files (x86)\NSIS\makensis.exe"
+  IF NOT EXIST %NSIS% (
+    echo .
+    echo Could not locate the NSIS installer at %NSIS%.
+    echo Please modify this script or install NSIS [nsis.sf.net]
+    exit /b
+  )
 )
 
 REM ----- Clean up
