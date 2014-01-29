@@ -8,7 +8,9 @@ IF NOT EXIST Tribler\Main (
  exit /b
 )
 
-set PYTHONHOME=c:\Python273
+REM locate Python directory and set up Python environment
+SET PYTHONHOME('python win\locate-python.py')
+REM set PYTHONHOME=c:\Python273
 REM Arno: Add . to find our core
 set PYTHONPATH=.;%PYTHONHOME%
 echo PYTHONPATH SET TO %PYTHONPATH%
