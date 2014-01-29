@@ -60,8 +60,8 @@ class Utility:
                             'window_width': 1024,
                             'window_height': 670,
                             'sash_position':-185,
-                            't4t_option': 0, # Seeding items added by Boxun
-                            't4t_ratio': 100, # T4T seeding ratio added by Niels
+                            't4t_option': 0,  # Seeding items added by Boxun
+                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
                             't4t_hours': 0,
                             't4t_mins': 30,
                             'g2g_option': 1,
@@ -100,7 +100,8 @@ class Utility:
 
         # Load the config file.
         if os.path.exists(self.configfilepath):
-            self.config.readfp(codecs.open(self.configfilepath, 'r', 'utf-8-sig'))
+            with codecs.open(self.configfilepath, 'r', 'utf-8-sig') as config_file:
+                self.config.readfp(config_file)
 
         if not self.config.has_section('Tribler'):
             self.config.add_section('Tribler')
