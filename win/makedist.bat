@@ -152,12 +152,12 @@ copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
 
 REM Swift
-del swift.exe
-cd Tribler\SwiftEngine
-CALL c:\Python273\Scripts\scons -c
+IF EXISTS swift.exe DEL \q swift.exe
+CD Tribler\SwiftEngine
+CALL %PYTHONHOME%\Scripts\scons -c
 CALL win32-build.bat
-cd ..\..
-copy swift.exe dist\installdir
+CD ..\..
+COPY swift.exe dist\installdir
 svn ci swift.exe -m "auto-commit during build"
 
 @echo Running NSIS
@@ -183,5 +183,5 @@ REM move Tribler_*.exe ..
 move Tribler_*.exe ..
 cd ..
 REM Arno: Sign installer
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" Tribler_*.exe
+signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" Tribler_*.exe
 cd ..
