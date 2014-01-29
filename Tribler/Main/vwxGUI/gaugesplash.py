@@ -1,5 +1,6 @@
 # Modified by Niels Zeilemaker, removed timeout did a small cleanup
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+import sys
 
 #-----------------------------------------------------------------------------
 # Name:        gaugesplash.py
@@ -81,6 +82,7 @@ class GaugeSplash(wx.Frame):
     def tick(self, text):
         """Advance the progress bar by one tick and update the label.
         """
+        print >> sys.stderr, text
         self.count += 1
         self.label.SetLabel(text)
         self.gauge.SetValue(self.count)

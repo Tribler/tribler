@@ -21,6 +21,7 @@ class SafePrintStream:
                 self._stream.write("TriblerConsole: ERROR printing\n")
                 self._stream.write(repr(e))
                 self._stream.write("\n")
+        self.flush()
 
     def flush(self):
         self._stream.flush()
