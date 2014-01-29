@@ -9,7 +9,9 @@ IF NOT EXIST Tribler\Main (
 )
 
 REM locate Python directory and set up Python environment
-SET PYTHONHOME('python win\locate-python.py')
+python win\locate-python.py > tmp_pythonhome.txt
+SET /p PYTHONHOME= < tmp_pythonhome.txt
+DEL /f /q tmp_pythonhome.txt
 REM set PYTHONHOME=c:\Python273
 REM Arno: Add . to find our core
 set PYTHONPATH=.;%PYTHONHOME%
