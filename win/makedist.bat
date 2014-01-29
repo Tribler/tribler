@@ -1,11 +1,11 @@
-REM @echo off
+@echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
 REM Check that we are running from the expected directory
 IF NOT EXIST Tribler\Main (
- ECHO .
- ECHO Please, execute this script from the repository root
- ECHO /b
+  ECHO .
+  ECHO Please, execute this script from the repository root
+  ECHO /b
 )
 
 REM locate Python directory and set up Python environment
@@ -20,24 +20,24 @@ ECHO PYTHONPATH SET TO %PYTHONPATH%
 REM ----- Check for Python and essential site-packages
 
 IF NOT EXIST %PYTHONHOME%\python.exe (
-  echo .
-  echo Could not locate Python in %PYTHONHOME%.
-  echo Please modify this script or install python [www.python.org]
+  ECHO .
+  ECHO Could not locate Python in %PYTHONHOME%.
+  ECHO Please modify this script or install python [www.python.org]
   exit /b
 )
 
 IF NOT EXIST %PYTHONHOME%\Lib\site-packages\wx-*-unicode (
-  echo .
-  echo Could not locate wxPython in %PYTHONHOME%\Lib\site-packages.
-  echo Please modify this script or install wxPython [www.wxpython.org]
+  ECHO .
+  ECHO Could not locate wxPython in %PYTHONHOME%\Lib\site-packages.
+  ECHO Please modify this script or install wxPython [www.wxpython.org]
   exit /b
 )
 
 IF NOT EXIST %PYTHONHOME%\Lib\site-packages\py2exe (
-  echo .
-  echo Could not locate py2exe in %PYTHONHOME%\Lib\site-packages.
-  echo Please modify this script or install wxPython [www.py2exe.org]
-  exit /b
+  ECHO .
+  ECHO Could not locate py2exe in %PYTHONHOME%\Lib\site-packages.
+  ECHO Please modify this script or install wxPython [www.py2exe.org]
+  EXIT /b
 )
 
 REM ----- Check for NSIS installer
@@ -46,10 +46,10 @@ SET NSIS="C:\Program Files\NSIS\makensis.exe"
 IF NOT EXIST %NSIS% (
   SET NSIS="C:\Program Files (x86)\NSIS\makensis.exe"
   IF NOT EXIST %NSIS% (
-    echo .
-    echo Could not locate the NSIS installer at %NSIS%.
-    echo Please modify this script or install NSIS [nsis.sf.net]
-    exit /b
+    ECHO .
+    ECHO Could not locate the NSIS installer at %NSIS%.
+    ECHO Please modify this script or install NSIS [nsis.sf.net]
+    EXIT /b
   )
 )
 
