@@ -41,10 +41,10 @@ IF NOT EXIST %PYTHONHOME%\Lib\site-packages\py2exe (
 )
 
 REM ----- Check for NSIS installer
-SET NSIS="\Program Files\NSIS\makensis.exe"
+SET NSIS="C:\Program Files\NSIS\makensis.exe"
 
 IF NOT EXIST %NSIS% (
-  SET NSIS="\Program Files (x86)\NSIS\makensis.exe"
+  SET NSIS="C:\Program Files (x86)\NSIS\makensis.exe"
   IF NOT EXIST %NSIS% (
     echo .
     echo Could not locate the NSIS installer at %NSIS%.
