@@ -8,7 +8,7 @@ import copy
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
-STATEDIR_DLCONFIG = "tribler.conf"
+STATEDIR_DLCONFIG = "dlconfig.conf"
 
 
 class DefaultDownloadStartupConfig(DownloadStartupConfig):
@@ -42,9 +42,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
     load = staticmethod(load)
 
     def copy(self):
-        config = CallbackConfigParser()
-        config._sections = {'downloadconfig': copy.deepcopy(self.dlconfig._sections['downloadconfig'])}
-        return DownloadStartupConfig(config)
+        return DownloadStartupConfig(self.dlconfig.copy())
 
 def get_default_dscfg_filename(state_dir):
     return os.path.join(state_dir, STATEDIR_DLCONFIG)

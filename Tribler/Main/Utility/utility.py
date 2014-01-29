@@ -60,8 +60,8 @@ class Utility:
                             'window_width': 1024,
                             'window_height': 670,
                             'sash_position':-185,
-                            't4t_option': 0,  # Seeding items added by Boxun
-                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
+                            't4t_option': 0, # Seeding items added by Boxun
+                            't4t_ratio': 100, # T4T seeding ratio added by Niels
                             't4t_hours': 0,
                             't4t_mins': 30,
                             'g2g_option': 1,
@@ -104,15 +104,6 @@ class Utility:
 
         if not self.config.has_section('Tribler'):
             self.config.add_section('Tribler')
-
-        # Tribler.conf also contains the default download config. So we need to merge it now.
-        if not self.config.has_section('downloadconfig'):
-            self.config.add_section('downloadconfig')
-        for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
-            self.config.set('downloadconfig', k, v)
-
-        # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
-        DefaultDownloadStartupConfig.getInstance().dlconfig = self.config
 
     def getVersion(self):
         return self.version
