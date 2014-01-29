@@ -37,6 +37,7 @@ class VODFile(object):
 
         self._file = f
         self._download = d
+        self._closing = False
 
         pieces = self._download.tdef.get_pieces()
         self.pieces = [pieces[x:x + 20]for x in xrange(0, len(pieces), 20)]
@@ -50,8 +51,13 @@ class VODFile(object):
 
         self._logger.debug('VODFile: get bytes %s - %s', oldpos, oldpos + args[0])
 
-        while self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
+        while not self._closing and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
             time.sleep(1)
+
+        if self._closing:
+            self._logger.debug('VODFile: got no bytes, file is closed')
+            return
+
         result = self._file.read(*args)
 
         newpos = self._file.tell()
@@ -149,6 +155,7 @@ class VODFile(object):
         return allpiecesok
 
     def close(self, *args):
+        self._closing = True
         self._file.close(*args)
 
 
@@ -263,7 +270,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self._logger.debug("LibtorrentDownloadImpl: create_engine_wrapper()")
 
         atp = {}
-        atp["save_path"] = str(self.get_dest_dir())
+        atp["save_path"] = os.path.abspath(str(self.get_dest_dir()))
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = True
         atp["auto_managed"] = False
@@ -623,9 +630,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.update_lt_stats()
         if self.get_mode() == DLMODE_VOD:
             if self.progress == 1.0:
-                self.set_vod_mode(False)
+                self.handle.set_sequential_download(False)
+                self.handle.set_priority(0)
+                if self.get_vod_fileindex() >= 0:
+                    self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
             elif self.progress < 1.0:
-                # If we are in VOD mode and still need to download pieces and but libtorrent says we are finished, reset the piece priorities to 1.
+                # If we are in VOD mode and still need to download pieces and libtorrent says we are finished, reset the piece priorities to 1.
                 def reset_priorities():
                     if self.handle.status().progress == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
@@ -690,7 +700,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 filepriorities = []
                 for index, orig_path in enumerate(self.orig_files):
-                    filename = orig_path[len(swarmname) + 1:]
+                    filename = orig_path[len(swarmname) + 1:] if swarmname else orig_path
 
                     if filename in selected_files or not selected_files:
                         filepriorities.append(1)
@@ -702,9 +712,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     cur_path = self.handle.get_torrent_info().files()[index].path
                     if cur_path != new_path:
                         if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
-                            os.makedirs(unwanteddir_abs)
-                            if sys.platform == "win32":
-                                win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
+                            try:
+                                os.makedirs(unwanteddir_abs)
+                                if sys.platform == "win32":
+                                    win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
+                            except:
+                                self._logger.error("LibtorrentDownloadImpl: could not create %s" % unwanteddir_abs)
+                                # Note: If the destination directory can't be accessed, libtorrent will not be able to store the files.
+                                # This will result in a DLSTATUS_STOPPED_ON_ERROR.
 
                         self.handle.rename_file(index, new_path)
 

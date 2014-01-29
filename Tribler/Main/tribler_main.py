@@ -348,7 +348,6 @@ class ABCApp():
 
         except Exception as e:
             self.onError(e)
-            return False
 
     def PostInit2(self):
         self.frame.Raise()
@@ -454,8 +453,8 @@ class ABCApp():
                     self.sconfig.set_swift_meta_dir(os.path.join(new_dest_dir, STATEDIR_SWIFTRESEED_DIR))
                     self.sconfig.save(cfgfilename)
                 else:
-                    # Silently quit
-                    self.onError = lambda e:None
+                    # Quit
+                    self.onError = lambda e: self._logger.error("tribler: quitting due to non-existing destination directory")
                     raise Exception()
 
         # Setting torrent collection dir based on default download dir
@@ -651,7 +650,8 @@ class ABCApp():
                         progress = playds.get_vod_prebuffering_progress()
                         progress_consec = playds.get_vod_prebuffering_progress_consec()
                     self.videoplayer.set_player_status_and_progress(progress, progress_consec, \
-                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True])
+                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True], \
+                                                                    playds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
                 wx.CallAfter(do_video)
 
             # Check to see if a download has finished
