@@ -2,8 +2,7 @@ import logging.config
 import os
 import re
 import globals
-from Tribler.community.anontunnel.community import ProxySettings, ProxyCommunity
-from Tribler.community.anontunnel.globals import MAX_CIRCUITS_TO_CREATE
+from Tribler.community.anontunnel.community import ProxySettings
 
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
@@ -15,9 +14,9 @@ try:
 except:
     pass
 
-from Tribler.community.anontunnel.ExtendStrategies import RandomAPriori, TrustThyNeighbour, NeighbourSubset
-from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
-from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy, LengthSelectionStrategy
+from Tribler.community.anontunnel.extendstrategies import RandomAPriori, TrustThyNeighbour, NeighbourSubset
+from Tribler.community.anontunnel.lengthstrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
+from Tribler.community.anontunnel.selectionstrategies import RandomSelectionStrategy, LengthSelectionStrategy
 from Tribler.community.anontunnel.AnonTunnel import AnonTunnel
 
 import sys, argparse

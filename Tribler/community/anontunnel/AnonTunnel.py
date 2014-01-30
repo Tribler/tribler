@@ -1,5 +1,5 @@
 import time
-from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
+from Tribler.community.anontunnel.endpoint import HackyEndpoint
 from Tribler.community.anontunnel.StatsCrawler import StatsCrawler
 
 __author__ = 'chris'

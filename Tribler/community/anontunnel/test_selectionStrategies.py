@@ -1,8 +1,10 @@
 from random import randint
-from Tribler.community.anontunnel.SelectionStrategies import LengthSelectionStrategy, RandomSelectionStrategy
+from unittest import TestCase
+
+from Tribler.community.anontunnel.selectionstrategies import LengthSelectionStrategy, RandomSelectionStrategy
 from Tribler.community.anontunnel.community import Circuit
 from Tribler.dispersy.candidate import Candidate
-from unittest import TestCase
+
 
 __author__ = 'chris'
 

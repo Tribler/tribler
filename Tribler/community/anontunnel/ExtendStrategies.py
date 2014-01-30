@@ -1,14 +1,10 @@
 import logging
 from random import getrandbits
-import string
 
 logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
 from Tribler.community.anontunnel.payload import *
-
-import itertools
-import random
 
 __author__ = 'chris'
 

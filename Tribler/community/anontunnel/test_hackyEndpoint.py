@@ -1,7 +1,7 @@
 import threading
 from unittest import TestCase
 from Tribler.Core.RawServer.RawServer import RawServer
-from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
+from Tribler.community.anontunnel.endpoint import HackyEndpoint
 
 __author__ = 'chris'
 
