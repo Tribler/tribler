@@ -130,8 +130,8 @@ class Utility:
         return self.randomly_selected_ports[key]
 
     def read_config(self, option, section='Tribler', literal_eval=True):
-        print >> sys.stderr, "read_config:", option, section, literal_eval
-        if not self.config.has_option(section, option):
+        # print >> sys.stderr, "read_config:", option, section, literal_eval
+        if True or not self.config.has_option(section, option):
             return self.defaults.get(section, {}).get(option, None)
 
         result = self.config.get(section, option, literal_eval=literal_eval)
@@ -139,12 +139,14 @@ class Utility:
         return result
 
     def write_config(self, option, value, section='Tribler', flush=False):
+        return
         print >> sys.stderr, "write_config:", option, section, value, flush
         self.config.set(section, option, value)
         if flush:
             self.flush_config()
 
     def flush_config(self):
+        return
         print >> sys.stderr, "flush_config"
         with open(self.configfilepath, "wb") as config_file:
             self.config.write(config_file)
