@@ -152,7 +152,7 @@ copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
 
 REM Swift
-del swift.exe
+IF EXIST swift.exe DEL swift.exe
 cd Tribler\SwiftEngine
 CALL c:\Python273\Scripts\scons -c
 CALL win32-build.bat
@@ -167,7 +167,7 @@ REM get password for swarmplayerprivatekey.pfx
 set /p PASSWORD="Enter the PFX password:"
 
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
-:: --- Doing this in ugly way for now
+REM --- Doing this in ugly way for now
 SET PATH=%PATH%;C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin
 
 signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
