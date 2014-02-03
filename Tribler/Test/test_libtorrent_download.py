@@ -7,6 +7,7 @@ from time import time
 import binascii
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from unittest.case import skip
 
 DEBUG = True
 
@@ -117,6 +118,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         self.startTest(do_start)
 
+    @skip("vlc temporary disabled")
     def test_playdownload(self):
         t = time()
 
