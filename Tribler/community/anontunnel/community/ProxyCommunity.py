@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
 from random import randint, randrange
-from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
+from Tribler.community.anontunnel.selectionstrategies import RandomSelectionStrategy
 from traceback import print_exc
 import uuid
 
