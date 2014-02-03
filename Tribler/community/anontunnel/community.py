@@ -653,8 +653,9 @@ class ProxyCommunity(Community):
                 dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
             dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
+            #encrypted_dh_first_part = self.dispersy.crypto.encrypt(pub_key, int_to_packed(dh_first_part, 2048))
+            encrypted_dh_first_part = int_to_packed(dh_first_part, 2048)
 
-            encrypted_dh_first_part = ElgamalCrypto.encrypt(pub_key, int_to_packed(dh_first_part, 2048))
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
             self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_dh_first_part))
@@ -698,7 +699,8 @@ class ProxyCommunity(Community):
 
         my_key = self.my_member._ec
 
-        decrypted_dh_first_part = ElgamalCrypto.decrypt(my_key, packed_to_int(message.key, 2048))
+        #decrypted_dh_first_part = self.dispersy.crypto.decrypt(my_key, packed_to_int(message.key, 2048))
+        decrypted_dh_first_part = packed_to_int(message.key, 2048)
 
         key = pow(decrypted_dh_first_part, dh_secret, DIFFIE_HELLMAN_MODULUS)
 
@@ -719,10 +721,10 @@ class ProxyCommunity(Community):
                 break
             # first member of candidate contains elgamal key
             ec_key = iter(candidate_temp.get_members()).next()._ec
-            """:type : Tribler.community.privatesemantic.ecutils.ECELgamalKey_Pub"""
+            #""":type : Tribler.community.privatesemantic.ecutils.ECELgamalKey_Pub"""
             #logger.warning("ECelgamal_KEY VALUES:  ec = {}, Q = {}, size = {}, encsize = {}".format(ec_key.ec, ec_key.Q, ec_key.size, ec_key.encsize))
 
-            key_string = ElgamalCrypto.key_to_bin(ec_key)
+            key_string = self.dispersy.crypto.key_to_bin(ec_key)
 
             cand_dict[candidate_temp.sock_addr] = key_string
             logger.debug("Found candidate {} with key {}".format(candidate_temp.sock_addr, key_string))

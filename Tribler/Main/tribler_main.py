@@ -530,8 +530,11 @@ class ABCApp():
             #dispersy.define_auto_load(ChannelCommunity, load=True)
             #dispersy.define_auto_load(PreviewChannelCommunity)
 
+            keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+            dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))
+
             proxy_community = dispersy.define_auto_load(ProxyCommunity,
-                                     (s.dispersy_member, s.lm.rawserver),
+                                     (dispersy_member, s.lm.rawserver),
                                      load=True)
             
             socks_server.tunnel = proxy_community[0]

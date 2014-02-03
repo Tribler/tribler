@@ -1,7 +1,6 @@
 import logging
 from random import getrandbits
 import string
-from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +54,8 @@ class NeighbourSubset:
         dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
         self.circuit.unverified_hop = Hop(sock_addr, extend_hop_public_key, dh_secret)
 
-        logger.debug("still have to encrypt the session key in the xtend message with the elgamal key of the candidate")
-        encrypted_dh_first_part = ElgamalCrypto.encrypt(extend_hop_public_key, dh_first_part)
+        #encrypted_dh_first_part = self.proxy.dispersy.crypto.encrypt(extend_hop_public_key, dh_first_part)
+        encrypted_dh_first_part = dh_first_part
 
         logger.info("We chose %s from the list to extend circuit %d with encrypted DH first part %s" % (sock_addr, self.circuit.circuit_id, dh_first_part))
         self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(sock_addr, encrypted_dh_first_part))
