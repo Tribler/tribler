@@ -56,7 +56,7 @@ class VODFile(object):
 
         if self._closing:
             self._logger.debug('VODFile: got no bytes, file is closed')
-            return
+            return ''
 
         result = self._file.read(*args)
 
