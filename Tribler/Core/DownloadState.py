@@ -45,10 +45,12 @@ class DownloadState(Serializable):
         self.haveslice = None
         self.stats = None
         self.length = None
+        
+        name = self.download.get_def().get_name()
 
         if stats is None:
             # No info available yet from download engine
-            self._logger.debug("DownloadState.__init__: stats is None")
+            self._logger.debug("DownloadState.__init__: stats is None '%s'", name)
             self.error = error  # readonly access
             self.progress = progress
             if self.error is not None:
@@ -57,14 +59,14 @@ class DownloadState(Serializable):
                 self.status = status
 
         elif error is not None:
-            self._logger.debug("DownloadState.__init__: error is not None")
+            self._logger.debug("DownloadState.__init__: error is not None '%s'", name)
             self.error = error  # readonly access
             self.progress = 0.0  # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
 
         elif status is not None and not status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
-            self._logger.debug("DownloadState.__init__: we have status and it is not downloading or seeding")
+            self._logger.debug("DownloadState.__init__: we have status and it is not downloading or seeding '%s'", name)
             self.error = error
             self.status = status
             if self.status == DLSTATUS_WAITING4HASHCHECK:
@@ -76,7 +78,7 @@ class DownloadState(Serializable):
 
         else:
             # Copy info from stats
-            self._logger.debug("DownloadState.__init__: copy from stats")
+            self._logger.debug("DownloadState.__init__: copy from stats '%s'", name)
             self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:
