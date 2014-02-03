@@ -1,5 +1,5 @@
 from unittest import TestCase
-from Tribler.community.anontunnel.CircuitLengthStrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
+from Tribler.community.anontunnel.lengthstrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 
 __author__ = 'chris'
 

@@ -1,6 +1,6 @@
 import logging
+import M2Crypto
 
-from AES import AESencode, AESdecode
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, ENDPOINT, MESSAGE_CREATE
 
 
@@ -99,3 +99,23 @@ class DefaultCrypto(object):
 
         return data
 
+
+def get_cryptor( op, key, alg='aes_128_ecb', iv=None ):
+    if iv == None:
+        iv = '\0' * 256
+    cryptor = M2Crypto.EVP.Cipher( alg=alg, key=key, iv=iv, op=op)
+    return cryptor
+
+
+def AESencode( key, plaintext ):
+    cryptor = get_cryptor( 1, key )
+    ret = cryptor.update( plaintext )
+    ret = ret + cryptor.final()
+    return ret
+
+
+def AESdecode( key, ciphertext ):
+    cryptor = get_cryptor( 0, key )
+    ret = cryptor.update( ciphertext )
+    ret = ret + cryptor.final()
+    return ret

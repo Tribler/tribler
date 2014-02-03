@@ -8,7 +8,7 @@ import logging
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
 from Tribler.community.anontunnel.ConnectionHandlers.Socks5Connection import Socks5Connection
 from Tribler.community.anontunnel.Socks5 import structs
-from Tribler.community.anontunnel.community import TunnelObserver
+from Tribler.community.anontunnel.community.TunnelObserver import TunnelObserver
 
 logger = logging.getLogger(__name__)
 

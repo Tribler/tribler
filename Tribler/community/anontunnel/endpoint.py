@@ -1,9 +1,7 @@
 from Queue import Queue, Full
 from threading import Thread
-from time import time
 import logging
 
-from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.endpoint import RawserverEndpoint
 
 
@@ -11,13 +9,14 @@ logger = logging.getLogger(__name__)
 
 __author__ = 'chris'
 
+
 class HackyEndpoint(RawserverEndpoint):
 
     def __init__(self, rawserver, port, ip="0.0.0.0"):
         RawserverEndpoint.__init__(self, rawserver, port, ip)
         self.bypass_community = None
         self.bypass_prefix = None
-        self.queue = Queue(maxsize=102400)
+        self.queue = Queue(maxsize=1024)
 
         self.consumer_thread = Thread(target=self.consumer)
         self.consumer_thread.start()
@@ -45,7 +44,6 @@ class HackyEndpoint(RawserverEndpoint):
         try:
             for packet in packets:
                 if self.bypass_prefix and packet[1].startswith(self.bypass_prefix):
-                    # self.bypass_community.on_bypass_message(*packet)
                     self.queue.put_nowait(packet)
 
                 else:

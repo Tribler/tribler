@@ -1,197 +1,37 @@
 from collections import defaultdict
-import logging
+import hashlib
+import random
+from random import getrandbits
 import socket
 from threading import RLock
-import uuid
-import random
 import sys
-from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
-from Tribler.community.anontunnel.crypto import DefaultCrypto, NoCrypto
-from Tribler.dispersy.requestcache import NumberCache
-
-logger = logging.getLogger(__name__)
-
-from Tribler.community.anontunnel.globals import *
-from random import randint, getrandbits
-from Tribler.community.anontunnel import ExtendStrategies
-from Tribler.community.anontunnel.CircuitLengthStrategies import ConstantCircuitLengthStrategy
-from Tribler.community.anontunnel.SelectionStrategies import RandomSelectionStrategy
 from traceback import print_exc
+import uuid
+import logging
 
-from time import time
-import hashlib
-
-from Tribler.community.anontunnel.conversion import ProxyConversion, \
-    CustomProxyConversion
-
-from Tribler.community.anontunnel.payload import StatsPayload, CreatedMessage, \
-    PongMessage, CreateMessage, PingMessage, DataMessage, ExtendedMessage
-
-from Tribler.dispersy.candidate import BootstrapCandidate, WalkCandidate, \
-    Candidate
+from Tribler.community.anontunnel.lengthstrategies import ConstantCircuitLengthStrategy
+from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion
+from Tribler.community.anontunnel.globals import MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_EXTEND, MESSAGE_PONG, MESSAGE_PING, MESSAGE_DATA, MESSAGE_PUNCTURE, MESSAGE_EXTENDED, MESSAGE_STRING_REPRESENTATION, DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_GENERATOR, ORIGINATOR, ENDPOINT, MAX_CIRCUITS_TO_CREATE, PING_INTERVAL
+from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, CreatedMessage, ExtendedMessage, PongMessage, PingMessage, DataMessage
 from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.candidate import WalkCandidate, BootstrapCandidate
 from Tribler.dispersy.community import Community
+from Hop import *
+from Circuit import *
+from ProxySettings import *
+from RelayRoute import RelayRoute
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message
+from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.resolution import PublicResolution
+from TunnelObserver import TunnelObserver
 
 
-class Hop:
-    def __init__(self, address, pub_key, dh_first_part):
-        self.address = address
-        self.pub_key = pub_key
-        self.session_key = None
-        self.dh_first_part = dh_first_part
+logger = logging.getLogger(__name__)
 
-    @property
-    def session_key(self):
-        return self.session_key
-    @property
-    def dh_first_part(self):
-        return self.dh_first_part
-
-    @property
-    def host(self):
-        return self.address[0]
-
-    @property
-    def port(self):
-        return self.address[1]
-
-    @staticmethod
-    def fromCandidate(candidate):
-        hop = Hop(candidate.sock_addr, None, None)
-        return hop
-
-
-class CircuitReturnFactory(object):
-    def create(self, proxy, raw_server, circuit_id, address):
-
-        # There is a special case where the circuit_id is None, then we act as EXIT node ourselves. In this case we
-        # create a ShortCircuitHandler that bypasses dispersy by patching ENTER packets directly into the Proxy's
-        # on_data event.
-        if circuit_id is 0:
-            return_handler = ShortCircuitReturnHandler(raw_server, proxy, address)
-        else:
-            # Otherwise incoming ENTER packets should propagate back over the Dispersy tunnel, we use the
-            # CircuitReturnHandler. It will use the DispersyTunnelProxy.send_data method to forward the data packet
-            return_handler = CircuitReturnHandler(raw_server, proxy, circuit_id, address)
-
-        return return_handler
-
-class ProxySettings:
-    def __init__(self):
-        length = randint(1, 4)
-        length = 2
-
-        self.extend_strategy = ExtendStrategies.NeighbourSubset
-        self.select_strategy = RandomSelectionStrategy(1)
-        self.length_strategy = ConstantCircuitLengthStrategy(length)
-        self.return_handler_factory = CircuitReturnFactory()
-        self.crypto = DefaultCrypto()
-
-
-class TunnelObserver():
-    def on_state_change(self, community, state):
-        pass
-
-    def on_tunnel_data(self, community, origin, data):
-        pass
-
-    def on_tunnel_stats(self, community, candidate, stats):
-        pass
-
-class Circuit:
-    """ Circuit data structure storing the id, status, first hop and all hops """
-
-    def __init__(self, circuit_id, goal_hops=0, candidate=None):
-        """
-        Instantiate a new Circuit data structure
-
-        :param circuit_id: the id of the candidate circuit
-        :param candidate: the first hop of the circuit
-        :return: Circuit
-        """
-
-        self.circuit_id = circuit_id
-        self.candidate = candidate
-        self.hops = []
-        self.goal_hops = goal_hops
-
-        self.extend_strategy = None
-        self.timestamp = None
-        self.times = []
-        self.bytes_up_list = []
-        self.bytes_down_list = []
-
-        self.bytes_down = [0, 0]
-        self.bytes_up = [0, 0]
-
-        self.speed_up = 0.0
-        self.speed_down = 0.0
-        self.last_incomming = time()
-
-        self.unverified_hop = None
-        """ :type : Hop """
-
-
-    @property
-    def bytes_downloaded(self):
-        return self.bytes_down[1]
-
-    @property
-    def bytes_uploaded(self):
-        return self.bytes_up[1]
-
-    @property
-    def online(self):
-        return self.goal_hops == len(self.hops)
-
-    @property
-    def state(self):
-        if self.hops == None:
-            return CIRCUIT_STATE_BROKEN
-
-        if len(self.hops) < self.goal_hops:
-            return CIRCUIT_STATE_EXTENDING
-        else:
-            return CIRCUIT_STATE_READY
-
-    @property
-    def ping_time_remaining(self):
-        too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
-        diff = self.last_incomming - too_old
-        return diff if diff > 0 else 0
-
-    def __contains__(self, other):
-        if isinstance(other, Candidate):
-            # TODO: should compare to a list here
-            return other == self.candidate
-
-
-class RelayRoute(object):
-    def __init__(self, circuit_id, candidate):
-        self.candidate = candidate
-        self.circuit_id = circuit_id
-
-        self.timestamp = None
-
-        self.times = []
-        self.bytes_list = []
-        self.bytes = [0, 0]
-        self.speed = 0
-
-        self.online = False
-
-        self.last_incomming = time()
-
-    @property
-    def ping_time_remaining(self):
-        too_old = time() - CANDIDATE_WALK_LIFETIME - 5.0
-        diff = self.last_incomming - too_old
-        return diff if diff > 0 else 0
+__author__ = 'Chris'
 
 class ProxyCommunity(Community):
 
@@ -312,7 +152,7 @@ class ProxyCommunity(Community):
 
         if isinstance(settings.length_strategy, ConstantCircuitLengthStrategy) and settings.length_strategy.desired_length == 0:
             self.circuits[0] = Circuit(0)
-        
+
         self.circuit_length_strategy = settings.length_strategy
         self.circuit_selection_strategy = settings.select_strategy
         self.extend_strategy = settings.extend_strategy
@@ -686,7 +526,7 @@ class ProxyCommunity(Community):
         if relay_key in self.relay_from_to:
             logger.info(("Breaking relay %s:%d %d " + additional_info) % (relay_key[0].sock_addr[0], relay_key[0].sock_addr[1], relay_key[1]))
             # Only remove one side of the relay, this isn't as pretty but both sides have separate incomming timer, hence
-            # after removing one side the other will follow. 
+            # after removing one side the other will follow.
             del self.relay_from_to[relay_key]
             return True
         return False
@@ -823,7 +663,7 @@ class ProxyCommunity(Community):
             request.on_extended(message)
             return True
         return False
-        
+
     class PingRequestCache(NumberCache):
 
         @staticmethod

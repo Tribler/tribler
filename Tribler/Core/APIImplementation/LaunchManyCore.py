@@ -2,20 +2,17 @@
 # Updated by George Milescu
 # see LICENSE.txt for license information
 
-import errno
 import sys
-import os
-import pickle
 import binascii
 import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
-from traceback import print_exc, print_stack
-import traceback
+from traceback import print_exc
+import logging
+
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.community.anontunnel.endpoint import HackyEndpoint
 
-import logging
-from Tribler.community.anontunnel.HackyEndpoint import HackyEndpoint
 
 try:
     prctlimported = True
@@ -23,7 +20,6 @@ try:
 except ImportError as e:
     prctlimported = False
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
@@ -115,7 +111,7 @@ class TriblerLaunchMany(Thread):
             if self.session.get_dispersy():
                 from Tribler.dispersy.callback import Callback
                 from Tribler.dispersy.dispersy import Dispersy
-                from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
+                from Tribler.dispersy.endpoint import TunnelEndpoint
                 from Tribler.dispersy.community import HardKilledCommunity
 
                 self._logger.info("lmc: Starting Dispersy...")
