@@ -1,3 +1,5 @@
+from Queue import Queue, Full
+from threading import Thread
 from time import time
 import logging
 
@@ -15,6 +17,24 @@ class HackyEndpoint(RawserverEndpoint):
         RawserverEndpoint.__init__(self, rawserver, port, ip)
         self.bypass_community = None
         self.bypass_prefix = None
+        self.queue = Queue(maxsize=102400)
+
+        self.consumer_thread = Thread(target=self.consumer)
+        self.consumer_thread.start()
+
+    def close(self, timeout=0.0):
+        self.queue.put_nowait(None)
+        RawserverEndpoint.close(self, timeout)
+
+    def consumer(self):
+        while True:
+            item = self.queue.get()
+
+            if item is None:
+                break
+
+            self.bypass_community.on_bypass_message(*item)
+            self.queue.task_done()
 
     def data_came_in(self, packets):
         if self.bypass_prefix and not self.bypass_community:
@@ -22,15 +42,23 @@ class HackyEndpoint(RawserverEndpoint):
 
         # Inspect packages
         normal_packets = []
-        for packet in packets:
-            if self.bypass_prefix and packet[1].startswith(self.bypass_prefix):
-                self.bypass_community.on_bypass_message(packet[0], packet[1])
-            else:
-                normal_packets.append(packet)
+        try:
+            for packet in packets:
+                if self.bypass_prefix and packet[1].startswith(self.bypass_prefix):
+                    # self.bypass_community.on_bypass_message(*packet)
+                    self.queue.put_nowait(packet)
+
+                else:
+                    normal_packets.append(packet)
+        except Full:
+                logger.warning("HackyEndpoint cant keep up with incoming packets, queue is full!")
 
         RawserverEndpoint.data_came_in(self, normal_packets)
 
-    # def send(self, candidates, packets):
-    #     for c in candidates:
-    #         for p in packets:
-    #             self._socket.sendto(p, c.sock_addr)
+    def send(self, candidates, packets):
+        for c in candidates:
+            for p in packets:
+                try:
+                    self._socket.sendto(p, c.sock_addr)
+                except IOError:
+                    logger.exception("Error writing to socket!")
