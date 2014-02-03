@@ -12,7 +12,7 @@ class CircuitReturnHandler(object):
     Sends incoming UDP packets back over the DispersyTunnelProxy.
     """
 
-    def __init__(self, socket, proxy, circuit_id, destination_address):
+    def __init__(self, raw_server, proxy, circuit_id, destination_address):
         """
         Instantiate a new return handler
 
@@ -24,11 +24,17 @@ class CircuitReturnHandler(object):
         :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
 
         """
+
+        socket = raw_server.create_udpsocket(0, "0.0.0.0")
+        raw_server.start_listening_udp(socket, self)
+
         self.proxy = proxy
         self.destination_address = destination_address
         self.circuit_id = circuit_id
         self.socket = socket
 
+    def sendto(self, data, destination):
+        self.socket.sendto(data, destination)
 
     def data_came_in(self, packets):
         """
@@ -53,7 +59,7 @@ class ShortCircuitReturnHandler(object):
     Only used when there are no circuits, it will be a 0-hop tunnel. So there is no anonymity at all.
     """
 
-    def __init__(self, socket, proxy, destination_address):
+    def __init__(self, raw_server, proxy, destination_address):
         """
         Instantiate a new return handler
 
@@ -64,6 +70,10 @@ class ShortCircuitReturnHandler(object):
         :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
 
         """
+
+        socket = raw_server.create_udpsocket(0, "0.0.0.0")
+        raw_server.start_listening_udp(socket, self)
+
         self.proxy = proxy
         self.destination_address = destination_address
         self.socket = socket
@@ -81,3 +91,5 @@ class ShortCircuitReturnHandler(object):
             message = DataMessage(("0.0.0.0",0), packet, source_address)
             self.proxy.on_data(0, None, message)
 
+    def sendto(self, data, destination):
+        self.socket.sendto(data, destination)

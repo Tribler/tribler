@@ -107,7 +107,7 @@ Section "!Main EXE" SecMain
  File swift.exe
  File /r vlc
  File swift.exe
- File *.bat
+ File tools\*.bat
  Delete "$INSTDIR\*.pyd"
  File *.pyd
  Delete "$INSTDIR\python*.dll"

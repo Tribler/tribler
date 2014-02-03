@@ -10,14 +10,13 @@ from __init__ import SEPARATOR_GREY, FILTER_GREY
 import sys
 import wx
 import os
+import logging
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
 from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_item import ColumnsManager, TorrentListItem, ChannelListItem, LibraryListItem, ChannelListItemNoButton, PlaylistItemNoButton, PlaylistItem
-
-DEBUG = False
 
 
 class ListHeaderIcon:
@@ -29,11 +28,17 @@ class ListHeaderIcon:
         ListHeaderIcon.__single = self
         self.icons = {}
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
     def getInstance(*args, **kw):
         if ListHeaderIcon.__single is None:
             ListHeaderIcon(*args, **kw)
         return ListHeaderIcon.__single
     getInstance = staticmethod(getInstance)
+
+    def delInstance(*args, **kw):
+        ListHeaderIcon.__single = None
+    delInstance = staticmethod(delInstance)
 
     @warnWxThread
     def getBitmaps(self, parent, background):
@@ -48,8 +53,7 @@ class ListHeaderIcon:
 
     @warnWxThread
     def __createBitmap(self, parent, background, type, flag=0):
-        if DEBUG:
-            print >> sys.stderr, "Creating new sorting bitmaps", parent, background, type
+        self._logger.debug("Creating new sorting bitmaps %s %s %s", parent, background, type)
         nativeIcon = NativeIcon.getInstance()
         down = nativeIcon.getBitmap(parent, type, background, flag)
 
@@ -69,6 +73,8 @@ class ListHeaderIcon:
 class ListHeader(wx.Panel):
 
     def __init__(self, parent, parent_list, columns, radius=0, spacers=[3, 3]):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         wx.Panel.__init__(self, parent)
         self.parent_list = parent_list
         self.columnHeaders = []
@@ -151,7 +157,7 @@ class ListHeader(wx.Panel):
                         if remainingWidth > 0:
                             sizer.AddSpacer((remainingWidth, 1))
                         else:
-                            print >> sys.stderr, "LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width'], remainingWidth
+                            self._logger.info("LIST_HEADER: specified width is too small %s %s %s", columns[i]['name'], columns[i]['width'], remainingWidth)
                             label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
 
                     self.columnHeaders.append(label)
@@ -460,89 +466,6 @@ class ManageChannelHeader(SubTitleHeader):
         self.nr_favorites = None
 
 
-class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
-
-    @warnWxThread
-    def GetRightTitlePanel(self, parent):
-        hSizer = SearchHeaderHelper.GetRightTitlePanel(self, parent)
-
-        # filename = os.path.join(os.path.dirname(__file__), "images", "help.png")
-        gui_utility = GUIUtility.getInstance()
-        filename = os.path.join(gui_utility.vwxGUI_path, "images", "help.png")
-        help = wx.StaticBitmap(parent, -1, wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
-        help.Bind(wx.EVT_LEFT_UP, self.helpClick)
-        help.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-
-        hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
-
-        return hSizer
-
-    def GetSubTitlePanel(self, parent):
-        pass
-
-    @warnWxThread
-    def helpClick(self, event=None):
-        title = 'Search within results'
-        html = """<p>
-        <u>Search within results</u> allows you to filter a list with ease.<br>
-        Typing a simple string, will allow you to filter items. <br>
-        If you type 'ab', only items matching it will be shown:
-        <ul>
-            <li><b>AB</b>C</li>
-            <li><b>ab</b>c</li>
-            <li>d<b>ab</b>c</li>
-        </ul>
-        <hr>
-        But you can specify more advanced queries. Search within results will additionally allow you to use regex and size filters.
-        I.e.
-        <ul>
-            <li>'\d{4}' will show only items with a 4 digit number</li>
-            <li>'size=100:200' will show items between 100 and 200 Mbytes</li>
-            <li>'size=:200' will show items smaller than 200 Mbytes</li>
-            <li>'size=100:' will show items larger than 100 Mbytes</li>
-        </ul>
-        <hr>
-        Finally if you are in the Library you can filter items by state, i.e.
-        <ul>
-            <li>'state=completed' will show only items which are completed</li>
-            <li>'state=active' will show items which currently are being downloaded or seeded</li>
-            <li>'state=seeding' will show items which are seeding</li>
-            <li>'state=downloading' will show items which are downloading</li>
-            <li>'state=stopped' will show items which are stopped/paused and not completed</li>
-            <li>'state=checking' will show items which are currently checking or scheduled to be checked</li>
-        </ul>
-        </p>"""
-
-        dlg = wx.Dialog(GUIUtility.getInstance().frame, -1, title, style=wx.DEFAULT_DIALOG_STYLE, size=(500, 300))
-        dlg.CenterOnParent()
-        dlg.SetBackgroundColour(DEFAULT_BACKGROUND)
-
-        sizer = wx.FlexGridSizer(2, 2)
-
-        icon = wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_MESSAGE_BOX))
-        sizer.Add(icon, 0, wx.TOP, 10)
-
-        hwin = wx.html.HtmlWindow(dlg, -1, size=(600, 400))
-        hwin.SetPage(html)
-        sizer.Add(hwin)
-
-        sizer.Add((10, 0))
-
-        btn = wx.Button(dlg, wx.ID_OK, 'Ok')
-        sizer.Add(btn, 0, wx.ALIGN_RIGHT, 5)
-
-        border = wx.BoxSizer()
-        border.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-
-        dlg.SetSizerAndFit(border)
-        dlg.ShowModal()
-        dlg.Destroy()
-
-    def Reset(self):
-        SearchHeaderHelper.Reset(self)
-        self.filter.Clear()
-
-
 class BaseFilter(wx.Panel):
 
     def __init__(self, parent, parent_list, columns, spacers):
@@ -848,7 +771,7 @@ class TorrentFilter(BaseFilter):
     @forceDBThread
     def SetBundleState(self, newstate, refresh=True):
         if newstate is None:
-            auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
+            auto_guess = self.guiutility.utility.read_config('use_bundle_magic')
 
             newstate = Bundler.ALG_OFF  # default
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
@@ -1319,7 +1242,6 @@ class ListItemHeader(wx.Panel):
 
     def OnCollapse(self, item, panel, from_expand=False):
         if panel:
-            panel.Destroy()
             self.parent_list.ResetBottomWindow()
         wx.CallAfter(self.guiutility.frame.top_bg.TorrentsChanged)
 

@@ -26,7 +26,6 @@ from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.dispersy.requestcache import Cache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate, Candidate
-from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.script import assert_
 
@@ -218,10 +217,6 @@ class TTLSearchCommunity(Community):
         @property
         def timeout_delay(self):
             return self._timeout_delay
-
-        @property
-        def cleanup_delay(self):
-            return 0.0
 
         @property
         def number(self):
@@ -834,3 +829,4 @@ class Das4DBStub():
         assert isinstance(infohash, str), type(infohash)
         if infohash in self.myMegaCache:
             del self.myMegaCache[infohash]
+

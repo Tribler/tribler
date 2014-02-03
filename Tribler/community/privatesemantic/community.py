@@ -45,7 +45,7 @@ ENCRYPTION = True
 
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME / 5
 PING_TIMEOUT = CANDIDATE_WALK_LIFETIME / 2
-TIME_BETWEEN_CONNECTION_ATTEMPTS = 15.0
+TIME_BETWEEN_CONNECTION_ATTEMPTS = 10.0
 
 class TasteBuddy():
     def __init__(self, overlap, sock_addr):
@@ -157,11 +157,11 @@ class ForwardCommunity():
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
-        self.key = rsa_init()
+        self.key = self.init_key()
 
         if not max_prefs:
-            max_len = self.dispersy_sync_bloom_filter_bits
-            max_prefs = max_len / self.key.size
+            max_len = 2 ** 16 - 60  # self.dispersy_sync_bloom_filter_bits
+            max_prefs = max_len / self.key.encsize
             max_hprefs = max_len / 20
         else:
             max_hprefs = max_prefs
@@ -206,6 +206,9 @@ class ForwardCommunity():
         self._peercache = SemanticDatabase(self._dispersy)
         self._peercache.open()
 
+    def init_key(self):
+        return rsa_init()
+
     def unload_community(self):
         self._peercache.close()
 
@@ -249,9 +252,7 @@ class ForwardCommunity():
                 elif DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no smaller than", new_taste_buddy, self.taste_buddies[-1]
 
-                # if we have any similarity, cache peer
-                if new_taste_buddy.overlap and new_taste_buddy.should_cache():
-                    self._peercache.add_peer(new_taste_buddy.overlap, *new_taste_buddy.candidate.sock_addr)
+                self.new_taste_buddy(new_taste_buddy)
 
         self.taste_buddies.sort(reverse=True)
         self.taste_buddies = self.taste_buddies[:self.max_taste_buddies]
@@ -306,6 +307,11 @@ class ForwardCommunity():
             if tb == candidate:
                 self.taste_buddies.remove(tb)
                 break
+
+    def new_taste_buddy(self, tb):
+        # if we have any similarity, cache peer
+        if tb.overlap and tb.should_cache():
+            self._peercache.add_peer(tb.overlap, *tb.candidate.sock_addr)
 
     def add_possible_taste_buddies(self, possibles):
         if __debug__:
@@ -392,32 +398,35 @@ class ForwardCommunity():
         return list(candidates)
 
     # connect to first nr peers in peercache
-    def connect_to_peercache(self, nr=10):
+    def connect_to_peercache(self, nr=10, standins=10):
         payload = self.create_similarity_payload()
         if payload:
-            tbs = self.get_tbs_from_peercache(nr)
+            tbs = self.get_tbs_from_peercache(nr, standins)
             if DEBUG:
-                print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), map(str, tbs)
+                print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), [str(tb_possibles[0]) for tb_possibles in tbs]
 
-            def attempt_to_connect(candidate, cur_attempt):
-                while not self.is_taste_buddy_sock(candidate.sock_addr) and cur_attempt < 8:
-                    self.create_similarity_request(candidate, payload)
+            def attempt_to_connect(tbs):
+                for tb in tbs:
+                    candidate = self.get_candidate(tb.sock_addr, replace=False)
+                    if not candidate:
+                        candidate = self.create_candidate(tb.sock_addr, False, tb.sock_addr, tb.sock_addr, u"unknown")
 
-                    yield TIME_BETWEEN_CONNECTION_ATTEMPTS * 2 ** cur_attempt
-                    cur_attempt += 1
+                    if not self.is_taste_buddy_sock(candidate.sock_addr):
+                        self.create_similarity_request(candidate, payload)
 
-            for i, tb in enumerate(tbs):
-                candidate = self.get_candidate(tb.sock_addr, replace=False)
-                if not candidate:
-                    candidate = self.create_candidate(tb.sock_addr, False, tb.sock_addr, tb.sock_addr, u"unknown")
+                    yield TIME_BETWEEN_CONNECTION_ATTEMPTS
 
-                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(candidate, 0), delay=0.005 * i))
+                    if self.is_taste_buddy_sock(candidate.sock_addr):
+                        break
+
+            for i, tb_possibles in enumerate(tbs):
+                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(tb_possibles,), delay=0.005 * i))
 
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
 
-    def get_tbs_from_peercache(self, nr):
-        return [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()[:nr]]
+    def get_tbs_from_peercache(self, nr, standins):
+        return [[TasteBuddy(overlap, (ip, port))] * standins for overlap, ip, port in self._peercache.get_peers()[:nr]]
 
     class SimilarityAttempt(NumberCache):
         @staticmethod
@@ -433,10 +442,6 @@ class ForwardCommunity():
         @property
         def timeout_delay(self):
             return 10.5
-
-        @property
-        def cleanup_delay(self):
-            return 0.0
 
         def on_timeout(self):
             self.community.send_introduction_request(self.requested_candidate)
@@ -602,7 +607,7 @@ class ForwardCommunity():
                 request.process()
 
     def create_similarity_request(self, destination, payload):
-        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=True))
+        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=self.send_simi_reveal))
         self.send_similarity_request([destination], cache.number, payload)
 
         if DEBUG:
@@ -746,7 +751,7 @@ class ForwardCommunity():
             sync = self.dispersy_claim_sync_bloom_filter(cache)
         else:
             sync = None
-        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, sync, cache.number, introduce_me_to)
+        payload = (destination.sock_addr, self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, sync, cache.number, introduce_me_to)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
@@ -893,10 +898,8 @@ class ForwardCommunity():
 
 class PForwardCommunity(ForwardCommunity):
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
-        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal)
-
-        self.key = paillier_init(self.key)
+    def init_key(self):
+        return paillier_init(ForwardCommunity.init_key(self))
 
     def initiate_meta_messages(self):
         messages = ForwardCommunity.initiate_meta_messages(self)
@@ -1254,9 +1257,10 @@ class PoliForwardCommunity(ForwardCommunity):
 
     def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True, send_simi_reveal=False):
         ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal)
-
-        self.key = paillier_init(self.key)
         self.use_cardinality = use_cardinality
+
+    def init_key(self):
+        return paillier_init(ForwardCommunity.init_key(self))
 
     def initiate_conversions(self):
         return [DefaultConversion(self), PoliSearchConversion(self)]
@@ -1449,7 +1453,11 @@ class PoliForwardCommunity(ForwardCommunity):
                         py += val
                     results.append(py)
 
-            shuffle(results)
+            if len(results) > self.max_prefs:
+                results = sample(results, self.max_prefs)
+            else:
+                shuffle(results)
+
             if send_messages:
                 # 4. create a messages, containing the py values
                 meta = self.get_meta_message(u"similarity-response")

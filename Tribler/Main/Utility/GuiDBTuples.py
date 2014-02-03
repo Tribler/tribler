@@ -1,6 +1,7 @@
 # Niels: getValidArgs based on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
 import sys
 import os.path
+import logging
 from datetime import date
 from time import time
 from inspect import getargspec
@@ -16,7 +17,7 @@ from Tribler.community.channel.community import ChannelCommunity, \
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
 
-DEBUGDB = False
+logger = logging.getLogger(__name__)
 
 
 def getValidArgs(func, argsDict):
@@ -32,7 +33,7 @@ def getValidArgs(func, argsDict):
 
     notOk = set(args).difference(argsDict)
     if notOk:
-        print >> sys.stderr, "Missing", notOk, "arguments for", func
+        logger.info("Missing %s arguments for %s", notOk, func)
     return argsDict
 
 # Niels: from http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
@@ -80,9 +81,10 @@ def cacheProperty(func):
 
 
 class Helper(object):
-    __slots__ = ('_cache')
+    __slots__ = ('_logger', '_cache')
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
         self._cache = {}
 
     def get(self, key, default=None):
@@ -197,8 +199,7 @@ class Torrent(Helper):
 
     @cacheProperty
     def torrent_id(self):
-        if DEBUGDB:
-            print >> sys.stderr, "Torrent: fetching getTorrentID from DB", self
+        self._logger.debug("Torrent: fetching getTorrentID from DB %s", self)
         return self.torrent_db.getTorrentID(self.infohash)
 
     def update_torrent_id(self, torrent_id):
@@ -210,8 +211,7 @@ class Torrent(Helper):
 
     @cacheProperty
     def channel(self):
-        if DEBUGDB:
-            print >> sys.stderr, "Torrent: fetching getMostPopularChannelFromTorrent from DB", self
+        self._logger.debug("Torrent: fetching getMostPopularChannelFromTorrent from DB %s", self)
 
         channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
         if channel:
@@ -404,8 +404,7 @@ class CollectedTorrent(Helper):
 
     @cacheProperty
     def swarminfo(self):
-        if DEBUGDB:
-            print >> sys.stderr, "CollectedTorrent: fetching getTorrent from DB", self
+        self._logger.debug("CollectedTorrent: fetching getTorrent from DB %s", self)
 
         swarminfo = self.torrent_db.getTorrent(self.infohash,
             keys=(u'num_seeders', u'num_leechers', u'last_tracker_check'),
@@ -517,8 +516,7 @@ class ChannelTorrent(Torrent):
 
     @cacheProperty
     def getPlaylist(self):
-        if DEBUGDB:
-            print >> sys.stderr, "ChannelTorrent: fetching getPlaylistForTorrent from DB", self
+        self._logger.debug("ChannelTorrent: fetching getPlaylistForTorrent from DB %s", self)
 
         playlist = self.channelcast_db.getPlaylistForTorrent(self.channeltorrent_id, PLAYLIST_REQ_COLUMNS)
         if playlist:
@@ -544,6 +542,8 @@ class Channel(Helper):
     __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'torrents', 'popular_torrents')
 
     def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, my_channel):
+        Helper.__init__(self)
+
         self.id = id
         self.dispersy_cid = str(dispersy_cid)
 
@@ -593,8 +593,7 @@ class Channel(Helper):
             def do_dispersy():
                 from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-                if DEBUGDB:
-                    print >> sys.stderr, "Channel: fetching getChannelStateByCID from DB", self
+                self._logger.debug("Channel: fetching getChannelStateByCID from DB %s", self)
 
                 searchManager = ChannelManager.getInstance()
                 result = searchManager.getChannelStateByCID(self.dispersy_cid)
@@ -656,6 +655,8 @@ class Comment(Helper):
     __slots__ = ('id', 'dispersy_id', 'channeltorrent_id', '_name', 'peer_id', 'comment', 'reply_to_id', 'replies', 'inserted', 'time_stamp', 'playlist', '_torrent', 'channel', 'get_nickname', 'get_mugshot')
 
     def __init__(self, id, dispersy_id, channeltorrent_id, name, peer_id, comment, reply_to_id, inserted, time_stamp, channel, playlist, torrent):
+        Helper.__init__(self)
+
         self.id = id
         self.dispersy_id = dispersy_id
         self.channeltorrent_id = channeltorrent_id
@@ -706,8 +707,7 @@ class Comment(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-            if DEBUGDB:
-                print >> sys.stderr, "Comment: fetching getTorrentFromChannelTorrentId from DB", self
+            self._logger.debug("Comment: fetching getTorrentFromChannelTorrentId from DB %s", self)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id, False)
@@ -717,6 +717,8 @@ class Playlist(Helper):
     __slots__ = ('id', 'dispersy_id', 'channel_id', 'name', 'description', 'nr_torrents', 'channel')
 
     def __init__(self, id, dispersy_id, channel_id, name, description, nr_torrents, channel):
+        Helper.__init__(self)
+
         self.id = id
         self.dispersy_id = dispersy_id
         self.channel_id = channel_id
@@ -759,6 +761,8 @@ class Modification(Helper):
     __slots__ = ('id', 'dispersy_id', 'peer_id', 'type_id', 'value', 'time_stamp', 'inserted', 'moderation', 'channeltorrent_id', 'channelcast_db', 'get_nickname')
 
     def __init__(self, id, dispersy_id, peer_id, type_id, value, time_stamp, inserted, channeltorrent_id):
+        Helper.__init__(self)
+
         self.id = id
         self.dispersy_id = dispersy_id
         self.peer_id = peer_id
@@ -785,8 +789,7 @@ class Modification(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-            if DEBUGDB:
-                print >> sys.stderr, "Modification: fetching getTorrentFromChannelTorrentId from DB", self
+            self._logger.debug("Modification: fetching getTorrentFromChannelTorrentId from DB %s", self)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id, False)
@@ -796,6 +799,8 @@ class Moderation(Helper):
     __slots__ = ('id', 'channel_id', 'peer_id', 'by_peer_id', 'severity', 'message', 'time_stamp', 'inserted', 'modification', 'channelcast_db', 'get_nickname')
 
     def __init__(self, id, channel_id, peer_id, by_peer_id, severity, message, time_stamp, inserted):
+        Helper.__init__(self)
+
         self.id = id
         self.channel_id = channel_id
         self.peer_id = peer_id
@@ -823,6 +828,8 @@ class Marking(Helper):
     __slots__ = ('dispersy_id', 'channeltorrent_id', 'peer_id', 'type', 'time_stamp', 'get_nickname')
 
     def __init__(self, dispersy_id, channeltorrent_id, peer_id, type, time_stamp):
+        Helper.__init__(self)
+
         self.dispersy_id = dispersy_id
         self.channeltorrent_id = channeltorrent_id
         self.peer_id = peer_id
@@ -840,8 +847,7 @@ class Marking(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
 
-            if DEBUGDB:
-                print >> sys.stderr, "Marking: fetching getTorrentFromChannelTorrentId from DB", self
+            self._logger.debug("Marking: fetching getTorrentFromChannelTorrentId from DB %s", self)
 
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id, False)

@@ -7,6 +7,7 @@ from collections import defaultdict
 from hashlib import sha1
 from binascii import hexlify
 from time import time
+from random import sample, shuffle
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -49,7 +50,9 @@ class SocialCommunity(Community):
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
         self.send_introduction_request = lambda destination, introduce_me_to = None, allow_sync = True, advice = True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
-        self._pending_callbacks.append(dispersy.callback.register(self.sync_with_friends))
+
+        self.friend_sync_id = dispersy.callback.register(self.sync_with_friends)
+        self._pending_callbacks.append(self.friend_sync_id)
 
         # replace _get_packets_for_bloomfilters
         self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
@@ -78,6 +81,8 @@ class SocialCommunity(Community):
     def sync_with_friends(self):
         while True:
             tbs = list(self.yield_taste_buddies())
+            shuffle(tbs)
+
             if tbs:
                 interval = max(300 / float(len(tbs)), 5.0)
                 for tb in tbs:
@@ -85,6 +90,10 @@ class SocialCommunity(Community):
                     yield interval
             else:
                 yield 15.0
+
+    def new_taste_buddy(self, tb):
+        if tb.overlap:
+            self.dispersy.callback.replace_register(self.friend_sync_id, self.sync_with_friends)
 
     def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
         if community != self:
@@ -181,7 +190,7 @@ class SocialCommunity(Community):
             encrypted_message = self.dispersy.crypto.encrypt(key, message_str)
 
             # get overlapping connections
-            overlapping_candidates = self.filter_overlap(self.yield_taste_buddies(), [keyhash, ])
+            overlapping_candidates = [tb.candidate for tb in self.filter_overlap(self.yield_taste_buddies(), [keyhash, ])]
 
             meta = self.get_meta_message(u"encrypted")
             message = meta.impl(authentication=(self._my_member,),
@@ -214,26 +223,37 @@ class SocialCommunity(Community):
         if decrypted_messages:
             self._dispersy.on_incoming_packets(decrypted_messages, cache=False)
 
-    def get_tbs_from_peercache(self, nr):
-        peers = [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()[:nr]]
-        return self.filter_tb(peers)
+    def get_tbs_from_peercache(self, nr, nr_standins):
+        tbs = [TasteBuddy(overlap, (ip, port)) for overlap, ip, port in self._peercache.get_peers()]
+
+        friends, foafs = self.determine_friends_foafs(tbs)
+        my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
+
+        if len(friends) > nr:
+            friends = sample(list(friends), nr)
+
+        peercache_candidates = []
+        for friend in friends:
+            peercache_friend = [friend] * 2
+
+            standins = set()
+            for overlapping_hash in friend.overlap:
+                if overlapping_hash not in my_key_hashes:
+                    standins.update(foafs.get(overlapping_hash, []))
+
+            remaining_standins = nr_standins - len(peercache_friend)
+            if len(standins) > remaining_standins:
+                standins = sample(list(standins), remaining_standins)
+
+            peercache_friend.extend(standins)
+            peercache_candidates.append(peercache_friend)
+
+        return peercache_candidates
 
     def filter_tb(self, tbs):
-        _tbs = list(tbs)
+        tbs = list(tbs)
 
-        to_maintain = set()
-
-        foafs = defaultdict(list)
-        my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
-        for tb in _tbs:
-            # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
-            if any(map(tb.does_overlap, my_key_hashes)):
-                to_maintain.add(tb)
-
-            # else add this foaf as a possible candidate to be used as a backup for a friend
-            else:
-                for keyhash in tb.overlap:
-                    foafs[keyhash].append(tb)
+        to_maintain, foafs = self.determine_friends_foafs(tbs)
 
         # for each friend we maintain an additional connection to at least one foaf
         # this peer is chosen randomly to attempt to load balance these pings
@@ -241,16 +261,28 @@ class SocialCommunity(Community):
             to_maintain.add(choice(f_tbs))
 
         if DEBUG:
-            print >> sys.stderr, long(time()), "SocialCommunity: Will maintain", len(to_maintain), "connections instead of", len(_tbs)
+            print >> sys.stderr, long(time()), "SocialCommunity: Will maintain", len(to_maintain), "connections instead of", len(tbs)
 
         return to_maintain
+
+    def determine_friends_foafs(self, tbs):
+        my_key_hashes = [keyhash for _, keyhash in self._friend_db.get_my_keys()]
+
+        friends = self.filter_overlap(tbs, my_key_hashes)
+        foafs = defaultdict(list)
+        for tb in tbs:
+            if tb not in friends:
+                for keyhash in tb.overlap:
+                    foafs[keyhash].append(tb)
+
+        return friends, foafs
 
     def filter_overlap(self, tbs, keys):
         to_maintain = set()
         for tb in tbs:
             # if a peer has overlap with any of my_key_hashes, its my friend -> maintain connection
             if any(map(tb.does_overlap, keys)):
-                to_maintain.add(tb.candidate)
+                to_maintain.add(tb)
 
         return to_maintain
 
@@ -318,11 +350,15 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
+    def new_taste_buddy(self, tb):
+        HForwardCommunity.new_taste_buddy(self, tb)
+        SocialCommunity.new_taste_buddy(self, tb)
+
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
-    def get_tbs_from_peercache(self, nr):
-        return SocialCommunity.get_tbs_from_peercache(self, nr)
+    def get_tbs_from_peercache(self, nr, standins):
+        return SocialCommunity.get_tbs_from_peercache(self, nr, standins)
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
@@ -356,11 +392,19 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
         PForwardCommunity.unload_community(self)
         SocialCommunity.unload_community(self)
 
+    def add_possible_taste_buddies(self, possibles):
+        PForwardCommunity.add_possible_taste_buddies(self, possibles)
+        SocialCommunity.add_possible_taste_buddies(self)
+
+    def new_taste_buddy(self, tb):
+        PForwardCommunity.new_taste_buddy(self, tb)
+        SocialCommunity.new_taste_buddy(self, tb)
+
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
-    def get_tbs_from_peercache(self, nr):
-        return SocialCommunity.get_tbs_from_peercache(self, nr)
+    def get_tbs_from_peercache(self, nr, standins):
+        return SocialCommunity.get_tbs_from_peercache(self, nr, standins)
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
@@ -398,11 +442,15 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
         HForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
+    def new_taste_buddy(self, tb):
+        HForwardCommunity.new_taste_buddy(self, tb)
+        SocialCommunity.new_taste_buddy(self, tb)
+
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
-    def get_tbs_from_peercache(self, nr):
-        return SocialCommunity.get_tbs_from_peercache(self, nr)
+    def get_tbs_from_peercache(self, nr, standins):
+        return SocialCommunity.get_tbs_from_peercache(self, nr, standins)
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)
@@ -413,18 +461,18 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
 class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None, send_simi_reveal=True):
         dispersy_database = dispersy.database
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality, log_text=log_text)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality, log_text=log_text, send_simi_reveal=send_simi_reveal)
         else:
-            return super(PoliSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality, log_text=log_text)
+            return super(PoliSocialCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, use_cardinality=use_cardinality, log_text=log_text, send_simi_reveal=send_simi_reveal)
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None, send_simi_reveal=True):
         SocialCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, log_text)
-        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality, send_simi_reveal=True)
+        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality, send_simi_reveal=send_simi_reveal)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -440,11 +488,15 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
         PoliForwardCommunity.add_possible_taste_buddies(self, possibles)
         SocialCommunity.add_possible_taste_buddies(self)
 
+    def new_taste_buddy(self, tb):
+        PoliForwardCommunity.new_taste_buddy(self, tb)
+        SocialCommunity.new_taste_buddy(self, tb)
+
     def filter_tb(self, tbs):
         return SocialCommunity.filter_tb(self, tbs)
 
-    def get_tbs_from_peercache(self, nr):
-        return SocialCommunity.get_tbs_from_peercache(self, nr)
+    def get_tbs_from_peercache(self, nr, standins):
+        return SocialCommunity.get_tbs_from_peercache(self, nr, standins)
 
     def _dispersy_claim_sync_bloom_filter_modulo(self):
         return SocialCommunity._dispersy_claim_sync_bloom_filter_modulo(self)

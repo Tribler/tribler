@@ -4,6 +4,7 @@
 import os
 import sys
 import wx
+import logging
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
@@ -14,8 +15,6 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterText as StaticText
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from __init__ import *
-
-DEBUG = False
 
 BUNDLE_FONT_SIZE_DECREMENT = 0
 BUNDLE_FONT_COLOR = (50, 50, 50)
@@ -28,6 +27,8 @@ BUNDLE_NUM_ROWS = 3
 class BundleListItem(ListItem):
 
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         # fetch bundle and descriptions
         self.bundle = original_data['bundle']
         self.general_description = original_data.get('bundle_general_description')
@@ -68,8 +69,7 @@ class BundleListItem(ListItem):
 
             self.bundlepanel.UpdateHeader(original_data['bundle_general_description'], original_data['bundle_description'])
 
-            if DEBUG:
-                print >> sys.stderr, "*** BundleListItem.RefreshData: bundle changed: %s #1+%s" % (original_data['key'], len(bundled))
+            self._logger.debug("*** BundleListItem.RefreshData: bundle changed: %s #1+%s", original_data['key'], len(bundled))
         else:
             if infohash == self.original_data.infohash:  # update top row
                 ListItem.RefreshData(self, data)
@@ -125,8 +125,7 @@ class BundleListItem(ListItem):
         if panel and panel.IsShown() != show:
             self.Freeze()
 
-            if DEBUG:
-                print >> sys.stderr, "BundleListItem: ShowExpandedPanel", show, self.expanded_panel_shown
+            self._logger.debug("BundleListItem: ShowExpandedPanel %s %s", show, self.expanded_panel_shown)
 
             panel.Show(show)
 
@@ -184,6 +183,8 @@ class BundlePanel(wx.BoxSizer):
 
     def __init__(self, parent, parent_list, hits, general_description=None, description=None, font_increment=0):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         # preload icons
         self.load_icons()
@@ -289,8 +290,7 @@ class BundlePanel(wx.BoxSizer):
         children = self.grid.GetChildren()
         didChange = len(children) < min(N, self.nrhits)
         if not didChange:
-            if DEBUG:
-                print >> sys.stderr, "*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only"
+            self._logger.debug("*** BundlePanel.UpdateGrid: total nr items did not change, updating labels only")
 
             # total nr items did not change
             for i in range(items_to_add):
@@ -313,8 +313,7 @@ class BundlePanel(wx.BoxSizer):
                     didChange = True
 
         if didChange:
-            if DEBUG:
-                print >> sys.stderr, "*** BundlePanel.UpdateGrid: something did change rebuilding grid", len(children), min(N, self.nrhits)
+            self._logger.debug("*** BundlePanel.UpdateGrid: something did change rebuilding grid %s %s", len(children), min(N, self.nrhits))
 
             curRows = len(children) / BUNDLE_NUM_COLS
             newRows = min(self.nrhits / BUNDLE_NUM_COLS, BUNDLE_NUM_ROWS)
@@ -434,9 +433,8 @@ class BundlePanel(wx.BoxSizer):
                     if new_state == BundlePanel.FULL and self.bundlelist:
                         self.bundlelist.OnLoadAll()
 
-            if DEBUG:
-                statestr = lambda st: ['COLLAPSED', 'PARTIAL', 'FULL'][st]
-                print >> sys.stderr, '*** BundlePanel.ChangeState: %s --> %s' % (statestr(old_state), statestr(new_state))
+            statestr = lambda st: ['COLLAPSED', 'PARTIAL', 'FULL'][st]
+            self._logger.debug('*** BundlePanel.ChangeState: %s --> %s', statestr(old_state), statestr(new_state))
 
     def ExpandHit(self, hit):
         id = hit.infohash

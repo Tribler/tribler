@@ -11,25 +11,25 @@ from traceback import print_exc
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination,\
+from Tribler.dispersy.destination import CandidateDestination, \
     CommunityDestination
-from Tribler.dispersy.distribution import DirectDistribution,\
+from Tribler.dispersy.distribution import DirectDistribution, \
     FullSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 
 from Tribler.community.search.conversion import SearchConversion
-from Tribler.community.search.payload import SearchRequestPayload,\
-    SearchResponsePayload, TorrentRequestPayload, TorrentCollectRequestPayload,\
+from Tribler.community.search.payload import SearchRequestPayload, \
+    SearchResponsePayload, TorrentRequestPayload, TorrentCollectRequestPayload, \
     TorrentCollectResponsePayload, TasteIntroPayload
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.channel.payload import TorrentPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.requestcache import NumberCache
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME,\
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate
-from Tribler.dispersy.dispersy import IntroductionRequestCache
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler,\
+from Tribler.dispersy.cache import IntroductionRequestCache
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler, \
     LOW_PRIO_COLLECTING
 from Tribler.Core.TorrentDef import TorrentDef
 from os import path
@@ -62,18 +62,21 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, log_incomming_searches=False):
         try:
             dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, log_incomming_searches=log_incomming_searches)
         else:
-            return super(SearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler)
+            return super(SearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, log_incomming_searches=log_incomming_searches)
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, log_incomming_searches=False):
         super(SearchCommunity, self).__init__(dispersy, master)
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.integrate_with_tribler = integrate_with_tribler
+        self.log_incomming_searches = log_incomming_searches
         self.taste_buddies = []
         # To always connect to a peer uncomment/modify the following line
         # self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
@@ -215,7 +218,7 @@ class SearchCommunity(Community):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
         if DEBUG:
-            print >> sys.stderr, "SearchCommunity: sending introduction request to", destination
+            self._logger.debug("SearchCommunity: sending introduction request to %s", destination)
 
         advice = True
         if not (isinstance(destination, BootstrapCandidate) or is_fast_walker):
@@ -236,10 +239,10 @@ class SearchCommunity(Community):
             taste_bloom_filter = self.taste_bloom_filter
 
             cache = self._request_cache.add(IntroductionRequestCache(self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, num_preferences, taste_bloom_filter)
+            payload = (destination.sock_addr, self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, num_preferences, taste_bloom_filter)
         else:
             cache = self._request_cache.add(IntroductionRequestCache(self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, 0, None)
+            payload = (destination.sock_addr, self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, 0, None)
 
         destination.walk(time(), cache.timeout_delay)
         self.add_candidate(destination)
@@ -303,10 +306,6 @@ class SearchCommunity(Community):
         def timeout_delay(self):
             return 30.0
 
-        @property
-        def cleanup_delay(self):
-            return 0.0
-
         def __init__(self, request_cache, keywords, callback):
             super(SearchCommunity.SearchRequest, self).__init__(request_cache)
             self.keywords = keywords
@@ -319,7 +318,7 @@ class SearchCommunity(Community):
         candidates = self.get_connections()
         if len(candidates) > 0:
             if DEBUG:
-                print >> sys.stderr, "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
+                self._logger.debug("SearchCommunity: sending search request for %s to %s", keywords, map(str, candidates))
 
             # register callback/fetch identifier
             cache = self._request_cache.add(SearchCommunity.SearchRequest(self._request_cache, keywords, callback))
@@ -341,10 +340,13 @@ class SearchCommunity(Community):
             keywords = message.payload.keywords
 
             if DEBUG:
-                print >> sys.stderr, "SearchCommunity: got search request for", keywords
+                self._logger.debug("SearchCommunity: got search request for %s", keywords)
+
+            if self.log_incomming_searches:
+                self.log_incomming_searches(message.candidate.sock_addr, keywords)
 
             results = []
-            dbresults = self._torrent_db.searchNames(keywords, local=False, keys= ['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
+            dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
             if len(dbresults) > 0:
                 for dbresult in dbresults:
                     channel_details = dbresult[-10:]
@@ -367,7 +369,7 @@ class SearchCommunity(Community):
 
                     results.append(tuple(dbresult))
             elif DEBUG:
-                print >> sys.stderr, "SearchCommunity: no results"
+                self._logger.debug("SearchCommunity: no results")
 
             self._create_search_response(message.payload.identifier, results, message.candidate)
 
@@ -379,7 +381,7 @@ class SearchCommunity(Community):
         self._dispersy._forward([message])
 
         if DEBUG:
-            print >> sys.stderr, "SearchCommunity: returning", len(results), "results to", candidate
+            self._logger.debug("SearchCommunity: returning %s results to %s", len(results), candidate)
 
     def check_search_response(self, messages):
         return messages
@@ -392,7 +394,7 @@ class SearchCommunity(Community):
                 search_request = self._request_cache.get(SearchCommunity.SearchRequest.create_identifier_from_message(message))
                 if search_request:
                     if DEBUG:
-                        print >> sys.stderr, "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
+                        self._logger.debug("SearchCommunity: got search response for %s %s %s", search_request.keywords, len(message.payload.results), message.candidate)
 
                     if len(message.payload.results) > 0:
                         self._torrent_db.on_search_response(message.payload.results)
@@ -405,14 +407,14 @@ class SearchCommunity(Community):
                         channels = self._get_unknown_channels(channels)
 
                         if DEBUG:
-                            print >> sys.stderr, "SearchCommunity: joining %d preview communities" % len(channels)
+                            self._logger.debug("SearchCommunity: joining %d preview communities" % len(channels))
 
                         for cid in channels:
                             community = self._get_channel_community(cid)
                             community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
                 else:
                     if DEBUG:
-                        print >> sys.stderr, "SearchCommunity: got search response identifier not found", message.payload.identifier
+                        self._logger.debug("SearchCommunity: got search response identifier not found %s", message.payload.identifier)
 
     def create_torrent_request(self, torrents, candidate):
         torrentdict = {}
@@ -432,7 +434,7 @@ class SearchCommunity(Community):
 
         if DEBUG:
             nr_requests = sum([len(cid_torrents) for cid_torrents in torrentdict.values()])
-            print >> sys.stderr, "SearchCommunity: requesting", nr_requests, "TorrentMessages from", candidate
+            self._logger.debug("SearchCommunity: requesting %s TorrentMessages from %s", nr_requests, candidate)
 
     def check_torrent_request(self, messages):
         return messages
@@ -448,7 +450,7 @@ class SearchCommunity(Community):
                 self._dispersy.endpoint.send([message.candidate], requested_packets)
 
             if DEBUG:
-                print >> sys.stderr, "SearchCommunity: got request for ", len(requested_packets), "torrents from", message.candidate
+                self._logger.debug("SearchCommunity: got request for %s torrents from %s", len(requested_packets), message.candidate)
 
     class PingRequestCache(IntroductionRequestCache):
 
@@ -457,6 +459,8 @@ class SearchCommunity(Community):
             return cls.create_identifier(message.payload.identifier)
 
         def __init__(self, community, candidate):
+            self._logger = logging.getLogger(self.__class__.__name__)
+
             self.candidate = candidate
             IntroductionRequestCache.__init__(self, community, None)
 
@@ -471,7 +475,7 @@ class SearchCommunity(Community):
 
             if remove:
                 if DEBUG:
-                    print >> sys.stderr, "SearchCommunity: no response on ping, removing from taste_buddies", self.candidate
+                    self._logger.debug("SearchCommunity: no response on ping, removing from taste_buddies %s", self.candidate)
                 self.community.taste_buddies.remove(remove)
 
     def create_torrent_collect_requests(self):
@@ -535,9 +539,9 @@ class SearchCommunity(Community):
                 for candidate in toCollect[infohash]:
                     if DEBUG:
                         from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-                        print >> sys.stderr, "SearchCommunity: requesting .torrent after receiving ping/pong ", candidate, bin2str(infohash), bin2str(roothash)
+                        self._logger.debug("SearchCommunity: requesting .torrent after receiving ping/pong %s %s %s", candidate, bin2str(infohash), bin2str(roothash))
 
-                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio=LOW_PRIO_COLLECTING, timeout= CANDIDATE_WALK_LIFETIME)
+                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio=LOW_PRIO_COLLECTING, timeout=CANDIDATE_WALK_LIFETIME)
 
     def _create_pingpong(self, meta_name, candidates, identifiers=None):
         max_len = self.dispersy_sync_bloom_filter_bits / 8
@@ -559,7 +563,7 @@ class SearchCommunity(Community):
             self._dispersy._forward([message])
 
             if DEBUG:
-                print >> sys.stderr, "SearchCommunity: send", meta_name, "to", candidate
+                self._logger.debug("SearchCommunity: send %s to %s", meta_name, candidate)
 
         addresses = [candidate.sock_addr for candidate in candidates]
         for taste_buddy in self.taste_buddies:
@@ -620,7 +624,7 @@ class SearchCommunity(Community):
                             payload=(infohash, timestamp, name, files, trackers))
 
         self._dispersy.store_update_forward([message], store, update, forward)
-        self._torrent_db.updateTorrent(infohash, notify=False, dispersy_id= message.packet_id)
+        self._torrent_db.updateTorrent(infohash, notify=False, dispersy_id=message.packet_id)
         return message
 
     def check_torrent(self, messages):
@@ -641,7 +645,7 @@ class SearchCommunity(Community):
         assert all(len(cid) == 20 for cid in cids)
 
         parameters = u",".join(["?"] * len(cids))
-        known_cids = self._channelcast_db._db.fetchall(u"SELECT dispersy_cid FROM Channels WHERE dispersy_cid in (" + parameters +")", map(buffer, cids))
+        known_cids = self._channelcast_db._db.fetchall(u"SELECT dispersy_cid FROM Channels WHERE dispersy_cid in (" + parameters + ")", map(buffer, cids))
         known_cids = map(str, known_cids)
         return [cid for cid in cids if cid not in known_cids]
 
@@ -685,7 +689,7 @@ class SearchCommunity(Community):
 
                     # 2. if still not found, create a new torrentmessage and return this one
                     if not dispersy_id and torrent['torrent_file_name'] and path.isfile(torrent['torrent_file_name']):
-                        message = self.create_torrent(torrent['torrent_file_name'], store=True, update= False, forward = False)
+                        message = self.create_torrent(torrent['torrent_file_name'], store=True, update=False, forward=False)
                         if message:
                             packets.append(message.packet)
             add_packet(dispersy_id)

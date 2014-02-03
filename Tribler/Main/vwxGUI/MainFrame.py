@@ -22,6 +22,7 @@ import signal
 import commands
 import pickle
 import traceback
+import logging
 
 from wx.html import HtmlWindow
 
@@ -60,7 +61,6 @@ from traceback import print_exc, print_stack
 from cStringIO import StringIO
 import urllib
 
-from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import *  # IGNORE:W0611
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -80,8 +80,6 @@ from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import *
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid, parse_magnetlink
-
-DEBUG = False
 
 #
 #
@@ -142,6 +140,10 @@ class FileDropTarget(wx.FileDropTarget):
 class MainFrame(wx.Frame):
 
     def __init__(self, parent, channelonly, internalvideo, progress):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        print >> sys.stderr, 'GUI started'
+
         # Do all init here
         self.ready = False
         self.guiUtility = GUIUtility.getInstance()
@@ -336,7 +338,7 @@ class MainFrame(wx.Frame):
             dragdroplist = FileDropTarget(self)
             self.SetDropTarget(dragdroplist)
         try:
-            self.SetIcon(self.utility.icon)
+            self.SetIcon(wx.Icon(os.path.join(self.utility.getPath(), 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
         except:
             pass
 
@@ -388,7 +390,7 @@ class MainFrame(wx.Frame):
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         # Init video player
-        sys.stdout.write('GUI Complete.\n')
+        print >> sys.stderr, 'GUI ready'
         self.Thaw()
         self.ready = True
 
@@ -451,8 +453,7 @@ class MainFrame(wx.Frame):
         return False
 
     def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, doemode=None, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
-        if True or DEBUG:
-            print >> sys.stderr, "mainframe: startDownload:", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles
+        self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
@@ -487,14 +488,14 @@ class MainFrame(wx.Frame):
             dscfg = defaultDLConfig.copy()
 
             cancelDownload = False
-            useDefault = not dscfg.get_show_saveas()
+            useDefault = not self.utility.read_config('showsaveas')
             if not useDefault and not destdir:
                 defaultname = correctedFilename
                 if not correctedFilename and tdef and tdef.is_multifile_torrent():
                     defaultname = tdef.get_name_as_unicode()
 
                 if wx.Thread_IsMain():
-                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, self.utility.config, selectedFiles)
+                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
                     dlg.CenterOnParent()
 
                     if isinstance(tdef, TorrentDefNoMetainfo):
@@ -545,7 +546,7 @@ class MainFrame(wx.Frame):
 
                 selectedFile = None
                 if vodmode:
-                    print >> sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
+                    self._logger.info('MainFrame: startDownload: Starting in VOD mode')
                     if len(videofiles) == 1:
                         selectedFile = videofiles[0]
                     else:
@@ -571,7 +572,7 @@ class MainFrame(wx.Frame):
                         else:
                             dscfg.set_selected_files(selectedFiles)
 
-                    print >> sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
+                    self._logger.debug('MainFrame: startDownload: Starting in DL mode')
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
 
                 if result and not hidden:
@@ -618,7 +619,7 @@ class MainFrame(wx.Frame):
 
     def startReseedSwiftDownload(self, tdef, storagepath, sdef):
         # Arno, 2012-05-07:
-        print >> sys.stderr, "main: frame: startReseedSwift", tdef, storagepath, sdef
+        self._logger.info("main: frame: startReseedSwift %s %s %s", tdef, storagepath, sdef)
 
         # 1. Tell library_manager that we have a 'swift_hash' for this infohash
         self.guiUtility.library_manager.updateTorrent(tdef.get_infohash(), sdef.get_roothash())
@@ -664,7 +665,7 @@ class MainFrame(wx.Frame):
             # pause for swift file release
             time.sleep(1)
 
-            print >> sys.stderr, "Switching to Bittorrent"
+            self._logger.info("Switching to Bittorrent")
             cdef = TorrentDef.load(torrentfilename)
             dscfg = dscfg.copy()
             dscfg.set_selected_files(selectedFiles or [])
@@ -689,7 +690,7 @@ class MainFrame(wx.Frame):
             else:
                 self.guiUtility.Notify("Download started", "A new torrent has been added to the download queue.", icon='download')
 
-            print >> sys.stderr, "Allowing refresh in 3 seconds", long(time.time() + 3)
+            self._logger.info("Allowing refresh in 3 seconds %s", long(time.time() + 3))
             self.librarylist.GetManager().prev_refresh_if = time.time() - 27
 
     def checkVersion(self):
@@ -736,7 +737,7 @@ class MainFrame(wx.Frame):
             # Also check new version of web2definitions for youtube etc. search
             # Web2Updater(self.utility).checkUpdate()
         except Exception as e:
-            print >> sys.stderr, "Tribler: Version check failed", time.ctime(time.time()), str(e)
+            self._logger.error("Tribler: Version check failed %s %s", time.ctime(time.time()), str(e))
             # print_exc()
 
     def _upgradeVersion(self, my_version, latest_version, info):
@@ -744,7 +745,7 @@ class MainFrame(wx.Frame):
         torrent_key = "torrent-%s" % sys.platform
         notes_key = "notes-txt-%s" % sys.platform
         if torrent_key in info:
-            print >> sys.stderr, "-- Upgrade", my_version, "->", latest_version
+            self._logger.info("-- Upgrade %s -> %s", my_version, latest_version)
             notes = []
             if "notes-txt" in info:
                 notes.append(info["notes-txt"])
@@ -753,18 +754,18 @@ class MainFrame(wx.Frame):
             notes = "\n".join(notes)
             if notes:
                 for line in notes.split("\n"):
-                    print >> sys.stderr, "-- Notes:", line
+                    self._logger.info("-- Notes: %s", line)
             else:
                 notes = "No release notes found"
-            print >> sys.stderr, "-- Downloading", info[torrent_key], "for upgrade"
+            self._logger.info("-- Downloading %s for upgrade", info[torrent_key])
 
             # prepare directort and .torrent file
             location = os.path.join(self.utility.session.get_state_dir(), "upgrade")
             if not os.path.exists(location):
                 os.mkdir(location)
-            print >> sys.stderr, "-- Dir:", location
+            self._logger.info("-- Dir: %s", location)
             filename = os.path.join(location, os.path.basename(urlparse.urlparse(info[torrent_key])[2]))
-            print >> sys.stderr, "-- File:", filename
+            self._logger.info("-- File: %s", filename)
             if not os.path.exists(filename):
                 urllib.urlretrieve(info[torrent_key], filename)
 
@@ -778,22 +779,22 @@ class MainFrame(wx.Frame):
             executable = None
             for file_ in files:
                 if sys.platform == "win32" and file_.endswith(u".exe"):
-                    print >> sys.stderr, "-- exe:", file_
+                    self._logger.info("-- exe: %s", file_)
                     executable = file_
                     break
 
                 elif sys.platform == "linux2" and file_.endswith(u".deb"):
-                    print >> sys.stderr, "-- deb:", file_
+                    self._logger.info("-- deb: %s", file_)
                     executable = file_
                     break
 
                 elif sys.platform == "darwin" and file_.endswith(u".dmg"):
-                    print >> sys.stderr, "-- dmg:", file_
+                    self._logger.info("-- dmg: %s", file_)
                     executable = file_
                     break
 
             if not executable:
-                print >> sys.stderr, "-- Abort upgrade: no file found"
+                self._logger.info("-- Abort upgrade: no file found")
                 return
 
             # start download
@@ -801,7 +802,7 @@ class MainFrame(wx.Frame):
                 download = self.utility.session.start_download(tdef)
 
             except DuplicateDownloadException:
-                print >> sys.stderr, "-- Duplicate download"
+                self._logger.error("-- Duplicate download")
                 download = None
                 for random_download in self.utility.session.get_downloads():
                     if random_download.get_def().get_infohash() == tdef.get_infohash():
@@ -827,8 +828,8 @@ class MainFrame(wx.Frame):
                     elif sys.platform == "darwin":
                         args = ["open", executable_path]
 
-                    print >> sys.stderr, "-- Tribler closed, starting upgrade"
-                    print >> sys.stderr, "-- Start:", args
+                    self._logger.info("-- Tribler closed, starting upgrade")
+                    self._logger.info("-- Start: %s", args)
                     subprocess.Popen(args)
 
                 def wxthread_upgrade():
@@ -847,8 +848,7 @@ class MainFrame(wx.Frame):
                     Called every n seconds with an update on the
                     .torrent download that we need to upgrade
                     """
-                    if DEBUG:
-                        print >> sys.stderr, "-- State:", dlstatus_strings[state.get_status()], state.get_progress()
+                    self._logger.debug("-- State: %s %s", dlstatus_strings[state.get_status()], state.get_progress())
                     # todo: does DLSTATUS_STOPPED mean it has completely downloaded?
                     if state.get_status() == DLSTATUS_SEEDING:
                         self.shutdown_and_upgrade_notes = notes
@@ -902,7 +902,7 @@ class MainFrame(wx.Frame):
             executable = "?"
 
         executable = os.path.join(path, executable)
-        print >> sys.stderr, executable
+        self._logger.info(repr(executable))
 
         def start_tribler():
             try:
@@ -941,18 +941,17 @@ class MainFrame(wx.Frame):
         # and when being restored.
         # Arno, 2010-01-15: on Win7 with wxPython2.8-win32-unicode-2.8.10.1-py26
         # there is no event on restore :-(
-        if DEBUG:
-            if event is not None:
-                print >> sys.stderr, "main: onIconify(", event.Iconized()
-            else:
-                print >> sys.stderr, "main: onIconify event None"
+        if event is not None:
+            self._logger.debug("main: onIconify( %s", event.Iconized())
+        else:
+            self._logger.debug("main: onIconify event None")
 
         if event.Iconized():
             # Niels, 2011-06-17: why pause the video? This does not make any sense
             # videoplayer = VideoPlayer.getInstance()
             # videoplayer.pause_playback() # when minimzed pause playback
 
-            if self.utility.config.Read('mintray', "int") == 1:
+            if self.utility.read_config('mintray') == 1:
                 self.tbicon.updateIcon(True)
                 self.Show(False)
 
@@ -975,11 +974,11 @@ class MainFrame(wx.Frame):
         # I switch back, I don't get an event. As a result the GUIupdate
         # remains turned off. The wxWidgets wiki on the TaskBarIcon suggests
         # catching the onSize event.
-        if DEBUG:
-            if event is not None:
-                print >> sys.stderr, "main: onSize:", self.GetSize()
-            else:
-                print >> sys.stderr, "main: onSize: None"
+        if event is not None:
+            self._logger.debug("main: onSize: %s", self.GetSize())
+        else:
+            self._logger.debug("main: onSize: None")
+
         self.GUIupdate = True
         if event is not None:
             if event.GetEventType() == wx.EVT_MAXIMIZE:
@@ -987,15 +986,15 @@ class MainFrame(wx.Frame):
             event.Skip()
 
     def getWindowSettings(self):
-        width = self.utility.config.Read("window_width")
-        height = self.utility.config.Read("window_height")
+        width = self.utility.read_config("window_width")
+        height = self.utility.read_config("window_height")
         try:
             size = wx.Size(int(width), int(height))
         except:
             size = wx.Size(1024, 670)
 
-        x = self.utility.config.Read("window_x")
-        y = self.utility.config.Read("window_y")
+        x = self.utility.read_config("window_x")
+        y = self.utility.read_config("window_y")
         if (x == "" or y == "" or x == 0 or y == 0):
             # position = wx.DefaultPosition
 
@@ -1011,7 +1010,7 @@ class MainFrame(wx.Frame):
             size = wx.Size(width, height)
         else:
             position = wx.Point(int(x), int(y))
-        sashpos = self.utility.config.Read("sash_position")
+        sashpos = self.utility.read_config("sash_position")
         try:
             sashpos = int(sashpos)
         except:
@@ -1022,15 +1021,15 @@ class MainFrame(wx.Frame):
     def saveWindowSettings(self):
         width, height = self.GetSizeTuple()
         x, y = self.GetPositionTuple()
-        self.utility.config.Write("window_width", width)
-        self.utility.config.Write("window_height", height)
-        self.utility.config.Write("window_x", x)
-        self.utility.config.Write("window_y", y)
+        self.utility.write_config("window_width", width)
+        self.utility.write_config("window_height", height)
+        self.utility.write_config("window_x", x)
+        self.utility.write_config("window_y", y)
 
         if self.splitter.IsShownOnScreen() and self.splitter.IsSplit():
-            self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
+            self.utility.write_config("sash_position", self.splitter.GetSashPosition())
 
-        self.utility.config.Flush()
+        self.utility.flush_config()
 
     #
     # Close Program
@@ -1045,20 +1044,19 @@ class MainFrame(wx.Frame):
                 nr = lookup[nr]
                 found = True
 
-            print >> sys.stderr, "mainframe: Closing due to event ", nr, repr(event)
+            self._logger.info("mainframe: Closing due to event %s %s", nr, repr(event))
         else:
-            print >> sys.stderr, "mainframe: Closing untriggered by event"
+            self._logger.info("mainframe: Closing untriggered by event")
 
         # Don't do anything if the event gets called twice for some reason
         if self.utility.abcquitting:
-            print
             return
 
         # Check to see if we can veto the shutdown
         # (might not be able to in case of shutting down windows)
         if event is not None:
             try:
-                if isinstance(event, wx.CloseEvent) and event.CanVeto() and self.utility.config.Read('confirmonclose', "boolean") and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
+                if isinstance(event, wx.CloseEvent) and event.CanVeto() and self.utility.read_config('confirmonclose') and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
                     if self.shutdown_and_upgrade_notes:
                         confirmmsg = self.utility.lang.get('confirmupgrademsg') + "\n\n" + self.shutdown_and_upgrade_notes
                         confirmtitle = self.utility.lang.get('confirmupgrade')
@@ -1072,22 +1070,23 @@ class MainFrame(wx.Frame):
                     if result != wx.ID_OK:
                         event.Veto()
 
-                        print >> sys.stderr, "mainframe: Not closing messagebox did not return OK"
+                        self._logger.info("mainframe: Not closing messagebox did not return OK")
                         return
             except:
                 print_exc()
 
+        print >> sys.stderr, 'GUI closing'
         self.utility.abcquitting = True
         self.GUIupdate = False
 
         if VideoPlayer.hasInstance():
-            print >> sys.stderr, "mainframe: Closing videoplayer"
+            self._logger.info("mainframe: Closing videoplayer")
 
             videoplayer = VideoPlayer.getInstance()
             videoplayer.stop_playback()
 
         try:
-            print >> sys.stderr, "mainframe: Restoring from taskbar"
+            self._logger.info("mainframe: Restoring from taskbar")
 
             # Restore the window before saving size and position
             # (Otherwise we'll get the size of the taskbar button and a negative position)
@@ -1098,21 +1097,22 @@ class MainFrame(wx.Frame):
 
         if self.tbicon is not None:
             try:
-                print >> sys.stderr, "mainframe: Removing tbicon"
+                self._logger.info("mainframe: Removing tbicon")
 
                 self.tbicon.RemoveIcon()
                 self.tbicon.Destroy()
             except:
                 print_exc()
 
-        print >> sys.stderr, "mainframe: Calling quit"
+        self._logger.info("mainframe: Calling quit")
         self.quit(event != None or force)
 
-        if DEBUG:
-            print >> sys.stderr, "mainframe: OnCloseWindow END"
-            ts = enumerate()
-            for t in ts:
-                print >> sys.stderr, "mainframe: Thread still running", t.getName(), "daemon", t.isDaemon()
+        self._logger.debug("mainframe: OnCloseWindow END")
+        ts = enumerate()
+        for t in ts:
+            self._logger.info("mainframe: Thread still running %s daemon %s", t.getName(), t.isDaemon())
+
+        print >> sys.stderr, 'GUI closed'
 
     @forceWxThread
     def onWarning(self, exc):
@@ -1167,14 +1167,12 @@ class MainFrame(wx.Frame):
         try:
             # print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
             if self.utility is None:
-                if DEBUG:
-                    print >> sys.stderr, "MainFrame: setActivity: Cannot display: t", type, "m", msg, "a2", arg2
+                self._logger.debug("MainFrame: setActivity: Cannot display: t %s m %s a2 %s", type, msg, arg2)
                 return
 
             if not wx.Thread_IsMain():
-                if DEBUG:
-                    print >> sys.stderr, "main: setActivity thread", currentThread().getName(), "is NOT MAIN THREAD"
-                    print_stack()
+                self._logger.debug("main: setActivity thread %s is NOT MAIN THREAD", currentThread().getName())
+                print_stack()
 
             if type == NTFY_ACT_NONE:
                 prefix = msg
@@ -1184,7 +1182,7 @@ class MainFrame(wx.Frame):
                 if msg == "no network":
                     text = "No network - last activity: %.1f seconds ago" % arg2
                     self.SetTitle(text)
-                    print >> sys.stderr, "main: Activity", repr(text)
+                    self._logger.info("main: Activity %s", repr(text))
                 elif self.GetTitle().startswith("No network"):
                     title = self.utility.lang.get('title') + \
                         " " + \
@@ -1203,8 +1201,7 @@ class MainFrame(wx.Frame):
                 prefix = self.utility.lang.get('act_got_metadata')
 
                 if self.category.family_filter_enabled() and arg2 == 7:  # XXX category
-                    if DEBUG:
-                        print >> sys.stderr, "MainFrame: setActivity: Hiding XXX torrent", msg
+                    self._logger.debug("MainFrame: setActivity: Hiding XXX torrent %s", msg)
                     return
 
             elif type == NTFY_ACT_RECOMMEND:
@@ -1218,8 +1215,7 @@ class MainFrame(wx.Frame):
             else:
                 text = unicode(prefix + u' ' + msg)
 
-            if DEBUG:
-                print >> sys.stderr, "main: Activity", repr(text)
+            self._logger.debug("main: Activity %s", repr(text))
             self.SRstatusbar.onActivity(text)
             self.stats.onActivity(text)
         except wx.PyDeadObjectError:
@@ -1230,22 +1226,22 @@ class MainFrame(wx.Frame):
 
     @forceWxThread
     def quit(self, force=True):
-        print >> sys.stderr, "mainframe: in quit"
+        self._logger.info("mainframe: in quit")
         if self.wxapp is not None:
-            print >> sys.stderr, "mainframe: using self.wxapp"
+            self._logger.info("mainframe: using self.wxapp")
             app = self.wxapp
         else:
-            print >> sys.stderr, "mainframe: got app from wx"
+            self._logger.info("mainframe: got app from wx")
             app = wx.GetApp()
 
-        print >> sys.stderr, "mainframe: looping through toplevelwindows"
+        self._logger.info("mainframe: looping through toplevelwindows")
         for item in wx.GetTopLevelWindows():
             if item != self:
                 if isinstance(item, wx.Dialog):
-                    print >> sys.stderr, "mainframe: destroying", item
+                    self._logger.info("mainframe: destroying %s", item)
                     item.Destroy()
                 item.Close()
-        print >> sys.stderr, "mainframe: destroying", self
+        self._logger.info("mainframe: destroying %s", self)
         self.Destroy()
 
         if app:

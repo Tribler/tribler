@@ -9,7 +9,6 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Core.Swift import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef
 
 
@@ -93,7 +92,7 @@ class AddTorrent(wx.Dialog):
 
         else:
             self.choose = wx.CheckBox(self, -1, "Let me choose a downloadlocation for these torrents")
-            self.choose.SetValue(self.defaultDLConfig.get_show_saveas())
+            self.choose.SetValue(self.guiutility.utility.read_config('showsaveas'))
             vSizer.Add(self.choose, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 3)
 
         sizer = wx.BoxSizer()
@@ -207,17 +206,19 @@ class AddTorrent(wx.Dialog):
         dlg.Destroy()
 
     def _GetDestPath(self, torrentfilename=None, torrenturl=None):
+        destdir = None
+
         tdef = None
         if torrentfilename:
             tdef = TorrentDef.load(torrentfilename)
         if torrenturl:
             tdef = TorrentDef.load_from_url(torrenturl)
-        dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None, self.guiutility.utility.config)
-        id = dlg.ShowModal()
 
-        if id == wx.ID_OK:
-            destdir = dlg.GetPath()
-        else:
-            destdir = None
-        dlg.Destroy()
+        if tdef:
+            dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None)
+            id = dlg.ShowModal()
+
+            if id == wx.ID_OK:
+                destdir = dlg.GetPath()
+            dlg.Destroy()
         return destdir

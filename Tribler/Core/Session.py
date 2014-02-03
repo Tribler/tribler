@@ -7,13 +7,13 @@ import os
 import sys
 import copy
 import binascii
+import logging
 from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.Base import *
 from Tribler.Core.SessionConfig import *
-from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeConfig
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.osutils import get_appstate_dir
@@ -28,10 +28,8 @@ try:
 except ImportError:
     pass
 
-DEBUG = False
 
-
-class Session(SessionRuntimeConfig):
+class Session(SessionConfigInterface):
 
     """
 
@@ -61,6 +59,8 @@ class Session(SessionRuntimeConfig):
             if Session.__single:
                 raise RuntimeError("Session is singleton")
             Session.__single = self
+
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.ignore_singleton = ignore_singleton
         self.sesslock = NoDispersyRLock()
@@ -131,6 +131,7 @@ class Session(SessionRuntimeConfig):
             scfg.set_torrent_checking(0)
 
         self.sessconfig = scfg.sessconfig
+        self.sessconfig.lock = self.sesslock
 
         self.randomly_selected_ports = scfg.randomly_selected_ports
 
@@ -447,7 +448,7 @@ class Session(SessionRuntimeConfig):
         self.lm.register(self, self.sesslock)
         self.lm.start()
 
-        self.set_config_callback(self.lm.config_changed_callback)
+        self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
 
     def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.
@@ -567,8 +568,8 @@ class Session(SessionRuntimeConfig):
                     self.lm.rawserver_nonfatalerrorfunc(e)
 
             # Checkpoint all Downloads and stop NetworkThread
-            if DEBUG or stop:
-                print >> sys.stderr, "Session: checkpoint_shutdown"
+            if stop:
+                self._logger.debug("Session: checkpoint_shutdown")
             self.lm.checkpoint(stop=stop, checkpoint=checkpoint, gracetime=gracetime)
         finally:
             self.sesslock.release()

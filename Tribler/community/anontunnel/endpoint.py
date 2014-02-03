@@ -1,7 +1,5 @@
-from time import time
 import logging
 
-from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.endpoint import RawserverEndpoint
 
 
@@ -28,6 +26,9 @@ class HackyEndpoint(RawserverEndpoint):
             else:
                 normal_packets.append(packet)
 
-        if normal_packets:
-            assert self._dispersy, "Should not be called before open(...)"
-            self._dispersy.callback.register(self.dispersythread_data_came_in, (normal_packets, time()))
+        RawserverEndpoint.data_came_in(self, normal_packets)
+
+    # def send(self, candidates, packets):
+    #     for c in candidates:
+    #         for p in packets:
+    #             self._socket.sendto(p, c.sock_addr)

@@ -3,6 +3,7 @@
 
 import sys
 import os
+import logging
 from traceback import print_exc
 
 if (sys.platform == 'win32'):
@@ -17,13 +18,13 @@ else:
     HKLM = 1
     HKCU = 2
 
-DEBUG = False
+logger = logging.getLogger(__name__)
 
 
 class Win32RegChecker:
 
     def __init__(self):
-        pass
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def readRootKey(self, key_name, value_name=""):
         return self.readKey(HKCR, key_name, value_name)
@@ -34,16 +35,13 @@ class Win32RegChecker:
 
         try:
             # test that shell/open association with ABC exist
-            if DEBUG:
-                print >>sys.stderr, "win32regcheck: Opening", key_name, value_name
+            self._logger.debug("win32regcheck: Opening %s %s", key_name, value_name)
             full_key = _winreg.OpenKey(hkey, key_name, 0, _winreg.KEY_READ)
 
-            if DEBUG:
-                print >>sys.stderr, "win32regcheck: Open returned", full_key
+            self._logger.debug("win32regcheck: Open returned %s", full_key)
 
             value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
-            if DEBUG:
-                print >>sys.stderr, "win32regcheck: Read", value_data, value_type
+            self._logger.debug("win32regcheck: Read %s %s", value_data, value_type)
             _winreg.CloseKey(full_key)
 
             return value_data
@@ -62,22 +60,19 @@ class Win32RegChecker:
         try:
             toclose = []
             keyparts = key_name.split('\\')
-            print >>sys.stderr, "win32regcheck: keyparts", keyparts
+            self._logger.info("win32regcheck: keyparts %s", keyparts)
             for keypart in keyparts:
                 if keypart == '':
                     continue
-                if DEBUG:
-                    print >>sys.stderr, "win32regcheck: Opening", keypart
+                self._logger.debug("win32regcheck: Opening %s", keypart)
                 full_key = _winreg.OpenKey(lasthkey, keypart, 0, _winreg.KEY_READ)
                 lasthkey = full_key
                 toclose.append(full_key)
 
-            if DEBUG:
-                print >>sys.stderr, "win32regcheck: Open returned", full_key
+            self._logger.debug("win32regcheck: Open returned %s", full_key)
 
             value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
-            if DEBUG:
-                print >>sys.stderr, "win32regcheck: Read", value_data, value_type
+            self._logger.debug("win32regcheck: Read %s %s", value_data, value_type)
             for hkey in toclose:
                 _winreg.CloseKey(hkey)
 
@@ -107,7 +102,7 @@ if __name__ == "__main__":
     winfiletype = w.readRootKey(".wmv")
     playkey = winfiletype + "\shell\play\command"
     urlplay = w.readRootKey(playkey)
-    print urlplay
+    logger.info(repr(urlplay))
     openkey = winfiletype + "\shell\open\command"
     urlopen = w.readRootKey(openkey)
-    print urlopen
+    logger.info(repr(urlopen))

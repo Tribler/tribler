@@ -30,7 +30,7 @@ export VERSIONER_PYTHON_PREFER_32_BIT=yes
 /bin/rm -rf dist build
 
 # ----- Build
-${PYTHON} -OO - < ${LIBRARYNAME}/Main/Build/Mac/setuptriblermac.py py2app 
+${PYTHON} -OO - < ${LIBRARYNAME}/Main/Build/Mac/setuptriblermac.py py2app
 
 mkdir -p dist/installdir
 mv dist/$APPNAME.app dist/installdir
@@ -115,7 +115,7 @@ hdiutil detach dist/temp/mnt || true
 
 # make read-only
 mv dist/$APPNAME.dmg dist/temp/rw.dmg
-hdiutil convert dist/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o dist/$APPNAME.dmg 
+hdiutil convert dist/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o dist/$APPNAME.dmg
 rm -f dist/temp/rw.dmg
 
 # add EULA
