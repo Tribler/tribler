@@ -53,16 +53,11 @@ class InterruptSocket:
         self.port = None
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        # we assume that one port in the range below is free
-        for self.port in xrange(10000, 12345):
-            try:
-                self._logger.debug("InterruptSocket: Trying to start InterruptSocket on port %s", self.port)
-                self.socket.bind((self.ip, self.port))
-                break
-            except:
-                pass
-
+        
+        self.socket.bind((self.ip, 0))
+        self.port = self.socket.getsockname()[1]
+        self._logger.debug("Bound InterruptSocket on port %s", self.port)
+        
         # start listening to the InterruptSocket
         self.socket_handler.single_sockets[self.socket.fileno()] = self
         self.socket_handler.poll.register(self.socket, POLLIN)
