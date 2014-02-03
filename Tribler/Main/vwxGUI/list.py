@@ -2239,16 +2239,16 @@ class ActivitiesList(List):
         self.expandedPanel_channels.Hide()
 
         videoplayer_item = self.list.GetItem(5)
-        self.expandedPanel_videoplayer = VideoplayerExpandedPanel(videoplayer_item)
-        videoplayer_item.AddEvents(self.expandedPanel_videoplayer)
+        self.expandedPanel_videoplayer = wx.Panel(videoplayer_item)#VideoplayerExpandedPanel(videoplayer_item)
+        #videoplayer_item.AddEvents(self.expandedPanel_videoplayer)
         self.expandedPanel_videoplayer.Hide()
 
     def do_or_schedule_refresh(self, force_refresh=False):
         pass
 
     def OnSize(self, event):
-        if self.expandedPanel_videoplayer:
-            self.expandedPanel_videoplayer.OnChange()
+        #if self.expandedPanel_videoplayer:
+        #    self.expandedPanel_videoplayer.OnChange()
         event.Skip()
 
     def GotFilter(self, filter):
