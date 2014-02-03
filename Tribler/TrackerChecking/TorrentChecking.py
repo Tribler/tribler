@@ -663,11 +663,11 @@ class InterruptSocket:
         self.ip = "127.0.0.1"
         self.port = None
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        self.interrupt_socket.bind((self.ip, 0))
-        self.port = self.interrupt_socket.getsockname()[1]
+        self.socket.bind((self.ip, 0))
+        self.port = self.socket.getsockname()[1]
         self._logger.debug("Bound InterruptSocket on port %s", self.port)
+        
+        self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def interrupt(self):
         self.interrupt_socket.sendto("+", (self.ip, self.port))
