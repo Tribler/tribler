@@ -311,22 +311,22 @@ class TorrentDetails(AbstractDetails):
         self.thumbnails.Show(False)
 
         # Add 'Mark this torrent' option
-        self.marking_hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.marking_vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.marking_vSizer.Add(wx.StaticLine(self.detailsTab, -1, style=wx.LI_HORIZONTAL), 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 5)
-        self.marking_vSizer.Add(self.marking_hSizer, 1, wx.EXPAND)
-        self.markicon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
-        self.markicon = wx.StaticBitmap(self.detailsTab, -1, self.markicon)
-        ulfont = self.GetFont()
-        ulfont.SetUnderlined(True)
-        self.marktoggle = LinkText(self.detailsTab, 'Mark this torrent', fonts=[self.GetFont(), ulfont], colours=[self.GetForegroundColour(), wx.RED])
-        self.marktoggle.SetBackgroundColour(self.detailsTab.GetBackgroundColour())
-        self.marktoggle.Bind(wx.EVT_LEFT_UP, self.OnMark)
-        self.marking_hSizer.AddStretchSpacer()
-        self.marking_hSizer.Add(self.markicon, 0, wx.CENTER | wx.RIGHT, 3)
-        self.marking_hSizer.Add(self.marktoggle)
-        self.detailsSizer.Add(self.marking_vSizer, 0, wx.EXPAND)
-        self.marking_vSizer.ShowItems(False)
+#        self.marking_hSizer = wx.BoxSizer(wx.HORIZONTAL)
+#        self.marking_vSizer = wx.BoxSizer(wx.VERTICAL)
+#        self.marking_vSizer.Add(wx.StaticLine(self.detailsTab, -1, style=wx.LI_HORIZONTAL), 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 5)
+#        self.marking_vSizer.Add(self.marking_hSizer, 1, wx.EXPAND)
+#        self.markicon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
+#        self.markicon = wx.StaticBitmap(self.detailsTab, -1, self.markicon)
+#        ulfont = self.GetFont()
+#        ulfont.SetUnderlined(True)
+#        self.marktoggle = LinkText(self.detailsTab, 'Mark this torrent', fonts=[self.GetFont(), ulfont], colours=[self.GetForegroundColour(), wx.RED])
+#        self.marktoggle.SetBackgroundColour(self.detailsTab.GetBackgroundColour())
+#        self.marktoggle.Bind(wx.EVT_LEFT_UP, self.OnMark)
+#        self.marking_hSizer.AddStretchSpacer()
+#        self.marking_hSizer.Add(self.markicon, 0, wx.CENTER | wx.RIGHT, 3)
+#        self.marking_hSizer.Add(self.marktoggle)
+#        self.detailsSizer.Add(self.marking_vSizer, 0, wx.EXPAND)
+#        self.marking_vSizer.ShowItems(False)
 
         self.detailsTab.OnChange()
         self.detailsTab.Layout()
@@ -480,7 +480,7 @@ class TorrentDetails(AbstractDetails):
             self.thumbnails.SetBitmaps(bmps)
 
         # Toggle 'Mark this torrent' option
-        self.marking_vSizer.ShowItems(self.canComment)
+#        self.marking_vSizer.ShowItems(self.canComment)
 
         self.UpdateHealth()
         self.detailsTab.OnChange()
@@ -616,6 +616,7 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def ShowMarkings(self, delayedResult):
+        return
         markings = delayedResult.get()
         if len(markings) > 0:
             msg = 'This torrent is marked as:'
