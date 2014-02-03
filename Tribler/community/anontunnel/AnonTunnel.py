@@ -1,6 +1,7 @@
 import time
 from Tribler.community.anontunnel.endpoint import HackyEndpoint
 from Tribler.community.anontunnel.StatsCrawler import StatsCrawler
+from Tribler.community.privatesemantic.elgamalcrypto import  ElgamalCrypto
 
 __author__ = 'chris'
 
@@ -37,7 +38,7 @@ class AnonTunnel(Thread):
         self.socks5_server.attach_to(self.raw_server, socks5_port)
 
         self.endpoint = HackyEndpoint(self.raw_server, port=10000)
-        self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
+        self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:", crypto=ElgamalCrypto())
 
         if cmd_port:
             self.command_handler = CommandHandler(self)
