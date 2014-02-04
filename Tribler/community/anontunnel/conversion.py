@@ -174,7 +174,7 @@ class CustomProxyConversion():
         host = extend_message.host if extend_message.host else ''
         port = extend_message.port if extend_message.port else 0
 
-        key = int_to_packed(extend_message.key, 2048)
+        key = extend_message.key
 
         data = struct.pack("!LL", len(host), port) + host + key
         return data
@@ -190,7 +190,7 @@ class CustomProxyConversion():
         host = buffer[offset:offset + host_length]
         offset += host_length
 
-        key = packed_to_int(buffer[offset:], 2048)
+        key = buffer[offset:]
 
         extend_with = (host, port) if host and port else None
         return ExtendMessage(extend_with, key)
@@ -277,11 +277,11 @@ class CustomProxyConversion():
         '''
         :type create_message : Tribler.community.anontunnel.payload.CreateMessage
         '''
-        return int_to_packed(create_message.key, 2048)
+        return create_message.key
 
     def __decode_create(self, buffer, offset=0):
 
-        key = packed_to_int(buffer[offset:], 2048)
+        key = buffer[offset:]
 
         return CreateMessage(key)
 

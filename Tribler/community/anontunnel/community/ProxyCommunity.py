@@ -9,7 +9,10 @@ from threading import RLock
 import sys
 import random
 import M2Crypto
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
+from Tribler.community.anontunnel.crypto import AESencode, AESdecode
+from Tribler.dispersy.member import Member
 from Tribler.dispersy.requestcache import NumberCache
 
 import logging
@@ -23,7 +26,7 @@ from traceback import print_exc
 import uuid
 
 from Tribler.community.anontunnel.lengthstrategies import ConstantCircuitLengthStrategy
-from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion, int_to_packed
+from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion, int_to_packed, packed_to_int
 from Tribler.community.anontunnel.globals import MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_EXTEND, MESSAGE_PONG, MESSAGE_PING, MESSAGE_DATA, MESSAGE_PUNCTURE, MESSAGE_EXTENDED, MESSAGE_STRING_REPRESENTATION, DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_GENERATOR, ORIGINATOR, ENDPOINT, MAX_CIRCUITS_TO_CREATE, PING_INTERVAL
 from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, CreatedMessage, ExtendedMessage, PongMessage, PingMessage, DataMessage
 from Tribler.dispersy.authentication import MemberAuthentication
@@ -113,7 +116,14 @@ class ProxyCommunity(Community):
                 logger.error("Recording stats from NOW")
 
     def __init__(self, dispersy, master_member, raw_server, settings=None, integrate_with_tribler=True):
+
+        """
+
+        @type master_member: Tribler.dispersy.member.Member
+        """
         Community.__init__(self, dispersy, master_member)
+
+        assert isinstance(master_member, Member)
 
         if not settings:
             settings = ProxySettings()
@@ -556,7 +566,7 @@ class ProxyCommunity(Community):
 
         my_key = self.my_member._ec
 
-        decrypted_dh_first_part = self.dispersy.crypto.decrypt(my_key, packed_to_int(message.key, 2048))
+        decrypted_dh_first_part = packed_to_int(self.dispersy.crypto.decrypt(my_key, message.key), 2048)
         #decrypted_dh_first_part = packed_to_int(message.key, 2048)
 
         key = pow(decrypted_dh_first_part, dh_secret, DIFFIE_HELLMAN_MODULUS)
@@ -578,8 +588,6 @@ class ProxyCommunity(Community):
                 break
             # first member of candidate contains elgamal key
             ec_key = iter(candidate_temp.get_members()).next()._ec
-            #""":type : Tribler.community.privatesemantic.ecutils.ECELgamalKey_Pub"""
-            #logger.warning("ECelgamal_KEY VALUES:  ec = {}, Q = {}, size = {}, encsize = {}".format(ec_key.ec, ec_key.Q, ec_key.size, ec_key.encsize))
 
             key_string = self.dispersy.crypto.key_to_bin(ec_key)
 
@@ -602,7 +610,7 @@ class ProxyCommunity(Community):
 
     def decrypt_candidate_list(self, key, encrypted_cand_dict):
         encoded_dict = AESdecode(key, encrypted_cand_dict)
-        offset, cand_dict = decode(struct.unpack(encoded_dict))
+        offset, cand_dict = decode(encoded_dict)
         return cand_dict
 
     def on_created(self, circuit_id, candidate, message):
