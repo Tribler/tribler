@@ -770,10 +770,15 @@ class ProxyCommunity(Community):
     # not necessarily a new candidate
     def on_member_heartbeat(self, candidate):
         assert isinstance(candidate, WalkCandidate), type(candidate)
-        if not isinstance(candidate, BootstrapCandidate):
+        if isinstance(candidate, BootstrapCandidate):
+            return
 
-            if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in self.circuits.values():
-                self.create_circuit(candidate)
+        attr = getattr(candidate, "get_members", None)
+        if not attr:
+            return
+
+        if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in self.circuits.values():
+            self.create_circuit(candidate)
 
     def _generate_circuit_id(self, neighbour):
         # TODO: why is the circuit_id so small? The conversion is using a unsigned long.
