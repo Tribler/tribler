@@ -15,6 +15,26 @@ class SelectionStrategy:
         pass
 
 
+class RoundRobinSelectionStrategy(SelectionStrategy):
+    def __init__(self, min_population_size):
+        SelectionStrategy.__init__(self)
+        self.min_population_size = min_population_size
+        self.index = -1
+
+    def can_select(self, circuits_to_select_from):
+        if len(circuits_to_select_from) < self.min_population_size:
+            return False
+
+        return True
+
+    def select(self, circuits_to_select_from):
+        if not self.can_select(circuits_to_select_from):
+            raise ValueError("At least %d circuits are needed before we select a tunnel" % (self.min_population_size,))
+
+        self.index = (self.index + 1) % len(circuits_to_select_from)
+        return circuits_to_select_from[self.index]
+
+
 class RandomSelectionStrategy(SelectionStrategy):
     
     def __init__(self, min_population_size):
