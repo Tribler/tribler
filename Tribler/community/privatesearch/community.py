@@ -103,10 +103,63 @@ class TTLSearchCommunity(Community):
             yield 1.0
 
     def initiate_meta_messages(self):
-        return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self._dispersy._generic_timeline_check, self.on_search),
-                Message(self, u"search-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchResponsePayload(), self.check_search_response, self.on_search_response),
-                Message(self, u"torrent-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentRequestPayload(), self._dispersy._generic_timeline_check, self.on_torrent_request),
-                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=0), TorrentPayload(), self._dispersy._generic_timeline_check, self.on_torrent)
+        return super(SearchCommunity, self).initiate_meta_messages() + [
+            Message(self, u"search-request",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    SearchRequestPayload(),
+                    self._dispersy._generic_timeline_check,
+                    self.on_search),
+            Message(self, u"search-response",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    SearchResponsePayload(),
+                    self.check_search_response,
+                    self.on_search_response),
+            Message(self, u"torrent-request",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    TorrentRequestPayload(),
+                    self._dispersy._generic_timeline_check,
+                    self.on_torrent_request),
+            Message(self, u"torrent",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128),
+                    CommunityDestination(node_count=0),
+                    TorrentPayload(),
+                    self._dispersy._generic_timeline_check,
+                    self.on_torrent),
+            Message(self, u"ping",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    PingPayload(),
+                    self._dispersy._generic_timeline_check,
+                    self.on_ping),
+            Message(self, u"pong",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    PongPayload(),
+                    self.check_pong,
+                    self.on_pong),
+            Message(self, u"encrypted-response",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    EncryptedResponsePayload(),
+                    self._dispersy._generic_timeline_check,
+                    self.on_encr_response),
                 ]
 
     def initiate_conversions(self):
@@ -829,4 +882,3 @@ class Das4DBStub():
         assert isinstance(infohash, str), type(infohash)
         if infohash in self.myMegaCache:
             del self.myMegaCache[infohash]
-

@@ -20,7 +20,17 @@ from Tribler.dispersy.resolution import LinearResolution
 class TemplateCommunity(Community):
 
     def initiate_meta_messages(self):
-        return [Message(self, u"text", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text, batch=BatchConfiguration(max_window=5.0))]
+        return super(TemplateCommunity, self).initiate_meta_messages() + [
+            Message(self, u"text",
+                    MemberAuthentication(encoding="sha1"),
+                    LinearResolution(),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128),
+                    CommunityDestination(node_count=10),
+                    TextPayload(),
+                    self.check_text,
+                    self.on_text,
+                    batch=BatchConfiguration(max_window=5.0))
+        ]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), Conversion(self)]
