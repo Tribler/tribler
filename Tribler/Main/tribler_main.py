@@ -360,20 +360,20 @@ class ABCApp():
                     self.setup_anon_test(c, self.frame)
                     break
 
-            self.frame.actlist.DisableItem(3)
-            self.frame.actlist.DisableItem(6)
-            #self.frame.top_bg.searchField.Disable()
-            #self.frame.top_bg.searchFieldPanel.Disable()
-            #self.frame.top_bg.add_btn.Disable()
-            self.frame.top_bg.GetSizer().ShowItems(False)
-
-            self.frame.home.searchBox.Show(False)
-            self.frame.home.channelLinkText.ShowItems(False)
-            self.frame.home.buzzpanel.Show(False)
-            self.frame.home.searchButton.Show(False)
-
-            # Disable drag and drop
-            self.frame.SetDropTarget(None)
+            # self.frame.actlist.DisableItem(3)
+            # self.frame.actlist.DisableItem(6)
+            # #self.frame.top_bg.searchField.Disable()
+            # #self.frame.top_bg.searchFieldPanel.Disable()
+            # #self.frame.top_bg.add_btn.Disable()
+            # self.frame.top_bg.GetSizer().ShowItems(False)
+            #
+            # self.frame.home.searchBox.Show(False)
+            # self.frame.home.channelLinkText.ShowItems(False)
+            # self.frame.home.buzzpanel.Show(False)
+            # self.frame.home.searchButton.Show(False)
+            #
+            # # Disable drag and drop
+            # self.frame.SetDropTarget(None)
         except Exception as e:
             self.onError(e)
             return False
@@ -555,8 +555,10 @@ class ABCApp():
 
             wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
+        hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
 
         def state_call(download):
+
             def _callback(ds):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
                     if not _callback.download_started_at:
@@ -569,8 +571,9 @@ class ABCApp():
 
                     if not _callback.peer_added:
                         _callback.peer_added = True
-                        result.add_peer(("pygmee.tribler.org", 21000))
-                        result.add_peer(("asmat.tribler.org", 21000))
+
+                        for host in hosts:
+                            result.add_peer(host)
 
                     tunnel.record_stats = True
                 elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
@@ -589,20 +592,20 @@ class ABCApp():
 
             _callback.download_completed = False
             _callback.download_started_at = None
-            _callback.peer_added = True
+            _callback.peer_added = False
 
             return _callback
 
         #host = "95.211.198.140:21000"
         #root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
 
-        host = "asmat.tribler.org:21000"
+        # host = "asmat.tribler.org:21000"
         root_hash = "dfe61ceb7efaf7d1801df0af3ab5f2d816ba1120"
 
         #host = "devristo.dyndns.org:20001"
         #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
 
-        host = "devristo.com:21000"
+
         root_hash = "b9e244ca68204631b9b69b5330c69b8704948f94"
 
         #host = "127.0.0.1:21000"
@@ -622,7 +625,7 @@ class ABCApp():
         except BaseException, e:
             print_exc()
 
-        sdef = SwiftDef.load_from_url("tswift://" + host + "/" + root_hash)
+        sdef = SwiftDef.load_from_url("tswift://" + hosts[0][0] + ":" + str(hosts[0][1]) + "/" + root_hash)
 
         sdef.set_name("AnonTunnel test (50 MB)")
 
