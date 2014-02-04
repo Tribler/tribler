@@ -510,13 +510,13 @@ class ABCApp():
             now = time()
 
             # must be called on the Dispersy thread
-            #dispersy.define_auto_load(SearchCommunity,
-            #                         (s.dispersy_member,),
-            #                         load=True)
-            #dispersy.define_auto_load(AllChannelCommunity,
-            #                               (s.dispersy_member,),
-            #                               {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
-            #                               load=True)
+            dispersy.define_auto_load(SearchCommunity,
+                                    (s.dispersy_member,),
+                                    load=True)
+            dispersy.define_auto_load(AllChannelCommunity,
+                                          (s.dispersy_member,),
+                                          {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                          load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
@@ -526,8 +526,8 @@ class ABCApp():
             #                               (swift_process,),
             #                               load=True)
 
-            #dispersy.define_auto_load(ChannelCommunity, load=True)
-            #dispersy.define_auto_load(PreviewChannelCommunity)
+            dispersy.define_auto_load(ChannelCommunity, load=True)
+            dispersy.define_auto_load(PreviewChannelCommunity)
 
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))
