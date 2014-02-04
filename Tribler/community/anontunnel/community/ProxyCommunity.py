@@ -409,7 +409,6 @@ class ProxyCommunity(Community):
                 logger.exception("ERROR from %s:%d over circuit %d", candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
     class CircuitRequestCache(NumberCache):
-
         @staticmethod
         def create_number(force_number= -1):
             return force_number if force_number >= 0 else NumberCache.create_number()
@@ -451,7 +450,7 @@ class ProxyCommunity(Community):
             self.circuit.hops.append(unverified_hop)
             self.circuit.unverified_hop = None
 
-            candidate_list = self.decrypt_candidate_list(key, extended_message.candidate_list)
+            candidate_list = self.community.decrypt_candidate_list(key, extended_message.candidate_list)
 
             dispersy = self.community.dispersy
             if dispersy.lan_address in candidate_list:
@@ -511,8 +510,8 @@ class ProxyCommunity(Community):
                 dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
             dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
-            #encrypted_dh_first_part = self.dispersy.crypto.encrypt(pub_key, int_to_packed(dh_first_part, 2048))
-            encrypted_dh_first_part = int_to_packed(dh_first_part, 2048)
+            encrypted_dh_first_part = self.dispersy.crypto.encrypt(pub_key, int_to_packed(dh_first_part, 2048))
+            #encrypted_dh_first_part = int_to_packed(dh_first_part, 2048)
 
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
@@ -557,8 +556,8 @@ class ProxyCommunity(Community):
 
         my_key = self.my_member._ec
 
-        #decrypted_dh_first_part = self.dispersy.crypto.decrypt(my_key, packed_to_int(message.key, 2048))
-        decrypted_dh_first_part = packed_to_int(message.key, 2048)
+        decrypted_dh_first_part = self.dispersy.crypto.decrypt(my_key, packed_to_int(message.key, 2048))
+        #decrypted_dh_first_part = packed_to_int(message.key, 2048)
 
         key = pow(decrypted_dh_first_part, dh_secret, DIFFIE_HELLMAN_MODULUS)
 
