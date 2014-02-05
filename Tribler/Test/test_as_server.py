@@ -89,6 +89,7 @@ class AbstractServer(unittest.TestCase):
                 print >> f, "annotation start end"
 
             _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
+            _annotation = '%d_' % len(self.annotate_dict) + _annotation
 
             print >> f, _annotation, self.annotate_dict[annotation], time.time()
             f.close()
