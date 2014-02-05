@@ -395,6 +395,7 @@ class ProxyCommunity(Community):
 
                 _, payload = self.proxy_conversion.decode(data)
 
+
                 packet_type = self.proxy_conversion.get_type(data)
                 str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
 
@@ -558,7 +559,8 @@ class ProxyCommunity(Community):
         logger.info('We joined circuit %d with neighbour %s', circuit_id, candidate)
         logger.info('Received secret %s', message.key)
 
-        self.directions[circuit_id] = ORIGINATOR
+        index = (candidate, circuit_id)
+        self.directions[index] = ORIGINATOR
 
         dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
         while dh_secret >= DIFFIE_HELLMAN_MODULUS:
@@ -574,7 +576,8 @@ class ProxyCommunity(Community):
         m = hashlib.sha1()
         m.update(str(key))
         key = m.digest()[0:16]
-        self.session_keys[circuit_id] = key
+
+        self.session_keys[index] = key
         #logger.debug("The create message's key   : {}".format(message.key))
         #logger.debug("My diffie secret           : {}".format(self.dh_secret))
         #logger.debug("CALCULATED SECRET {} FOR THE ORIGINATOR NODE".format(key))
@@ -600,7 +603,8 @@ class ProxyCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-        encrypted_cand_dict = self.encrypt_candidate_list(self.session_keys[circuit_id], cand_dict)
+        index = (candidate, circuit_id)
+        encrypted_cand_dict = self.encrypt_candidate_list(self.session_keys[index], cand_dict)
 
         return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(return_key, encrypted_cand_dict))
 
@@ -615,14 +619,14 @@ class ProxyCommunity(Community):
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
-        relay_key = (circuit_id, candidate)
+        relay_key = (candidate, circuit_id)
         if relay_key in self.relay_from_to:
             extended_message = ExtendedMessage(message.key, message.candidate_list)
             forwarding_relay = self.relay_from_to[relay_key]
             return self.send_message(forwarding_relay.candidate, forwarding_relay.circuit_id, MESSAGE_EXTENDED, extended_message)
 
-
-        self.directions[circuit_id] = ENDPOINT
+        index = (candidate, circuit_id)
+        self.directions[index] = ENDPOINT
         request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_extended(message)
@@ -693,8 +697,8 @@ class ProxyCommunity(Community):
 
         key = message.key
 
-        self.directions[new_circuit_id] = ORIGINATOR
-        self.directions[circuit_id] = ENDPOINT
+        self.directions[to_key] = ORIGINATOR
+        self.directions[relay_key] = ENDPOINT
 
         return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage(key))
 
@@ -825,7 +829,7 @@ class ProxyCommunity(Community):
         content = self.proxy_conversion.encode(message_type, message)
 
         for transformer in self._send_transformers.keys():
-            content = transformer(circuit_id, message_type, content)
+            content = transformer(destination, circuit_id, message_type, content)
 
         return self.send_packet(destination, circuit_id, message_type, content)
 
