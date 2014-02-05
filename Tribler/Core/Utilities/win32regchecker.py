@@ -46,8 +46,7 @@ class Win32RegChecker:
 
             return value_data
         except Exception as ex:
-            self._logger.error("Cannot read WinReg KEY, Error: %s", ex)
-            self._logger.error("key: %s, key_name: %s, value_name: %s", key, key_name, value_name)
+            self._logger.exception("key: %s, key_name: %s, value_name: %s", key, key_name, value_name)
             print_exc(file=sys.stderr)
             # error, test failed, key don't exist
             # (could also indicate a unicode error)
@@ -80,8 +79,7 @@ class Win32RegChecker:
 
             return value_data
         except Exception as ex:
-            self._logger.error("Cannot read WinReg KEY, Error: %s", ex)
-            self._logger.error("key: %s, key_name: %s, value_name: %s", key, key_name, value_name)
+            self._logger.exception("key: %s, key_name: %s, value_name: %s", key, key_name, value_name)
             print_exc(file=sys.stderr)
             # error, test failed, key don't exist
             # (could also indicate a unicode error)
