@@ -29,10 +29,10 @@ from payload import *
 from conversion import ForwardConversion, PSearchConversion, \
     HSearchConversion, PoliSearchConversion
 
-from paillier import paillier_add, paillier_init, paillier_encrypt, paillier_decrypt, \
+from crypto.paillier import paillier_add, paillier_init, paillier_encrypt, paillier_decrypt, \
     paillier_polyval, paillier_multiply, paillier_add_unenc
-from rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
-from polycreate import compute_coeff, polyval
+from crypto.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
+from crypto.polycreate import compute_coeff, polyval
 from collections import namedtuple
 from Tribler.community.privatesemantic.database import SemanticDatabase
 from Tribler.community.privatesemantic.payload import SimiRevealPayload

@@ -1,19 +1,17 @@
 # Written by Niels Zeilemaker
 
-from Crypto.Cipher import AES
+from aes import encrypt_str as aes_encrypt_str, decrypt_str as aes_decrypt_str
+from ogmpy import mpz, StrongRandom
+
 from Crypto.PublicKey import RSA
-from Crypto.Random.random import StrongRandom
-from Crypto import Random
 from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
 
 from string import ascii_uppercase, digits
-from gmpy import mpz
 from hashlib import sha1
 
 from time import time
 from random import randint, choice
 from collections import namedtuple
-from struct import pack, unpack, unpack_from
 from sys import maxint
 import json
 
@@ -56,18 +54,14 @@ def rsa_verify(key, message, signature):
 
 def encrypt_str(key, plain_str):
     aes_key = StrongRandom().getrandbits(128)
-    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-
-    enc_str = cipher.encrypt(plain_str)
+    enc_str = aes_encrypt_str(aes_key, plain_str)
     enc_aes_key = long_to_bytes(rsa_encrypt(key, aes_key), key.encsize / 8)
     return enc_aes_key + enc_str
 
 def decrypt_str(key, encr_str):
     enc_aes_key = bytes_to_long(encr_str[:key.encsize / 8])
     aes_key = rsa_decrypt(key, enc_aes_key)
-
-    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-    plain_str = cipher.decrypt(encr_str[key.encsize / 8:])
+    plain_str = aes_decrypt_str(aes_key, encr_str[key.encsize / 8:])
     return plain_str
 
 def hash_element(element):
