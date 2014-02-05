@@ -469,12 +469,12 @@ class SelectedChannelList(GenericSearchList):
     def OnExpand(self, item):
         if isinstance(item, PlaylistItem):
             detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistDetails)
-            detailspanel.showPlaylist(item.original_data)
+#            detailspanel.showPlaylist(item.original_data)
             item.expandedPanel = detailspanel
-#        elif isinstance(item, TorrentListItem):
-#            detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
+        elif isinstance(item, TorrentListItem):
+            detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
 #            detailspanel.setTorrent(item.original_data)
-#            item.expandedPanel = detailspanel
+            item.expandedPanel = detailspanel
 
         self.top_header.header_list.DeselectAll()
         return True
@@ -483,7 +483,7 @@ class SelectedChannelList(GenericSearchList):
     def OnCollapse(self, item, panel, from_expand):
         if not isinstance(item, PlaylistItem) and panel:
             # detect changes
-            changes = panel.GetChanged()
+            changes = [] #panel.GetChanged()
             if len(changes) > 0:
                 dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
@@ -497,8 +497,8 @@ class SelectedChannelList(GenericSearchList):
 
         if _channel:
             detailspanel = self.guiutility.SetBottomSplitterWindow(SelectedchannelInfoPanel)
-            num_items = len(self.list.raw_data) if self.list.raw_data else 1
-            detailspanel.Set(num_items, _channel.my_vote, self.state, self.iamModerator)
+#            num_items = len(self.list.raw_data) if self.list.raw_data else 1
+#            detailspanel.Set(num_items, _channel.my_vote, self.state, self.iamModerator)
         else:
             self.guiutility.SetBottomSplitterWindow()
 
@@ -876,7 +876,7 @@ class Playlist(SelectedChannelList):
     @warnWxThread
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistInfoPanel)
-        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 1, self.playlist.channel.isFavorite() if self.playlist and self.playlist.channel else None)
+#        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 1, self.playlist.channel.isFavorite() if self.playlist and self.playlist.channel else None)
 
 class ManageChannelFilesManager(BaseManager):
 
