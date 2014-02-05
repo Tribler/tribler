@@ -1,7 +1,9 @@
+from M2Crypto.EC import EC_pub
 import logging
 import M2Crypto
 
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, ENDPOINT, MESSAGE_CREATE
+from Tribler.dispersy.member import Member
 
 
 logger = logging.getLogger(__name__)
@@ -46,8 +48,9 @@ class DefaultCrypto(object):
     def _on_create(self, candidate, circuit_id, payload):
         return payload
 
-    def _crypto_outgoing(self, circuit_id, message_type, content):
-        if circuit_id in self.proxy.circuits:
+    def _crypto_outgoing(self, candidate, circuit_id, message_type, content):
+        relay_key = (candidate, circuit_id)
+        if circuit_id in self.proxy.circuits and not self.proxy.circuits[circuit_id].unverified_hop:
             # I am the originator so I have to create the full onion
             circuit = self.proxy.circuits[circuit_id]
             hops = circuit.hops
@@ -55,47 +58,53 @@ class DefaultCrypto(object):
             for hop in reversed(hops):
                 logger.debug("Adding AES layer for hop %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                 content = AESencode(hop.session_key, content)
-        elif circuit_id in self.session_keys:
-            if message_type == MESSAGE_CREATED:
+        elif relay_key in self.session_keys:
+            content = AESencode(self.session_keys[relay_key], content)
+            logger.debug(
+                "Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[relay_key]))
+
+        elif message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
                 logger.debug("Adding public key encryption for circuit %s" % (circuit_id))
-                logger.error("Still have to implement public key encryption for CREATED message")
-            else:
-                content = AESencode(self.session_keys[circuit_id], content)
-                logger.debug(
-                    "Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[circuit_id]))
+                candidate_key = iter(candidate.get_members()).next()._ec
+                content = self.proxy.dispersy.crypto.encrypt(candidate_key, content)
+                logger.error("Length of encrypted outgoing content: {}".format(len(content)))
 
         return content
 
     def _crypto_relay(self, direction, candidate, circuit_id, data):
         relay_key = (candidate, circuit_id)
         next_relay = self.proxy.relay_from_to[relay_key]
+        next_relay_key = (candidate, next_relay)
 
         if direction == ORIGINATOR:
             # Message is going downstream so I have to add my onion layer
             # logger.debug("Adding AES layer with key %s to circuit %d" % (self.session_keys[next_relay.circuit_id], next_relay.circuit_id))
-            data = AESencode(self.session_keys[next_relay.circuit_id], data)
+            data = AESencode(self.session_keys[next_relay_key], data)
 
         elif direction == ENDPOINT:
             # Message is going upstream so I have to remove my onion layer
             # logger.debug("Removing AES layer with key %s" % self.session_keys[circuit_id])
-            data = AESdecode(self.session_keys[circuit_id], data)
+            data = AESdecode(self.session_keys[relay_key], data)
 
         return data
 
     def _crypto_incoming(self, candidate, circuit_id, data):
+        relay_key = (candidate, circuit_id)
         if circuit_id in self.proxy.circuits:
             # I am the originator so I'll peel the onion skins
             for hop in self.proxy.circuits[circuit_id].hops:
                 logger.debug("Removing AES layer for %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
                 data = AESdecode(hop.session_key, data)
 
-        elif circuit_id in self.session_keys:
+        elif relay_key in self.session_keys:
             # last node in circuit, circuit already exists
-            logger.debug("Removing AES layer with key %s" % (self.session_keys[circuit_id]))
-            data = AESdecode(self.session_keys[circuit_id], data)
+            logger.debug("Removing AES layer with key %s" % (self.session_keys[relay_key]))
+            data = AESdecode(self.session_keys[relay_key], data)
         else:
-            # last node in circuit, circuit does not exist yet
-            data = data
+            # last node in circuit, circuit does not exist yet, decrypt with elgamal key
+            my_key = self.proxy.my_member._ec
+            logger.error("Length of encrypted incoming content: {}".format(len(data)))
+            data = self.proxy.dispersy.crypto.decrypt(my_key, data)
 
         return data
 
