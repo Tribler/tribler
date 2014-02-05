@@ -55,12 +55,10 @@ class NeighbourSubset:
         dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
         try:
             encrypted_dh_first_part = self.proxy.dispersy.crypto.encrypt(extend_hop_public_key, int_to_packed(dh_first_part, 2048))
+            logger.info("We chose %s from the list to extend circuit %d with encrypted DH first part %s" % (sock_addr, self.circuit.circuit_id, dh_first_part))
+            self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(sock_addr, encrypted_dh_first_part))
         except BaseException as e:
             logger.exception("Encryption error")
-
-        logger.info("We chose %s from the list to extend circuit %d with encrypted DH first part %s" % (sock_addr, self.circuit.circuit_id, dh_first_part))
-        self.proxy.send_message(self.circuit.candidate, self.circuit.circuit_id, MESSAGE_EXTEND, ExtendMessage(sock_addr, encrypted_dh_first_part))
-
 
 class RandomAPriori:
     def __init__(self, proxy, circuit):
