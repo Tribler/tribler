@@ -45,7 +45,9 @@ class Win32RegChecker:
             _winreg.CloseKey(full_key)
 
             return value_data
-        except:
+        except Exception as ex:
+            self._logger.error("Cannot read WinReg KEY, Error: %s", ex)
+            self._logger.error("key: %s, key_name: %s, value_name: %s", key, key_name, value_name)
             print_exc(file=sys.stderr)
             # error, test failed, key don't exist
             # (could also indicate a unicode error)
@@ -77,8 +79,10 @@ class Win32RegChecker:
                 _winreg.CloseKey(hkey)
 
             return value_data
-        except:
-            print_exc()
+        except Exception as ex:
+            self._logger.error("Cannot read WinReg KEY, Error: %s", ex)
+            self._logger.error("key: %s, key_name: %s, value_name: %s", key, key_name, value_name)
+            print_exc(file=sys.stderr)
             # error, test failed, key don't exist
             # (could also indicate a unicode error)
             return None
