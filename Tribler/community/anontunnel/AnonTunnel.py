@@ -1,7 +1,7 @@
 import time
 from Tribler.community.anontunnel.endpoint import HackyEndpoint
 from Tribler.community.anontunnel.StatsCrawler import StatsCrawler
-from Tribler.community.privatesemantic.elgamalcrypto import  ElgamalCrypto
+from Tribler.community.privatesemantic.elgamalcrypto import  ElgamalCrypto, NoElgamalCrypto
 
 __author__ = 'chris'
 

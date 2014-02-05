@@ -1,9 +1,13 @@
+import logging
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.community.anontunnel.payload import *
 from Tribler.community.anontunnel.globals import *
 import struct
 import unittest
+
+
+logger = logging.getLogger(__name__)
 
 #-----------------------------------------------------------------------------
 #: enable verbose print statements.
@@ -136,6 +140,9 @@ class CustomProxyConversion():
 
         self.encode_functions[MESSAGE_EXTEND] = self.__encode_extend
         self.decode_functions[MESSAGE_EXTEND] = self.__decode_extend
+
+        self.encode_functions[MESSAGE_EXTENDED] = self.__encode_extended
+        self.decode_functions[MESSAGE_EXTENDED] = self.__decode_extended
 
         self.encode_functions[MESSAGE_DATA] = self.__encode_data
         self.decode_functions[MESSAGE_DATA] = self.__decode_data

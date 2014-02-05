@@ -147,6 +147,7 @@ class ProxyCommunity(Community):
         self.circuits = {}
         self.directions = {}
         self.relay_from_to = {}
+        self.waiting_for = {}
 
         self.key = self.my_member.private_key
         self.session_keys = {}
@@ -364,12 +365,13 @@ class ProxyCommunity(Community):
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (candidate, circuit_id)
 
+        verified = circuit_id in self.waiting_for and not self.waiting_for[circuit_id]
         # First, relay packet if we know whom to forward message to for this circuit
-        if circuit_id > 0 and relay_key in self.relay_from_to:
+        if circuit_id > 0 and relay_key in self.relay_from_to and verified:
             next_relay = self.relay_from_to[relay_key]
 
             for f in self._relay_transformers:
-                data = f(self.directions[circuit_id], candidate, circuit_id, data)
+                data = f(self.directions[relay_key], candidate, circuit_id, data)
 
             next_relay.bytes[1] += len(data)
 
@@ -393,7 +395,11 @@ class ProxyCommunity(Community):
                 for f in self._receive_transformers:
                     data = f(candidate, circuit_id, data)
 
-                _, payload = self.proxy_conversion.decode(data)
+                try:
+                    _, payload = self.proxy_conversion.decode(data)
+                except Exception as e:
+                    self.remove_circuit(circuit_id, "Unable to decode message, could be hostile")
+                    return
 
 
                 packet_type = self.proxy_conversion.get_type(data)
@@ -449,7 +455,6 @@ class ProxyCommunity(Community):
             :type extended_message : Tribler.community.anontunnel.payload.ExtendedMessage
             """
             unverified_hop = self.circuit.unverified_hop
-            logger.error("Not really verifying hop! Check hashes etc")
 
             session_key = pow(extended_message.key, unverified_hop.dh_first_part, DIFFIE_HELLMAN_MODULUS)
             m = hashlib.sha1()
@@ -461,7 +466,11 @@ class ProxyCommunity(Community):
             self.circuit.hops.append(unverified_hop)
             self.circuit.unverified_hop = None
 
-            candidate_list = self.community.decrypt_candidate_list(key, extended_message.candidate_list)
+            try:
+                candidate_list = self.community.decrypt_candidate_list(key, extended_message.candidate_list)
+            except Exception as e:
+                logger.error("Candidate list impossible to decrypt. Circuit under attack, destroying circuit")
+                logger.error("TODO")
 
             dispersy = self.community.dispersy
             if dispersy.lan_address in candidate_list:
@@ -526,6 +535,7 @@ class ProxyCommunity(Community):
 
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
+            self.waiting_for[circuit_id] = True
             self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_dh_first_part))
 
             return circuit
@@ -557,7 +567,6 @@ class ProxyCommunity(Community):
     def on_create(self, circuit_id, candidate, message):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
         logger.info('We joined circuit %d with neighbour %s', circuit_id, candidate)
-        logger.info('Received secret %s', message.key)
 
         index = (candidate, circuit_id)
         self.directions[index] = ORIGINATOR
@@ -595,7 +604,7 @@ class ProxyCommunity(Community):
             key_string = self.dispersy.crypto.key_to_bin(ec_key)
 
             cand_dict[candidate_temp.sock_addr] = key_string
-            logger.debug("Found candidate {} with key {}".format(candidate_temp.sock_addr, key_string))
+            logger.debug("Found candidate {} with key".format(candidate_temp.sock_addr))
 
 
 
@@ -621,12 +630,13 @@ class ProxyCommunity(Community):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
         relay_key = (candidate, circuit_id)
         if relay_key in self.relay_from_to:
+            logger.debug("Got CREATED message, going to send EXTENDED message backwards.")
             extended_message = ExtendedMessage(message.key, message.candidate_list)
             forwarding_relay = self.relay_from_to[relay_key]
             return self.send_message(forwarding_relay.candidate, forwarding_relay.circuit_id, MESSAGE_EXTENDED, extended_message)
 
-        index = (candidate, circuit_id)
-        self.directions[index] = ENDPOINT
+        self.directions[relay_key] = ENDPOINT
+        self.waiting_for[circuit_id] = False
         request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_extended(message)
@@ -692,6 +702,7 @@ class ProxyCommunity(Community):
         new_circuit_id = self._generate_circuit_id(extend_with)
         to_key = (extend_with, new_circuit_id)
 
+        self.waiting_for[circuit_id] = True
         self.relay_from_to[to_key] = RelayRoute(circuit_id, candidate)
         self.relay_from_to[relay_key] = RelayRoute(new_circuit_id, extend_with)
 

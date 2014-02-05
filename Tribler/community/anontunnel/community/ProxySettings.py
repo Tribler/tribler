@@ -14,6 +14,7 @@ class ProxySettings:
 
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy(MAX_CIRCUITS_TO_CREATE)
+        self.select_strategy = selectionstrategies.RandomSelectionStrategy
         self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(length)
         self.return_handler_factory = CircuitReturnFactory()
         self.crypto = DefaultCrypto()
