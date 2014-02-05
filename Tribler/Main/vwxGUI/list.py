@@ -1242,11 +1242,11 @@ class GenericSearchList(SizeList):
     @warnWxThread
     def OnExpand(self, item):
         List.OnExpand(self, item)
-        if isinstance(item.original_data, Torrent):
-            detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
-            detailspanel.setTorrent(item.original_data)
-            item.expandedPanel = detailspanel
-        elif isinstance(item.original_data, Channel):
+#        if isinstance(item.original_data, Torrent):
+#            detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
+#            detailspanel.setTorrent(item.original_data)
+#            item.expandedPanel = detailspanel
+        if isinstance(item.original_data, Channel):
             detailspanel = self.guiutility.SetBottomSplitterWindow(ChannelDetails)
             detailspanel.showChannel(item.original_data)
             item.expandedPanel = detailspanel

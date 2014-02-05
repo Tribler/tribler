@@ -823,11 +823,11 @@ class ABCApp():
 
             from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 
-            if self.frame.torrentdetailspanel.torrent and self.frame.torrentdetailspanel.torrent.infohash in infohashes:
-                # If an updated torrent is being shown in the detailspanel, make sure the information gets refreshed.
-                t = self.frame.torrentdetailspanel.torrent
-                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
-                self.frame.torrentdetailspanel.setTorrent(torrent)
+#            if self.frame.torrentdetailspanel.torrent and self.frame.torrentdetailspanel.torrent.infohash in infohashes:
+#                # If an updated torrent is being shown in the detailspanel, make sure the information gets refreshed.
+#                t = self.frame.torrentdetailspanel.torrent
+#                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
+#                self.frame.torrentdetailspanel.setTorrent(torrent)
 
             if self.frame.librarydetailspanel.torrent and self.frame.librarydetailspanel.torrent.infohash in infohashes:
                 t = self.frame.librarydetailspanel.torrent

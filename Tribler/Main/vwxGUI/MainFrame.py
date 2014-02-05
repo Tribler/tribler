@@ -220,7 +220,7 @@ class MainFrame(wx.Frame):
 
             # Populate the bottom window
             self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
-            self.torrentdetailspanel = TorrentDetails(self.splitter_bottom_window)
+            self.torrentdetailspanel = wx.Panel(self.splitter_bottom_window)#TorrentDetails(self.splitter_bottom_window)
             self.torrentdetailspanel.Show(False)
             self.librarydetailspanel = LibraryDetails(self.splitter_bottom_window)
             self.librarydetailspanel.Show(False)

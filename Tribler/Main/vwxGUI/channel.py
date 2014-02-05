@@ -471,10 +471,10 @@ class SelectedChannelList(GenericSearchList):
             detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistDetails)
             detailspanel.showPlaylist(item.original_data)
             item.expandedPanel = detailspanel
-        elif isinstance(item, TorrentListItem):
-            detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
-            detailspanel.setTorrent(item.original_data)
-            item.expandedPanel = detailspanel
+#        elif isinstance(item, TorrentListItem):
+#            detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
+#            detailspanel.setTorrent(item.original_data)
+#            item.expandedPanel = detailspanel
 
         self.top_header.header_list.DeselectAll()
         return True
