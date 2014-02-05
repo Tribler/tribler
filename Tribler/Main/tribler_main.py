@@ -829,10 +829,10 @@ class ABCApp():
 #                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
 #                self.frame.torrentdetailspanel.setTorrent(torrent)
 
-            if self.frame.librarydetailspanel.torrent and self.frame.librarydetailspanel.torrent.infohash in infohashes:
-                t = self.frame.librarydetailspanel.torrent
-                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
-                self.frame.librarydetailspanel.setTorrent(torrent)
+#            if self.frame.librarydetailspanel.torrent and self.frame.librarydetailspanel.torrent.infohash in infohashes:
+#                t = self.frame.librarydetailspanel.torrent
+#                torrent = t.torrent if isinstance(t, CollectedTorrent) else t
+#                self.frame.librarydetailspanel.setTorrent(torrent)
 
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading. Now seeding." % args[0], icon='seed')

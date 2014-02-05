@@ -1744,9 +1744,9 @@ class LibraryList(SizeList):
 
     def OnExpand(self, item):
         List.OnExpand(self, item)
-        detailspanel = self.guiutility.SetBottomSplitterWindow(LibraryDetails)
-        detailspanel.setTorrent(item.original_data, self.bw_history.get(item.original_data.infohash, []))
-        item.expandedPanel = detailspanel
+#        detailspanel = self.guiutility.SetBottomSplitterWindow(LibraryDetails)
+#        detailspanel.setTorrent(item.original_data, self.bw_history.get(item.original_data.infohash, []))
+#        item.expandedPanel = detailspanel
         return True
 
     def OnCollapseInternal(self, item):

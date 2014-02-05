@@ -222,7 +222,7 @@ class MainFrame(wx.Frame):
             self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
             self.torrentdetailspanel = wx.Panel(self.splitter_bottom_window)#TorrentDetails(self.splitter_bottom_window)
             self.torrentdetailspanel.Show(False)
-            self.librarydetailspanel = LibraryDetails(self.splitter_bottom_window)
+            self.librarydetailspanel = wx.Panel(self.splitter_bottom_window)#LibraryDetails(self.splitter_bottom_window)
             self.librarydetailspanel.Show(False)
             self.channeldetailspanel = ChannelDetails(self.splitter_bottom_window)
             self.channeldetailspanel.Show(False)
