@@ -780,12 +780,10 @@ class ProxyCommunity(Community):
                                                       destination=(introduce,), payload=(
                                                       message.sock_addr, message.sock_addr, randint(0, 2 ** 16)))
 
-
     # got introduction_request or introduction_response from candidate
     # not necessarily a new candidate
     def on_member_heartbeat(self, candidate):
-        assert isinstance(candidate, WalkCandidate), type(candidate)
-        if isinstance(candidate, BootstrapCandidate):
+        if not isinstance(candidate, WalkCandidate) or isinstance(candidate, BootstrapCandidate):
             return
 
         attr = getattr(candidate, "get_members", None)
