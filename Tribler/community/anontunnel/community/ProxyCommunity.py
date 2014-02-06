@@ -878,7 +878,12 @@ class ProxyCommunity(Community):
 
     def check_ready(self):
         while True:
-            self.online = self.circuit_selection_strategy.can_select(self.active_circuits)
+            try:
+                self.online = self.circuit_selection_strategy.can_select(self.active_circuits)
+            except:
+                logger.exception("Can_select should not raise any exceptions!")
+                self.online = False
+
             yield 1.0
 
     def ping_circuits(self):
