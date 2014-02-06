@@ -4,7 +4,6 @@ import sys
 from os import path
 from time import time
 from random import sample, randint, shuffle, random, choice
-from Crypto.Util.number import bytes_to_long, long_to_bytes
 from math import ceil
 from hashlib import md5
 from itertools import groupby

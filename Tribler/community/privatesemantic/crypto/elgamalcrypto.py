@@ -1,6 +1,6 @@
 from Tribler.dispersy.crypto import ECCrypto, NoCrypto
-from Tribler.community.privatesemantic.ecutils import OpenSSLCurves
-from Tribler.community.privatesemantic.ecelgamal import encrypt_str, decrypt_str
+from Tribler.community.privatesemantic.crypto.ecutils import OpenSSLCurves
+from Tribler.community.privatesemantic.crypto.ecelgamal import encrypt_str, decrypt_str
 
 class ElgamalCrypto(ECCrypto):
 

@@ -2,20 +2,14 @@
 # https://github.com/gdcurt/eccrypto in the mix
 # Modified by Niels Zeilemaker, optimized using mpz etc.
 
-from collections import namedtuple
+from cProfile import Profile
 from random import randint, choice
+from string import ascii_uppercase, digits
 from sys import maxint
 from time import time
 
-from gmpy import mpz, invert, rand
-
-from cProfile import Profile
-from Crypto.Random.random import StrongRandom
-from string import ascii_uppercase, digits
-from Crypto.Util.number import long_to_bytes, bytes_to_long
-from Crypto.Cipher import AES
-from M2Crypto import EC, m2
-from Tribler.community.privatesemantic.ecutils import Point, EllipticCurve, \
+from optional_crypto import rand, StrongRandom, aes_encrypt_str, aes_decrypt_str
+from ecutils import Point, EllipticCurve, \
     OpenSSLCurves, ECElgamalKey_Pub, ECElgamalKey
 
 def ecelgamal_init(bits=192, curve=None):
@@ -83,10 +77,7 @@ def ecelgamal_add(cipher1, cipher2):
 
 def encrypt_str(key, plain_str):
     aes_key = StrongRandom().getrandbits(128)
-    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-
-    enc_str = cipher.encrypt(plain_str)
-
+    enc_str = aes_encrypt_str(aes_key, plain_str)
     R, S = ecelgamal_encrypt(key, key.ec.convert_to_point(aes_key))
     R = Point.to_bytes(R, key.size)
     S = Point.to_bytes(S, key.size)
@@ -110,8 +101,7 @@ def decrypt_str(key, encr_str):
     M = ecelgamal_decrypt(key, (R, S))
     aes_key = key.ec.convert_to_long(M)
 
-    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-    plain_str = cipher.decrypt(encr_str[key.encsize:])
+    plain_str = aes_decrypt_str(aes_key, encr_str[key.encsize:])
     return plain_str
 
 if __name__ == "__main__":
@@ -121,9 +111,7 @@ if __name__ == "__main__":
     openssl = OpenSSLCurves()
 
     m2key = ec.generate_key(u'NID_secp160k1')
-    # m2key = ec.generate_key(u'NID_secp192k1')
     key = openssl.get_ecelgamalkey_for_key(m2key)
-    # key = ecelgamal_init(192)
 
     M1 = key.ec.convert_to_point(1)
     M2 = key.ec.convert_to_point(2)
@@ -146,7 +134,7 @@ if __name__ == "__main__":
     # performance
     def do_perf():
         t1 = time()
-        random_list = [key.ec.convert_to_point(randint(0, maxint)) for _ in xrange(10000)]
+        random_list = [key.ec.convert_to_point(randint(0, maxint)) for _ in xrange(1000)]
         t2 = time()
 
         encrypted_values = []
@@ -162,4 +150,3 @@ if __name__ == "__main__":
     profiler = Profile()
     profiler.runcall(do_perf)
     profiler.print_stats()
-
