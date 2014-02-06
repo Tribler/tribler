@@ -192,6 +192,51 @@ class MiscDBHandler(BasicDBHandler):
         return source_id
 
 
+class MetadataDBHandler(BasicDBHandler):
+
+    def __init__(self):
+        if MetadataDBHandler._single:
+            raise RuntimeError("MetadataDBHandler is singleton")
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, None)
+
+    def getMetadataMessageList(self, infohash, roothash, columns):
+        """
+        Gets a list of metadata messages with the given hash-type and
+        hash-value.
+        """
+        column_str = str(columns).strip(u"()")
+        sql = u"SELECT %s FROM MetadataMessage WHERE infohash = ? AND roothash = ?" % column_str
+        result = self._db.fetchall(sql, (infohash, roothash))
+        return result
+
+    def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
+            infohash, roothash,
+            prev_metadata_mid=None, prev_metadata_global_time=None):
+        """
+        Adds a Metadata message and get its message ID.
+        """
+        sql = u"INSERT INTO MetadataMessage(dispersy_id, this_global_time, this_mid, infohash, roothash, previous_mid, previous_global_time)"\
+            + u" VALUES(?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid()"
+        values = (dispersy_id, this_global_time, this_mid,
+            infohash, roothash,
+            prev_metadata_mid, prev_metadata_global_time)
+
+        return self._metadata_db._db.fetchone(sql, values)
+
+    def addMetadataDataInBatch(self, value_tuple_list):
+        """
+        Adds metadata data in batch.
+        """
+        sql = u"INSERT INTO MetadataData(message_id, data_key, data_value) VALUES(?, ?, ?)"
+        self._metadata_db._db.executemany(sql, value_list)
+
+    def deleteMetadataMessage(self, dispersy_id):
+        sql = u"DELETE FROM MetadataMessage WHERE dispersy_id = ?"
+        self._db.execute_write(sql, (dispersy_id,))
+
+
+
 class PeerDBHandler(BasicDBHandler):
 
     def __init__(self):
