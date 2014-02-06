@@ -204,7 +204,7 @@ class ProxyCommunity(Community):
         self.crypto.enable(self)
 
     def add_observer(self, observer):
-        assert isinstance(observer, TunnelObserver)
+        #assert isinstance(observer, TunnelObserver)
         self.__observers.append(observer)
 
         observer.on_state_change(self, self.online)
