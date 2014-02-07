@@ -7,6 +7,8 @@ import wx
 import binascii
 import os
 
+from unittest.case import skip
+
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.Main.vwxGUI.list_item import ChannelListItem
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
@@ -79,6 +81,7 @@ class TestGuiDialogs(TestGuiAsServer):
 
         self.startTest(do_downloadfromfile)
 
+    @skip("saveas dialog temporary disabled")
     def test_save_dialog(self):
         def do_assert(add_dialog):
             dialog = wx.FindWindowByName('SaveAsDialog')
