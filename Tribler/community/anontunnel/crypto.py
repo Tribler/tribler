@@ -81,15 +81,14 @@ class DefaultCrypto(object):
         next_relay = self.proxy.relay_from_to[relay_key]
         next_relay_key = (next_relay.candidate, next_relay.circuit_id)
 
-
-
         # Message is going downstream so I have to add my onion layer
         if direction == ORIGINATOR:
-            logger.debug("AES encoding for circuit {} with key {}".format(next_relay.circuit_id, self.session_keys[next_relay_key]))
+            logger.debug("AES encoding circuit {} towards ORIGINATOR, key {}".format(next_relay.circuit_id, self.session_keys[next_relay_key]))
             data = AESencode(self.session_keys[next_relay_key], data)
 
         # Message is going upstream so I have to remove my onion layer
         elif direction == ENDPOINT:
+            logger.debug("AES decoding circuit {} towards ENDPOINT, key {}".format(next_relay.circuit_id, self.session_keys[relay_key]))
             data = AESdecode(self.session_keys[relay_key], data)
 
         return data
