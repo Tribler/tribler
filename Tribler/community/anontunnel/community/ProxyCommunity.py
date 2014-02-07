@@ -7,7 +7,7 @@ from Tribler.dispersy.member import Member
 from traceback import print_exc
 from Tribler.community.anontunnel.lengthstrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion, int_to_packed, packed_to_int
-from Tribler.community.anontunnel.globals import MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_EXTEND, MESSAGE_PONG, MESSAGE_PING, MESSAGE_DATA, MESSAGE_PUNCTURE, MESSAGE_EXTENDED, MESSAGE_STRING_REPRESENTATION, DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_GENERATOR, ORIGINATOR, ENDPOINT, MAX_CIRCUITS_TO_CREATE, PING_INTERVAL
+from Tribler.community.anontunnel.globals import MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_EXTEND, MESSAGE_PONG, MESSAGE_PING, MESSAGE_DATA, MESSAGE_PUNCTURE, MESSAGE_EXTENDED, MESSAGE_STRING_REPRESENTATION, DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_GENERATOR, ORIGINATOR, ENDPOINT, PING_INTERVAL
 from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, CreatedMessage, ExtendedMessage, PongMessage, PingMessage, DataMessage
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.candidate import WalkCandidate, BootstrapCandidate
@@ -158,11 +158,7 @@ class ProxyCommunity(Community):
         if isinstance(settings.length_strategy, ConstantCircuitLengthStrategy) and settings.length_strategy.desired_length == 0:
             self.circuits[0] = Circuit(0)
 
-        self.circuit_length_strategy = settings.length_strategy
-        self.circuit_selection_strategy = settings.select_strategy
-        self.extend_strategy = settings.extend_strategy
-        self.return_handler_factory = settings.return_handler_factory
-        self.crypto = settings.crypto
+        self.settings = settings
 
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
@@ -182,7 +178,7 @@ class ProxyCommunity(Community):
             self.notifier = None
 
         # Enable Crypto
-        self.crypto.enable(self)
+        self.settings.crypto.enable(self)
 
     def add_observer(self, observer):
         #assert isinstance(observer, TunnelObserver)
@@ -193,7 +189,7 @@ class ProxyCommunity(Community):
     def unload_community(self):
         if self.download_stats:
             logger.error("Sharing statistics now!")
-            self.send_stats()
+            self.__send_stats()
 
         Community.unload_community(self)
 
@@ -324,7 +320,6 @@ class ProxyCommunity(Community):
         return stats
 
     def __send_stats(self):
-        logger.error("__send_stats saying hi!")
         stats = self._create_stats()
         meta = self.get_meta_message(u"stats")
         record = meta.impl(authentication=(self._my_member,),
@@ -334,8 +329,8 @@ class ProxyCommunity(Community):
         logger.warning("Sending stats")
         self.dispersy.store_update_forward([record], True, False, True)
 
-    def send_stats(self):
-        self.__send_stats()
+    def share_stats(self):
+        self.dispersy.callback.register(self.__send_stats)
 
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
@@ -506,10 +501,10 @@ class ProxyCommunity(Community):
             circuit_id = self._generate_circuit_id(first_hop_candidate)
             cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self, circuit_id))
 
-            goal_hops = self.circuit_length_strategy.circuit_length()
+            goal_hops = self.settings.length_strategy.circuit_length()
             circuit = cache.circuit = Circuit(circuit_id, goal_hops, first_hop_candidate)
 
-            circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.extend_strategy(self, circuit)
+            circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.settings.extend_strategy(self, circuit)
             self.circuits[circuit_id] = circuit
 
             pub_key = iter(first_hop_candidate.get_members()).next()._ec
@@ -781,7 +776,7 @@ class ProxyCommunity(Community):
         if not attr:
             return
 
-        if len(self.circuits) < MAX_CIRCUITS_TO_CREATE and candidate not in self.circuits.values():
+        if len(self.circuits) < self.settings.max_circuits and candidate not in [c.candidate for c in self.circuits.values()]:
             self.create_circuit(candidate)
 
     def _generate_circuit_id(self, neighbour):
@@ -868,7 +863,7 @@ class ProxyCommunity(Community):
     def check_ready(self):
         while True:
             try:
-                self.online = self.circuit_selection_strategy.can_select(self.active_circuits)
+                self.online = self.settings.select_strategy.can_select(self.active_circuits)
             except:
                 logger.exception("Can_select should not raise any exceptions!")
                 self.online = False
@@ -903,7 +898,7 @@ class ProxyCommunity(Community):
     def get_exit_handler(self, circuit_id, address):
         # If we don't have an exit socket yet for this socket, create one
         if not (circuit_id in self._exit_sockets):
-            return_handler = self.return_handler_factory.create(self, self.raw_server, circuit_id, address)
+            return_handler = self.settings.return_handler_factory.create(self, self.raw_server, circuit_id, address)
             self._exit_sockets[circuit_id] = return_handler
         return self._exit_sockets[circuit_id]
 
@@ -926,7 +921,7 @@ class ProxyCommunity(Community):
 
                     if circuit_id is None or circuit_id not in [c.circuit_id for c in self.active_circuits]:
                         # Make sure the '0-hop circuit' is also a candidate for selection
-                        circuit_id = self.circuit_selection_strategy.select(self.active_circuits).circuit_id
+                        circuit_id = self.settings.select_strategy.select(self.active_circuits).circuit_id
                         self.destination_circuit[ultimate_destination] = circuit_id
                         logger.error("SELECT circuit %d for %s:%d", circuit_id, *ultimate_destination)
 

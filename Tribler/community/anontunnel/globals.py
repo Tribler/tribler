@@ -1,5 +1,4 @@
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
-MAX_CIRCUITS_TO_CREATE = 4
 
 ORIGINATOR = "originator"
 ENDPOINT = "endpoint"

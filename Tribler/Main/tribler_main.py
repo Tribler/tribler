@@ -579,7 +579,7 @@ class ABCApp():
                     }
 
                     tunnel.record_stats = False
-                    tunnel.share_stats = True
+                    tunnel.share_stats()
                     thank_you(50 * 1024**2, _callback.download_started_at, _callback.download_finished_at)
 
                 return (1.0, False)
