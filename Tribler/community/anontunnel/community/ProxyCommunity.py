@@ -494,7 +494,7 @@ class ProxyCommunity(Community):
                 try:
                     self.circuit.extend_strategy.extend(candidate_list)
                 except ValueError as e:
-                    logger.error("Cannot extend due to {}".format(e.message))
+                    logger.error("Cannot extend due to {0}".format(e.message))
                     self.community.remove_circuit(self.number, 'extend error on CircuitRequestCache, state = %s' % self.circuit.state)
 
             elif self.circuit.state == CIRCUIT_STATE_READY:
@@ -611,7 +611,7 @@ class ProxyCommunity(Community):
             key_string = self.dispersy.crypto.key_to_bin(ec_key)
 
             cand_dict[candidate_temp.sock_addr] = key_string
-            logger.debug("Found candidate {} with key".format(candidate_temp.sock_addr))
+            logger.debug("Found candidate {0} with key".format(candidate_temp.sock_addr))
 
 
 
@@ -765,13 +765,13 @@ class ProxyCommunity(Community):
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
-        logger.debug("GOT PING FROM CIRCUIT {}".format(circuit_id))
+        logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
         if circuit_id in self.circuits:
             return self.send_message(candidate, circuit_id, MESSAGE_PONG, PongMessage())
         return False
 
     def on_pong(self, circuit_id, candidate, message):
-        logger.debug("GOT PONG FROM CIRCUIT {}".format(circuit_id))
+        logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
         request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.PingRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_pong(message)

@@ -50,7 +50,7 @@ class DefaultCrypto(object):
 
     def _crypto_outgoing(self, candidate, circuit_id, message_type, content):
         relay_key = (candidate, circuit_id)
-        logger.debug("Crypto_outgoing for circuit {} and message type {}".format(circuit_id, ord(message_type)))
+        logger.debug("Crypto_outgoing for circuit {0} and message type {1}".format(circuit_id, ord(message_type)))
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
@@ -73,7 +73,7 @@ class DefaultCrypto(object):
             logger.debug(
                 "Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[relay_key]))
 
-        logger.debug("Length of outgoing message: {}".format(len(content)))
+        logger.debug("Length of outgoing message: {0}".format(len(content)))
         return content
 
     def _crypto_relay(self, direction, candidate, circuit_id, data):
@@ -83,27 +83,27 @@ class DefaultCrypto(object):
 
         # Message is going downstream so I have to add my onion layer
         if direction == ORIGINATOR:
-            logger.debug("AES encoding circuit {} towards ORIGINATOR, key {}".format(next_relay.circuit_id, self.session_keys[next_relay_key]))
+            logger.debug("AES encoding circuit {0} towards ORIGINATOR, key {1}".format(next_relay.circuit_id, self.session_keys[next_relay_key]))
             data = AESencode(self.session_keys[next_relay_key], data)
 
         # Message is going upstream so I have to remove my onion layer
         elif direction == ENDPOINT:
-            logger.debug("AES decoding circuit {} towards ENDPOINT, key {}".format(next_relay.circuit_id, self.session_keys[relay_key]))
+            logger.debug("AES decoding circuit {0} towards ENDPOINT, key {1}".format(next_relay.circuit_id, self.session_keys[relay_key]))
             data = AESdecode(self.session_keys[relay_key], data)
 
         return data
 
     def _crypto_incoming(self, candidate, circuit_id, data):
         relay_key = (candidate, circuit_id)
-        logger.debug("Crypto_incoming for circuit {}".format(circuit_id))
-        logger.debug("Length of incoming message: {}".format(len(data)))
+        logger.debug("Crypto_incoming for circuit {0}".format(circuit_id))
+        logger.debug("Length of incoming message: {0}".format(len(data)))
 
         # If I am the circuits originator I want to peel layers
         if circuit_id in self.proxy.circuits and len(self.proxy.circuits[circuit_id].hops) > 0:
             # I am the originator so I'll peel the onion skins
             logger.debug("I am the circuit originator, I am going to peel layers")
             for hop in self.proxy.circuits[circuit_id].hops:
-                logger.debug("Peeling layer with key {}".format(hop.session_key))
+                logger.debug("Peeling layer with key {0}".format(hop.session_key))
                 data = AESdecode(hop.session_key, data)
 
         # I'm the last node in the circuit, probably an EXTEND message, decrypt with AES

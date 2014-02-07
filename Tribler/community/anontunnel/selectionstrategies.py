@@ -63,14 +63,14 @@ class LengthSelectionStrategy(SelectionStrategy):
         self.random = True if random else False
 
     def can_select(self, circuits_to_select_from):
-        logger.debug("Trying to select from {} with length between {} and {}".format([len(c.hops) for c in circuits_to_select_from], self.min, self.max))
+        logger.debug("Trying to select from {0} with length between {1} and {2}".format([len(c.hops) for c in circuits_to_select_from], self.min, self.max))
         candidates = [c for c in circuits_to_select_from if self.min <= len(c.hops) <= self.max]
 
         return len(candidates) > 0
 
     def select(self, circuits_to_select_from):
         if not self.can_select(circuits_to_select_from):
-            logger.error("ERROR select from {} with length between {} and {}".format([len(c.hops) for c in circuits_to_select_from], self.min, self.max))
+            logger.error("ERROR select from {0} with length between {1} and {2}".format([len(c.hops) for c in circuits_to_select_from], self.min, self.max))
 
             raise ValueError("No circuits meeting criteria")
 
