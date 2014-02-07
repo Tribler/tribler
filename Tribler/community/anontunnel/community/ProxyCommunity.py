@@ -571,8 +571,8 @@ class ProxyCommunity(Community):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
         logger.info('We joined circuit %d with neighbour %s', circuit_id, candidate)
 
-        index = (candidate, circuit_id)
-        self.directions[index] = ORIGINATOR
+        relay_key = (candidate, circuit_id)
+        self.directions[relay_key] = ENDPOINT
 
         dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
         while dh_secret >= DIFFIE_HELLMAN_MODULUS:
@@ -589,7 +589,7 @@ class ProxyCommunity(Community):
         m.update(str(key))
         key = m.digest()[0:16]
 
-        self.session_keys[index] = key
+        self.session_keys[relay_key] = key
         #logger.debug("The create message's key   : {}".format(message.key))
         #logger.debug("My diffie secret           : {}".format(self.dh_secret))
         #logger.debug("CALCULATED SECRET {} FOR THE ORIGINATOR NODE".format(key))
@@ -633,7 +633,7 @@ class ProxyCommunity(Community):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
         relay_key = (candidate, circuit_id)
         del self.waiting_for[relay_key]
-        self.directions[relay_key] = ENDPOINT
+        self.directions[relay_key] = ORIGINATOR
         if relay_key in self.relay_from_to:
             logger.debug("Got CREATED message, going to send EXTENDED message backwards.")
             extended_message = ExtendedMessage(message.key, message.candidate_list)
@@ -761,11 +761,13 @@ class ProxyCommunity(Community):
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
+        logger.debug("GOT PING FROM CIRCUIT {}".format(circuit_id))
         if circuit_id in self.circuits:
             return self.send_message(candidate, circuit_id, MESSAGE_PONG, PongMessage())
         return False
 
     def on_pong(self, circuit_id, candidate, message):
+        logger.debug("GOT PONG FROM CIRCUIT {}".format(circuit_id))
         request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.PingRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_pong(message)
