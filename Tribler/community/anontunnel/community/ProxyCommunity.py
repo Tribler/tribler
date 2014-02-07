@@ -406,8 +406,13 @@ class ProxyCommunity(Community):
                     self.dict_inc(dispersy.statistics.success, str_type)
 
         except Exception as e:
-            logger.exception("Incoming message could not be handled. Breaking circuit.")
-            self.remove_circuit(circuit_id, "Bad en / decrypt, possible old circuit")
+            logger.exception("Incoming message could not be handled. Probably from old connection.")
+            if relay_key in self.relay_from_to:
+                del self.relay_from_to[relay_key]
+            elif circuit_id in self.circuits:
+                self.remove_circuit(circuit_id, "Bad en / decrypt, possible old circuit")
+            else:
+                logger.debug("Got an encrypted message I can't encrypt. Dropping packet, probably old.")
 
     class CircuitRequestCache(NumberCache):
         @staticmethod
