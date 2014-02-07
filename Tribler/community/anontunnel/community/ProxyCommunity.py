@@ -365,9 +365,10 @@ class ProxyCommunity(Community):
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (candidate, circuit_id)
 
-        verified = relay_key in self.waiting_for and not self.waiting_for[relay_key]
+
         # First, relay packet if we know whom to forward message to for this circuit
-        if circuit_id > 0 and relay_key in self.relay_from_to and verified:
+        if circuit_id > 0 and relay_key in self.relay_from_to \
+            and not (relay_key in self.waiting_for):
             next_relay = self.relay_from_to[relay_key]
 
             for f in self._relay_transformers:
@@ -629,7 +630,7 @@ class ProxyCommunity(Community):
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
         relay_key = (candidate, circuit_id)
-        self.waiting_for[circuit_id] = False
+        del self.waiting_for[relay_key]
         self.directions[relay_key] = ENDPOINT
         if relay_key in self.relay_from_to:
             logger.debug("Got CREATED message, going to send EXTENDED message backwards.")
