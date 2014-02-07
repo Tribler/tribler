@@ -21,7 +21,7 @@ class HackyEndpoint(RawserverEndpoint):
 
     def close(self, timeout=0.0):
         self.queue.put_nowait(None)
-        RawserverEndpoint.close(self, timeout)
+        return RawserverEndpoint.close(self, timeout)
 
     def consumer(self):
         while True:

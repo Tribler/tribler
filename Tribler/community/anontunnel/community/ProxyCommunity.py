@@ -191,11 +191,13 @@ class ProxyCommunity(Community):
         observer.on_state_change(self, self.online)
 
     def unload_community(self):
-        Community.unload_community(self)
-
         if self.download_stats:
             logger.error("Sharing statistics now!")
             self.send_stats()
+
+        Community.unload_community(self)
+
+
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ProxyConversion(self)]
