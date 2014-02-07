@@ -63,7 +63,7 @@ class LengthSelectionStrategy(SelectionStrategy):
         self.random = True if random else False
 
     def can_select(self, circuits_to_select_from):
-        logger.debug("Trying to select from {} with length between {} and {}".format({c.circuit_id: len(c.hops) for c in circuits_to_select_from}, self.min, self.max))
+        # logger.debug("Trying to select from {} with length between {} and {}".format({c.circuit_id: len(c.hops) for c in circuits_to_select_from}, self.min, self.max))
         candidates = [c for c in circuits_to_select_from if self.min <= len(c.hops) <= self.max]
 
         return len(candidates) > 0
