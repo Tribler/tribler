@@ -4,8 +4,6 @@ from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.community.anontunnel.payload import *
 from Tribler.community.anontunnel.globals import *
 import struct
-import unittest
-
 
 logger = logging.getLogger(__name__)
 

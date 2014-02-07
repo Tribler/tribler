@@ -1,13 +1,9 @@
-from M2Crypto.EC import EC_pub
 import logging
 import M2Crypto
 
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, ENDPOINT, MESSAGE_CREATE
-from Tribler.dispersy.member import Member
-
 
 logger = logging.getLogger(__name__)
-
 
 class NoCrypto(object):
     def enable(self, proxy):
@@ -15,7 +11,6 @@ class NoCrypto(object):
 
     def disable(self):
         pass
-
 
 class DefaultCrypto(object):
     def __init__(self):
@@ -121,6 +116,7 @@ class DefaultCrypto(object):
 
         return data
 
+""" M2 CRYPTO AES code, should be substituted with Niels's lib which implements these """
 
 def get_cryptor( op, key, alg='aes_128_ecb', iv=None ):
     if iv == None:
@@ -128,13 +124,11 @@ def get_cryptor( op, key, alg='aes_128_ecb', iv=None ):
     cryptor = M2Crypto.EVP.Cipher( alg=alg, key=key, iv=iv, op=op)
     return cryptor
 
-
 def AESencode( key, plaintext ):
     cryptor = get_cryptor( 1, key )
     ret = cryptor.update( plaintext )
     ret = ret + cryptor.final()
     return ret
-
 
 def AESdecode( key, ciphertext ):
     cryptor = get_cryptor( 0, key )

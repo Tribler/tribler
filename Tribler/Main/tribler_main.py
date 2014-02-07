@@ -31,16 +31,10 @@ logger = logging.getLogger(__name__)
 #
 import urllib
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
 original_open_https = urllib.URLopener.open_https
-import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
-# modify the sys.stderr and sys.stdout for safe output
-import Tribler.Debug.console
-
-import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
@@ -49,7 +43,6 @@ from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIG
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import current_thread, currentThread
 
 import time as time_module
 

@@ -18,7 +18,6 @@ from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from threading import Event, Thread
 
-
 class AnonTunnel(Thread):
     def __init__(self, socks5_port, cmd_port, settings=None, crawl=False):
         Thread.__init__(self)

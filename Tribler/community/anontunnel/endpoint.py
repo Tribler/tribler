@@ -4,11 +4,9 @@ import logging
 
 from Tribler.dispersy.endpoint import RawserverEndpoint
 
-
 logger = logging.getLogger(__name__)
 
 __author__ = 'chris'
-
 
 class HackyEndpoint(RawserverEndpoint):
 

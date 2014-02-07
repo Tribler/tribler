@@ -21,7 +21,6 @@ from Tribler.community.anontunnel.AnonTunnel import AnonTunnel
 
 import sys, argparse
 
-
 def main(argv):
     try:
         parser = argparse.ArgumentParser(description = 'Anonymous Tunnel CLI interface')
@@ -111,7 +110,6 @@ def main(argv):
         strategy = LengthSelectionStrategy(*args.select_strategy[1:])
         proxy_settings.selection_strategy = strategy
         logger.error("Using LengthSelectionStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
-
 
 
     anon_tunnel = AnonTunnel(socks5_port, cmd_port, proxy_settings, crawl)

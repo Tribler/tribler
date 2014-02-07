@@ -1,30 +1,10 @@
 from collections import defaultdict
-import hashlib
-import random
 from random import getrandbits
-import socket
-import string
-import struct
 from threading import RLock
-import sys
-import random
-import M2Crypto
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import ShortCircuitReturnHandler, CircuitReturnHandler
 from Tribler.community.anontunnel.crypto import AESencode, AESdecode
 from Tribler.dispersy.member import Member
-from Tribler.dispersy.requestcache import NumberCache
-
-import logging
-
-logger = logging.getLogger(__name__)
-
-from Tribler.community.anontunnel.globals import *
-from random import randint, randrange
-from Tribler.community.anontunnel.selectionstrategies import RandomSelectionStrategy
 from traceback import print_exc
-import uuid
-
 from Tribler.community.anontunnel.lengthstrategies import ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion, int_to_packed, packed_to_int
 from Tribler.community.anontunnel.globals import MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_EXTEND, MESSAGE_PONG, MESSAGE_PING, MESSAGE_DATA, MESSAGE_PUNCTURE, MESSAGE_EXTENDED, MESSAGE_STRING_REPRESENTATION, DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_GENERATOR, ORIGINATOR, ENDPOINT, MAX_CIRCUITS_TO_CREATE, PING_INTERVAL
@@ -42,8 +22,12 @@ from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.resolution import PublicResolution
-from TunnelObserver import TunnelObserver
-
+import hashlib
+import socket
+import sys
+import random
+import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +100,7 @@ class ProxyCommunity(Community):
                 logger.error("Recording stats from NOW")
 
     def __init__(self, dispersy, master_member, raw_server, settings=None, integrate_with_tribler=True):
-
         """
-
         @type master_member: Tribler.dispersy.member.Member
         """
         Community.__init__(self, dispersy, master_member)
@@ -154,7 +136,6 @@ class ProxyCommunity(Community):
 
         sr = random.SystemRandom()
         sys.modules["random"] = sr
-
 
         # Stats
         self.stats = {
@@ -394,39 +375,31 @@ class ProxyCommunity(Community):
 
             # We don't know where to relay this message to, must be for me?
             else:
-                try:
-                    for f in self._receive_transformers:
-                        data = f(candidate, circuit_id, data)
+                for f in self._receive_transformers:
+                    data = f(candidate, circuit_id, data)
 
-                    try:
-                        _, payload = self.proxy_conversion.decode(data)
-                    except Exception as e:
-                        self.remove_circuit(circuit_id, "Unable to decode message, could be hostile")
-                        return
+                    _, payload = self.proxy_conversion.decode(data)
 
+                packet_type = self.proxy_conversion.get_type(data)
+                str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
 
-                    packet_type = self.proxy_conversion.get_type(data)
-                    str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
+                if packet_type != MESSAGE_DATA:
+                    logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
-                    if packet_type != MESSAGE_DATA:
-                        logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                payload = self._filter_message(circuit_id, candidate, packet_type, payload,)
 
-                    payload = self._filter_message(circuit_id, candidate, packet_type, payload,)
+                if not payload:
+                    logger.warning("IGNORED %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                    return
 
-                    if not payload:
-                        logger.warning("IGNORED %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
-                        return
+                if circuit_id in self.circuits:
+                    self.circuits[circuit_id].last_incomming = time()
 
-                    if circuit_id in self.circuits:
-                        self.circuits[circuit_id].last_incomming = time()
-
-                    if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
-                        self.dict_inc(dispersy.statistics.success, str_type + '-ignored')
-                        logger.debug("Prev message was IGNORED")
-                    else:
-                        self.dict_inc(dispersy.statistics.success, str_type)
-                except Exception as e:
-                    logger.exception("ERROR from %s:%d over circuit %d", candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
+                    self.dict_inc(dispersy.statistics.success, str_type + '-ignored')
+                    logger.debug("Prev message was IGNORED")
+                else:
+                    self.dict_inc(dispersy.statistics.success, str_type)
 
         except Exception as e:
             logger.exception("Incoming message could not be handled. Breaking circuit.")

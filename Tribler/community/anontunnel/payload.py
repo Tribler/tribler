@@ -1,7 +1,4 @@
-import struct
-
 from Tribler.dispersy.payload import Payload
-from Tribler.Core.Utilities.encoding import decode, encode
 
 __author__ = 'Chris'
 
