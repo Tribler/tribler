@@ -1,7 +1,6 @@
 import logging.config
 import os
 import re
-from Tribler.community.anontunnel.globals import ANON_DOWNLOAD_DELAY
 import globals
 from Tribler.community.anontunnel.community import ProxySettings
 
