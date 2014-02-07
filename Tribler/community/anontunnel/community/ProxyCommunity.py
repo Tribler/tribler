@@ -365,68 +365,72 @@ class ProxyCommunity(Community):
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (candidate, circuit_id)
 
+        try:
+            # First, relay packet if we know whom to forward message to for this circuit
+            # Happens only when the circuit is already established with both parent and child
+            # And if the node is not waiting for a CREATED message from the child
+            if circuit_id > 0 and relay_key in self.relay_from_to \
+                and not (relay_key in self.waiting_for):
+                next_relay = self.relay_from_to[relay_key]
 
-        # First, relay packet if we know whom to forward message to for this circuit
-        # Happens only when the circuit is already established with both parent and child
-        # And if the node is not waiting for a CREATED message from the child
-        if circuit_id > 0 and relay_key in self.relay_from_to \
-            and not (relay_key in self.waiting_for):
-            next_relay = self.relay_from_to[relay_key]
+                for f in self._relay_transformers:
+                    data = f(self.directions[relay_key], candidate, circuit_id, data)
 
-            for f in self._relay_transformers:
-                data = f(self.directions[relay_key], candidate, circuit_id, data)
+                next_relay.bytes[1] += len(data)
 
-            next_relay.bytes[1] += len(data)
-
-            this_relay_key = (next_relay.candidate, next_relay.circuit_id)
-            if this_relay_key in self.relay_from_to:
-                this_relay = self.relay_from_to[this_relay_key]
-                this_relay.last_incomming = time()
-                this_relay.bytes[0] += len(packet)
-
-            packet_type = self.proxy_conversion.get_type(data)
-            str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
-
-            #logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
-
-            self.send_packet(next_relay.candidate, next_relay.circuit_id, packet_type, data, relayed=True)
-            self.dict_inc(dispersy.statistics.success, str_type + '-relayed')
-
-        # We don't know where to relay this message to, must be for me?
-        else:
-            try:
-                for f in self._receive_transformers:
-                    data = f(candidate, circuit_id, data)
-
-                try:
-                    _, payload = self.proxy_conversion.decode(data)
-                except Exception as e:
-                    self.remove_circuit(circuit_id, "Unable to decode message, could be hostile")
-                    return
-
+                this_relay_key = (next_relay.candidate, next_relay.circuit_id)
+                if this_relay_key in self.relay_from_to:
+                    this_relay = self.relay_from_to[this_relay_key]
+                    this_relay.last_incomming = time()
+                    this_relay.bytes[0] += len(packet)
 
                 packet_type = self.proxy_conversion.get_type(data)
                 str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
 
-                if packet_type != MESSAGE_DATA:
-                    logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                #logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
-                payload = self._filter_message(circuit_id, candidate, packet_type, payload,)
+                self.send_packet(next_relay.candidate, next_relay.circuit_id, packet_type, data, relayed=True)
+                self.dict_inc(dispersy.statistics.success, str_type + '-relayed')
 
-                if not payload:
-                    logger.warning("IGNORED %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
-                    return
+            # We don't know where to relay this message to, must be for me?
+            else:
+                try:
+                    for f in self._receive_transformers:
+                        data = f(candidate, circuit_id, data)
 
-                if circuit_id in self.circuits:
-                    self.circuits[circuit_id].last_incomming = time()
+                    try:
+                        _, payload = self.proxy_conversion.decode(data)
+                    except Exception as e:
+                        self.remove_circuit(circuit_id, "Unable to decode message, could be hostile")
+                        return
 
-                if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
-                    self.dict_inc(dispersy.statistics.success, str_type + '-ignored')
-                    logger.debug("Prev message was IGNORED")
-                else:
-                    self.dict_inc(dispersy.statistics.success, str_type)
-            except Exception as e:
-                logger.exception("ERROR from %s:%d over circuit %d", candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+
+                    packet_type = self.proxy_conversion.get_type(data)
+                    str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
+
+                    if packet_type != MESSAGE_DATA:
+                        logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+
+                    payload = self._filter_message(circuit_id, candidate, packet_type, payload,)
+
+                    if not payload:
+                        logger.warning("IGNORED %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+                        return
+
+                    if circuit_id in self.circuits:
+                        self.circuits[circuit_id].last_incomming = time()
+
+                    if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
+                        self.dict_inc(dispersy.statistics.success, str_type + '-ignored')
+                        logger.debug("Prev message was IGNORED")
+                    else:
+                        self.dict_inc(dispersy.statistics.success, str_type)
+                except Exception as e:
+                    logger.exception("ERROR from %s:%d over circuit %d", candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
+
+        except Exception as e:
+            logger.exception("Incoming message could not be handled. Breaking circuit.")
+            self.remove_circuit(circuit_id, "Bad en / decrypt, possible old circuit")
 
     class CircuitRequestCache(NumberCache):
         @staticmethod
@@ -472,8 +476,8 @@ class ProxyCommunity(Community):
             try:
                 candidate_list = self.community.decrypt_candidate_list(key, extended_message.candidate_list)
             except Exception as e:
-                logger.error("Candidate list impossible to decrypt. Circuit under attack, destroying circuit")
-                logger.error("TODO")
+                logger.exception("Can't decrypt candidate list!")
+                self.community.remove_circuit(self.circuit.circuit_id, "Candidate list impossible to decrypt. Circuit under attack, destroying circuit")
 
             dispersy = self.community.dispersy
             if dispersy.lan_address in candidate_list:
