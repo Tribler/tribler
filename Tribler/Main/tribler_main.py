@@ -606,7 +606,7 @@ class ABCApp():
         #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
 
 
-        root_hash = "b9e244ca68204631b9b69b5330c69b8704948f94"
+        root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
 
         #host = "127.0.0.1:21000"
         #root_hash = "b25eb5a4eb94fad36aa373d3b85434894961b1c5"
