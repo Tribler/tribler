@@ -367,6 +367,8 @@ class ProxyCommunity(Community):
 
 
         # First, relay packet if we know whom to forward message to for this circuit
+        # Happens only when the circuit is already established with both parent and child
+        # And if the node is not waiting for a CREATED message from the child
         if circuit_id > 0 and relay_key in self.relay_from_to \
             and not (relay_key in self.waiting_for):
             next_relay = self.relay_from_to[relay_key]
