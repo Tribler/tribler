@@ -14,7 +14,7 @@ from random import choice
 from binascii import hexlify
 from time import sleep, time
 
-from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH,\
+from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH, \
     DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.TorrentDef import TorrentDef
@@ -136,12 +136,12 @@ class RemoteTorrentHandler:
 
             return self._searchcommunity
 
-    def has_thumbnail(self, infohash):
-        thumb_dir = os.path.join(self.tor_col_dir, 'thumbs-' + binascii.hexlify(infohash))
+    def has_thumbnail(self, infohash, roothash):
+        thumb_dir = os.path.join(self.tor_col_dir, 'thumbs-' + binascii.hexlify(infohash), binascii.hexlify(roothash))
         return os.path.isdir(thumb_dir) and os.listdir(thumb_dir)
 
     def download_thumbnail(self, candidate, roothash, infohash, usercallback=None, timeout=None):
-        if self.registered and not self.has_thumbnail(roothash):
+        if self.registered and not self.has_thumbnail(infohash, roothash):
             raw_lambda = lambda candidate = candidate, roothash = roothash, infohash = infohash, usercallback = usercallback, timeout = timeout: self._download_thumbnail(candidate, roothash, infohash, usercallback, timeout)
             self.scheduletask(raw_lambda)
 
@@ -759,7 +759,7 @@ class ThumbnailRequester(Requester):
         roothash, infohash = hash_tuple
         attempting_download = False
 
-        if self.remote_th.has_thumbnail(infohash):
+        if self.remote_th.has_thumbnail(infohash, roothash):
             self.remote_th.notify_possible_thumbnail_roothash(roothash)
 
         elif candidates:
