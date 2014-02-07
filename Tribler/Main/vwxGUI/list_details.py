@@ -801,7 +801,7 @@ class TorrentDetails(AbstractDetails):
             diff = time() - last_check
 
             if diff > 1800:
-                TorrentChecking.getInstance().addGuiRequest(self.torrent)
+#                TorrentChecking.getInstance().addGuiRequest(self.torrent)
                 self.ShowHealth(True)
             else:
                 self.ShowHealth(False)

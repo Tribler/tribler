@@ -258,7 +258,7 @@ class TriblerLaunchMany(Thread):
             self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
 
         # add task for tracker checking
-        if self.session.get_torrent_checking():
+        if False and self.session.get_torrent_checking():
             if self.session.get_mainline_dht():
                 # Create torrent-liveliness checker based on DHT
                 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
