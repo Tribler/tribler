@@ -365,7 +365,7 @@ class ProxyCommunity(Community):
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (candidate, circuit_id)
 
-        verified = circuit_id in self.waiting_for and not self.waiting_for[circuit_id]
+        verified = relay_key in self.waiting_for and not self.waiting_for[relay_key]
         # First, relay packet if we know whom to forward message to for this circuit
         if circuit_id > 0 and relay_key in self.relay_from_to and verified:
             next_relay = self.relay_from_to[relay_key]
@@ -535,7 +535,7 @@ class ProxyCommunity(Community):
 
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
-            self.waiting_for[circuit_id] = True
+            self.waiting_for[(first_hop_candidate, circuit_id)] = True
             self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_dh_first_part))
 
             return circuit
@@ -702,7 +702,7 @@ class ProxyCommunity(Community):
         new_circuit_id = self._generate_circuit_id(extend_with)
         to_key = (extend_with, new_circuit_id)
 
-        self.waiting_for[circuit_id] = True
+        self.waiting_for[to_key] = True
         self.relay_from_to[to_key] = RelayRoute(circuit_id, candidate)
         self.relay_from_to[relay_key] = RelayRoute(new_circuit_id, extend_with)
 
