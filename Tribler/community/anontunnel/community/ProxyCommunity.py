@@ -194,6 +194,7 @@ class ProxyCommunity(Community):
         Community.unload_community(self)
 
         if self.download_stats:
+            logger.error("Sharing statistics now!")
             self.send_stats()
 
     def initiate_conversions(self):
@@ -321,6 +322,7 @@ class ProxyCommunity(Community):
         return stats
 
     def __send_stats(self):
+        logger.error("__send_stats saying hi!")
         stats = self._create_stats()
         meta = self.get_meta_message(u"stats")
         record = meta.impl(authentication=(self._my_member,),
@@ -331,7 +333,7 @@ class ProxyCommunity(Community):
         self.dispersy.store_update_forward([record], True, False, True)
 
     def send_stats(self):
-        self.dispersy.callback.register(self.__send_stats)
+        self.__send_stats()
 
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
