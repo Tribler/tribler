@@ -12,12 +12,15 @@
 # see LICENSE.txt for license information
 #
 import glob
+from scrapy.settings.default_settings import DOWNLOAD_DELAY
 
 import sys
 import logging
 
 from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.community.anontunnel.globals import ANON_DOWNLOAD_DELAY
+
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -347,12 +350,6 @@ class ABCApp():
 
             self.ready = True
 
-            # AnonTunnel test
-            for c in self.dispersy.get_communities():
-                if isinstance(c, ProxyCommunity):
-                    self.setup_anon_test(c, self.frame)
-                    break
-
             # self.frame.actlist.DisableItem(3)
             # self.frame.actlist.DisableItem(6)
             # #self.frame.top_bg.searchField.Disable()
@@ -531,6 +528,10 @@ class ABCApp():
             
             socks_server.tunnel = proxy_community[0]
             socks_server.start()
+
+            delay = ANON_DOWNLOAD_DELAY
+
+            s.lm.rawserver.add_task(lambda: self.setup_anon_test(socks_server.tunnel, self.frame), delay)
 
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
@@ -1266,6 +1267,13 @@ def run(params=None):
             single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
         else:
             single_instance_checker = LinuxSingleInstanceChecker("tribler")
+
+        # Don't delay the anonimity test download if 'hurry' is given
+        # The uglyness of this solution hurts my eyes but it's handy for testing and it's friday
+        if "hurry" in params:
+            global ANON_DOWNLOAD_DELAY
+            params.remove("hurry")
+            ANON_DOWNLOAD_DELAY = 5
 
         installdir = ABCApp.determine_install_dir()
 
