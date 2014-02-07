@@ -629,14 +629,14 @@ class ProxyCommunity(Community):
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
         relay_key = (candidate, circuit_id)
+        self.waiting_for[circuit_id] = False
+        self.directions[relay_key] = ENDPOINT
         if relay_key in self.relay_from_to:
             logger.debug("Got CREATED message, going to send EXTENDED message backwards.")
             extended_message = ExtendedMessage(message.key, message.candidate_list)
             forwarding_relay = self.relay_from_to[relay_key]
             return self.send_message(forwarding_relay.candidate, forwarding_relay.circuit_id, MESSAGE_EXTENDED, extended_message)
 
-        self.directions[relay_key] = ENDPOINT
-        self.waiting_for[circuit_id] = False
         request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_extended(message)
