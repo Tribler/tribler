@@ -471,7 +471,7 @@ class ProxyCommunity(Community):
                 try:
                     self.circuit.extend_strategy.extend(candidate_list)
                 except ValueError as e:
-                    logger.error("Cannot extend due to {0}".format(e.message))
+                    logger.exception("Cannot extend due to exception:")
                     self.community.remove_circuit(self.number, 'extend error on CircuitRequestCache, state = %s' % self.circuit.state)
 
             elif self.circuit.state == CIRCUIT_STATE_READY:
