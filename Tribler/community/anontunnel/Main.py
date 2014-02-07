@@ -1,6 +1,7 @@
 import logging.config
 import os
 import re
+from Tribler.community.anontunnel.globals import ANON_DOWNLOAD_DELAY
 import globals
 from Tribler.community.anontunnel.community import ProxySettings
 
@@ -33,7 +34,6 @@ def main(argv):
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_argument('--record-on-incoming', help='Record stats from the moment the first data enters the tunnel')
         parser.add_argument('--crawl', default=False, help='Record stats from others in results.db')
-
         parser.add_help = True
         args = parser.parse_args(sys.argv[1:])
 
