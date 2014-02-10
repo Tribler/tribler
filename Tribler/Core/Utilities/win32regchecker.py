@@ -46,7 +46,7 @@ class Win32RegChecker:
 
             return value_data
         except Exception as ex:
-            self._logger.exception("key: %s, key_name: %s, value_name: %s", key, key_name, value_name)
+            self._logger.exception("hkey: %s, key_name: %s, value_name: %s", hkey, key_name, value_name)
             # error, test failed, key don't exist
             # (could also indicate a unicode error)
             return None
@@ -78,7 +78,7 @@ class Win32RegChecker:
 
             return value_data
         except Exception as ex:
-            self._logger.exception("key: %s, key_name: %s, value_name: %s", key, key_name, value_name)
+            self._logger.exception("hkey: %s, key_name: %s, value_name: %s", hkey, key_name, value_name)
             # error, test failed, key don't exist
             # (could also indicate a unicode error)
             return None
