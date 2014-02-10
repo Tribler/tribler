@@ -120,7 +120,7 @@ class TorrentStateManager:
         contenthash = hashlib.sha1()
         for fn in thumb_filenames:
             with open(fn, 'rb') as fp:
-                contenthash.update(hashlib.sha1(fp.read()).hexdigest())
+                contenthash.update(fp.read())
         contenthash_hex = contenthash.hexdigest()
 
         # Move files to torcoldir/thumbs-infohash/contenthash.
