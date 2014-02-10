@@ -368,7 +368,6 @@ class ABCApp():
             # self.frame.SetDropTarget(None)
         except Exception as e:
             self.onError(e)
-            return False
 
     def PostInit2(self):
         self.frame.Raise()
@@ -475,7 +474,23 @@ class ABCApp():
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
         if not os.path.isdir(defaultDLConfig.get_dest_dir()):
-            os.makedirs(defaultDLConfig.get_dest_dir())
+            try:
+                os.makedirs(defaultDLConfig.get_dest_dir())
+            except:
+                # Could not create directory, ask user to select a different location
+                dlg = wx.DirDialog(None, "Could not find download directory, please select a new location to store your downloads", style=wx.DEFAULT_DIALOG_STYLE)
+                dlg.SetPath(get_default_dest_dir())
+                if dlg.ShowModal() == wx.ID_OK:
+                    new_dest_dir = dlg.GetPath()
+                    defaultDLConfig.set_dest_dir(new_dest_dir)
+                    defaultDLConfig.save(dlcfgfilename)
+                    self.sconfig.set_torrent_collecting_dir(os.path.join(new_dest_dir, STATEDIR_TORRENTCOLL_DIR))
+                    self.sconfig.set_swift_meta_dir(os.path.join(new_dest_dir, STATEDIR_SWIFTRESEED_DIR))
+                    self.sconfig.save(cfgfilename)
+                else:
+                    # Quit
+                    self.onError = lambda e: self._logger.error("tribler: quitting due to non-existing destination directory")
+                    raise Exception()
 
         # Setting torrent collection dir based on default download dir
         if not self.sconfig.get_torrent_collecting_dir():
@@ -723,22 +738,22 @@ class ABCApp():
             except:
                 print_exc()
 
-            # Update bandwidth statistics in the Barter Community
-            if not self.barter_community:
-                self.barter_community = self.dispersy.callback.call(self._dispersy_get_barter_community)
-
-            if self.barter_community and not isinstance(self.barter_community, HardKilledCommunity):
-                if self.barter_community.has_been_killed:
-                    # set BARTER_COMMUNITY to None.  next state callback we will again get the
-                    # community resulting in the HardKilledCommunity instead
-                    self.barter_community = None
-                else:
-                    if True in self.lastwantpeers:
-                        self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist, True))
-
-                    # only request peer info every 120 intervals
-                    if self.ratestatecallbackcount % 120 == 0:
-                        wantpeers.append(True)
+#            # Update bandwidth statistics in the Barter Community
+#            if not self.barter_community:
+#                self.barter_community = self.dispersy.callback.call(self._dispersy_get_barter_community)
+#
+#            if self.barter_community and not isinstance(self.barter_community, HardKilledCommunity):
+#                if self.barter_community.has_been_killed:
+#                    # set BARTER_COMMUNITY to None.  next state callback we will again get the
+#                    # community resulting in the HardKilledCommunity instead
+#                    self.barter_community = None
+#                else:
+#                    if True in self.lastwantpeers:
+#                        self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist, True))
+#
+#                    # only request peer info every 120 intervals
+#                    if self.ratestatecallbackcount % 120 == 0:
+#                        wantpeers.append(True)
 
             # Find State of currently playing video
             playds = None
@@ -756,7 +771,8 @@ class ABCApp():
                         progress = playds.get_vod_prebuffering_progress()
                         progress_consec = playds.get_vod_prebuffering_progress_consec()
                     self.videoplayer.set_player_status_and_progress(progress, progress_consec, \
-                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True])
+                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True], \
+                                                                    playds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
                 wx.CallAfter(do_video)
 
             # Check to see if a download has finished

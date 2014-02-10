@@ -17,7 +17,7 @@ from Tribler.community.anontunnel import exitstrategies
 from Tribler.community.anontunnel.Socks5 import Socks5Server
 from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
-from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.community.anontunnel.extendstrategies import TrustThyNeighbour, NeighbourSubset

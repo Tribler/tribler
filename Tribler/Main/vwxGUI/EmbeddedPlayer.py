@@ -402,8 +402,12 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.slider.SetPieces([])
 
     @forceWxThread
-    def UpdateStatus(self, progress, progress_consec, pieces_complete):
-        self.logowin.loading.SetValue(progress)
+    def UpdateStatus(self, progress, progress_consec, pieces_complete, error=False):
+        if error:
+            self.logowin.loading.SetLabel("Loading\nfailed")
+        else:
+            self.logowin.loading.SetValue(progress)
+
         if self.vlcwrap:
             self.slider.SetPieces(pieces_complete)
 

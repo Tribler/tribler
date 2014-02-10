@@ -28,9 +28,9 @@ from random import choice
 from Tribler.dispersy.member import Member
 from database import FriendDatabase
 from Tribler.community.privatesemantic.conversion import long_to_bytes
-from Tribler.community.privatesemantic.ecutils import OpenSSLCurves
-from Tribler.community.privatesemantic.ecelgamal import encrypt_str
-from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto
+from Tribler.community.privatesemantic.crypto.ecutils import OpenSSLCurves
+from Tribler.community.privatesemantic.crypto.ecelgamal import encrypt_str
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 
 DEBUG = False
 DEBUG_VERBOSE = False

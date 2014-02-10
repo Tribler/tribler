@@ -1,50 +1,54 @@
-REM @echo off
+@echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
 REM Check that we are running from the expected directory
 IF NOT EXIST Tribler\Main (
- echo .
- echo Please, execute this script from the repository root
- exit /b
+  ECHO .
+  ECHO Please, execute this script from the repository root
+  ECHO /b
 )
 
-set PYTHONHOME=c:\Python273
+REM locate Python directory and set up Python environment
+python win\locate-python.py > tmp_pythonhome.txt
+SET /p PYTHONHOME= < tmp_pythonhome.txt
+DEL /f /q tmp_pythonhome.txt
+REM set PYTHONHOME=c:\Python273
 REM Arno: Add . to find our core
-set PYTHONPATH=.;%PYTHONHOME%
-echo PYTHONPATH SET TO %PYTHONPATH%
-
-set NSIS="\Program Files\NSIS\makensis.exe"
+SET PYTHONPATH=.;%PYTHONHOME%
+ECHO PYTHONPATH SET TO %PYTHONPATH%
 
 REM ----- Check for Python and essential site-packages
 
 IF NOT EXIST %PYTHONHOME%\python.exe (
-  echo .
-  echo Could not locate Python in %PYTHONHOME%.
-  echo Please modify this script or install python [www.python.org]
+  ECHO .
+  ECHO Could not locate Python in %PYTHONHOME%.
+  ECHO Please modify this script or install python [www.python.org]
   exit /b
 )
 
 IF NOT EXIST %PYTHONHOME%\Lib\site-packages\wx-*-unicode (
-  echo .
-  echo Could not locate wxPython in %PYTHONHOME%\Lib\site-packages.
-  echo Please modify this script or install wxPython [www.wxpython.org]
+  ECHO .
+  ECHO Could not locate wxPython in %PYTHONHOME%\Lib\site-packages.
+  ECHO Please modify this script or install wxPython [www.wxpython.org]
   exit /b
 )
 
 IF NOT EXIST %PYTHONHOME%\Lib\site-packages\py2exe (
-  echo .
-  echo Could not locate py2exe in %PYTHONHOME%\Lib\site-packages.
-  echo Please modify this script or install wxPython [www.py2exe.org]
-  exit /b
+  ECHO .
+  ECHO Could not locate py2exe in %PYTHONHOME%\Lib\site-packages.
+  ECHO Please modify this script or install wxPython [www.py2exe.org]
+  EXIT /b
 )
 
 REM ----- Check for NSIS installer
+SET NSIS="C:\Program Files\NSIS\makensis.exe"
 
+IF NOT EXIST %NSIS% SET NSIS="C:\Program Files (x86)\NSIS\makensis.exe"
 IF NOT EXIST %NSIS% (
-  echo .
-  echo Could not locate the NSIS installer at %NSIS%.
-  echo Please modify this script or install NSIS [nsis.sf.net]
-  exit /b
+  ECHO .
+  ECHO Could not locate the NSIS installer at %NSIS%.
+  ECHO Please modify this script or install NSIS [nsis.sf.net]
+  EXIT /b
 )
 
 REM ----- Clean up
@@ -148,7 +152,7 @@ copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
 
 REM Swift
-del swift.exe
+IF EXIST swift.exe DEL swift.exe
 cd Tribler\SwiftEngine
 CALL c:\Python273\Scripts\scons -c
 CALL win32-build.bat
@@ -163,10 +167,13 @@ REM get password for swarmplayerprivatekey.pfx
 set /p PASSWORD="Enter the PFX password:"
 
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
+REM --- Doing this in ugly way for now
+SET PATH=%PATH%;C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin
+
+signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
 
 REM Arno: Sign swift.exe so MS "Block / Unblock" dialog has publisher info.
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" swift.exe
+signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" swift.exe
 
 
 :makeinstaller

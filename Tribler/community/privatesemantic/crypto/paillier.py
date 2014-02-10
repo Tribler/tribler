@@ -1,10 +1,7 @@
 # Written by Niels Zeilemaker
 
-from Crypto.Random.random import StrongRandom
-from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes, inverse
-from Crypto.Cipher import AES
-
-from gmpy import mpz, invert, rand
+from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
+from optional_crypto import mpz, invert, rand, StrongRandom, aes_encrypt_str, aes_decrypt_str
 
 from random import randint, Random, choice
 from time import time
@@ -50,7 +47,7 @@ def paillier_init(rsa_key):
 
     d = pow(g, lambda_, n2)
     d = (d - 1) / n
-    d = mpz(inverse(d, n))
+    d = mpz(invert(d, n))
     return PaillierKey(n, n2, g, lambda_, d, rsa_key.size, rsa_key.size * 2)
 
 def paillier_encrypt(key, element):
@@ -101,18 +98,14 @@ def paillier_polyval(coefficients, x, n2):
 
 def encrypt_str(key, plain_str):
     aes_key = StrongRandom().getrandbits(128)
-    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-
-    enc_str = cipher.encrypt(plain_str)
+    enc_str = aes_encrypt_str(aes_key, plain_str)
     enc_aes_key = long_to_bytes(paillier_encrypt(key, aes_key), key.encsize / 8)
     return enc_aes_key + enc_str
 
 def decrypt_str(key, encr_str):
     enc_aes_key = bytes_to_long(encr_str[:key.encsize / 8])
     aes_key = paillier_decrypt(key, enc_aes_key)
-
-    cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
-    plain_str = cipher.decrypt(encr_str[key.encsize / 8:])
+    plain_str = aes_decrypt_str(aes_key, encr_str[key.encsize / 8:])
     return plain_str
 
 if __name__ == "__main__":

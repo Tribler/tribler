@@ -1,15 +1,16 @@
+from optional_crypto import mpz, invert
+
 from collections import defaultdict, namedtuple
-from Crypto.Util.number import long_to_bytes, bytes_to_long
-from gmpy import mpz, invert
+import os
+
 from pyasn1.type import univ, namedtype, tag
 from pyasn1.codec.der import decoder
 
 from Tribler.dispersy.crypto import ECCrypto
+from Tribler.community.privatesemantic.conversion import long_to_bytes, \
+    bytes_to_long
 
-import sys
-from traceback import print_exc
 from M2Crypto.EC import EC_pub
-import os
 
 ECElgamalKey = namedtuple('ECElgamalKey', ['ec', 'x', 'Q', 'size', 'encsize'])
 ECElgamalKey_Pub = namedtuple('ECElgamalKey_Pub', ['ec', 'Q', 'size', 'encsize'])
@@ -290,6 +291,12 @@ class OpenSSLCurves():
                     curve[2] = EllipticCurve(coef_a, coef_b, modulo, base_x, base_y)
                 return curve[2]
 
+    def get_named_curves(self):
+        curve_list = []
+        for curname, curve in self.curve_dict.iteritems():
+            curve_list.append((curname, curve[1]))
+        return curve_list
+
     def parse_ecpoint(self, ecpoint):
         # uncompressed ecpoints start with 04 and then the two points
         hexstr = ecpoint.encode('HEX')
@@ -305,3 +312,7 @@ class OpenSSLCurves():
             x += xleni * (256 ** i)
 
         return x
+
+if __name__ == "__main__":
+    openssl = OpenSSLCurves()
+    print "\n".join(map(str, openssl.get_named_curves()))

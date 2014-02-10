@@ -12,8 +12,7 @@ import logging
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
-from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto
-
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 
 try:
     prctlimported = True
@@ -83,7 +82,6 @@ class TriblerLaunchMany(Thread):
                                        ipv6_enable=self.session.get_ipv6(),
                                        failfunc=self.rawserver_fatalerrorfunc,
                                        errorfunc=self.rawserver_nonfatalerrorfunc)
-            self.rawserver.add_task(self.rawserver_keepalive, 1)
             self.listen_port = self.session.get_listen_port()
             self.shutdownstarttime = None
 
@@ -445,13 +443,6 @@ class TriblerLaunchMany(Thread):
         finally:
             self.stop_upnp()
             self.rawserver.shutdown()
-
-    def rawserver_keepalive(self):
-        """ Hack to prevent rawserver sleeping in select() for a long time, not
-        processing any tasks on its queue at startup time
-
-        Called by network thread """
-        self.rawserver.add_task(self.rawserver_keepalive, 1)
 
     #
     # State retrieval

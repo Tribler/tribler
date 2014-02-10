@@ -251,7 +251,7 @@ class ProxyCommunity(Community):
         self._message_filters = defaultdict(list)
 
         if isinstance(settings.length_strategy, lengthstrategies.ConstantCircuitLengthStrategy) and settings.length_strategy.desired_length == 0:
-            self.circuits[0] = Circuit(self, 0)
+            self.circuits[0] = Circuit(0, proxy=self)
 
         self.settings = settings
 
@@ -534,7 +534,7 @@ class ProxyCommunity(Community):
             cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self, circuit_id))
 
             goal_hops = self.settings.length_strategy.circuit_length()
-            circuit = cache.circuit = Circuit(self, circuit_id, goal_hops, first_hop_candidate)
+            circuit = cache.circuit = Circuit(circuit_id, goal_hops, first_hop_candidate, proxy=self)
 
             circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.settings.extend_strategy(self, circuit)
             self.circuits[circuit_id] = circuit
