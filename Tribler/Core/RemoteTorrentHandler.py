@@ -776,6 +776,7 @@ class ThumbnailRequester(Requester):
 
             sdef = SwiftDef(roothash, tracker="%s:%d" % (ip, port))
             dcfg = self.dscfg.copy()
+            dcfg.set_dest_dir(os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(infohash), binascii.hexlify(roothash)))
             try:
                 # hide download from gui
                 download = self.session.start_download(sdef, dcfg, hidden=True)
