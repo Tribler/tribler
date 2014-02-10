@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class CircuitReturnHandler(object):
+class TunnelExitSocket(object):
     """
     Sends incoming UDP packets back over the DispersyTunnelProxy.
     """
@@ -21,7 +21,7 @@ class CircuitReturnHandler(object):
         :param destination_address: the first hop of the circuit
         :param socket: the socket that listens to UDP packets
 
-        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
+        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity.ProxyCommunity
 
         """
 
@@ -54,7 +54,7 @@ class CircuitReturnHandler(object):
             )
 
 
-class ShortCircuitReturnHandler(object):
+class ShortCircuitExitSocket(object):
     """
     Only used when there are no circuits, it will be a 0-hop tunnel. So there is no anonymity at all.
     """

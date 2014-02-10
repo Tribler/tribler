@@ -53,13 +53,13 @@ class ProxyCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, raw_server, settings=None, integrate_with_tribler=True):
+    def load_community(cls, dispersy, master, my_member, settings=None, integrate_with_tribler=True):
         try:
             dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, raw_server, settings, integrate_with_tribler=integrate_with_tribler)
+            return cls.join_community(dispersy, master, my_member, my_member, settings, integrate_with_tribler=integrate_with_tribler)
         else:
-            return super(ProxyCommunity, cls).load_community(dispersy, master, raw_server, settings, integrate_with_tribler=integrate_with_tribler)
+            return super(ProxyCommunity, cls).load_community(dispersy, master, settings, integrate_with_tribler=integrate_with_tribler)
 
     @property
     def online(self):
@@ -99,7 +99,7 @@ class ProxyCommunity(Community):
 
                 logger.error("Recording stats from NOW")
 
-    def __init__(self, dispersy, master_member, raw_server, settings=None, integrate_with_tribler=True):
+    def __init__(self, dispersy, master_member, settings=None, integrate_with_tribler=True):
         """
         @type master_member: Tribler.dispersy.member.Member
         """
@@ -119,8 +119,9 @@ class ProxyCommunity(Community):
                           MESSAGE_CREATED: self.on_created, MESSAGE_DATA: self.on_data, MESSAGE_EXTEND: self.on_extend,
                           MESSAGE_EXTENDED: self.on_extended, MESSAGE_PING: self.on_ping, MESSAGE_PONG: self.on_pong,
                           MESSAGE_PUNCTURE: self.on_puncture}
+
         self.__observers = []
-        ''' :type : list of TunnelObserver'''
+        ''' :type : list of TunnelObserver.TunnelObserver'''
 
         # Replace endpoint
         dispersy.endpoint.listen_to(self.prefix, self.handle_packet)
@@ -161,9 +162,6 @@ class ProxyCommunity(Community):
 
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
-        self._exit_sockets = {}
-        self.raw_server = raw_server
-
         self._online = False
 
         dispersy._callback.register(self.check_ready)
@@ -645,13 +643,14 @@ class ProxyCommunity(Community):
             self.stats['bytes_returned'] += len(message.data)
 
             for observer in self.__observers:
-                observer.on_tunnel_data(self, message.origin, message.data)
+                observer.incoming_from_tunnel(self, message.origin, message.data)
 
             return True
 
         # If it is not ours and we have nowhere to forward to then act as exit node
         if message.destination != ('0.0.0.0', 0):
-            self.exit_data(circuit_id, candidate, message.destination, message.data)
+            for observer in self.__observers:
+                observer.exiting_from_tunnel(circuit_id, candidate, message.destination, message.data)
 
             return True
         return False
@@ -889,22 +888,6 @@ class ProxyCommunity(Community):
 
             yield PING_INTERVAL
 
-    def exit_data(self, circuit_id, return_candidate, destination, data):
-        logger.debug("EXIT DATA packet to %s", destination)
-        self.stats['bytes_exit'] += len(data)
-
-        try:
-            self.get_exit_handler(circuit_id, return_candidate).sendto(data, destination)
-        except socket.error:
-            self.stats['dropped_exit'] += 1
-
-    def get_exit_handler(self, circuit_id, address):
-        # If we don't have an exit socket yet for this socket, create one
-        if not (circuit_id in self._exit_sockets):
-            return_handler = self.settings.return_handler_factory.create(self, self.raw_server, circuit_id, address)
-            self._exit_sockets[circuit_id] = return_handler
-        return self._exit_sockets[circuit_id]
-
     def unlink_destinations(self, destinations):
         with self.lock:
             for destination in destinations:
@@ -931,7 +914,8 @@ class ProxyCommunity(Community):
                 # If chosen the 0-hop circuit OR if there are no other circuits act as EXIT node ourselves
                 if circuit_id == 0:
                     self.circuits[0].bytes_up[-1] += len(payload)
-                    self.exit_data(0, None, ultimate_destination, payload)
+                    for o in self.__observers:
+                        o.exiting_from_tunnel(0, None, ultimate_destination, payload)
                     return
 
                 # If no address has been given, pick the first hop

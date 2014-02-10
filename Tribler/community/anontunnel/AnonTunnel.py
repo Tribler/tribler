@@ -1,4 +1,5 @@
 import time
+from Tribler.community.anontunnel import exitstrategies
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
 from Tribler.community.anontunnel.StatsCrawler import StatsCrawler
 from Tribler.community.privatesemantic.elgamalcrypto import  ElgamalCrypto, NoElgamalCrypto
@@ -50,22 +51,23 @@ class AnonTunnel(Thread):
         self.dispersy.start()
         logger.error("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
-        def join_overlay(dispersy):
+        def join_overlay(raw_server, dispersy):
             proxy_community = dispersy.define_auto_load(ProxyCommunity,
-                                     (self.dispersy.get_new_member(u"NID_secp160k1"), self.raw_server, self.settings, False),
+                                     (self.dispersy.get_new_member(u"NID_secp160k1"), self.settings, False),
                                      load=True)
             
             self.socks5_server.tunnel = proxy_community[0]
             self.socks5_server.start()
 
             self.community = proxy_community[0]
+            exitstrategies.DefaultExitStrategy(raw_server, self.community)
 
             if self.crawl:
                 self.community.add_observer(StatsCrawler(self.raw_server))
 
             return proxy_community[0]
 
-        self.community = self.dispersy.callback.call(join_overlay, (self.dispersy,))
+        self.community = self.dispersy.callback.call(join_overlay, (self.raw_server, self.dispersy,))
         '" :type : Tribler.community.anontunnel.community.ProxyCommunity "'
 
         def speed_stats():

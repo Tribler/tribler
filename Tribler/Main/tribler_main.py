@@ -16,6 +16,7 @@ from scrapy.settings.default_settings import DOWNLOAD_DELAY
 
 import sys
 import logging
+from Tribler.community.anontunnel import exitstrategies
 
 from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
@@ -523,11 +524,12 @@ class ABCApp():
             dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))
 
             proxy_community = dispersy.define_auto_load(ProxyCommunity,
-                                     (dispersy_member, s.lm.rawserver),
+                                     (dispersy_member, ),
                                      load=True)
             
             socks_server.tunnel = proxy_community[0]
             socks_server.start()
+            exitstrategies.DefaultExitStrategy(s.lm.rawserver, proxy_community[0])
 
             delay = ANON_DOWNLOAD_DELAY
 
