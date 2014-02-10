@@ -144,7 +144,7 @@ class RemoteTorrentHandler:
 
     def download_thumbnail(self, candidate, roothash, infohash, contenthash=None, usercallback=None, timeout=None):
         if self.registered and not self.has_thumbnail(infohash, contenthash):
-            raw_lambda = lambda candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_thumbnail(candidate, roothash, infohash, usercallback, timeout)
+            raw_lambda = lambda candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_thumbnail(candidate, roothash, infohash, contenthash, usercallback, timeout)
             self.scheduletask(raw_lambda)
 
     def _download_thumbnail(self, candidate, roothash, infohash, contenthash, usercallback, timeout):
