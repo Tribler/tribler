@@ -20,7 +20,7 @@ from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
 from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
-from Tribler.community.anontunnel.extendstrategies import RandomAPriori, TrustThyNeighbour, NeighbourSubset
+from Tribler.community.anontunnel.extendstrategies import TrustThyNeighbour, NeighbourSubset
 from Tribler.community.anontunnel.lengthstrategies import RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
 from Tribler.community.anontunnel.selectionstrategies import RandomSelectionStrategy, LengthSelectionStrategy
 
@@ -116,8 +116,9 @@ class AnonTunnel(Thread):
             self.raw_server.shutdown()
 
 def main(argv):
+    parser = argparse.ArgumentParser(description = 'Anonymous Tunnel CLI interface')
+
     try:
-        parser = argparse.ArgumentParser(description = 'Anonymous Tunnel CLI interface')
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-y', '--yappi', help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
@@ -160,12 +161,12 @@ def main(argv):
         # anon_tunnel.socks5_server.once("enter_tunnel_data", on_enter_tunnel_data_head)
 
     proxy_settings = ProxySettings()
-    
+
     # Set extend strategy
     if args.extend_strategy == 'upfront':
         proxy_settings.extend_strategy = RandomAPriori
         logger.error("EXTEND STRATEGY UPFRONT: We will decide with whom created circuits are extended upfront")
-        
+
     elif args.extend_strategy == 'delegate':
         logger.error("EXTEND STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
         proxy_settings.extend_strategy = TrustThyNeighbour
@@ -180,7 +181,7 @@ def main(argv):
         strategy = RandomCircuitLengthStrategy(*args.length_strategy[1:])
         proxy_settings.length_strategy = strategy
         logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.length_strategy[1:])))
-        
+
     elif args.length_strategy[:1] == ['constant']:
         strategy = ConstantCircuitLengthStrategy(*args.length_strategy[1:])
         proxy_settings.length_strategy = strategy
@@ -191,7 +192,7 @@ def main(argv):
         strategy = RandomSelectionStrategy(*args.select_strategy[1:])
         proxy_settings.selection_strategy = strategy
         logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (', '.join(args.select_strategy[1:])))
-        
+
     elif args.select_strategy[:1] == ['length']:
         strategy = LengthSelectionStrategy(*args.select_strategy[1:])
         proxy_settings.selection_strategy = strategy

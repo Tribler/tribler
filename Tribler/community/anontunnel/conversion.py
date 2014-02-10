@@ -127,55 +127,49 @@ class ProxyConversion(BinaryConversion):
 class CustomProxyConversion():
 
     def __init__(self):
-        self.encode_functions = {}
-        self.decode_functions = {}
+        self.encode_functions = {
+            MESSAGE_CREATE: self.__encode_create,
+            MESSAGE_CREATED: self.__encode_created,
+            MESSAGE_EXTEND: self.__encode_extend,
+            MESSAGE_EXTENDED: self.__encode_extended,
+            MESSAGE_DATA: self.__encode_data,
+            MESSAGE_PING: lambda message: ''
+        }
 
-        self.encode_functions[MESSAGE_CREATE] = self.__encode_create
-        self.decode_functions[MESSAGE_CREATE] = self.__decode_create
+        self.decode_functions = {
+            MESSAGE_CREATE: self.__decode_create,
+            MESSAGE_CREATED: self.__decode_created,
+            MESSAGE_EXTEND: self.__decode_extend,
+            MESSAGE_EXTENDED: self.__decode_extended,
+            MESSAGE_DATA: self.__decode_data,
+            MESSAGE_PING: lambda socket_buffer, offset: PingMessage()
+        }
 
-        self.encode_functions[MESSAGE_CREATED] = self.__encode_created
-        self.decode_functions[MESSAGE_CREATED] = self.__decode_created
-
-        self.encode_functions[MESSAGE_EXTEND] = self.__encode_extend
-        self.decode_functions[MESSAGE_EXTEND] = self.__decode_extend
-
-        self.encode_functions[MESSAGE_EXTENDED] = self.__encode_extended
-        self.decode_functions[MESSAGE_EXTENDED] = self.__decode_extended
-
-        self.encode_functions[MESSAGE_DATA] = self.__encode_data
-        self.decode_functions[MESSAGE_DATA] = self.__decode_data
-
-        self.encode_functions[MESSAGE_PING] = lambda message: ''
-        self.decode_functions[MESSAGE_PING] = lambda buffer, offset: PingMessage()
-
-        self.encode_functions[MESSAGE_PONG] = lambda message: ''
-        self.decode_functions[MESSAGE_PONG] = lambda buffer, offset: PongMessage()
-
-        self.encode_functions[MESSAGE_PUNCTURE] = self.__encode_puncture
-        self.decode_functions[MESSAGE_PUNCTURE] = self.__decode_puncture
-
-
-    def encode(self, type, message):
-        return type + self.encode_functions[type](message)
+    def encode(self, message_type, message):
+        return message_type + self.encode_functions[message_type](message)
 
     def decode(self, data, offset=0):
         message_type = data[offset]
         assert message_type > 0
         return message_type, self.decode_functions[message_type](data, offset + 1)
 
-    def get_circuit_and_data(self, buffer, offset=0):
-        circuit_id, = struct.unpack_from("!L", buffer, offset)
+    @staticmethod
+    def get_circuit_and_data(message_buffer, offset=0):
+        circuit_id, = struct.unpack_from("!L", message_buffer, offset)
         offset += 4
 
-        return circuit_id, buffer[offset:]
+        return circuit_id, message_buffer[offset:]
 
-    def get_type(self, data):
+    @staticmethod
+    def get_type(data):
         return data[0]
 
-    def add_circuit(self, data, new_id):
+    @staticmethod
+    def add_circuit(data, new_id):
         return struct.pack("!L", new_id) + data
 
-    def __encode_extend(self, extend_message):
+    @staticmethod
+    def __encode_extend(extend_message):
         host = extend_message.host if extend_message.host else ''
         port = extend_message.port if extend_message.port else 0
 
@@ -184,23 +178,25 @@ class CustomProxyConversion():
         data = struct.pack("!LL", len(host), port) + host + key
         return data
 
-    def __decode_extend(self, buffer, offset=0):
-        if len(buffer) < offset + 8:
+    @staticmethod
+    def __decode_extend(message_buffer, offset=0):
+        if len(message_buffer) < offset + 8:
             raise ValueError("Cannot unpack HostLength/Port, insufficient packet size")
-        host_length, port = struct.unpack_from("!LL", buffer, offset)
+        host_length, port = struct.unpack_from("!LL", message_buffer, offset)
         offset += 8
 
-        if len(buffer) < offset + host_length:
+        if len(message_buffer) < offset + host_length:
             raise ValueError("Cannot unpack Host, insufficient packet size")
-        host = buffer[offset:offset + host_length]
+        host = message_buffer[offset:offset + host_length]
         offset += host_length
 
-        key = buffer[offset:]
+        key = message_buffer[offset:]
 
         extend_with = (host, port) if host and port else None
         return ExtendMessage(extend_with, key)
 
-    def __encode_data(self, data_message):
+    @staticmethod
+    def __encode_data(data_message):
         if data_message.destination is None:
             (host, port) = ("0.0.0.0", 0)
         else:
@@ -217,20 +213,21 @@ class CustomProxyConversion():
             + origin[0]                         \
             + data_message.data
 
-    def __decode_data(self, buffer, offset=0):
-        host_length, port, origin_host_length, origin_port, payload_length = struct.unpack_from("!LLLLL", buffer, offset)
+    @staticmethod
+    def __decode_data(message_buffer, offset=0):
+        host_length, port, origin_host_length, origin_port, payload_length = struct.unpack_from("!LLLLL", message_buffer, offset)
         offset += 20
 
-        if len(buffer) < offset + host_length:
+        if len(message_buffer) < offset + host_length:
                 raise ValueError("Cannot unpack Host, insufficient packet size")
-        host = buffer[offset:offset + host_length]
+        host = message_buffer[offset:offset + host_length]
         offset += host_length
 
         destination = (host, port)
 
-        if len(buffer) < offset + origin_host_length:
+        if len(message_buffer) < offset + origin_host_length:
             raise ValueError("Cannot unpack Origin Host, insufficient packet size")
-        origin_host = buffer[offset:offset + origin_host_length]
+        origin_host = message_buffer[offset:offset + origin_host_length]
         offset += origin_host_length
 
         origin = (origin_host, origin_port)
@@ -241,72 +238,61 @@ class CustomProxyConversion():
         if payload_length == 0:
             payload = None
         else:
-            if len(buffer) < offset + payload_length:
+            if len(message_buffer) < offset + payload_length:
                 raise ValueError("Cannot unpack Data, insufficient packet size")
-            payload = buffer[offset:offset + payload_length]
+            payload = message_buffer[offset:offset + payload_length]
             offset += payload_length
 
         return DataMessage(destination, payload, origin)
 
 
-    def __encode_created(self, created_message):
+    @staticmethod
+    def __encode_created(created_message):
         #assert len(created_message.key) == DIFFIE_HELLMAN_MODULUS_SIZE / 8, "Key should be {} bytes long, is {} bytes ".format(DIFFIE_HELLMAN_MODULUS_SIZE / 8, len(created_message.key))
         key = int_to_packed(created_message.key, 2048)
         return key + encode(created_message.candidate_list)
 
 
-    def __decode_created(self, buffer, offset=0):
+    @staticmethod
+    def __decode_created(message_buffer, offset=0):
 
-        key = packed_to_int(buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)], 2048)
+        key = packed_to_int(message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)], 2048)
         offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
 
-        offset, candidate_dict = decode(buffer[offset:])
+        offset, candidate_dict = decode(message_buffer[offset:])
 
         return CreatedMessage(key, candidate_dict)
 
-    def __encode_extended(self, extended_message):
+    @staticmethod
+    def __encode_extended(extended_message):
         #assert len(extended_message.key) == DIFFIE_HELLMAN_MODULUS_SIZE, "Key should be {} bytes long, is {} bytes ".format(DIFFIE_HELLMAN_MODULUS_SIZE, len(extended_message.key))
         key = int_to_packed(extended_message.key, 2048)
         return key + encode(extended_message.candidate_list)
 
-    def __decode_extended(self, buffer, offset=0):
+    @staticmethod
+    def __decode_extended(message_buffer, offset=0):
 
-        key = packed_to_int(buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)], 2048)
+        key = packed_to_int(message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)], 2048)
         offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
 
-        offset, candidate_dict = decode(buffer[offset:])
+        offset, candidate_dict = decode(message_buffer[offset:])
 
         return ExtendedMessage(key, candidate_dict)
 
-    def __encode_create(self, create_message):
-        '''
+    @staticmethod
+    def __encode_create(create_message):
+        """
         :type create_message : Tribler.community.anontunnel.payload.CreateMessage
-        '''
+        """
         return create_message.key
 
-    def __decode_create(self, buffer, offset=0):
+    @staticmethod
+    def __decode_create(message_buffer, offset=0):
 
-        key = buffer[offset:]
+        key = message_buffer[offset:]
 
         return CreateMessage(key)
 
-
-    # why are we using a custom punture-req message?
-    def __encode_puncture(self, puncture_message):
-        return struct.pack("!LL", len(puncture_message.sock_addr[0]), puncture_message.sock_addr[1]) + puncture_message.sock_addr[0]
-
-    def __decode_puncture(self, buffer, offset=0):
-        host_length, port = struct.unpack_from("!LL", buffer, offset)
-        offset += 8
-
-        if len(buffer) < offset + host_length:
-                raise ValueError("Cannot unpack Host, insufficient packet size")
-        host = buffer[offset:offset + host_length]
-        offset += host_length
-
-        destination = (host, port)
-
-        return PunctureMessage(destination)
 
 def bits2string(b):
     b = bin(b)[2:]

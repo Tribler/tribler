@@ -13,7 +13,8 @@ class TestLengthSelectionStrategy(TestCase):
     def setUp(self):
         self.circuits = [self.__circuit(0), self.__circuit(1), self.__circuit(2), self.__circuit(3), self.__circuit(4)]
 
-    def __circuit(self, hops):
+    @staticmethod
+    def __circuit(hops):
         candidate = Candidate(("127.0.0.1", 1000), False)
 
         circuit = Circuit(randint(0, 1000), hops, candidate)
@@ -53,7 +54,8 @@ class TestRandomSelectionStrategy(TestCase):
     def setUp(self):
         self.circuits = [self.__circuit(1), self.__circuit(2), self.__circuit(3), self.__circuit(4)]
 
-    def __circuit(self, hops):
+    @staticmethod
+    def __circuit(hops):
         candidate = Candidate(("127.0.0.1", 1000), False)
 
         circuit = Circuit(randint(0, 1000), hops, candidate)

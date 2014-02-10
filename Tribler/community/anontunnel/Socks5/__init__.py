@@ -54,7 +54,7 @@ class Socks5Server(object, TunnelObserver):
 
     @property
     def tunnel(self):
-        ''' :rtype : Tribler.community.anontunnel.community.ProxyCommunity '''
+        """ :rtype : Tribler.community.anontunnel.community.ProxyCommunity """
         return self._tunnel
 
     @tunnel.setter
@@ -90,18 +90,19 @@ class Socks5Server(object, TunnelObserver):
         udp_relay_socket = self.raw_server.create_udpsocket(0, "0.0.0.0")
 
         class UdpRelayTunnelHandler:
-            def data_came_in(self, packets):
+            @staticmethod
+            def data_came_in(packets):
                 server.on_client_udp_packets(udp_relay_socket, packets)
 
         self.raw_server.start_listening_udp(udp_relay_socket, UdpRelayTunnelHandler())
 
         return udp_relay_socket
 
-    def on_client_udp_packets(self, socket, packets):
+    def on_client_udp_packets(self, udp_socket, packets):
         for source_address, packet in packets:
             request = structs.decode_udp_packet(packet)
 
-            self.udp_relays[source_address] = socket
+            self.udp_relays[source_address] = udp_socket
 
             logger.debug("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
                         request.destination_address, request.destination_port)

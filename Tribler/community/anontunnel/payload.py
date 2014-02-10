@@ -21,7 +21,7 @@ class CreatedMessage:
         self.candidate_list = candidate_list
 
 class ExtendMessage:
-    def __init__(self, extend_with, key):
+    def __init__(self, extend_with, key=None):
         self.extend_with = extend_with
         self.key = key
     

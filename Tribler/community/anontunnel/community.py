@@ -5,8 +5,6 @@ import sys
 import threading
 import random
 import time
-import traceback
-import uuid
 from collections import defaultdict
 
 # Tribler and Dispersy imports
@@ -66,7 +64,7 @@ class RelayRoute(object):
 class Circuit:
     """ Circuit data structure storing the id, status, first hop and all hops """
 
-    def __init__(self, proxy, circuit_id, goal_hops=0, candidate=None):
+    def __init__(self, circuit_id, goal_hops=0, candidate=None, proxy=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: ProxyCommunity
@@ -94,7 +92,7 @@ class Circuit:
 
     @property
     def state(self):
-        if self.hops == None:
+        if self.hops is None:
             return CIRCUIT_STATE_BROKEN
 
         if len(self.hops) < self.goal_hops:
@@ -115,11 +113,11 @@ class Circuit:
 
     @property
     def bytes_downloaded(self):
-        return self.proxy.global_stats.circuit_stats[self.circuit_id].bytes_downloaded
+        return self.proxy.global_stats.circuit_stats[self.circuit_id].bytes_downloaded if self.proxy else None
 
     @property
     def bytes_uploaded(self):
-        return self.proxy.global_stats.circuit_stats[self.circuit_id].bytes_uploaded
+        return self.proxy.global_stats.circuit_stats[self.circuit_id].bytes_uploaded if self.proxy else None
 
 class Hop:
     def __init__(self, address, pub_key, dh_first_part):
@@ -137,7 +135,7 @@ class Hop:
         return self.address[1]
 
     @staticmethod
-    def fromCandidate(candidate):
+    def from_candidate(candidate):
         hop = Hop(candidate.sock_addr, None, None)
         return hop
 
@@ -228,8 +226,7 @@ class ProxyCommunity(Community):
         self.proxy_conversion = CustomProxyConversion()
         self.on_custom = {MESSAGE_CREATE: self.on_create,
                           MESSAGE_CREATED: self.on_created, MESSAGE_DATA: self.on_data, MESSAGE_EXTEND: self.on_extend,
-                          MESSAGE_EXTENDED: self.on_extended, MESSAGE_PING: self.on_ping, MESSAGE_PONG: self.on_pong,
-                          MESSAGE_PUNCTURE: self.on_puncture}
+                          MESSAGE_EXTENDED: self.on_extended, MESSAGE_PING: self.on_ping, MESSAGE_PONG: self.on_pong}
 
         self.__observers = []
         ''' :type : list of TunnelObserver'''
@@ -262,8 +259,8 @@ class ProxyCommunity(Community):
         self.destination_circuit = {}
         self._online = False
 
-        dispersy._callback.register(self.check_ready)
-        dispersy._callback.register(self.ping_circuits)
+        dispersy.callback.register(self.check_ready)
+        dispersy.callback.register(self.ping_circuits)
 
         if integrate_with_tribler:
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -304,7 +301,7 @@ class ProxyCommunity(Community):
             , LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1)
             , CommunityDestination(node_count=10)
             , StatsPayload()
-            , self._dispersy._generic_timeline_check
+            , self.dispersy._generic_timeline_check
             , self.on_stats
         )]
 
@@ -351,7 +348,7 @@ class ProxyCommunity(Community):
                 o.on_tunnel_stats(self, message.candidate, message.payload.stats)
 
     def send_stats(self, stats):
-        def __send_stats(self):
+        def __send_stats():
             meta = self.get_meta_message(u"stats")
             record = meta.impl(authentication=(self._my_member,),
                                distribution=(self.claim_global_time(),),
@@ -454,7 +451,7 @@ class ProxyCommunity(Community):
             return u"request-cache:circuit-request:%d" % (number,)
 
         def __init__(self, community, force_number):
-            NumberCache.__init__(self, community._request_cache, force_number)
+            NumberCache.__init__(self, community.request_cache, force_number)
             self.community = community
 
             self.circuit = None
@@ -489,6 +486,7 @@ class ProxyCommunity(Community):
             except Exception as e:
                 logger.exception("Can't decrypt candidate list!")
                 self.community.remove_circuit(self.circuit.circuit_id, "Candidate list impossible to decrypt. Circuit under attack, destroying circuit")
+                return
 
             dispersy = self.community.dispersy
             if dispersy.lan_address in candidate_list:
@@ -522,15 +520,15 @@ class ProxyCommunity(Community):
         def on_success(self):
             if self.circuit.state == CIRCUIT_STATE_READY:
                 logger.info("Circuit %d is ready", self.number)
-                self.community._dispersy._callback.register(self.community._request_cache.pop, args=(self.identifier,))
+                self.community.dispersy.callback.register(self.community.request_cache.pop, args=(self.identifier,))
 
         def on_timeout(self):
             if not self.circuit.state == CIRCUIT_STATE_READY:
                 self.community.remove_circuit(self.number, 'timeout on CircuitRequestCache, state = %s' % self.circuit.state)
 
     def create_circuit(self, first_hop_candidate, extend_strategy=None):
+        """ Create a new circuit, with one initial hop """
         try:
-            """ Create a new circuit, with one initial hop """
 
             circuit_id = self._generate_circuit_id(first_hop_candidate)
             cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self, circuit_id))
@@ -634,12 +632,14 @@ class ProxyCommunity(Community):
 
         return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(return_key, encrypted_cand_dict))
 
-    def encrypt_candidate_list(self, key, cand_dict):
+    @staticmethod
+    def encrypt_candidate_list(key, cand_dict):
         encoded_dict = encoding.encode(cand_dict)
-        return crypto.AESencode(key, encoded_dict)
+        return crypto.aes_encode(key, encoded_dict)
 
-    def decrypt_candidate_list(self, key, encrypted_cand_dict):
-        encoded_dict = crypto.AESdecode(key, encrypted_cand_dict)
+    @staticmethod
+    def decrypt_candidate_list(key, encrypted_cand_dict):
+        encoded_dict = crypto.aes_decode(key, encrypted_cand_dict)
         offset, cand_dict = encoding.decode(encoded_dict)
         return cand_dict
 
@@ -654,7 +654,7 @@ class ProxyCommunity(Community):
             forwarding_relay = self.relay_from_to[relay_key]
             return self.send_message(forwarding_relay.candidate, forwarding_relay.circuit_id, MESSAGE_EXTENDED, extended_message)
 
-        request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
+        request = self.dispersy.callback.call(self.request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_extended(message)
             return True
@@ -732,7 +732,7 @@ class ProxyCommunity(Community):
             to the origin of the EXTEND. If we are the origin update
             our records. """
 
-        request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
+        request = self.dispersy.callback.call(self._request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_extended(message)
             return True
@@ -750,7 +750,7 @@ class ProxyCommunity(Community):
             return u"request-cache:ping-request:%d" % (number,)
 
         def __init__(self, community, force_number):
-            NumberCache.__init__(self, community._request_cache, force_number)
+            NumberCache.__init__(self, community.request_cache, force_number)
             self.community = community
 
         @property
@@ -762,13 +762,13 @@ class ProxyCommunity(Community):
             return 0.0
 
         def on_pong(self):
-            self.community._dispersy._callback.register(self.community._request_cache.pop, args=(self.identifier,))
+            self.community.dispersy.callback.register(self.community.request_cache.pop, args=(self.identifier,))
 
         def on_timeout(self):
             self.community.remove_circuit(self.number, 'timeout on PingRequestCache')
 
     def create_ping(self, candidate, circuit_id):
-        self._dispersy._callback.register(self._request_cache.add, args=(ProxyCommunity.PingRequestCache(self, circuit_id),))
+        self._dispersy.callback.register(self._request_cache.add, args=(ProxyCommunity.PingRequestCache(self, circuit_id),))
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
@@ -779,22 +779,11 @@ class ProxyCommunity(Community):
 
     def on_pong(self, circuit_id, candidate, message):
         logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
-        request = self._dispersy._callback.call(self._request_cache.get, args=(ProxyCommunity.PingRequestCache.create_identifier(circuit_id),))
+        request = self.dispersy.callback.call(self._request_cache.get, args=(ProxyCommunity.PingRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_pong(message)
             return True
         return False
-
-    def on_puncture(self, circuit_id, candidate, message):
-        return
-
-        introduce = Candidate(message.sock_addr, False)
-        logger.debug("We are puncturing our NAT to %s:%d" % introduce.sock_addr)
-
-        meta_puncture_request = self.get_meta_message(u"dispersy-puncture-request")
-        puncture_message = meta_puncture_request.impl(distribution=(self.global_time,),
-                                                      destination=(introduce,), payload=(
-                                                      message.sock_addr, message.sock_addr, randint(0, 2 ** 16)))
 
     # got introduction_request or introduction_response from candidate
     # not necessarily a new candidate
@@ -848,11 +837,11 @@ class ProxyCommunity(Community):
 
         return payload
 
-    def remove_message_filter(self, message_type, filter):
-        self._message_filters[message_type].remove(filter)
+    def remove_message_filter(self, message_type, filter_func):
+        self._message_filters[message_type].remove(filter_func)
 
-    def add_message_filter(self, message_type, filter):
-        self._message_filters[message_type].append(filter)
+    def add_message_filter(self, message_type, filter_func):
+        self._message_filters[message_type].append(filter_func)
 
     def send_message(self, destination, circuit_id, message_type, message):
         content = self.proxy_conversion.encode(message_type, message)
@@ -874,7 +863,7 @@ class ProxyCommunity(Community):
 
         self.dict_inc(self.dispersy.statistics.outgoing, str_type + ('-relayed' if relayed else ''), 1)
 
-        # we need to make sure that this endpoint is threadsafe
+        # we need to make sure that this endpoint is thread safe
         return self.dispersy.endpoint.send([destination], [self.prefix + packet])
 
     def dict_inc(self, statistics_dict, key, inc=1):

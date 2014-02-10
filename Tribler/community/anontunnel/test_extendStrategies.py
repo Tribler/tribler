@@ -14,6 +14,7 @@ class ProxyMock:
     def send_message(self, *args):
         self.message = args
 
+#noinspection PyTypeChecker,PyTypeChecker
 class TestTrustThyNeighbour(TestCase):
     def setUp(self):
         self.proxy = ProxyMock()

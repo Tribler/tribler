@@ -19,7 +19,6 @@ class TunnelExitSocket(object):
         :param proxy: instance to use to push packets back into upon reception of an external UDP packet
         :param circuit_id: the circuit to use to pass messages over in the tunnel proxy
         :param destination_address: the first hop of the circuit
-        :param socket: the socket that listens to UDP packets
 
         :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
 
@@ -65,7 +64,6 @@ class ShortCircuitExitSocket(object):
 
         :param proxy: instance to use to push packets back into upon reception of an external UDP packet
         :param destination_address: the first hop of the circuit
-        :param socket: the socket that listens to UDP packets
 
         :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
 

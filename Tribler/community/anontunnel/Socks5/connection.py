@@ -9,8 +9,6 @@ logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.Socks5 import structs
 
-DEBUG = True
-
 
 class ConnectionState(object):
     (BEFORE_METHOD_REQUEST, METHOD_REQUESTED, CONNECTED, PROXY_REQUEST_RECEIVED, PROXY_REQUEST_ACCEPTED,

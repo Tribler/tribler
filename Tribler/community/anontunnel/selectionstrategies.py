@@ -57,10 +57,11 @@ class RandomSelectionStrategy(SelectionStrategy):
 
 class LengthSelectionStrategy(SelectionStrategy):
     
-    def __init__(self, min, max, random=True):
-        self.min = int(min)
-        self.max = int(max)
-        self.random = True if random else False
+    def __init__(self, minimum_length, maximum_length, random_selection=True):
+        SelectionStrategy.__init__(self)
+        self.min = int(minimum_length)
+        self.max = int(maximum_length)
+        self.random = True if random_selection else False
 
     def can_select(self, circuits_to_select_from):
         logger.debug("Trying to select from {0} with length between {1} and {2}".format([len(c.hops) for c in circuits_to_select_from], self.min, self.max))

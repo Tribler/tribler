@@ -151,12 +151,12 @@ class StatsCollector(TunnelObserver):
             'bytes_return': self.stats['bytes_returned'],
             'circuits': [
                 {
-                    'hops': len(self.proxy.circuits[id].hops),
+                    'hops': len(self.proxy.circuits[circuit_id].hops),
                     'bytes_down': c.bytes_down_list[-1] - c.bytes_down_list[0],
                     'bytes_up': c.bytes_up_list[-1] - c.bytes_up_list[0],
                     'time': c.times[-1] - c.times[0]
                 }
-                for id, c in self.circuit_stats.items()
+                for circuit_id, c in self.circuit_stats.items()
                 if len(c.times) >= 2
             ],
             'relays': [
@@ -185,9 +185,6 @@ class StatsCrawler(TunnelObserver):
         logger.warning("Running StatsCrawler")
         self.raw_server = raw_server
         self.conn = None
-
-        def close_sql(*args, **kwargs):
-            self.raw_server.add_task(self.stop)
 
         def init_sql():
             self.conn = sqlite3.connect("results.db")
@@ -267,10 +264,10 @@ class StatsCrawler(TunnelObserver):
             self.conn.commit()
 
             logger.warning("Storing stats data of %s:%d" % sock_address)
-        except sqlite3.IntegrityError as e:
+        except sqlite3.IntegrityError:
             logger.error("Stat already exists of %s:%d"  % sock_address)
-        except BaseException as e:
-            logger.exception(e)
+        except BaseException:
+            logger.exception()
 
         cursor.close()
 

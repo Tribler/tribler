@@ -26,7 +26,8 @@ class DefaultExitStrategy(TunnelObserver):
         except socket.error:
             logger.exception("Dropping packets while we are EXITing data")
 
-    def create(self, proxy, raw_server, circuit_id, address):
+    @staticmethod
+    def create(proxy, raw_server, circuit_id, address):
         # There is a special case where the circuit_id is None, then we act as EXIT node ourselves. In this case we
         # create a ShortCircuitHandler that bypasses dispersy by patching ENTER packets directly into the Proxy's
         # on_data event.

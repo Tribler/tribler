@@ -49,7 +49,7 @@ class DefaultCrypto(object):
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-            logger.debug("Adding public key encryption for circuit %s" % (circuit_id))
+            logger.debug("Adding public key encryption for circuit %s" % circuit_id)
             candidate_pub_key = iter(candidate.get_members()).next()._ec
             content = self.proxy.dispersy.crypto.encrypt(candidate_pub_key, content)
 
@@ -60,11 +60,11 @@ class DefaultCrypto(object):
             hops = circuit.hops
             for hop in reversed(hops):
                 logger.debug("Adding AES layer for hop %s:%s with key %s" % (hop.host, hop.port, hop.session_key))
-                content = AESencode(hop.session_key, content)
+                content = aes_encode(hop.session_key, content)
 
         # Else add AES layer
         elif relay_key in self.session_keys:
-            content = AESencode(self.session_keys[relay_key], content)
+            content = aes_encode(self.session_keys[relay_key], content)
             logger.debug(
                 "Adding AES layer for circuit %s with key %s" % (circuit_id, self.session_keys[relay_key]))
 
@@ -79,12 +79,12 @@ class DefaultCrypto(object):
         # Message is going downstream so I have to add my onion layer
         if direction == ORIGINATOR:
             logger.debug("AES encoding circuit {0} towards ORIGINATOR, key {1}".format(next_relay.circuit_id, self.session_keys[next_relay_key]))
-            data = AESencode(self.session_keys[next_relay_key], data)
+            data = aes_encode(self.session_keys[next_relay_key], data)
 
         # Message is going upstream so I have to remove my onion layer
         elif direction == ENDPOINT:
             logger.debug("AES decoding circuit {0} towards ENDPOINT, key {1}".format(next_relay.circuit_id, self.session_keys[relay_key]))
-            data = AESdecode(self.session_keys[relay_key], data)
+            data = aes_decode(self.session_keys[relay_key], data)
 
         return data
 
@@ -99,13 +99,13 @@ class DefaultCrypto(object):
             logger.debug("I am the circuit originator, I am going to peel layers")
             for hop in self.proxy.circuits[circuit_id].hops:
                 logger.debug("Peeling layer with key {0}".format(hop.session_key))
-                data = AESdecode(hop.session_key, data)
+                data = aes_decode(hop.session_key, data)
 
         # I'm the last node in the circuit, probably an EXTEND message, decrypt with AES
         elif relay_key in self.session_keys:
             # last node in circuit, circuit already exists
             logger.debug("I am the last node in the already existing circuit, decrypt with AES")
-            data = AESdecode(self.session_keys[relay_key], data)
+            data = aes_decode(self.session_keys[relay_key], data)
 
         # I don't know the sender! Let's decrypt with my private Elgamal key
         else:
@@ -116,21 +116,21 @@ class DefaultCrypto(object):
 
         return data
 
-""" M2 CRYPTO AES code, should be substituted with Niels's lib which implements these """
+# M2 CRYPTO AES code, should be substituted with Niels's lib which implements these
 
 def get_cryptor( op, key, alg='aes_128_ecb', iv=None ):
-    if iv == None:
+    if iv is None:
         iv = '\0' * 256
     cryptor = M2Crypto.EVP.Cipher( alg=alg, key=key, iv=iv, op=op)
     return cryptor
 
-def AESencode( key, plaintext ):
+def aes_encode( key, plaintext ):
     cryptor = get_cryptor( 1, key )
     ret = cryptor.update( plaintext )
     ret = ret + cryptor.final()
     return ret
 
-def AESdecode( key, ciphertext ):
+def aes_decode( key, ciphertext ):
     cryptor = get_cryptor( 0, key )
     ret = cryptor.update( ciphertext )
     ret = ret + cryptor.final()

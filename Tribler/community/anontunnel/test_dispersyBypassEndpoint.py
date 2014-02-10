@@ -14,7 +14,7 @@ class TestDispersyBypassEndpoint(TestCase):
         self.succeed = False
 
         done_flag = threading.Event()
-        raw_server = RawServer(done_flag, 10, 5);
+        raw_server = RawServer(done_flag, 10, 5)
 
         self.endpoint = DispersyBypassEndpoint(raw_server, 0)
 
