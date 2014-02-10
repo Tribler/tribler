@@ -472,13 +472,16 @@ class MainFrame(wx.Frame):
                 new_trackers = list(set(cdef.get_trackers_as_single_tuple()) - set(d.get_def().get_trackers_as_single_tuple()))
                 if not new_trackers:
                     raise DuplicateDownloadException()
-                else:
+
+                elif wx.Thread_IsMain():
                     # Show update tracker dialog
                     dialog = wx.MessageDialog(None, 'This torrent is already being downloaded. Do you wish to load the trackers from it?', 'Tribler', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                     if dialog.ShowModal() == wx.ID_YES:
                         # Update trackers
                         self.utility.session.update_trackers(cdef.get_id(), new_trackers)
                     dialog.Destroy()
+                else:
+                    raise Exception("cannot create dialog, not on wx thread")
                 return
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
