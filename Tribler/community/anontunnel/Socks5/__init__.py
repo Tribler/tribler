@@ -112,7 +112,7 @@ class Socks5Server(object, TunnelObserver):
                 payload=request.payload
             )
 
-    def incoming_from_tunnel(self, community, source_address, data):
+    def on_incoming_from_tunnel(self, community, circuit_id, source_address, data):
         # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
 
         # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP

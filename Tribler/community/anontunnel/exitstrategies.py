@@ -1,11 +1,9 @@
 import socket
-from Tribler.community.anontunnel import exitsocket
-
-__author__ = 'chris'
-
 import logging
+from Tribler.community.anontunnel import exitsocket
 from Tribler.community.anontunnel.community import TunnelObserver
 
+__author__ = 'chris'
 logger = logging.getLogger()
 
 
@@ -20,14 +18,13 @@ class DefaultExitStrategy(TunnelObserver):
         self._exit_sockets = {}
         proxy.add_observer(self)
 
-    def exiting_from_tunnel(self, circuit_id, return_candidate, destination, data):
+    def on_exiting_from_tunnel(self, circuit_id, return_candidate, destination, data):
         logger.debug("EXIT DATA packet to %s", destination)
-        self.proxy.stats['bytes_exit'] += len(data)
 
         try:
             self.get_exit_handler(circuit_id, return_candidate).sendto(data, destination)
         except socket.error:
-            self.proxy.stats['dropped_exit'] += 1
+            logger.exception("Dropping packets while we are EXITing data")
 
     def create(self, proxy, raw_server, circuit_id, address):
         # There is a special case where the circuit_id is None, then we act as EXIT node ourselves. In this case we

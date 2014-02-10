@@ -1,6 +1,7 @@
 import logging.config
 import threading
 import os
+from Tribler.community.anontunnel.stats import StatsCrawler
 
 logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
@@ -14,7 +15,6 @@ import time
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.community.anontunnel import exitstrategies
 from Tribler.community.anontunnel.Socks5 import Socks5Server
-from Tribler.community.anontunnel.StatsCrawler import StatsCrawler
 from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
 from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto

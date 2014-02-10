@@ -21,7 +21,7 @@ class TunnelExitSocket(object):
         :param destination_address: the first hop of the circuit
         :param socket: the socket that listens to UDP packets
 
-        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity.ProxyCommunity
+        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
 
         """
 
@@ -44,14 +44,14 @@ class TunnelExitSocket(object):
 
         for source_address, packet in packets:
             logger.info("ENTER DATA packet FROM %s", source_address)
-            self.proxy.stats['bytes_enter'] += len(packet)
-            self.proxy.send_data(
-                circuit_id=self.circuit_id,
-                address=self.destination_address,
-                ultimate_destination=None,
-                payload=packet,
-                origin=source_address
-            )
+            self.proxy.enter_data(self.circuit_id, self.destination_address, source_address, packet)
+            #self.proxy.send_data(
+            #    circuit_id=self.circuit_id,
+            #    address=self.destination_address,
+            #    ultimate_destination=None,
+            #    payload=packet,
+            #    origin=source_address
+            #)
 
 
 class ShortCircuitExitSocket(object):
@@ -87,7 +87,6 @@ class ShortCircuitExitSocket(object):
 
         for source_address, packet in packets:
             logger.info("ENTER DATA packet FROM %s", source_address)
-            self.proxy.stats['bytes_enter'] += len(packet)
             message = DataMessage(("0.0.0.0",0), packet, source_address)
             self.proxy.on_data(0, None, message)
 

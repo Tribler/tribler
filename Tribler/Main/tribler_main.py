@@ -21,6 +21,7 @@ from Tribler.community.anontunnel import exitstrategies
 from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
 from Tribler.community.anontunnel.globals import ANON_DOWNLOAD_DELAY
+from Tribler.community.anontunnel.stats import StatsCollector
 
 logger = logging.getLogger(__name__)
 
@@ -545,67 +546,49 @@ class ABCApp():
 
     # TODO: this has to be moved, we cannot pollute the main.py file with stuff like this
     def setup_anon_test(self, tunnel, frame):
+        root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
+        hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
+
         @forceWxThread
         def thank_you(file_size, start_time, end_time ):
             avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
-
             wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
-        hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
-
         def state_call(download):
+            stats_collector = StatsCollector(tunnel)
 
             def _callback(ds):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
                     if not _callback.download_started_at:
                         _callback.download_started_at = time_module.time()
+                        stats_collector.start()
+                        for host in hosts:
+                            result.add_peer(host)
 
-                    tunnel.download_stats = {
+                    stats_collector.download_stats = {
                         'size': ds.get_progress() * ds.get_length(),
                         'download_time': time_module.time() - _callback.download_started_at
                     }
 
-                    if not _callback.peer_added:
-                        _callback.peer_added = True
-
-                        for host in hosts:
-                            result.add_peer(host)
-
-                    tunnel.record_stats = True
                 elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
                     _callback.download_finished_at = time_module.time()
                     _callback.download_completed = True
-                    tunnel.download_stats = {
+                    stats_collector.download_stats = {
                         'size': 50 * 1024**2,
                         'download_time': _callback.download_finished_at - _callback.download_started_at
                     }
 
-                    tunnel.record_stats = False
-                    tunnel.share_stats()
+                    stats_collector.share_stats()
+                    stats_collector.stop()
                     thank_you(50 * 1024**2, _callback.download_started_at, _callback.download_finished_at)
 
-                return (1.0, False)
+                return 1.0, False
 
             _callback.download_completed = False
             _callback.download_started_at = None
             _callback.peer_added = False
 
             return _callback
-
-        #host = "95.211.198.140:21000"
-        #root_hash = "dbd61fedff512e19b2a6c73b8b48eb01c9507e95"
-
-        # host = "asmat.tribler.org:21000"
-        root_hash = "dfe61ceb7efaf7d1801df0af3ab5f2d816ba1120"
-
-        #host = "devristo.dyndns.org:20001"
-        #root_hash = "847ddb768cf46ff35038c2f9ef4837258277bb37"
-
-
-        root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
-
-        #host = "127.0.0.1:21000"
-        #root_hash = "b25eb5a4eb94fad36aa373d3b85434894961b1c5"
 
         dest_dir = os.path.abspath("./.TriblerAnonTunnel/")
         self.sconfig.set_swift_meta_dir(dest_dir + "/swift_meta/");
@@ -622,12 +605,10 @@ class ABCApp():
             print_exc()
 
         sdef = SwiftDef.load_from_url("tswift://" + hosts[0][0] + ":" + str(hosts[0][1]) + "/" + root_hash)
-
         sdef.set_name("AnonTunnel test (50 MB)")
 
         result = frame.startDownload(sdef=sdef, destdir=dest_dir)
         result.set_state_callback(state_call(result), delay=1)
-
 
     @staticmethod
     def determine_install_dir():
