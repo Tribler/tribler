@@ -1,37 +1,180 @@
+# Python imports
+import hashlib
+import logging
+import sys
+import threading
+import random
+import time
+import traceback
+import uuid
 from collections import defaultdict
-from random import getrandbits
-from threading import RLock
-from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.community.anontunnel.crypto import AESencode, AESdecode
-from Tribler.dispersy.member import Member
-from traceback import print_exc
-from Tribler.community.anontunnel.lengthstrategies import ConstantCircuitLengthStrategy
-from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion, int_to_packed, packed_to_int
-from Tribler.community.anontunnel.globals import MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_EXTEND, MESSAGE_PONG, MESSAGE_PING, MESSAGE_DATA, MESSAGE_PUNCTURE, MESSAGE_EXTENDED, MESSAGE_STRING_REPRESENTATION, DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_GENERATOR, ORIGINATOR, ENDPOINT, PING_INTERVAL
-from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, CreatedMessage, ExtendedMessage, PongMessage, PingMessage, DataMessage
+
+# Tribler and Dispersy imports
+from Tribler.Core.Utilities import encoding
 from Tribler.dispersy.authentication import MemberAuthentication
-from Tribler.dispersy.candidate import WalkCandidate, BootstrapCandidate
-from Tribler.dispersy.community import Community
-from Hop import *
-from Circuit import *
-from ProxySettings import *
-from RelayRoute import RelayRoute
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.resolution import PublicResolution
-import hashlib
-import socket
-import sys
-import random
-import logging
-import uuid
+from Tribler.dispersy.candidate import Candidate, WalkCandidate, BootstrapCandidate
+from Tribler.dispersy.community import Community
+from Tribler.dispersy.member import Member
 
-logger = logging.getLogger(__name__)
+# AnonTunnel imports
+import crypto
+import extendstrategies
+import selectionstrategies
+import lengthstrategies
+from globals import *
+from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, CreatedMessage, ExtendedMessage, PongMessage, PingMessage, DataMessage
+from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion, int_to_packed, packed_to_int
 
-__author__ = 'Chris'
+__author__ = 'chris'
+
+logger = logging.getLogger()
+
+class ProxySettings:
+    def __init__(self):
+        length = random.randint(0, 3)
+
+        self.max_circuits = 1 if length == 0 else 4
+        self.extend_strategy = extendstrategies.NeighbourSubset
+        self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy(self.max_circuits)
+        self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(length)
+        self.crypto = crypto.DefaultCrypto()
+
+
+class RelayRoute(object):
+    def __init__(self, circuit_id, candidate):
+        self.candidate = candidate
+        self.circuit_id = circuit_id
+
+        self.timestamp = None
+
+        self.times = []
+        self.bytes_list = []
+        self.bytes = [0, 0]
+        self.speed = 0
+
+        self.online = False
+
+        self.last_incomming = time.time()
+
+    @property
+    def ping_time_remaining(self):
+        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
+        diff = self.last_incomming - too_old
+        return diff if diff > 0 else 0
+
+class Circuit:
+    """ Circuit data structure storing the id, status, first hop and all hops """
+
+    def __init__(self, circuit_id, goal_hops=0, candidate=None):
+        """
+        Instantiate a new Circuit data structure
+
+        :param circuit_id: the id of the candidate circuit
+        :param candidate: the first hop of the circuit
+        :return: Circuit
+        """
+
+        self.circuit_id = circuit_id
+        self.candidate = candidate
+        self.hops = []
+        self.goal_hops = goal_hops
+
+        self.extend_strategy = None
+        self.timestamp = None
+        self.times = []
+        self.bytes_up_list = []
+        self.bytes_down_list = []
+
+        self.bytes_down = [0, 0]
+        self.bytes_up = [0, 0]
+
+        self.speed_up = 0.0
+        self.speed_down = 0.0
+        self.last_incomming = time.time()
+
+        self.unverified_hop = None
+        """ :type : Hop """
+
+
+    @property
+    def bytes_downloaded(self):
+        return self.bytes_down[1]
+
+    @property
+    def bytes_uploaded(self):
+        return self.bytes_up[1]
+
+    @property
+    def online(self):
+        return self.goal_hops == len(self.hops)
+
+    @property
+    def state(self):
+        if self.hops == None:
+            return CIRCUIT_STATE_BROKEN
+
+        if len(self.hops) < self.goal_hops:
+            return CIRCUIT_STATE_EXTENDING
+        else:
+            return CIRCUIT_STATE_READY
+
+    @property
+    def ping_time_remaining(self):
+        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
+        diff = self.last_incomming - too_old
+        return diff if diff > 0 else 0
+
+    def __contains__(self, other):
+        if isinstance(other, Candidate):
+            # TODO: should compare to a list here
+            return other == self.candidate
+
+class Hop:
+    def __init__(self, address, pub_key, dh_first_part):
+        self.address = address
+        self.pub_key = pub_key
+        self.session_key = None
+        self.dh_first_part = dh_first_part
+
+    @property
+    def session_key(self):
+        return self.session_key
+    @property
+    def dh_first_part(self):
+        return self.dh_first_part
+
+    @property
+    def host(self):
+        return self.address[0]
+
+    @property
+    def port(self):
+        return self.address[1]
+
+    @staticmethod
+    def fromCandidate(candidate):
+        hop = Hop(candidate.sock_addr, None, None)
+        return hop
+
+class TunnelObserver:
+    def on_state_change(self, community, state):
+        pass
+
+    def incoming_from_tunnel(self, community, origin, data):
+        pass
+
+    def exiting_from_tunnel(self, circuit_id, candidate, destination, data):
+        pass
+
+    def on_tunnel_stats(self, community, candidate, stats):
+        pass
+
 
 class ProxyCommunity(Community):
 
@@ -110,10 +253,10 @@ class ProxyCommunity(Community):
         if not settings:
             settings = ProxySettings()
 
-        self.lock = RLock()
+        self.lock = threading.RLock()
 
         # Custom conversion
-        self.prefix = 'f' * 22 + 'e'  # shouldn't this be "fffffffe".decode("HEX")?
+        self.prefix = "fffffffe".decode("HEX")
         self.proxy_conversion = CustomProxyConversion()
         self.on_custom = {MESSAGE_CREATE: self.on_create,
                           MESSAGE_CREATED: self.on_created, MESSAGE_DATA: self.on_data, MESSAGE_EXTEND: self.on_extend,
@@ -155,7 +298,7 @@ class ProxyCommunity(Community):
         self.download_stats = None
         self.session_id = uuid.uuid4()
 
-        if isinstance(settings.length_strategy, ConstantCircuitLengthStrategy) and settings.length_strategy.desired_length == 0:
+        if isinstance(settings.length_strategy, lengthstrategies.ConstantCircuitLengthStrategy) and settings.length_strategy.desired_length == 0:
             self.circuits[0] = Circuit(0)
 
         self.settings = settings
@@ -252,10 +395,10 @@ class ProxyCommunity(Community):
 
     def calc_speeds(self):
         while True:
-            t2 = time()
+            t2 = time.time()
             for c in self.circuits.values():
                 if c.timestamp is None:
-                    c.timestamp = time()
+                    c.timestamp = time.time()
                 elif c.timestamp < t2:
 
                     if self.record_stats and (
@@ -274,7 +417,7 @@ class ProxyCommunity(Community):
 
             for r in self.relay_from_to.values():
                 if r.timestamp is None:
-                    r.timestamp = time()
+                    r.timestamp = time.time()
                 elif r.timestamp < t2:
 
                     if self.record_stats and (len(r.bytes_list) == 0 or r.bytes[-1] != r.bytes_list[-1]):
@@ -358,7 +501,7 @@ class ProxyCommunity(Community):
                 this_relay_key = (next_relay.candidate, next_relay.circuit_id)
                 if this_relay_key in self.relay_from_to:
                     this_relay = self.relay_from_to[this_relay_key]
-                    this_relay.last_incomming = time()
+                    this_relay.last_incomming = time.time()
                     this_relay.bytes[0] += len(packet)
 
                 packet_type = self.proxy_conversion.get_type(data)
@@ -393,7 +536,7 @@ class ProxyCommunity(Community):
                     return
 
                 if circuit_id in self.circuits:
-                    self.circuits[circuit_id].last_incomming = time()
+                    self.circuits[circuit_id].last_incomming = time.time()
 
                 if not self.on_custom.get(packet_type, lambda *args:None)(circuit_id, candidate, payload):
                     self.dict_inc(dispersy.statistics.success, str_type + '-ignored')
@@ -510,9 +653,9 @@ class ProxyCommunity(Community):
 
             pub_key = iter(first_hop_candidate.get_members()).next()._ec
 
-            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
             while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-                dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+                dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
             dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS)
             encrypted_dh_first_part = self.dispersy.crypto.encrypt(pub_key, int_to_packed(dh_first_part, 2048))
@@ -528,12 +671,11 @@ class ProxyCommunity(Community):
         except Exception as e:
             logger.exception("create_circuit")
 
-
     def remove_circuit(self, circuit_id, additional_info=''):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
         if circuit_id in self.circuits:
-            logger.info("Breaking circuit %d " + additional_info, circuit_id)
+            logger.error("Breaking circuit %d " + additional_info, circuit_id)
 
             del self.circuits[circuit_id]
 
@@ -542,8 +684,8 @@ class ProxyCommunity(Community):
 
     def remove_relay(self, relay_key, additional_info=''):
         if relay_key in self.relay_from_to:
-            logger.info(("Breaking relay %s:%d %d " + additional_info) % (relay_key[0].sock_addr[0], relay_key[0].sock_addr[1], relay_key[1]))
-            # Only remove one side of the relay, this isn't as pretty but both sides have separate incomming timer, hence
+            logger.error(("Breaking relay %s:%d %d " + additional_info) % (relay_key[0].sock_addr[0], relay_key[0].sock_addr[1], relay_key[1]))
+            # Only remove one side of the relay, this isn't as pretty but both sides have separate incoming timer, hence
             # after removing one side the other will follow.
             del self.relay_from_to[relay_key]
             return True
@@ -556,9 +698,9 @@ class ProxyCommunity(Community):
         relay_key = (candidate, circuit_id)
         self.directions[relay_key] = ENDPOINT
 
-        dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
         while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
         my_key = self.my_member._ec
 
@@ -603,12 +745,12 @@ class ProxyCommunity(Community):
         return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(return_key, encrypted_cand_dict))
 
     def encrypt_candidate_list(self, key, cand_dict):
-        encoded_dict = encode(cand_dict)
-        return AESencode(key, encoded_dict)
+        encoded_dict = encoding.encode(cand_dict)
+        return crypto.AESencode(key, encoded_dict)
 
     def decrypt_candidate_list(self, key, encrypted_cand_dict):
-        encoded_dict = AESdecode(key, encrypted_cand_dict)
-        offset, cand_dict = decode(encoded_dict)
+        encoded_dict = crypto.AESdecode(key, encrypted_cand_dict)
+        offset, cand_dict = encoding.decode(encoded_dict)
         return cand_dict
 
     def on_created(self, circuit_id, candidate, message):
@@ -638,7 +780,7 @@ class ProxyCommunity(Community):
             and message.destination == ("0.0.0.0", 0) \
             and candidate == self.circuits[circuit_id].candidate:
 
-            self.circuits[circuit_id].last_incomming = time()
+            self.circuits[circuit_id].last_incomming = time.time()
             self.circuits[circuit_id].bytes_down[1] += len(message.data)
             self.stats['bytes_returned'] += len(message.data)
 
@@ -782,12 +924,11 @@ class ProxyCommunity(Community):
             self.create_circuit(candidate)
 
     def _generate_circuit_id(self, neighbour):
-        # TODO: why is the circuit_id so small? The conversion is using a unsigned long.
-        circuit_id = randint(1, 255000)
+        circuit_id = random.randint(1, 255000)
 
         # prevent collisions
         while circuit_id in self.circuits or (neighbour, circuit_id) in self.relay_from_to:
-            circuit_id = randint(1, 255000)
+            circuit_id = random.randint(1, 255000)
 
         return circuit_id
 
@@ -884,7 +1025,7 @@ class ProxyCommunity(Community):
                 for circuit in to_be_pinged:
                     self.create_ping(circuit.candidate, circuit.circuit_id)
             except:
-                print_exc()
+                traceback.print_exc()
 
             yield PING_INTERVAL
 

@@ -486,7 +486,7 @@ class ABCApp():
         s = Session(self.sconfig)
         s.start()
 
-        from Tribler.community.anontunnel.Socks5Server import Socks5Server
+        from Tribler.community.anontunnel.Socks5 import Socks5Server
         socks_server = Socks5Server()
         socks_server.attach_to(s.lm.rawserver, 1080)
 
