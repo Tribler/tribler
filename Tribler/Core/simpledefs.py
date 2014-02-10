@@ -28,7 +28,6 @@ DOWNLOAD = 'down'
 
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
-DLMODE_SVC = 2  # Ric: added download mode for Scalable Video Coding (SVC)
 
 PERSISTENTSTATE_CURRENTVERSION = 5
 """

@@ -1,20 +1,14 @@
 # Written by Jan David Mol, Arno Bakker
 # see LICENSE.txt for license information
 #
-
-import sys
-import time
+import os
 import socket
+import string
 import logging
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 from threading import RLock, Thread, currentThread
-from traceback import print_exc, print_stack
-import string
-from cStringIO import StringIO
-
-import os
-import Tribler.Core.osutils
+from traceback import print_exc
 
 # NOTE: DEBUG is set dynamically depending from DEBUGWEBUI and DEBUGCONTENT
 DEBUG = True
@@ -29,19 +23,6 @@ def bytestr2int(b):
         return None
     else:
         return int(b)
-
-
-class AbstractPathMapper:
-
-    def __init__(self):
-        pass
-
-    def get(self, path):
-        msg = 'AbstractPathMapper: Unknown path ' + path
-        stream = StringIO(msg)
-        streaminfo = {'mimetype': 'text/plain', 'stream': stream, 'length': len(msg)}
-        return streaminfo
-
 
 class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 # class VideoHTTPServer(BaseHTTPServer.HTTPServer):
@@ -285,13 +266,6 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         blocksize = streaminfo['blocksize']
                     else:
                         blocksize = 65536
-                    if 'svc' in streaminfo:
-                        # When in SVC mode we return all data that we have
-                        # currently. Subsequent requests will
-                        # return the next batch of data.
-                        svc = streaminfo['svc']
-                    else:
-                        svc = False
 
                 # mimetype = 'application/x-mms-framed'
                 # mimetype = 'video/H264'
@@ -376,16 +350,15 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     self._logger.debug("videoserv: do_GET: final range %s %s %s %s", firstbyte, lastbyte, nbytes2send, currentThread().getName())
 
 
-                # 4. Seek in stream to desired offset, unless svc
-                if not svc:
-                    try:
-                        stream.seek(firstbyte)
-                    except:
-                        # Arno, 2010-10-17: Live will throw harmless exception,
-                        # Ogg live needs it to reset to "send header" first state.
-                        # Better solution is to have OggMagicStream with
-                        # ControlledStream in BackgroundProcess.py
-                        print_exc()
+                # 4. Seek in stream to desired offset
+                try:
+                    stream.seek(firstbyte)
+                except:
+                    # Arno, 2010-10-17: Live will throw harmless exception,
+                    # Ogg live needs it to reset to "send header" first state.
+                    # Better solution is to have OggMagicStream with
+                    # ControlledStream in BackgroundProcess.py
+                    print_exc()
 
                 # For persistent connections keep the socket alive!
                 if self.request_version == 'HTTP/1.1':
@@ -409,61 +382,51 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.send_header("Transfer-Encoding", "chunked")
                 self.end_headers()
 
-                if svc:
-                    # 6. Send body: For SVC we send all we currently have, not blocking.
-                    data = stream.read()
+                # 6. Send body (completely, a Range: or an infinite stream in chunked encoding
+                done = False
+                while True:
+                    data = stream.read(blocksize)
+                    if len(data) == 0:
+                        done = True
 
+                    if DEBUG:
+                        self._logger.debug("videoserv: HTTP: read %s bytes %s", len(data), currentThread().getName())
+
+                    if length is None:
+                        # If length unknown, use chunked encoding
+                        # http://www.ietf.org/rfc/rfc2616.txt, $3.6.1
+                        self.wfile.write("%x\r\n" % (len(data)))
                     if len(data) > 0:
-                        self.wfile.write(data)
-                    elif len(data) == 0:
-                        if DEBUG:
-                            self._logger.debug("videoserv: svc: stream.read() no data")
-                else:
-                    # 6. Send body (completely, a Range: or an infinite stream in chunked encoding
-                    done = False
-                    while True:
-                        data = stream.read(blocksize)
-                        if len(data) == 0:
+                        # Limit output to what was asked on range queries:
+                        if length is not None and nbyteswritten + len(data) > nbytes2send:
+                            endlen = nbytes2send - nbyteswritten
+                            if endlen != 0:
+                                self.wfile.write(data[:endlen])
                             done = True
+                            nbyteswritten += endlen
+                        else:
+                            self.wfile.write(data)
+                            nbyteswritten += len(data)
 
+                        # print >>sys.stderr,"videoserv: HTTP: wrote total",nbyteswritten
+
+                    if length is None:
+                        # If length unknown, use chunked encoding
+                        self.wfile.write("\r\n")
+
+                    if done:
                         if DEBUG:
-                            self._logger.debug("videoserv: HTTP: read %s bytes %s", len(data), currentThread().getName())
+                            self._logger.debug("videoserv: do_GET: stream reached EOF or range query's send limit %s", currentThread().getName())
+                        break
 
-                        if length is None:
-                            # If length unknown, use chunked encoding
-                            # http://www.ietf.org/rfc/rfc2616.txt, $3.6.1
-                            self.wfile.write("%x\r\n" % (len(data)))
-                        if len(data) > 0:
-                            # Limit output to what was asked on range queries:
-                            if length is not None and nbyteswritten + len(data) > nbytes2send:
-                                endlen = nbytes2send - nbyteswritten
-                                if endlen != 0:
-                                    self.wfile.write(data[:endlen])
-                                done = True
-                                nbyteswritten += endlen
-                            else:
-                                self.wfile.write(data)
-                                nbyteswritten += len(data)
+                if nbyteswritten != nbytes2send:
+                    self._logger.info("videoserv: do_GET: Sent wrong amount, wanted %s got %s %s", nbytes2send, nbyteswritten, currentThread().getName())
 
-                            # print >>sys.stderr,"videoserv: HTTP: wrote total",nbyteswritten
-
-                        if length is None:
-                            # If length unknown, use chunked encoding
-                            self.wfile.write("\r\n")
-
-                        if done:
-                            if DEBUG:
-                                self._logger.debug("videoserv: do_GET: stream reached EOF or range query's send limit %s", currentThread().getName())
-                            break
-
-                    if nbyteswritten != nbytes2send:
-                        self._logger.info("videoserv: do_GET: Sent wrong amount, wanted %s got %s %s", nbytes2send, nbyteswritten, currentThread().getName())
-
-                    # Arno, 2010-01-08: No close on Range queries
-                    if not range:
-                        stream.close()
-                        if self.server.statuscallback is not None:
-                            self.server.statuscallback("Done")
+                # Arno, 2010-01-08: No close on Range queries
+                if not range:
+                    stream.close()
+                    if self.server.statuscallback is not None:
+                        self.server.statuscallback("Done")
 
             finally:
                 self.server.release_inputstream(self.path)
@@ -584,35 +547,3 @@ class VideoRawVLCServer:
         except:
             print_exc()
             return -1
-
-
-class MultiHTTPServer(ThreadingMixIn, VideoHTTPServer):
-
-    """ MuliThreaded HTTP Server """
-
-    __single = None
-
-    def __init__(self, port):
-        if MultiHTTPServer.__single:
-            raise RuntimeError("MultiHTTPServer is Singleton")
-        MultiHTTPServer.__single = self
-
-        self.port = port
-        BaseHTTPServer.HTTPServer.__init__(self, ("127.0.0.1", self.port), SimpleServer)
-        self.daemon_threads = True
-        self.allow_reuse_address = True
-        # self.request_queue_size = 10
-
-        self.lock = RLock()
-
-        self.urlpath2streaminfo = {}  # Maps URL to streaminfo
-        self.mappers = []  # List of PathMappers
-
-        self.errorcallback = None
-        self.statuscallback = None
-
-    def background_serve(self):
-        name = "MultiHTTPServerThread-1"
-        self.thread2 = Thread(target=self.serve_forever, name=name)
-        self.thread2.setDaemon(True)
-        self.thread2.start()

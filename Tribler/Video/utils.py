@@ -10,8 +10,6 @@ if (sys.platform == 'win32'):
     from Tribler.Core.Utilities.win32regchecker import Win32RegChecker, HKLM
 
 videoextdefaults = ['aac', 'asf', 'avi', 'dv', 'divx', 'flac', 'flc', 'flv', 'mkv', 'mpeg', 'mpeg4', 'mpegts', 'mpg4', 'mp3', 'mp4', 'mpg', 'mkv', 'mov', 'm4v', 'ogg', 'ogm', 'ogv', 'oga', 'ogx', 'qt', 'rm', 'swf', 'ts', 'vob', 'wmv', 'wav', 'webm']
-# Ric: added svc ext. for enhancement layers
-svcextdefaults = ['dat']
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +69,7 @@ def win32_retrieve_video_play_command(ext, videourl):
     # C:\Program Files\Quicktime\bla.exe "%1" instead of
     # "C:\Program Files\Quicktime\bla.exe" "%1"
     if suo[0] != '"':
-        if idx > 0 and (len(suo) - 1) >= idx+2 and suo[idx-1] == '"' and suo[idx+2] == '"':
+        if idx > 0 and (len(suo) - 1) >= idx + 2 and suo[idx - 1] == '"' and suo[idx + 2] == '"':
             # %x is quoted
             end = max(0, idx - 2)
         else:
@@ -112,6 +110,6 @@ def quote_program_path(progpath):
         if not os.access(progpath, os.R_OK):
             logger.debug("videoplay: Could not find assumed progpath %s", progpath)
             return None
-        return '"' + progpath +'"'
+        return '"' + progpath + '"'
     else:
         return progpath

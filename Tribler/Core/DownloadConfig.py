@@ -178,10 +178,6 @@ class DownloadConfigInterface(object):
         if self.get_mode() == DLMODE_VOD and len(files) > 1:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
 
-        # Ric: added svc case
-        elif self.get_mode() == DLMODE_SVC and len(files) < 2:
-            raise ValueError("In SVC Video-On-Demand mode at least 2 files have to be selected for download")
-
         self.dlconfig.set('downloadconfig', 'selected_files', files)
 
     def get_selected_files(self):
