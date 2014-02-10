@@ -223,7 +223,7 @@ class ProxyCommunity(Community):
         self.lock = threading.RLock()
 
         # Custom conversion
-        self.prefix = 'f' * 22 + 'e'
+        self.prefix = "fffffffe".decode("HEX")
 
         self.proxy_conversion = CustomProxyConversion()
         self.on_custom = {MESSAGE_CREATE: self.on_create,
