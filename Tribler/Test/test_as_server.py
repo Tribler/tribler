@@ -54,7 +54,7 @@ class AbstractServer(unittest.TestCase):
         for path in os.listdir(BASE_DIR):
             path = os.path.join(BASE_DIR, path)
             if path.startswith(STATE_DIR) or path.startswith(DEST_DIR):
-                shutil.rmtree(path)
+                shutil.rmtree(unicode(path))
 
     def tearDown(self):
         self.tearDownCleanup()
