@@ -123,8 +123,7 @@ class ProxyCommunity(Community):
         ''' :type : list of TunnelObserver'''
 
         # Replace endpoint
-        dispersy.endpoint.bypass_prefix = self.prefix
-        dispersy.endpoint.bypass_community = self
+        dispersy.endpoint.listen_to(self.prefix, self.handle_packet)
 
         self.circuits = {}
         self.directions = {}
@@ -334,7 +333,7 @@ class ProxyCommunity(Community):
 
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
-    def on_bypass_message(self, sock_addr, orig_packet):
+    def handle_packet(self, sock_addr, orig_packet):
         packet = orig_packet[len(self.prefix):]
 
         dispersy = self._dispersy
@@ -377,7 +376,11 @@ class ProxyCommunity(Community):
                 for f in self._receive_transformers:
                     data = f(candidate, circuit_id, data)
 
+                try:
                     _, payload = self.proxy_conversion.decode(data)
+                except KeyError as e:
+                    logger.error("Data cannot be decoded, this may be due to corrupted onion crypto")
+                    return
 
                 packet_type = self.proxy_conversion.get_type(data)
                 str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))

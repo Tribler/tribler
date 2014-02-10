@@ -8,16 +8,19 @@ logger = logging.getLogger(__name__)
 
 __author__ = 'chris'
 
-class HackyEndpoint(RawserverEndpoint):
+
+class DispersyBypassEndpoint(RawserverEndpoint):
 
     def __init__(self, rawserver, port, ip="0.0.0.0"):
         RawserverEndpoint.__init__(self, rawserver, port, ip)
-        self.bypass_community = None
-        self.bypass_prefix = None
+        self.packet_handlers = {}
         self.queue = Queue(maxsize=1024)
 
         self.consumer_thread = Thread(target=self.consumer)
         self.consumer_thread.start()
+
+    def listen_to(self, prefix, handler):
+        self.packet_handlers[prefix] = handler
 
     def close(self, timeout=0.0):
         self.queue.put_nowait(None)
@@ -30,24 +33,25 @@ class HackyEndpoint(RawserverEndpoint):
             if item is None:
                 break
 
-            self.bypass_community.on_bypass_message(*item)
+            prefix, packet = item
+            if prefix in self.packet_handlers:
+                self.packet_handlers[prefix](*packet)
+
             self.queue.task_done()
 
     def data_came_in(self, packets):
-        if self.bypass_prefix and not self.bypass_community:
-            raise ValueError("Bypass_community must be set if bypass_prefix is set!")
-
         # Inspect packages
         normal_packets = []
         try:
             for packet in packets:
-                if self.bypass_prefix and packet[1].startswith(self.bypass_prefix):
-                    self.queue.put_nowait(packet)
 
+                prefix = next((p for p in self.packet_handlers.keys() if packet[1].startswith(p)), None)
+                if prefix:
+                    self.queue.put_nowait((prefix, packet))
                 else:
                     normal_packets.append(packet)
         except Full:
-                logger.warning("HackyEndpoint cant keep up with incoming packets, queue is full!")
+                logger.warning("DispersyBypassEndpoint cant keep up with incoming packets, queue is full!")
 
         RawserverEndpoint.data_came_in(self, normal_packets)
 

@@ -11,7 +11,7 @@ import logging
 
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.community.anontunnel.endpoint import HackyEndpoint
+from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
 from Tribler.community.privatesemantic.elgamalcrypto import ElgamalCrypto
 
 
@@ -122,7 +122,7 @@ class TriblerLaunchMany(Thread):
                 if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
                 else:
-                    endpoint = HackyEndpoint(self.rawserver, self.session.get_dispersy_port())
+                    endpoint = DispersyBypassEndpoint(self.rawserver, self.session.get_dispersy_port())
 
                 callback = Callback("Dispersy")  # WARNING NAME SIGNIFICANT
                 working_directory = unicode(self.session.get_state_dir())

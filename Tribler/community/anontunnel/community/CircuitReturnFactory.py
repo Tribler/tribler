@@ -2,6 +2,7 @@ from Tribler.community.anontunnel.ConnectionHandlers.CircuitReturnHandler import
 
 __author__ = 'Chris'
 
+
 class CircuitReturnFactory(object):
     def create(self, proxy, raw_server, circuit_id, address):
 
