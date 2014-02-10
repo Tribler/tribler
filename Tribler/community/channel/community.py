@@ -679,7 +679,7 @@ class ChannelCommunity(Community):
                         infohash = str2bin(infohash)
                         logger.debug("Incoming swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
 
-                        if not th_handler.has_thumbnail(infohash, roothash):
+                        if not th_handler.has_thumbnail(infohash):
                             @forceDispersyThread
                             def callback(message=message):
                                 self._dispersy.on_messages([message])

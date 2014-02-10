@@ -5,6 +5,7 @@ import sys
 import json
 import shutil
 import thread
+import hashlib
 import binascii
 import logging
 
@@ -92,6 +93,7 @@ class TorrentStateManager:
 
         self._logger.debug('create_and_seed_metadata: going to seed metadata for torrent %s', torrent.name)
 
+        # Determine duration, bitrate, and resolution from the given videofile.
         duration, bitrate, resolution = get_videoinfo(videofile, videoanalyser)
         video_info = {'duration': duration,
                       'bitrate': bitrate,
@@ -99,6 +101,7 @@ class TorrentStateManager:
 
         self._logger.debug('create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s', duration, bitrate, resolution)
 
+        # Generate thumbnails.
         videoname = os.path.basename(videofile)
         tempdir = tempfile.mkdtemp()
 
@@ -113,17 +116,30 @@ class TorrentStateManager:
             path_exists = os.path.exists(filename)
             self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
 
+        # Calculate sha1 of the thumbnails.
+        contenthash = hashlib.sha1()
+        for fn in thumb_filenames:
+            with open(fn, 'rb') as fp:
+                contenthash.update(hashlib.sha1(fp.read()).hexdigest())
+        contenthash_hex = contenthash.hexdigest()
+
+        # Move files to torcoldir/thumbs-infohash/contenthash.
+        finaldir = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash), contenthash_hex)
+        shutil.move(tempdir, finaldir)
+        thumb_filenames = [fn.replace(tempdir, finaldir) for fn in thumb_filenames]
+
+        # Create SwiftDef.
         sdef = SwiftDef()
         sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
         for thumbfile in thumb_filenames:
             if os.path.exists(thumbfile):
-                xi = os.path.relpath(thumbfile, tempdir)
+                xi = os.path.relpath(thumbfile, torcoldir)
                 if sys.platform == "win32":
                     xi = xi.replace("\\", "/")
                 si = xi.encode("UTF-8")
                 sdef.add_content(thumbfile, si)
 
-        specpn = sdef.finalize(self.session.get_swift_path(), destdir=tempdir)
+        specpn = sdef.finalize(self.session.get_swift_path(), destdir=torcoldir)
         hex_roothash = sdef.get_roothash_as_hex()
 
         try:
@@ -134,9 +150,7 @@ class TorrentStateManager:
         except:
             print_exc()
 
-        finaldir = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash), hex_roothash)
-        shutil.move(tempdir, finaldir)
-
+        # Create modification
         modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())),
                          'video-info': json.dumps(video_info)}
 
