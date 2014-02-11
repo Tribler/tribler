@@ -8,6 +8,7 @@ import thread
 import hashlib
 import binascii
 import logging
+import tempfile
 
 try:
     prctlimported = True
