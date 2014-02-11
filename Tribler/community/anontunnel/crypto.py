@@ -44,7 +44,7 @@ class DefaultCrypto(object):
         return payload
 
     def _crypto_outgoing(self, candidate, circuit_id, message_type, content):
-        relay_key = (candidate, circuit_id)
+        relay_key = (candidate.sock_addr, circuit_id)
         logger.debug("Crypto_outgoing for circuit {0} and message type {1}".format(circuit_id, ord(message_type)))
 
         # CREATE and CREATED have to be Elgamal encrypted
@@ -71,10 +71,10 @@ class DefaultCrypto(object):
         logger.debug("Length of outgoing message: {0}".format(len(content)))
         return content
 
-    def _crypto_relay(self, direction, candidate, circuit_id, data):
-        relay_key = (candidate, circuit_id)
+    def _crypto_relay(self, direction, sock_addr, circuit_id, data):
+        relay_key = (sock_addr, circuit_id)
         next_relay = self.proxy.relay_from_to[relay_key]
-        next_relay_key = (next_relay.candidate, next_relay.circuit_id)
+        next_relay_key = (next_relay.sock_addr, next_relay.circuit_id)
 
         # Message is going downstream so I have to add my onion layer
         if direction == ORIGINATOR:
@@ -89,7 +89,7 @@ class DefaultCrypto(object):
         return data
 
     def _crypto_incoming(self, candidate, circuit_id, data):
-        relay_key = (candidate, circuit_id)
+        relay_key = (candidate.sock_addr, circuit_id)
         logger.debug("Crypto_incoming for circuit {0}".format(circuit_id))
         logger.debug("Length of incoming message: {0}".format(len(data)))
 

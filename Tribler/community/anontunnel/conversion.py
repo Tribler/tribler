@@ -155,6 +155,9 @@ class CustomProxyConversion():
 
     @staticmethod
     def get_circuit_and_data(message_buffer, offset=0):
+        """
+        @rtype (int, str)
+        """
         circuit_id, = struct.unpack_from("!L", message_buffer, offset)
         offset += 4
 

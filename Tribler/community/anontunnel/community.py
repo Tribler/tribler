@@ -36,9 +36,9 @@ logger = logging.getLogger()
 
 class ProxySettings:
     def __init__(self):
-        length = random.randint(1, 1)
+        length = random.randint(2, 2)
 
-        self.max_circuits = 1 if length == 0 else 1
+        self.max_circuits = 1 if length == 0 else 4
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy(self.max_circuits)
         self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(length)
@@ -46,10 +46,15 @@ class ProxySettings:
 
 
 class RelayRoute(object):
-    def __init__(self, circuit_id, candidate):
-        self.candidate = candidate
-        self.circuit_id = circuit_id
+    def __init__(self, circuit_id, sock_addr):
+        """
+        @type sock_addr: (str, int)
+        @type circuit_id: int
+        @return:
+        """
 
+        self.sock_addr = sock_addr
+        self.circuit_id = circuit_id
         self.online = False
 
         self.last_incoming = time.time()
@@ -118,6 +123,7 @@ class Circuit:
     @property
     def bytes_uploaded(self):
         return self.proxy.global_stats.circuit_stats[self.circuit_id].bytes_uploaded if self.proxy else None
+
 
 class Hop:
     def __init__(self, address, pub_key, dh_first_part):
@@ -236,8 +242,13 @@ class ProxyCommunity(Community):
 
         self.circuits = {}
         self.directions = {}
+
         self.relay_from_to = {}
+        """ :type :  dict[((str, int),int),RelayRoute] """
+
         self.waiting_for = {}
+
+        self._heartbeat_candidates = {}
 
         self.key = self.my_member.private_key
         self.session_keys = {}
@@ -274,6 +285,16 @@ class ProxyCommunity(Community):
         from Tribler.community.anontunnel.stats import StatsCollector
         self.global_stats = StatsCollector(self)
         self.global_stats.start()
+
+        def _discover():
+            while True:
+                for c in self.dispersy_yield_verified_candidates():
+                    if c not in {circuit.candidate for circuit in self.circuits.values()} and len(self.circuits) < self.settings.max_circuits:
+                        self.create_circuit(c)
+
+                yield 5.0
+
+        self.dispersy.callback.register(_discover)
 
     def add_observer(self, observer):
         #assert isinstance(observer, TunnelObserver)
@@ -333,19 +354,26 @@ class ProxyCommunity(Community):
             return self._original_on_introduction_request(messages)
         finally:
             for message in messages:
-                self.on_member_heartbeat(message.candidate)
+                self.on_member_heartbeat(message, message.candidate)
 
     def on_introduction_response(self, messages):
         try:
             return self._original_on_introduction_response(messages)
         finally:
             for message in messages:
-                self.on_member_heartbeat(message.candidate)
+                self.on_member_heartbeat(message, message.candidate)
 
     def on_stats(self, messages):
         for message in messages:
             for o in self.__observers:
                 o.on_tunnel_stats(self, message.candidate, message.payload.stats)
+
+    def get_cached_candidate(self, sock_addr):
+        if sock_addr in self._heartbeat_candidates:
+            return self._heartbeat_candidates[sock_addr]
+        else:
+            circuit_candidate = next((c.candidate for c in self.circuits.values() if c.candidate.sock_addr == sock_addr), None)
+            return circuit_candidate
 
     def send_stats(self, stats):
         def __send_stats():
@@ -362,28 +390,35 @@ class ProxyCommunity(Community):
     # END OF DISPERSY DEFINED MESSAGES
     # START OF CUSTOM MESSAGES
     def handle_packet(self, sock_addr, orig_packet):
+        """
+        @param (str, int) sock_addr: socket address in tuple format
+        @param orig_packet:
+        @return:
+        """
         packet = orig_packet[len(self.prefix):]
-
         dispersy = self._dispersy
 
         # TODO: we should attempt to get the candidate from the member_heartbeat dict
         # get_candidate has a garbage collector :P
-        candidate = self.get_candidate(sock_addr) or Candidate(sock_addr, False)
+
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
-        relay_key = (candidate, circuit_id)
+        relay_key = (sock_addr, circuit_id)
+
+        is_relay = circuit_id > 0 and relay_key in self.relay_from_to and not relay_key in self.waiting_for
+        is_originator = not is_relay and circuit_id in self.circuits
+        is_initial = not is_relay and not is_originator
 
         try:
             # First, relay packet if we know whom to forward message to for this circuit
             # Happens only when the circuit is already established with both parent and child
             # And if the node is not waiting for a CREATED message from the child
-            if circuit_id > 0 and relay_key in self.relay_from_to \
-                and not (relay_key in self.waiting_for):
+            if is_relay:
                 next_relay = self.relay_from_to[relay_key]
 
                 for f in self._relay_transformers:
-                    data = f(self.directions[relay_key], candidate, circuit_id, data)
+                    data = f(self.directions[relay_key], sock_addr, circuit_id, data)
 
-                this_relay_key = (next_relay.candidate, next_relay.circuit_id)
+                this_relay_key = (next_relay.sock_addr, next_relay.circuit_id)
                 if this_relay_key in self.relay_from_to:
                     this_relay = self.relay_from_to[this_relay_key]
                     this_relay.last_incoming = time.time()
@@ -396,18 +431,27 @@ class ProxyCommunity(Community):
 
                 #logger.debug("GOT %s from %s:%d over circuit %d", str_type, candidate.sock_addr[0], candidate.sock_addr[1], circuit_id)
 
-                self.send_packet(next_relay.candidate, next_relay.circuit_id, packet_type, data, relayed=True)
+                self.send_packet(Candidate(next_relay.sock_addr, False), next_relay.circuit_id, packet_type, data, relayed=True)
                 self.dict_inc(dispersy.statistics.success, str_type + '-relayed')
 
             # We don't know where to relay this message to, must be for me?
             else:
+                if is_initial:
+                    # We will need the member so try to find our own cached candidate
+                    candidate = self.get_cached_candidate(sock_addr)
+                    if not isinstance(candidate, WalkCandidate):
+                        logger.error("Unknown candidate at {0}, bailing out!".format(sock_addr))
+                        return
+                else:
+                    candidate = Candidate(sock_addr, False)
+
                 for f in self._receive_transformers:
                     data = f(candidate, circuit_id, data)
 
                 try:
                     _, payload = self.proxy_conversion.decode(data)
                 except KeyError as e:
-                    logger.error("Data cannot be decoded, this may be due to corrupted onion crypto")
+                    logger.exception("Data cannot be decoded, this may be due to corrupted onion crypto")
                     return
 
                 packet_type = self.proxy_conversion.get_type(data)
@@ -432,11 +476,11 @@ class ProxyCommunity(Community):
                     self.dict_inc(dispersy.statistics.success, str_type)
 
         except Exception as e:
-            logger.exception("Incoming message could not be handled. Probably from old connection.")
+            logger.exception("Incoming message could not be handled. Probably from old connection. INITIAL={0}, ORIGINATOR={1}, RELAY={2}".format(is_initial, is_originator, is_relay))
             if relay_key in self.relay_from_to:
                 del self.relay_from_to[relay_key]
             elif circuit_id in self.circuits:
-                self.remove_circuit(circuit_id, "Bad en / decrypt, possible old circuit")
+                self.remove_circuit(circuit_id, "Bad en / decrypt, possible old circuit: {0}".format(e.message))
             else:
                 logger.debug("Got an encrypted message I can't encrypt. Dropping packet, probably old.")
 
@@ -530,7 +574,7 @@ class ProxyCommunity(Community):
         """ Create a new circuit, with one initial hop """
         try:
 
-            circuit_id = self._generate_circuit_id(first_hop_candidate)
+            circuit_id = self._generate_circuit_id(first_hop_candidate.sock_addr)
             cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self, circuit_id))
 
             goal_hops = self.settings.length_strategy.circuit_length()
@@ -551,7 +595,7 @@ class ProxyCommunity(Community):
 
             circuit.unverified_hop = Hop(first_hop_candidate.sock_addr, pub_key, dh_secret)
             logger.info('Circuit %d is to be created, we want %d hops sending to %s:%d', circuit_id, circuit.goal_hops, first_hop_candidate.sock_addr[0], first_hop_candidate.sock_addr[1])
-            self.waiting_for[(first_hop_candidate, circuit_id)] = True
+            self.waiting_for[(first_hop_candidate.sock_addr, circuit_id)] = True
             self.send_message(first_hop_candidate, circuit_id, MESSAGE_CREATE, CreateMessage(encrypted_dh_first_part))
 
             return circuit
@@ -572,7 +616,7 @@ class ProxyCommunity(Community):
 
     def remove_relay(self, relay_key, additional_info=''):
         if relay_key in self.relay_from_to:
-            logger.error(("Breaking relay %s:%d %d " + additional_info) % (relay_key[0].sock_addr[0], relay_key[0].sock_addr[1], relay_key[1]))
+            logger.error(("Breaking relay %s:%d %d " + additional_info) % (relay_key[0][0], relay_key[0][1], relay_key[1]))
             # Only remove one side of the relay, this isn't as pretty but both sides have separate incoming timer, hence
             # after removing one side the other will follow.
             del self.relay_from_to[relay_key]
@@ -583,7 +627,7 @@ class ProxyCommunity(Community):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """
         logger.info('We joined circuit %d with neighbour %s', circuit_id, candidate)
 
-        relay_key = (candidate, circuit_id)
+        relay_key = (candidate.sock_addr, circuit_id)
         self.directions[relay_key] = ENDPOINT
 
         dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
@@ -627,7 +671,7 @@ class ProxyCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-        index = (candidate, circuit_id)
+        index = (candidate.sock_addr, circuit_id)
         encrypted_cand_dict = self.encrypt_candidate_list(self.session_keys[index], cand_dict)
 
         return self.send_message(candidate, circuit_id, MESSAGE_CREATED, CreatedMessage(return_key, encrypted_cand_dict))
@@ -645,14 +689,17 @@ class ProxyCommunity(Community):
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
-        relay_key = (candidate, circuit_id)
+        relay_key = (candidate.sock_addr, circuit_id)
+
         del self.waiting_for[relay_key]
         self.directions[relay_key] = ORIGINATOR
         if relay_key in self.relay_from_to:
             logger.debug("Got CREATED message, going to send EXTENDED message backwards.")
             extended_message = ExtendedMessage(message.key, message.candidate_list)
             forwarding_relay = self.relay_from_to[relay_key]
-            return self.send_message(forwarding_relay.candidate, forwarding_relay.circuit_id, MESSAGE_EXTENDED, extended_message)
+
+            candidate = Candidate(forwarding_relay.sock_addr, False)
+            return self.send_message(candidate, forwarding_relay.circuit_id, MESSAGE_EXTENDED, extended_message)
 
         request = self.dispersy.callback.call(self.request_cache.get, args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
         if request:
@@ -691,41 +738,42 @@ class ProxyCommunity(Community):
             eventually be received and propagated back along the Circuit. """
 
         if message.extend_with:
-            extend_with = self.get_candidate(message.extend_with) or Candidate(message.extend_with, False)
+            extend_with_addr = message.extend_with
             logger.warning("We might be sending a CREATE to someone we don't know, sending to %s:%d!", message.host, message.port)
         else:
-            extend_with = next(
-                (x for x in self.dispersy_yield_verified_candidates()
+            extend_with_addr = next(
+                (x.sock_addr for x in self.dispersy_yield_verified_candidates()
                  if x and x != candidate),
                 None
             )
 
-        if not extend_with:
+        if not extend_with_addr:
             return
 
-        relay_key = (candidate, circuit_id)
+        relay_key = (candidate.sock_addr, circuit_id)
         if relay_key in self.relay_from_to:
             current_relay = self.relay_from_to[relay_key]
             assert not current_relay.online, "shouldn't be called whenever relay is online, the extend message should have been forwarded"
 
             # We will just forget the attempt and try again, possible with another candidate
-            old_to_key = current_relay.candidate, current_relay.circuit_id
+            old_to_key = current_relay.sock_addr, current_relay.circuit_id
             del self.relay_from_to[old_to_key]
             del self.relay_from_to[relay_key]
 
-        new_circuit_id = self._generate_circuit_id(extend_with)
-        to_key = (extend_with, new_circuit_id)
+        new_circuit_id = self._generate_circuit_id(extend_with_addr)
+        to_key = (extend_with_addr, new_circuit_id)
 
         self.waiting_for[to_key] = True
-        self.relay_from_to[to_key] = RelayRoute(circuit_id, candidate)
-        self.relay_from_to[relay_key] = RelayRoute(new_circuit_id, extend_with)
+        self.relay_from_to[to_key] = RelayRoute(circuit_id, candidate.sock_addr)
+        self.relay_from_to[relay_key] = RelayRoute(new_circuit_id, extend_with_addr)
 
         key = message.key
 
         self.directions[to_key] = ORIGINATOR
         self.directions[relay_key] = ENDPOINT
 
-        return self.send_message(extend_with, new_circuit_id, MESSAGE_CREATE, CreateMessage(key))
+        extend_candidate = self.get_cached_candidate(extend_with_addr)
+        return self.send_message(extend_candidate, new_circuit_id, MESSAGE_CREATE, CreateMessage(key))
 
     def on_extended(self, circuit_id, candidate, message):
         """ A circuit has been extended, forward the acknowledgment back
@@ -787,16 +835,16 @@ class ProxyCommunity(Community):
 
     # got introduction_request or introduction_response from candidate
     # not necessarily a new candidate
-    def on_member_heartbeat(self, candidate):
+    def on_member_heartbeat(self, message, candidate):
         if not isinstance(candidate, WalkCandidate) or isinstance(candidate, BootstrapCandidate):
             return
 
-        attr = getattr(candidate, "get_members", None)
-        if not attr:
-            return
+        candidate._associations.clear()
+        candidate.associate(message._authentication.member)
+        self._heartbeat_candidates[candidate.sock_addr] = candidate
 
-        if len(self.circuits) < self.settings.max_circuits and candidate not in [c.candidate for c in self.circuits.values()]:
-            self.create_circuit(candidate)
+        # if len(self.circuits) < self.settings.max_circuits and candidate not in [c.candidate for c in self.circuits.values()]:
+        #     self.create_circuit(candidate)
 
     def _generate_circuit_id(self, neighbour):
         circuit_id = random.randint(1, 255000)

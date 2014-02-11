@@ -85,23 +85,23 @@ class AnonTunnel(Thread):
             while True:
                 t2 = time.time()
                 if self.community and t1 and t2 > t1:
-                    speed_exit = (self.community.stats['bytes_exit'] - bytes_exit) / (t2 - t1)
-                    bytes_exit = self.community.stats['bytes_exit']
+                    speed_exit = (self.community.global_stats.stats['bytes_exit'] - bytes_exit) / (t2 - t1)
+                    bytes_exit = self.community.global_stats.stats['bytes_exit']
 
-                    speed_enter = (self.community.stats['bytes_enter'] - bytes_enter) / (t2 - t1)
-                    bytes_enter = self.community.stats['bytes_enter']
+                    speed_enter = (self.community.global_stats.stats['bytes_enter'] - bytes_enter) / (t2 - t1)
+                    bytes_enter = self.community.global_stats.stats['bytes_enter']
 
-                    relay_2 = sum([r.bytes[1] for r in self.community.relay_from_to.values()])
+                    relay_2 = 0 #sum([r.bytes[1] for r in self.community.relay_from_to.values()])
 
                     speed_relay = (relay_2 - bytes_relay) / (t2 - t1)
                     bytes_relay = relay_2
                     active_circuits = len(self.community.active_circuits)
                     num_routes = len(self.community.relay_from_to) / 2
 
-                    print "\r%s EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s using %d circuits and %d duplex routing rules. Average data packet size is %s bytes" % ("ONLINE" if self.community.online else "OFFLINE", speed_exit / 1024.0, speed_enter/ 1024.0, speed_relay / 1024.0, active_circuits, num_routes, self.community.stats['packet_size']),
+                    print "%s EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s using %d circuits and %d duplex routing rules.\n" % ("ONLINE" if self.community.online else "OFFLINE", speed_exit / 1024.0, speed_enter/ 1024.0, speed_relay / 1024.0, active_circuits, num_routes),
 
                 t1 = t2
-                yield 1.0
+                yield 2.0
 
         self.callback.register(speed_stats)
         self.raw_server.listen_forever(None)
@@ -163,11 +163,7 @@ def main(argv):
     proxy_settings = ProxySettings()
 
     # Set extend strategy
-    if args.extend_strategy == 'upfront':
-        proxy_settings.extend_strategy = RandomAPriori
-        logger.error("EXTEND STRATEGY UPFRONT: We will decide with whom created circuits are extended upfront")
-
-    elif args.extend_strategy == 'delegate':
+    if args.extend_strategy == 'delegate':
         logger.error("EXTEND STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
         proxy_settings.extend_strategy = TrustThyNeighbour
     elif args.extend_strategy == 'subset':
