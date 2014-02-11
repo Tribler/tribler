@@ -14,7 +14,7 @@ from random import choice
 from binascii import hexlify
 from time import sleep, time
 
-from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH,\
+from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH, \
     DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.TorrentDef import TorrentDef
@@ -136,20 +136,22 @@ class RemoteTorrentHandler:
 
             return self._searchcommunity
 
-    def has_thumbnail(self, infohash):
+    def has_thumbnail(self, infohash, contenthash=None):
         thumb_dir = os.path.join(self.tor_col_dir, 'thumbs-' + binascii.hexlify(infohash))
+        if contenthash:
+            thumb_dir = os.path.join(thumb_dir, binascii.hexlify(contenthash))
         return os.path.isdir(thumb_dir) and os.listdir(thumb_dir)
 
-    def download_thumbnail(self, candidate, roothash, infohash, usercallback=None, timeout=None):
-        if self.registered and not self.has_thumbnail(roothash):
-            raw_lambda = lambda candidate = candidate, roothash = roothash, infohash = infohash, usercallback = usercallback, timeout = timeout: self._download_thumbnail(candidate, roothash, infohash, usercallback, timeout)
+    def download_thumbnail(self, candidate, roothash, infohash, contenthash=None, usercallback=None, timeout=None):
+        if self.registered and not self.has_thumbnail(infohash, contenthash):
+            raw_lambda = lambda candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_thumbnail(candidate, roothash, infohash, contenthash, usercallback, timeout)
             self.scheduletask(raw_lambda)
 
-    def _download_thumbnail(self, candidate, roothash, infohash, usercallback, timeout):
+    def _download_thumbnail(self, candidate, roothash, infohash, contenthash, usercallback, timeout):
         if usercallback:
             self.callbacks.setdefault(roothash, set()).add(usercallback)
 
-        self.tnrequester.add_request((roothash, infohash), candidate, timeout)
+        self.tnrequester.add_request((roothash, infohash, contenthash), candidate, timeout)
 
         self._logger.debug('rtorrent: adding thumbnail request: %s %s', roothash or '', candidate)
 
@@ -756,10 +758,10 @@ class ThumbnailRequester(Requester):
         self.dscfg.set_swift_meta_dir(session.get_torrent_collecting_dir())
 
     def doFetch(self, hash_tuple, candidates):
-        roothash, infohash = hash_tuple
+        roothash, infohash, contenthash = hash_tuple
         attempting_download = False
 
-        if self.remote_th.has_thumbnail(infohash):
+        if self.remote_th.has_thumbnail(infohash, contenthash):
             self.remote_th.notify_possible_thumbnail_roothash(roothash)
 
         elif candidates:

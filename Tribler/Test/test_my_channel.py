@@ -82,7 +82,7 @@ class TestMyChannel(TestGuiAsServer):
                             videoinfo_valid = (videoinfo_dict['resolution'] == [640, 480]) and (videoinfo_dict['duration'] == 6)
 
                 return videoinfo_valid and swiftthumbnails_valid
-            self.CallConditional(10, check_for_modifications, do_overview, 'No valid channel modifications received')
+            self.CallConditional(10, check_for_modifications, lambda: self.Call(5, do_overview), 'No valid channel modifications received')
 
         def do_thumbnails(torrentfilename):
             thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-8bb88a02da691636a7ed929b87d467f24700e490')
