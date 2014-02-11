@@ -471,10 +471,11 @@ class TorrentDetails(AbstractDetails):
 
         # Toggle thumbnails
         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.torrent.infohash))
-        show_thumbnails = os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] == '.jpg']
+        show_thumbnails = bool(thumb_files)
         self.thumbnails.Show(show_thumbnails)
         if show_thumbnails:
-            bmps = [wx.Bitmap(os.path.join(thumb_dir, thumb), wx.BITMAP_TYPE_ANY) for thumb in os.listdir(thumb_dir)[:4]]
+            bmps = [wx.Bitmap(thumb, wx.BITMAP_TYPE_ANY) for thumb in thumb_files[:4]]
             res = limit_resolution(bmps[0].GetSize(), (175, 175)) if bmps else None
             bmps = [bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() for bmp in bmps if bmp.IsOk()] if res else []
             self.thumbnails.SetBitmaps(bmps)
@@ -1460,8 +1461,9 @@ class PlaylistDetails(AbstractDetails):
                     bmps = []
                     for torrent in self.playlist_torrents:
                         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(torrent.infohash))
-                        if os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0:
-                            bmps.append(wx.Bitmap(os.path.join(thumb_dir, os.listdir(thumb_dir)[0]), wx.BITMAP_TYPE_ANY))
+                        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] == '.jpg']
+                        if thumb_files:
+                            bmps.append(wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY))
                         if len(bmps) > 3:
                             break
 
