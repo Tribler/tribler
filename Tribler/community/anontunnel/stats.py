@@ -138,7 +138,7 @@ class StatsCollector(TunnelObserver):
     def on_send_data(self, circuit_id, candidate, ultimate_destination, payload):
         self.circuit_stats[circuit_id].bytes_up[-1] += len(payload)
 
-    def on_relay(self, from_key, to_key, data):
+    def on_relay(self, from_key, to_key, direction, data):
         self.relay_stats[from_key].bytes[-1] += len(data)
         self.relay_stats[to_key].bytes[-1] += len(data)
 

@@ -165,7 +165,7 @@ class TunnelObserver:
     def on_send_data(self, circuit_id, candidate, ultimate_destination, payload):
         pass
 
-    def on_relay(self, from_key, to_key, data):
+    def on_relay(self, from_key, to_key, direction, data):
         pass
 
     def on_unload(self):
@@ -426,7 +426,8 @@ class ProxyCommunity(Community):
                     this_relay.last_incoming = time.time()
 
                     for o in self.__observers:
-                        o.on_relay(this_relay_key, next_relay, data)
+                        # TODO: check whether direction is set correctly here!
+                        o.on_relay(this_relay_key, next_relay, self.directions[relay_key], data)
 
                 packet_type = self.proxy_conversion.get_type(data)
                 str_type = MESSAGE_STRING_REPRESENTATION.get(packet_type, 'unknown-type-%d' % ord(packet_type))
