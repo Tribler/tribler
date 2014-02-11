@@ -42,7 +42,7 @@ class TunnelExitSocket(object):
         """
 
         for source_address, packet in packets:
-            logger.info("ENTER DATA packet FROM %s", source_address)
+            logger.info("ENTER DATA in TunnelExitSocket, packet FROM %s", source_address)
             self.proxy.enter_data(self.circuit_id, self.destination_address, source_address, packet)
             #self.proxy.send_data(
             #    circuit_id=self.circuit_id,
@@ -58,7 +58,7 @@ class ShortCircuitExitSocket(object):
     Only used when there are no circuits, it will be a 0-hop tunnel. So there is no anonymity at all.
     """
 
-    def __init__(self, raw_server, proxy, destination_address):
+    def __init__(self, raw_server, proxy, circuit_id, destination_address):
         """
         Instantiate a new return handler
 
@@ -75,6 +75,7 @@ class ShortCircuitExitSocket(object):
         self.proxy = proxy
         self.destination_address = destination_address
         self.socket = socket
+        self.circuit_id = circuit_id
 
 
     def data_came_in(self, packets):
@@ -84,9 +85,9 @@ class ShortCircuitExitSocket(object):
         """
 
         for source_address, packet in packets:
-            logger.info("ENTER DATA packet FROM %s", source_address)
-            message = DataMessage(("0.0.0.0",0), packet, source_address)
-            self.proxy.on_data(0, None, message)
+            logger.info("ENTER DATA in ShortCircuitSocket, packet FROM %s", source_address)
+            message = DataMessage(("0.0.0.0", 0), packet, source_address)
+            self.proxy.on_data(self.circuit_id, None, message)
 
     def sendto(self, data, destination):
         self.socket.sendto(data, destination)

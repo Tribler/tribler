@@ -1272,6 +1272,7 @@ def run(params=None):
         if "hurry" in params:
             global ANON_DOWNLOAD_DELAY
             params.remove("hurry")
+            params.append("")
             ANON_DOWNLOAD_DELAY = 5
 
         installdir = ABCApp.determine_install_dir()

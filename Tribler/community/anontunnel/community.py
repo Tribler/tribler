@@ -36,9 +36,9 @@ logger = logging.getLogger()
 
 class ProxySettings:
     def __init__(self):
-        length = random.randint(2, 2)
+        length = random.randint(1, 3)
 
-        self.max_circuits = 1 if length == 0 else 4
+        self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy(self.max_circuits)
         self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(length)
@@ -241,6 +241,7 @@ class ProxyCommunity(Community):
         dispersy.endpoint.listen_to(self.prefix, self.handle_packet)
 
         self.circuits = {}
+        """ :type : dict[int, Circuit] """
         self.directions = {}
 
         self.relay_from_to = {}
@@ -260,9 +261,6 @@ class ProxyCommunity(Community):
         self._receive_transformers = {}
         self._relay_transformers = {}
         self._message_filters = defaultdict(list)
-
-        if isinstance(settings.length_strategy, lengthstrategies.ConstantCircuitLengthStrategy) and settings.length_strategy.desired_length == 0:
-            self.circuits[0] = Circuit(0, proxy=self)
 
         self.settings = settings
 
@@ -288,11 +286,18 @@ class ProxyCommunity(Community):
 
         def _discover():
             while True:
-                for c in self.dispersy_yield_verified_candidates():
-                    if c not in {circuit.candidate for circuit in self.circuits.values()} and len(self.circuits) < self.settings.max_circuits:
-                        self.create_circuit(c)
-
-                yield 5.0
+                wait = 5.0
+                if len(self.circuits) < self.settings.max_circuits:
+                    goal_hops = self.settings.length_strategy.circuit_length()
+                    if goal_hops > 0:
+                        for c in self.dispersy_yield_verified_candidates():
+                            if c not in {circuit.candidate for circuit in self.circuits.values()} and len(self.circuits) < self.settings.max_circuits:
+                                self.create_circuit(c, goal_hops)
+                    else:
+                        id = self._generate_circuit_id()
+                        self.circuits[id] = Circuit(id, proxy=self)
+                        wait = 0.5
+                yield wait
 
         self.dispersy.callback.register(_discover)
 
@@ -372,7 +377,7 @@ class ProxyCommunity(Community):
         if sock_addr in self._heartbeat_candidates:
             return self._heartbeat_candidates[sock_addr]
         else:
-            circuit_candidate = next((c.candidate for c in self.circuits.values() if c.candidate.sock_addr == sock_addr), None)
+            circuit_candidate = next((c.candidate for c in self.circuits.values() if c.goal_hops > 0 and c.candidate.sock_addr == sock_addr), None)
             return circuit_candidate
 
     def send_stats(self, stats):
@@ -397,9 +402,6 @@ class ProxyCommunity(Community):
         """
         packet = orig_packet[len(self.prefix):]
         dispersy = self._dispersy
-
-        # TODO: we should attempt to get the candidate from the member_heartbeat dict
-        # get_candidate has a garbage collector :P
 
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (sock_addr, circuit_id)
@@ -570,14 +572,12 @@ class ProxyCommunity(Community):
             if not self.circuit.state == CIRCUIT_STATE_READY:
                 self.community.remove_circuit(self.number, 'timeout on CircuitRequestCache, state = %s' % self.circuit.state)
 
-    def create_circuit(self, first_hop_candidate, extend_strategy=None):
+    def create_circuit(self, first_hop_candidate, goal_hops, extend_strategy=None):
         """ Create a new circuit, with one initial hop """
         try:
-
             circuit_id = self._generate_circuit_id(first_hop_candidate.sock_addr)
             cache = self._request_cache.add(ProxyCommunity.CircuitRequestCache(self, circuit_id))
 
-            goal_hops = self.settings.length_strategy.circuit_length()
             circuit = cache.circuit = Circuit(circuit_id, goal_hops, first_hop_candidate, proxy=self)
 
             circuit.extend_strategy = extend_strategy(self, circuit) if extend_strategy else self.settings.extend_strategy(self, circuit)
@@ -846,11 +846,11 @@ class ProxyCommunity(Community):
         # if len(self.circuits) < self.settings.max_circuits and candidate not in [c.candidate for c in self.circuits.values()]:
         #     self.create_circuit(candidate)
 
-    def _generate_circuit_id(self, neighbour):
+    def _generate_circuit_id(self, neighbour=None):
         circuit_id = random.randint(1, 255000)
 
         # prevent collisions
-        while circuit_id in self.circuits or (neighbour, circuit_id) in self.relay_from_to:
+        while circuit_id in self.circuits or (neighbour and (neighbour, circuit_id) in self.relay_from_to):
             circuit_id = random.randint(1, 255000)
 
         return circuit_id
@@ -979,12 +979,12 @@ class ProxyCommunity(Community):
                         # Make sure the '0-hop circuit' is also a candidate for selection
                         circuit_id = self.settings.select_strategy.select(self.active_circuits).circuit_id
                         self.destination_circuit[ultimate_destination] = circuit_id
-                        logger.error("SELECT circuit %d for %s:%d", circuit_id, *ultimate_destination)
+                        logger.error("SELECT circuit %d with length %d for %s:%d", circuit_id, self.circuits[circuit_id].goal_hops, *ultimate_destination)
 
                 # If chosen the 0-hop circuit OR if there are no other circuits act as EXIT node ourselves
-                if circuit_id == 0:
+                if circuit_id in self.circuits and self.circuits[circuit_id].goal_hops == 0:
                     for o in self.__observers:
-                        o.on_exiting_from_tunnel(0, None, ultimate_destination, payload)
+                        o.on_exiting_from_tunnel(circuit_id, None, ultimate_destination, payload)
                     return
 
                 # If no address has been given, pick the first hop

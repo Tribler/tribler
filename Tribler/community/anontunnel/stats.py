@@ -132,8 +132,8 @@ class StatsCollector(TunnelObserver):
     def on_exiting_from_tunnel(self, circuit_id, candidate, destination, data):
         self.stats['bytes_exit'] += len(data)
 
-        if circuit_id == 0:
-            self.circuit_stats[0].bytes_up[-1] += len(data)
+        if circuit_id in self.proxy.circuits and self.proxy.circuits[circuit_id].goal_hops == 0:
+            self.circuit_stats[circuit_id].bytes_up[-1] += len(data)
 
     def on_send_data(self, circuit_id, candidate, ultimate_destination, payload):
         self.circuit_stats[circuit_id].bytes_up[-1] += len(payload)
