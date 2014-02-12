@@ -160,7 +160,7 @@ class CreateTorrent(wx.Dialog):
         self.paths = None
 
     def OnBrowse(self, event):
-        dlg = wx.FileDialog(self, "Please select the file(s).", style=wx.FD_OPEN | wx.FD_MULTIPLE, defaultDir=self.latestFile)
+        dlg = wx.FileDialog(None, "Please select the file(s).", style=wx.FD_OPEN | wx.FD_MULTIPLE, defaultDir=self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = dlg.GetPaths()
             dlg.Destroy()
@@ -170,7 +170,7 @@ class CreateTorrent(wx.Dialog):
             dlg.Destroy()
 
     def OnBrowseDir(self, event):
-        dlg = wx.DirDialog(self, "Please a directory.", style=wx.DD_DIR_MUST_EXIST, defaultPath=self.latestFile)
+        dlg = wx.DirDialog(None, "Please a directory.", style=wx.DD_DIR_MUST_EXIST, defaultPath=self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = [dlg.GetPath()]
             dlg.Destroy()

@@ -175,7 +175,7 @@ class AddTorrent(wx.Dialog):
             dlg.Destroy()
 
     def OnBrowseDir(self, event):
-        dlg = wx.DirDialog(self, "Please select a directory contain the .torrent files", style=wx.wx.DD_DIR_MUST_EXIST)
+        dlg = wx.DirDialog(None, "Please select a directory contain the .torrent files", style=wx.wx.DD_DIR_MUST_EXIST)
 
         path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
         dlg.SetPath(path)
@@ -194,7 +194,7 @@ class AddTorrent(wx.Dialog):
         configfile2 = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_created')
         trackers = self.guiutility.channelsearch_manager.torrent_db.getRecentlyAliveTrackers()
 
-        dlg = CreateTorrent(self, configfile, configfile2, trackers, self.toChannel)
+        dlg = CreateTorrent(None, configfile, configfile2, trackers, self.toChannel)
         if dlg.ShowModal() == wx.ID_OK:
             for destdir, correctedfilename, torrentfilename in dlg.createdTorrents:
                 # Niels: important do not pass fixtorrent to startDownload, used to differentiate between created and imported torrents
@@ -215,7 +215,7 @@ class AddTorrent(wx.Dialog):
             tdef = TorrentDef.load_from_url(torrenturl)
 
         if tdef:
-            dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None)
+            dlg = SaveAs(None, tdef, self.defaultDLConfig.get_dest_dir(), None)
             id = dlg.ShowModal()
 
             if id == wx.ID_OK:
