@@ -170,6 +170,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.tdef = tdef
         self.handle = None
         self.vod_file = None
+        self.vod_lock = NoDispersyRLock()
 
         self.notifier = Notifier.getInstance()
 
@@ -356,7 +357,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.videoinfo['bitrate'] = self.get_def().get_bitrate()
 
             self.videoinfo['outpath'] = self.files[self.videoinfo['index']]
-            self.videoinfo['mimetype'] = self.get_mimetype(filename)
             self.videoinfo['usercallback'] = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.get_video_event_callback(), event, params)
             # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
             self.videoinfo['status'] = None
@@ -526,7 +526,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self.lm_network_vod_event_callback(self.videoinfo, VODEVENT_START,
                                               {"complete": complete,
                                                "filename": self.videoinfo["outpath"][0] if complete else None,
-                                               "mimetype": self.videoinfo["mimetype"],
                                                "stream": self.vod_file,
                                                "length": self.videoinfo['outpath'][1],
                                                "bitrate": self.videoinfo["bitrate"]})
@@ -1135,56 +1134,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         """
         if self.handle is not None:
             self.handle.connect_peer(addr, 0)
-
-    # ARNOCOMMENT: better if we removed this from Core, user knows which
-    # file he selected to play, let him figure out MIME type
-    def get_mimetype(self, file):
-        (prefix, ext) = os.path.splitext(file)
-        ext = ext.lower()
-        mimetype = None
-        if sys.platform == 'win32':
-            # TODO: Use Python's mailcap facility on Linux to find player
-            try:
-                from Tribler.Video.utils import win32_retrieve_video_play_command
-
-                [mimetype, playcmd] = win32_retrieve_video_play_command(ext, file)
-                self._logger.debug("LibtorrentDownloadImpl: Win32 reg said MIME type is %s", mimetype)
-            except:
-                print_exc()
-                pass
-        else:
-            try:
-                import mimetypes
-                # homedir = os.path.expandvars('${HOME}')
-                from Tribler.Core.osutils import get_home_dir
-                homedir = get_home_dir()
-                homemapfile = os.path.join(homedir, '.mimetypes')
-                mapfiles = [homemapfile] + mimetypes.knownfiles
-                mimetypes.init(mapfiles)
-                (mimetype, encoding) = mimetypes.guess_type(file)
-
-                self._logger.debug("LibtorrentDownloadImpl: /etc/mimetypes+ said MIME type is %s %s", mimetype, file)
-            except:
-                print_exc()
-
-        # if auto detect fails
-        if mimetype is None:
-            if ext == '.avi':
-                # Arno, 2010-01-08: Hmmm... video/avi is not official registered at IANA
-                mimetype = 'video/avi'
-            elif ext == '.mpegts' or ext == '.ts':
-                mimetype = 'video/mp2t'
-            elif ext == '.mkv':
-                mimetype = 'video/x-matroska'
-            elif ext in ('.ogg', '.ogv'):
-                mimetype = 'video/ogg'
-            elif ext in ('.oga'):
-                mimetype = 'audio/ogg'
-            elif ext == '.webm':
-                mimetype = 'video/webm'
-            else:
-                mimetype = 'video/mpeg'
-        return mimetype
 
     def dlconfig_changed_callback(self, section, name, new_value, old_value):
         if self.handle:

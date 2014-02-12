@@ -1,33 +1,23 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-from threading import currentThread
-from traceback import print_exc
-import inspect
-import os
-import re
+import wx
 import sys
 import urllib
 import urlparse
-import wx
-import copy
 import logging
 
-from Tribler.Video.defs import *
-from Tribler.Video.VideoServer import VideoHTTPServer, VideoRawVLCServer
-from Tribler.Video.utils import win32_retrieve_video_play_command, win32_retrieve_playcmd_from_mimetype, quote_program_path, videoextdefaults
+from binascii import hexlify
+from traceback import print_exc
+from threading import currentThread
 
+from Tribler.Video.defs import *
+from Tribler.Video.VideoServer import VideoServer
+from Tribler.Video.utils import win32_retrieve_video_play_command, win32_retrieve_playcmd_from_mimetype, quote_program_path, videoextdefaults
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.unicode import unicode2str, bin2unicode
 
-from Tribler.Video.CachingStream import SmartCachingStream
-from Tribler.Video.Ogg import is_ogg, OggMagicLiveStream
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Core.CacheDB.Notifier import Notifier
-
-if sys.platform == "linux2" or sys.platform == "darwin":
-    USE_VLC_RAW_INTERFACE = False
-else:
-    USE_VLC_RAW_INTERFACE = False  # False for Next-Share
 
 logger = logging.getLogger(__name__)
 
@@ -44,19 +34,11 @@ class VideoPlayer:
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.videoframe = None
-        self.extprogress = None
         self.vod_download = None
         self.playbackmode = None
-        self.preferredplaybackmode = None
-        self.closeextplayercallback = None
 
-        self.videohttpservport = httpport
-        self.videohttpserv = None
-        # Must create the instance here, such that it won't get garbage collected
-        self.videorawserv = VideoRawVLCServer.getInstance()
-
-        self.resume_by_system = 0
-        self.user_download_choice = None
+        self.videoserverport = httpport
+        self.videoserver = None
 
         self.notifier = Notifier.getInstance()
 
@@ -67,8 +49,8 @@ class VideoPlayer:
     getInstance = staticmethod(getInstance)
 
     def delInstance(*args, **kw):
-        if VideoPlayer.__single and VideoPlayer.__single.videohttpserv:
-            VideoPlayer.__single.videohttpserv.delInstance()
+        if VideoPlayer.__single and VideoPlayer.__single.videoserver:
+            VideoPlayer.__single.videoserver.delInstance()
             VideoPlayer.__single = None
     delInstance = staticmethod(delInstance)
 
@@ -76,35 +58,24 @@ class VideoPlayer:
         return VideoPlayer.__single and VideoPlayer.__single.vlcwrap and VideoPlayer.__single.vlcwrap.initialized
     hasInstance = staticmethod(hasInstance)
 
-    def register(self, utility, preferredplaybackmode=None, closeextplayercallback=None):
-
-        self.utility = utility  # TEMPARNO: make sure only used for language strings
-
-        self.preferredplaybackmode = preferredplaybackmode
-        self.determine_playbackmode()
+    def register(self, utility, preferredplaybackmode=None):
+        self.utility = utility
+        feasible = return_feasible_playback_modes(self.utility.getPath())
+        self.playbackmode = preferredplaybackmode if preferredplaybackmode in feasible else feasible[0]
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            # The python-vlc bindings. Created only once at the moment,
-            # as using MediaControl.exit() more than once with the raw interface
-            # blows up the GUI.
-            #
             from Tribler.Video.VLCWrapper import VLCWrapper
             self.vlcwrap = VLCWrapper(self.utility.getPath())
         else:
             self.vlcwrap = None
 
-        if self.playbackmode != PLAYBACKMODE_INTERNAL or not USE_VLC_RAW_INTERFACE:
-            # Start HTTP server for serving video to external player
-            self.videohttpserv = VideoHTTPServer.getInstance(self.videohttpservport)  # create
-            self.videohttpserv.background_serve()
-
-        if closeextplayercallback is not None:
-            self.closeextplayercallback = closeextplayercallback
+        # Start HTTP server for serving video
+        self.videoserver = VideoServer.getInstance(self.videoserverport, self.utility.session)
+        self.videoserver.start()
 
     def shutdown(self):
-        if self.videohttpserv:
-            self.videohttpserv.shutdown()
-            self.videohttpserv.server_close()
+        if self.videoserver:
+            self.videoserver.stop()
 
     def get_vlcwrap(self):
         return self.vlcwrap
@@ -112,153 +83,40 @@ class VideoPlayer:
     def set_videoframe(self, videoframe):
         self.videoframe = videoframe
 
-    def play_file(self, dest):
-        """ Play video file from disk """
-        self._logger.debug("videoplay: Playing file from disk %s", dest)
-
-        (prefix, ext) = os.path.splitext(dest)
-        [mimetype, cmd] = self.get_video_player(ext, dest)
-
-        self._logger.debug("videoplay: play_file: cmd is %s", cmd)
-
-        self.launch_video_player(cmd)
-
-    def play_file_via_httpserv(self, dest):
-        """ Play a file via our internal HTTP server. Needed when the user
-        selected embedded VLC as player and the filename contains Unicode
-        characters.
-        """
-        self._logger.debug("videoplay: Playing file with Unicode filename via HTTP")
-
-        (prefix, ext) = os.path.splitext(dest)
-        videourl = self.create_url(self.videohttpserv, '/' + os.path.basename(prefix + ext))
-        [mimetype, cmd] = self.get_video_player(ext, videourl)
-
-        stream = open(dest, "rb")
-        stats = os.stat(dest)
-        length = stats.st_size
-        streaminfo = {'mimetype': mimetype, 'stream': stream, 'length':length}
-        self.videohttpserv.set_inputstream(streaminfo)
-
-        self.launch_video_player(cmd)
-
-    def play_url(self, url):
-        """ Play video file from network or disk """
-        self._logger.debug("videoplay: Playing file from url %s", url)
-
-        self.determine_playbackmode()
-
-        t = urlparse.urlsplit(url)
-        dest = t[2]
-
-        # VLC will play .flv files, but doesn't like the URLs that YouTube uses,
-        # so quote them
-        if self.playbackmode != PLAYBACKMODE_INTERNAL:
-            if sys.platform == 'win32':
-                x = [t[0], t[1], t[2], t[3], t[4]]
-                n = urllib.quote(x[2])
-                self._logger.debug("videoplay: play_url: OLD PATH WAS %s NEW PATH %s", x[2], n)
-                x[2] = n
-                n = urllib.quote(x[3])
-                self._logger.debug("videoplay: play_url: OLD QUERY WAS %s NEW PATH %s", x[3], n)
-                x[3] = n
-                url = urlparse.urlunsplit(x)
-            elif url[0] != '"' and url[0] != "'":
-                # to prevent shell escape problems
-                # TODO: handle this case in escape_path() that now just covers spaces
-                url = "'" + url + "'"
-
-        (prefix, ext) = os.path.splitext(dest)
-        [mimetype, cmd] = self.get_video_player(ext, url)
-
-        self._logger.debug("videoplay: play_url: cmd is %s", cmd)
-
-        self.launch_video_player(cmd)
-
-    def play_stream(self, streaminfo):
-        self._logger.debug("videoplay: play_stream")
-
-        self.determine_playbackmode()
-
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            if USE_VLC_RAW_INTERFACE:
-                # Play using direct callbacks from the VLC C-code
-                self.launch_video_player(None, streaminfo=streaminfo)
-            else:
-                if 'url' in streaminfo:
-                    url = streaminfo['url']
-                    self.launch_video_player(url, streaminfo=streaminfo)
-                else:
-                    # Play via internal HTTP server
-                    self.videohttpserv.set_inputstream(streaminfo, '/')
-                    url = self.create_url(self.videohttpserv, '/')
-
-                    self.launch_video_player(url, streaminfo=streaminfo)
-        else:
-            # External player, play stream via internal HTTP server
-            path = '/'
-            self.videohttpserv.set_inputstream(streaminfo, path)
-            url = self.create_url(self.videohttpserv, path)
-
-            [mimetype, cmd] = self.get_video_player(None, url, mimetype=streaminfo['mimetype'])
-            self.launch_video_player(cmd)
-
-    def launch_video_player(self, cmd, streaminfo=None):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-
-            if cmd is not None:
-                # Play URL from network or disk
-                self.videoframe.get_videopanel().Load(cmd, streaminfo=streaminfo)
-            else:
-                # Play using direct callbacks from the VLC C-code
-                self.videoframe.get_videopanel().Load(cmd, streaminfo=streaminfo)
-
-            self.videoframe.show_videoframe()
-            self.videoframe.get_videopanel().StartPlay()
-        else:
-            # Launch an external player
-            # Play URL from network or disk
-            self.exec_video_player(cmd)
-
-    def stop_playback(self, reset=False):
+    def stop_playback(self):
         """ Stop playback in current video window """
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
             self.videoframe.get_videopanel().Stop()
             self.videoframe.Stop()
-            if reset:
-                self.videoframe.get_videopanel().Reset()
         self.set_vod_download(None)
 
     def pause_playback(self):
         """ Pause playback in current video window """
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
             self.videoframe.get_videopanel().Pause()
 
     def resume_playback(self):
         """ Resume playback in current video window """
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
             self.videoframe.get_videopanel().Resume()
 
     def show_loading(self):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
             self.videoframe.get_videopanel().ShowLoading()
             self.videoframe.ShowLoading()
 
     def recreate_videopanel(self):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
             # Playing a video can cause a deadlock in libvlc_media_player_stop. Until we come up with something cleverer, we fix this by recreating the videopanel.
             self.videoframe.recreate_videopanel()
 
     def close(self):
         """ Stop playback and close current video window """
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
             self.videoframe.hide_videoframe()
         self.set_vod_download(None)
 
-    def play(self, ds, selectedinfilename=None):
-        """ Used by Tribler Main """
-        self.determine_playbackmode()
-
+    def play(self, ds, selectedinfilename):
         d = ds.get_download()
         cdef = d.get_def()
 
@@ -337,6 +195,53 @@ class VideoPlayer:
         d.set_mode(DLMODE_VOD)
         d.restart()
 
+    def play_file(self, dest):
+        """ Play video file from disk """
+        self._logger.debug("videoplay: Playing file from disk %s", dest)
+
+        (prefix, ext) = os.path.splitext(dest)
+        [mimetype, cmd] = self.get_video_player(ext, dest)
+
+        self._logger.debug("videoplay: play_file: cmd is %s", cmd)
+
+        self.launch_video_player(cmd)
+
+    def play_file_via_httpserv(self, dest):
+        """ Play a file via our internal HTTP server. Needed when the user
+        selected embedded VLC as player and the filename contains Unicode
+        characters.
+        """
+        self._logger.debug("videoplay: Playing file with Unicode filename via HTTP")
+
+        (prefix, ext) = os.path.splitext(dest)
+        videourl = self.create_url(self.videoserver, '/' + os.path.basename(prefix + ext))
+        [mimetype, cmd] = self.get_video_player(ext, videourl)
+
+        stream = open(dest, "rb")
+        stats = os.stat(dest)
+        length = stats.st_size
+        streaminfo = {'stream': stream, 'length':length}
+        self.videoserver.set_inputstream(streaminfo)
+
+        self.launch_video_player(cmd)
+
+    def launch_video_player(self, cmd, streaminfo=None):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+
+            if cmd is not None:
+                # Play URL from network or disk
+                self.videoframe.get_videopanel().Load(cmd, streaminfo=streaminfo)
+            else:
+                # Play using direct callbacks from the VLC C-code
+                self.videoframe.get_videopanel().Load(cmd, streaminfo=streaminfo)
+
+            self.videoframe.show_videoframe()
+            self.videoframe.get_videopanel().StartPlay()
+        else:
+            # Launch an external player
+            # Play URL from network or disk
+            self.exec_video_player(cmd)
+
     def start_and_play(self, cdef, dscfg, selectedinfilename=None):
         """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
 
@@ -381,80 +286,46 @@ class VideoPlayer:
         self._logger.info("videoplay: gui_vod_event: %s", event)
         if event == VODEVENT_START:
             filename = params["filename"]
-            mimetype = params["mimetype"]
             stream = params["stream"]
             length = params["length"]
 
             if filename:
                 self.play_file(filename)
             else:
-                if d.get_def().get_live():
-                    cachestream = stream
-                    blocksize = d.get_def().get_piece_length()
-                else:
-                    if d.get_def().get_def_type() == "swift":
-                        piecelen = 2 ** 16
-                    else:
-                        piecelen = d.get_def().get_piece_length()
-
-                    if False and piecelen > 2 ** 17:
-                        # Arno, 2010-01-21:
-                        # Workaround for streams with really large piece
-                        # sizes. For some content/containers, VLC can do
-                        # GET X-, GET X+10K-, GET X+20K HTTP requests
-                        # and we would answer these by putting megabytes
-                        # into the stream buffer, of which only 10K would be
-                        # used. This kills performance. Hence I add a caching
-                        # stream that tries to resolve answers from its internal
-                        # buffer, before reading the engine's stream.
-                        # This works, but only if the HTTP server doesn't
-                        # read too aggressively, i.e., uses small blocksize.
-                        #
-                        cachestream = SmartCachingStream(stream)
-
-                        blocksize = max(32768, piecelen / 8)
-                    else:
-                        cachestream = stream
-                        blocksize = piecelen
-
-                if d.get_def().get_live() and is_ogg(d.get_def().get_name_as_unicode()):
-                    # Live Ogg stream. To support this we need to do
-                    # two things:
-                    # 1. Write Ogg headers (stored in .tstream)
-                    # 2. Find first Ogg page in stream.
-                    cachestream = OggMagicLiveStream(d.get_def(), stream)
-
-                # Estimate duration. Video player (e.g. VLC) often can't tell
-                # when streaming.
+                piecelen = 2 ** 16 if d.get_def().get_def_type() == "swift" else d.get_def().get_piece_length()
+                blocksize = piecelen
+                cachestream = stream
                 estduration = None
                 if d.get_def().get_def_type() == "torrent":
-                    if d.get_def().get_live():
-                        # Set correct Ogg MIME type
-                        if is_ogg(d.get_def().get_name_as_unicode()):
-                            mimetype = 'application/ogg'
-                    else:
-                        file = None
-                        if d.get_def().is_multifile_torrent():
-                            file = d.get_selected_files()[0]
-                        bitrate = d.get_def().get_bitrate(file)
-                        if bitrate is not None:
-                            estduration = float(length) / float(bitrate)
+                    bitrate = params.get('bitrate', None)
+                    if bitrate:
+                        estduration = float(length) / float(bitrate)
 
-                        # Set correct Ogg MIME type
-                        if file is None:
-                            if is_ogg(d.get_def().get_name_as_unicode()):
-                                mimetype = 'application/ogg'
-                        else:
-                            if is_ogg(file):
-                                mimetype = 'application/ogg'
-
-
-                streaminfo = {'mimetype': mimetype, 'stream': cachestream, 'length':length, 'blocksize':blocksize, 'estduration':estduration}
+                streaminfo = {'stream': cachestream, 'length': length, 'blocksize': blocksize, 'estduration': estduration}
 
                 if d.get_def().get_def_type() == "swift":
                     streaminfo['url'] = params['url']
 
-                self.play_stream(streaminfo)
+                if self.playbackmode == PLAYBACKMODE_INTERNAL:
+                    if 'url' in streaminfo:
+                        url = streaminfo['url']
+                        self.launch_video_player(url, streaminfo=streaminfo)
+                    else:
+                        # Play via internal HTTP server
+                        # self.videoserver.set_inputstream(streaminfo, '/')
+                        # url = self.create_url(self.videoserver, '/')
+                        url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/' + hexlify(d.get_def().get_id()) + '/' + str(d.get_vod_fileindex())
+                        self.launch_video_player(url, streaminfo=streaminfo)
+
+                else:
+                    # External player, play stream via internal HTTP server
+                    path = '/'
+                    self.videoserver.set_inputstream(streaminfo, path)
+                    url = self.create_url(self.videoserver, path)
+
+                    [_, cmd] = self.get_video_player(None, url)
+                    self.launch_video_player(cmd)
+
 
         elif event == VODEVENT_PAUSE:
             if self.videoframe is not None:
@@ -624,32 +495,8 @@ class VideoPlayer:
         if self.videoframe is not None:
             self.videoframe.get_videopanel().UpdateStatus(progress, progress_consec, pieces_complete, error)
 
-    @forceWxThread
-    def set_save_button(self, enable, savebutteneventhandler):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
-            self.videoframe.get_videopanel().EnableSaveButton(enable, savebutteneventhandler)
-
-    def get_state(self):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
-            return self.videoframe.get_videopanel().GetState()
-        else:
-            return MEDIASTATE_PLAYING
-
-    def determine_playbackmode(self):
-        feasible = return_feasible_playback_modes(self.utility.getPath())
-        if self.preferredplaybackmode in feasible:
-            self.playbackmode = self.preferredplaybackmode
-        else:
-            self.playbackmode = feasible[0]
-
     def get_playbackmode(self):
         return self.playbackmode
-
-    # def set_preferredplaybackmode(self,mode):
-    #    This is a bit complex: If there is no int. player avail we change
-    #    the VideoFrame to contain some minimal info. Would have to dynamically
-    #    change that back if we allow dynamic switching of video player.
-    #    self.preferredplaybackmode = mode
 
 
 class VideoChooser(wx.Dialog):
@@ -696,24 +543,6 @@ class VideoChooser(wx.Dialog):
         return self.file_chooser.GetSelection()
 
 
-def parse_playtime_to_secs(hhmmss):
-    logger.debug("videoplay: Playtime is %s", hhmmss)
-    r = re.compile("([0-9]+):*")
-    occ = r.findall(hhmmss)
-    t = None
-    if len(occ) > 0:
-        if len(occ) == 3:
-            # hours as well
-            t = int(occ[0]) * 3600 + int(occ[1]) * 60 + int(occ[2])
-        elif len(occ) == 2:
-            # minutes and seconds
-            t = int(occ[0]) * 60 + int(occ[1])
-        elif len(occ) == 1:
-            # seconds
-            t = int(occ[0])
-    return t
-
-
 def return_feasible_playback_modes(syspath):
     if sys.platform == 'darwin':
         return [PLAYBACKMODE_EXTERNAL_DEFAULT]
@@ -731,12 +560,6 @@ def return_feasible_playback_modes(syspath):
         if version < 0.9:
             raise Exception("Incorrect vlc version. We require at least version 0.9, this is %s" % version)
 
-        if USE_VLC_RAW_INTERFACE:
-            # check if the special raw interface is available
-            # pylint: disable-msg=E1101
-            if not inspect.ismethoddescriptor(vlc.MediaControl.set_raw_callbacks):
-                raise Exception("Incorrect vlc plugin. This does not provide the set_raw_callbacks method")
-            # pylint: enable-msg=E1101
         l.append(PLAYBACKMODE_INTERNAL)
     except Exception:
         print_exc()

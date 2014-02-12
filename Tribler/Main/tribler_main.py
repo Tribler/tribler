@@ -106,7 +106,6 @@ from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoServer import SimpleServer
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
 import Tribler.Core.DecentralizedTracking.pymdht.core
@@ -252,16 +251,8 @@ class ABCApp():
                 self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
                 self.i2is.start()
 
-            # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
-            # Range: GETs causes performance problems in our code. Disable for now.
-            # Arno, 2010-01-22: With the addition of a CachingStream the problem
-            # is less severe (see VideoPlayer), so keep GET Range enabled.
-            #
-            # SimpleServer.RANGE_REQUESTS_ENABLED = False
-
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
-
             httpport = self.utility.read_config('videohttpport')
             if ALLOW_MULTIPLE or httpport == -1:
                 httpport = self.utility.get_free_random_port('videohttpport')

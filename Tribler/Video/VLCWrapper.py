@@ -30,7 +30,7 @@ def check_threading():
 class VLCWrapper:
 
     """ Wrapper around the MediaControl API, to hide some of its quirks,
-    like the Position() objects, and to hide the VideoRawVLCServer from users.
+    like the Position() objects.
 
     At the moment, we create one instance of this class which is reused
     each time to create a VLCWindow.
@@ -52,17 +52,10 @@ class VLCWrapper:
         setting the window.
         """
         try:
-            if False and sys.platform == "darwin":
-                oldpath = os.getcwd()
-                os.chdir(os.path.join(self.installdir, 'vlc', 'lib'))
-                import vlc.lib.vlc as vlc
-                os.chdir(oldpath)
-            else:
-                import Tribler.vlc as vlc
+            import Tribler.vlc as vlc
         except:
             print_stack()
             print_exc()
-        from Tribler.Video.VideoServer import VideoRawVLCServer
 
         # avoid another init
         self.initialized = True
@@ -90,7 +83,6 @@ class VLCWrapper:
                 self.VLC_MEDIACONTROL_API_VERSION = "0.1"
 
         self.media = self.get_vlc_mediactrl()
-        self.videorawserv = VideoRawVLCServer.getInstance()
 
         self._logger.info("VLCWrapper is using API %s", self.VLC_MEDIACONTROL_API_VERSION)
 
@@ -253,9 +245,6 @@ class VLCWrapper:
         check_threading()
         self._logger.info("VLCWrapper: load: %s %s", url, streaminfo)
 
-        # self.media.exit()
-        # self.media = self.get_vlc_mediactrl()
-
         if url is None:
             """
             To prevent concurrency between the MainThread closing the
@@ -264,15 +253,7 @@ class VLCWrapper:
             persists during the lifetime of the player process.
             """
 
-            sid = random.randint(0, sys.maxsize)
-            self.videorawserv.set_inputstream(streaminfo, sid)
-
-            self._logger.debug("VLCWrapper: load: stream %s size %s", sid, streaminfo['length'])
-            length = streaminfo['length']
-            if length is None:
-                length = -1
-
-            self.media.set_raw_callbacks(self.videorawserv.ReadDataCallback, self.videorawserv.SeekDataCallback, length, sid)
+            pass
         else:
             self._logger.debug("VLCWrapper: load: calling playlist_add_item")
 

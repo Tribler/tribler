@@ -430,7 +430,7 @@ class TopSearchPanel(FancyPanel):
 
             if len(playable_files) > 1:  # Create a popup
                 playable_files.sort()
-                dialog = wx.SingleChoiceDialog(self, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play?', 'Which file do you want to play?', playable_files)
+                dialog = wx.SingleChoiceDialog(self, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play.', 'Which file do you want to play?', playable_files)
                 (_, selected_file) = max([(size, filename) for filename, size in torrent.files if filename in torrent.videofiles])
 
                 if selected_file in playable_files:
