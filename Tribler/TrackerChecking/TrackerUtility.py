@@ -5,6 +5,9 @@
 # ============================================================
 
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 url_regex = re.compile(
     r'^(?:http|udp)://' # http:// or udp
@@ -22,6 +25,13 @@ url_regex = re.compile(
 #    http://tracker.openbittorrent.com:80/announce
 # ------------------------------------------------------------
 def getUniformedURL(tracker_url):
+    # check if there is any strange binary in URL
+    try:
+        unicode(tracker_url)
+    except Exception as e:
+        logger.exception(u"Bad URL: %s", tracker_url)
+        return None
+
     tracker_url = tracker_url.strip()
     if tracker_url.endswith('/'):
         tracker_url = tracker_url[:-1]
