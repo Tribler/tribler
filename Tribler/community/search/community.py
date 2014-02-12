@@ -29,8 +29,7 @@ from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate
 from Tribler.dispersy.cache import IntroductionRequestCache
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler, \
-    LOW_PRIO_COLLECTING
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 from os import path
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -541,6 +540,8 @@ class SearchCommunity(Community):
                         from Tribler.Core.CacheDB.sqlitecachedb import bin2str
                         self._logger.debug("SearchCommunity: requesting .torrent after receiving ping/pong %s %s %s", candidate, bin2str(infohash), bin2str(roothash))
 
+                    # low_prio changes, hence we need to import it here
+                    from Tribler.Core.RemoteTorrentHandler import LOW_PRIO_COLLECTING
                     self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio=LOW_PRIO_COLLECTING, timeout=CANDIDATE_WALK_LIFETIME)
 
     def _create_pingpong(self, meta_name, candidates, identifiers=None):
