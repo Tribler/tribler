@@ -133,7 +133,8 @@ class CustomProxyConversion():
             MESSAGE_EXTEND: self.__encode_extend,
             MESSAGE_EXTENDED: self.__encode_extended,
             MESSAGE_DATA: self.__encode_data,
-            MESSAGE_PING: lambda message: ''
+            MESSAGE_PING: self.__encode_ping,
+            MESSAGE_PONG: self.__encode_pong
         }
 
         self.decode_functions = {
@@ -142,7 +143,8 @@ class CustomProxyConversion():
             MESSAGE_EXTEND: self.__decode_extend,
             MESSAGE_EXTENDED: self.__decode_extended,
             MESSAGE_DATA: self.__decode_data,
-            MESSAGE_PING: lambda socket_buffer, offset: PingMessage()
+            MESSAGE_PING: self.__decode_ping,
+            MESSAGE_PONG: self.__decode_pong
         }
 
     def encode(self, message_type, message):
@@ -247,6 +249,22 @@ class CustomProxyConversion():
             offset += payload_length
 
         return DataMessage(destination, payload, origin)
+
+    @staticmethod
+    def __encode_ping(message):
+        return ''
+
+    @staticmethod
+    def __encode_pong(message):
+        return ''
+
+    @staticmethod
+    def __decode_ping(message_buffer, offset=0):
+        return PingMessage()
+
+    @staticmethod
+    def __decode_pong(message_buffer, offset=0):
+        return PongMessage()
 
 
     @staticmethod
