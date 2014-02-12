@@ -925,6 +925,24 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         f.write(bdata)
         f.close()
 
+    def get_torrent_size(self):
+        """
+        Finalizes the torrent def and converts the metainfo to string, returns the 
+        number of bytes the string would take on disk.
+        """
+        if not self.readonly:
+            self.finalize()
+
+        # Boudewijn, 10/09/10: do not save the 'initial peers'.  (1)
+        # they should not be saved, as they are unlikely to be there
+        # the next time, and (2) bencode does not understand tuples
+        # and converts the (addres,port) tuple into a list.
+        if 'initial peers' in self.metainfo:
+            del self.metainfo['initial peers']
+
+        bdata = bencode(self.metainfo)
+        return len(bdata)
+
     def get_bitrate(self, file=None):
         """ Returns the bitrate of the specified file. If no file is specified,
         we assume this is a single-file torrent.

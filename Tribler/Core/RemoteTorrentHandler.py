@@ -96,6 +96,7 @@ class RemoteTorrentHandler:
         self.max_num_torrents = max_num_torrents
 
     def __check_overflow(self):
+        global LOW_PRIO_COLLECTING
         while True:
             self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
             self._logger.debug("rtorrent: check overflow: current %d max %d", self.num_torrents, self.max_num_torrents)
@@ -403,7 +404,7 @@ class RemoteTorrentHandler:
             items = qsize.items()
             if items:
                 items.sort()
-                return "%s: " % qname + ",".join(map(str, items))
+                return "%s: " % qname + ",".join(map(lambda a: "%d/%d" % a, items))
             return ''
         return ", ".join([qstring for qstring in [getQueueSize("TQueue", self.trequesters), getQueueSize("DQueue", self.drequesters), getQueueSize("MQueue", self.mrequesters)] if qstring])
 
@@ -424,11 +425,15 @@ class RemoteTorrentHandler:
             return '', ''
         return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TQueue", self.trequesters), getQueueSuccess("DQueue", self.drequesters), getQueueSuccess("MQueue", self.mrequesters)] if qstring]
 
-    def remove_all_requests(self):
-        self._logger.info("ONLY USE FOR TESTING PURPOSES")
-        for requester in self.trequesters.values() + self.mrequesters.values() + self.drequesters.values():
-            requester.remove_all_requests
-
+    def getBandwidthSpent(self):
+        def getQueueBW(qname, requesters):
+            bw = 0
+            for requester in requesters.itervalues():
+                bw += requester.bandwidth
+            if bw:
+                return "%s: " % qname + "%.1f KB" % (bw / 1024.0)
+            return ''
+        return ", ".join([qstring for qstring in [getQueueBW("TQueue", self.trequesters), getQueueBW("DQueue", self.drequesters)] if qstring])
 
 class Requester:
     REQUEST_INTERVAL = 0.5
@@ -447,6 +452,8 @@ class Requester:
         self.requests_success = 0
         self.requests_fail = 0
         self.requests_on_disk = 0
+
+        self.bandwidth = 0
 
     def add_request(self, hash, candidate, timeout=None):
         was_empty = self.queue.empty()
@@ -470,10 +477,6 @@ class Requester:
 
     def remove_request(self, hash):
         del self.sources[hash]
-
-    def remove_all_requests(self):
-        self.queue = Queue.Queue()
-        self.sources = {}
 
     def doRequest(self):
         try:
@@ -622,6 +625,7 @@ class TorrentRequester(Requester):
 
             self.remote_th.notify_possible_torrent_roothash(roothash)
             self.requests_success += 1
+            self.bandwidth += d.get_total_down()
             return (0, False)
         else:
             diff = time() - getattr(d, 'started_downloading', time())
@@ -736,6 +740,7 @@ class MagnetRequester(Requester):
             self.requestedInfohashes.remove(infohash)
 
         self.requests_success += 1
+        self.bandwidth += tdef.get_torrent_size()
 
     def __torrentdef_failed(self, infohash):
         if infohash in self.requestedInfohashes:

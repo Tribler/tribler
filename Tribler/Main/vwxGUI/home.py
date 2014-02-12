@@ -18,7 +18,7 @@ from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler,\
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
@@ -379,7 +379,10 @@ class NetworkPanel(HomePanel):
         self.nrFiles = StaticText(panel)
         self.totalSize = StaticText(panel)
         self.queueSize = StaticText(panel)
+        self.queueSize.SetToolTipString('Number of torrents queued per prio')
         self.queueSuccess = StaticText(panel)
+        self.queueBW = StaticText(panel)
+        self.queueBW.SetToolTipString('Bandwidth spent on collecting .torrents')
         self.nrChannels = StaticText(panel)
 
         self.freeMem = None
@@ -402,6 +405,8 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.queueSize, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Torrent queue success'))
         gridSizer.Add(self.queueSuccess, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Torrent queue bw'))
+        gridSizer.Add(self.queueBW, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Channels found'))
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND)
         if self.freeMem:
@@ -436,6 +441,7 @@ class NetworkPanel(HomePanel):
             self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
+        self.queueBW.SetLabel(self.remotetorrenthandler.getBandwidthSpent())
 
         qsuccess = self.remotetorrenthandler.getQueueSuccess()
         qlabel = ", ".join(label for label, tooltip in qsuccess)
@@ -814,32 +820,32 @@ class RightDispersyPanel(FancyPanel):
 
                     name = stat_dict['entry'].split('\n')[0]
                     combined_name = name.split()[0]
-                    
+
                     label = "duration = %7.2f ; entry = %s" % (stat_dict['duration'], name)
                     combined_runtime[combined_name].append((stat_dict['duration'], label, tuple(stat_list)))
 
                 for key, runtimes in combined_runtime.iteritems():
                     if len(runtimes) > 1:
                         total_duration = 0
-                        
-                        subcalls = defaultdict(list) 
+
+                        subcalls = defaultdict(list)
                         for duration, label, stat_list in runtimes:
                             total_duration += duration
                             subcalls[label].append(stat_list)
-                        
+
                         _subcalls = {}
                         for label, subcall_list in subcalls.iteritems():
                             if len(subcall_list) > 1:
                                 _subcalls[label] = subcall_list
                             else:
                                 _subcalls[label] = subcall_list[0]
-                                
+
                         runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = _subcalls
-                        
+
                     else:
                         duration, label, stat_list = runtimes[0]
                         runtime[label] = stat_list
-                    
+
             self.AddDataToTree(runtime, parentNode, self.runtime_tree, prepend=False, sort_dict=True)
 
         self.Layout()
