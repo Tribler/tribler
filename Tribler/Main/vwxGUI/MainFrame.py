@@ -497,7 +497,7 @@ class MainFrame(wx.Frame):
                     defaultname = tdef.get_name_as_unicode()
 
                 if wx.Thread_IsMain():
-                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
+                    dlg = SaveAs(None, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
                     dlg.CenterOnParent()
 
                     if isinstance(tdef, TorrentDefNoMetainfo):

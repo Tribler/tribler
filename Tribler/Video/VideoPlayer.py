@@ -464,7 +464,7 @@ class VideoPlayer:
                 self.videoframe.get_videopanel().Resume()
 
     def ask_user_to_select_video(self, videofiles):
-        dlg = VideoChooser(self.videoframe.get_window(), self.utility, videofiles, title='Tribler', expl='Select which file to play')
+        dlg = VideoChooser(None, self.utility, videofiles, title='Tribler', expl='Select which file to play')
         result = dlg.ShowModal()
         if result == wx.ID_OK:
             index = dlg.getChosenIndex()

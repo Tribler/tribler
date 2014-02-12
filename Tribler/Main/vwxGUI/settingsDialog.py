@@ -455,7 +455,7 @@ class SettingsDialog(wx.Dialog):
         dlg.Destroy()
 
     def BrowseClicked(self, event=None):
-        dlg = wx.DirDialog(self, "Choose download directory", style=wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.DirDialog(None, "Choose download directory", style=wx.DEFAULT_DIALOG_STYLE)
         dlg.SetPath(self.defaultDLConfig.get_dest_dir())
         if dlg.ShowModal() == wx.ID_OK:
             self.elements['diskLocationCtrl'].SetForegroundColour(wx.BLACK)
