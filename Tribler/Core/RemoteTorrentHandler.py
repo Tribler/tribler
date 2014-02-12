@@ -107,18 +107,24 @@ class RemoteTorrentHandler:
 
                 self._logger.info("rtorrent: ** limit space:: %d %d %d", self.num_torrents, self.max_num_torrents, num_delete)
 
+                LOW_PRIO_COLLECTING = 20
+
                 while num_delete > 0:
                     to_remove = min(num_delete, num_per_step)
                     num_delete -= to_remove
                     self.torrent_db.freeSpace(to_remove)
                     yield 5.0
-                LOW_PRIO_COLLECTING = 4
 
             elif self.num_torrents > (self.max_num_torrents * .75):
-                LOW_PRIO_COLLECTING = 3
+                LOW_PRIO_COLLECTING = 10
+
+            elif self.num_torrents > (self.max_num_torrents * .5):
+                LOW_PRIO_COLLECTING = 5
 
             else:
                 LOW_PRIO_COLLECTING = 2
+
+            print >> sys.stderr, "is now", LOW_PRIO_COLLECTING
 
             self._logger.debug("rtorrent: setting low_prio_collection to one .torrent every %.1f seconds", LOW_PRIO_COLLECTING * .5)
 
