@@ -15,7 +15,9 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from urlparse import urlparse
-from urllib2 import URLError
+from urllib2 import URLError, HTTPError
+import imghdr
+import tempfile
 
 try:
     from Tribler.Main.Utility.Feeds import feedparser
@@ -222,6 +224,50 @@ class RssParser(Thread):
 
                         newItems = self.readUrl(url, urls_already_seen)
                         for title, new_urls, description, thumbnail in newItems:
+                            downloaded_thumbnail_list = []
+                            thumbnail_tempdir = tempfile.mkdtemp()
+                            if thumbnail:
+                                thumbnail_count = 1
+                                try:
+                                    self._logger.debug("Trying to download thumbnail %s", thumbnail)
+
+                                    referer = urlparse(thumbnail)
+                                    referer = referer.scheme + "://" + referer.netloc + "/"
+                                    stream = urlOpenTimeout(thumbnail, referer=referer)
+                                    thumbnail_data = stream.read()
+                                    stream.close()
+
+                                    thumbnail_filename = u"thumbnail-%d" % thumbnail_count
+                                    thumbnail_filepath = os.path.join(thumbnail_tempdir, thumbnail_filename)
+                                    f = open(thumbnail_filepath, "wb")
+                                    f.write(thumbnail_data)
+                                    f.close()
+
+                                    # check image type
+                                    image_type = imghdr.what(thumbnail_filepath)
+                                    if image_type:
+                                        # rename the file with extension
+                                        old_thumbnail_filepath = thumbnail_filepath
+                                        thumbnail_filename += u"." + image_type
+                                        thumbnail_filepath += u"." + image_type
+                                        os.rename(old_thumbnail_filepath, thumbnail_filepath)
+
+                                        # add to the downloaded thumbnail list
+                                        downloaded_thumbnail_list.append(thumbnail_filename)
+                                    else:
+                                        # it's not an image, remove it.
+                                        os.remove(thumbnail_filepath)
+
+                                    thumbnail_count += 1
+
+                                except HTTPError as http_error:
+                                    if http_error.code == 404:
+                                        self._logger.debug("Could not find URL %s", thumbnail)
+                                    else:
+                                        self._logger.exception("Could not download thumbnail %s", thumbnail)
+                                except:
+                                    self._logger.exception("Could not download thumbnail %s", thumbnail)
+
                             for new_url in new_urls:
                                 urls_already_seen.add(new_url)
                                 urls_already_seen.write()
@@ -241,9 +287,9 @@ class RssParser(Thread):
                                     def processCallbacks(key):
                                         for callback in self.key_callbacks[key]:
                                             try:
-                                                callback(key, torrent, extraInfo={'title': title, 'description': description, 'thumbnail': thumbnail})
+                                                callback(key, torrent, extraInfo={'title': title, 'description': description, 'thumbnail': thumbnail, 'thumbnail-tempdir': thumbnail_tempdir, 'thumbnail-file-list': downloaded_thumbnail_list})
                                             except:
-                                                print_exc()
+                                                self._logger.exception(u"Failed to process torrent callback.")
 
                                     if self.remote_th.is_registered():
                                         callback = lambda key = key: processCallbacks(key)
@@ -251,9 +297,13 @@ class RssParser(Thread):
                                     else:
                                         processCallbacks(key)
 
+                                except HTTPError as http_error:
+                                    if http_error.code == 404:
+                                        self._logger.debug("Could not find URL %s", new_url)
+                                    else:
+                                        self._logger.exception("Could not download %s", new_url)
                                 except:
-                                    self._logger.debug("RssParser: could not download %s", new_url)
-                                    pass
+                                    self._logger.exception("RssParser: could not download %s", new_url)
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
 

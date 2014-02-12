@@ -1,6 +1,7 @@
 import logging
 import json
 import sys
+import binascii
 
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
@@ -9,9 +10,12 @@ from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
 
 from conversion import MetadataConversion
 from payload import MetadataPayload
+
+from Tribler.community.channel.community import forceDispersyThread
 
 
 class MetadataCommunity(Community):
@@ -106,8 +110,6 @@ class MetadataCommunity(Community):
             roothash = message.payload.roothash
 
             if infohash:
-                infohash = str2bin(infohash)
-
                 do_continue = False
                 for key,value in message.payload.data_list:
                     if key == "swift-thumbnails":
@@ -118,10 +120,10 @@ class MetadataCommunity(Community):
                         from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                         th_handler = RemoteTorrentHandler.getInstance()
                         if not th_handler.has_thumbnail(infohash, contenthash):
-                            self._logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
+                            self._logger.debug("Will try to download swift-thumbnails with roothash %s from %s", roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                             @forceDispersyThread
-                            def callback(message=message):
+                            def callback(_,message=message):
                                 self._dispersy.on_messages([message])
 
                             th_handler.download_thumbnail(message.candidate, roothash, infohash, contenthash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
@@ -129,7 +131,7 @@ class MetadataCommunity(Community):
                             break
 
                         else:
-                            self._logger.debug("Don't need to download swift-thumbnails with roothash %s from %s, already on disk", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
+                            self._logger.debug("Don't need to download swift-thumbnails with roothash %s from %s, already on disk", roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                 if do_continue:
                     continue

@@ -66,6 +66,66 @@ class TorrentStateManager:
         t = Thread(target=self._create_and_seed_metadata, args=(videofile, torrent), name="ThumbnailGenerator")
         t.start()
 
+    def _create_metadata_roothash_and_contenthash(self, tempdir, torrent):
+        assert isinstance(tempdir, str) or isinstance(tempdir, unicode), \
+            u"tempdir is of type %s" % type(tempdir)
+
+        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+        guiutility = GUIUtility.getInstance()
+        session = guiutility.utility.session
+
+        torcoldir = session.get_torrent_collecting_dir()
+        thumb_filenames = []
+        for filename in os.listdir(tempdir):
+            filepath = os.path.join(tempdir, filename)
+            if not os.path.isfile(filepath):
+                continue
+            if not (filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png")):
+                continue
+            thumb_filenames.append(filepath)
+
+        # Calculate sha1 of the thumbnails.
+        contenthash = hashlib.sha1()
+        for fn in thumb_filenames:
+            with open(fn, 'rb') as fp:
+                contenthash.update(fp.read())
+        contenthash_hex = contenthash.hexdigest()
+
+        # Move files to torcoldir/thumbs-infohash/contenthash.
+        finaldir = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash), contenthash_hex)
+        shutil.move(tempdir, finaldir)
+        thumb_filenames = [fn.replace(tempdir, finaldir) for fn in thumb_filenames]
+
+        if len(thumb_filenames) == 1:
+            mfplaceholder_path = os.path.join(finaldir, ".mfplaceholder")
+            open(mfplaceholder_path, "a").close()
+            thumb_filenames.append(mfplaceholder_path)
+
+        # Create SwiftDef.
+        sdef = SwiftDef()
+        sdef.set_tracker("127.0.0.1:%d" % session.get_swift_dht_listen_port())
+        for thumbfile in thumb_filenames:
+            if os.path.exists(thumbfile):
+                xi = os.path.relpath(thumbfile, torcoldir)
+                if sys.platform == "win32":
+                    xi = xi.replace("\\", "/")
+                si = xi.encode("UTF-8")
+                sdef.add_content(thumbfile, si)
+
+        specpn = sdef.finalize(session.get_swift_path(), destdir=torcoldir)
+        hex_roothash = sdef.get_roothash_as_hex()
+
+        try:
+            swift_filename = os.path.join(torcoldir, hex_roothash)
+            shutil.move(specpn, swift_filename)
+            shutil.move(specpn + '.mhash', swift_filename + '.mhash')
+            shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
+        except:
+            self._logger.exception(u"Failed to move swift files: specpn=%s, swift_filename=%s", specpn, swift_filename)
+
+        return hex_roothash, contenthash_hex
+
+
     def _create_and_seed_metadata(self, videofile, torrent):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -108,6 +168,7 @@ class TorrentStateManager:
             path_exists = os.path.exists(filename)
             self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
 
+        """
         # Calculate sha1 of the thumbnails.
         contenthash = hashlib.sha1()
         for fn in thumb_filenames:
@@ -141,10 +202,13 @@ class TorrentStateManager:
             shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
         except:
             print_exc()
+        """
+        roothash_hex, contenthash_hex = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
 
         # Create modification
         modifications = []
-        modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, sdef.get_roothash_as_hex(), contenthash_hex))))
+        #modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, sdef.get_roothash_as_hex(), contenthash_hex))))
+        modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
         modifications.append(('video-info', json.dumps(video_info)))
 
         self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)

@@ -8,6 +8,7 @@ from traceback import print_exc
 from time import time
 from math import sqrt
 import threading
+import json
 
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, \
@@ -484,7 +485,7 @@ class TorrentManager:
             if not torrent_filename:
                 # this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
-                    if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False, prio=1):
+                    if self.downloadTorrentfileFromPeers(hit, lambda _,infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
                         self._logger.debug("Prefetch: attempting to download actual torrent %s", hit.name)
                         prefetch_counter[0] += 1
 
@@ -805,6 +806,32 @@ class TorrentManager:
                 metadata_mod_list.append(MetadataModification(torrent, message_id, key, value))
 
         return metadata_mod_list
+
+
+    @forceDispersyThread
+    def createMetadataModificationFromDef(self, channel_id, tdef, extraInfo={}, forward=True):
+        torrent = Torrent.fromTorrentDef(tdef)
+
+        modifications = []
+        for key, value in extraInfo.iteritems():
+            if key == 'thumbnail':
+                continue
+            if key == 'thumbnail-tempdir':
+                continue
+            elif key == 'thumbnail-file-list':
+                continue
+            modifications.append((key, value))
+
+        # handle the downloaded thumbnails
+        if extraInfo['thumbnail-file-list']:
+            from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
+            roothash_hex, contenthash_hex = TorrentStateManager.getInstance()._create_metadata_roothash_and_contenthash(extraInfo['thumbnail-tempdir'], torrent)
+
+            modifications.append(('swift-thumbnails', json.dumps((None, roothash_hex, contenthash_hex))))
+
+            self.modifyTorrent(torrent, modifications)
+
+        return True
 
 
 class LibraryManager:
