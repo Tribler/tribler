@@ -124,8 +124,6 @@ class RemoteTorrentHandler:
             else:
                 LOW_PRIO_COLLECTING = 2
 
-            print >> sys.stderr, "is now", LOW_PRIO_COLLECTING
-
             self._logger.debug("rtorrent: setting low_prio_collection to one .torrent every %.1f seconds", LOW_PRIO_COLLECTING * .5)
 
             yield 30 * 60.0  # run every 30 minutes
