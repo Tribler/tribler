@@ -472,6 +472,7 @@ class ABCApp():
             from Tribler.community.allchannel.community import AllChannelCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
+            from Tribler.community.metadata.community import MetadataCommunity
 
             self._logger.info("tribler: Preparing communities...")
             now = time()
@@ -484,6 +485,12 @@ class ABCApp():
                                            (s.dispersy_member,),
                                            {},
                                            load=True)
+
+            # load metadata community
+            dispersy.define_auto_load(MetadataCommunity,
+                               (s.dispersy_member,),
+                               {},
+                               load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade

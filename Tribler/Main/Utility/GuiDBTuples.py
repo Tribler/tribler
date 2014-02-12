@@ -762,6 +762,23 @@ class Playlist(Helper):
         return False
 
 
+class MetadataModification(Helper):
+    __slots__ = ('torrent', 'message_id', 'key', 'value')
+
+
+    def __init__(self, torrent, message_id, key, value):
+        Helper.__init__(self)
+
+        self.torrent = torrent
+        self.message_id = message_id
+        self.key = key
+        self.value = value
+
+    @property
+    def name(self):
+        return self.key
+
+
 class Modification(Helper):
     __slots__ = ('id', 'dispersy_id', 'peer_id', 'type_id', 'value', 'time_stamp', 'inserted', 'moderation', 'channeltorrent_id', 'channelcast_db', 'get_nickname')
 

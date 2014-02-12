@@ -37,7 +37,7 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
     CollectedTorrent, RemoteTorrent, NotCollectedTorrent, LibraryTorrent, \
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation, \
-    RemoteChannelTorrent, Marking
+    RemoteChannelTorrent, Marking, MetadataModification
 
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.community.search.community import SearchCommunity
@@ -353,6 +353,7 @@ class TorrentManager:
             self.col_torrent_dir = self.session.get_torrent_collecting_dir()
 
             self.misc_db = session.open_dbhandler(NTFY_MISC)
+            self.metadata_db = session.open_dbhandler(NTFY_METADATA)
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
             self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
@@ -779,6 +780,31 @@ class TorrentManager:
             else:
                 return_dict[hit.infohash] = 0
         return return_dict
+
+
+    @forceDispersyThread
+    def modifyTorrent(self, torrent, modifications):
+        for community in self.dispersy.get_communities():
+            if isinstance(community, MetadataCommunity):
+                community.create_metadata_message(torrent.infohash,
+                    torrent.swift_hash, modifications)
+                break
+
+
+    def getTorrentModifications(self, torrent):
+        message_list = self.metadata_db.getMetadataMessageList(
+            torrent.infohash, torrent.swift_hash,
+            columns=("message_id",))
+        if not message_list:
+            return []
+
+        metadata_mod_list = []
+        for message_id, in message_list:
+            data_list = self.metadata_db.getMetadataData(message_id)
+            for key, value in data_list:
+                metadata_mod_list.append(MetadataModification(torrent, message_id, key, value))
+
+        return metadata_mod_list
 
 
 class LibraryManager:

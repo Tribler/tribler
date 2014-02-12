@@ -48,7 +48,7 @@ class MetadataConversion(BinaryConversion):
         if not u"roothash" in dic:
             raise DropPacket(u"Missing 'roothash'")
         roothash = dic[u"roothash"]
-        if not (isinstance(roothash, str) and len(roothash) == 20):
+        if not roothash or not (isinstance(roothash, str) and len(roothash) == 20):
             raise DropPacket(u"Invalid 'roothash' type or value")
 
         if not u"data-list" in dic:

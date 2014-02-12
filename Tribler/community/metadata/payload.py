@@ -10,8 +10,9 @@ class MetadataPayload(Payload):
         def __init__(self, meta, infohash, roothash, data_list, prev_metadata_mid=None, prev_metadata_global_time=None):
             assert isinstance(infohash, str), u"infohash is a %s" % type(infohash)
             assert len(infohash) == 20, u"infohash has length %d" % len(infohash)
-            assert isinstance(roothash, str), u"roothash is a %s" % type(roothash)
-            assert len(roothash) == 20, u"roothash has length %d" % len(roothash)
+            if roothash:
+                assert isinstance(roothash, str), u"roothash is a %s" % type(roothash)
+                assert len(roothash) == 20, u"roothash has length %d" % len(roothash)
 
             assert isinstance(data_list, list), u"data_list is a %s" % type(data_list)
             for data in data_list:

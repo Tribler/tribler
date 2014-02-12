@@ -48,27 +48,19 @@ class TorrentStateManager:
         self.channelsearch_manager = channelsearch_manager
 
     def torrentFinished(self, infohash):
-        _, _, torrents = self.channelsearch_manager.getChannnelTorrents(infohash)
+        torrent = self.torrent_manager.getTorrentByInfohash(infohash)
 
-        openTorrents = []
-        for torrent in torrents:
-            state, iamModerator = torrent.channel.getState()
-            if state >= ChannelCommunity.CHANNEL_SEMI_OPEN or iamModerator:
-                openTorrents.append(torrent)
+        self.library_manager.addDownloadState(torrent)
+        torrent = self.torrent_manager.loadTorrent(torrent)
 
-        if len(openTorrents) > 0:
-            torrent = openTorrents[0]
-            self.library_manager.addDownloadState(torrent)
-            torrent = self.torrent_manager.loadTorrent(torrent)
+        ds = torrent.ds
+        dest_files = ds.get_download().get_dest_files()
+        largest_file = torrent.largestvideofile
 
-            ds = torrent.ds
-            dest_files = ds.get_download().get_dest_files()
-            largest_file = torrent.largestvideofile
-
-            for filename, destname in dest_files:
-                if filename == largest_file:
-                    self._logger.info('Can run post-download scripts for %s %s %s', torrent, filename, destname)
-                    self.create_and_seed_metadata(destname, torrent)
+        for filename, destname in dest_files:
+            if filename == largest_file:
+                self._logger.info('Can run post-download scripts for %s %s %s', torrent, filename, destname)
+                self.create_and_seed_metadata(destname, torrent)
 
     def create_and_seed_metadata(self, videofile, torrent):
         t = Thread(target=self._create_and_seed_metadata, args=(videofile, torrent), name="ThumbnailGenerator")
@@ -151,9 +143,11 @@ class TorrentStateManager:
             print_exc()
 
         # Create modification
-        modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())),
-                         'video-info': json.dumps(video_info)}
+        modifications = []
+        modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, sdef.get_roothash_as_hex(), contenthash_hex))))
+        modifications.append(('video-info', json.dumps(video_info)))
 
         self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
 
-        self.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, modifications)
+
+        self.torrent_manager.modifyTorrent(torrent, modifications)

@@ -396,7 +396,9 @@ class Session(SessionConfigInterface):
         try:
             if subject == NTFY_MISC:
                 return self.lm.misc_db
-            if subject == NTFY_PEERS:
+            elif subject == NTFY_METADATA:
+                return self.lm.metadata_db
+            elif subject == NTFY_PEERS:
                 return self.lm.peer_db
             elif subject == NTFY_TORRENTS:
                 return self.lm.torrent_db

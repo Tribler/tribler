@@ -1,4 +1,6 @@
 import logging
+import json
+import sys
 
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
@@ -29,13 +31,40 @@ class MetadataCommunity(Community):
         else:
             self._metadata_db = MetadataDBStub(self._dispersy)
 
+
+    @classmethod
+    def get_master_members(cls, dispersy):
+#generated: Tue Feb 11 15:45:16 2014
+#curve: NID_sect571r1
+#len: 571 bits ~ 144 bytes signature
+#pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000403ff7018e81044cda2e07785d32fa6185d63bad66a6c5dd09286ae401923dc2f85d5c7163adb5cac030ca0841c560cd1ceb9e09a1d08033f8651a50cabd7c3ae7e11b19922caf3470274707dad47eb5eb5a03bc0b4e3bcfb63875afb99b93539d0d6f21f3b8ece9633b4aadce136ead39020d247fc5b235671d2aca6b7e5cfc624c8fdc23d722cac16d59cd78c6c5a99
+#pub-sha1 20ad48286697d4767652d51b9b66de6e595e9aa0
+#-----BEGIN PUBLIC KEY-----
+#MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQD/3AY6BBEzaLgd4XTL6YYXWO61mps
+#XdCShq5AGSPcL4XVxxY621ysAwyghBxWDNHOueCaHQgDP4ZRpQyr18OufhGxmSLK
+#80cCdHB9rUfrXrWgO8C047z7Y4da+5m5NTnQ1vIfO47OljO0qtzhNurTkCDSR/xb
+#I1Zx0qymt+XPxiTI/cI9ciysFtWc14xsWpk=
+#-----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ff7018e81044cda2e07785d32fa6185d63bad66a6c5dd09286ae401923dc2f85d5c7163adb5cac030ca0841c560cd1ceb9e09a1d08033f8651a50cabd7c3ae7e11b19922caf3470274707dad47eb5eb5a03bc0b4e3bcfb63875afb99b93539d0d6f21f3b8ece9633b4aadce136ead39020d247fc5b235671d2aca6b7e5cfc624c8fdc23d722cac16d59cd78c6c5a99".decode("HEX")
+        master = dispersy.get_member(master_key)
+        return [master]
+
+    @classmethod
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True):
+        try:
+            dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
+        except StopIteration:
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler)
+        else:
+            return super(MetadataCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler)
+
     @property
     def dispersy_sync_skip_enable(self):
-        return False
+        return self._integrate_with_tribler
 
     @property
     def dispersy_sync_cache_enable(self):
-        return False
+        return self._integrate_with_tribler
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MetadataConversion(self)]
@@ -48,7 +77,7 @@ class MetadataCommunity(Community):
 
 
     def create_metadata_message(self, infohash, roothash, data_list):
-        columns = (u"previous_global_time", u"previous_mid", u"this_global_time", u"this_mid")
+        columns = ("previous_global_time", "previous_mid", "this_global_time", "this_mid")
         result_list = self._metadata_db.getMetadataMessageList(
             infohash, roothash, columns)
 
@@ -82,15 +111,20 @@ class MetadataCommunity(Community):
                 do_continue = False
                 for key,value in message.payload.data_list:
                     if key == "swift-thumbnails":
-                        roothash = value
-                        if not th_handler.has_thumbnail(infohash, roothash):
+                        _, roothash, contenthash = json.loads(value)
+                        roothash = binascii.unhexlify(roothash)
+                        contenthash = binascii.unhexlify(contenthash)
+
+                        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+                        th_handler = RemoteTorrentHandler.getInstance()
+                        if not th_handler.has_thumbnail(infohash, contenthash):
                             self._logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                             @forceDispersyThread
                             def callback(message=message):
                                 self._dispersy.on_messages([message])
 
-                            th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            th_handler.download_thumbnail(message.candidate, roothash, infohash, contenthash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             do_continue = True
                             break
 
@@ -141,7 +175,7 @@ class MetadataCommunity(Community):
             # select the metadata messages from DB
             message_list = self._metadata_db.getMetadataMessageList(
                 message.payload.infohash, message.payload.roothash,
-                (u"previous_global_time", u"previous_mid", u"this_global_time", u"this_mid", u"dispersy_id"))
+                ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "dispersy_id"))
 
             if message.payload.prev_metadata_mid:
                 prev_metadata_mid = message.payload.prev_metadata_mid
@@ -197,12 +231,8 @@ class MetadataCommunity(Community):
                 message.payload.prev_metadata_mid, message.payload.prev_metadata_global_time)
 
             # new metadata data to insert
-            key_set = set()
             for key, value in message.payload.data_list:
-                # avoid collision when inserting
-                if key not in key_set:
-                    key_set.add(key)
-                    value_list.append((message_id, key, value))
+                value_list.append((message_id, key, value))
 
         self._metadata_db.addMetadataDataInBatch(value_list)
 
@@ -211,7 +241,7 @@ class MetadataCommunity(Community):
         for to_clear_infohash, to_clear_roothash in to_clear_set:
             message_list = self._metadata_db.getMetadataMessageList(
                 to_clear_infohash, to_clear_roothash,
-                (u"previous_global_time", u"previous_mid", u"this_global_time", u"this_mid", u"dispersy_id"))
+                ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "dispersy_id"))
 
             # compare previous pointers
             if message_list:
@@ -246,7 +276,7 @@ class MetadataDBStub(object):
     def getMetadataMessageList(self, infohash, roothash, columns):
         message_list = []
         for data in self._metadata_message_db_list:
-            if data[u"infohash"] != infohash or data[u"roothash"] != roothash:
+            if data["infohash"] != infohash or data["roothash"] != roothash:
                 continue
 
             message = []
@@ -261,14 +291,14 @@ class MetadataDBStub(object):
     def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
             infohash, roothash,
             prev_metadata_mid=None, prev_metadata_global_time=None):
-        data = {u"message_id": self._auto_message_id,
-                u"dispersy_id": dispersy_id,
-                u"this_global_time": this_global_time,
-                u"this_mid": this_mid,
-                u"infohash": infohash,
-                u"roothash": roothash,
-                u"previous_mid": prev_metadata_mid,
-                u"previous_global_time": prev_metadata_global_time}
+        data = {"message_id": self._auto_message_id,
+                "dispersy_id": dispersy_id,
+                "this_global_time": this_global_time,
+                "this_mid": this_mid,
+                "infohash": infohash,
+                "roothash": roothash,
+                "previous_mid": prev_metadata_mid,
+                "previous_global_time": prev_metadata_global_time}
         self._metadata_message_db_list.append(data)
 
         this_message_id = self._auto_message_id
@@ -279,9 +309,9 @@ class MetadataDBStub(object):
 
     def addMetadataDataInBatch(self, value_tuple_list):
         for value_tuple in value_tuple_list:
-            data = {u"message_id": value_tuple[0],
-                    u"data_key": value_tuple[1],
-                    u"data_value": value_tuple[2]
+            data = {"message_id": value_tuple[0],
+                    "data_key": value_tuple[1],
+                    "data_value": value_tuple[2]
             }
             self._metadata_data_db_list.append(data)
 
@@ -289,6 +319,6 @@ class MetadataDBStub(object):
     def deleteMetadataMessage(self, dispersy_id):
         new_metadata_message_db_list = []
         for data in self._metadata_message_db_list:
-            if data[u"dispersy_id"] != dispersy_id:
+            if data["dispersy_id"] != dispersy_id:
                 new_metadata_message_db_list.append(data)
         self._metadata_message_db_list = new_metadata_message_db_list

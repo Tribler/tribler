@@ -40,10 +40,12 @@ import logging
 # Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
 # Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables, removed indices
 # Changed from 17 to 18 added swift-thumbnails/video-info metadatatypes
+# Changed from 18 to 19 cleaned peer table, added tracker tables.
+# Changed from 19 to 20 added metdata message and data tables.
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is
 # written to the DB in the schema_sdb_v*.sql file!!!
-CURRENT_MAIN_DB_VERSION = 19
+CURRENT_MAIN_DB_VERSION = 20
 
 config_dir = None
 CREATE_SQL_FILE = None
@@ -1191,6 +1193,32 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             INSERT INTO MetaDataTypes ('name') VALUES ('name');
             INSERT INTO MetaDataTypes ('name') VALUES ('description');
             """
+            self.execute_write(sql)
+
+        if fromver < 20:
+            sql = \
+"""
+--------------------------------------
+-- Creating BundlerPreference DB
+----------------------------------
+CREATE TABLE MetadataMessage (
+  message_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  dispersy_id            INTEGER NOT NULL,
+  this_global_time       INTEGER NOT NULL,
+  this_mid               TEXT NOT NULL,
+  infohash               TEXT NOT NULL,
+  roothash               TEXT,
+  previous_mid           TEXT,
+  previous_global_time   INTEGER
+);
+
+CREATE TABLE MetadataData (
+  message_id  INTEGER,
+  data_key    TEXT NOT NULL,
+  data_value  INTEGER,
+  FOREIGN KEY (message_id) REFERENCES MetadataMessage(message_id) ON DELETE CASCADE
+);
+"""
             self.execute_write(sql)
 
         # updating version stepwise so if this works, we store it

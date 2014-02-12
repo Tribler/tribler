@@ -34,7 +34,7 @@ CREATE TABLE MetadataMessage (
   this_global_time       INTEGER NOT NULL,
   this_mid               TEXT NOT NULL,
   infohash               TEXT NOT NULL,
-  roothash               TEXT NOT NULL,
+  roothash               TEXT,
   previous_mid           TEXT,
   previous_global_time   INTEGER
 );
@@ -43,7 +43,6 @@ CREATE TABLE MetadataData (
   message_id  INTEGER,
   data_key    TEXT NOT NULL,
   data_value  INTEGER,
-  PRIMARY KEY (message_id, data_key),
   FOREIGN KEY (message_id) REFERENCES MetadataMessage(message_id) ON DELETE CASCADE
 );
 
@@ -478,7 +477,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 19);
+INSERT INTO MyInfo VALUES ('version', 20);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
