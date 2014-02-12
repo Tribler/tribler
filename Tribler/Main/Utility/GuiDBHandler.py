@@ -65,6 +65,10 @@ class GUIDBProducer():
     @classmethod
     def delInstance(cls, *args, **kw):
         GUIDBProducer.__single = None
+        
+    @classmethod
+    def hasInstance(cls):
+        return GUIDBProducer.__single != None
 
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
@@ -324,17 +328,21 @@ def startWorker(
     else:
         sender = MySenderCallAfter(consumer, result, jobID, args=cargs, kwargs=ckwargs)
 
-    thread = GUIDBProducer.getInstance()
-    thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs,
-            name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, priority=priority, workerType=workerType)
+    if GUIDBProducer.hasInstance():
+        thread = GUIDBProducer.getInstance()
+        thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs,
+                name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, priority=priority, workerType=workerType)
 
-    return result
+        return result
 
 
 def cancelWorker(uId):
-    thread = GUIDBProducer.getInstance()
-    thread.Remove(uId)
+    if GUIDBProducer.hasInstance():
+        thread = GUIDBProducer.getInstance()
+        thread.Remove(uId)
 
 def onWorkerThread(type):
-    dbProducer = GUIDBProducer.getInstance()
-    return dbProducer.onSameThread(type)
+    if GUIDBProducer.hasInstance():
+        dbProducer = GUIDBProducer.getInstance()
+        return dbProducer.onSameThread(type)
+    return False
