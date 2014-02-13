@@ -95,6 +95,7 @@ class TriblerLaunchMany(Thread):
                 self.spm = SwiftProcessMgr(self.session.get_swift_path(), self.session.get_swift_tunnel_cmdgw_listen_port(), self.session.get_swift_downloads_per_process(), self.session.get_swift_tunnel_listen_port(), self.sesslock)
                 try:
                     self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
+                    self.swift_socks5_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port(), True)
                     self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
 
                 except OSError:
@@ -104,6 +105,7 @@ class TriblerLaunchMany(Thread):
             else:
                 self.spm = None
                 self.swift_process = None
+                self.swift_socks5_process = None
 
             # Dispersy
             self.session.dispersy_member = None
