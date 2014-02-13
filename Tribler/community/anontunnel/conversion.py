@@ -146,7 +146,7 @@ class CustomProxyConversion():
             MESSAGE_EXTENDED: self.__decode_extended,
             MESSAGE_DATA: self.__decode_data,
             MESSAGE_PING: self.__decode_ping,
-            MESSAGE_PONG: self.__decode_pong
+            MESSAGE_PONG: self.__decode_pong,
             MESSAGE_PING: lambda socket_buffer, offset: Tribler.community.anontunnel.payload.PingMessage()
         }
 
