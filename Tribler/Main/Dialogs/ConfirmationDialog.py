@@ -33,8 +33,6 @@ class ConfirmationDialog(wx.Dialog):
         mainSizer.Add(buttonSizer, 0, wx.EXPAND | wx.ALL, 15)
         self.SetSizer(mainSizer)
 
-        self.Bind(wx.EVT_CLOSE, self.OnCancel)
-
     def OnConfirm(self, event):
         if self.checkbox.GetValue():
             GUIUtility.getInstance().WriteGuiSetting('show_%s' % self.GetName(), False)
