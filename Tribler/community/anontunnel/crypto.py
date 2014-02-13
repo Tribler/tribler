@@ -32,14 +32,14 @@ class DefaultCrypto(object):
         """
         self.proxy = proxy
 
-        proxy.add_relay_transformer(self._crypto_relay)
-        proxy.add_receive_transformer(self._crypto_incoming)
-        proxy.add_send_transformer(self._crypto_outgoing)
+        proxy.relay_transformers.append(self._crypto_relay)
+        proxy.receive_transformers.append(self._crypto_incoming)
+        proxy.send_transformers.append(self._crypto_outgoing)
 
     def disable(self):
-        self.proxy.remove_relay_transformer(self._crypto_relay)
-        self.proxy.remove_receive_transformer(self._crypto_incoming)
-        self.proxy.remove_send_transformer(self._crypto_outgoing)
+        self.proxy.relay_transformers.remove(self._crypto_relay)
+        self.proxy.receive_transformers.remove(self._crypto_incoming)
+        self.proxy.send_transformers.remove(self._crypto_outgoing)
 
     def _crypto_outgoing(self, candidate, circuit_id, message_type, content):
         relay_key = (candidate.sock_addr, circuit_id)

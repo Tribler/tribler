@@ -43,6 +43,11 @@ logger = logging.getLogger()
 
 
 class ProxySettings:
+    """
+    Data structure containing settings, including some defaults,
+    for the ProxyCommunity
+    """
+
     def __init__(self):
         length = random.randint(1, 3)
 
@@ -56,6 +61,10 @@ class ProxySettings:
 
 
 class RelayRoute(object):
+    """
+    Relay object containing the destination circuit, socket address and whether
+    it is online or not
+    """
     def __init__(self, circuit_id, sock_addr):
         """
         @type sock_addr: (str, int)
@@ -80,6 +89,10 @@ class RelayRoute(object):
 
     @property
     def bytes(self):
+        """
+        Number of bytes that have been sent to the destination address
+        """
+
         return 0
 
 
@@ -212,6 +225,12 @@ class Hop:
 
 class TunnelObserver:
     def __init__(self):
+        pass
+
+    def on_break_circuit(self, circuit):
+        pass
+
+    def on_break_relay(self, relay_key):
         pass
 
     def on_state_change(self, community, state):
@@ -350,9 +369,10 @@ class ProxyCommunity(Community):
         sr = random.SystemRandom()
         sys.modules["random"] = sr
 
-        self._send_transformers = {}
-        self._receive_transformers = {}
-        self._relay_transformers = {}
+        self.send_transformers = []
+        self.receive_transformers = []
+        ''' @type: dict[,(Candidate, int, str) -> ] '''
+        self.relay_transformers = []
         self._message_filters = defaultdict(list)
 
         # Map destination address to the circuit to be used
@@ -532,7 +552,7 @@ class ProxyCommunity(Community):
 
     def __handle_incoming(self, circuit_id, am_originator, candidate, data):
         # Transform incoming data using registered transformers
-        for f in self._receive_transformers:
+        for f in self.receive_transformers:
             data = f(candidate, circuit_id, data)
 
         # Try to parse the packet
@@ -579,7 +599,7 @@ class ProxyCommunity(Community):
         direction = self.directions[relay_key]
         next_relay = self.relay_from_to[relay_key]
 
-        for f in self._relay_transformers:
+        for f in self.relay_transformers:
             data = f(direction, sock_addr, circuit_id, data)
 
         this_relay_key = (next_relay.sock_addr, next_relay.circuit_id)
@@ -701,8 +721,8 @@ class ProxyCommunity(Community):
             self.circuit.unverified_hop = None
 
             try:
-                candidate_list = self.community.decrypt_candidate_list(key,
-                                                                       extended_message.candidate_list)
+                candidate_list = self.community.decrypt_candidate_list(
+                    key, extended_message.candidate_list)
             except Exception as e:
                 reason = "Can't decrypt candidate list!"
                 logger.exception(reason)
@@ -725,7 +745,7 @@ class ProxyCommunity(Community):
                     self.circuit.extend_strategy.extend(candidate_list)
                 except ValueError as e:
                     logger.exception("Cannot extend due to exception:")
-                    reason = 'extend error on CircuitRequestCache, state = %s' % self.circuit.state
+                    reason = 'Extend error, state = %s' % self.circuit.state
                     self.community.remove_circuit(self.number, reason)
 
             elif self.circuit.state == CIRCUIT_STATE_READY:
@@ -777,8 +797,11 @@ class ProxyCommunity(Community):
                 candidate=first_hop,
                 proxy=self)
 
-            circuit.extend_strategy = extend_strategy if extend_strategy else \
-                self.settings.extend_strategy(self, circuit)
+            if extend_strategy:
+                circuit.extend_strategy = extend_strategy
+            else:
+                circuit.extend_strategy = self.settings.extend_strategy(
+                    self, circuit)
 
             pub_key = iter(first_hop.get_members()).next()._ec
 
@@ -816,9 +839,10 @@ class ProxyCommunity(Community):
 
         if circuit_id in self.circuits:
             logger.error("Breaking circuit %d " + additional_info, circuit_id)
-
+            circuit = self.circuits[circuit_id]
             del self.circuits[circuit_id]
 
+            self.__notify("on_break_circuit", circuit)
             return True
         return False
 
@@ -836,6 +860,7 @@ class ProxyCommunity(Community):
             if relay_key in self.session_keys:
                 del self.session_keys[relay_key]
 
+            self.__notify("on_break_relay", relay_key)
             return True
         return False
 
@@ -928,6 +953,8 @@ class ProxyCommunity(Community):
         @param Candidate candidate: The candidate we got the message from
         @param CreatedMessage message: The message we received
 
+        @return: whether the message could be handled correctly
+
         """
         relay_key = (candidate.sock_addr, circuit_id)
 
@@ -954,21 +981,40 @@ class ProxyCommunity(Community):
         return False
 
     def on_data(self, circuit_id, candidate, message):
-        """ Handles incoming DATA message, forwards it over the chain or over the internet if needed."""
+        """
+        Handles incoming DATA message
+
+        Determines whether the data comes from the outside world (origin set)
+        or whether the data came from the origin (destination set)
+
+        If the data comes from the outside world the on_incoming_from_tunnel
+        method is called on the observers and the circuit is marked as active
+
+        When the data comes from the origin we need to EXIT to the outside
+        world. This is left to the observers as well, by calling the
+        on_exiting_from_tunnel method.
+
+        @param int circuit_id: the circuit's id we received the DATA message on
+        @param Candidate candidate: the messenger of the packet
+        @param DataPayload message: the message's content
+
+        @return: whether the message could be handled correctly
+        """
+
+        # If its our circuit, the messenger is the candidate assigned to that
+        # circuit and the DATA's destination is set to the zero-address then
+        # the packet is from the outside world and addressed to us from
         if circuit_id in self.circuits \
                 and message.destination == ("0.0.0.0", 0) \
                 and candidate == self.circuits[circuit_id].candidate:
 
-            self.circuits[circuit_id].last_incoming = time.time()
-            #self.circuits[circuit_id].bytes_down[1] += len(message.data)
-
-            for observer in self.__observers:
-                observer.on_incoming_from_tunnel(self, circuit_id,
+            self.circuits[circuit_id].beat_heart()
+            self.__notify("on_incoming_from_tunnel", self, circuit_id,
                                                  message.origin, message.data)
 
             return True
 
-        # If it is not ours and we have nowhere to forward to then act as exit node
+        # It is not our circuit so we got it from a relay, we need to EXIT it!
         if message.destination != ('0.0.0.0', 0):
             for observer in self.__observers:
                 observer.on_exiting_from_tunnel(circuit_id, candidate,
@@ -979,16 +1025,23 @@ class ProxyCommunity(Community):
         return False
 
     def on_extend(self, circuit_id, candidate, message):
-        """ Upon reception of a EXTEND message the message
-            is forwarded over the Circuit if possible. At the end of
-            the circuit a CREATE request is send to the Proxy to
-            extend the circuit with. It's CREATED reply will
-            eventually be received and propagated back along the Circuit. """
+        """
+        Upon reception of a EXTEND message the message is forwarded over the
+        Circuit if possible. At the end of the circuit a CREATE request is
+        send to the Proxy to extend the circuit with. It's CREATED reply will
+        eventually be received and propagated back along the Circuit.
+
+        @param int circuit_id: the circuit's id we got the EXTEND message on
+        @param Candidate candidate: the relay which sent us the EXTEND
+        @param ExtendMessage message: the message's content
+
+        @return: whether the message could be handled correctly
+        """
 
         if message.extend_with:
             extend_with_addr = message.extend_with
             logger.warning(
-                "We might be sending a CREATE to someone we don't know, sending to %s:%d!",
+                "We might be sending CREATE to unknown candidate at %s:%d!",
                 message.host,
                 message.port)
         else:
@@ -1033,9 +1086,16 @@ class ProxyCommunity(Community):
                                  MESSAGE_CREATE, CreateMessage(key))
 
     def on_extended(self, circuit_id, candidate, message):
-        """ A circuit has been extended, forward the acknowledgment back
-            to the origin of the EXTEND. If we are the origin update
-            our records. """
+        """
+        A circuit has been extended, forward the acknowledgment back to the
+        origin of the EXTEND. If we are the origin update our records.
+
+        @param int circuit_id: the circuit's id we got the EXTENDED message on
+        @param Candidate candidate: the relay which sent us the EXTENDED
+        @param ExtendedMessage message: the message's content
+
+        @return: whether the message could be handled correctly
+        """
 
         request = self.dispersy.callback.call(
             self._request_cache.get,
@@ -1079,18 +1139,35 @@ class ProxyCommunity(Community):
             self.community.remove_circuit(self.number, 'RequestCache')
 
     def create_ping(self, candidate, circuit_id):
-        def do_add():
+        """
+        Creates, sends and keeps track of a PING message to given candidate on
+        the specified circuit.
+
+        @param Candidate candidate: the candidate to which we want to sent a
+            ping
+        @param int circuit_id: the circuit id to sent the ping over
+        """
+        def __do_add():
             identifier = self.PingRequestCache.create_identifier(circuit_id)
             if not self._request_cache.has(identifier):
                 cache = self.PingRequestCache(self, circuit_id)
                 self._request_cache.add(cache)
 
-        self._dispersy.callback.register(do_add)
+        self._dispersy.callback.register(__do_add)
 
         logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
+        """
+        Upon reception of a PING message we respond with a PONG message
+
+        @param int circuit_id: the circuit's id we got the PING from
+        @param Candidate candidate: the relay we got the PING from
+        @param PingMessage message: the message's content
+
+        @return: whether the message could be handled correctly
+        """
         logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
         return self.send_message(
             destination=candidate,
@@ -1099,6 +1176,21 @@ class ProxyCommunity(Community):
             message=PongMessage())
 
     def on_pong(self, circuit_id, candidate, message):
+        """
+        When we receive a PONG message on our circuit we can be sure that the
+        circuit is alive and well.
+
+        @param int circuit_id: the circuit's id we got the PONG message on
+        @param Candidate candidate: the relay which sent us the PONG
+        @param PongMessage message: the message's content
+
+        @return: whether the message could be handled correctly
+        """
+
+        if circuit_id not in self.circuits or \
+                self.circuits[circuit_id].candidate != candidate:
+            raise ValueError("We got a PONG from a stranger, ABORT ABORT")
+
         logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
         request = self.dispersy.callback.call(
             self._request_cache.get,
@@ -1130,27 +1222,6 @@ class ProxyCommunity(Community):
 
         return circuit_id
 
-    def add_receive_transformer(self, func):
-        self._receive_transformers[func] = 1
-
-    def remove_receive_transformer(self, func):
-        if func in self._receive_transformers:
-            del self._receive_transformers[func]
-
-    def add_relay_transformer(self, func):
-        self._relay_transformers[func] = 1
-
-    def remove_relay_transformer(self, func):
-        if func in self._relay_transformers:
-            del self._relay_transformers[func]
-
-    def add_send_transformer(self, func):
-        self._send_transformers[func] = 1
-
-    def remove_send_transformer(self, func):
-        if func in self._send_transformers:
-            del self._send_transformers[func]
-
     def _filter_message(self, candidate, circuit_id, message_type, payload):
         for f in self._message_filters[message_type]:
             payload = f(candidate, circuit_id, payload)
@@ -1169,7 +1240,7 @@ class ProxyCommunity(Community):
     def send_message(self, destination, circuit_id, message_type, message):
         content = self.proxy_conversion.encode(message_type, message)
 
-        for transformer in self._send_transformers.keys():
+        for transformer in self.send_transformers:
             content = transformer(destination, circuit_id, message_type,
                                   content)
 
@@ -1230,17 +1301,17 @@ class ProxyCommunity(Community):
     def ping_circuits(self):
         while True:
             try:
-                to_be_removed = [self.remove_relay(relay_key, 'no activity')
-                                 for relay_key, relay
-                                 in self.relay_from_to.items()
-                                 if relay.ping_time_remaining == 0]
+                to_be_removed = [
+                    self.remove_relay(relay_key, 'no activity')
+                    for relay_key, relay in self.relay_from_to.items()
+                    if relay.ping_time_remaining == 0]
 
                 logger.info("removed %d relays", len(to_be_removed))
                 assert all(to_be_removed)
 
-                to_be_pinged = [circuit for circuit
-                                in self.circuits.values()
-                                if circuit.ping_time_remaining < PING_INTERVAL
+                to_be_pinged = [
+                    circuit for circuit in self.circuits.values()
+                    if circuit.ping_time_remaining < PING_INTERVAL
                     and circuit.candidate]
 
                 logger.info("pinging %d circuits", len(to_be_pinged))
