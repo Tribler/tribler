@@ -1244,11 +1244,11 @@ class GenericSearchList(SizeList):
         List.OnExpand(self, item)
         if isinstance(item.original_data, Torrent):
             detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
-            detailspanel.setTorrent(item.original_data)
+#            detailspanel.setTorrent(item.original_data)
             item.expandedPanel = detailspanel
-        elif isinstance(item.original_data, Channel):
+        if isinstance(item.original_data, Channel):
             detailspanel = self.guiutility.SetBottomSplitterWindow(ChannelDetails)
-            detailspanel.showChannel(item.original_data)
+#            detailspanel.showChannel(item.original_data)
             item.expandedPanel = detailspanel
         return True
 
@@ -1262,7 +1262,7 @@ class GenericSearchList(SizeList):
 
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(SearchInfoPanel)
-        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
+#        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
 
     @forceWxThread
     def StartDownload(self, torrent, files=None):
@@ -1745,7 +1745,7 @@ class LibraryList(SizeList):
     def OnExpand(self, item):
         List.OnExpand(self, item)
         detailspanel = self.guiutility.SetBottomSplitterWindow(LibraryDetails)
-        detailspanel.setTorrent(item.original_data, self.bw_history.get(item.original_data.infohash, []))
+#        detailspanel.setTorrent(item.original_data, self.bw_history.get(item.original_data.infohash, []))
         item.expandedPanel = detailspanel
         return True
 
@@ -1758,7 +1758,7 @@ class LibraryList(SizeList):
 
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(LibraryInfoPanel)
-        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
+#        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
 
     def __ds__eq__(self, ds1, ds2):
         # Exact same objects or both None
@@ -2117,7 +2117,7 @@ class ChannelList(List):
     def OnExpand(self, item):
         List.OnExpand(self, item)
         detailspanel = self.guiutility.SetBottomSplitterWindow(ChannelDetails)
-        detailspanel.showChannel(item.original_data)
+#        detailspanel.showChannel(item.original_data)
         item.expandedPanel = detailspanel
         return True
 
@@ -2130,7 +2130,7 @@ class ChannelList(List):
 
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(ChannelInfoPanel)
-        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 1, self.GetManager().category == "Favorites")
+#        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 1, self.GetManager().category == "Favorites")
 
     def OnAdd(self, event):
         dlg = wx.TextEntryDialog(None, 'Please specify the channel-identifier.\nThis should be a 40 character string which can be found in the overview tab of the channel management interface.\n\nJoining a channel can take up to 1 minute and should appear in the all channellist.', 'Enter channel-identifier')
@@ -2239,16 +2239,16 @@ class ActivitiesList(List):
         self.expandedPanel_channels.Hide()
 
         videoplayer_item = self.list.GetItem(5)
-        self.expandedPanel_videoplayer = VideoplayerExpandedPanel(videoplayer_item)
-        videoplayer_item.AddEvents(self.expandedPanel_videoplayer)
+        self.expandedPanel_videoplayer = wx.Panel(videoplayer_item)#VideoplayerExpandedPanel(videoplayer_item)
+        #videoplayer_item.AddEvents(self.expandedPanel_videoplayer)
         self.expandedPanel_videoplayer.Hide()
 
     def do_or_schedule_refresh(self, force_refresh=False):
         pass
 
     def OnSize(self, event):
-        if self.expandedPanel_videoplayer:
-            self.expandedPanel_videoplayer.OnChange()
+        #if self.expandedPanel_videoplayer:
+        #    self.expandedPanel_videoplayer.OnChange()
         event.Skip()
 
     def GotFilter(self, filter):

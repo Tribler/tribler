@@ -484,9 +484,14 @@ class VLCWindow(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
 
-        self.Bind(wx.EVT_WINDOW_CREATE, lambda evt: self.tell_vclwrap_window_for_playback())
+        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
 
         self.Refresh()
+
+    def OnCreate(self, event):
+        self.Unbind(wx.EVT_WINDOW_CREATE)
+        wx.CallAfter(self.tell_vclwrap_window_for_playback)
+        event.Skip()
 
     def tell_vclwrap_window_for_playback(self):
         """ This method must be called after the VLCWindow has been

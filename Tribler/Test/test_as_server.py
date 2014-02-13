@@ -346,6 +346,8 @@ class TestGuiAsServer(TestAsServer):
             assert boolean, reason
 
     def screenshot(self, title=None, destdir=OUTPUT_DIR, window=None):
+        return
+
         if window == None:
             app = wx.GetApp()
             window = app.GetTopWindow()

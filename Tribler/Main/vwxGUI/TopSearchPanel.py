@@ -420,7 +420,7 @@ class TopSearchPanel(FancyPanel):
 
             if torrent.isPlayable():
                 self.guiutility.ShowPlayer()
-                self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
+                #self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
                 self.guiutility.library_manager.playTorrent(torrent)
                 play_executed = True
 

@@ -6,6 +6,7 @@ import sys
 import socket
 import logging
 import codecs
+import json
 
 from random import gauss
 
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 class Utility:
 
     def __init__(self, abcpath, configpath):
+        print >> sys.stderr, "Utility: __init__"
 
         self.version = version_id
         self.abcpath = abcpath
@@ -38,13 +40,16 @@ class Utility:
 
         self.randomly_selected_ports = {}
 
+        print >> sys.stderr, "Utility: setting up config"
         self.setupConfig()
+        print >> sys.stderr, "Utility: done setting up config"
 
         # Setup language files
         self.lang = Lang(self)
 
         # Is ABC in the process of shutting down?
         self.abcquitting = False
+        print >> sys.stderr, "Utility: __init__ completed"
 
     def setupConfig(self):
         tribler_defaults = {'language_file': 'english.lang',
@@ -69,8 +74,8 @@ class Utility:
                             'g2g_hours': 0,
                             'g2g_mins': 30,
                             'family_filter': 1,
-                            'window_x': "",
-                            'window_y': "",
+                            'window_x': 0,
+                            'window_y': 0,
                             'use_bundle_magic': 0,
                             # WebUI
                             'use_webui': 0,
@@ -100,19 +105,11 @@ class Utility:
 
         # Load the config file.
         if os.path.exists(self.configfilepath):
-            self.config.readfp(codecs.open(self.configfilepath, 'r', 'utf-8-sig'))
+            with codecs.open(self.configfilepath, 'r', 'utf-8-sig') as config_file:
+                self.config.readfp(config_file)
 
         if not self.config.has_section('Tribler'):
             self.config.add_section('Tribler')
-
-        # Tribler.conf also contains the default download config. So we need to merge it now.
-        if not self.config.has_section('downloadconfig'):
-            self.config.add_section('downloadconfig')
-        for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
-            self.config.set('downloadconfig', k, v)
-
-        # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
-        DefaultDownloadStartupConfig.getInstance().dlconfig = self.config
 
     def getVersion(self):
         return self.version
@@ -133,17 +130,24 @@ class Utility:
         return self.randomly_selected_ports[key]
 
     def read_config(self, option, section='Tribler', literal_eval=True):
-        if not self.config.has_option(section, option):
+        # print >> sys.stderr, "read_config:", option, section, literal_eval
+        if True or not self.config.has_option(section, option):
             return self.defaults.get(section, {}).get(option, None)
 
-        return self.config.get(section, option, literal_eval=literal_eval)
+        result = self.config.get(section, option, literal_eval=literal_eval)
+        print >> sys.stderr, "read_config:", option, section, literal_eval, result
+        return result
 
     def write_config(self, option, value, section='Tribler', flush=False):
+        return
+        print >> sys.stderr, "write_config:", option, section, value, flush
         self.config.set(section, option, value)
         if flush:
             self.flush_config()
 
     def flush_config(self):
+        return
+        print >> sys.stderr, "flush_config"
         with open(self.configfilepath, "wb") as config_file:
             self.config.write(config_file)
 
