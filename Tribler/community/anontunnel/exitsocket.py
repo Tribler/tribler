@@ -44,7 +44,7 @@ class TunnelExitSocket(object):
         for source_address, packet in packets:
             logger.info("ENTER DATA in TunnelExitSocket, packet FROM %s",
                         source_address)
-            self.proxy.enter_data(self.circuit_id, self.destination_address,
+            self.proxy.tunnel_data_to_origin(self.circuit_id, self.destination_address,
                                   source_address, packet)
 
 

@@ -127,7 +127,7 @@ class AnonTunnel(Thread):
                 t1 = t2
                 yield 2.0
 
-        self.callback.register(speed_stats)
+        # self.callback.register(speed_stats)
         self.raw_server.listen_forever(None)
 
     def stop(self):
@@ -295,6 +295,15 @@ def main(argv):
             anon_tunnel.stop()
             os._exit(0)
             break
+
+        elif line == 'reserve\n':
+            print "We will try to reserve a circuit now!"
+
+            def on_ready(circuit):
+                print "Got circuit {0}".format(circuit.circuit_id)
+
+            deferred = anon_tunnel.community.reserve_circuit()
+            deferred.addCallback(on_ready)
 
         elif line == 'r\n':
             print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"

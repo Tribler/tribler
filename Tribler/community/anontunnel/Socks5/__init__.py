@@ -127,16 +127,21 @@ class Socks5Server(object, TunnelObserver):
 
     def on_incoming_from_tunnel(self, community, circuit_id, source_address,
                                 data):
-        # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
+        # Some tricky stuff goes on here to figure out to which SOCKS5 client
+        # to return the data
 
-        # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP
-        # All will break if clients send data to the same peer, since we cant distinguish where the return packets
+        # First we get the origin (outside the tunnel) of the packet, we map
+        # this to the SOCKS5 clients IP. All will break if clients send data
+        # to the same peer, since we cant distinguish where the return packets
         # must go....
 
-        # Now that we have the SOCKS5 client's address we can find the corresponding UDP socks5 relay used. This is
-        # relay is created in response to UDP_ASSOCIATE request during the SOCKS5 initiation
+        # Now that we have the SOCKS5 client's address we can find the
+        # corresponding UDP socks5 relay used. This is relay is created in
+        # response to UDP_ASSOCIATE request during the SOCKS5 initiation
 
-        # The socket together with the destination address is enough to return the data
+        # The socket together with the destination address is enough to
+        # return the data
+
         destination_address = self.routes.get(source_address, None)
 
         if destination_address is None:

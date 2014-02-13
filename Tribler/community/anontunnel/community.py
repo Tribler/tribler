@@ -11,6 +11,7 @@ import time
 from collections import defaultdict
 
 # Tribler and Dispersy imports
+from twisted.internet import defer
 from Tribler.Core.Utilities import encoding
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
@@ -51,7 +52,7 @@ class ProxySettings:
     def __init__(self):
         length = random.randint(1, 3)
 
-        self.max_circuits = 4
+        self.max_circuits = 0
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy(
             self.max_circuits)
@@ -99,7 +100,8 @@ class RelayRoute(object):
 class Circuit:
     """ Circuit data structure storing the id, state and hops """
 
-    def __init__(self, circuit_id, goal_hops=0, candidate=None, proxy=None):
+    def __init__(self, circuit_id, goal_hops=0, candidate=None, proxy=None,
+                 deferred=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: ProxyCommunity
@@ -110,10 +112,12 @@ class Circuit:
 
         self.circuit_id = circuit_id
         self.candidate = candidate
-        self.hops = []
+        self._hops = []
         self.goal_hops = goal_hops
 
-        self.extend_strategy = None
+        self.deferred = deferred if deferred else defer.Deferred()
+
+        self._extend_strategy = None
         self.last_incoming = time.time()
 
         if proxy:
@@ -125,6 +129,25 @@ class Circuit:
         """ :type : Hop """
 
         self.proxy = proxy
+
+    @property
+    def extend_strategy(self):
+        return self._extend_strategy
+
+    @extend_strategy.setter
+    def extend_strategy(self, value):
+        assert isinstance(value, extendstrategies.ExtendStrategy)
+        self._extend_strategy = value
+
+    @property
+    def hops(self):
+        return self._hops
+
+    def add_hop(self, hop):
+        self._hops.append(hop)
+
+        if self.state == CIRCUIT_STATE_READY:
+            self.deferred.callback(self)
 
     @property
     def online(self):
@@ -381,6 +404,9 @@ class ProxyCommunity(Community):
 
         self._online = False
 
+        self._circuit_promises = []
+        self._reservations = set()
+
         # Attach message handlers
         self._initiate_message_handlers()
 
@@ -395,7 +421,7 @@ class ProxyCommunity(Community):
         # Listen to prefix endpoint
         dispersy.endpoint.listen_to(self.packet_prefix, self.handle_packet)
         dispersy.callback.register(self.check_ready)
-        dispersy.callback.register(self.ping_circuits)
+        dispersy.callback.register(self._ping_circuits)
 
         if integrate_with_tribler:
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -414,29 +440,41 @@ class ProxyCommunity(Community):
         self.dispersy.callback.register(loop_discover)
 
     def __discover(self):
-        while len(self.circuits) < self.settings.max_circuits:
-            logger.debug("Trying to create new circuits")
+        circuits_needed = lambda: max(
+            len(self._circuit_promises),
+            self.settings.max_circuits
+        )
 
-            goal_hops = self.settings.length_strategy.circuit_length()
+        with self.lock:
+            while circuits_needed():
+                logger.warning("We need {0} new circuits!".format(circuits_needed()))
+                goal_hops = self.settings.length_strategy.circuit_length()
 
-            if goal_hops == 0:
-                circuit_id = self._generate_circuit_id()
-                self.circuits[circuit_id] = Circuit(circuit_id, proxy=self)
-            else:
-                circuit_candidates = {c.candidate for c in
-                                      self.circuits.values()}
+                if goal_hops == 0:
+                    deferred = self._circuit_promises.pop(0) if \
+                        len(self._circuit_promises) else None
 
-                candidates = (c for c
-                              in self.dispersy_yield_verified_candidates()
-                              if True or c not in circuit_candidates)
-
-                c = next(candidates, None)
-
-                if c is None:
-                    break
+                    circuit_id = self._generate_circuit_id()
+                    self.circuits[circuit_id] = Circuit(
+                        circuit_id=circuit_id,
+                        proxy=self,
+                        deferred=deferred)
                 else:
-                    self.create_circuit(c, goal_hops)
+                    circuit_candidates = {c.candidate for c in
+                                          self.circuits.values()}
 
+                    candidates = (c for c
+                                  in self.dispersy_yield_verified_candidates()
+                                  if c not in circuit_candidates)
+
+                    c = next(candidates, None)
+
+                    if c is None:
+                        break
+                    else:
+                        deferred = self._circuit_promises.pop(0) if \
+                            len(self._circuit_promises) else None
+                        self._create_circuit(c, goal_hops, deferred=deferred)
 
     def add_observer(self, observer):
         #assert isinstance(observer, TunnelObserver)
@@ -717,7 +755,7 @@ class ProxyCommunity(Community):
 
             unverified_hop.session_key = key
 
-            self.circuit.hops.append(unverified_hop)
+            self.circuit.add_hop(unverified_hop)
             self.circuit.unverified_hop = None
 
             try:
@@ -773,17 +811,17 @@ class ProxyCommunity(Community):
                 reason = 'timeout on CircuitRequestCache, state = %s' % self.circuit.state
                 self.community.remove_circuit(self.number, reason)
 
-    def create_circuit(self, first_hop, goal_hops, extend_strategy=None):
+    def _create_circuit(self, first_hop, goal_hops, extend_strategy=None,
+                        deferred=None):
         """ Create a new circuit, with one initial hop
 
-        @param first_hop: The first hop of our circuit, needs to be
-            a candidate.
-        @param goal_hops: The number of hops the circuit should reach
-        @param extend_strategy: The extend strategy used
+        @param WalkCandidate first_hop: The first hop of our circuit, needs to
+            be a candidate.
+        @param int goal_hops: The number of hops the circuit should reach
+        @param T <= extendstrategies.ExtendStrategy extend_strategy: The extend
+            strategy used
 
-        @type first_hop: WalkCandidate
-        @type goal_hops: int
-        @type extend_strategy: T <= extendstrategies.ExtendStrategy
+        @rtype: Circuit
         """
         try:
             circuit_id = self._generate_circuit_id(first_hop.sock_addr)
@@ -795,6 +833,7 @@ class ProxyCommunity(Community):
                 circuit_id=circuit_id,
                 goal_hops=goal_hops,
                 candidate=first_hop,
+                deferred=deferred,
                 proxy=self)
 
             if extend_strategy:
@@ -840,6 +879,7 @@ class ProxyCommunity(Community):
         if circuit_id in self.circuits:
             logger.error("Breaking circuit %d " + additional_info, circuit_id)
             circuit = self.circuits[circuit_id]
+            circuit.deferred.errback()
             del self.circuits[circuit_id]
 
             self.__notify("on_break_circuit", circuit)
@@ -1298,7 +1338,7 @@ class ProxyCommunity(Community):
 
             yield 1.0
 
-    def ping_circuits(self):
+    def _ping_circuits(self):
         while True:
             try:
                 to_be_removed = [
@@ -1352,6 +1392,18 @@ class ProxyCommunity(Community):
             func(*args, **kwargs)
 
     def tunnel_data_to_end(self, ultimate_destination, payload):
+        """
+        Tunnel data to the end and request an EXIT to the outside world
+
+        @param int circuit_id: The circuit's id to tunnel data over
+        @param Candidate candidate: The relay to tunnel data over
+        @param (str, int) ultimate_destination: The destination outside the
+            tunnel community
+        @param str payload: The raw payload to send to the ultimate destination
+
+        @return: Whether the request has been handled successfully
+        """
+
         with self.lock:
             circuit = self.__select_circuit(ultimate_destination)
 
@@ -1370,10 +1422,68 @@ class ProxyCommunity(Community):
                     circuit.circuit_id, circuit.candidate,
                     ultimate_destination, payload)
 
-    def enter_data(self, circuit_id, candidate, source_address, payload):
+    def tunnel_data_to_origin(self, circuit_id, candidate, source_address,
+                              payload):
+        """
+        Tunnel data to originator
+
+        @param int circuit_id: The circuit's id to return data over
+        @param Candidate candidate: The relay to return data over
+        @param (str, int) source_address: The source outside the tunnel
+            community
+        @param str payload: The raw payload to return to the originator
+
+        @return: Whether the request has been handled successfully
+        """
         with self.lock:
-            self.send_message(candidate, circuit_id, MESSAGE_DATA,
-                              DataMessage(None, payload, source_address))
-            self.__notify(
-                "on_enter_tunnel",
-                circuit_id, candidate, source_address, payload)
+            result = self.send_message(
+                candidate, circuit_id, MESSAGE_DATA,
+                DataMessage(None, payload, source_address))
+
+            if result:
+                self.__notify("on_enter_tunnel", circuit_id, candidate,
+                              source_address, payload)
+
+            return result
+
+    def reserve_circuit(self):
+        """
+        Reserve a (future) circuit
+        @rtype: defer.Deferred
+        """
+
+        def __reserve(circuit):
+            logger.warning("Reserving circuit {0}".format(circuit.circuit_id))
+            self._reservations.add(circuit)
+
+            return circuit
+
+        with self.lock:
+            free = next((c for c in self.circuits.itervalues()
+                         if c not in self._reservations), None)
+
+            if free:
+                __reserve(free)
+                return free.deferred
+
+            else:
+                deferred = defer.Deferred()
+
+                # remove from the list when circuit is ready
+                deferred.addCallback(lambda circuit: __reserve(circuit))
+                self._circuit_promises.append(deferred)
+
+        return deferred
+
+    def cancel_reservation(self, circuit):
+        """
+        Free a circuit from a reservation
+        @param Circuit circuit: Circuit to free
+        @rtype: bool
+        """
+        if circuit.circuit_id in self._reservations:
+            with self.lock:
+                self._reservations.remove(circuit)
+
+                return True
+        return False
