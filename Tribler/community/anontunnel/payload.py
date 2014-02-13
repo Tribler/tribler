@@ -2,29 +2,35 @@ from Tribler.dispersy.payload import Payload
 
 __author__ = 'Chris'
 
-class BreakMessage:
+class BaseMessage:
     pass
 
-class PingMessage:
-    pass
+class PingMessage(BaseMessage):
+    def __init__(self):
+        pass
 
-class PongMessage:
-    pass
 
-class CreateMessage:
+class PongMessage(BaseMessage):
+    def __init__(self):
+        pass
+
+
+class CreateMessage(BaseMessage):
     def __init__(self, key):
         self.key = key
 
-class CreatedMessage:
+
+class CreatedMessage(BaseMessage):
     def __init__(self, key, candidate_list):
         self.key = key
         self.candidate_list = candidate_list
 
-class ExtendMessage:
+
+class ExtendMessage(BaseMessage):
     def __init__(self, extend_with, key=None):
         self.extend_with = extend_with
         self.key = key
-    
+
     @property
     def host(self):
         return self.extend_with[0] if self.extend_with else None
@@ -33,16 +39,13 @@ class ExtendMessage:
     def port(self):
         return self.extend_with[1] if self.extend_with else None
 
-class ExtendedMessage:
+
+class ExtendedMessage(BaseMessage):
     def __init__(self, key, candidate_list):
         self.key = key
         self.candidate_list = candidate_list
 
-class PunctureMessage:
-    def __init__(self, sock_addr):
-        self.sock_addr = sock_addr
-
-class DataMessage:
+class DataMessage(BaseMessage):
     def __init__(self, destination, data, origin=None):
         self.destination = destination
         self.data = data

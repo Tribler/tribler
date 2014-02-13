@@ -42,15 +42,10 @@ class TunnelExitSocket(object):
         """
 
         for source_address, packet in packets:
-            logger.info("ENTER DATA in TunnelExitSocket, packet FROM %s", source_address)
-            self.proxy.enter_data(self.circuit_id, self.destination_address, source_address, packet)
-            #self.proxy.send_data(
-            #    circuit_id=self.circuit_id,
-            #    address=self.destination_address,
-            #    ultimate_destination=None,
-            #    payload=packet,
-            #    origin=source_address
-            #)
+            logger.info("ENTER DATA in TunnelExitSocket, packet FROM %s",
+                        source_address)
+            self.proxy.enter_data(self.circuit_id, self.destination_address,
+                                  source_address, packet)
 
 
 class ShortCircuitExitSocket(object):
@@ -85,7 +80,8 @@ class ShortCircuitExitSocket(object):
         """
 
         for source_address, packet in packets:
-            logger.info("ENTER DATA in ShortCircuitSocket, packet FROM %s", source_address)
+            logger.info("ENTER DATA in ShortCircuitSocket, packet FROM %s",
+                        source_address)
             message = DataMessage(("0.0.0.0", 0), packet, source_address)
             self.proxy.on_data(self.circuit_id, None, message)
 

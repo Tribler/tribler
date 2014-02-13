@@ -30,7 +30,8 @@ class MethodRequest(object):
 
 
 class Request(object):
-    def __init__(self, version, cmd, rsv, address_type, destination_address, destination_port):
+    def __init__(self, version, cmd, rsv, address_type, destination_address,
+                 destination_port):
         self.version = version
         self.cmd = cmd
         self.rsv = rsv
@@ -40,7 +41,8 @@ class Request(object):
 
 
 class UdpRequest(object):
-    def __init__(self, rsv, frag, address_type, destination_address, destination_port, payload):
+    def __init__(self, rsv, frag, address_type, destination_address,
+                 destination_port, payload):
         self.rsv = rsv
         self.frag = frag
         self.address_type = address_type
@@ -83,7 +85,8 @@ def encode_address(address_type, address):
         data = struct.pack("B", len(address))
         data += address
     else:
-        raise ValueError("address_type must be either IPv4, IPv6 or a domain name")
+        raise ValueError(
+            "address_type must be either IPv4, IPv6 or a domain name")
 
     return data
 
@@ -112,7 +115,8 @@ def decode_request(orig_offset, data):
     if len(data) - offset < 4:
         return orig_offset, None
 
-    (version, cmd, rsv, address_type) = struct.unpack_from("BBBB", data, offset)
+    (version, cmd, rsv, address_type) = struct.unpack_from("BBBB", data,
+                                                           offset)
     offset += 4
 
     assert version == SOCKS_VERSION
@@ -131,7 +135,8 @@ def decode_request(orig_offset, data):
     destination_port, = struct.unpack_from("!H", data, offset)
     offset += 2
 
-    return offset, Request(version, cmd, rsv, address_type, destination_address, destination_port)
+    return offset, Request(version, cmd, rsv, address_type,
+                           destination_address, destination_port)
 
 
 def encode_reply(version, rep, rsv, address_type, bind_address, bind_port):
@@ -157,7 +162,8 @@ def decode_udp_packet(data):
 
     payload = data[offset:]
 
-    return UdpRequest(rsv, frag, address_type, destination_address, destination_port, payload)
+    return UdpRequest(rsv, frag, address_type, destination_address,
+                      destination_port, payload)
 
 
 def encode_udp_packet(rsv, frag, address_type, address, port, payload):

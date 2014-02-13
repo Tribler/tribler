@@ -1,7 +1,7 @@
 import logging
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
-from Tribler.community.anontunnel.payload import *
+import Tribler.community.anontunnel.payload
 from Tribler.community.anontunnel.globals import *
 import struct
 
@@ -13,9 +13,9 @@ DEBUG = True
 
 #: struct format lookup for specific word sizes.
 STRUCT_FMT = {
-    8  : 'B',   # unsigned char
-    16 : 'H',   # unsigned short
-    32 : 'I',   # unsigned int
+    8: 'B',  # unsigned char
+    16: 'H',  # unsigned short
+    32: 'I',  # unsigned int
 }
 
 #-----------------------------------------------------------------------------
@@ -31,7 +31,7 @@ def int_to_words(int_val, num_words=4, word_size=32):
 
     @return: a list of fixed width words based on provided parameters.
     """
-    max_int = 2 ** (word_size*num_words) - 1
+    max_int = 2 ** (word_size * num_words) - 1
     max_word_size = 2 ** word_size - 1
 
     if not 0 <= int_val <= max_int:
@@ -45,6 +45,7 @@ def int_to_words(int_val, num_words=4, word_size=32):
     words.reverse()
 
     return words
+
 
 #-----------------------------------------------------------------------------
 def int_to_packed(int_val, width=128, word_size=32):
@@ -69,6 +70,7 @@ def int_to_packed(int_val, width=128, word_size=32):
         raise ValueError('unsupported word size: %d!' % word_size)
 
     return struct.pack(fmt, *words)
+
 
 #-----------------------------------------------------------------------------
 def packed_to_int(packed_int, width=128, word_size=32):
@@ -103,6 +105,7 @@ def packed_to_int(packed_int, width=128, word_size=32):
 
     return int_val
 
+
 class ProxyConversion(BinaryConversion):
     def __init__(self, community):
         super(ProxyConversion, self).__init__(community, "\x01")
@@ -124,8 +127,8 @@ class ProxyConversion(BinaryConversion):
 
         return offset, placeholder.meta.payload.implement(stats)
 
-class CustomProxyConversion():
 
+class CustomProxyConversion():
     def __init__(self):
         self.encode_functions = {
             MESSAGE_CREATE: self.__encode_create,
@@ -142,7 +145,7 @@ class CustomProxyConversion():
             MESSAGE_EXTEND: self.__decode_extend,
             MESSAGE_EXTENDED: self.__decode_extended,
             MESSAGE_DATA: self.__decode_data,
-            MESSAGE_PING: lambda socket_buffer, offset: PingMessage()
+            MESSAGE_PING: lambda socket_buffer, offset: Tribler.community.anontunnel.payload.PingMessage()
         }
 
     def encode(self, message_type, message):
@@ -151,7 +154,8 @@ class CustomProxyConversion():
     def decode(self, data, offset=0):
         message_type = data[offset]
         assert message_type > 0
-        return message_type, self.decode_functions[message_type](data, offset + 1)
+        return message_type, self.decode_functions[message_type](data,
+                                                                 offset + 1)
 
     @staticmethod
     def get_circuit_and_data(message_buffer, offset=0):
@@ -165,6 +169,9 @@ class CustomProxyConversion():
 
     @staticmethod
     def get_type(data):
+        """
+        @rtype: str
+        """
         return data[0]
 
     @staticmethod
@@ -184,7 +191,8 @@ class CustomProxyConversion():
     @staticmethod
     def __decode_extend(message_buffer, offset=0):
         if len(message_buffer) < offset + 8:
-            raise ValueError("Cannot unpack HostLength/Port, insufficient packet size")
+            raise ValueError(
+                "Cannot unpack HostLength/Port, insufficient packet size")
         host_length, port = struct.unpack_from("!LL", message_buffer, offset)
         offset += 8
 
@@ -196,7 +204,7 @@ class CustomProxyConversion():
         key = message_buffer[offset:]
 
         extend_with = (host, port) if host and port else None
-        return ExtendMessage(extend_with, key)
+        return Tribler.community.anontunnel.payload.ExtendMessage(extend_with, key)
 
     @staticmethod
     def __encode_data(data_message):
@@ -210,26 +218,30 @@ class CustomProxyConversion():
         else:
             origin = data_message.origin
 
-        return struct.pack("!LLLLL", len(host), port, len(origin[0]), origin[1],
-                        len(data_message.data)) \
-            + host                              \
-            + origin[0]                         \
-            + data_message.data
+        return struct.pack("!LLLLL", len(host), port, len(origin[0]),
+                           origin[1],
+                           len(data_message.data)) \
+               + host \
+               + origin[0] \
+               + data_message.data
 
     @staticmethod
     def __decode_data(message_buffer, offset=0):
-        host_length, port, origin_host_length, origin_port, payload_length = struct.unpack_from("!LLLLL", message_buffer, offset)
+        host_length, port, origin_host_length, origin_port, payload_length = struct.unpack_from(
+            "!LLLLL",
+            message_buffer, offset)
         offset += 20
 
         if len(message_buffer) < offset + host_length:
-                raise ValueError("Cannot unpack Host, insufficient packet size")
+            raise ValueError("Cannot unpack Host, insufficient packet size")
         host = message_buffer[offset:offset + host_length]
         offset += host_length
 
         destination = (host, port)
 
         if len(message_buffer) < offset + origin_host_length:
-            raise ValueError("Cannot unpack Origin Host, insufficient packet size")
+            raise ValueError(
+                "Cannot unpack Origin Host, insufficient packet size")
         origin_host = message_buffer[offset:offset + origin_host_length]
         offset += origin_host_length
 
@@ -242,11 +254,12 @@ class CustomProxyConversion():
             payload = None
         else:
             if len(message_buffer) < offset + payload_length:
-                raise ValueError("Cannot unpack Data, insufficient packet size")
+                raise ValueError(
+                    "Cannot unpack Data, insufficient packet size")
             payload = message_buffer[offset:offset + payload_length]
             offset += payload_length
 
-        return DataMessage(destination, payload, origin)
+        return Tribler.community.anontunnel.payload.DataMessage(destination, payload, origin)
 
 
     @staticmethod
@@ -259,12 +272,14 @@ class CustomProxyConversion():
     @staticmethod
     def __decode_created(message_buffer, offset=0):
 
-        key = packed_to_int(message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)], 2048)
+        key = packed_to_int(
+            message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)],
+            2048)
         offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
 
         offset, candidate_dict = decode(message_buffer[offset:])
 
-        return CreatedMessage(key, candidate_dict)
+        return Tribler.community.anontunnel.payload.CreatedMessage(key, candidate_dict)
 
     @staticmethod
     def __encode_extended(extended_message):
@@ -275,12 +290,14 @@ class CustomProxyConversion():
     @staticmethod
     def __decode_extended(message_buffer, offset=0):
 
-        key = packed_to_int(message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)], 2048)
+        key = packed_to_int(
+            message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)],
+            2048)
         offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
 
         offset, candidate_dict = decode(message_buffer[offset:])
 
-        return ExtendedMessage(key, candidate_dict)
+        return Tribler.community.anontunnel.payload.ExtendedMessage(key, candidate_dict)
 
     @staticmethod
     def __encode_create(create_message):
@@ -294,9 +311,9 @@ class CustomProxyConversion():
 
         key = message_buffer[offset:]
 
-        return CreateMessage(key)
+        return Tribler.community.anontunnel.payload.CreateMessage(key)
 
 
 def bits2string(b):
     b = bin(b)[2:]
-    return ''.join(chr(int(''.join(x), 2)) for x in zip(*[iter(b)]*8))
+    return ''.join(chr(int(''.join(x), 2)) for x in zip(*[iter(b)] * 8))

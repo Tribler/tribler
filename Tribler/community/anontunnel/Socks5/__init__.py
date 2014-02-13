@@ -17,7 +17,6 @@ from traceback import print_exc
 
 
 class Socks5Server(object, TunnelObserver):
-
     def __init__(self):
         self._tunnel = None
         self._accept_incoming = False
@@ -69,16 +68,22 @@ class Socks5Server(object, TunnelObserver):
     def start(self):
         if self.socks5_port:
             try:
-                port = self.raw_server.find_and_bind(self.socks5_port, self.socks5_port, self.socks5_port + 10, ['0.0.0.0'],
+                port = self.raw_server.find_and_bind(self.socks5_port,
+                                                     self.socks5_port,
+                                                     self.socks5_port + 10,
+                                                     ['0.0.0.0'],
                                                      reuse=True, handler=self)
 
                 logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
             except socket.error:
-                logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?", "0.0.0.0",
-                             self.socks5_port)
+                logger.error(
+                    "Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?",
+                    "0.0.0.0",
+                    self.socks5_port)
 
     def start_connection(self, dns):
-        return self.raw_server.start_connection_raw(dns, handler=self.connection_handler)
+        return self.raw_server.start_connection_raw(dns,
+                                                    handler=self.connection_handler)
 
     def create_udp_relay(self):
         """
@@ -90,11 +95,15 @@ class Socks5Server(object, TunnelObserver):
         udp_relay_socket = self.raw_server.create_udpsocket(0, "0.0.0.0")
 
         class UdpRelayTunnelHandler:
+            def __init__(self):
+                pass
+
             @staticmethod
             def data_came_in(packets):
                 server.on_client_udp_packets(udp_relay_socket, packets)
 
-        self.raw_server.start_listening_udp(udp_relay_socket, UdpRelayTunnelHandler())
+        self.raw_server.start_listening_udp(udp_relay_socket,
+                                            UdpRelayTunnelHandler())
 
         return udp_relay_socket
 
@@ -104,21 +113,25 @@ class Socks5Server(object, TunnelObserver):
 
             self.udp_relays[source_address] = udp_socket
 
-            logger.debug("Relaying UDP packets from %s:%d to %s:%d", source_address[0], source_address[1],
-                        request.destination_address, request.destination_port)
+            logger.debug("Relaying UDP packets from %s:%d to %s:%d",
+                         source_address[0], source_address[1],
+                         request.destination_address, request.destination_port)
 
-            self.routes[(request.destination_address, request.destination_port)] = source_address
-            self.tunnel.send_data(
-                ultimate_destination=(request.destination_address, request.destination_port),
+            self.routes[(request.destination_address,
+                         request.destination_port)] = source_address
+            self.tunnel.tunnel_data_to_end(
+                ultimate_destination=(
+                request.destination_address, request.destination_port),
                 payload=request.payload
             )
 
-    def on_incoming_from_tunnel(self, community, circuit_id, source_address, data):
+    def on_incoming_from_tunnel(self, community, circuit_id, source_address,
+                                data):
         # Some tricky stuff goes on here to figure out to which SOCKS5 client to return the data
 
         # First we get the origin (outside the tunnel) of the packet, we map this to the SOCKS5 clients IP
-            # All will break if clients send data to the same peer, since we cant distinguish where the return packets
-            # must go....
+        # All will break if clients send data to the same peer, since we cant distinguish where the return packets
+        # must go....
 
         # Now that we have the SOCKS5 client's address we can find the corresponding UDP socks5 relay used. This is
         # relay is created in response to UDP_ASSOCIATE request during the SOCKS5 initiation
@@ -136,13 +149,17 @@ class Socks5Server(object, TunnelObserver):
             logger.error("Dont know over which socket to return the data!")
             return
 
-        encapsulated = structs.encode_udp_packet(0, 0, structs.ADDRESS_TYPE_IPV4, source_address[0],
-                                                        source_address[1], data)
+        encapsulated = structs.encode_udp_packet(0, 0,
+                                                 structs.ADDRESS_TYPE_IPV4,
+                                                 source_address[0],
+                                                 source_address[1], data)
 
-        if socks5_socket.sendto(encapsulated, destination_address) < len(encapsulated):
+        if socks5_socket.sendto(encapsulated, destination_address) < len(
+                encapsulated):
             logger.error("Not sending package!")
 
-        logger.info("Returning UDP packets from %s to %s using proxy port %d", source_address, destination_address,
+        logger.info("Returning UDP packets from %s to %s using proxy port %d",
+                    source_address, destination_address,
                     socks5_socket.getsockname()[1])
 
     def external_connection_made(self, s):

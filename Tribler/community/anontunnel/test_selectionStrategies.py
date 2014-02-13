@@ -1,7 +1,8 @@
 from random import randint
 from unittest import TestCase
 
-from Tribler.community.anontunnel.selectionstrategies import LengthSelectionStrategy, RandomSelectionStrategy
+from Tribler.community.anontunnel.selectionstrategies import \
+    LengthSelectionStrategy, RandomSelectionStrategy
 from Tribler.community.anontunnel.community import Circuit
 from Tribler.dispersy.candidate import Candidate
 
@@ -11,7 +12,9 @@ __author__ = 'chris'
 
 class TestLengthSelectionStrategy(TestCase):
     def setUp(self):
-        self.circuits = [self.__circuit(0), self.__circuit(1), self.__circuit(2), self.__circuit(3), self.__circuit(4)]
+        self.circuits = [self.__circuit(0), self.__circuit(1),
+                         self.__circuit(2), self.__circuit(3),
+                         self.__circuit(4)]
 
     @staticmethod
     def __circuit(hops):
@@ -32,7 +35,7 @@ class TestLengthSelectionStrategy(TestCase):
         cs = LengthSelectionStrategy(1, 3)
         self.assertIn(cs.select(self.circuits), self.circuits[1:3])
 
-        cs = LengthSelectionStrategy(5,10)
+        cs = LengthSelectionStrategy(5, 10)
         self.assertRaises(ValueError, cs.select, self.circuits)
 
     def test_can_select(self):
@@ -45,14 +48,14 @@ class TestLengthSelectionStrategy(TestCase):
         cs = LengthSelectionStrategy(1, 3)
         self.assertTrue(cs.can_select(self.circuits))
 
-        cs = LengthSelectionStrategy(5,10)
+        cs = LengthSelectionStrategy(5, 10)
         self.assertFalse(cs.can_select(self.circuits))
-
 
 
 class TestRandomSelectionStrategy(TestCase):
     def setUp(self):
-        self.circuits = [self.__circuit(1), self.__circuit(2), self.__circuit(3), self.__circuit(4)]
+        self.circuits = [self.__circuit(1), self.__circuit(2),
+                         self.__circuit(3), self.__circuit(4)]
 
     @staticmethod
     def __circuit(hops):

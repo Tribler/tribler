@@ -10,7 +10,6 @@ __author__ = 'chris'
 
 
 class DispersyBypassEndpoint(RawserverEndpoint):
-
     def __init__(self, rawserver, port, ip="0.0.0.0"):
         RawserverEndpoint.__init__(self, rawserver, port, ip)
         self.packet_handlers = {}
@@ -45,13 +44,15 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         try:
             for packet in packets:
 
-                prefix = next((p for p in self.packet_handlers.keys() if packet[1].startswith(p)), None)
+                prefix = next((p for p in self.packet_handlers.keys() if
+                               packet[1].startswith(p)), None)
                 if prefix:
                     self.queue.put_nowait((prefix, packet))
                 else:
                     normal_packets.append(packet)
         except Full:
-                logger.warning("DispersyBypassEndpoint cant keep up with incoming packets, queue is full!")
+            logger.warning(
+                "DispersyBypassEndpoint cant keep up with incoming packets, queue is full!")
 
         RawserverEndpoint.data_came_in(self, normal_packets)
 
