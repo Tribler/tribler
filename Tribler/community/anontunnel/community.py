@@ -1,3 +1,7 @@
+"""
+AnonTunnel community module
+"""
+
 # Python imports
 import hashlib
 import sys
@@ -18,7 +22,6 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.candidate import Candidate, WalkCandidate, \
     BootstrapCandidate
 from Tribler.dispersy.community import Community
-from Tribler.dispersy.member import Member
 
 # AnonTunnel imports
 from Tribler.community.anontunnel import crypto
@@ -35,6 +38,7 @@ from Tribler.community.anontunnel.conversion import CustomProxyConversion, \
 __author__ = 'chris'
 
 import logging
+
 logger = logging.getLogger()
 
 
@@ -62,14 +66,21 @@ class RelayRoute(object):
         self.sock_addr = sock_addr
         self.circuit_id = circuit_id
         self.online = False
-
         self.last_incoming = time.time()
 
     @property
     def ping_time_remaining(self):
+        """
+        The time left before we consider the relay inactive
+        """
+
         too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
         diff = self.last_incoming - too_old
         return diff if diff > 0 else 0
+
+    @property
+    def bytes(self):
+        return 0
 
 
 class Circuit:
@@ -92,6 +103,11 @@ class Circuit:
         self.extend_strategy = None
         self.last_incoming = time.time()
 
+        if proxy:
+            self.__stats = proxy.global_stats.circuit_stats[circuit_id]
+        else:
+            self.__stats = None
+
         self.unverified_hop = None
         """ :type : Hop """
 
@@ -109,6 +125,11 @@ class Circuit:
 
     @property
     def state(self):
+        """
+        The circuit state, can be either:
+         CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING or CIRCUIT_STATE_READY
+        @rtype: str
+        """
         if self.hops is None:
             return CIRCUIT_STATE_BROKEN
 
@@ -119,6 +140,11 @@ class Circuit:
 
     @property
     def ping_time_remaining(self):
+        """
+        The time left before we consider the circuit inactive, when it returns
+        0 a PING must be sent to keep the circuit, including relays at its hop,
+        alive.
+        """
         too_old = time.time() - 5.0
         diff = self.last_incoming - too_old
         return diff if diff > 0 else 0
@@ -129,21 +155,42 @@ class Circuit:
             return other == self.candidate
 
     def beat_heart(self):
+        """
+        Mark the circuit as active
+        """
         self.last_incoming = time.time()
 
     @property
     def bytes_downloaded(self):
-        return self.proxy.global_stats.circuit_stats[
-            self.circuit_id].bytes_downloaded if self.proxy else None
+        """
+        The total numbers of bytes downloaded over this circuit during its
+         entire lifetime
+        @rtype: long|None
+        """
+        return self.__stats.bytes_downloaded if self.__stats else None
 
     @property
     def bytes_uploaded(self):
-        return self.proxy.global_stats.circuit_stats[
-            self.circuit_id].bytes_uploaded if self.proxy else None
+        """
+        The total numbers of bytes uploaded over this circuit during its
+         entire lifetime
+        @rtype: long|None
+        """
+        return self.__stats.bytes_uploaded if self.__stats else None
 
 
 class Hop:
+    """
+    Circuit Hop containing the address, its public key and the first part of
+    the Diffie-Hellman handshake
+    """
+
     def __init__(self, address, pub_key, dh_first_part):
+        """
+        @param (str, int) address: the socket address of the hop
+        @param M2Crypto.EC.EC_pub pub_key: the EC public key of the hop
+        @param long dh_first_part: first part of the DH-handshake
+        """
         self.address = address
         self.pub_key = pub_key
         self.session_key = None
@@ -151,17 +198,17 @@ class Hop:
 
     @property
     def host(self):
+        """
+        The hop's hostname
+        """
         return self.address[0]
 
     @property
     def port(self):
+        """
+        The hop's port
+        """
         return self.address[1]
-
-    @staticmethod
-    def from_candidate(candidate):
-        hop = Hop(candidate.sock_addr, None, None)
-        return hop
-
 
 class TunnelObserver:
     def __init__(self):
@@ -256,7 +303,7 @@ class ProxyCommunity(Community):
         @rtype: Tribler.community.privatesemantic.crypto.elgamalcrypto.ElgamalCrypto
         """
         return self.dispersy.crypto
-    
+
     def __init__(self, dispersy, master_member, settings=None,
                  integrate_with_tribler=True):
         """
@@ -266,18 +313,17 @@ class ProxyCommunity(Community):
         self._original_on_introduction_response = None
         Community.__init__(self, dispersy, master_member)
 
-        assert isinstance(master_member, Member)
-
-        if not settings:
-            settings = ProxySettings()
-
         self.lock = threading.RLock()
 
+        self.settings = settings if settings else ProxySettings()
         # Custom conversion
-        self.prefix = "fffffffe".decode("HEX")
+        self.packet_prefix = "fffffffe".decode("HEX")
+
+        self.__observers = []
+        ''' :type : list of TunnelObserver'''
 
         self.proxy_conversion = CustomProxyConversion()
-        self.on_custom = defaultdict(lambda: lambda *args: None)
+        self._message_handlers = defaultdict(lambda: lambda *args: None)
         ''' :type : dict[
             str,
             (
@@ -285,21 +331,6 @@ class ProxyCommunity(Community):
                 StatsPayload|Tribler.community.anontunnel.payload.BaseMessage
             ) -> bool]
         '''
-
-        self.on_custom[MESSAGE_CREATE] = self.on_create
-        self.on_custom[MESSAGE_CREATED] = self.on_created
-        self.on_custom[MESSAGE_DATA] = self.on_data
-        self.on_custom[MESSAGE_EXTEND] = self.on_extend
-        self.on_custom[MESSAGE_EXTENDED] = self.on_extended
-        self.on_custom[MESSAGE_PING] = self.on_ping
-        self.on_custom[MESSAGE_PONG] = self.on_pong
-
-        self.__observers = []
-        ''' :type : list of TunnelObserver'''
-
-
-        # Replace endpoint
-        dispersy.endpoint.listen_to(self.prefix, self.handle_packet)
 
         self.circuits = {}
         """ :type : dict[int, Circuit] """
@@ -324,13 +355,25 @@ class ProxyCommunity(Community):
         self._relay_transformers = {}
         self._message_filters = defaultdict(list)
 
-        self.settings = settings
-
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
         ''' @type: dict[(str, int), int] '''
+
         self._online = False
 
+        # Attach message handlers
+        self._initiate_message_handlers()
+
+        # Enable Crypto
+        self.settings.crypto.enable(self)
+
+        # Enable global counters
+        from Tribler.community.anontunnel.stats import StatsCollector
+        self.global_stats = StatsCollector(self)
+        self.global_stats.start()
+
+        # Listen to prefix endpoint
+        dispersy.endpoint.listen_to(self.packet_prefix, self.handle_packet)
         dispersy.callback.register(self.check_ready)
         dispersy.callback.register(self.ping_circuits)
 
@@ -341,19 +384,11 @@ class ProxyCommunity(Community):
         else:
             self.notifier = None
 
-        # Enable Crypto
-        self.settings.crypto.enable(self)
-
-        from Tribler.community.anontunnel.stats import StatsCollector
-
-        self.global_stats = StatsCollector(self)
-        self.global_stats.start()
-
         def loop_discover():
             while True:
                 try:
-                    yield self.__discover()
-                except:
+                    self.__discover()
+                finally:
                     yield 5.0
 
         self.dispersy.callback.register(loop_discover)
@@ -375,14 +410,12 @@ class ProxyCommunity(Community):
                               in self.dispersy_yield_verified_candidates()
                               if True or c not in circuit_candidates)
 
-                c = next(self.dispersy_yield_verified_candidates(), None)
+                c = next(candidates, None)
 
                 if c is None:
                     break
                 else:
                     self.create_circuit(c, goal_hops)
-
-        return 5.0
 
 
     def add_observer(self, observer):
@@ -398,6 +431,15 @@ class ProxyCommunity(Community):
             o.on_unload()
 
         Community.unload_community(self)
+
+    def _initiate_message_handlers(self):
+        self._message_handlers[MESSAGE_CREATE] = self.on_create
+        self._message_handlers[MESSAGE_CREATED] = self.on_created
+        self._message_handlers[MESSAGE_DATA] = self.on_data
+        self._message_handlers[MESSAGE_EXTEND] = self.on_extend
+        self._message_handlers[MESSAGE_EXTENDED] = self.on_extended
+        self._message_handlers[MESSAGE_PING] = self.on_ping
+        self._message_handlers[MESSAGE_PONG] = self.on_pong
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ProxyConversion(self)]
@@ -489,7 +531,6 @@ class ProxyCommunity(Community):
         self.dispersy.callback.register(__send_stats)
 
     def __handle_incoming(self, circuit_id, am_originator, candidate, data):
-
         # Transform incoming data using registered transformers
         for f in self._receive_transformers:
             data = f(candidate, circuit_id, data)
@@ -520,14 +561,14 @@ class ProxyCommunity(Community):
         if am_originator:
             self.circuits[circuit_id].beat_heart()
 
-        result = self.on_custom[packet_type](circuit_id, candidate, payload)
+        result = self._message_handlers[packet_type](circuit_id, candidate, payload)
 
         if result:
             self.dict_inc(self.dispersy.statistics.success, str_type)
         else:
-            self.dict_inc(self.dispersy.statistics.success, str_type + '-ignored')
+            self.dict_inc(self.dispersy.statistics.success,
+                          str_type + '-ignored')
             logger.debug("Prev message was IGNORED")
-
 
     def __relay(self, circuit_id, data, relay_key, sock_addr):
         # First, relay packet if we know whom to forward message to for
@@ -578,12 +619,12 @@ class ProxyCommunity(Community):
         @param orig_packet:
         @return:
         """
-        packet = orig_packet[len(self.prefix):]
+        packet = orig_packet[len(self.packet_prefix):]
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (sock_addr, circuit_id)
 
         is_relay = circuit_id > 0 and relay_key in self.relay_from_to and \
-            not relay_key in self.waiting_for
+                   not relay_key in self.waiting_for
         is_originator = not is_relay and circuit_id in self.circuits
         is_initial = not is_relay and not is_originator
 
@@ -736,9 +777,8 @@ class ProxyCommunity(Community):
                 candidate=first_hop,
                 proxy=self)
 
-
             circuit.extend_strategy = extend_strategy if extend_strategy else \
-             self.settings.extend_strategy(self, circuit)
+                self.settings.extend_strategy(self, circuit)
 
             pub_key = iter(first_hop.get_members()).next()._ec
 
@@ -792,6 +832,10 @@ class ProxyCommunity(Community):
             # both sides have separate incoming timer, hence
             # after removing one side the other will follow.
             del self.relay_from_to[relay_key]
+
+            if relay_key in self.session_keys:
+                del self.session_keys[relay_key]
+
             return True
         return False
 
@@ -835,7 +879,8 @@ class ProxyCommunity(Community):
 
         cand_dict = {}
         for i in range(1, 5):
-            candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
+            candidate_temp = next(self.dispersy_yield_verified_candidates(),
+                                  None)
             if not candidate_temp:
                 break
             # first member of candidate contains elgamal key
@@ -845,7 +890,7 @@ class ProxyCommunity(Community):
 
             cand_dict[candidate_temp.sock_addr] = key_string
             logger.debug("Found candidate {0} with key".format(
-                    candidate_temp.sock_addr))
+                candidate_temp.sock_addr))
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -959,9 +1004,12 @@ class ProxyCommunity(Community):
         relay_key = (candidate.sock_addr, circuit_id)
         if relay_key in self.relay_from_to:
             current_relay = self.relay_from_to[relay_key]
-            assert not current_relay.online, "shouldn't be called whenever relay is online, the extend message should have been forwarded"
+            assert not current_relay.online, \
+                "shouldn't be called whenever relay is online, " \
+                "the extend message should have been forwarded"
 
-            # We will just forget the attempt and try again, possible with another candidate
+            # We will just forget the attempt and try again, possible with
+            # another candidate
             old_to_key = current_relay.sock_addr, current_relay.circuit_id
             del self.relay_from_to[old_to_key]
             del self.relay_from_to[relay_key]
@@ -991,7 +1039,7 @@ class ProxyCommunity(Community):
 
         request = self.dispersy.callback.call(
             self._request_cache.get,
-            args=(ProxyCommunity.CircuitRequestCache.create_identifier(circuit_id),))
+            args=(self.CircuitRequestCache.create_identifier(circuit_id),))
 
         if request:
             request.on_extended(message)
@@ -1002,7 +1050,9 @@ class ProxyCommunity(Community):
 
         @staticmethod
         def create_number(force_number=-1):
-            return force_number if force_number >= 0 else NumberCache.create_number()
+            return force_number \
+                if force_number >= 0 \
+                else NumberCache.create_number()
 
         @staticmethod
         def create_identifier(number, force_number=-1):
@@ -1030,16 +1080,18 @@ class ProxyCommunity(Community):
 
     def create_ping(self, candidate, circuit_id):
         def do_add():
-            if not self._request_cache.has(
-                    self.PingRequestCache.create_identifier(circuit_id)):
-                self._request_cache.add(self.PingRequestCache(self, circuit_id))
+            identifier = self.PingRequestCache.create_identifier(circuit_id)
+            if not self._request_cache.has(identifier):
+                cache = self.PingRequestCache(self, circuit_id)
+                self._request_cache.add(cache)
 
         self._dispersy.callback.register(do_add)
-        logger.DEBUG("SEND PING TO CIRCUIT {0}".format(circuit_id))
+
+        logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
-        logger.DEBUG("GOT PING FROM CIRCUIT {0}".format(circuit_id))
+        logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
         return self.send_message(
             destination=candidate,
             circuit_id=circuit_id,
@@ -1047,7 +1099,7 @@ class ProxyCommunity(Community):
             message=PongMessage())
 
     def on_pong(self, circuit_id, candidate, message):
-        logger.DEBUG("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
+        logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
         request = self.dispersy.callback.call(
             self._request_cache.get,
             args=(self.PingRequestCache.create_identifier(circuit_id),))
@@ -1061,7 +1113,7 @@ class ProxyCommunity(Community):
     # not necessarily a new candidate
     def on_member_heartbeat(self, message, candidate):
         if not isinstance(candidate, WalkCandidate) or \
-                isinstance(candidate,BootstrapCandidate):
+                isinstance(candidate, BootstrapCandidate):
             return
 
         candidate._associations.clear()
@@ -1143,12 +1195,15 @@ class ProxyCommunity(Community):
                       str_type + ('-relayed' if relayed else ''), 1)
 
         # we need to make sure that this endpoint is thread safe
-        return self.dispersy.endpoint.send([destination],
-                                           [self.prefix + packet])
+        return self.dispersy.endpoint.send(
+            candidates=[destination],
+            packets=[self.packet_prefix + packet])
 
     def dict_inc(self, statistics_dict, key, inc=1):
-        self._dispersy.statistics.dict_inc(statistics_dict,
-                                           u"anontunnel-" + key, inc)
+        self._dispersy.statistics.dict_inc(
+            statistics_dict,
+            u"anontunnel-" + key,
+            inc)
 
     # CIRCUIT STUFFS
     def get_circuits(self):
@@ -1186,7 +1241,7 @@ class ProxyCommunity(Community):
                 to_be_pinged = [circuit for circuit
                                 in self.circuits.values()
                                 if circuit.ping_time_remaining < PING_INTERVAL
-                                and circuit.candidate]
+                    and circuit.candidate]
 
                 logger.info("pinging %d circuits", len(to_be_pinged))
                 for circuit in to_be_pinged:
@@ -1209,19 +1264,21 @@ class ProxyCommunity(Community):
             return self.active_circuits[circuit_id]
         else:
             strategy = self.settings.select_strategy
-            circuit_id = strategy.select(self.active_circuits.values()).circuit_id
+            circuit_id = strategy.select(
+                self.active_circuits.values()).circuit_id
             self.destination_circuit[ultimate_destination] = circuit_id
 
             logger.warning("SELECT circuit %d with length %d for %s:%d",
-                            circuit_id,
-                            self.circuits[circuit_id].goal_hops,
-                            *ultimate_destination)
+                           circuit_id,
+                           self.circuits[circuit_id].goal_hops,
+                           *ultimate_destination)
 
             return self.active_circuits[circuit_id]
 
     def __notify(self, method, *args, **kwargs):
         for o in self.__observers:
-            method(o, *args, **kwargs)
+            func = getattr(o, method)
+            func(*args, **kwargs)
 
     def tunnel_data_to_end(self, ultimate_destination, payload):
         with self.lock:
@@ -1229,7 +1286,7 @@ class ProxyCommunity(Community):
 
             if circuit.goal_hops == 0:
                 self.__notify(
-                    TunnelObserver.on_exiting_from_tunnel,
+                    "on_exiting_from_tunnel",
                     circuit.circuit_id, None, ultimate_destination, payload)
             else:
                 self.send_message(circuit.candidate, circuit.circuit_id,
@@ -1238,7 +1295,7 @@ class ProxyCommunity(Community):
                                               payload, None))
 
                 self.__notify(
-                    TunnelObserver.on_send_data,
+                    "on_send_data",
                     circuit.circuit_id, circuit.candidate,
                     ultimate_destination, payload)
 
@@ -1247,5 +1304,5 @@ class ProxyCommunity(Community):
             self.send_message(candidate, circuit_id, MESSAGE_DATA,
                               DataMessage(None, payload, source_address))
             self.__notify(
-                TunnelObserver.on_enter_tunnel,
+                "on_enter_tunnel",
                 circuit_id, candidate, source_address, payload)

@@ -59,6 +59,7 @@ class AnonTunnel(Thread):
                                  u":memory:", crypto=ElgamalCrypto())
 
         self.community = None
+        ''' @type: ProxyCommunity '''
 
     def run(self):
         self.dispersy.start()
@@ -73,6 +74,8 @@ class AnonTunnel(Thread):
                     False
                 ),
                 load=True)[0]
+            ''' @type: ProxyCommunity '''
+
 
             self.socks5_server.tunnel = proxy_community
             self.socks5_server.start()
@@ -232,6 +235,8 @@ def main(argv):
         ', '.join(args.select_strategy[1:])))
 
     anon_tunnel = AnonTunnel(socks5_port, proxy_settings, crawl)
+    ''' @type: AnonTunnel '''
+
     anon_tunnel.start()
     regex_cmd_extend_circuit = re.compile("e ?([0-9]+)\n")
 
@@ -245,8 +250,6 @@ def main(argv):
 
         if not line:
             break
-
-        cmd_extend_match = regex_cmd_extend_circuit.match(line)
 
         if line == 'threads\n':
             for thread in threading.enumerate():
@@ -276,46 +279,35 @@ def main(argv):
                 print >> sys.stderr, "Profiling disabled!"
 
         elif line == 'c\n':
-            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tIN (kBps)\tOUT (kBps)"
+            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
             for circuit in anon_tunnel.community.circuits.values():
-                print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f" % (
+                print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (
                     circuit.circuit_id, circuit.candidate.sock_addr[0],
                     circuit.candidate.sock_addr[1],
                     circuit.goal_hops, len(circuit.hops),
                     circuit.bytes_downloaded / 1024.0 / 1024.0,
-                    circuit.bytes_uploaded / 1024.0 / 1024.0,
-                    circuit.speed_down / 1024.0,
-                    circuit.speed_up / 1024.0
+                    circuit.bytes_uploaded / 1024.0 / 1024.0
                 )
 
                 for hop in circuit.hops[1:]:
                     print "\t%s:%d" % (hop.host, hop.port)
-
-        elif cmd_extend_match:
-            circuit_id = int(cmd_extend_match.group(1))
-
-            if circuit_id in anon_tunnel.community.circuits:
-                circuit = anon_tunnel.community.circuits[circuit_id]
-                anon_tunnel.community.extend_circuit(circuit)
-
         elif line == 'q\n':
             anon_tunnel.stop()
             os._exit(0)
             break
 
         elif line == 'r\n':
-            print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)\tSpeed (kBps)"
+            print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
 
             from_to = anon_tunnel.community.relay_from_to
 
             for key in from_to.keys():
                 relay = from_to[key]
 
-                print "%s-->\t%s\t\t%.2f\t\t%.2f" % (
-                    (key[0].sock_addr, key[1]),
-                    (relay.candidate.sock_addr, relay.circuit_id),
+                print "%s-->\t%s\t\t%.2f" % (
+                    (key[0], key[1]),
+                    (relay.sock_addr, relay.circuit_id),
                     relay.bytes[1] / 1024.0 / 1024.0,
-                    relay.speed / 1024.0
                 )
 
 
