@@ -119,7 +119,7 @@ class Circuit:
 
     @property
     def ping_time_remaining(self):
-        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
+        too_old = time.time() - 5.0
         diff = self.last_incoming - too_old
         return diff if diff > 0 else 0
 
@@ -631,8 +631,6 @@ class ProxyCommunity(Community):
             return u"request-cache:circuit-request:%d" % (number,)
 
         def __init__(self, community, force_number):
-            self.cleanup_delay = 0.0
-
             NumberCache.__init__(self, community.request_cache, force_number)
             self.community = community
 
@@ -1023,35 +1021,28 @@ class ProxyCommunity(Community):
         def cleanup_delay(self):
             return 0.0
 
-        def on_pong(self):
-            self.community.dispersy.callback.register(
-                self.community.request_cache.pop, args=(self.identifier,))
+        def on_pong(self, message):
+            self.community.dispersy.callback.register(self.community.request_cache.pop, args=(self.identifier,))
 
         def on_timeout(self):
-            self.community.remove_circuit(self.number,
-                                          'timeout on PingRequestCache')
+            self.community.remove_circuit(self.number, 'RequestCache')
 
     def create_ping(self, candidate, circuit_id):
-        self._dispersy.callback.register(self._request_cache.add,
-                                         args=(
-                                             ProxyCommunity.PingRequestCache(
-                                                 self,
-                                                 circuit_id),))
+        def do_add():
+            if not self._request_cache.has(ProxyCommunity.PingRequestCache.create_identifier(circuit_id)):
+                self._request_cache.add(ProxyCommunity.PingRequestCache(self, circuit_id))
+
+        self._dispersy.callback.register(do_add)
+        logger.error("SEND PING TO CIRCUIT {0}".format(circuit_id))
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
-        logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
-        if circuit_id in self.circuits:
-            return self.send_message(candidate, circuit_id, MESSAGE_PONG,
-                                     PongMessage())
-        return False
+        logger.error("GOT PING FROM CIRCUIT {0}".format(circuit_id))
+        return self.send_message(candidate, circuit_id, MESSAGE_PONG, PongMessage())
 
     def on_pong(self, circuit_id, candidate, message):
-        logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
-        request = self.dispersy.callback.call(self._request_cache.get,
-                                              args=(
-                                                  ProxyCommunity.PingRequestCache.create_identifier(
-                                                      circuit_id),))
+        logger.error("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
+        request = self.dispersy.callback.call(self._request_cache.get, args=(ProxyCommunity.PingRequestCache.create_identifier(circuit_id),))
         if request:
             request.on_pong(message)
             return True
@@ -1187,10 +1178,7 @@ class ProxyCommunity(Community):
                 logger.info("removed %d relays", len(to_be_removed))
                 assert all(to_be_removed)
 
-                to_be_pinged = [circuit
-                                for circuit in self.circuits.values()
-                                if circuit.ping_time_remaining < PING_INTERVAL and circuit.candidate]
-
+                to_be_pinged = [circuit for circuit in self.circuits.values() if circuit.ping_time_remaining < PING_INTERVAL and circuit.candidate]
                 logger.info("pinging %d circuits", len(to_be_pinged))
                 for circuit in to_be_pinged:
                     self.create_ping(circuit.candidate, circuit.circuit_id)

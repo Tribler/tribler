@@ -71,7 +71,6 @@ def int_to_packed(int_val, width=128, word_size=32):
 
     return struct.pack(fmt, *words)
 
-
 #-----------------------------------------------------------------------------
 def packed_to_int(packed_int, width=128, word_size=32):
     """
@@ -136,7 +135,8 @@ class CustomProxyConversion():
             MESSAGE_EXTEND: self.__encode_extend,
             MESSAGE_EXTENDED: self.__encode_extended,
             MESSAGE_DATA: self.__encode_data,
-            MESSAGE_PING: lambda message: ''
+            MESSAGE_PING: self.__encode_ping,
+            MESSAGE_PONG: self.__encode_pong
         }
 
         self.decode_functions = {
@@ -145,6 +145,8 @@ class CustomProxyConversion():
             MESSAGE_EXTEND: self.__decode_extend,
             MESSAGE_EXTENDED: self.__decode_extended,
             MESSAGE_DATA: self.__decode_data,
+            MESSAGE_PING: self.__decode_ping,
+            MESSAGE_PONG: self.__decode_pong
             MESSAGE_PING: lambda socket_buffer, offset: Tribler.community.anontunnel.payload.PingMessage()
         }
 
@@ -260,6 +262,22 @@ class CustomProxyConversion():
             offset += payload_length
 
         return Tribler.community.anontunnel.payload.DataMessage(destination, payload, origin)
+
+    @staticmethod
+    def __encode_ping(message):
+        return ''
+
+    @staticmethod
+    def __encode_pong(message):
+        return ''
+
+    @staticmethod
+    def __decode_ping(message_buffer, offset=0):
+        return Tribler.community.anontunnel.payload.PingMessage()
+
+    @staticmethod
+    def __decode_pong(message_buffer, offset=0):
+        return Tribler.community.anontunnel.payload.PongMessage()
 
 
     @staticmethod
