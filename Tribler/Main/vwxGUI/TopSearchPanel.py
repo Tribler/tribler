@@ -16,6 +16,7 @@ from widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButt
 from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 
 class TopSearchPanelStub():
@@ -429,19 +430,8 @@ class TopSearchPanel(FancyPanel):
             playable_files = torrent.videofiles
 
             if len(playable_files) > 1:  # Create a popup
-                playable_files.sort()
-                dialog = wx.SingleChoiceDialog(self, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play.', 'Which file do you want to play?', playable_files)
-                (_, selected_file) = max([(size, filename) for filename, size in torrent.files if filename in torrent.videofiles])
-
-                if selected_file in playable_files:
-                    dialog.SetSelection(playable_files.index(selected_file))
-
-                if dialog.ShowModal() == wx.ID_OK:
-                    selected_file = dialog.GetStringSelection()
-                else:
-                    selected_file = None
-
-                dialog.Destroy()
+                (_, largest_file) = max([(size, filename) for filename, size in torrent.files if filename in playable_files])
+                selected_file = VideoPlayer.getInstance().ask_user_to_select_video(playable_files, largest_file)
 
                 if selected_file:
                     self.guiutility.library_manager.playTorrent(torrent, selected_file)

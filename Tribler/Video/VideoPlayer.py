@@ -118,23 +118,25 @@ class VideoPlayer:
         # If the user didn't select a file to play, select if there is a single, or ask
         if selectedinfilename is None:
             if len(videofiles) == 0:
-                self._logger.info("Videoplayer: no video files found!")
+                self._logger.error("Videoplayer: no video files found!")
                 return
             elif len(videofiles) > 1:
                 selectedinfilename = self.ask_user_to_select_video([infilename for infilename, _ in videofiles])
                 if selectedinfilename is None:
-                    self._logger.info("Videoplayer: user did not select a video")
+                    self._logger.error("Videoplayer: user did not select a video")
                     return
             else:
                 selectedinfilename = videofiles[0][0]
-        elif selectedinfilename not in [infilename for infilename, _ in videofiles]:
-            self._logger.info("Videoplayer: unknown video file!")
+        elif selectedinfilename not in cdef.get_files():
+            self._logger.error("Videoplayer: unknown video file!")
             return
 
         self._logger.info("Videoplayer: play: PROGRESS %s", ds.get_progress())
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
+        selectedoutfilenames = [outfilename for infilename, outfilename in videofiles if selectedinfilename == infilename]
+        selectedoutfilename = selectedoutfilenames[0] if selectedoutfilenames else None
 
-        if cdef.get_def_type() == 'swift' or not complete:
+        if cdef.get_def_type() == 'swift' or not complete or not selectedoutfilename:
             self._logger.info("Videoplayer: enabling VOD on torrent %s", cdef.get_name())
             d.set_video_event_callback(self.sesscb_vod_event_callback)
             if cdef.get_def_type() != "torrent" or d.get_def().is_multifile_torrent():
@@ -142,9 +144,7 @@ class VideoPlayer:
             self.set_vod_download(d)
             d.set_mode(DLMODE_VOD)
             d.restart()
-
         else:
-            selectedoutfilename = [outfilename for _, outfilename in videofiles if selectedinfilename == infilename][0]
             self._logger.debug("Videoplayer: playing file from disk %s", selectedoutfilename)
             cmd = self.get_video_player(os.path.splitext(selectedoutfilename)[1], selectedoutfilename)
             self.launch_video_player(cmd)
@@ -193,16 +193,18 @@ class VideoPlayer:
             if self.videoframe is not None:
                 self.videoframe.get_videopanel().Resume()
 
-    def ask_user_to_select_video(self, videofiles):
-        dlg = VideoChooser(self.videoframe.get_window(), self.utility, videofiles, title='Tribler', expl='Select which file to play')
-        result = dlg.ShowModal()
-        if result == wx.ID_OK:
-            index = dlg.getChosenIndex()
-            filename = videofiles[index]
-        else:
-            filename = None
-        dlg.Destroy()
-        return filename
+    def ask_user_to_select_video(self, videofiles, selected_file=None):
+        if len(videofiles) > 1:
+            videofiles.sort()
+            dialog = wx.SingleChoiceDialog(None, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play.', 'Which file do you want to play?', videofiles)
+            if selected_file in videofiles:
+                dialog.SetSelection(videofiles.index(selected_file))
+
+            selected_file = dialog.GetStringSelection() if dialog.ShowModal() == wx.ID_OK else None
+            dialog.Destroy()
+            return selected_file
+        elif len(videofiles) == 1:
+            return videofiles[0]
 
     def get_video_player(self, ext, videourl):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
@@ -272,50 +274,6 @@ class VideoPlayer:
 
     def get_playbackmode(self):
         return self.playbackmode
-
-
-class VideoChooser(wx.Dialog):
-
-    def __init__(self, parent, utility, filelist, title=None, expl=None):
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.utility = utility
-        self.filelist = []
-
-        # Convert to Unicode for display
-        for file in filelist:
-            u = bin2unicode(file)
-            self.filelist.append(u)
-
-        self._logger.debug("VideoChooser: filelist %s", self.filelist)
-
-        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
-        if title is None:
-            title = self.utility.lang.get('selectvideofiletitle')
-        wx.Dialog.__init__(self, parent, -1, title, style=style)
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        filebox = wx.BoxSizer(wx.VERTICAL)
-        self.file_chooser = wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(300, -1), self.filelist)
-        self.file_chooser.SetSelection(0)
-
-        if expl is None:
-            self.utility.lang.get('selectvideofile')
-        filebox.Add(wx.StaticText(self, -1, expl), 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        filebox.Add(self.file_chooser)
-        sizer.Add(filebox, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-
-        buttonbox = wx.BoxSizer(wx.HORIZONTAL)
-        okbtn = wx.Button(self, wx.ID_OK, label=self.utility.lang.get('ok'), style=wx.BU_EXACTFIT)
-        buttonbox.Add(okbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
-        cancelbtn = wx.Button(self, wx.ID_CANCEL, label=self.utility.lang.get('cancel'), style=wx.BU_EXACTFIT)
-        buttonbox.Add(cancelbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
-        sizer.Add(buttonbox, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-
-        self.SetSizerAndFit(sizer)
-
-    def getChosenIndex(self):
-        return self.file_chooser.GetSelection()
 
 
 def return_feasible_playback_modes(syspath):
