@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, NativeIcon, LinkText, BetterText as StaticText, _set_font
+from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, LinkText, BetterText as StaticText, _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -54,8 +55,8 @@ class ListHeaderIcon:
     @warnWxThread
     def __createBitmap(self, parent, background, type, flag=0):
         self._logger.debug("Creating new sorting bitmaps %s %s %s", parent, background, type)
-        nativeIcon = NativeIcon.getInstance()
-        down = nativeIcon.getBitmap(parent, type, background, flag)
+        gui_image_manager = GuiImageManager.getInstance()
+        down = gui_image_manager.getBitmap(parent, type, background, flag)
 
         img = down.ConvertToImage()
         up = img.Rotate90().Rotate90().ConvertToBitmap()
@@ -547,7 +548,7 @@ class TorrentFilter(BaseFilter):
         panel.SetBackgroundColour(self.GetBackgroundColour())
         panel.SetForegroundColour(self.GetForegroundColour())
 
-        self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.icon_down = GuiImageManager.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
 
         self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
@@ -862,7 +863,7 @@ class ChannelFilter(BaseFilter):
         panel.SetBackgroundColour(self.GetBackgroundColour())
         panel.SetForegroundColour(self.GetForegroundColour())
 
-        self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.icon_down = GuiImageManager.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
 
         self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
@@ -1007,7 +1008,7 @@ class DownloadFilter(BaseFilter):
         panel.SetMinSize((-1, 25))
         panel.SetBackgroundColour(self.GetBackgroundColour())
 
-        self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.icon_down = GuiImageManager.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
 
         self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
@@ -1220,7 +1221,7 @@ class ListItemHeader(wx.Panel):
         self.SetBackgroundColour(FILTER_GREY)
         self.SetForegroundColour(parent.GetForegroundColour())
 
-        self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.icon_down = GuiImageManager.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
 
         self.parent_list = parent_list

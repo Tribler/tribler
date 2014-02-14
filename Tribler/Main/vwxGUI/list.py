@@ -19,6 +19,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 
 from Tribler.__init__ import LIBRARYNAME
 
@@ -1041,21 +1042,21 @@ class GenericSearchList(SizeList):
 
         self.infohash2key = {}  # bundled infohashes
 
-        self.statusDHT = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_dht.png"), wx.BITMAP_TYPE_ANY)
-        self.statusInactive = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_inact.png"), wx.BITMAP_TYPE_ANY)
-        self.statusDownloading = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_dl.png"), wx.BITMAP_TYPE_ANY)
-        self.statusFinished = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_fin.png"), wx.BITMAP_TYPE_ANY)
-        self.statusSeeding = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_sd.png"), wx.BITMAP_TYPE_ANY)
-        self.statusStopped = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_stop.png"), wx.BITMAP_TYPE_ANY)
+        self.statusDHT = GuiImageManager.getInstance().getOtherImage(u"status_dht.png")
+        self.statusInactive = GuiImageManager.getInstance().getOtherImage(u"status_inact.png")
+        self.statusDownloading = GuiImageManager.getInstance().getOtherImage(u"status_dl.png")
+        self.statusFinished = GuiImageManager.getInstance().getOtherImage(u"status_fin.png")
+        self.statusSeeding = GuiImageManager.getInstance().getOtherImage(u"status_sd.png")
+        self.statusStopped = GuiImageManager.getInstance().getOtherImage(u"status_stop.png")
 
-        self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "starEnabled.png"), wx.BITMAP_TYPE_ANY)
-        self.normal = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "star.png"), wx.BITMAP_TYPE_ANY)
+        self.favorite = GuiImageManager.getInstance().getOtherImage(u"starEnabled.png")
+        self.normal = GuiImageManager.getInstance().getOtherImage(u"star.png")
 
-        self.ministar = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "ministarEnabled.png"), wx.BITMAP_TYPE_ANY)
-        self.normalministar = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "ministar.png"), wx.BITMAP_TYPE_ANY)
+        self.ministar = GuiImageManager.getInstance().getOtherImage(u"ministarEnabled.png")
+        self.normalministar = GuiImageManager.getInstance().getOtherImage(u"ministar.png")
 
-        self.mychannel = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "mychannel.png"), wx.BITMAP_TYPE_ANY)
-        self.spam = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "bug.png"), wx.BITMAP_TYPE_ANY)
+        self.mychannel = GuiImageManager.getInstance().getOtherImage(u"mychannel.png")
+        self.spam = GuiImageManager.getInstance().getOtherImage(u"bug.png")
         self.max_votes = 5
 
     def _status_icon(self, item):
@@ -1418,9 +1419,9 @@ class SearchList(GenericSearchList):
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 
-        self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "starEnabled.png"), wx.BITMAP_TYPE_ANY)
-        self.outFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "star.png"), wx.BITMAP_TYPE_ANY)
-        self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "swift.png"), wx.BITMAP_TYPE_ANY)
+        self.inFavoriteChannel = GuiImageManager.getInstance().getOtherImage(u"starEnabled.png")
+        self.outFavoriteChannel = GuiImageManager.getInstance().getOtherImage(u"star.png")
+        self.hasSwift = GuiImageManager.getInstance().getOtherImage(u"swift.png")
         self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, parent=parent)
 
@@ -1676,8 +1677,8 @@ class LibraryList(SizeList):
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8, 9, 10])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
 
-        self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "swift.png"), wx.BITMAP_TYPE_ANY)
-        self.hasTorrent = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "bittorrent.png"), wx.BITMAP_TYPE_ANY)
+        self.hasSwift = GuiImageManager.getInstance().getOtherImage(u"swift.png")
+        self.hasTorrent = GuiImageManager.getInstance().getOtherImage(u"bittorrent.png")
         self.hasNothing = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         SizeList.__init__(self, None, LIST_GREY, [0, 0], False, parent=parent)
 
@@ -2047,12 +2048,12 @@ class ChannelList(List):
         columns = self.guiutility.SetColumnInfo(ChannelListItemAssociatedTorrents, columns)
         ColumnsManager.getInstance().setColumns(ChannelListItemAssociatedTorrents, columns)
 
-        self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "starEnabled.png"), wx.BITMAP_TYPE_ANY)
-        self.normal = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "star.png"), wx.BITMAP_TYPE_ANY)
-        self.mychannel = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "mychannel.png"), wx.BITMAP_TYPE_ANY)
-        self.spam = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "bug.png"), wx.BITMAP_TYPE_ANY)
-        self.ministar = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "ministarEnabled.png"), wx.BITMAP_TYPE_ANY)
-        self.normalministar = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "ministar.png"), wx.BITMAP_TYPE_ANY)
+        self.favorite = GuiImageManager.getInstance().getOtherImage(u"starEnabled.png")
+        self.normal = GuiImageManager.getInstance().getOtherImage(u"star.png")
+        self.mychannel = GuiImageManager.getInstance().getOtherImage(u"mychannel.png")
+        self.spam = GuiImageManager.getInstance().getOtherImage(u"bug.png")
+        self.ministar = GuiImageManager.getInstance().getOtherImage(u"ministarEnabled.png")
+        self.normalministar = GuiImageManager.getInstance().getOtherImage(u"ministar.png")
 
         self.select_popular = True
         self.max_votes = 5

@@ -14,9 +14,9 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist, NotCollectedTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.IconsManager import IconsManager
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
+    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
@@ -315,7 +315,7 @@ class TorrentDetails(AbstractDetails):
         self.marking_vSizer = wx.BoxSizer(wx.VERTICAL)
         self.marking_vSizer.Add(wx.StaticLine(self.detailsTab, -1, style=wx.LI_HORIZONTAL), 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 5)
         self.marking_vSizer.Add(self.marking_hSizer, 1, wx.EXPAND)
-        self.markicon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
+        self.markicon = GuiImageManager.getInstance().getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
         self.markicon = wx.StaticBitmap(self.detailsTab, -1, self.markicon)
         ulfont = self.GetFont()
         ulfont.SetUnderlined(True)
@@ -350,8 +350,8 @@ class TorrentDetails(AbstractDetails):
         self.filesList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFilesSelected)
 
         self.il = wx.ImageList(16, 16)
-        self.play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'file_video.png'), wx.BITMAP_TYPE_ANY))
-        self.file_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'file_default.png'), wx.BITMAP_TYPE_ANY))
+        self.play_img = self.il.Add(GuiImageManager.getInstance().getOtherImage(u"file_video.png"))
+        self.file_img = self.il.Add(GuiImageManager.getInstance().getOtherImage(u"file_default.png"))
         self.filesList.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         self.filesList.setResizeColumn(0)
@@ -959,7 +959,7 @@ class LibraryDetails(TorrentDetails):
         self.refresh_counter = 0
         self.bw_history = []
 
-        self.im = IconsManager.getInstance()
+        self.gui_image_manager = GuiImageManager.getInstance()
 
         TorrentDetails.__init__(self, parent)
 
@@ -1033,7 +1033,7 @@ class LibraryDetails(TorrentDetails):
         self.peersSizer.Add(self.peerList, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
 
         self.country_to_index = {}
-        for code, flag in self.im.country_flags.iteritems():
+        for code, flag in self.gui_image_manager.getCountryFlagDict().iteritems():
             self.country_to_index[code] = self.peersTab.il.Add(flag)
 
         self.availability_hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1986,7 +1986,7 @@ class ChannelsExpandedPanel(wx.Panel):
 
             def CreateLinkStaticText():
                 link = LinkStaticText(self, '', icon=None, font_colour=self.fg_colour)
-                link_icon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+                link_icon = GuiImageManager.getInstance().getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0)
                 link_icon = link_icon.ConvertToImage().Rotate90(False).ConvertToBitmap()
                 link_icon = wx.StaticBitmap(self, -1, link_icon)
                 link.Insert(0, link_icon, 0, wx.CENTER | wx.RIGHT, 3)
@@ -2064,7 +2064,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.torrent = None
         self.fileindex = 0
 
-        self.close_icon = wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, "images", "close.png"), wx.BITMAP_TYPE_ANY)
+        self.close_icon = GuiImageManager.getInstance().getOtherImage(u"close.png")
         self.fg_colour = self.GetForegroundColour()
         self.bg_colour = LIST_LIGHTBLUE
         self.SetBackgroundColour(self.bg_colour)

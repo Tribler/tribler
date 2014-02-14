@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import logging
+from time import time
 
 from wx import xrc
 
@@ -19,8 +20,8 @@ from Tribler.Core.Search.SearchManager import split_into_keywords, fts3_preproce
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
-from time import time
 from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
@@ -63,13 +64,9 @@ class GUIUtility:
 
         self.lists = []
 
-        from Tribler.Main.vwxGUI.widgets import NativeIcon
         from Tribler.Main.vwxGUI.list_header import ListHeaderIcon
-        from Tribler.Main.vwxGUI.IconsManager import IconsManager
 
-        self.nativeicon = NativeIcon.getInstance()
         self.listicon = ListHeaderIcon.getInstance()
-        self.iconsmanager = IconsManager.getInstance()
 
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -83,9 +80,7 @@ class GUIUtility:
 
     def delInstance():
         if GUIUtility.__single:
-            GUIUtility.__single.nativeicon.delInstance()
             GUIUtility.__single.listicon.delInstance()
-            GUIUtility.__single.iconsmanager.delInstance()
             GUIUtility.__single.library_manager.delInstance()
             GUIUtility.__single.channelsearch_manager.delInstance()
             GUIUtility.__single.torrentsearch_manager.delInstance()
@@ -570,7 +565,7 @@ class GUIUtility:
         else:
             if isinstance(icon, basestring):
                 icon = wx.ArtProvider.GetBitmap(icon, wx.ART_FRAME_ICON) or \
-                    wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "notify_%s.png" % icon), wx.BITMAP_TYPE_ANY)
+                    GuiImageManager.getInstance().getOtherImage(u"notify_%s.png" % icon)
             self.frame.actlist.Notify(msg or title, icon)
 
     def ShouldGuiUpdate(self):
