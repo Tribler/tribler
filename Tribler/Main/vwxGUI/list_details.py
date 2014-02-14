@@ -16,7 +16,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
+    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
@@ -315,7 +315,7 @@ class TorrentDetails(AbstractDetails):
         self.marking_vSizer = wx.BoxSizer(wx.VERTICAL)
         self.marking_vSizer.Add(wx.StaticLine(self.detailsTab, -1, style=wx.LI_HORIZONTAL), 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 5)
         self.marking_vSizer.Add(self.marking_hSizer, 1, wx.EXPAND)
-        self.markicon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
+        self.markicon = GuiImageManager.getInstance().getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
         self.markicon = wx.StaticBitmap(self.detailsTab, -1, self.markicon)
         ulfont = self.GetFont()
         ulfont.SetUnderlined(True)
@@ -1986,7 +1986,7 @@ class ChannelsExpandedPanel(wx.Panel):
 
             def CreateLinkStaticText():
                 link = LinkStaticText(self, '', icon=None, font_colour=self.fg_colour)
-                link_icon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+                link_icon = GuiImageManager.getInstance().getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0)
                 link_icon = link_icon.ConvertToImage().Rotate90(False).ConvertToBitmap()
                 link_icon = wx.StaticBitmap(self, -1, link_icon)
                 link.Insert(0, link_icon, 0, wx.CENTER | wx.RIGHT, 3)

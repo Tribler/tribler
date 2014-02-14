@@ -4,7 +4,7 @@ import os
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import NativeIcon, TransparentText as StaticText, HorizontalGauge, ActionButton
+from Tribler.Main.vwxGUI.widgets import TransparentText as StaticText, HorizontalGauge, ActionButton
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
@@ -32,7 +32,7 @@ class SRstatusbar(wx.StatusBar):
         self.ff_checkbox.Bind(wx.EVT_CHECKBOX, self.OnCheckbox)
         self.ff_checkbox.SetValue(self.guiutility.getFamilyFilter())
 
-        self.speed_down_icon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.speed_down_icon = GuiImageManager.getInstance().getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0)
         self.speed_down_sbmp = wx.StaticBitmap(self, -1, self.speed_down_icon)
         self.speed_down_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
         self.speed_down = StaticText(self, -1, '', style=wx.ST_NO_AUTORESIZE)

@@ -4,6 +4,8 @@
 # the type of wx.Bitmap.
 #
 import wx
+from wx.lib.embeddedimage import PyEmbeddedImage
+
 import os
 import os.path
 import sys
@@ -38,6 +40,8 @@ class GuiImageManager(object):
         self._flag_dict    = {}
         self._other_dict   = {}
         self.__loadAllImages()
+
+        self._icons = {}
 
         #self._peer_db = gui_utility.utility.session.open_dbhandler(NTFY_PEERS)
 
@@ -219,8 +223,101 @@ class GuiImageManager(object):
 
         string_io = cStringIO.StringIO(data)
 
-
         return data2wxBitmap("image/jpeg", data, dim)
+
+
+    def getBitmap(self, parent, type, background, state):
+        assert isinstance(background, wx.Colour), u"we require a wx.colour object here, got %s" % type(background)
+        if isinstance(background, wx.Colour):
+            background = background.Get()
+        else:
+            background = wx.Brush(background).GetColour().Get()
+
+        icons = self._icons.setdefault(type, {})
+        if background not in icons:
+            icons.setdefault(background, {})
+
+            def fixSize(bitmap, width, height):
+                if width != bitmap.GetWidth() or height != bitmap.GetHeight():
+
+                    bmp = wx.EmptyBitmap(width, height)
+                    dc = wx.MemoryDC(bmp)
+                    dc.SetBackground(wx.Brush(background))
+                    dc.Clear()
+
+                    offset_x = (width - bitmap.GetWidth()) / 2
+                    offset_y = (height - bitmap.GetHeight()) / 2
+
+                    dc.DrawBitmap(bitmap, offset_x, offset_y)
+                    dc.SelectObject(wx.NullBitmap)
+                    del dc
+
+                    return bmp
+                return bitmap
+
+            # create both icons
+            icons[background][0] = self.__createBitmap(parent, background, type, 0)
+            icons[background][1] = self.__createBitmap(parent, background, type, 1)
+
+            width = max(icons[background][0].GetWidth(), icons[background][1].GetWidth())
+            height = max(icons[background][0].GetHeight(), icons[background][1].GetHeight())
+
+            icons[background][0] = fixSize(icons[background][0], width, height)
+            icons[background][1] = fixSize(icons[background][1], width, height)
+
+        if state not in icons[background]:
+            icons[background][state] = self.__createBitmap(parent, background, type, state)
+        return icons[background][state]
+
+
+    def __createBitmap(self, parent, background, type, state):
+        if state == 1:
+            if type == 'tree':
+                state = wx.CONTROL_EXPANDED
+            elif type == 'checkbox':
+                state = wx.CONTROL_CHECKED
+            else:
+                state = wx.CONTROL_PRESSED
+
+        # There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
+        # Thus we create a larger bmp, allowing for borders
+        bmp = wx.EmptyBitmap(24, 24)
+        dc = wx.MemoryDC(bmp)
+        dc.SetBackground(wx.Brush(background))
+        dc.Clear()
+
+        # max size is 16x16, using 4px as a border
+        if type == 'checkbox':
+            wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), state)
+
+        elif type == 'tree':
+            wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
+
+        elif type == 'arrow':
+            arrow = PyEmbeddedImage(
+                "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAYAAABCxiV9AAAAAXNSR0IArs4c6QAAAARnQU1B"
+                "AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5F"
+                "VCB2My41LjEwMPRyoQAAADFJREFUGFdjYGBg+I8Tf/jwQRSbJFCckQFIcIEZSCYA+RxAzAyS"
+                "BGFGmAIgzQTlMwAAOBAx4jYP9TUAAAAASUVORK5CYII=")
+            return arrow.GetBitmap()
+
+        elif type == 'slider':
+            slider = PyEmbeddedImage(
+                "iVBORw0KGgoAAAANSUhEUgAAAAkAAAAICAYAAAArzdW1AAAAAXNSR0IArs4c6QAAAARnQU1B"
+                "AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5F"
+                "VCB2My41LjEwMPRyoQAAAOZJREFUKFM9j71rg1AUxd9LIUuX/gvZRAcRdfBjqp+jIoKYoZBQ"
+                "UdEO+pysa6f+mZ0ayJCWri/nhcYLP7icc+6BS3Rd/3Jdl6dpyrMsW0mShNu2zU3T/CaKovC2"
+                "bV+naXoGOTiAPRihN8Inqqryuq6Nvu83gALyD4W+Ez6RJOmnKIrPYRieGGMbNBCwxU7Lspxk"
+                "Wf4jvu83mqadUP0xz/MDoIKu65hhGGf4jIgJw/CABy7jOPbLslC07BG4BEHwcguIyfN8G8dx"
+                "4zjOb1VVR3x7jqKoFvoaui+4fLcs6+R53ttdQ/vjFXw5XtzmpGeLAAAAAElFTkSuQmCC")
+            return slider.GetBitmap()
+
+        dc.SelectObject(wx.NullBitmap)
+        del dc
+
+        # determine actual size of drawn icon, and return this subbitmap
+        bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
+        return bmp.GetSubBitmap(bb)
 
 
 def data2wxBitmap(type, data, dimension=ICON_MAX_DIM):

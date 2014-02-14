@@ -64,10 +64,8 @@ class GUIUtility:
 
         self.lists = []
 
-        from Tribler.Main.vwxGUI.widgets import NativeIcon
         from Tribler.Main.vwxGUI.list_header import ListHeaderIcon
 
-        self.nativeicon = NativeIcon.getInstance()
         self.listicon = ListHeaderIcon.getInstance()
 
     def getInstance(*args, **kw):
@@ -82,7 +80,6 @@ class GUIUtility:
 
     def delInstance():
         if GUIUtility.__single:
-            GUIUtility.__single.nativeicon.delInstance()
             GUIUtility.__single.listicon.delInstance()
             GUIUtility.__single.library_manager.delInstance()
             GUIUtility.__single.channelsearch_manager.delInstance()

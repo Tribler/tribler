@@ -684,17 +684,17 @@ class Comment(Helper):
 
     @cacheProperty
     def avantar(self):
-        gui_image_utility = GuiImageUtility.getInstance()
+        gui_image_manager = GuiImageManager.getInstance()
 
         if self.peer_id == None:
             mime, data = self.get_mugshot()
             if data:
                 data = data2wxBitmap(mime, data, SMALL_ICON_MAX_DIM)
         else:
-            data = gui_image_utility.getPeerThumbnail(self.peer_id, SMALL_ICON_MAX_DIM)
+            data = gui_image_manager.getPeerThumbnail(self.peer_id, SMALL_ICON_MAX_DIM)
 
         if data is None:
-            data = gui_image_utility.getDefaultImage(u"PEER_THUMB", SMALL_ICON_MAX_DIM)
+            data = gui_image_manager.getDefaultImage(u"PEER_THUMB", SMALL_ICON_MAX_DIM)
         return data
 
     @cacheProperty
