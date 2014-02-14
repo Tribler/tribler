@@ -601,7 +601,8 @@ class ABCApp():
                     stats_collector.share_stats()
                     stats_collector.stop()
                     thank_you(50 * 1024**2, _callback.download_started_at, _callback.download_finished_at)
-
+                else:
+                    _callback.peer_added = False
                 return 1.0, False
 
             _callback.download_completed = False
