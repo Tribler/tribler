@@ -1110,6 +1110,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
     def _PostInit(self):
         self.channel = None
 
+        self.rss_url = None
+
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
         self.torrentfeed = RssParser.getInstance()

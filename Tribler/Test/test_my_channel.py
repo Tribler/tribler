@@ -48,7 +48,7 @@ class TestMyChannel(TestGuiAsServer):
             self.managechannel.description.SetValue('Channel created for UNITTESTING purposes')
 
             self.managechannel.Save()
-            self.CallConditional(60, lambda: self.frame.managechannel.channel, do_rss, 'Channel instance did not arrive at managechannel')
+            self.CallConditional(60, lambda: self.frame.managechannel.rss_url, do_rss, 'Channel instance did not arrive at managechannel')
 
         def do_page():
             self.guiUtility.ShowPage('mychannel')
