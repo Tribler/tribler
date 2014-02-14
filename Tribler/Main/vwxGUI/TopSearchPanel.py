@@ -7,6 +7,7 @@ import wx.animate
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
@@ -91,25 +92,25 @@ class TopSearchPanel(FancyPanel):
         self.ag.SetBackgroundColour(wx.Colour(244, 244, 244))
         self.ag.Hide()
 
-        download_bmp = self.Bitmap("images/download.png", wx.BITMAP_TYPE_ANY)
+        download_bmp = GuiImageManager.getInstance().getOtherImage(u"download.png")
         self.download_btn = ActionButton(self, -1, download_bmp)
         self.download_btn.Enable(False)
-        upload_bmp = self.Bitmap("images/upload.png", wx.BITMAP_TYPE_ANY)
+        upload_bmp = GuiImageManager.getInstance().getOtherImage(u"upload.png")
         self.upload_btn = ActionButton(self, -1, upload_bmp)
         self.upload_btn.Enable(False)
-        stop_bmp = self.Bitmap("images/pause.png", wx.BITMAP_TYPE_ANY)
+        stop_bmp = GuiImageManager.getInstance().getOtherImage(u"pause.png")
         self.stop_btn = ActionButton(self, -1, stop_bmp)
         self.stop_btn.Enable(False)
-        delete_bmp = self.Bitmap("images/delete.png", wx.BITMAP_TYPE_ANY)
+        delete_bmp = GuiImageManager.getInstance().getOtherImage(u"delete.png")
         self.delete_btn = ActionButton(self, -1, delete_bmp)
         self.delete_btn.Enable(False)
-        play_bmp = self.Bitmap("images/play.png", wx.BITMAP_TYPE_ANY)
+        play_bmp = GuiImageManager.getInstance().getOtherImage(u"play.png")
         self.play_btn = ActionButton(self, -1, play_bmp)
         self.play_btn.Enable(False)
-        add_bmp = self.Bitmap("images/add.png", wx.BITMAP_TYPE_ANY)
+        add_bmp = GuiImageManager.getInstance().getOtherImage(u"add.png")
         self.add_btn = ActionButton(self, -1, add_bmp)
         self.SetButtonHandler(self.add_btn, self.OnAdd, 'Download an external torrent.')
-        settings_bmp = self.Bitmap("images/settings.png", wx.BITMAP_TYPE_ANY)
+        settings_bmp = GuiImageManager.getInstance().getOtherImage(u"settings.png")
         self.settings_btn = ActionButton(self, -1, settings_bmp)
         self.SetButtonHandler(self.settings_btn, self.OnSettings, 'Change settings.')
 
@@ -245,11 +246,6 @@ class TopSearchPanel(FancyPanel):
         else:
             self.searchField.SetFocus()
             self.searchField.SelectAll()
-
-    def Bitmap(self, path, type):
-        namelist = path.split("/")
-        path = os.path.join(self.installdir, LIBRARYNAME, "Main", "vwxGUI", *namelist)
-        return wx.Bitmap(path, type)
 
     def AddCollectedTorrent(self, coltorrent):
         self.collectedTorrents[coltorrent.infohash] = coltorrent

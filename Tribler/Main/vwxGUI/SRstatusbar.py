@@ -3,6 +3,7 @@ import wx
 import os
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import NativeIcon, TransparentText as StaticText, HorizontalGauge, ActionButton
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
@@ -43,20 +44,18 @@ class SRstatusbar(wx.StatusBar):
         self.speed_up.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
 
         self.searchConnectionImages = ['progressbarEmpty.png', 'progressbarFull.png']
-        self.searchConnectionImages = [os.path.join(self.guiutility.vwxGUI_path, 'images', image) for image in self.searchConnectionImages]
-        self.searchConnectionImages = [wx.Bitmap(image, wx.BITMAP_TYPE_ANY) for image in self.searchConnectionImages]
+        self.searchConnectionImages = [GuiImageManager.getInstance().getOtherImage(image) for image in self.searchConnectionImages]
 
-        self.activityImages = ['statusbar_activity.png', 'statusbar_noactivity.png']
-        self.activityImages = [os.path.join(self.guiutility.vwxGUI_path, 'images', image) for image in self.activityImages]
-        self.activityImages = [wx.Bitmap(image, wx.BITMAP_TYPE_ANY) for image in self.activityImages]
+        self.activityImages = [u"statusbar_activity.png", u"statusbar_noactivity.png"]
+        self.activityImages = [GuiImageManager.getInstance().getOtherImage(image) for image in self.activityImages]
 
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1])
         self.activity_timer = None
         self.channelconnections = 0
 
-        self.bmp_firewall_warning = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "statusbar_warning.png"))
-        self.bmp_firewall_ok = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "statusbar_ok.png"))
+        self.bmp_firewall_warning = GuiImageManager.getInstance().getOtherImage(u"statusbar_warning.png")
+        self.bmp_firewall_ok = GuiImageManager.getInstance().getOtherImage(u"statusbar_ok.png")
         self.firewallStatus = ActionButton(self, -1, self.bmp_firewall_warning)
         self.firewallStatus.SetSize((16, 16))
         self.firewallStatus.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))

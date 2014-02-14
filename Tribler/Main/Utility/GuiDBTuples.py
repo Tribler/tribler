@@ -12,7 +12,7 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, \
     DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING, \
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA
-from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM, data2wxBitmap
 from Tribler.community.channel.community import ChannelCommunity, \
     forceAndReturnDispersyThread
 from Tribler.Core.Search.SearchManager import split_into_keywords
@@ -684,17 +684,17 @@ class Comment(Helper):
 
     @cacheProperty
     def avantar(self):
-        im = IconsManager.getInstance()
+        gui_image_utility = GuiImageUtility.getInstance()
 
         if self.peer_id == None:
             mime, data = self.get_mugshot()
             if data:
                 data = data2wxBitmap(mime, data, SMALL_ICON_MAX_DIM)
         else:
-            data = im.load_wxBitmapByPeerId(self.peer_id, SMALL_ICON_MAX_DIM)
+            data = gui_image_utility.getPeerThumbnail(self.peer_id, SMALL_ICON_MAX_DIM)
 
         if data is None:
-            data = im.get_default('PEER_THUMB', SMALL_ICON_MAX_DIM)
+            data = gui_image_utility.getDefaultImage(u"PEER_THUMB", SMALL_ICON_MAX_DIM)
         return data
 
     @cacheProperty

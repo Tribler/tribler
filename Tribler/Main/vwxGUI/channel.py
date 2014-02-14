@@ -5,6 +5,7 @@ from time import time
 import pickle
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
 from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
 from Tribler.Core.API import *
 
@@ -17,7 +18,6 @@ from list_details import *
 from __init__ import *
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
-from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -247,14 +247,14 @@ class SelectedChannelList(GenericSearchList):
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 
-        self.statusDHT = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_dht.png"), wx.BITMAP_TYPE_ANY)
-        self.statusInactive = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_inact.png"), wx.BITMAP_TYPE_ANY)
-        self.statusDownloading = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_dl.png"), wx.BITMAP_TYPE_ANY)
-        self.statusFinished = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_fin.png"), wx.BITMAP_TYPE_ANY)
-        self.statusSeeding = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_sd.png"), wx.BITMAP_TYPE_ANY)
-        self.statusStopped = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "status_stop.png"), wx.BITMAP_TYPE_ANY)
-        self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "starEnabled.png"), wx.BITMAP_TYPE_ANY)
-        self.outFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "star.png"), wx.BITMAP_TYPE_ANY)
+        self.statusDHT = GuiImageManager.getInstance().getOtherImage(u"status_dht.png")
+        self.statusInactive = GuiImageManager.getInstance().getOtherImage(u"status_inact.png")
+        self.statusDownloading = GuiImageManager.getInstance().getOtherImage(u"status_dl.png")
+        self.statusFinished = GuiImageManager.getInstance().getOtherImage(u"status_fin.png")
+        self.statusSeeding = GuiImageManager.getInstance().getOtherImage(u"status_sd.png")
+        self.statusStopped = GuiImageManager.getInstance().getOtherImage(u"status_stop.png")
+        self.inFavoriteChannel = GuiImageManager.getInstance().getOtherImage(u"starEnabled.png")
+        self.outFavoriteChannel = GuiImageManager.getInstance().getOtherImage(u"star.png")
 
         GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, borders=False, showChange=True, parent=parent)
 

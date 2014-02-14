@@ -7,6 +7,7 @@ import math
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY
 from wx.lib.stattext import GenStaticText
@@ -325,7 +326,7 @@ class LinkStaticText(wx.BoxSizer):
         self.icon_align = icon_align
 
         if icon:
-            self.icon = wx.StaticBitmap(parent, bitmap=wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+            self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getOtherImage(icon))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         elif icon_type:
             self.icon = wx.StaticBitmap(parent, bitmap=NativeIcon.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))

@@ -12,7 +12,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, _set_font, TagText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
 from Tribler import LIBRARYNAME
 
@@ -369,7 +369,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
 
             # Add icon right after the torrent title, indicating that the torrent has thumbnails
-            snapshot_bmp = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "snapshot.png"), wx.BITMAP_TYPE_ANY)
+            snapshot_bmp = GuiImageManager.getInstance().getOtherImage(u"snapshot.png")
             self.snapshot = wx.StaticBitmap(self, -1, snapshot_bmp)
             self.snapshot.SetToolTipString("This torrent has thumbnails.")
             self.AddEvents(self.snapshot)
@@ -1058,8 +1058,7 @@ class CommentActivityItem(CommentItem):
             self.additionalButtons.append(button)
 
         self.body = comment.comment
-        im = IconsManager.getInstance()
-        self.avantar = im.get_default('COMMENT', SMALL_ICON_MAX_DIM)
+        self.avantar = GuiImageManager.getInstance().getDefaultImage(u"COMMENT", SMALL_ICON_MAX_DIM)
 
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
 
@@ -1076,8 +1075,7 @@ class NewTorrentActivityItem(AvantarItem):
         button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
         self.additionalButtons.append(button)
 
-        im = IconsManager.getInstance()
-        self.avantar = im.get_default('TORRENT_NEW', SMALL_ICON_MAX_DIM)
+        self.avantar = GuiImageManager.getInstance().getDefaultImage(u"TORRENT_NEW", SMALL_ICON_MAX_DIM)
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
 
     def ShowTorrent(self, event):
@@ -1097,8 +1095,7 @@ class TorrentActivityItem(AvantarItem):
         button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
         self.additionalButtons.append(button)
 
-        im = IconsManager.getInstance()
-        self.avantar = im.get_default('TORRENT', SMALL_ICON_MAX_DIM)
+        self.avantar = GuiImageManager.getInstance().getDefaultImage(u"TORRENT", SMALL_ICON_MAX_DIM)
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
 
     def ShowTorrent(self, event):
@@ -1142,8 +1139,7 @@ class ModificationActivityItem(AvantarItem):
             button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
             self.additionalButtons.append(button)
 
-        im = IconsManager.getInstance()
-        self.avantar = im.get_default('MODIFICATION', SMALL_ICON_MAX_DIM)
+        self.avantar = GuiImageManager.getInstance().getDefaultImage(u"MODIFICATION", SMALL_ICON_MAX_DIM)
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
 
     def ShowTorrent(self, event):
@@ -1186,15 +1182,15 @@ class ModificationItem(AvantarItem):
         else:
             self.body = modification.value
 
-        im = IconsManager.getInstance()
+        gui_image_manager = GuiImageManager.getInstance()
         if modification.moderation:
             moderation = modification.moderation
             self.header = "%s modified by %s,\nbut reverted by %s due to: '%s'" % (modification.name.capitalize(), modification.peer_name, moderation.peer_name, moderation.message)
-            self.avantar = im.get_default('REVERTED_MODIFICATION', SMALL_ICON_MAX_DIM)
+            self.avantar = gui_image_manager.getDefaultImage(u"REVERTED_MODIFICATION", SMALL_ICON_MAX_DIM)
             self.maxlines = 2
         else:
             self.header = "%s modified by %s at %s" % (modification.name.capitalize(), modification.peer_name, format_time(modification.time_stamp).lower())
-            self.avantar = im.get_default('MODIFICATION', SMALL_ICON_MAX_DIM)
+            self.avantar = gui_image_manager.getDefaultImage(u"MODIFICATION", SMALL_ICON_MAX_DIM)
 
             if not self.noButton:
                 button = wx.Button(self, -1, 'Revert Modification', style=wx.BU_EXACTFIT)
@@ -1215,8 +1211,8 @@ class ModerationActivityItem(AvantarItem):
         self.header = "Discovered a moderation %s" % (format_time(moderation.inserted).lower())
         self.body = "%s reverted a modification made by %s, reason '%s'" % (moderation.peer_name, moderation.by_peer_name, moderation.message)
 
-        im = IconsManager.getInstance()
-        self.avantar = im.get_default('REVERTED_MODIFICATION', SMALL_ICON_MAX_DIM)
+        gui_image_manager = GuiImageManager.getInstance()
+        self.avantar = gui_image_manager.getDefaultImage(u"REVERTED_MODIFICATION", SMALL_ICON_MAX_DIM)
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
 
 
@@ -1242,8 +1238,8 @@ class ModerationItem(AvantarItem):
 
         else:
             self.body = moderation.message
-        im = IconsManager.getInstance()
-        self.avantar = im.get_default('REVERTED_MODIFICATION', SMALL_ICON_MAX_DIM)
+        gui_image_manager = GuiImageManager.getInstance()
+        self.avantar = gui_image_manager.getDefaultImage(u"REVERTED_MODIFICATION", SMALL_ICON_MAX_DIM)
 
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
 
@@ -1264,8 +1260,8 @@ class MarkingActivityItem(AvantarItem):
         button.Bind(wx.EVT_BUTTON, self.ShowTorrent)
         self.additionalButtons.append(button)
 
-        im = IconsManager.getInstance()
-        self.avantar = im.get_default('MARKING', SMALL_ICON_MAX_DIM)
+        gui_image_manager = GuiImageManager.getInstance()
+        self.avantar = gui_image_manager.getDefaultImage(u"MARKING", SMALL_ICON_MAX_DIM)
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)
 
     def ShowTorrent(self, event):
