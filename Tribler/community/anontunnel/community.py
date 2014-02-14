@@ -11,7 +11,10 @@ import time
 from collections import defaultdict
 
 # Tribler and Dispersy imports
+import twisted
 from twisted.internet import defer
+from twisted.internet.defer import AlreadyCalledError
+from twisted.python.failure import Failure
 from Tribler.Core.Utilities import encoding
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
@@ -50,7 +53,7 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(1, 3)
+        length = 1 #random.randint(1, 3)
 
         self.max_circuits = 0
         self.extend_strategy = extendstrategies.NeighbourSubset
@@ -214,6 +217,15 @@ class Circuit:
         """
         return self.__stats.bytes_uploaded if self.__stats else None
 
+    def tunnel_data(self, destination, payload):
+        return self.proxy.tunnel_data_to_end(destination, payload, self)
+
+    def destroy(self, reason='unknown'):
+        self._hops = None
+
+        if not self.deferred.called:
+            self.deferred.errback(
+                Failure(Exception("Circuit broken, reason=%s" % reason)))
 
 class Hop:
     """
@@ -259,7 +271,7 @@ class TunnelObserver:
     def on_state_change(self, community, state):
         pass
 
-    def on_incoming_from_tunnel(self, community, circuit_id, origin, data):
+    def on_incoming_from_tunnel(self, community, circuit, origin, data):
         pass
 
     def on_exiting_from_tunnel(self, circuit_id, candidate, destination, data):
@@ -447,7 +459,7 @@ class ProxyCommunity(Community):
 
         with self.lock:
             while circuits_needed():
-                logger.warning("We need {0} new circuits!".format(circuits_needed()))
+                logger.debug("Need %d new circuits!", circuits_needed())
                 goal_hops = self.settings.length_strategy.circuit_length()
 
                 if goal_hops == 0:
@@ -879,10 +891,11 @@ class ProxyCommunity(Community):
         if circuit_id in self.circuits:
             logger.error("Breaking circuit %d " + additional_info, circuit_id)
             circuit = self.circuits[circuit_id]
-            circuit.deferred.errback()
-            del self.circuits[circuit_id]
 
+            circuit.destroy()
+            del self.circuits[circuit_id]
             self.__notify("on_break_circuit", circuit)
+
             return True
         return False
 
@@ -1049,8 +1062,9 @@ class ProxyCommunity(Community):
                 and candidate == self.circuits[circuit_id].candidate:
 
             self.circuits[circuit_id].beat_heart()
-            self.__notify("on_incoming_from_tunnel", self, circuit_id,
-                                                 message.origin, message.data)
+            self.__notify(
+                "on_incoming_from_tunnel", self, self.circuits[circuit_id],
+                message.origin, message.data)
 
             return True
 
@@ -1391,7 +1405,7 @@ class ProxyCommunity(Community):
             func = getattr(o, method)
             func(*args, **kwargs)
 
-    def tunnel_data_to_end(self, ultimate_destination, payload):
+    def tunnel_data_to_end(self, ultimate_destination, payload, circuit=None):
         """
         Tunnel data to the end and request an EXIT to the outside world
 
@@ -1405,7 +1419,8 @@ class ProxyCommunity(Community):
         """
 
         with self.lock:
-            circuit = self.__select_circuit(ultimate_destination)
+            if not circuit:
+                circuit = self.__select_circuit(ultimate_destination)
 
             if circuit.goal_hops == 0:
                 self.__notify(

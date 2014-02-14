@@ -63,3 +63,5 @@ class DispersyBypassEndpoint(RawserverEndpoint):
                     self._socket.sendto(p, c.sock_addr)
                 except IOError:
                     logger.exception("Error writing to socket!")
+
+        return True

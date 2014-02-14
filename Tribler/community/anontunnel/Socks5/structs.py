@@ -46,7 +46,7 @@ class UdpRequest(object):
         self.rsv = rsv
         self.frag = frag
         self.address_type = address_type
-        self.destination_address = destination_address
+        self.destination_host = destination_address
         self.destination_port = destination_port
         self.payload = payload
 

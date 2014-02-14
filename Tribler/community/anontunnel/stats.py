@@ -61,6 +61,7 @@ class StatsCollector(TunnelObserver):
 
         self.circuit_stats = defaultdict(lambda: CircuitStats())
         self.relay_stats = defaultdict(lambda: RelayStats())
+        self._circuit_cache = {}
 
     def pause(self):
         self.running = False
@@ -86,6 +87,8 @@ class StatsCollector(TunnelObserver):
     def __calc_speeds(self):
         while self.running:
             t2 = time.time()
+            self._circuit_cache.update(self.proxy.circuits)
+
             for circuit_id in self.proxy.circuits.keys():
                 c = self.circuit_stats[circuit_id]
 
@@ -130,9 +133,9 @@ class StatsCollector(TunnelObserver):
     def on_enter_tunnel(self, circuit_id, candidate, origin, payload):
         self.stats['bytes_enter'] += len(payload)
 
-    def on_incoming_from_tunnel(self, community, circuit_id, origin, data):
+    def on_incoming_from_tunnel(self, community, circuit, origin, data):
         self.stats['bytes_returned'] += len(data)
-        self.circuit_stats[circuit_id].bytes_down[1] += len(data)
+        self.circuit_stats[circuit.circuit_id].bytes_down[1] += len(data)
 
     def on_exiting_from_tunnel(self, circuit_id, candidate, destination, data):
         self.stats['bytes_exit'] += len(data)
@@ -158,21 +161,19 @@ class StatsCollector(TunnelObserver):
             'bytes_return': self.stats['bytes_returned'],
             'circuits': [
                 {
-                    'hops': len(self.proxy.circuits[circuit_id].hops),
+                    'hops': self._circuit_cache[circuit_id].goal_hops,
                     'bytes_down': c.bytes_down_list[-1] - c.bytes_down_list[0],
                     'bytes_up': c.bytes_up_list[-1] - c.bytes_up_list[0],
                     'time': c.times[-1] - c.times[0]
                 }
-                for circuit_id, c in self.circuit_stats.items()
-                if len(c.times) >= 2
+                for circuit_id, c in self.circuit_stats.items() if len(c.times) >= 2
             ],
             'relays': [
                 {
                     'bytes': r.bytes_list[-1],
                     'time': r.times[-1] - r.times[0]
                 }
-                for r in self.relay_stats.values()
-                if r.times and len(r.times) >= 2
+                for r in self.relay_stats.values() if r.times and len(r.times) >= 2
             ]
         }
 

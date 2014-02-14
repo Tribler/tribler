@@ -10,18 +10,21 @@ logger = logging.getLogger(__name__)
 from Tribler.community.anontunnel.Socks5 import structs
 
 
-class ConnectionState(object):
-    (
-    BEFORE_METHOD_REQUEST, METHOD_REQUESTED, CONNECTED, PROXY_REQUEST_RECEIVED,
-    PROXY_REQUEST_ACCEPTED,
-    TCP_RELAY) = range(6)
+class ConnectionState:
+    BEFORE_METHOD_REQUEST = 1
+    METHOD_REQUESTED = 2
+    CONNECTED = 3
+    PROXY_REQUEST_RECEIVED = 4
+    PROXY_REQUEST_ACCEPTED = 5
+    TCP_RELAY = 6
 
 
 class Socks5Connection(object):
     """
     SOCKS5 TCP Connection handler
 
-    Supports a subset of the SOCKS5 protocol, no authentication and no support for TCP BIND requests
+    Supports a subset of the SOCKS5 protocol, no authentication and no support
+    for TCP BIND requests
     """
 
     def __init__(self, single_socket, socks5_server):
@@ -34,6 +37,8 @@ class Socks5Connection(object):
 
         self.buffer = ''
         self.tcp_relay = None
+        self.udp_associate = None
+        ''' :type : (Socks5Connection) -> socket '''
 
     def open_tcp_relay(self, destination):
         self.tcp_relay = self.socks5_server.start_connection(destination)
@@ -42,7 +47,8 @@ class Socks5Connection(object):
         """
         Called by the TcpConnectionHandler when new data has been received.
 
-        Processes the incoming buffer by attempting to read messages defined in the SOCKS5 protocol
+        Processes the incoming buffer by attempting to read messages defined
+        in the SOCKS5 protocol
 
         :param data: the data received
         :return: None
@@ -87,7 +93,7 @@ class Socks5Connection(object):
             structs.SOCKS_VERSION, 0x00)
         self.write(response)
 
-        # We should be connected now, the next incoming message will be a REQUEST
+        # We are connected now, the next incoming message will be a REQUEST
         self.state = ConnectionState.CONNECTED
 
     def _try_tcp_relay(self):
@@ -102,11 +108,13 @@ class Socks5Connection(object):
 
     def _try_request(self):
         """
-        Try to consume a REQUEST message and respond whether we will accept the request.
+        Try to consume a REQUEST message and respond whether we will accept the
+        request.
 
-        Will setup a TCP relay or an UDP socket to accommodate TCP RELAY and UDP ASSOCIATE requests. After a TCP relay
-        is set up the handler will deactivate itself and change the Connection to a TcpRelayConnection. Further data will be
-        passed on to that handler.
+        Will setup a TCP relay or an UDP socket to accommodate TCP RELAY and
+        UDP ASSOCIATE requests. After a TCP relay is set up the handler will
+        deactivate itself and change the Connection to a TcpRelayConnection.
+        Further data will be passed on to that handler.
 
         :return: None
         """
@@ -139,9 +147,10 @@ class Socks5Connection(object):
                                             self.single_socket.get_myport())
             self.write(response)
         elif request.cmd == structs.REQ_CMD_UDP_ASSOCIATE:
-            socket = self.socks5_server.create_udp_relay()
+            socket = self.udp_associate()
 
-            # We use same IP as the single socket, but the port number comes from the newly created UDP listening socket
+            # We use same IP as the single socket, but the port number comes
+            # from the newly created UDP listening socket
             ip, port = self.single_socket.get_myip(), socket.getsockname()[1]
 
             logger.info(
@@ -164,8 +173,8 @@ class Socks5Connection(object):
 
     def _process_buffer(self):
         """
-        Processes the buffer by attempting to messages which are to be expected in the current state
-        :return:
+        Processes the buffer by attempting to messages which are to be expected
+        in the current state
         """
         while len(self.buffer) > 0:
             # We are at the initial state, so we expect a handshake request.
