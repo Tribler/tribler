@@ -159,36 +159,6 @@ class VideoPlayer:
             # Launch an external player. Play URL from network or disk
             self.exec_video_player(cmd)
 
-    def start_and_play(self, cdef, dscfg, selectedinfilename=None):
-        """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
-
-        # ARNO50: > Preview1: TODO: make sure this works better when Download already existed.
-        if selectedinfilename == None and cdef.get_def_type() == "torrent":
-            if not cdef.get_live():
-                videofiles = cdef.get_files(exts=videoextdefaults)
-                if len(videofiles) == 1:
-                    selectedinfilename = videofiles[0]
-
-                elif len(videofiles) > 1:
-                    selectedinfilename = self.ask_user_to_select_video(videofiles)
-
-        if selectedinfilename or cdef.get_live():
-            if cdef.get_def_type() != "torrent" or cdef.is_multifile_torrent():
-                dscfg.set_selected_files([selectedinfilename])
-
-            # Restart download
-            dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
-            dscfg.set_mode(DLMODE_VOD)
-            self._logger.info("Videoplayer: Starting new VOD/live Download %s", repr(cdef.get_name()))
-
-            download = self.utility.session.start_download(cdef, dscfg)
-
-            self.set_vod_download(download)
-            return download
-
-        else:
-            return None
-
     def sesscb_vod_event_callback(self, d, event, params):
         """ Called by the Session when the content of the Download is ready.  Called by Session thread """
 
