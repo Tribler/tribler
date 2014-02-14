@@ -1,6 +1,7 @@
 import logging.config
 import threading
 import os
+from Tribler.community.anontunnel.Socks5.server import Socks5Server
 from Tribler.community.anontunnel.stats import StatsCrawler
 
 logging.config.fileConfig(
@@ -15,7 +16,6 @@ from traceback import print_exc
 import time
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.community.anontunnel import exitstrategies
-from Tribler.community.anontunnel.Socks5 import Socks5Server
 from Tribler.community.anontunnel.community import ProxyCommunity, \
     ProxySettings
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
@@ -197,12 +197,12 @@ def main(argv):
 
     # Set extend strategy
     if args.extend_strategy == 'delegate':
-        logger.error(
-            "EXTEND STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
+        logger.error("EXTEND STRATEGY DELEGATE: We delegate the selection of "
+                     "hops to the rest of the circuit")
         proxy_settings.extend_strategy = TrustThyNeighbour
     elif args.extend_strategy == 'subset':
-        logger.error(
-            "SUBSET STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
+        logger.error("SUBSET STRATEGY DELEGATE: We delegate the selection of "
+                     "hops to the rest of the circuit")
         proxy_settings.extend_strategy = NeighbourSubset
     else:
         raise ValueError("extend_strategy must be either random or delegate")
@@ -211,34 +211,33 @@ def main(argv):
     if args.length_strategy[:1] == ['random']:
         strategy = RandomCircuitLengthStrategy(*args.length_strategy[1:])
         proxy_settings.length_strategy = strategy
-        logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (
-        ', '.join(args.length_strategy[1:])))
+        logger.error("Using RandomCircuitLengthStrategy with arguments %s",
+                     ', '.join(args.length_strategy[1:]))
 
     elif args.length_strategy[:1] == ['constant']:
         strategy = ConstantCircuitLengthStrategy(*args.length_strategy[1:])
         proxy_settings.length_strategy = strategy
         logger.error(
-            "Using ConstantCircuitLengthStrategy with arguments %s" % (
-            ', '.join(args.length_strategy[1:])))
+            "Using ConstantCircuitLengthStrategy with arguments %s",
+            ', '.join(args.length_strategy[1:]))
 
     # Circuit selection strategies
     if args.select_strategy[:1] == ['random']:
         strategy = RandomSelectionStrategy(*args.select_strategy[1:])
         proxy_settings.selection_strategy = strategy
-        logger.error("Using RandomCircuitLengthStrategy with arguments %s" % (
-        ', '.join(args.select_strategy[1:])))
+        logger.error("Using RandomCircuitLengthStrategy with arguments %s"
+                     ', '.join(args.select_strategy[1:]))
 
     elif args.select_strategy[:1] == ['length']:
         strategy = LengthSelectionStrategy(*args.select_strategy[1:])
         proxy_settings.selection_strategy = strategy
-        logger.error("Using LengthSelectionStrategy with arguments %s" % (
-        ', '.join(args.select_strategy[1:])))
+        logger.error("Using LengthSelectionStrategy with arguments %s",
+                     ', '.join(args.select_strategy[1:]))
 
     anon_tunnel = AnonTunnel(socks5_port, proxy_settings, crawl)
     ''' @type: AnonTunnel '''
 
     anon_tunnel.start()
-    regex_cmd_extend_circuit = re.compile("e ?([0-9]+)\n")
 
     while 1:
         try:
@@ -279,7 +278,8 @@ def main(argv):
                 print >> sys.stderr, "Profiling disabled!"
 
         elif line == 'c\n':
-            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
+            print "========\nCircuits\n========\n" \
+                  "id\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
             for circuit in anon_tunnel.community.circuits.values():
                 print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (
                     circuit.circuit_id, circuit.candidate.sock_addr[0],

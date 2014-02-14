@@ -18,7 +18,7 @@ class NoCrypto(object):
 class DefaultCrypto(object):
     def __init__(self):
         self.proxy = None
-        """ :type proxy: Tribler.community.anontunnel.community.ProxyCommunity """
+        """ :type proxy: ProxyCommunity """
 
     @property
     def session_keys(self):
@@ -27,7 +27,7 @@ class DefaultCrypto(object):
     def enable(self, proxy):
 
         """
-        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
+        :type proxy: ProxyCommunity
         :param proxy:
         """
         self.proxy = proxy
@@ -52,8 +52,7 @@ class DefaultCrypto(object):
             logger.debug(
                 "Adding public key encryption for circuit %s" % circuit_id)
             candidate_pub_key = iter(candidate.get_members()).next()._ec
-            content = self.proxy.dispersy.crypto.encrypt(candidate_pub_key,
-                                                         content)
+            content = self.proxy.crypto.encrypt(candidate_pub_key, content)
 
         # If own circuit, AES layers have to be added
         elif circuit_id in self.proxy.circuits:
@@ -115,25 +114,28 @@ class DefaultCrypto(object):
                     "Peeling layer with key {0}".format(hop.session_key))
                 data = aes_decode(hop.session_key, data)
 
-        # I'm the last node in the circuit, probably an EXTEND message, decrypt with AES
+        # I'm the last node in the circuit, probably an EXTEND message,
+        # decrypt with AES
         elif relay_key in self.session_keys:
             # last node in circuit, circuit already exists
-            logger.debug(
-                "I am the last node in the already existing circuit, decrypt with AES")
+            logger.debug("I am the last node in the already existing circuit, "
+                         "decrypt with AES")
             data = aes_decode(self.session_keys[relay_key], data)
 
         # I don't know the sender! Let's decrypt with my private Elgamal key
         else:
-            # last node in circuit, circuit does not exist yet, decrypt with Elgamal key
+            # last node in circuit, circuit does not exist yet,
+            # decrypt with Elgamal key
             logger.error(
                 "Circuit does not yet exist, decrypting with my Elgamal key")
             my_key = self.proxy.my_member._ec
-            data = self.proxy.dispersy.crypto.decrypt(my_key, data)
+            data = self.proxy.crypto.decrypt(my_key, data)
 
         return data
 
 
-# M2 CRYPTO AES code, should be substituted with Niels's lib which implements these
+# M2 CRYPTO AES code, should be substituted with Niels's lib
+# which implements these
 
 def get_cryptor(op, key, alg='aes_128_ecb', iv=None):
     if iv is None:

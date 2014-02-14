@@ -166,14 +166,16 @@ class StatsCollector(TunnelObserver):
                     'bytes_up': c.bytes_up_list[-1] - c.bytes_up_list[0],
                     'time': c.times[-1] - c.times[0]
                 }
-                for circuit_id, c in self.circuit_stats.items() if len(c.times) >= 2
+                for circuit_id, c in self.circuit_stats.items()
+                if len(c.times) >= 2
             ],
             'relays': [
                 {
                     'bytes': r.bytes_list[-1],
                     'time': r.times[-1] - r.times[0]
                 }
-                for r in self.relay_stats.values() if r.times and len(r.times) >= 2
+                for r in self.relay_stats.values()
+                if r.times and len(r.times) >= 2
             ]
         }
 

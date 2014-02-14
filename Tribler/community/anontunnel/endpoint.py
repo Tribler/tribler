@@ -52,7 +52,7 @@ class DispersyBypassEndpoint(RawserverEndpoint):
                     normal_packets.append(packet)
         except Full:
             logger.warning(
-                "DispersyBypassEndpoint cant keep up with incoming packets, queue is full!")
+                "DispersyBypassEndpoint cant keep up with incoming packets!")
 
         RawserverEndpoint.data_came_in(self, normal_packets)
 

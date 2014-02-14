@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from Tribler.community.anontunnel.Socks5 import structs
+from Tribler.community.anontunnel.Socks5 import conversion
 
 
 class ConnectionState:
@@ -67,7 +67,7 @@ class Socks5Connection(object):
     def _try_handshake(self):
 
         # Try to read a HANDSHAKE request
-        offset, request = structs.decode_methods_request(0, self.buffer)
+        offset, request = conversion.decode_methods_request(0, self.buffer)
 
         # No (complete) HANDSHAKE received, so dont do anything
         if request is None:
@@ -76,7 +76,7 @@ class Socks5Connection(object):
         # Consume the buffer
         self.buffer = self.buffer[offset:]
 
-        assert isinstance(request, structs.MethodRequest)
+        assert isinstance(request, conversion.MethodRequest)
 
         # Only accept NO AUTH
         if request.version != 0x05 or len(
@@ -89,8 +89,8 @@ class Socks5Connection(object):
         logger.info("Client has sent METHOD REQUEST")
 
         # Respond that we would like to use NO AUTHENTICATION (0x00)
-        response = structs.encode_method_selection_message(
-            structs.SOCKS_VERSION, 0x00)
+        response = conversion.encode_method_selection_message(
+            conversion.SOCKS_VERSION, 0x00)
         self.write(response)
 
         # We are connected now, the next incoming message will be a REQUEST
@@ -118,19 +118,19 @@ class Socks5Connection(object):
 
         :return: None
         """
-        offset, request = structs.decode_request(0, self.buffer)
+        offset, request = conversion.decode_request(0, self.buffer)
 
         if request is None:
             return None
 
         self.buffer = self.buffer[offset:]
 
-        assert isinstance(request, structs.Request)
+        assert isinstance(request, conversion.Request)
         logger.debug("Client has sent PROXY REQUEST")
 
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
-        if request.cmd == structs.REQ_CMD_CONNECT:
+        if request.cmd == conversion.REQ_CMD_CONNECT:
             destination = (
             request.destination_address, request.destination_port)
 
@@ -141,12 +141,11 @@ class Socks5Connection(object):
             # Switch to TCP relay mode
             self.socks5_server.open_tcp_relay(destination)
 
-            response = structs.encode_reply(0x05, 0x00, 0x00,
-                                            structs.ADDRESS_TYPE_IPV4,
-                                            self.single_socket.get_myip(),
-                                            self.single_socket.get_myport())
+            response = conversion.encode_reply(
+                0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4,
+                self.single_socket.get_myip(), self.single_socket.get_myport())
             self.write(response)
-        elif request.cmd == structs.REQ_CMD_UDP_ASSOCIATE:
+        elif request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
             socket = self.udp_associate()
 
             # We use same IP as the single socket, but the port number comes
@@ -157,16 +156,14 @@ class Socks5Connection(object):
                 "Accepting UDP ASSOCIATE request, direct client to %s:%d", ip,
                 port)
 
-            response = structs.encode_reply(0x05, 0x00, 0x00,
-                                            structs.ADDRESS_TYPE_IPV4, ip,
-                                            port)
+            response = conversion.encode_reply(
+                0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
             self.write(response)
         else:
             # We will deny all other requests (BIND, and INVALID requests);
-            response = structs.encode_reply(0x05,
-                                            structs.REP_COMMAND_NOT_SUPPORTED,
-                                            0x00, structs.ADDRESS_TYPE_IPV4,
-                                            "0.0.0.0", 0)
+            response = conversion.encode_reply(
+                0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
+                conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
             self.write(response)
 
         self.state = ConnectionState.PROXY_REQUEST_ACCEPTED

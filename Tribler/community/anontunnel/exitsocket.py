@@ -16,8 +16,10 @@ class TunnelExitSocket(object):
         """
         Instantiate a new return handler
 
-        :param proxy: instance to use to push packets back into upon reception of an external UDP packet
-        :param circuit_id: the circuit to use to pass messages over in the tunnel proxy
+        :param proxy: instance to use to push packets back into upon reception
+            of an external UDP packet
+        :param circuit_id: the circuit to use to pass messages over in the
+            tunnel proxy
         :param destination_address: the first hop of the circuit
 
         :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
@@ -38,7 +40,8 @@ class TunnelExitSocket(object):
     def data_came_in(self, packets):
         """
         Method called by the server when a new UDP packet has been received
-        :param packets: list of tuples (source address, packet) of the UDP packets received
+        :param packets: list of tuples (source address, packet) of the UDP
+            packets received
         """
 
         for source_address, packet in packets:
@@ -54,17 +57,19 @@ class TunnelExitSocket(object):
 
 class ShortCircuitExitSocket(object):
     """
-    Only used when there are no circuits, it will be a 0-hop tunnel. So there is no anonymity at all.
+    Only used when there are no circuits, it will be a 0-hop tunnel. So there
+    is no anonymity at all.
     """
 
     def __init__(self, raw_server, proxy, circuit_id, destination_address):
         """
         Instantiate a new return handler
 
-        :param proxy: instance to use to push packets back into upon reception of an external UDP packet
+        :param proxy: instance to use to push packets back into upon reception
+            of an external UDP packet
         :param destination_address: the first hop of the circuit
 
-        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
+        :type proxy: ProxyCommunity
 
         """
 
@@ -76,11 +81,12 @@ class ShortCircuitExitSocket(object):
         self.socket = socket
         self.circuit_id = circuit_id
 
-
     def data_came_in(self, packets):
         """
         Method called by the server when a new UDP packet has been received
-        :param packets: list of tuples (source address, packet) of the UDP packets received
+
+        :param packets: list of tuples (source address, packet) of the UDP
+            packets received
         """
 
         for source_address, packet in packets:

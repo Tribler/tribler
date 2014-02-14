@@ -1048,7 +1048,7 @@ class ProxyCommunity(Community):
         on_exiting_from_tunnel method.
 
         @param int circuit_id: the circuit's id we received the DATA message on
-        @param Candidate candidate: the messenger of the packet
+        @param Candidate|None candidate: the messenger of the packet
         @param DataMessage message: the message's content
 
         @return: whether the message could be handled correctly

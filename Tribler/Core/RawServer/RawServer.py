@@ -109,8 +109,8 @@ class RawServer:
         self.sockethandler.scan_for_timeouts()
 
     def bind(self, port, bind='', reuse= False,
-            ipv6_socket_style=1):
-        self.sockethandler.bind(port, bind, reuse, ipv6_socket_style)
+            ipv6_socket_style=1, handler=None):
+        self.sockethandler.bind(port, bind, reuse, ipv6_socket_style, handler)
 
     def find_and_bind(self, first_try, minport, maxport, bind='', reuse = False,
                       ipv6_socket_style=1, randomizer= False, handler=None):

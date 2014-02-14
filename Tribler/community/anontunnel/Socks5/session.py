@@ -1,5 +1,5 @@
 import logging
-import structs
+import conversion
 from Tribler.community.anontunnel.community import ProxyCommunity, Circuit, \
     TunnelObserver
 
@@ -43,7 +43,7 @@ class Socks5Session(TunnelObserver):
 
                     session.remote_udp_address = source_address
 
-                    request = structs.decode_udp_packet(packet)
+                    request = conversion.decode_udp_packet(packet)
                     session.proxy_udp(
                         (request.destination_host, request.destination_port),
                         request.payload)
@@ -89,8 +89,8 @@ class Socks5Session(TunnelObserver):
         # if origin not in self.destinations:
         self.destinations[origin] = circuit
 
-        encapsulated = structs.encode_udp_packet(
-            0, 0, structs.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
+        encapsulated = conversion.encode_udp_packet(
+            0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
 
         bytes_written = self._udp_socket.sendto(encapsulated,
                                                 self.remote_udp_address)

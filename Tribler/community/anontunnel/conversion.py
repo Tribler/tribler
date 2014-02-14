@@ -1,7 +1,7 @@
 import logging
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
-import Tribler.community.anontunnel.payload
+from Tribler.community.anontunnel.payload import *
 from Tribler.community.anontunnel.globals import *
 import struct
 
@@ -147,7 +147,6 @@ class CustomProxyConversion():
             MESSAGE_DATA: self.__decode_data,
             MESSAGE_PING: self.__decode_ping,
             MESSAGE_PONG: self.__decode_pong,
-            MESSAGE_PING: lambda socket_buffer, offset: Tribler.community.anontunnel.payload.PingMessage()
         }
 
     def encode(self, message_type, message):
@@ -206,7 +205,7 @@ class CustomProxyConversion():
         key = message_buffer[offset:]
 
         extend_with = (host, port) if host and port else None
-        return Tribler.community.anontunnel.payload.ExtendMessage(extend_with, key)
+        return ExtendMessage(extend_with, key)
 
     @staticmethod
     def __encode_data(data_message):
@@ -229,9 +228,8 @@ class CustomProxyConversion():
 
     @staticmethod
     def __decode_data(message_buffer, offset=0):
-        host_length, port, origin_host_length, origin_port, payload_length = struct.unpack_from(
-            "!LLLLL",
-            message_buffer, offset)
+        host_length, port, origin_host_length, origin_port, payload_length = \
+            struct.unpack_from( "!LLLLL", message_buffer, offset)
         offset += 20
 
         if len(message_buffer) < offset + host_length:
@@ -264,7 +262,7 @@ class CustomProxyConversion():
             payload = message_buffer[offset:offset + payload_length]
             offset += payload_length
 
-        return Tribler.community.anontunnel.payload.DataMessage(destination, payload, origin)
+        return DataMessage(destination, payload, origin)
 
     @staticmethod
     def __encode_ping(message):
@@ -276,16 +274,19 @@ class CustomProxyConversion():
 
     @staticmethod
     def __decode_ping(message_buffer, offset=0):
-        return Tribler.community.anontunnel.payload.PingMessage()
+        return PingMessage()
 
     @staticmethod
     def __decode_pong(message_buffer, offset=0):
-        return Tribler.community.anontunnel.payload.PongMessage()
+        return PongMessage()
 
 
     @staticmethod
     def __encode_created(created_message):
-        #assert len(created_message.key) == DIFFIE_HELLMAN_MODULUS_SIZE / 8, "Key should be {} bytes long, is {} bytes ".format(DIFFIE_HELLMAN_MODULUS_SIZE / 8, len(created_message.key))
+        # assert len(created_message.key) == DIFFIE_HELLMAN_MODULUS_SIZE / 8, \
+        #     "Key should be {} bytes long, is {} bytes ".format(
+        #         DIFFIE_HELLMAN_MODULUS_SIZE / 8, len(created_message.key))
+
         key = int_to_packed(created_message.key, 2048)
         return key + encode(created_message.candidate_list)
 
@@ -300,11 +301,14 @@ class CustomProxyConversion():
 
         offset, candidate_dict = decode(message_buffer[offset:])
 
-        return Tribler.community.anontunnel.payload.CreatedMessage(key, candidate_dict)
+        return CreatedMessage(key, candidate_dict)
 
     @staticmethod
     def __encode_extended(extended_message):
-        #assert len(extended_message.key) == DIFFIE_HELLMAN_MODULUS_SIZE, "Key should be {} bytes long, is {} bytes ".format(DIFFIE_HELLMAN_MODULUS_SIZE, len(extended_message.key))
+        # assert len(extended_message.key) == DIFFIE_HELLMAN_MODULUS_SIZE, \
+        #     "Key should be {} bytes long, is {} bytes ".format(
+        #         DIFFIE_HELLMAN_MODULUS_SIZE, len(extended_message.key))
+
         key = int_to_packed(extended_message.key, 2048)
         return key + encode(extended_message.candidate_list)
 
@@ -318,12 +322,12 @@ class CustomProxyConversion():
 
         offset, candidate_dict = decode(message_buffer[offset:])
 
-        return Tribler.community.anontunnel.payload.ExtendedMessage(key, candidate_dict)
+        return ExtendedMessage(key, candidate_dict)
 
     @staticmethod
     def __encode_create(create_message):
         """
-        :type create_message : Tribler.community.anontunnel.payload.CreateMessage
+        :type create_message : CreateMessage
         """
         return create_message.key
 
@@ -332,9 +336,4 @@ class CustomProxyConversion():
 
         key = message_buffer[offset:]
 
-        return Tribler.community.anontunnel.payload.CreateMessage(key)
-
-
-def bits2string(b):
-    b = bin(b)[2:]
-    return ''.join(chr(int(''.join(x), 2)) for x in zip(*[iter(b)] * 8))
+        return CreateMessage(key)

@@ -17,6 +17,7 @@ from scrapy.settings.default_settings import DOWNLOAD_DELAY
 import sys
 import logging
 from Tribler.community.anontunnel import exitstrategies
+from Tribler.community.anontunnel.Socks5.server import Socks5Server
 
 from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
@@ -502,7 +503,6 @@ class ABCApp():
         s = Session(self.sconfig)
         s.start()
 
-        from Tribler.community.anontunnel.Socks5 import Socks5Server
         socks_server = Socks5Server()
         socks_server.attach_to(s.lm.rawserver, 1080)
 
