@@ -1,20 +1,23 @@
 import logging
-import conversion
-from Tribler.community.anontunnel.community import ProxyCommunity, Circuit, \
-    TunnelObserver
+from Tribler.community.anontunnel.Socks5 import conversion
+from Tribler.community.anontunnel.community import TunnelObserver
 
 logger = logging.getLogger()
 
 
 class Socks5Session(TunnelObserver):
-    def __init__(self, raw_server, connection, circuits):
-        """
-        @param Socks5Connection connection: the Socks5Connection
-        @param ProxyCommunity tunnel: The proxy community where we will tunnel
-            our UDP packets ofver
-        @return:
-        """
+    """
+    A SOCKS5 session, composed by a TCP connection, an UDP proxy port and a
+    list of circuits where data can be tunneled over
 
+    @param Socks5Connection connection: the Socks5Connection
+    @param RawServer raw_server: The raw server, used to create and listen on
+    UDP-sockets
+    @param list[Tribler.community.anontunnel.community.Circuit] circuits: the
+    circuits allocated to this session
+    """
+
+    def __init__(self, raw_server, connection, circuits):
         TunnelObserver.__init__(self)
         self.raw_server = raw_server
         self.connection = connection
@@ -30,30 +33,14 @@ class Socks5Session(TunnelObserver):
 
     def _udp_associate(self):
         self._udp_socket = self.raw_server.create_udpsocket(0, "0.0.0.0")
-        session = self
-
-        class UdpRelayTunnelHandler:
-            @staticmethod
-            def data_came_in(packets):
-                for source_address, packet in packets:
-                    if session.remote_udp_address and \
-                            session.remote_udp_address != source_address:
-                        session.close_session('invalid source_address!')
-                        return
-
-                    session.remote_udp_address = source_address
-
-                    request = conversion.decode_udp_packet(packet)
-                    session.proxy_udp(
-                        (request.destination_host, request.destination_port),
-                        request.payload)
-
-        self.raw_server.start_listening_udp(self._udp_socket,
-                                            UdpRelayTunnelHandler())
-
+        self.raw_server.start_listening_udp(self._udp_socket, self)
         return self._udp_socket
 
     def close_session(self, reason='unspecified'):
+        """
+        Closes the session and the linked TCP connection
+        @param str reason: the reason why the session should be closed
+        """
         logger.error("Closing session, reason = {0}".format(reason))
         self.connection.close()
 
@@ -76,25 +63,32 @@ class Socks5Session(TunnelObserver):
 
         return self.destinations[destination]
 
-    def proxy_udp(self, destination, payload):
-        circuit = self._select(destination)
-        logger.debug("Relaying UDP packets from %s:%d to %s:%d",
-                     self.remote_udp_address[0], self.remote_udp_address[1],
-                     *destination)
+    def data_came_in(self, packets):
+        for source_address, packet in packets:
+            if self.remote_udp_address and \
+                    self.remote_udp_address != source_address:
+                self.close_session('invalid source_address!')
+                return
 
-        return circuit.tunnel_data(destination, payload)
+            self.remote_udp_address = source_address
+
+            request = conversion.decode_udp_packet(packet)
+
+            circuit = self._select(request.destination)
+            logger.debug("Relaying UDP packets from {0} to {1}".format(
+                         self.remote_udp_address, request.destination))
+
+            circuit.tunnel_data(request.destination, request.payload)
 
     def on_incoming_from_tunnel(self, community, circuit, origin, data):
-
-        # if origin not in self.destinations:
         self.destinations[origin] = circuit
 
-        encapsulated = conversion.encode_udp_packet(
+        socks5_udp = conversion.encode_udp_packet(
             0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
 
-        bytes_written = self._udp_socket.sendto(encapsulated,
+        bytes_written = self._udp_socket.sendto(socks5_udp,
                                                 self.remote_udp_address)
-        if bytes_written < len(encapsulated):
+        if bytes_written < len(socks5_udp):
             logger.error("Packet drop on return!")
 
         logger.info("Returning UDP packets from %s to %s using proxy port %d",

@@ -50,9 +50,8 @@ class AnonTunnel(Thread):
                                     errorfunc=lambda (e): print_exc())
 
         self.callback = Callback()
-        self.socks5_server = Socks5Server()
-
-        self.socks5_server.attach_to(self.raw_server, socks5_port)
+        self.socks5_port = socks5_port
+        self.socks5_server = None
 
         self.endpoint = DispersyBypassEndpoint(self.raw_server, port=10000)
         self.dispersy = Dispersy(self.callback, self.endpoint, u".",
@@ -77,14 +76,16 @@ class AnonTunnel(Thread):
             ''' @type: ProxyCommunity '''
 
 
-            self.socks5_server.tunnel = proxy_community
-            self.socks5_server.start()
+            if self.socks5_server:
+                self.socks5_server = Socks5Server(
+                    proxy_community, self.raw_server, self.socks5_port)
+                self.socks5_server.start()
 
             self.community = proxy_community
             exitstrategies.DefaultExitStrategy(raw_server, self.community)
 
             if self.crawl:
-                self.community.add_observer(StatsCrawler(self.raw_server))
+                self.community.observers.append(StatsCrawler(self.raw_server))
 
             return proxy_community
 
@@ -112,22 +113,22 @@ class AnonTunnel(Thread):
                     bytes_enter = self.community.global_stats.stats[
                         'bytes_enter']
 
-                    relay_2 = 0  #sum([r.bytes[1] for r in self.community.relay_from_to.values()])
+                    relay_2 = sum([r.bytes[1] for r
+                                   in self.community.global_stats.relay_stats.values()])
 
                     speed_relay = (relay_2 - bytes_relay) / (t2 - t1)
                     bytes_relay = relay_2
                     active_circuits = len(self.community.active_circuits)
                     num_routes = len(self.community.relay_from_to) / 2
 
-                    print "%s EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s using %d circuits and %d duplex routing rules.\n" % (
-                        "ONLINE" if self.community.online else "OFFLINE",
-                        speed_exit / 1024.0, speed_enter / 1024.0,
-                        speed_relay / 1024.0, active_circuits, num_routes),
+                    print "CIRCUITS %d RELAYS %D EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s" % (
+                        active_circuits, num_routes, speed_exit / 1024.0,
+                        speed_enter / 1024.0, speed_relay / 1024.0),
 
                 t1 = t2
-                yield 2.0
+                yield 3.0
 
-        # self.callback.register(speed_stats)
+        self.callback.register(speed_stats)
         self.raw_server.listen_forever(None)
 
     def stop(self):
@@ -147,7 +148,7 @@ def main(argv):
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-y', '--yappi',
-                            help="Yappi profiling mode, 'wall' and 'cpu' are valid values")
+                            help="Profiling mode, either 'wall' or 'cpu'")
         parser.add_argument('-l', '--length-strategy', default=[], nargs='*',
                             help='Circuit length strategy')
         parser.add_argument('-s', '--select-strategy', default=[], nargs='*',
@@ -156,8 +157,6 @@ def main(argv):
                             help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10,
                             help='Maximum number of circuits to create')
-        parser.add_argument('--record-on-incoming',
-                            help='Record stats from the moment the first data enters the tunnel')
         parser.add_argument('--crawl', default=False,
                             help='Record stats from others in results.db')
         parser.add_help = True
@@ -167,7 +166,6 @@ def main(argv):
         parser.print_help()
         sys.exit(2)
 
-    cmd_port = None
     socks5_port = None
 
     if args.yappi == 'wall':
@@ -186,13 +184,6 @@ def main(argv):
         print "Profiling using %s time" % yappi.get_clock_type()['type']
 
     crawl = True if args.crawl else False
-
-    if args.record_on_incoming:
-        raise ValueError("not working anymore")
-        # def on_enter_tunnel_data_head(ultimate_destination, payload):
-        #     anon_tunnel.community.record_stats = True
-        # anon_tunnel.socks5_server.once("enter_tunnel_data", on_enter_tunnel_data_head)
-
     proxy_settings = ProxySettings()
 
     # Set extend strategy

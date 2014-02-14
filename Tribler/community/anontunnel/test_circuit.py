@@ -12,15 +12,15 @@ class TestCircuit(TestCase):
         candidate = Candidate(("127.0.0.1", 1000), False)
 
         circuit = Circuit(1, 2, candidate)
-        self.assertFalse(circuit.online,
+        self.assertNotEqual(CIRCUIT_STATE_READY, circuit.state,
                          "Circuit should not be online when goal hops not reached")
 
         circuit = Circuit(1, 1, candidate)
-        self.assertTrue(circuit.online,
+        self.assertEqual(CIRCUIT_STATE_READY, circuit.state,
                         "Single hop circuit with candidate should always be online")
 
         circuit = Circuit(0)
-        self.assertTrue(circuit.online,
+        self.assertEqual(CIRCUIT_STATE_READY, circuit.state,
                         "Zero hop circuit should always be online")
 
     def test_state(self):

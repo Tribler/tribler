@@ -14,65 +14,49 @@ logger = logging.getLogger()
 
 
 class Socks5Server(object, TunnelObserver):
-    def __init__(self):
+    """
+    The SOCKS5 server which allows clients to proxy UDP over Circuits in the
+    ProxyCommunity
+
+    @param ProxyCommunity tunnel: the ProxyCommunity to request circuits from
+    @param RawServer raw_server: the RawServer instance to bind on
+    @param int socks5_port: the port to listen on
+    """
+    def __init__(self, tunnel, raw_server, socks5_port=1080):
         super(Socks5Server, self).__init__()
 
-        self._tunnel = None
-        self._accept_incoming = False
-        # self.socket2connection = {}
-        self.socks5_port = None
-        self.raw_server = None
+        self.tunnel = tunnel
+        self.socks5_port = socks5_port
+        self.raw_server = raw_server
         ''' @type : RawServer '''
-        self.udp_relay_socket = None
-        self.bound = False
-        self.routes = {}
-        self.udp_relays = {}
         self.reserved_circuits = []
+        ''' @type : list[Circuit] '''
         self.awaiting_circuits = 0
-
+        ''' @type : int '''
         self.tcp2session = {}
         ''' @type : dict[Socks5Connection, Socks5Session] '''
 
-
-    @property
-    def tunnel(self):
-        """ :rtype : Tribler.community.anontunnel.community.ProxyCommunity """
-        return self._tunnel
-
-    @tunnel.setter
-    def tunnel(self, value):
-        self._tunnel = value
-        self.tunnel.add_observer(self)
-
-    def attach_to(self, raw_server, socks5_port=1080):
-        self.socks5_port = socks5_port
-        self.raw_server = raw_server
-
     def start(self):
-        if self.socks5_port:
-            try:
-                port = self.raw_server.bind(
-                    self.socks5_port, reuse=True, handler=self)
+        try:
+            port = self.raw_server.bind(
+                self.socks5_port, reuse=True, handler=self)
 
-                logger.info("Socks5Proxy bound to %s:%s", "0.0.0.0", port)
-            except socket.error:
-                logger.error(
-                    "Cannot listen on SOCK5 port %s:%d, perhaps another "
-                    "instance is running?",
-                    "0.0.0.0",
-                    self.socks5_port)
+            logger.info("Socks5Proxy bound to %s:%s", "0.0.0.0", port)
 
-    def start_connection(self, dns):
-        return self.raw_server.start_connection_raw(
-            dns, handler=self.connection_handler)
+            self.tunnel.observers.append(self)
+        except socket.error:
+            logger.error(
+                "Cannot listen on SOCK5 port %s:%d, perhaps another "
+                "instance is running?",
+                "0.0.0.0",self.socks5_port)
 
     def _reserve_circuits(self, count):
         lacking = max(0, count - len(self.reserved_circuits))
 
-        def _on_reserve(c):
-            self.reserved_circuits.append(c)
+        def __on_reserve(circuit):
+            self.reserved_circuits.append(circuit)
 
-        def _finally(result):
+        def __finally(result):
             self.awaiting_circuits -= 1
             return result
 
@@ -80,16 +64,16 @@ class Socks5Server(object, TunnelObserver):
             new = lacking - self.awaiting_circuits
 
             logger.warning(
-                "Trying to reserve %d circuits, have %d, waiting %d, new %d",
+                "Require %d circuits, have %d, waiting %d, new %d",
                 count, len(self.reserved_circuits),
                 self.awaiting_circuits, new)
 
             self.awaiting_circuits += new
 
-            for i in range(new):
-                self.tunnel.reserve_circuit()\
-                    .addCallback(_on_reserve)\
-                    .addBoth(_finally)
+            for _ in range(new):
+                self.tunnel.reserve_circuit() \
+                    .addCallback(__on_reserve) \
+                    .addBoth(__finally)
 
             raise ValueError("Not enough circuits, requesting new ones")
         else:
@@ -98,31 +82,35 @@ class Socks5Server(object, TunnelObserver):
 
             return circuits
 
-    def external_connection_made(self, s):
-        assert isinstance(s, SingleSocket)
-        logger.info("accepted a socket on port %d", s.get_myport())
-        s5con = Socks5Connection(s, self)
+    def external_connection_made(self, single_socket):
+        """
+        Called by the RawServer when a new connection has been made
+
+        @param SingleSocket single_socket: the new connection
+        """
+        logger.info("accepted SOCKS5 new connection")
+        s5con = Socks5Connection(single_socket, self)
 
         try:
             circuits = self._reserve_circuits(4)
             session = Socks5Session(self.raw_server, s5con, circuits)
-            self.tunnel.add_observer(session)
+            self.tunnel.observers.append(session)
 
-            self.tcp2session[s] = session
+            self.tcp2session[single_socket] = session
         except:
             s5con.close()
 
-    def connection_flushed(self, s):
+    def connection_flushed(self, single_socket):
         pass
 
-    def connection_lost(self, s):
+    def connection_lost(self, single_socket):
         logger.info("SOCKS5 TCP connection lost")
 
-        if s not in self.tcp2session:
+        if single_socket not in self.tcp2session:
             return
 
-        session = self.tcp2session[s]
-        self.tunnel.remove_observer(session)
+        session = self.tcp2session[single_socket]
+        self.tunnel.observers.remove(session)
 
         # Reclaim good circuits
         good_circuits = [c for c in session.circuits
@@ -132,31 +120,27 @@ class Socks5Server(object, TunnelObserver):
 
         self.reserved_circuits = good_circuits + self.reserved_circuits
         s5con = session.connection
-        del self.tcp2session[s]
+        del self.tcp2session[single_socket]
 
         try:
             s5con.close()
         except:
             pass
 
-    def data_came_in(self, s, data):
+    def data_came_in(self, single_socket, data):
         """
         Data is in the READ buffer, depending on MODE the Socks5 or
         Relay mechanism will be used
 
-        :param s:
+        :param single_socket:
         :param data:
         :return:
         """
-        tcp_connection = self.tcp2session[s].connection
+        tcp_connection = self.tcp2session[single_socket].connection
         try:
             tcp_connection.data_came_in(data)
         except:
             print_exc()
-
-    def shutdown(self):
-        for session in self.tcp2session.values():
-            session.connection.shutdown()
 
     def on_break_circuit(self, circuit):
         if circuit in self.reserved_circuits:

@@ -2,12 +2,12 @@ import logging
 from random import getrandbits
 from Tribler.community.anontunnel.conversion import int_to_packed
 
-logger = logging.getLogger(__name__)
 
 from Tribler.community.anontunnel.globals import *
 from Tribler.community.anontunnel.payload import *
 
 __author__ = 'chris'
+logger = logging.getLogger(__name__)
 
 
 class ExtendStrategy:

@@ -65,7 +65,7 @@ class StatsCollector(TunnelObserver):
 
     def pause(self):
         self.running = False
-        self.proxy.remove_observer(self)
+        self.proxy.observers.remove(self)
 
     def clear(self):
         self.circuit_stats.clear()
@@ -81,7 +81,7 @@ class StatsCollector(TunnelObserver):
 
         logger.error("Resuming stats collecting!")
         self.running = True
-        self.proxy.add_observer(self)
+        self.proxy.observers.append(self)
         self.proxy.dispersy.callback.register(self.__calc_speeds)
 
     def __calc_speeds(self):
@@ -144,7 +144,7 @@ class StatsCollector(TunnelObserver):
             circuit_id].goal_hops == 0:
             self.circuit_stats[circuit_id].bytes_up[-1] += len(data)
 
-    def on_send_data(self, circuit_id, candidate, ultimate_destination,
+    def on_send_data(self, circuit_id, candidate, destination,
                      payload):
         self.circuit_stats[circuit_id].bytes_up[-1] += len(payload)
 

@@ -36,7 +36,7 @@ class Request(object):
         self.cmd = cmd
         self.rsv = rsv
         self.address_type = address_type
-        self.destination_address = destination_address
+        self.destination_host = destination_address
         self.destination_port = destination_port
 
 
@@ -49,6 +49,10 @@ class UdpRequest(object):
         self.destination_host = destination_address
         self.destination_port = destination_port
         self.payload = payload
+
+    @property
+    def destination(self):
+        return (self.destination_host, self.destination_port)
 
 
 def decode_methods_request(offset, data):

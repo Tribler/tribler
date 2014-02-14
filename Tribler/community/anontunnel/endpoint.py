@@ -10,22 +10,44 @@ __author__ = 'chris'
 
 
 class DispersyBypassEndpoint(RawserverEndpoint):
+    """
+    Creates an Dispersy Endpoint which bypasses the Dispersy message handling
+    system for incoming packets matching set prefixes
+
+    @type rawserver: Tribler.Core.RawServer.RawServer.RawServer
+    @type port: int
+    @type ip: str
+    """
+
     def __init__(self, rawserver, port, ip="0.0.0.0"):
         RawserverEndpoint.__init__(self, rawserver, port, ip)
         self.packet_handlers = {}
         self.queue = Queue(maxsize=1024)
 
-        self.consumer_thread = Thread(target=self.consumer)
+        self.consumer_thread = Thread(target=self.__consumer)
         self.consumer_thread.start()
 
     def listen_to(self, prefix, handler):
+        """
+        Register a prefix to a handler
+
+        @param str prefix: the prefix of a packet to register to the handler
+        @param ((str, int), str) -> unknown handler: the handler that will be
+        called for packets starting with the set prefix
+        """
         self.packet_handlers[prefix] = handler
 
     def close(self, timeout=0.0):
+        """
+        Close the endpoint and stops the consumer thread after it processed the
+        message queue
+
+        @type timeout: float
+        """
         self.queue.put_nowait(None)
         return RawserverEndpoint.close(self, timeout)
 
-    def consumer(self):
+    def __consumer(self):
         while True:
             item = self.queue.get()
 
@@ -39,7 +61,11 @@ class DispersyBypassEndpoint(RawserverEndpoint):
             self.queue.task_done()
 
     def data_came_in(self, packets):
-        # Inspect packages
+        """
+        Called by the RawServer when UDP packets arrive
+        @type packets: list[((str, int), str)]
+        @return:
+        """
         normal_packets = []
         try:
             for packet in packets:
@@ -57,6 +83,12 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         RawserverEndpoint.data_came_in(self, normal_packets)
 
     def send(self, candidates, packets):
+        """
+        Send packets to the specified candidates
+        @type candidates: tuple[Candidate] or list[Candidate]
+        @type packets: list[str]
+        @return:
+        """
         for c in candidates:
             for p in packets:
                 try:

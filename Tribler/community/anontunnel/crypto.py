@@ -4,7 +4,7 @@ import M2Crypto
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
     ENDPOINT, MESSAGE_CREATE
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class NoCrypto(object):

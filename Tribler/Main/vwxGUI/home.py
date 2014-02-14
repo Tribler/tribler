@@ -6,7 +6,7 @@ import copy
 
 import wx
 import igraph
-from Tribler.community.anontunnel.community import Hop
+from Tribler.community.anontunnel.community import Hop, ProxyCommunity
 
 try:
     import igraph.vendor.texttable
@@ -1234,7 +1234,12 @@ class Anonymity(wx.Panel):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.session = self.utility.session
-        self.socks_server = self.utility.socks_server
+
+        dispersy = self.utility.session.lm.dispersy
+        ''':type : Dispersy'''
+
+        self.proxy_community = (c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
+        ''':type : ProxyCommunity '''
 
         self.AddComponents()
 
@@ -1339,8 +1344,7 @@ class Anonymity(wx.Panel):
         self.selected_edges = selected_edges
 
     def OnUpdateCircuits(self, event):
-        circuits = self.socks_server.tunnel.get_circuits()
-        self.circuits = dict((circuit.circuit_id, circuit) for circuit in circuits)
+        self.circuits = dict(self.proxy_community.circuits)
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -1349,7 +1353,7 @@ class Anonymity(wx.Panel):
                 self.circuit_to_listindex[circuit_id] = pos
             else:
                 pos = self.circuit_to_listindex[circuit_id]
-            self.circuit_list.SetStringItem(pos, 1, str(circuit.online))
+            self.circuit_list.SetStringItem(pos, 1, str(circuit.state))
             self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)) + "/" + str(circuit.goal_hops))
             self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(circuit.bytes_uploaded))
             self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(circuit.bytes_downloaded))
@@ -1369,7 +1373,7 @@ class Anonymity(wx.Panel):
         new_edges = []
 
         for circuit in self.circuits.values():
-            hops = [self.my_address] + copy.copy(circuit.hops)
+            hops = [self.my_address] + list(circuit.hops)
             for index in range(len(hops) - 1):
                 edge = set([hops[index], hops[index + 1]])
                 if edge not in new_edges:

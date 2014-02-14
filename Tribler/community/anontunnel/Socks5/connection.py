@@ -11,6 +11,9 @@ from Tribler.community.anontunnel.Socks5 import conversion
 
 
 class ConnectionState:
+    def __init__(self):
+        pass
+
     BEFORE_METHOD_REQUEST = 1
     METHOD_REQUESTED = 2
     CONNECTED = 3
@@ -131,8 +134,7 @@ class Socks5Connection(object):
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
         if request.cmd == conversion.REQ_CMD_CONNECT:
-            destination = (
-            request.destination_address, request.destination_port)
+            destination = (request.destination_host, request.destination_port)
 
             logger.debug("Accepting TCP RELAY request, direct client to %s:%d",
                          self.single_socket.get_myip(),

@@ -188,7 +188,7 @@ class ABCApp():
             self._logger.info("Tribler is using %s as working directory", self.installdir)
 
             self.splash.tick('Starting API')
-            s, socks_server = self.startAPI(self.splash.tick)
+            s = self.startAPI(self.splash.tick)
 
             self._logger.info("Tribler is expecting swift in %s", self.sconfig.get_swift_path())
 
@@ -197,7 +197,6 @@ class ABCApp():
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
-            self.utility.socks_server = socks_server
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance(self.dispersy.callback)
 
@@ -503,9 +502,6 @@ class ABCApp():
         s = Session(self.sconfig)
         s.start()
 
-        socks_server = Socks5Server()
-        socks_server.attach_to(s.lm.rawserver, 1080)
-
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
@@ -542,8 +538,8 @@ class ABCApp():
             proxy_community = dispersy.define_auto_load(ProxyCommunity,
                                      (dispersy_member, ),
                                      load=True)
-            
-            socks_server.tunnel = proxy_community[0]
+
+            socks_server = Socks5Server(proxy_community[0], s.lm.rawserver)
             socks_server.start()
             exitstrategies.DefaultExitStrategy(s.lm.rawserver, proxy_community[0])
 
@@ -557,7 +553,7 @@ class ABCApp():
         dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
 
-        return s, socks_server
+        return s
 
     # TODO: this has to be moved, we cannot pollute the main.py file with stuff like this
     def setup_anon_test(self, tunnel, frame):

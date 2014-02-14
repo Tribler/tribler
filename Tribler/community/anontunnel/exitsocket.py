@@ -35,6 +35,11 @@ class TunnelExitSocket(object):
         self.socket = socket
 
     def sendto(self, data, destination):
+        """
+        Sends data to the destination over an UDP socket
+        @param str data: the data to send
+        @param (str, int) destination: the destination to send to
+        """
         self.socket.sendto(data, destination)
 
     def data_came_in(self, packets):
@@ -96,4 +101,10 @@ class ShortCircuitExitSocket(object):
             self.proxy.on_data(self.circuit_id, None, message)
 
     def sendto(self, data, destination):
+        """
+        Sends data to the destination over an UDP socket
+        @param str data: the data to send
+        @param (str, int) destination: the destination to send to
+        """
+
         self.socket.sendto(data, destination)
