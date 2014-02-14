@@ -76,9 +76,9 @@ class VideoServer:
 
         if requested_range != None:
             firstbyte, lastbyte = requested_range[0]
-            nbytes2send = lastbyte + 1 - firstbyte
+            nbytes2send = lastbyte - firstbyte
             cherrypy.response.status = 206
-            cherrypy.response.headers['Content-Range'] = 'bytes %d-%d/%d' % (firstbyte, lastbyte, length)
+            cherrypy.response.headers['Content-Range'] = 'bytes %d-%d/%d' % (firstbyte, lastbyte + 1, length)
         else:
             firstbyte = 0
             nbytes2send = length
