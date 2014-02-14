@@ -597,6 +597,8 @@ class MultiHTTPServer(ThreadingMixIn, VideoHTTPServer):
             raise RuntimeError("MultiHTTPServer is Singleton")
         MultiHTTPServer.__single = self
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.port = port
         BaseHTTPServer.HTTPServer.__init__(self, ("127.0.0.1", self.port), SimpleServer)
         self.daemon_threads = True
