@@ -44,8 +44,12 @@ class TunnelExitSocket(object):
         for source_address, packet in packets:
             logger.info("ENTER DATA in TunnelExitSocket, packet FROM %s",
                         source_address)
-            self.proxy.tunnel_data_to_origin(self.circuit_id, self.destination_address,
-                                  source_address, packet)
+            self.proxy.tunnel_data_to_origin(
+                circuit_id=self.circuit_id,
+                candidate=self.destination_address,
+                source_address=source_address,
+                accepted_on=self.socket.getsockname(),
+                payload=packet)
 
 
 class ShortCircuitExitSocket(object):

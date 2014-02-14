@@ -252,6 +252,9 @@ class CustomProxyConversion():
         if origin == ("0.0.0.0", 0):
             origin = None
 
+        if destination == ("0.0.0.0", 0):
+            destination = None
+
         if payload_length == 0:
             payload = None
         else:

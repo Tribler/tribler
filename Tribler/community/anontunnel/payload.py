@@ -45,11 +45,13 @@ class ExtendedMessage(BaseMessage):
         self.key = key
         self.candidate_list = candidate_list
 
+
 class DataMessage(BaseMessage):
     def __init__(self, destination, data, origin=None):
         self.destination = destination
         self.data = data
         self.origin = origin
+
 
 class StatsPayload(Payload):
     class Implementation(Payload.Implementation):

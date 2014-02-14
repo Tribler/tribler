@@ -1049,7 +1049,7 @@ class ProxyCommunity(Community):
 
         @param int circuit_id: the circuit's id we received the DATA message on
         @param Candidate candidate: the messenger of the packet
-        @param DataPayload message: the message's content
+        @param DataMessage message: the message's content
 
         @return: whether the message could be handled correctly
         """
@@ -1057,9 +1057,11 @@ class ProxyCommunity(Community):
         # If its our circuit, the messenger is the candidate assigned to that
         # circuit and the DATA's destination is set to the zero-address then
         # the packet is from the outside world and addressed to us from
-        if circuit_id in self.circuits \
-                and message.destination == ("0.0.0.0", 0) \
+        if circuit_id in self.circuits and message.origin \
                 and candidate == self.circuits[circuit_id].candidate:
+
+            if __debug__:
+                print "Exit socket at {0}".format(message.destination)
 
             self.circuits[circuit_id].beat_heart()
             self.__notify(
@@ -1438,7 +1440,7 @@ class ProxyCommunity(Community):
                     ultimate_destination, payload)
 
     def tunnel_data_to_origin(self, circuit_id, candidate, source_address,
-                              payload):
+                              payload, accepted_on):
         """
         Tunnel data to originator
 
@@ -1453,7 +1455,7 @@ class ProxyCommunity(Community):
         with self.lock:
             result = self.send_message(
                 candidate, circuit_id, MESSAGE_DATA,
-                DataMessage(None, payload, source_address))
+                DataMessage(accepted_on, payload, source_address))
 
             if result:
                 self.__notify("on_enter_tunnel", circuit_id, candidate,
