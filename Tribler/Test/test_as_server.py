@@ -182,7 +182,7 @@ class TestAsServer(AbstractServer):
                 time.sleep(seconds)
             callback()
 
-    def CallConditional(self, timeout, condition, callback, assertMsg=None):
+    def CallConditional(self, timeout, condition, callback, assertMsg=None, assertCallback=None):
         t = time.time()
 
         def DoCheck():
@@ -199,8 +199,9 @@ class TestAsServer(AbstractServer):
                         print_exc()
                         self.assert_(False, 'Condition or callback raised an exception, quitting (%s)' % (assertMsg or "no-assert-msg"), do_assert=False)
                 else:
-                    print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
-                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
+                    print >> sys.stderr, "test_as_server: %s, condition was not satisfied in %d seconds (%s)" % ('calling callback' if assertCallback else 'quitting' , timeout, assertMsg or "no-assert-msg")
+                    assertcall = assertCallback if assertCallback else self.assert_
+                    assertcall(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
         self.Call(0, DoCheck)
 
     def quit(self):

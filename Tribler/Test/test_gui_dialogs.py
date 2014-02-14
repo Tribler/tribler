@@ -180,27 +180,45 @@ class TestGuiDialogs(TestGuiAsServer):
             self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
             self.Call(2, self.quit)
 
+        def do_mark(item):
+            self.assert_(isinstance(item, ChannelListItem), 'do_mark called without a ChannelListItem')
+
+            self.Call(10, do_assert)
+            self.guiUtility.MarkAsFavorite(None, item.original_data)
+
         def do_favorite():
             self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels')
 
             items = self.frame.searchlist.GetItems()
             for _, item in items.iteritems():
                 if isinstance(item, ChannelListItem):
-                    self.Call(10, do_assert)
-                    self.guiUtility.MarkAsFavorite(None, item.original_data)
+                    do_mark(item)
                     break
             else:
                 self.assert_(False, 'could not find ChannelListItem')
 
-
         def do_search():
-            self.guiUtility.dosearch(u'mp3')
-            self.Call(10, do_favorite)
+            items = self.frame.channellist.GetItems()
+            if items:
+                do_mark(items.itervalues().next())
+            else:
+                self.guiUtility.dosearch(u'mp3')
+                self.Call(10, do_favorite)
 
-        def wait_for_search():
-            self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 5, do_search, 'did not connect to more than 5 peers within 300s')
+        def wait_for_channel():
+            def has_connections_or_channel():
+                if self.frame.SRstatusbar.GetChannelConnections() > 5:
+                    return True
+                if self.frame.channellist.GetItems():
+                    return True
 
-        self.startTest(wait_for_search)
+                self.frame.channellist.GetManager().refresh()
+                return False
+
+            self.guiUtility.ShowPage('stats')
+            self.CallConditional(300, has_connections_or_channel, do_search, 'did not connect to more than 5 peers within 300s')
+
+        self.startTest(wait_for_channel)
 
 if __name__ == "__main__":
     unittest.main()
