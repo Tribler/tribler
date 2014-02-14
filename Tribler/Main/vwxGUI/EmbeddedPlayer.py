@@ -149,12 +149,12 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.mute.SetBitmapLabel(self.bmp_unmuted if self.mute.GetBitmapLabel() == self.bmp_muted else self.bmp_muted, recreate=True)
 
     @warnWxThread
-    def Load(self, url, streaminfo=None):
-        self._logger.debug("embedplay: Load: %s %s %s", url, streaminfo, currentThread().getName())
+    def Load(self, url):
+        self._logger.debug("embedplay: Load: %s %s", url, currentThread().getName())
 
-        if streaminfo is not None:
-            self.estduration = streaminfo.get('estduration', None)
-            self.download = VideoPlayer.getInstance().get_vod_download()
+        self.download = VideoPlayer.getInstance().get_vod_download()
+        if self.download:
+            self.estduration = self.download.videoinfo.get('estduration', None)
 
         # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
         # 26/05/09 Boudewijn: when using the external player we do not have a vlcwrap
@@ -164,7 +164,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             # Arno, 2009-02-17: If we don't do this VLC gets the wrong playlist somehow
             self.vlcwrap.stop()
             self.vlcwrap.playlist_clear()
-            self.vlcwrap.load(url, streaminfo=streaminfo)
+            self.vlcwrap.load(url)
 
             # Enable update of progress slider
             wx.CallAfter(self.slider.SetValue, 0)

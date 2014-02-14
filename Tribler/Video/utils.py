@@ -113,3 +113,12 @@ def quote_program_path(progpath):
         return '"' + progpath + '"'
     else:
         return progpath
+
+def escape_path(path):
+	if path[0] != '"' and path[0] != "'" and path.find(' ') != -1:
+		if sys.platform == 'win32':
+			# Add double quotes
+			path = "\"" + path + "\""
+		else:
+			path = "\'" + path + "\'"
+	return path

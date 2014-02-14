@@ -238,12 +238,12 @@ class VLCWrapper:
 
         return media
 
-    def load(self, url, streaminfo=None):
+    def load(self, url):
         if not self.initialized:
             self._init_vlc()
 
         check_threading()
-        self._logger.info("VLCWrapper: load: %s %s", url, streaminfo)
+        self._logger.info("VLCWrapper: load: %s", url)
 
         if url is None:
             """
