@@ -190,8 +190,10 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels')
 
             items = self.frame.searchlist.GetItems()
-            if items:
-                do_mark(items.itervalues().next())
+            for _, item in items.iteritems():
+                if isinstance(item, ChannelListItem):
+                    do_mark(item)
+                    break
             else:
                 self.assert_(False, 'could not find ChannelListItem')
 
