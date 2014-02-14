@@ -691,7 +691,11 @@ class Comment(Helper):
             if data:
                 data = data2wxBitmap(mime, data, SMALL_ICON_MAX_DIM)
         else:
-            data = gui_image_manager.getPeerThumbnail(self.peer_id, SMALL_ICON_MAX_DIM)
+            from Tribler.Core.simpledefs import NTFY_PEERS
+            from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+            peer_db = GUIUtility.utility.session.open_dbhandler(NTFY_PEERS)
+            raw_data = self._peer_db.getPeerById(peerid, keys=u"thumbnail")
+            data = gui_image_manager.getPeerThumbnail(raw_data, SMALL_ICON_MAX_DIM)
 
         if data is None:
             data = gui_image_manager.getDefaultImage(u"PEER_THUMB", SMALL_ICON_MAX_DIM)

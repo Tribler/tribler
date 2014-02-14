@@ -12,8 +12,6 @@ import sys
 import logging
 import cStringIO
 
-from Tribler.Core.simpledefs import NTFY_PEERS
-
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
@@ -42,8 +40,6 @@ class GuiImageManager(object):
         self.__loadAllImages()
 
         self._icons = {}
-
-        #self._peer_db = gui_utility.utility.session.open_dbhandler(NTFY_PEERS)
 
 
     @staticmethod
@@ -213,17 +209,14 @@ class GuiImageManager(object):
         return image
 
 
-    def getPeerThumbnail(self, peer_id, dim=ICON_MAX_DIM):
+    def getPeerThumbnail(self, raw_data, dim=ICON_MAX_DIM):
         """
         Gets the peer thumbnail.
         """
-        data = self._peer_db.getPeerById(peerid, keys=u"thumbnail")
         if data is None:
             return None
 
-        string_io = cStringIO.StringIO(data)
-
-        return data2wxBitmap("image/jpeg", data, dim)
+        return data2wxBitmap("image/jpeg", cStringIO.StringIO(data), dim)
 
 
     def getBitmap(self, parent, type, background, state):
