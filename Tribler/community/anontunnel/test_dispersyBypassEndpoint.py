@@ -19,7 +19,7 @@ class TestDispersyBypassEndpoint(TestCase):
         self.endpoint = DispersyBypassEndpoint(raw_server, 0)
 
     def test_data_came_in(self):
-        prefix = ('f' * 23 + 'e').decode("HEX")
+        prefix = str(('f' * 23 + 'e').decode("HEX"))
         self.endpoint.listen_to(prefix, self.on_bypass_message)
 
         packet = (
@@ -28,5 +28,4 @@ class TestDispersyBypassEndpoint(TestCase):
         )
 
         self.endpoint.data_came_in([packet])
-
         self.assertEqual(self.bypass_message, packet)

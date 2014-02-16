@@ -1,5 +1,3 @@
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
-
 ORIGINATOR = "originator"
 ENDPOINT = "endpoint"
 

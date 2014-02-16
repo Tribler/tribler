@@ -21,7 +21,8 @@ class TestLengthSelectionStrategy(TestCase):
         candidate = Candidate(("127.0.0.1", 1000), False)
 
         circuit = Circuit(randint(0, 1000), hops, candidate)
-        circuit.hops = [candidate] * hops
+        for c in [candidate] * hops:
+            circuit.add_hop = c
 
         return circuit
 
@@ -62,7 +63,8 @@ class TestRandomSelectionStrategy(TestCase):
         candidate = Candidate(("127.0.0.1", 1000), False)
 
         circuit = Circuit(randint(0, 1000), hops, candidate)
-        circuit.hops = [candidate] * hops
+        for c in [candidate] * hops:
+            circuit.add_hop = c
 
         return circuit
 

@@ -48,7 +48,7 @@ class Socks5Server(object, TunnelObserver):
             logger.error(
                 "Cannot listen on SOCK5 port %s:%d, perhaps another "
                 "instance is running?",
-                "0.0.0.0",self.socks5_port)
+                "0.0.0.0", self.socks5_port)
 
     def _reserve_circuits(self, count):
         lacking = max(0, count - len(self.reserved_circuits))

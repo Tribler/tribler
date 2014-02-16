@@ -2,8 +2,11 @@ from Tribler.dispersy.payload import Payload
 
 __author__ = 'Chris'
 
+
+#noinspection PyClassHasNoInit
 class BaseMessage:
     pass
+
 
 class PingMessage(BaseMessage):
     def __init__(self):

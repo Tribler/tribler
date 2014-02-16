@@ -14,13 +14,12 @@ class DispersyBypassEndpoint(RawserverEndpoint):
     Creates an Dispersy Endpoint which bypasses the Dispersy message handling
     system for incoming packets matching set prefixes
 
-    @type rawserver: Tribler.Core.RawServer.RawServer.RawServer
+    @type raw_server: Tribler.Core.RawServer.RawServer.RawServer
     @type port: int
     @type ip: str
     """
-
-    def __init__(self, rawserver, port, ip="0.0.0.0"):
-        RawserverEndpoint.__init__(self, rawserver, port, ip)
+    def __init__(self, raw_server, port, ip="0.0.0.0"):
+        RawserverEndpoint.__init__(self, raw_server, port, ip)
         self.packet_handlers = {}
         self.queue = Queue(maxsize=1024)
 

@@ -12,12 +12,14 @@ class TestCircuit(TestCase):
         candidate = Candidate(("127.0.0.1", 1000), False)
 
         circuit = Circuit(1, 2, candidate)
-        self.assertNotEqual(CIRCUIT_STATE_READY, circuit.state,
-                         "Circuit should not be online when goal hops not reached")
+        self.assertNotEqual(
+            CIRCUIT_STATE_READY, circuit.state,
+            "Circuit should not be online when goal hops not reached")
 
         circuit = Circuit(1, 1, candidate)
-        self.assertEqual(CIRCUIT_STATE_READY, circuit.state,
-                        "Single hop circuit with candidate should always be online")
+        self.assertEqual(
+            CIRCUIT_STATE_READY, circuit.state,
+            "Single hop circuit with candidate should always be online")
 
         circuit = Circuit(0)
         self.assertEqual(CIRCUIT_STATE_READY, circuit.state,
@@ -27,12 +29,14 @@ class TestCircuit(TestCase):
         candidate = Candidate(("127.0.0.1", 1000), False)
 
         circuit = Circuit(1, 2, candidate)
-        self.assertEqual(circuit.state, CIRCUIT_STATE_EXTENDING,
-                         "Circuit should be EXTENDING when goal hops not reached")
+        self.assertEqual(
+            circuit.state, CIRCUIT_STATE_EXTENDING,
+            "Circuit should be EXTENDING when goal hops not reached")
 
         circuit = Circuit(1, 1, candidate)
-        self.assertEqual(circuit.state, CIRCUIT_STATE_READY,
-                         "Single hop circuit with candidate should always READY")
+        self.assertEqual(
+            circuit.state, CIRCUIT_STATE_READY,
+            "Single hop circuit with candidate should always READY")
 
         circuit = Circuit(0)
         self.assertEqual(circuit.state, CIRCUIT_STATE_READY,

@@ -4,13 +4,8 @@ import os
 from Tribler.community.anontunnel.Socks5.server import Socks5Server
 from Tribler.community.anontunnel.stats import StatsCrawler
 
-logging.config.fileConfig(
-    os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
-logger = logging.getLogger(__name__)
-
 import sys
 import argparse
-import re
 from threading import Thread, Event
 from traceback import print_exc
 import time
@@ -30,13 +25,31 @@ from Tribler.community.anontunnel.lengthstrategies import \
 from Tribler.community.anontunnel.selectionstrategies import \
     RandomSelectionStrategy, LengthSelectionStrategy
 
+
+logging.config.fileConfig(
+    os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
+logger = logging.getLogger(__name__)
+
+
 try:
     import yappi
-except:
-    pass
+except ImportError:
+    yappi = None
+    logger.warning("Yappi not installed, profiling options won't be available")
 
 
 class AnonTunnel(Thread):
+    """
+    The standalone AnonTunnel application. Does not depend on Tribler Session
+    or LaunchManyCore but creates all dependencies by itself.
+
+    @param int socks5_port: the SOCKS5 port to listen on, or None to disable
+    the SOCKS5 server
+    @param ProxySettings settings: the settings to pass to the ProxyCommunity
+    @param bool crawl: whether to store incoming Stats messages using the
+    StatsCrawler
+    """
+
     def __init__(self, socks5_port, settings=None, crawl=False):
         Thread.__init__(self)
         self.crawl = crawl
@@ -60,21 +73,53 @@ class AnonTunnel(Thread):
         self.community = None
         ''' @type: ProxyCommunity '''
 
+    def __speed_stats(self):
+        t1 = None
+        bytes_exit = 0
+        bytes_enter = 0
+        bytes_relay = 0
+        stats = self.community.global_stats.stats
+        relay_stats = self.community.global_stats.relay_stats
+
+        while True:
+            t2 = time.time()
+            if self.community and t1 and t2 > t1:
+                speed_exit = (stats['bytes_exit'] - bytes_exit) / (t2 - t1)
+                bytes_exit = stats['bytes_exit']
+
+                speed_enter = (stats['bytes_enter'] - bytes_enter) / (t2 - t1)
+                bytes_enter = stats['bytes_enter']
+
+                relay_2 = sum([r.bytes[1] for r in relay_stats.values()])
+
+                speed_relay = (relay_2 - bytes_relay) / (t2 - t1)
+                bytes_relay = relay_2
+                active_circuits = len(self.community.active_circuits)
+                num_routes = len(self.community.relay_from_to) / 2
+
+                print ("CIRCUITS %d RELAYS %d EXIT %.2f KB/s ENTER %.2f KB/s"
+                       " RELAY %.2f KB/s\n") % (active_circuits, num_routes,
+                                              speed_exit / 1024.0,
+                                              speed_enter / 1024.0,
+                                              speed_relay / 1024.0),
+
+            t1 = t2
+            yield 3.0
+
     def run(self):
+        """
+        Start the standalone AnonTunnel
+        """
+
         self.dispersy.start()
         logger.error(
             "Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
-        def join_overlay(raw_server, dispersy):
-            proxy_community = dispersy.define_auto_load(
-                ProxyCommunity, (
-                    self.dispersy.get_new_member(u"NID_secp160k1"),
-                    self.settings,
-                    False
-                ),
-                load=True)[0]
+        def _join_overlay(raw_server, dispersy):
+            member = self.dispersy.get_new_member(u"NID_secp160k1")
+            proxy_community = dispersy.define_auto_load(ProxyCommunity, (
+                member, self.settings, False), load=True)[0]
             ''' @type: ProxyCommunity '''
-
 
             if self.socks5_server:
                 self.socks5_server = Socks5Server(
@@ -90,48 +135,16 @@ class AnonTunnel(Thread):
             return proxy_community
 
         proxy_args = self.raw_server, self.dispersy
-        self.community = self.dispersy.callback.call(join_overlay, proxy_args)
-        '" :type : Tribler.community.anontunnel.community.ProxyCommunity "'
+        self.community = self.dispersy.callback.call(_join_overlay, proxy_args)
+        ''' :type : Tribler.community.anontunnel.community.ProxyCommunity '''
 
-        def speed_stats():
-            t1 = None
-            bytes_exit = 0
-            bytes_enter = 0
-            bytes_relay = 0
-
-            while True:
-                t2 = time.time()
-                if self.community and t1 and t2 > t1:
-                    speed_exit = (self.community.global_stats.stats[
-                                      'bytes_exit'] - bytes_exit) / (t2 - t1)
-                    bytes_exit = self.community.global_stats.stats[
-                        'bytes_exit']
-
-                    speed_enter = (self.community.global_stats.stats[
-                                       'bytes_enter'] - bytes_enter) / (
-                                  t2 - t1)
-                    bytes_enter = self.community.global_stats.stats[
-                        'bytes_enter']
-
-                    relay_2 = sum([r.bytes[1] for r
-                                   in self.community.global_stats.relay_stats.values()])
-
-                    speed_relay = (relay_2 - bytes_relay) / (t2 - t1)
-                    bytes_relay = relay_2
-                    active_circuits = len(self.community.active_circuits)
-                    num_routes = len(self.community.relay_from_to) / 2
-
-                    print "CIRCUITS %d RELAYS %D EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s" % (
-                        active_circuits, num_routes, speed_exit / 1024.0,
-                        speed_enter / 1024.0, speed_relay / 1024.0),
-
-                t1 = t2
-                yield 3.0
-
-        self.callback.register(speed_stats)
+        self.callback.register(self.__speed_stats)
         self.raw_server.listen_forever(None)
 
     def stop(self):
+        """
+        Stop the standalone AnonTunnel
+        """
         if self.dispersy:
             self.dispersy.stop()
 
@@ -142,6 +155,10 @@ class AnonTunnel(Thread):
 
 
 def main(argv):
+    """
+    Start CLI interface of the AnonTunnel
+    @param argv: the CLI arguments, except the first
+    """
     parser = argparse.ArgumentParser(
         description='Anonymous Tunnel CLI interface')
 
@@ -290,8 +307,8 @@ def main(argv):
         elif line == 'reserve\n':
             print "We will try to reserve a circuit now!"
 
-            def on_ready(circuit):
-                print "Got circuit {0}".format(circuit.circuit_id)
+            def on_ready(ready_circuit):
+                print "Got circuit {0}".format(ready_circuit.circuit_id)
 
             deferred = anon_tunnel.community.reserve_circuit()
             deferred.addCallback(on_ready)

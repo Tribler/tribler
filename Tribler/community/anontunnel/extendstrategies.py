@@ -15,7 +15,8 @@ class ExtendStrategy:
         pass
 
     def extend(self, candidate_list=None):
-        if not candidate_list: candidate_list = []
+        if not candidate_list:
+            candidate_list = []
 
         raise NotImplementedError()
 
@@ -31,7 +32,8 @@ class TrustThyNeighbour(ExtendStrategy):
         self.circuit = circuit
 
     def extend(self, candidate_list=None):
-        if not candidate_list: candidate_list = []
+        if not candidate_list:
+            candidate_list = []
 
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, \
             "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
@@ -56,13 +58,13 @@ class NeighbourSubset(ExtendStrategy):
         self.circuit = circuit
 
     def extend(self, candidate_list=None):
-        if not candidate_list: candidate_list = []
+        if not candidate_list:
+            candidate_list = []
 
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, \
             "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
         assert self.circuit.goal_hops > len(self.circuit.hops), \
             "Circuits with correct length cannot be extended"
-
 
         sock_addr, extend_hop_public_key = next(candidate_list.iteritems(),
                                                 (None, None))

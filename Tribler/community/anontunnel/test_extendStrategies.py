@@ -23,25 +23,25 @@ class TestTrustThyNeighbour(TestCase):
         self.proxy = ProxyMock()
 
     def test_extend_ready_circuit(self):
-        circ_candidate = Candidate(("127.0.0.1", 1000), False)
-        circuit = Circuit(1, 1, circ_candidate)
+        circuit_candidate = Candidate(("127.0.0.1", 1000), False)
+        circuit = Circuit(1, 1, circuit_candidate)
         es = TrustThyNeighbour(self.proxy, circuit)
         self.assertRaises(AssertionError, es.extend)
 
     def test_extend_broken_circuit(self):
-        circ_candidate = Candidate(("127.0.0.1", 1000), False)
-        circuit = Circuit(1, 1, circ_candidate)
+        circuit_candidate = Candidate(("127.0.0.1", 1000), False)
+        circuit = Circuit(1, 1, circuit_candidate)
 
         # Break circuit
-        circuit.hops = None
+        circuit.destroy()
         self.assertEqual(circuit.state, CIRCUIT_STATE_BROKEN)
 
         es = TrustThyNeighbour(self.proxy, circuit)
         self.assertRaises(AssertionError, es.extend)
 
     def test_extend_extending_circuit(self):
-        circ_candidate = Candidate(("127.0.0.1", 1000), False)
-        circuit = Circuit(1, 2, circ_candidate)
+        circuit_candidate = Candidate(("127.0.0.1", 1000), False)
+        circuit = Circuit(1, 2, circuit_candidate)
         es = TrustThyNeighbour(self.proxy, circuit)
         es.extend()
 

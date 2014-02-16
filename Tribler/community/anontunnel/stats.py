@@ -48,6 +48,8 @@ class StatsCollector(TunnelObserver):
         """
         @type proxy: Tribler.community.anontunnel.community.ProxyCommunity
         """
+
+        TunnelObserver.__init__(self)
         self.stats = {
             'bytes_returned': 0,
             'bytes_exit': 0,
@@ -56,18 +58,26 @@ class StatsCollector(TunnelObserver):
         self.download_stats = {}
         self.session_id = uuid.uuid4()
         self.proxy = proxy
-
         self.running = False
-
         self.circuit_stats = defaultdict(lambda: CircuitStats())
+        ''':type : dict[int, CircuitStats] '''
         self.relay_stats = defaultdict(lambda: RelayStats())
+        ''':type : dict[((str,int),int), RelayStats] '''
         self._circuit_cache = {}
+        ''':type : dict[int, Circuit] '''
 
     def pause(self):
+        """
+        Pause stats collecting
+        """
         self.running = False
         self.proxy.observers.remove(self)
 
     def clear(self):
+        """
+        Clear collected stats
+        """
+
         self.circuit_stats.clear()
         self.relay_stats.clear()
 
@@ -104,27 +114,26 @@ class StatsCollector(TunnelObserver):
                         c.times.append(t2)
 
                     c.speed_up = 1.0 * (c.bytes_up[1] - c.bytes_up[0]) / (
-                    t2 - c.timestamp)
+                        t2 - c.timestamp)
                     c.speed_down = 1.0 * (
-                    c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp)
+                        c.bytes_down[1] - c.bytes_down[0]) / (t2 - c.timestamp)
 
                     c.timestamp = t2
                     c.bytes_up = [c.bytes_up[1], c.bytes_up[1]]
                     c.bytes_down = [c.bytes_down[1], c.bytes_down[1]]
 
-            for relay_key in self.proxy.relay_from_to.values():
+            for relay_key in self.proxy.relay_from_to.keys():
                 r = self.relay_stats[relay_key]
 
                 if r.timestamp is None:
                     r.timestamp = time.time()
                 elif r.timestamp < t2:
-                    if len(r.bytes_list) == 0 or r.bytes[-1] != r.bytes_list[
-                        -1]:
+                    if len(r.bytes_list) == 0 or r.bytes[-1] != r.bytes_list[-1]:
                         r.bytes_list.append(r.bytes[-1])
                         r.times.append(t2)
 
                     r.speed = 1.0 * (r.bytes[1] - r.bytes[0]) / (
-                    t2 - r.timestamp)
+                        t2 - r.timestamp)
                     r.timestamp = t2
                     r.bytes = [r.bytes[1], r.bytes[1]]
 
@@ -140,8 +149,10 @@ class StatsCollector(TunnelObserver):
     def on_exiting_from_tunnel(self, circuit_id, candidate, destination, data):
         self.stats['bytes_exit'] += len(data)
 
-        if circuit_id in self.proxy.circuits and self.proxy.circuits[
-            circuit_id].goal_hops == 0:
+        valid = False if circuit_id not in self.proxy.circuits \
+            else self.proxy.circuits[circuit_id].goal_hops == 0
+
+        if valid:
             self.circuit_stats[circuit_id].bytes_up[-1] += len(data)
 
     def on_send_data(self, circuit_id, candidate, destination,
@@ -191,7 +202,14 @@ class StatsCollector(TunnelObserver):
 
 
 class StatsCrawler(TunnelObserver):
+    """
+    Stores incoming stats in a SQLite database
+    @param RawServer raw_server: the RawServer instance to queue database tasks
+    on
+    """
+
     def __init__(self, raw_server):
+        TunnelObserver.__init__(self)
         logger.warning("Running StatsCrawler")
         self.raw_server = raw_server
         self.conn = None
@@ -245,27 +263,32 @@ class StatsCrawler(TunnelObserver):
         cursor = self.conn.cursor()
 
         try:
-            cursor.execute('''INSERT OR FAIL INTO result
-                                (encryption, session_id, time, host, port, swift_size, swift_time, bytes_enter, bytes_exit, bytes_returned)
-                                VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?)''',
-                           [uuid.UUID(stats['uuid']),
-
-                            sock_address[0], sock_address[1],
-                            stats['swift']['size'],
-                            stats['swift']['download_time'],
-                            stats['bytes_enter'],
-                            stats['bytes_exit'],
-                            stats['bytes_return']]
+            cursor.execute(
+                '''INSERT OR FAIL INTO result
+                    (
+                        encryption, session_id, time,
+                        host, port, swift_size, swift_time,
+                        bytes_enter, bytes_exit, bytes_returned
+                    )
+                    VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?)''',
+                [uuid.UUID(stats['uuid']), sock_address[0], sock_address[1],
+                 stats['swift']['size'], stats['swift']['download_time'],
+                 stats['bytes_enter'], stats['bytes_exit'],
+                 stats['bytes_return']]
             )
 
             result_id = cursor.lastrowid
 
             for c in stats['circuits']:
                 cursor.execute('''
-                    INSERT INTO result_circuit (result_id, hops, bytes_up, bytes_down, time)
-                        VALUES (?, ?, ?, ?, ?)
-                ''', [result_id, c['hops'], c['bytes_up'], c['bytes_down'],
-                      c['time']])
+                    INSERT INTO result_circuit (
+                        result_id, hops, bytes_up, bytes_down, time
+                    ) VALUES (?, ?, ?, ?, ?)''',
+                               [
+                                   result_id, c['hops'], c['bytes_up'],
+                                   c['bytes_down'],
+                                   c['time']
+                               ])
 
             for c in stats['relays']:
                 cursor.execute('''

@@ -229,7 +229,7 @@ class CustomProxyConversion():
     @staticmethod
     def __decode_data(message_buffer, offset=0):
         host_length, port, origin_host_length, origin_port, payload_length = \
-            struct.unpack_from( "!LLLLL", message_buffer, offset)
+            struct.unpack_from("!LLLLL", message_buffer, offset)
         offset += 20
 
         if len(message_buffer) < offset + host_length:
@@ -280,7 +280,6 @@ class CustomProxyConversion():
     def __decode_pong(message_buffer, offset=0):
         return PongMessage()
 
-
     @staticmethod
     def __encode_created(created_message):
         # assert len(created_message.key) == DIFFIE_HELLMAN_MODULUS_SIZE / 8, \
@@ -289,7 +288,6 @@ class CustomProxyConversion():
 
         key = int_to_packed(created_message.key, 2048)
         return key + encode(created_message.candidate_list)
-
 
     @staticmethod
     def __decode_created(message_buffer, offset=0):

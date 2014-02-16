@@ -24,8 +24,8 @@ class DefaultExitStrategy(TunnelObserver):
         logger.debug("EXIT DATA packet to %s", destination)
 
         try:
-            self.get_exit_handler(circuit_id, return_candidate).sendto(
-                data,destination)
+            exit_socket = self.get_exit_socket(circuit_id, return_candidate)
+            exit_socket.sendto(data, destination)
         except socket.error:
             logger.exception("Dropping packets while we are EXITing data")
 
@@ -49,7 +49,7 @@ class DefaultExitStrategy(TunnelObserver):
 
         return return_handler
 
-    def get_exit_handler(self, circuit_id, address):
+    def get_exit_socket(self, circuit_id, address):
         # If we don't have an exit socket yet for this socket, create one
         if not (circuit_id in self._exit_sockets):
             return_handler = self.create(self.proxy, self.raw_server,
