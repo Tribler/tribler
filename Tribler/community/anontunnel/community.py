@@ -278,6 +278,7 @@ class TunnelObserver:
         """
         pass
 
+    # noinspection PyMethodMayBeStatic
     def on_break_relay(self, relay_key):
         """
         Called when a relay has been broken due to inactivity
@@ -419,7 +420,7 @@ class ProxyCommunity(Community):
     @property
     def crypto(self):
         """
-        @rtype: Tribler.community.privatesemantic.crypto.elgamalcrypto.ElgamalCrypto
+        @rtype: ElgamalCrypto
         """
         return self.dispersy.crypto
 
@@ -497,8 +498,8 @@ class ProxyCommunity(Community):
         self.global_stats.start()
 
         # Listen to prefix endpoint
-        dispersy.endpoint.listen_to(self.packet_prefix, self.handle_packet)
-        dispersy.callback.register(self._ping_circuits)
+        dispersy.endpoint.listen_to(self.packet_prefix, self.__handle_packet)
+        dispersy.callback.register(self.__ping_circuits)
 
         if integrate_with_tribler:
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -507,14 +508,14 @@ class ProxyCommunity(Community):
         else:
             self.notifier = None
 
-        def loop_discover():
+        def __loop_discover():
             while True:
                 try:
                     self.__discover()
                 finally:
                     yield 5.0
 
-        self.dispersy.callback.register(loop_discover)
+        self.dispersy.callback.register(__loop_discover)
 
     def __discover(self):
         circuits_needed = lambda: max(
@@ -593,7 +594,7 @@ class ProxyCommunity(Community):
             , CommunityDestination(node_count=10)
             , StatsPayload()
             , self.dispersy._generic_timeline_check
-            , self.on_stats
+            , self._on_stats
         )]
 
     def _initialize_meta_messages(self):
@@ -609,7 +610,7 @@ class ProxyCommunity(Community):
         self._meta_messages[meta.name] = Message(
             meta.community, meta.name, meta.authentication,
             meta.resolution, meta.distribution, meta.destination,
-            meta.payload, meta.check_callback, self.on_introduction_request,
+            meta.payload, meta.check_callback, self.__on_introduction_request,
             meta.undo_callback,
             meta.batch
         )
@@ -619,33 +620,33 @@ class ProxyCommunity(Community):
         self._meta_messages[meta.name] = Message(
             meta.community, meta.name, meta.authentication,
             meta.resolution, meta.distribution, meta.destination,
-            meta.payload, meta.check_callback, self.on_introduction_response,
+            meta.payload, meta.check_callback, self.__on_introduction_response,
             meta.undo_callback, meta.batch
         )
 
         assert self._original_on_introduction_request
         assert self._original_on_introduction_response
 
-    def on_introduction_request(self, messages):
+    def __on_introduction_request(self, messages):
         try:
             return self._original_on_introduction_request(messages)
         finally:
             for message in messages:
-                self.on_member_heartbeat(message, message.candidate)
+                self.__on_member_heartbeat(message, message.candidate)
 
-    def on_introduction_response(self, messages):
+    def __on_introduction_response(self, messages):
         try:
             return self._original_on_introduction_response(messages)
         finally:
             for message in messages:
-                self.on_member_heartbeat(message, message.candidate)
+                self.__on_member_heartbeat(message, message.candidate)
 
-    def on_stats(self, messages):
+    def _on_stats(self, messages):
         for message in messages:
             self.__notify("on_tunnel_stats",
-                          self, message.candidate,message.payload.stats)
+                          self, message.candidate, message.payload.stats)
 
-    def get_cached_candidate(self, sock_addr):
+    def _get_cached_candidate(self, sock_addr):
         if sock_addr in self._heartbeat_candidates:
             return self._heartbeat_candidates[sock_addr]
         else:
@@ -656,6 +657,10 @@ class ProxyCommunity(Community):
             return circuit_candidate
 
     def send_stats(self, stats):
+        """
+        Send a stats message to the community
+        @param dict stats: the statistics dictionary to share
+        """
         def __send_stats():
             meta = self.get_meta_message(u"stats")
             record = meta.impl(authentication=(self._my_member,),
@@ -702,10 +707,10 @@ class ProxyCommunity(Community):
         result = handler(circuit_id, candidate, payload)
 
         if result:
-            self.dict_inc(self.dispersy.statistics.success, str_type)
+            self.__dict_inc(self.dispersy.statistics.success, str_type)
         else:
-            self.dict_inc(self.dispersy.statistics.success,
-                          str_type + '-ignored')
+            self.__dict_inc(self.dispersy.statistics.success,
+                            str_type + '-ignored')
             logger.debug("Prev message was IGNORED")
 
     def __relay(self, circuit_id, data, relay_key, sock_addr):
@@ -726,9 +731,9 @@ class ProxyCommunity(Community):
             this_relay = self.relay_from_to[this_relay_key]
             this_relay.last_incoming = time.time()
 
-            for o in self.observers:
-                # TODO: check whether direction is set correctly here!
-                o.on_relay(this_relay_key, relay_key, direction, data)
+            # TODO: check whether direction is set correctly here!
+            self.__notify("on_relay",
+                          this_relay_key, relay_key, direction, data)
 
         packet_type = self.proxy_conversion.get_type(data)
 
@@ -749,9 +754,10 @@ class ProxyCommunity(Community):
             relayed=True
         )
 
-        self.dict_inc(self.dispersy.statistics.success, str_type + '-relayed')
+        self.__dict_inc(self.dispersy.statistics.success,
+                        str_type + '-relayed')
 
-    def handle_packet(self, sock_addr, orig_packet):
+    def __handle_packet(self, sock_addr, orig_packet):
         """
         @param (str, int) sock_addr: socket address in tuple format
         @param orig_packet:
@@ -770,7 +776,7 @@ class ProxyCommunity(Community):
             if is_relay:
                 return self.__relay(circuit_id, data, relay_key, sock_addr)
 
-            candidate = self.get_cached_candidate(sock_addr)
+            candidate = self._get_cached_candidate(sock_addr)
 
             if not candidate:
                 raise Exception("No known candidate at {0}, "
@@ -797,7 +803,8 @@ class ProxyCommunity(Community):
     class CircuitRequestCache(NumberCache):
         @staticmethod
         def create_number(force_number=-1):
-            return force_number if force_number >= 0 else NumberCache.create_number()
+            return force_number if force_number >= 0 \
+                else NumberCache.create_number()
 
         @staticmethod
         def create_identifier(number, force_number=-1):
@@ -834,7 +841,7 @@ class ProxyCommunity(Community):
             self.circuit.unverified_hop = None
 
             try:
-                candidate_list = self.community.decrypt_candidate_list(
+                candidate_list = self.community.__decrypt_candidate_list(
                     key, extended_message.candidate_list)
             except Exception as e:
                 reason = "Can't decrypt candidate list!"
@@ -950,6 +957,12 @@ class ProxyCommunity(Community):
             logger.exception("create_circuit")
 
     def remove_circuit(self, circuit_id, additional_info=''):
+        """
+        Removes a circuit from our pool, destroying it
+        @param int circuit_id: the id of the circuit to destroy
+        @param str additional_info: optional reason, useful for logging
+        @return: whether the removal was successful
+        """
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
         if circuit_id in self.circuits:
@@ -964,6 +977,14 @@ class ProxyCommunity(Community):
         return False
 
     def remove_relay(self, relay_key, additional_info=''):
+        """
+        Removes a relay from our routing table, will drop any incoming packets
+        and eventually cause a timeout at the originator
+
+        @param ((str, int) int) relay_key: the key of the relay to remove
+        @param str additional_info: optional reason, useful for logging
+        @return: whether the removal was successful
+        """
         if relay_key in self.relay_from_to:
             logger.error(
                 ("Breaking relay %s:%d %d " + additional_info) % (
@@ -1019,7 +1040,7 @@ class ProxyCommunity(Community):
         return_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
                          DIFFIE_HELLMAN_MODULUS)
 
-        cand_dict = {}
+        candidate_dict = {}
         for i in range(1, 5):
             candidate_temp = next(self.dispersy_yield_verified_candidates(),
                                   None)
@@ -1030,7 +1051,7 @@ class ProxyCommunity(Community):
 
             key_string = self.crypto.key_to_bin(ec_key)
 
-            cand_dict[candidate_temp.sock_addr] = key_string
+            candidate_dict[candidate_temp.sock_addr] = key_string
             logger.debug("Found candidate {0} with key".format(
                 candidate_temp.sock_addr))
 
@@ -1041,8 +1062,8 @@ class ProxyCommunity(Community):
                                  candidate.sock_addr, circuit_id)
 
         index = (candidate.sock_addr, circuit_id)
-        encrypted_cand_dict = self.encrypt_candidate_list(
-            self.session_keys[index], cand_dict)
+        encrypted_cand_dict = self.__encrypt_candidate_list(
+            self.session_keys[index], candidate_dict)
 
         return self.send_message(
             destination=candidate,
@@ -1052,12 +1073,12 @@ class ProxyCommunity(Community):
         )
 
     @staticmethod
-    def encrypt_candidate_list(key, cand_dict):
+    def __encrypt_candidate_list(key, cand_dict):
         encoded_dict = encoding.encode(cand_dict)
         return crypto.aes_encode(key, encoded_dict)
 
     @staticmethod
-    def decrypt_candidate_list(key, encrypted_cand_dict):
+    def __decrypt_candidate_list(key, encrypted_cand_dict):
         encoded_dict = crypto.aes_decode(key, encrypted_cand_dict)
         offset, cand_dict = encoding.decode(encoded_dict)
         return cand_dict
@@ -1123,7 +1144,6 @@ class ProxyCommunity(Community):
         # the packet is from the outside world and addressed to us from
         if circuit_id in self.circuits and message.origin \
                 and candidate == self.circuits[circuit_id].candidate:
-
             logger.debug("Exit socket at {0}".format(message.destination))
 
             self.circuits[circuit_id].beat_heart()
@@ -1200,7 +1220,7 @@ class ProxyCommunity(Community):
         self.directions[to_key] = ORIGINATOR
         self.directions[relay_key] = ENDPOINT
 
-        extend_candidate = self.get_cached_candidate(extend_with_addr)
+        extend_candidate = self._get_cached_candidate(extend_with_addr)
         return self.send_message(extend_candidate, new_circuit_id,
                                  MESSAGE_CREATE, CreateMessage(key))
 
@@ -1307,8 +1327,10 @@ class ProxyCommunity(Community):
         @return: whether the message could be handled correctly
         """
 
-        if circuit_id not in self.circuits or \
-                        self.circuits[circuit_id].candidate != candidate:
+        valid = circuit_id in self.circuits and \
+                self.circuits[circuit_id].candidate == candidate
+
+        if not valid:
             raise ValueError("We got a PONG from a stranger, ABORT ABORT")
 
         logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
@@ -1321,9 +1343,9 @@ class ProxyCommunity(Community):
             return True
         return False
 
-    # got introduction_request or introduction_response from candidate
-    # not necessarily a new candidate
-    def on_member_heartbeat(self, message, candidate):
+    def __on_member_heartbeat(self, message, candidate):
+        # got introduction_request or introduction_response from candidate
+        # not necessarily a new candidate
         if not isinstance(candidate, WalkCandidate) or \
                 isinstance(candidate, BootstrapCandidate):
             return
@@ -1352,12 +1374,33 @@ class ProxyCommunity(Community):
         return payload
 
     def remove_message_filter(self, message_type, filter_func):
+        """
+        Removes a message filter
+        @param str message_type: the message type the filter applies to
+        @param (int, WalkCandidate, str, str) -> str filter_func: the filter
+         to remove
+        """
         self._message_filters[message_type].remove(filter_func)
 
     def add_message_filter(self, message_type, filter_func):
+        """
+        Adds a message filter
+        @param str message_type: the message type the filter applies to
+        @param (int, WalkCandidate, str, str) -> str filter_func: the filter
+         to add
+        """
         self._message_filters[message_type].append(filter_func)
 
     def send_message(self, destination, circuit_id, message_type, message):
+        """
+        Send a message to a specified destination and circuit
+        @param Candidate destination: the relay's candidate
+        @param int circuit_id: the circuit to sent over
+        @param str message_type: the messages type, used to determine how to
+         serialize it
+        @param BaseMessage message: the messages content in object form
+        @return:
+        """
         content = self.proxy_conversion.encode(message_type, message)
 
         for transformer in self.send_transformers:
@@ -1368,6 +1411,15 @@ class ProxyCommunity(Community):
 
     def send_packet(self, destination, circuit_id, message_type, packet,
                     relayed=False):
+        """
+        Sends a packet to a relay over the specified circuit
+        @param Candidate destination: the relay's candidate structure
+        @param int circuit_id: the circuit to sent over
+        @param str message_type: the messages type, for logging purposes
+        @param str packet: the messages content in serialised form
+        @param bool relayed: whether this is a relay packet or not
+        @return: whether the send was successful
+        """
         assert isinstance(destination, Candidate), type(destination)
         assert isinstance(packet, str), type(packet)
 
@@ -1382,26 +1434,30 @@ class ProxyCommunity(Community):
             destination.sock_addr[0], destination.sock_addr[1],
             circuit_id)
 
-        self.dict_inc(self.dispersy.statistics.outgoing,
-                      str_type + ('-relayed' if relayed else ''), 1)
+        self.__dict_inc(self.dispersy.statistics.outgoing,
+                        str_type + ('-relayed' if relayed else ''), 1)
 
         # we need to make sure that this endpoint is thread safe
         return self.dispersy.endpoint.send(
             candidates=[destination],
             packets=[self.packet_prefix + packet])
 
-    def dict_inc(self, statistics_dict, key, inc=1):
+    def __dict_inc(self, statistics_dict, key, inc=1):
         key = u"anontunnel-" + key
-        self._dispersy.statistics.dict_inc(statistics_dict, key, inc)
+        self._dispersy.statistics.__dict_inc(statistics_dict, key, inc)
 
     @property
     def active_circuits(self):
-        # Circuit is active when its state is CIRCUIT_STATE_READY
+        """
+        Dict of active circuits, a circuit is active when its state is
+        CIRCUIT_STATE_READY
+        @rtype: dict[int, Circuit]
+        """
         return {circuit_id: circuit
                 for circuit_id, circuit in self.circuits.items()
                 if circuit.state == CIRCUIT_STATE_READY}
 
-    def _ping_circuits(self):
+    def __ping_circuits(self):
         while True:
             try:
                 to_be_removed = [
@@ -1434,11 +1490,10 @@ class ProxyCommunity(Community):
         """
         Tunnel data to the end and request an EXIT to the outside world
 
-        @param int circuit_id: The circuit's id to tunnel data over
-        @param Candidate candidate: The relay to tunnel data over
         @param (str, int) ultimate_destination: The destination outside the
             tunnel community
         @param str payload: The raw payload to send to the ultimate destination
+        @param Circuit circuit: The circuit id to tunnel data over
 
         @return: Whether the request has been handled successfully
         """
