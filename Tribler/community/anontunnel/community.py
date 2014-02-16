@@ -22,7 +22,7 @@ from Tribler.dispersy.message import Message
 from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.candidate import Candidate, WalkCandidate, \
-    BootstrapCandidate
+    BootstrapCandidate, CANDIDATE_WALK_LIFETIME
 from Tribler.dispersy.community import Community
 
 # AnonTunnel imports
