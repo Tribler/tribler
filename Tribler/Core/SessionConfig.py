@@ -116,10 +116,11 @@ class SessionConfigInterface(object):
                         self.randomly_selected_ports[path] = random_port
                 except:
                     self._logger.exception(u"Unable to bind port %d", random_port)
-                    to_do_random = True
+
                     # start from 10000
                     random_port = 10000
                     mod_value = 1
+                    to_do_random = True
                 finally:
                     s.close()
 
@@ -139,6 +140,8 @@ class SessionConfigInterface(object):
                             to_do_random = False
 
                     s.close()
+
+                self._logger.debug(u"Get random port %d for [%s]", self.randomly_selected_ports[path], path)
             return self.randomly_selected_ports[path]
         return settings_port
 
