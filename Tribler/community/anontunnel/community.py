@@ -520,7 +520,7 @@ class ProxyCommunity(Community):
     def __discover(self):
         circuits_needed = lambda: max(
             len(self._circuit_promises),
-            self.settings.max_circuits
+            self.settings.max_circuits - len(self.circuits)
         )
 
         with self.lock:
@@ -767,8 +767,8 @@ class ProxyCommunity(Community):
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (sock_addr, circuit_id)
 
-        is_relay = circuit_id > 0 and relay_key in self.relay_from_to and \
-                   not relay_key in self.waiting_for
+        is_relay = circuit_id > 0 and relay_key in self.relay_from_to \
+            and not relay_key in self.waiting_for
         is_originator = not is_relay and circuit_id in self.circuits
         is_initial = not is_relay and not is_originator
 
