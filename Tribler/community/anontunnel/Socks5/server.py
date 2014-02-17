@@ -56,6 +56,8 @@ class Socks5Server(object, TunnelObserver):
         def __on_reserve(circuit):
             self.reserved_circuits.append(circuit)
 
+            return circuit
+
         def __finally(result):
             self.awaiting_circuits -= 1
             return result

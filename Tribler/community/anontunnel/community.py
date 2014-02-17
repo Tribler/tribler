@@ -51,7 +51,7 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = 1  # random.randint(1, 3)
+        length = random.randint(1, 3)
 
         self.max_circuits = 0
         self.extend_strategy = extendstrategies.NeighbourSubset
@@ -1155,10 +1155,8 @@ class ProxyCommunity(Community):
 
         # It is not our circuit so we got it from a relay, we need to EXIT it!
         if message.destination != ('0.0.0.0', 0):
-            for observer in self.observers:
-                observer.on_exiting_from_tunnel(circuit_id, candidate,
-                                                message.destination,
-                                                message.data)
+            self.__notify("on_exiting_from_tunnel", circuit_id, candidate,
+                          message.destination, message.data)
 
             return True
         return False
@@ -1483,8 +1481,11 @@ class ProxyCommunity(Community):
 
     def __notify(self, method, *args, **kwargs):
         for o in self.observers:
-            func = getattr(o, method)
-            func(*args, **kwargs)
+            try:
+                func = getattr(o, method)
+                func(*args, **kwargs)
+            except AttributeError:
+                pass
 
     def tunnel_data_to_end(self, ultimate_destination, payload, circuit):
         """

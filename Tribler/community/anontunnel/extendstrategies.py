@@ -16,7 +16,7 @@ class ExtendStrategy:
 
     def extend(self, candidate_list=None):
         if not candidate_list:
-            candidate_list = []
+            candidate_list = {}
 
         raise NotImplementedError()
 
@@ -33,7 +33,7 @@ class TrustThyNeighbour(ExtendStrategy):
 
     def extend(self, candidate_list=None):
         if not candidate_list:
-            candidate_list = []
+            candidate_list = {}
 
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, \
             "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
@@ -59,7 +59,7 @@ class NeighbourSubset(ExtendStrategy):
 
     def extend(self, candidate_list=None):
         if not candidate_list:
-            candidate_list = []
+            candidate_list = {}
 
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, \
             "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
