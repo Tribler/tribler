@@ -90,10 +90,26 @@ class SessionConfigInterface(object):
         if settings_port == -1:
             path = '~'.join(keys)
             if path not in self.randomly_selected_ports:
-                s = socket.socket()
-                s.bind(('', 0))
-                self.randomly_selected_ports[path] = s.getsockname()[1]
-                s.close()
+                # keep getting random port until they are all unique
+                random_port = 0
+                while True:
+                    s = socket.socket()
+                    s.bind(('', 0))
+
+                    random_port = s.getsockname()[1]
+                    is_port_unique = True
+                    for _, val in self.randomly_selected_ports.iteritems():
+                        if random_port == val:
+                            is_port_unique = False
+                            break
+
+                    # should be thread-safe because we close the socket only
+                    # after we add it to the dict.
+                    if is_port_unique:
+                        self.randomly_selected_ports[path] = random_port
+                        s.close()
+                        break
+                    s.close()
             return self.randomly_selected_ports[path]
         return settings_port
 
