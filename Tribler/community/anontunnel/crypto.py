@@ -126,7 +126,7 @@ class DefaultCrypto(object):
         else:
             # last node in circuit, circuit does not exist yet,
             # decrypt with Elgamal key
-            logger.error(
+            logger.debug(
                 "Circuit does not yet exist, decrypting with my Elgamal key")
             my_key = self.proxy.my_member._ec
             data = self.proxy.crypto.decrypt(my_key, data)
