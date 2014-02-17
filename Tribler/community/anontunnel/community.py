@@ -841,7 +841,7 @@ class ProxyCommunity(Community):
             self.circuit.unverified_hop = None
 
             try:
-                candidate_list = self.community.__decrypt_candidate_list(
+                candidate_list = self.community.decrypt_candidate_list(
                     key, extended_message.candidate_list)
             except Exception as e:
                 reason = "Can't decrypt candidate list!"
@@ -1062,7 +1062,7 @@ class ProxyCommunity(Community):
                                  candidate.sock_addr, circuit_id)
 
         index = (candidate.sock_addr, circuit_id)
-        encrypted_cand_dict = self.__encrypt_candidate_list(
+        encrypted_cand_dict = self.encrypt_candidate_list(
             self.session_keys[index], candidate_dict)
 
         return self.send_message(
@@ -1073,12 +1073,12 @@ class ProxyCommunity(Community):
         )
 
     @staticmethod
-    def __encrypt_candidate_list(key, cand_dict):
+    def encrypt_candidate_list(key, cand_dict):
         encoded_dict = encoding.encode(cand_dict)
         return crypto.aes_encode(key, encoded_dict)
 
     @staticmethod
-    def __decrypt_candidate_list(key, encrypted_cand_dict):
+    def decrypt_candidate_list(key, encrypted_cand_dict):
         encoded_dict = crypto.aes_decode(key, encrypted_cand_dict)
         offset, cand_dict = encoding.decode(encoded_dict)
         return cand_dict
@@ -1444,7 +1444,7 @@ class ProxyCommunity(Community):
 
     def __dict_inc(self, statistics_dict, key, inc=1):
         key = u"anontunnel-" + key
-        self._dispersy.statistics.__dict_inc(statistics_dict, key, inc)
+        self._dispersy.statistics.dict_inc(statistics_dict, key, inc)
 
     @property
     def active_circuits(self):
