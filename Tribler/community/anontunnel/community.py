@@ -110,13 +110,13 @@ class Circuit:
         :return: Circuit
         """
 
+        self._broken = False
+        self._hops = []
+
         self.circuit_id = circuit_id
         self.candidate = candidate
-        self._hops = []
         self.goal_hops = goal_hops
-
         self.deferred = deferred if deferred else defer.Deferred()
-
         self.extend_strategy = None
         self.last_incoming = time.time()
 
@@ -155,7 +155,7 @@ class Circuit:
          CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING or CIRCUIT_STATE_READY
         @rtype: str
         """
-        if self.hops is None:
+        if self._broken:
             return CIRCUIT_STATE_BROKEN
 
         if len(self.hops) < self.goal_hops:
@@ -221,7 +221,7 @@ class Circuit:
 
         @param str reason: the reason why the circuit is being destroyed
         """
-        self._hops = None
+        self._broken = True
 
         if not self.deferred.called:
             self.deferred.errback(

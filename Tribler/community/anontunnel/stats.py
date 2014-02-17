@@ -53,7 +53,8 @@ class StatsCollector(TunnelObserver):
         self.stats = {
             'bytes_returned': 0,
             'bytes_exit': 0,
-            'bytes_enter': 0
+            'bytes_enter': 0,
+            'broken_circuits': 0
         }
         self.download_stats = {}
         self.session_id = uuid.uuid4()
@@ -93,6 +94,10 @@ class StatsCollector(TunnelObserver):
         self.running = True
         self.proxy.observers.append(self)
         self.proxy.dispersy.callback.register(self.__calc_speeds)
+
+    def on_break_circuit(self, circuit):
+        if len(circuit.hops) == circuit.goal_hops:
+            self.stats['broken_circuits'] += 1
 
     def __calc_speeds(self):
         while self.running:
@@ -170,6 +175,7 @@ class StatsCollector(TunnelObserver):
             'bytes_enter': self.stats['bytes_enter'],
             'bytes_exit': self.stats['bytes_exit'],
             'bytes_return': self.stats['bytes_returned'],
+            'broken_circuits': self.stats['broken_circuits'],
             'circuits': [
                 {
                     'hops': self._circuit_cache[circuit_id].goal_hops,
