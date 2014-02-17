@@ -35,6 +35,7 @@ class VideoPlayer:
 
         self.videoframe = None
         self.vod_download = None
+        self.vod_fileindex = None
         self.playbackmode = None
 
         self.videoserverport = httpport
@@ -111,9 +112,9 @@ class VideoPlayer:
             self.videoframe.recreate_videopanel()
 
     def play(self, ds, selectedinfilename):
-        d = ds.get_download()
-        cdef = d.get_def()
-        videofiles = d.get_dest_files(exts=videoextdefaults)
+        download = ds.get_download()
+        cdef = download.get_def()
+        videofiles = download.get_dest_files(exts=videoextdefaults)
 
         # If the user didn't select a file to play, select if there is a single, or ask
         if selectedinfilename is None:
@@ -138,17 +139,19 @@ class VideoPlayer:
 
         if cdef.get_def_type() == 'swift' or not complete or not selectedoutfilename:
             self._logger.info("Videoplayer: enabling VOD on torrent %s", cdef.get_name())
-            d.set_video_event_callback(self.sesscb_vod_event_callback)
-            if cdef.get_def_type() != "torrent" or d.get_def().is_multifile_torrent():
-                d.set_selected_files([selectedinfilename])
-            self.set_vod_download(d)
-            d.set_mode(DLMODE_VOD)
-            d.restart()
+            download.set_video_event_callback(self.sesscb_vod_event_callback)
+            if cdef.get_def_type() != "torrent" or download.get_def().is_multifile_torrent():
+                download.set_selected_files([selectedinfilename])
+            download.set_mode(DLMODE_VOD)
+            download.restart()
         else:
             self._logger.debug("Videoplayer: playing file from disk %s", selectedoutfilename)
             cmd = self.get_video_player(os.path.splitext(selectedoutfilename)[1], selectedoutfilename)
             self.launch_video_player(cmd)
-            self.set_vod_download(d)
+
+        files = download.get_def().get_files()
+        fileindex = files.index(selectedinfilename) if selectedinfilename in files else None
+        self.set_vod_download(download, fileindex)
 
     def launch_video_player(self, cmd):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
@@ -242,30 +245,26 @@ class VideoPlayer:
             dlg.ShowModal()
             dlg.Destroy()
 
-    def set_vod_download(self, d):
+    def set_vod_download(self, download, fileindex=None):
         old_download = self.vod_download
-        new_download = d
+        old_fileindex = self.vod_fileindex
 
-        if d != self.vod_download:
+        if download != self.vod_download:
             if self.vod_download:
                 self.vod_download.set_mode(DLMODE_NORMAL)
                 if self.vod_download.get_def().get_def_type() == 'torrent':
                     self.vod_download.set_vod_mode(False)
-
-            self.vod_download = d
+            self.vod_download = download
+        self.vod_fileindex = fileindex
 
         if old_download and old_download.get_def().get_def_type() == 'torrent':
-            selected_files = old_download.get_selected_files()
-            fileindex = old_download.get_def().get_index_of_file_in_files(selected_files[0]) if old_download.get_def().is_multifile_torrent() and selected_files else 0
-            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STOPPED, (old_download.get_def().get_id(), fileindex))
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STOPPED, (old_download.get_def().get_id(), old_fileindex))
 
-        if new_download and new_download.get_def().get_def_type() == 'torrent':
-            selected_files = new_download.get_selected_files()
-            fileindex = new_download.get_def().get_index_of_file_in_files(selected_files[0]) if new_download.get_def().is_multifile_torrent() and selected_files else 0
-            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (new_download.get_def().get_id(), fileindex))
+        if download and download.get_def().get_def_type() == 'torrent':
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (download.get_def().get_id(), fileindex))
 
-    def get_vod_download(self):
-        return self.vod_download
+    def get_vod_download(self, include_fileindex=False):
+        return (self.vod_download, self.vod_fileindex) if include_fileindex else self.vod_download
 
     @forceWxThread
     def set_player_status_and_progress(self, progress, progress_consec, pieces_complete, error=False):

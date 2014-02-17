@@ -430,12 +430,10 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.timeposition.SetLabel('%s / %s' % (cur_str, length_str))
                 self.ctrlsizer.Layout()
             elif self.GetState() == MEDIASTATE_ENDED:
-                dl = VideoPlayer.getInstance().get_vod_download()
+                download, fileindex = VideoPlayer.getInstance().get_vod_download(include_fileindex=True)
                 self.OnStop(None)
-                if dl:
-                    if dl.get_def().get_def_type() == 'torrent':
-                        fileindex = dl.get_def().get_index_of_file_in_files(dl.get_selected_files()[0]) if dl.get_def().is_multifile_torrent() else 0
-                        self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (dl.get_def().get_id(), fileindex))
+                if download and download.get_def().get_def_type() == 'torrent':
+                    self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (download.get_def().get_id(), fileindex))
                 if self.fullscreenwindow:
                     self._ToggleFullScreen()
 
