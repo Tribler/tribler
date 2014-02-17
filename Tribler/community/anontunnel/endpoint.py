@@ -21,7 +21,7 @@ class DispersyBypassEndpoint(RawserverEndpoint):
     def __init__(self, raw_server, port, ip="0.0.0.0"):
         RawserverEndpoint.__init__(self, raw_server, port, ip)
         self.packet_handlers = {}
-        self.queue = Queue(maxsize=1024)
+        self.queue = Queue()
 
         self.consumer_thread = Thread(target=self.__consumer)
         self.consumer_thread.start()
