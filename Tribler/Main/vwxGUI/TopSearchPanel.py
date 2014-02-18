@@ -64,6 +64,8 @@ class TopSearchPanel(FancyPanel):
 
         self._logger.debug("TopSearchPanel: OnCreate")
 
+        gui_image_manager = GuiImageManager.getInstance()
+
         if sys.platform == 'darwin':
             self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER | wx.NO_BORDER)
             self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
@@ -92,25 +94,25 @@ class TopSearchPanel(FancyPanel):
         self.ag.SetBackgroundColour(wx.Colour(244, 244, 244))
         self.ag.Hide()
 
-        download_bmp = GuiImageManager.getInstance().getOtherImage(u"download.png")
+        download_bmp = gui_image_manager.getOtherImage(u"download.png")
         self.download_btn = ActionButton(self, -1, download_bmp)
         self.download_btn.Enable(False)
-        upload_bmp = GuiImageManager.getInstance().getOtherImage(u"upload.png")
+        upload_bmp = gui_image_manager.getOtherImage(u"upload.png")
         self.upload_btn = ActionButton(self, -1, upload_bmp)
         self.upload_btn.Enable(False)
-        stop_bmp = GuiImageManager.getInstance().getOtherImage(u"pause.png")
+        stop_bmp = gui_image_manager.getOtherImage(u"pause.png")
         self.stop_btn = ActionButton(self, -1, stop_bmp)
         self.stop_btn.Enable(False)
-        delete_bmp = GuiImageManager.getInstance().getOtherImage(u"delete.png")
+        delete_bmp = gui_image_manager.getOtherImage(u"delete.png")
         self.delete_btn = ActionButton(self, -1, delete_bmp)
         self.delete_btn.Enable(False)
-        play_bmp = GuiImageManager.getInstance().getOtherImage(u"play.png")
+        play_bmp = gui_image_manager.getOtherImage(u"play.png")
         self.play_btn = ActionButton(self, -1, play_bmp)
         self.play_btn.Enable(False)
-        add_bmp = GuiImageManager.getInstance().getOtherImage(u"add.png")
+        add_bmp = gui_image_manager.getOtherImage(u"add.png")
         self.add_btn = ActionButton(self, -1, add_bmp)
         self.SetButtonHandler(self.add_btn, self.OnAdd, 'Download an external torrent.')
-        settings_bmp = GuiImageManager.getInstance().getOtherImage(u"settings.png")
+        settings_bmp = gui_image_manager.getOtherImage(u"settings.png")
         self.settings_btn = ActionButton(self, -1, settings_bmp)
         self.SetButtonHandler(self.settings_btn, self.OnSettings, 'Change settings.')
 

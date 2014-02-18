@@ -247,14 +247,16 @@ class SelectedChannelList(GenericSearchList):
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 
-        self.statusDHT = GuiImageManager.getInstance().getOtherImage(u"status_dht.png")
-        self.statusInactive = GuiImageManager.getInstance().getOtherImage(u"status_inact.png")
-        self.statusDownloading = GuiImageManager.getInstance().getOtherImage(u"status_dl.png")
-        self.statusFinished = GuiImageManager.getInstance().getOtherImage(u"status_fin.png")
-        self.statusSeeding = GuiImageManager.getInstance().getOtherImage(u"status_sd.png")
-        self.statusStopped = GuiImageManager.getInstance().getOtherImage(u"status_stop.png")
-        self.inFavoriteChannel = GuiImageManager.getInstance().getOtherImage(u"starEnabled.png")
-        self.outFavoriteChannel = GuiImageManager.getInstance().getOtherImage(u"star.png")
+        gui_image_manager = GuiImageManager.getInstance()
+
+        self.statusDHT = gui_image_manager.getOtherImage(u"status_dht.png")
+        self.statusInactive = gui_image_manager.getOtherImage(u"status_inact.png")
+        self.statusDownloading = gui_image_manager.getOtherImage(u"status_dl.png")
+        self.statusFinished = gui_image_manager.getOtherImage(u"status_fin.png")
+        self.statusSeeding = gui_image_manager.getOtherImage(u"status_sd.png")
+        self.statusStopped = gui_image_manager.getOtherImage(u"status_stop.png")
+        self.inFavoriteChannel = gui_image_manager.getOtherImage(u"starEnabled.png")
+        self.outFavoriteChannel = gui_image_manager.getOtherImage(u"star.png")
 
         GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, borders=False, showChange=True, parent=parent)
 

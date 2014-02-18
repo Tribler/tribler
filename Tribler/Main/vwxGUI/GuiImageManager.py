@@ -12,6 +12,7 @@ import sys
 import logging
 import cStringIO
 
+from Tribler.Main.vwxGUI import warnWxThread
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
@@ -54,6 +55,7 @@ class GuiImageManager(object):
         GuiImageManager.__single = None
 
 
+    @warnWxThread
     def __loadAllImages(self):
         """
         Loads and initiailizes all images, including:
@@ -174,6 +176,7 @@ class GuiImageManager(object):
             self._other_dict[image_file] = bitmap
 
 
+    @warnWxThread
     def getDefaultImage(self, name, dimension=ICON_MAX_DIM):
         """
         Gets a default image.
@@ -191,6 +194,7 @@ class GuiImageManager(object):
         return image
 
 
+    @warnWxThread
     def getCountryFlagDict(self):
         """
         Gets the country flag dictionary.
@@ -198,6 +202,7 @@ class GuiImageManager(object):
         return self._flag_dict
 
 
+    @warnWxThread
     def getOtherImage(self, name):
         """
         Gets an other image.
@@ -209,6 +214,7 @@ class GuiImageManager(object):
         return image
 
 
+    @warnWxThread
     def getPeerThumbnail(self, raw_data, dim=ICON_MAX_DIM):
         """
         Gets the peer thumbnail.
@@ -219,6 +225,7 @@ class GuiImageManager(object):
         return data2wxBitmap("image/jpeg", cStringIO.StringIO(data), dim)
 
 
+    @warnWxThread
     def getBitmap(self, parent, type, background, state):
         assert isinstance(background, wx.Colour), u"we require a wx.colour object here, got %s" % type(background)
         if isinstance(background, wx.Colour):
@@ -313,6 +320,7 @@ class GuiImageManager(object):
         return bmp.GetSubBitmap(bb)
 
 
+@warnWxThread
 def data2wxBitmap(type, data, dimension=ICON_MAX_DIM):
     """
     Creates a wx.Bitmap from a given raw data.
