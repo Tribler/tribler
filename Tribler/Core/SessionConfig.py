@@ -17,6 +17,8 @@ import ast
 import sys
 import copy
 import socket
+import random
+import logging
 
 from ConfigParser import ConfigParser, RawConfigParser
 
@@ -42,6 +44,7 @@ class SessionConfigInterface(object):
         @param sessconfig Optional dictionary used internally
         to make this a copy constructor.
         """
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.randomly_selected_ports = {}
         self.sessconfig = sessconfig or CallbackConfigParser()
@@ -90,10 +93,29 @@ class SessionConfigInterface(object):
         if settings_port == -1:
             path = '~'.join(keys)
             if path not in self.randomly_selected_ports:
-                s = socket.socket()
-                s.bind(('', 0))
-                self.randomly_selected_ports[path] = s.getsockname()[1]
-                s.close()
+                random_port = 0
+
+                while True:
+                    s = socket.socket()
+                    try:
+                        s.bind(('', random_port))
+                        random_port = s.getsockname()[1]
+                        if random_port in self.randomly_selected_ports.values():
+                            raise Exception(u"port already in random-list.")
+                        else:
+                            # get unique port
+                            self.randomly_selected_ports[path] = random_port
+                            break
+                    except:
+                        self._logger.exception(u"Unable to bind port %d", random_port)
+
+                        random_port += 1
+                        if random_port < 1000 or random_port > 65535:
+                            random_port = random.uniform(5000, 60000)
+                    finally:
+                        s.close()
+
+                self._logger.debug(u"Get random port %d for [%s]", self.randomly_selected_ports[path], path)
             return self.randomly_selected_ports[path]
         return settings_port
 
