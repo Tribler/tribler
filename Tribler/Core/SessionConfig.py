@@ -113,9 +113,9 @@ class SessionConfigInterface(object):
                         to_do_random = True
                     else:
                         # get unique port
-                        self.randomly_selected_ports[path] = random_port
+                        self.randomly_selected_ports[path] = port
                 except:
-                    self._logger.exception(u"Unable to bind port %d", random_port)
+                    self._logger.exception(u"Unable to bind port %d", port)
 
                     # start from 10000
                     random_port = 10000
