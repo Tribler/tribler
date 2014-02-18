@@ -94,9 +94,8 @@ class SessionConfigInterface(object):
             path = '~'.join(keys)
             if path not in self.randomly_selected_ports:
                 random_port = 0
-                to_do_random = True
 
-                while to_do_random:
+                while True:
                     s = socket.socket()
                     try:
                         s.bind(('', random_port))
@@ -106,7 +105,7 @@ class SessionConfigInterface(object):
                         else:
                             # get unique port
                             self.randomly_selected_ports[path] = random_port
-                            to_do_random = False
+                            break
                     except:
                         self._logger.exception(u"Unable to bind port %d", random_port)
 
