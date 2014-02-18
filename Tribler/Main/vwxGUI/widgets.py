@@ -7,6 +7,7 @@ import math
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY
 from wx.lib.stattext import GenStaticText
@@ -17,117 +18,6 @@ from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR, \
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from wx.lib.embeddedimage import PyEmbeddedImage
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-
-class NativeIcon:
-    __single = None
-
-    def __init__(self):
-        if NativeIcon.__single:
-            raise RuntimeError("NativeIcon is singleton")
-        NativeIcon.__single = self
-        self.icons = {}
-
-    def getInstance(*args, **kw):
-        if NativeIcon.__single is None:
-            NativeIcon(*args, **kw)
-        return NativeIcon.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        NativeIcon.__single = None
-    delInstance = staticmethod(delInstance)
-
-    def getBitmap(self, parent, type, background, state):
-        assert isinstance(background, wx.Colour), "we require a wx.colour object here, got %s" % type(background)
-        if isinstance(background, wx.Colour):
-            background = background.Get()
-        else:
-            background = wx.Brush(background).GetColour().Get()
-
-        icons = self.icons.setdefault(type, {})
-        if background not in icons:
-            icons.setdefault(background, {})
-
-            def fixSize(bitmap, width, height):
-                if width != bitmap.GetWidth() or height != bitmap.GetHeight():
-
-                    bmp = wx.EmptyBitmap(width, height)
-                    dc = wx.MemoryDC(bmp)
-                    dc.SetBackground(wx.Brush(background))
-                    dc.Clear()
-
-                    offset_x = (width - bitmap.GetWidth()) / 2
-                    offset_y = (height - bitmap.GetHeight()) / 2
-
-                    dc.DrawBitmap(bitmap, offset_x, offset_y)
-                    dc.SelectObject(wx.NullBitmap)
-                    del dc
-
-                    return bmp
-                return bitmap
-
-            # create both icons
-            icons[background][0] = self.__createBitmap(parent, background, type, 0)
-            icons[background][1] = self.__createBitmap(parent, background, type, 1)
-
-            width = max(icons[background][0].GetWidth(), icons[background][1].GetWidth())
-            height = max(icons[background][0].GetHeight(), icons[background][1].GetHeight())
-
-            icons[background][0] = fixSize(icons[background][0], width, height)
-            icons[background][1] = fixSize(icons[background][1], width, height)
-
-        if state not in icons[background]:
-            icons[background][state] = self.__createBitmap(parent, background, type, state)
-        return icons[background][state]
-
-    def __createBitmap(self, parent, background, type, state):
-        if state == 1:
-            if type == 'tree':
-                state = wx.CONTROL_EXPANDED
-            elif type == 'checkbox':
-                state = wx.CONTROL_CHECKED
-            else:
-                state = wx.CONTROL_PRESSED
-
-        # There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
-        # Thus we create a larger bmp, allowing for borders
-        bmp = wx.EmptyBitmap(24, 24)
-        dc = wx.MemoryDC(bmp)
-        dc.SetBackground(wx.Brush(background))
-        dc.Clear()
-
-        # max size is 16x16, using 4px as a border
-        if type == 'checkbox':
-            wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), state)
-
-        elif type == 'tree':
-            wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
-
-        elif type == 'arrow':
-            arrow = PyEmbeddedImage(
-                "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAYAAABCxiV9AAAAAXNSR0IArs4c6QAAAARnQU1B"
-                "AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5F"
-                "VCB2My41LjEwMPRyoQAAADFJREFUGFdjYGBg+I8Tf/jwQRSbJFCckQFIcIEZSCYA+RxAzAyS"
-                "BGFGmAIgzQTlMwAAOBAx4jYP9TUAAAAASUVORK5CYII=")
-            return arrow.GetBitmap()
-
-        elif type == 'slider':
-            slider = PyEmbeddedImage(
-                "iVBORw0KGgoAAAANSUhEUgAAAAkAAAAICAYAAAArzdW1AAAAAXNSR0IArs4c6QAAAARnQU1B"
-                "AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5F"
-                "VCB2My41LjEwMPRyoQAAAOZJREFUKFM9j71rg1AUxd9LIUuX/gvZRAcRdfBjqp+jIoKYoZBQ"
-                "UdEO+pysa6f+mZ0ayJCWri/nhcYLP7icc+6BS3Rd/3Jdl6dpyrMsW0mShNu2zU3T/CaKovC2"
-                "bV+naXoGOTiAPRihN8Inqqryuq6Nvu83gALyD4W+Ez6RJOmnKIrPYRieGGMbNBCwxU7Lspxk"
-                "Wf4jvu83mqadUP0xz/MDoIKu65hhGGf4jIgJw/CABy7jOPbLslC07BG4BEHwcguIyfN8G8dx"
-                "4zjOb1VVR3x7jqKoFvoaui+4fLcs6+R53ttdQ/vjFXw5XtzmpGeLAAAAAElFTkSuQmCC")
-            return slider.GetBitmap()
-
-        dc.SelectObject(wx.NullBitmap)
-        del dc
-
-        # determine actual size of drawn icon, and return this subbitmap
-        bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
-        return bmp.GetSubBitmap(bb)
 
 
 class BetterText(wx.StaticText):
@@ -325,10 +215,10 @@ class LinkStaticText(wx.BoxSizer):
         self.icon_align = icon_align
 
         if icon:
-            self.icon = wx.StaticBitmap(parent, bitmap=wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+            self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getImage(icon))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         elif icon_type:
-            self.icon = wx.StaticBitmap(parent, bitmap=NativeIcon.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
+            self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
         else:
             self.icon = None
 
@@ -448,7 +338,7 @@ class LinkStaticText(wx.BoxSizer):
         self.text.SetBackgroundColour(colour)
 
         if self.icon and self.icon_type:
-            self.icon.SetBitmap(NativeIcon.getInstance().getBitmap(self.parent, self.icon_type, colour, state=0))
+            self.icon.SetBitmap(GuiImageManager.getInstance().getBitmap(self.parent, self.icon_type, colour, state=0))
             self.icon.Refresh()
 
     def SetForegroundColour(self, colour):
@@ -1485,7 +1375,7 @@ class MinMaxSlider(wx.Panel):
         self.Refresh()
 
     def LoadIcons(self):
-        self.arrow_down = NativeIcon.getInstance().getBitmap(self, 'slider', self.GetBackgroundColour(), state=0)
+        self.arrow_down = GuiImageManager.getInstance().getBitmap(self, u"slider", self.GetBackgroundColour(), state=0)
         img = self.arrow_down.ConvertToImage()
         self.arrow_up = img.Rotate90().Rotate90().ConvertToBitmap()
 
@@ -2168,7 +2058,7 @@ class StaticBitmaps(wx.Panel):
             dc.DrawRoundedRectangleRect(self.buttons[0], 0)
             dc.DrawRoundedRectangleRect(self.buttons[1], 0)
 
-            arrow = NativeIcon.getInstance().getBitmap(self, 'arrow', wx.WHITE, state=0)
+            arrow = GuiImageManager.getInstance().getBitmap(self, u"arrow", wx.WHITE, state=0)
             arrow_left = arrow.ConvertToImage().Rotate90(True).ConvertToBitmap()
             arrow_right = arrow.ConvertToImage().Rotate90(False).ConvertToBitmap()
             dc.DrawBitmap(arrow_left, self.buttons[0].x + 5, self.buttons[0].y + 4)

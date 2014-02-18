@@ -8,6 +8,7 @@ import logging
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
 from Tribler.Main.vwxGUI.list_details import TorrentDetails
@@ -175,11 +176,8 @@ class BundlePanel(wx.BoxSizer):
     def load_icons(cls):
         if not cls.icons:
             icons = cls.icons = {}
-            guiUtility = GUIUtility.getInstance()
-            utility = guiUtility.utility
-            base_path = os.path.join(utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images")
 
-            icons['info'] = wx.Bitmap(os.path.join(base_path, "info.png"), wx.BITMAP_TYPE_ANY)
+            icons['info'] = GuiImageManager.getInstance().getImage(u"info.png")
 
     def __init__(self, parent, parent_list, hits, general_description=None, description=None, font_increment=0):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)

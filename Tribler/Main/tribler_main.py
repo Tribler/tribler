@@ -82,6 +82,7 @@ import logging
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 # from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
@@ -172,8 +173,10 @@ class ABCApp():
         self.utility = None
         self.videoplayer = None
 
+        self.gui_image_manager = GuiImageManager.getInstance(installdir)
+
         try:
-            bm = wx.Bitmap(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'splash.png'), wx.BITMAP_TYPE_ANY)
+            bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
             self.splash.setTicks(10)
             self.splash.Show()
@@ -975,6 +978,7 @@ class ABCApp():
         GUIUtility.delInstance()
         GUIDBProducer.delInstance()
         DefaultDownloadStartupConfig.delInstance()
+        GuiImageManager.delInstance()
 
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
