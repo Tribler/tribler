@@ -17,6 +17,7 @@ import ast
 import sys
 import copy
 import socket
+import random
 import logging
 
 from ConfigParser import ConfigParser, RawConfigParser
@@ -93,53 +94,27 @@ class SessionConfigInterface(object):
             path = '~'.join(keys)
             if path not in self.randomly_selected_ports:
                 random_port = 0
-                mod_value = 0
-                to_do_random = False
+                to_do_random = True
 
-                # first try
-                s = socket.socket()
-                try:
-                    s.bind(('', random_port))
-                    port = s.getsockname()[1]
-                    if port in self.randomly_selected_ports.values():
-                        # prepare for generating random port
-                        random_port = port if port <= 1000 else port + 1000
-
-                        up_range = 65535 - random_port
-                        down_range = random_port - 1000
-
-                        mod_value = 1 if up_range > down_range else -1
-
-                        to_do_random = True
-                    else:
-                        # get unique port
-                        self.randomly_selected_ports[path] = port
-                except:
-                    self._logger.exception(u"Unable to bind port %d", port)
-
-                    # start from 10000
-                    random_port = 10000
-                    mod_value = 1
-                    to_do_random = True
-                finally:
-                    s.close()
-
-                # generate a unique random port
                 while to_do_random:
                     s = socket.socket()
                     try:
                         s.bind(('', random_port))
-                    except:
-                        self._logger.exception(u"Unable to bind port %d", random_port)
-                        random_port += mod_value
-                    else:
+                        random_port = s.getsockname()[1]
                         if random_port in self.randomly_selected_ports.values():
-                            random_port += mod_value
+                            raise Exception(u"port already in random-list.")
                         else:
+                            # get unique port
                             self.randomly_selected_ports[path] = random_port
                             to_do_random = False
+                    except:
+                        self._logger.exception(u"Unable to bind port %d", random_port)
 
-                    s.close()
+                        random_port += 1
+                        if random_port < 1000 or random_port > 65535:
+                            random_port = random.uniform(5000, 60000)
+                    finally:
+                        s.close()
 
                 self._logger.debug(u"Get random port %d for [%s]", self.randomly_selected_ports[path], path)
             return self.randomly_selected_ports[path]
