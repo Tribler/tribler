@@ -176,7 +176,7 @@ class ABCApp():
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
 
         try:
-            bm = self.gui_image_manager.getOtherImage(u'splash.png')
+            bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
             self.splash.setTicks(10)
             self.splash.Show()

@@ -350,8 +350,8 @@ class TorrentDetails(AbstractDetails):
         self.filesList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFilesSelected)
 
         self.il = wx.ImageList(16, 16)
-        self.play_img = self.il.Add(GuiImageManager.getInstance().getOtherImage(u"file_video.png"))
-        self.file_img = self.il.Add(GuiImageManager.getInstance().getOtherImage(u"file_default.png"))
+        self.play_img = self.il.Add(GuiImageManager.getInstance().getImage(u"file_video.png"))
+        self.file_img = self.il.Add(GuiImageManager.getInstance().getImage(u"file_default.png"))
         self.filesList.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         self.filesList.setResizeColumn(0)
@@ -2064,7 +2064,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.torrent = None
         self.fileindex = 0
 
-        self.close_icon = GuiImageManager.getInstance().getOtherImage(u"close.png")
+        self.close_icon = GuiImageManager.getInstance().getImage(u"close.png")
         self.fg_colour = self.GetForegroundColour()
         self.bg_colour = LIST_LIGHTBLUE
         self.SetBackgroundColour(self.bg_colour)

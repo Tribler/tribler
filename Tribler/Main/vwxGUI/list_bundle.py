@@ -177,7 +177,7 @@ class BundlePanel(wx.BoxSizer):
         if not cls.icons:
             icons = cls.icons = {}
 
-            icons['info'] = GuiImageManager.getInstance().getOtherImage(u"info.png")
+            icons['info'] = GuiImageManager.getInstance().getImage(u"info.png")
 
     def __init__(self, parent, parent_list, hits, general_description=None, description=None, font_increment=0):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)

@@ -46,18 +46,18 @@ class SRstatusbar(wx.StatusBar):
         self.speed_up.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
 
         self.searchConnectionImages = [u"progressbarEmpty.png", u"progressbarFull.png"]
-        self.searchConnectionImages = [self._gui_image_manager.getOtherImage(image) for image in self.searchConnectionImages]
+        self.searchConnectionImages = [self._gui_image_manager.getImage(image) for image in self.searchConnectionImages]
 
         self.activityImages = [u"statusbar_activity.png", u"statusbar_noactivity.png"]
-        self.activityImages = [self._gui_image_manager.getOtherImage(image) for image in self.activityImages]
+        self.activityImages = [self._gui_image_manager.getImage(image) for image in self.activityImages]
 
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1])
         self.activity_timer = None
         self.channelconnections = 0
 
-        self.bmp_firewall_warning = self._gui_image_manager.getOtherImage(u"statusbar_warning.png")
-        self.bmp_firewall_ok = self._gui_image_manager.getOtherImage(u"statusbar_ok.png")
+        self.bmp_firewall_warning = self._gui_image_manager.getImage(u"statusbar_warning.png")
+        self.bmp_firewall_ok = self._gui_image_manager.getImage(u"statusbar_ok.png")
         self.firewallStatus = ActionButton(self, -1, self.bmp_firewall_warning)
         self.firewallStatus.SetSize((16, 16))
         self.firewallStatus.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))

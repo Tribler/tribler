@@ -698,7 +698,7 @@ class Comment(Helper):
             data = gui_image_manager.getPeerThumbnail(raw_data, SMALL_ICON_MAX_DIM)
 
         if data is None:
-            data = gui_image_manager.getDefaultImage(u"PEER_THUMB", SMALL_ICON_MAX_DIM)
+            data = gui_image_manager.getImage(u"PEER_THUMB", SMALL_ICON_MAX_DIM)
         return data
 
     @cacheProperty

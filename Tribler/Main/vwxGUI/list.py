@@ -1044,21 +1044,21 @@ class GenericSearchList(SizeList):
 
         gui_image_manager = GuiImageManager.getInstance()
 
-        self.statusDHT = gui_image_manager.getOtherImage(u"status_dht.png")
-        self.statusInactive = gui_image_manager.getOtherImage(u"status_inact.png")
-        self.statusDownloading = gui_image_manager.getOtherImage(u"status_dl.png")
-        self.statusFinished = gui_image_manager.getOtherImage(u"status_fin.png")
-        self.statusSeeding = gui_image_manager.getOtherImage(u"status_sd.png")
-        self.statusStopped = gui_image_manager.getOtherImage(u"status_stop.png")
+        self.statusDHT = gui_image_manager.getImage(u"status_dht.png")
+        self.statusInactive = gui_image_manager.getImage(u"status_inact.png")
+        self.statusDownloading = gui_image_manager.getImage(u"status_dl.png")
+        self.statusFinished = gui_image_manager.getImage(u"status_fin.png")
+        self.statusSeeding = gui_image_manager.getImage(u"status_sd.png")
+        self.statusStopped = gui_image_manager.getImage(u"status_stop.png")
 
-        self.favorite = gui_image_manager.getOtherImage(u"starEnabled.png")
-        self.normal = gui_image_manager.getOtherImage(u"star.png")
+        self.favorite = gui_image_manager.getImage(u"starEnabled.png")
+        self.normal = gui_image_manager.getImage(u"star.png")
 
-        self.ministar = gui_image_manager.getOtherImage(u"ministarEnabled.png")
-        self.normalministar = gui_image_manager.getOtherImage(u"ministar.png")
+        self.ministar = gui_image_manager.getImage(u"ministarEnabled.png")
+        self.normalministar = gui_image_manager.getImage(u"ministar.png")
 
-        self.mychannel = gui_image_manager.getOtherImage(u"mychannel.png")
-        self.spam = gui_image_manager.getOtherImage(u"bug.png")
+        self.mychannel = gui_image_manager.getImage(u"mychannel.png")
+        self.spam = gui_image_manager.getImage(u"bug.png")
         self.max_votes = 5
 
     def _status_icon(self, item):
@@ -1423,9 +1423,9 @@ class SearchList(GenericSearchList):
 
         gui_image_manager = GuiImageManager.getInstance()
 
-        self.inFavoriteChannel = gui_image_manager.getOtherImage(u"starEnabled.png")
-        self.outFavoriteChannel = gui_image_manager.getOtherImage(u"star.png")
-        self.hasSwift = gui_image_manager.getOtherImage(u"swift.png")
+        self.inFavoriteChannel = gui_image_manager.getImage(u"starEnabled.png")
+        self.outFavoriteChannel = gui_image_manager.getImage(u"star.png")
+        self.hasSwift = gui_image_manager.getImage(u"swift.png")
         self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, parent=parent)
 
@@ -1683,8 +1683,8 @@ class LibraryList(SizeList):
 
         gui_image_manager = GuiImageManager.getInstance()
 
-        self.hasSwift = gui_image_manager.getOtherImage(u"swift.png")
-        self.hasTorrent = gui_image_manager.getOtherImage(u"bittorrent.png")
+        self.hasSwift = gui_image_manager.getImage(u"swift.png")
+        self.hasTorrent = gui_image_manager.getImage(u"bittorrent.png")
         self.hasNothing = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         SizeList.__init__(self, None, LIST_GREY, [0, 0], False, parent=parent)
 
@@ -2056,12 +2056,12 @@ class ChannelList(List):
 
         gui_image_manager = GuiImageManager.getInstance()
 
-        self.favorite = gui_image_manager.getOtherImage(u"starEnabled.png")
-        self.normal = gui_image_manager.getOtherImage(u"star.png")
-        self.mychannel = gui_image_manager.getOtherImage(u"mychannel.png")
-        self.spam = gui_image_manager.getOtherImage(u"bug.png")
-        self.ministar = gui_image_manager.getOtherImage(u"ministarEnabled.png")
-        self.normalministar = gui_image_manager.getOtherImage(u"ministar.png")
+        self.favorite = gui_image_manager.getImage(u"starEnabled.png")
+        self.normal = gui_image_manager.getImage(u"star.png")
+        self.mychannel = gui_image_manager.getImage(u"mychannel.png")
+        self.spam = gui_image_manager.getImage(u"bug.png")
+        self.ministar = gui_image_manager.getImage(u"ministarEnabled.png")
+        self.normalministar = gui_image_manager.getImage(u"ministar.png")
 
         self.select_popular = True
         self.max_votes = 5

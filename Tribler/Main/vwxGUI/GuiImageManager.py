@@ -68,7 +68,6 @@ class GuiImageManager(object):
 
         self.__initDefaultImages()
         self.__initFlagImages()
-        self.__initOtherImages()
 
 
     def __initDefaultImages(self):
@@ -149,47 +148,38 @@ class GuiImageManager(object):
                 self._flag_dict[os.path.splitext(flag)[0].lower()] = bitmap
 
 
-    def __initOtherImages(self):
-        """
-        Loads other images.
-        """
-        self._logger.debug(u"Start loading other images.")
-
-        if not os.path.exists(self.IMAGE_SUBDIR):
-            self._logger.warn(u"Image dir doesn't exist %s", self.IMAGE_SUBDIR)
-            return
-        if not os.path.isdir(self.IMAGE_SUBDIR):
-            self._logger.warn(u"Not a dir %s", self.IMAGE_SUBDIR)
-            return
-
-        for image_file in os.listdir(self.IMAGE_SUBDIR):
-            image_path = os.path.join(self.IMAGE_SUBDIR, image_file)
-
-            if not os.path.isfile(image_path):
-                continue
-            if not image_path.endswith(u".png"):
-                self._logger.warn(u"SKIP, Not a PNG file %s", image_path)
-                continue
-
-            bitmap = wx.Bitmap(image_path, wx.BITMAP_TYPE_ANY)
-
-            self._other_dict[image_file] = bitmap
-
-
     @warnWxThread
-    def getDefaultImage(self, name, dimension=ICON_MAX_DIM):
+    def getImage(self, name, dimension=None):
         """
-        Gets a default image.
+        All other modules should use this method to get an image.
         """
-        assert isinstance(name, str) or isinstance(name, unicode), \
-            u"name is of type %s, value %s" % (type(name), name)
-
         image = None
-        if name in self._default_dict:
-            image = self._default_dict[name].get(dimension, None)
 
-        if image is None:
-            self._logger.warn(u"Default image is not loaded [%s].", name)
+        # default image
+        if name in self._default_dict:
+            dimension = dimension or ICON_MAX_DIM
+            image = self._default_dict[name].get(dimension, None)
+            if image is None:
+                self._logger.warn(u"Default image is not loaded [%s].", name)
+
+        # other image
+        else:
+            image = self._other_dict.get(name, None)
+            if image is None:
+                self._logger.debug(u"Trying to load image [%s].", name)
+                # lazy load
+                image_path = os.path.join(self.IMAGE_SUBDIR, name)
+                if not os.path.exists(image_path):
+                    self._logger.warn(u"Image[%s] doesn't exist.", image_path)
+                elif not os.path.isfile(image_path):
+                    self._logger.warn(u"Image[%s] is not a file.", image_path)
+                else:
+                    image = wx.Bitmap(image_path, wx.BITMAP_TYPE_ANY)
+                    self._other_dict[name] = image
+
+            # image doesn't exist
+            else:
+                self._logger.warn("Image[%s] doesn't exist.", name)
 
         return image
 
@@ -200,18 +190,6 @@ class GuiImageManager(object):
         Gets the country flag dictionary.
         """
         return self._flag_dict
-
-
-    @warnWxThread
-    def getOtherImage(self, name):
-        """
-        Gets an other image.
-        """
-        image = self._other_dict.get(name, None)
-        if image is None:
-            self._logger.warn(u"Other image is not loaded [%s].", name)
-
-        return image
 
 
     @warnWxThread

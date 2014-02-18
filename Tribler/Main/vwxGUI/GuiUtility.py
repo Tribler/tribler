@@ -565,7 +565,7 @@ class GUIUtility:
         else:
             if isinstance(icon, basestring):
                 icon = wx.ArtProvider.GetBitmap(icon, wx.ART_FRAME_ICON) or \
-                    GuiImageManager.getInstance().getOtherImage(u"notify_%s.png" % icon)
+                    GuiImageManager.getInstance().getImage(u"notify_%s.png" % icon)
             self.frame.actlist.Notify(msg or title, icon)
 
     def ShouldGuiUpdate(self):

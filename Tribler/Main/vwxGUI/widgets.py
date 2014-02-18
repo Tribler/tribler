@@ -215,7 +215,7 @@ class LinkStaticText(wx.BoxSizer):
         self.icon_align = icon_align
 
         if icon:
-            self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getOtherImage(icon))
+            self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getImage(icon))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         elif icon_type:
             self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))

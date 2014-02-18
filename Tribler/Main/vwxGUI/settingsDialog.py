@@ -124,7 +124,7 @@ class SettingsDialog(wx.Dialog):
         mime, data = self.utility.session.get_mugshot()
         if data is None:
             gui_image_manager = GuiImageManager.getInstance()
-            self.mugshot = gui_image_manager.getDefaultImage(u"PEER_THUMB")
+            self.mugshot = gui_image_manager.getImage(u"PEER_THUMB")
         else:
             self.mugshot = data2wxBitmap(mime, data)
 
