@@ -27,13 +27,10 @@
 #       (Linux done)
 #
 
-import sys
-import copy
 import shutil
 import logging
 
-from traceback import print_exc, print_stack
-from threading import RLock, currentThread
+from traceback import print_exc
 from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import *

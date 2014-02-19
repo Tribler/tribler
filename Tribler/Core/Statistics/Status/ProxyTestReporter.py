@@ -1,8 +1,5 @@
 import time
-import sys
 import logging
-
-import httplib
 
 import XmlPrinter
 import xml.dom.minidom

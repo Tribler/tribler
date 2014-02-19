@@ -1,18 +1,16 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat, Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
 import wx
 import os
 import logging
-from binascii import hexlify
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from time import time
 
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, NULL, forceAndReturnDBThread, forceDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Main.globals import DefaultDownloadStartupConfig
@@ -36,7 +34,6 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation, \
     RemoteChannelTorrent, Marking
 import threading
-from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.search.community import SearchCommunity

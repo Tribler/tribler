@@ -4,7 +4,6 @@
 import sys
 import urlparse
 import binascii
-from traceback import print_exc, print_stack
 import subprocess
 import random
 import time

@@ -1,7 +1,6 @@
 from Tribler.Core.Utilities.encoding import encode
 from bz2 import compress
 from time import time
-import sys
 import logging
 
 from LivingLabReporter import LivingLabPeriodicReporter

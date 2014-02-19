@@ -18,11 +18,9 @@ import urllib
 import math
 if sys.platform != "win32":
     import curses.ascii
-from types import IntType, LongType
 from struct import pack, unpack
 from base64 import b64encode, b64decode
 from M2Crypto import Rand  # TODO REMOVE FOR LICHT
-from traceback import print_exc, print_stack
 import logging
 
 from Tribler.Core.simpledefs import *

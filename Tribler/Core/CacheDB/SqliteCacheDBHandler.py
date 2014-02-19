@@ -5,25 +5,20 @@
 # for any function you add to database.
 # Please reuse the functions in sqlitecachedb as much as possible
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL, SQLiteNoCacheDB
-from copy import deepcopy, copy
-from traceback import print_exc, print_stack
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, SQLiteNoCacheDB
+from copy import deepcopy
+from traceback import print_exc
 from time import time
 from binascii import hexlify
 from Tribler.Core.TorrentDef import TorrentDef
-import sys
 import os
-import socket
 import threading
 import base64
 import urllib
-from random import randint, sample, choice
+from random import sample
 import math
-import re
-from sets import Set
 from struct import unpack_from
 
-from math import atan, pi
 import logging
 
 from Tribler.Core.Utilities.bencode import bencode, bdecode
@@ -34,7 +29,7 @@ from Tribler.Core.Search.SearchManager import split_into_keywords, \
 from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
 from Tribler.Category.Category import Category
 from Tribler.Core.defaults import DEFAULTPORT
-from threading import currentThread, RLock, Lock
+from threading import RLock, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 import binascii
 

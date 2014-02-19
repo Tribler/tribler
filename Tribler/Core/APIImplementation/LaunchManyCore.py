@@ -5,12 +5,9 @@
 import errno
 import sys
 import os
-import pickle
 import binascii
 import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
-from traceback import print_exc, print_stack
-import traceback
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
@@ -38,7 +35,6 @@ from Tribler.Core.osutils import get_readable_torrent_name
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
 else:
-    import errno
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
 SPECIAL_VALUE = 481
@@ -164,16 +160,10 @@ class TriblerLaunchMany(Thread):
 
                     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", callback=None, callback_args=(), callback_kargs=None, include_id=False):
                         def do_task():
-                            if kargs:
-                                call(*args, **kargs)
-                            else:
-                                call(*args)
+                            call(*args, **kargs)
 
                             if callback:
-                                if callback_kargs:
-                                    callback(*callback_args, **callback_kargs)
-                                else:
-                                    callback(*callback_args)
+                                callback(*callback_args, **callback_kargs)
                         self.queue.add_task(do_task, t=delay)
 
                     def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", include_id=False, timeout=0.0, default=None):
@@ -181,10 +171,7 @@ class TriblerLaunchMany(Thread):
                         container = [default, ]
 
                         def do_task():
-                            if kargs:
-                                container[0] = call(*args, **kargs)
-                            else:
-                                container[0] = call(*args)
+                            container[0] = call(*args, **kargs)
 
                             event.set()
 
