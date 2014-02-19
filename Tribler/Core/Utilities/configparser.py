@@ -58,9 +58,6 @@ class CallbackConfigParser(RawConfigParser):
             for section in self._sections:
                 fp.write(u"[%s]\n" % section)
                 for (key, value) in self._sections[section].items():
-                    import sys
-                    if key == u'nickname':
-                        print >> sys.stderr, u"%s = %s\n" % (key, unicode(value).replace(u'\n', u'\n\t'))
                     if key != u"__name__":
                         fp.write(u"%s = %s\n" % (key, unicode(value).replace(u'\n', u'\n\t')))
                 fp.write(u"\n")
