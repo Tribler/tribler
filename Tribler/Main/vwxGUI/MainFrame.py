@@ -43,9 +43,9 @@ from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, 
 
 try:
     import wxversion
-    wxversion.select('2.8')
+    wxversion.select("2.8-unicode")
 except:
-    pass
+    print >> sys.stderr, "Unable to use wxversion 2.8-unicode."
 import wx
 from wx import xrc
 # import hotshot

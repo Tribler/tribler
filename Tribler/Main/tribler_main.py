@@ -62,9 +62,9 @@ except ImportError as e:
 # would prefer 2.8.
 try:
     import wxversion
-    wxversion.select('2.8')
+    wxversion.select("2.8-unicode")
 except:
-    pass
+    print >> sys.stderr, "Unable to use wxversion 2.8-unicode."
 
 import wx
 from wx import xrc
