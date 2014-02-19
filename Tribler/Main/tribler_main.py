@@ -58,14 +58,6 @@ except ImportError as e:
 # "English[United Kingdom]"
 # import locale
 
-# 20/10/09 Boudewijn: on systems that install multiple wx versions we
-# would prefer 2.8.
-try:
-    import wxversion
-    wxversion.select("2.8-unicode")
-except:
-    print >> sys.stderr, "Unable to use wxversion 2.8-unicode."
-
 import wx
 from wx import xrc
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
