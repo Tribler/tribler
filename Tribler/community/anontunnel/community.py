@@ -1179,7 +1179,9 @@ class ProxyCommunity(Community):
         if message.extend_with:
             extend_with_addr = message.extend_with
             logger.warning(
-                "We might be sending CREATE to unknown candidate at %s:%d!",
+                "ON_EXTEND send CREATE for circuit (%s, %d) to %s:%d!",
+                candidate,
+                circuit_id,
                 message.host,
                 message.port)
         else:
