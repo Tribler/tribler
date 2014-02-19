@@ -12,7 +12,7 @@ import shutil
 import time
 import gc
 import wx
-import Image
+from PIL import Image
 import re
 
 from traceback import print_exc
