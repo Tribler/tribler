@@ -41,11 +41,6 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
                                              TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 
-try:
-    import wxversion
-    wxversion.select('2.8')
-except:
-    pass
 import wx
 from wx import xrc
 # import hotshot
