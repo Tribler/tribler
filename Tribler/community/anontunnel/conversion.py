@@ -1,8 +1,10 @@
+from M2Crypto import __m2crypto
 import logging
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.community.anontunnel.payload import *
 from Tribler.community.anontunnel.globals import *
+from Crypto.Util.number import long_to_bytes, bytes_to_long
 import struct
 
 logger = logging.getLogger(__name__)
@@ -10,99 +12,6 @@ logger = logging.getLogger(__name__)
 #-----------------------------------------------------------------------------
 #: enable verbose print statements.
 DEBUG = True
-
-#: struct format lookup for specific word sizes.
-STRUCT_FMT = {
-    8: 'B',  # unsigned char
-    16: 'H',  # unsigned short
-    32: 'I',  # unsigned int
-}
-
-#-----------------------------------------------------------------------------
-def int_to_words(int_val, num_words=4, word_size=32):
-    """
-    @param int_val: an arbitrary length Python integer to be split up.
-        Network byte order is assumed. Raises an IndexError if width of
-        integer (in bits) exceeds word_size * num_words.
-
-    @param num_words: number of words expected in return value tuple.
-
-    @param word_size: size/width of individual words (in bits).
-
-    @return: a list of fixed width words based on provided parameters.
-    """
-    max_int = 2 ** (word_size * num_words) - 1
-    max_word_size = 2 ** word_size - 1
-
-    if not 0 <= int_val <= max_int:
-        raise IndexError('integer %r is out of bounds!' % hex(int_val))
-
-    words = []
-    for _ in range(num_words):
-        word = int_val & max_word_size
-        words.append(int(word))
-        int_val >>= word_size
-    words.reverse()
-
-    return words
-
-
-#-----------------------------------------------------------------------------
-def int_to_packed(int_val, width=128, word_size=32):
-    """
-    @param int_val: an arbitrary sized Python integer to be packed.
-
-    @param width: expected maximum with of an integer. Can be any size but
-        should be divide by word_size without a remainder.
-
-    @param word_size: size/width of individual words (in bits).
-        Valid sizes are 8, 16 and 32 bits.
-
-    @return: a (network byte order) packed string equivalent to integer value.
-    """
-    num_words = width / word_size
-    words = int_to_words(int_val, num_words, word_size)
-
-    try:
-        fmt = '>%d%s' % (num_words, STRUCT_FMT[word_size])
-        #DEBUG: print 'format:', fmt
-    except KeyError:
-        raise ValueError('unsupported word size: %d!' % word_size)
-
-    return struct.pack(fmt, *words)
-
-#-----------------------------------------------------------------------------
-def packed_to_int(packed_int, width=128, word_size=32):
-    """
-    @param packed_int: a packed string to be converted to an abritrary size
-        Python integer. Network byte order is assumed.
-
-    @param width: expected maximum width of return value integer. Can be any
-        size but should divide by word_size equally without remainder.
-
-    @param word_size: size/width of individual words (in bits).
-        Valid sizes are 8, 16 and 32 bits.
-
-    @return: an arbitrary sized Python integer.
-    """
-    num_words = width / word_size
-
-    try:
-        fmt = '>%d%s' % (num_words, STRUCT_FMT[word_size])
-        #DEBUG: print 'format:', fmt
-    except KeyError:
-        raise ValueError('unsupported word size: %d!' % word_size)
-
-    words = list(struct.unpack(fmt, packed_int))
-    words.reverse()
-
-    int_val = 0
-    for i, num in enumerate(words):
-        word = num
-        word = word << word_size * i
-        int_val = int_val | word
-
-    return int_val
 
 
 class ProxyConversion(BinaryConversion):
@@ -286,15 +195,14 @@ class CustomProxyConversion():
         #     "Key should be {} bytes long, is {} bytes ".format(
         #         DIFFIE_HELLMAN_MODULUS_SIZE / 8, len(created_message.key))
 
-        key = int_to_packed(created_message.key, 2048)
+        key = long_to_bytes(created_message.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
         return key + encode(created_message.candidate_list)
 
     @staticmethod
     def __decode_created(message_buffer, offset=0):
 
-        key = packed_to_int(
-            message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)],
-            2048)
+        key = bytes_to_long(
+            message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)])
         offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
 
         offset, candidate_dict = decode(message_buffer[offset:])
@@ -307,15 +215,14 @@ class CustomProxyConversion():
         #     "Key should be {} bytes long, is {} bytes ".format(
         #         DIFFIE_HELLMAN_MODULUS_SIZE, len(extended_message.key))
 
-        key = int_to_packed(extended_message.key, 2048)
+        key = long_to_bytes(extended_message.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
         return key + encode(extended_message.candidate_list)
 
     @staticmethod
     def __decode_extended(message_buffer, offset=0):
 
-        key = packed_to_int(
-            message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)],
-            2048)
+        key = bytes_to_long(
+            message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)])
         offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
 
         offset, candidate_dict = decode(message_buffer[offset:])
@@ -335,3 +242,12 @@ class CustomProxyConversion():
         key = message_buffer[offset:]
 
         return CreateMessage(key)
+
+
+
+#: struct format lookup for specific word sizes.
+STRUCT_FMT = {
+    8: 'B',  # unsigned char
+    16: 'H',  # unsigned short
+    32: 'I',  # unsigned int
+}

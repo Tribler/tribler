@@ -1,9 +1,9 @@
 import logging
 from random import getrandbits
-from Tribler.community.anontunnel.conversion import int_to_packed
 
 
 from Tribler.community.anontunnel.globals import *
+from Crypto.Util.number import long_to_bytes
 from Tribler.community.anontunnel.payload import *
 
 __author__ = 'chris'
@@ -88,7 +88,7 @@ class NeighbourSubset(ExtendStrategy):
         try:
             encrypted_dh_first_part = self.proxy.crypto.encrypt(
                 extend_hop_public_key,
-                int_to_packed(dh_first_part, 2048))
+                long_to_bytes(dh_first_part, 2048 / 8))
             logger.info("We chose %s from the list to extend circuit %d with "
                         "encrypted DH first part %s",
                         sock_addr, self.circuit.circuit_id, dh_first_part)

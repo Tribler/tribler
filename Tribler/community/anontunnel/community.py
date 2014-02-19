@@ -35,7 +35,8 @@ from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, \
     CreatedMessage, ExtendedMessage, \
     PongMessage, PingMessage, DataMessage
 from Tribler.community.anontunnel.conversion import CustomProxyConversion, \
-    ProxyConversion, int_to_packed, packed_to_int
+    ProxyConversion
+from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 __author__ = 'chris'
 
@@ -935,7 +936,7 @@ class ProxyCommunity(Community):
                                 DIFFIE_HELLMAN_MODULUS)
 
             encrypted_dh_first_part = self.crypto.encrypt(
-                pub_key, int_to_packed(dh_first_part, 2048))
+                pub_key, long_to_bytes(dh_first_part, DIFFIE_HELLMAN_MODULUS_SIZE / 8))
 
             circuit.unverified_hop = Hop(first_hop.sock_addr,
                                          pub_key,
@@ -1023,8 +1024,8 @@ class ProxyCommunity(Community):
 
         my_key = self.my_member._ec
 
-        decrypted_dh_first_part = packed_to_int(
-            self.crypto.decrypt(my_key, message.key), 2048)
+        decrypted_dh_first_part = bytes_to_long(
+            self.crypto.decrypt(my_key, message.key))
 
         key = pow(decrypted_dh_first_part, dh_secret, DIFFIE_HELLMAN_MODULUS)
 
