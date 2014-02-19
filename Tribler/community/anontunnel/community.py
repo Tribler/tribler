@@ -54,7 +54,7 @@ class ProxySettings:
     def __init__(self):
         length = random.randint(1, 3)
 
-        self.max_circuits = 0
+        self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy(
             self.max_circuits)

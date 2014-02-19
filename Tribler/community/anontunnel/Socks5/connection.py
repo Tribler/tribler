@@ -141,7 +141,7 @@ class Socks5Connection(object):
                          self.single_socket.get_myport())
 
             # Switch to TCP relay mode
-            self.socks5_server.open_tcp_relay(destination)
+            self.open_tcp_relay(destination)
 
             response = conversion.encode_reply(
                 0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4,
@@ -161,12 +161,19 @@ class Socks5Connection(object):
             response = conversion.encode_reply(
                 0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
             self.write(response)
+        elif request.cmd == conversion.REQ_CMD_BIND:
+            response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED,
+                                               0x00, conversion.ADDRESS_TYPE_IPV4,
+                                               "127.0.0.1", 1081)
+
+            self.write(response)
         else:
             # We will deny all other requests (BIND, and INVALID requests);
             response = conversion.encode_reply(
                 0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
                 conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
             self.write(response)
+            logger.info("DENYING SOCKS5 Request")
 
         self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 

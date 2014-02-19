@@ -44,11 +44,15 @@ class Socks5Server(object, TunnelObserver):
             logger.info("Socks5Proxy bound to %s:%s", "0.0.0.0", port)
 
             self.tunnel.observers.append(self)
+
+            self._reserve_circuits(4)
         except socket.error:
             logger.error(
                 "Cannot listen on SOCK5 port %s:%d, perhaps another "
                 "instance is running?",
                 "0.0.0.0", self.socks5_port)
+        except:
+            logger.exception("Exception trying to reserve circuits")
 
     def _reserve_circuits(self, count):
         lacking = max(0, count - len(self.reserved_circuits))
@@ -60,6 +64,10 @@ class Socks5Server(object, TunnelObserver):
 
         def __finally(result):
             self.awaiting_circuits -= 1
+            if self.awaiting_circuits == 0:
+                from Tribler.Core.Libtorrent import LibtorrentMgr
+                logger.error("Going to set anon tunnel utp only")
+                LibtorrentMgr.LibtorrentMgr.getInstance().set_anon_tunnel()
             return result
 
         if lacking > 0:
