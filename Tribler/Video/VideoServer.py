@@ -216,7 +216,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def log_message(self, format, *args):
-        pass
+        self._logger.info(format, *args)
 
     def do_GET(self):
         """
@@ -230,7 +230,6 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             self.finish()
             return
 
-        global DEBUG
         try:
             if self.path.startswith("/webUI"):
                 DEBUG = DEBUGWEBUI
@@ -467,15 +466,12 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             finally:
                 self.server.release_inputstream(self.path)
 
-        except socket.error, e2:
+        except socket.error:
             pass
-            # print_exc()
 
-        except Exception, e:
-            if DEBUG:
-                self._logger.debug("videoserv: Error occured while serving %s", currentThread().getName())
-            print_exc()
-            self.error(e, self.path)
+        except Exception as ex:
+            self._logger.exception("videoserv: Error occured while serving %s", currentThread().getName())
+            self.error(ex, self.path)
 
     def error(self, e, url):
         if self.server.errorcallback is not None:
