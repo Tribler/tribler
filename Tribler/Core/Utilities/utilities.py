@@ -8,7 +8,7 @@ from Tribler.Core.Utilities.Crypto import sha
 import sys
 import os
 import copy
-from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
+from types import StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc
 from urlparse import urlsplit, parse_qsl
@@ -325,13 +325,6 @@ def show_permid_short(permid):
     s = encodestring(permid).replace("\n", "")
     return s[-10:]
     # return encodestring(sha(s).digest()).replace("\n","")
-
-
-def show_permid_shorter(permid):
-    if not permid:
-        return 'None'
-    s = encodestring(permid).replace("\n", "")
-    return s[-5:]
 
 
 def print_dict(data, level=0):

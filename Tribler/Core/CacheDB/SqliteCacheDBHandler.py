@@ -70,13 +70,6 @@ class LimitedOrderedDict(OrderedDict):
             self.popitem(last=False)
 
 
-def show_permid_shorter(permid):
-    if not permid:
-        return 'None'
-    s = base64.encodestring(permid).replace("\n", "")
-    return s[-5:]
-
-
 class BasicDBHandler:
     _singleton_lock = RLock()
     _single = None
