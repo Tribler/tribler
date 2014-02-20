@@ -160,7 +160,10 @@ class TriblerLaunchMany(Thread):
 
                     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", callback=None, callback_args=(), callback_kargs=None, include_id=False):
                         def do_task():
-                            call(*args, **kargs)
+                            if kargs:
+                                call(*args, **kargs)
+                            else:
+                                call(*args)
 
                             if callback:
                                 callback(*callback_args, **callback_kargs)
@@ -171,7 +174,10 @@ class TriblerLaunchMany(Thread):
                         container = [default, ]
 
                         def do_task():
-                            container[0] = call(*args, **kargs)
+                            if kargs:
+                                container[0] = call(*args, **kargs)
+                            else:
+                                container[0] = call(*args)
 
                             event.set()
 
