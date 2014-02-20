@@ -314,7 +314,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         # - Range header contains set, not supported at the moment
                         bad = True
                     else:
-                        firstbytestr, lastbytestr = seek.split(seek'-')
+                        firstbytestr, lastbytestr = seek.split('-')
                         firstbyte = bytestr2int(firstbytestr)
                         lastbyte = bytestr2int(lastbytestr)
 
