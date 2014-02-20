@@ -166,7 +166,10 @@ class TriblerLaunchMany(Thread):
                                 call(*args)
 
                             if callback:
-                                callback(*callback_args, **callback_kargs)
+                                if callback_kargs:
+                                    callback(*callback_args, **callback_kargs)
+                                else:
+                                    callback(*callback_args)
                         self.queue.add_task(do_task, t=delay)
 
                     def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", include_id=False, timeout=0.0, default=None):
