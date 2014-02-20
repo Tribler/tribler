@@ -1,12 +1,12 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from random import expovariate, choice, randint
 from struct import pack
-from time import sleep
 
 from conversion import ChannelConversion
-from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
+from payload import ChannelPayload, TorrentPayload, PlaylistPayload, \
+    CommentPayload, ModificationPayload, PlaylistTorrentPayload, \
+    MissingChannelPayload, MarkTorrentPayload
 
 from Tribler.dispersy.cache import MissingMessageCache, MissingSomethingCache
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
@@ -20,15 +20,14 @@ from Tribler.dispersy.destination import CandidateDestination, CommunityDestinat
 
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
-from traceback import print_stack, print_exc
-import sys
+from traceback import print_stack
 from Tribler.dispersy.dispersy import Dispersy
 from time import time
 from Tribler.community.channel.payload import ModerationPayload
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
 import json
 import binascii
-from Tribler.Core.Utilities.utilities import str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 
 if __debug__:
     from Tribler.dispersy.tool.lencoder import log

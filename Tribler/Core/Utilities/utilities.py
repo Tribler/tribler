@@ -1,13 +1,10 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-import socket
-from time import time, strftime, gmtime
-from base64 import encodestring, decodestring, b32decode
+from base64 import encodestring, b32decode
 from Tribler.Core.Utilities.Crypto import sha
 import sys
 import os
-import copy
 from types import StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc
@@ -17,96 +14,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-STRICT_CHECK = True
-
-infohash_len = 20
-
-
-def bin2str(bin):
-    # Full BASE64-encoded
-    return encodestring(bin).replace("\n", "")
-
-
-def str2bin(str):
-    return decodestring(str)
-
-
-def validName(name):
-    if not isinstance(name, str) and len(name) == 0:
-        raise RuntimeError("invalid name: " + name)
-    return True
-
-
-def validPort(port):
-    port = int(port)
-    if port < 0 or port > 65535:
-        raise RuntimeError("invalid Port: " + str(port))
-    return True
-
-
-def validIP(ip):
-    try:
-        try:
-            # Is IPv4 addr?
-            socket.inet_aton(ip)
-            return True
-        except socket.error:
-            # Is hostname / IPv6?
-            socket.getaddrinfo(ip, None)
-            return True
-    except:
-        print_exc()
-    raise RuntimeError("invalid IP address: " + ip)
-
-
-def validPermid(permid):
-    if not isinstance(permid, str):
-        raise RuntimeError("invalid permid: " + permid)
-    # Arno,2010-02-17: permid is ASN.1 encoded data that is NOT fixed length
-    return True
-
-
-def validInfohash(infohash):
-    if not isinstance(infohash, str):
-        raise RuntimeError("invalid infohash " + infohash)
-    if STRICT_CHECK and len(infohash) != infohash_len:
-        raise RuntimeError("invalid length infohash " + infohash)
-    return True
-
-
-def isValidPermid(permid):
-    try:
-        return validPermid(permid)
-    except:
-        return False
-
-
-def isValidInfohash(infohash):
-    try:
-        return validInfohash(infohash)
-    except:
-        return False
-
-
-def isValidPort(port):
-    try:
-        return validPort(port)
-    except:
-        return False
-
-
-def isValidIP(ip):
-    try:
-        return validIP(ip)
-    except:
-        return False
-
-
-def isValidName(name):
-    try:
-        return validPort(name)
-    except:
-        return False
 
 def isInteger(str_integer):
     try:
@@ -114,6 +21,7 @@ def isInteger(str_integer):
         return True
     except:
         return False
+
 
 def validTorrentFile(metainfo):
     # Jie: is this function too strict? Many torrents could not be downloaded
@@ -327,132 +235,6 @@ def show_permid_short(permid):
     # return encodestring(sha(s).digest()).replace("\n","")
 
 
-def print_dict(data, level=0):
-    if isinstance(data, dict):
-        for i in data:
-            logger.info("  " * level + str(i) + ':')
-            print_dict(data[i], level + 1)
-    elif isinstance(data, list):
-        if not data:
-            logger.info("[]")
-        for i in xrange(len(data)):
-            logger.info("  " * level + '[' + str(i) + ']:')
-            print_dict(data[i], level + 1)
-    else:
-        logger.info(repr(data))
-
-
-def friendly_time(old_time):
-    curr_time = time()
-    try:
-        old_time = int(old_time)
-        assert old_time > 0
-        diff = int(curr_time - old_time)
-    except:
-        if isinstance(old_time, str):
-            return old_time
-        else:
-            return '?'
-    if diff < 0:
-        return '?'
-    elif diff < 2:
-        return str(diff) + " sec. ago"
-    elif diff < 60:
-        return str(diff) + " secs. ago"
-    elif diff < 120:
-        return "1 min. ago"
-    elif diff < 3600:
-        return str(int(diff / 60)) + " mins. ago"
-    elif diff < 7200:
-        return "1 hour ago"
-    elif diff < 86400:
-        return str(int(diff / 3600)) + " hours ago"
-    elif diff < 172800:
-        return "Yesterday"
-    elif diff < 259200:
-        return str(int(diff / 86400)) + " days ago"
-    else:
-        return strftime("%d-%m-%Y", gmtime(old_time))
-
-
-def sort_dictlist(dict_list, key, order='increase'):
-
-    aux = []
-    for i in xrange(len(dict_list)):
-        # print >>sys.stderr,"sort_dictlist",key,"in",dict_list[i].keys(),"?"
-        if key in dict_list[i]:
-            aux.append((dict_list[i][key], i))
-    aux.sort()
-    if order == 'decrease' or order == 1:    # 0 - increase, 1 - decrease
-        aux.reverse()
-    return [dict_list[i] for x, i in aux]
-
-
-def dict_compare(a, b, keys):
-    for key in keys:
-        order = 'increase'
-        if isinstance(key, tuple):
-            skey, order = key
-        else:
-            skey = key
-
-        if a.get(skey) > b.get(skey):
-            if order == 'decrease' or order == 1:
-                return -1
-            else:
-                return 1
-        elif a.get(skey) < b.get(skey):
-            if order == 'decrease' or order == 1:
-                return 1
-            else:
-                return -1
-
-    return 0
-
-
-def multisort_dictlist(dict_list, keys):
-
-    listcopy = copy.copy(dict_list)
-    cmp = lambda a, b: dict_compare(a, b, keys)
-    listcopy.sort(cmp=cmp)
-    return listcopy
-
-
-def find_content_in_dictlist(dict_list, content, key='infohash'):
-    title = content.get(key)
-    if not title:
-        logger.error('Error: content had no content_name')
-        return False
-    for i in xrange(len(dict_list)):
-        if title == dict_list[i].get(key):
-            return i
-    return -1
-
-
-def remove_torrent_from_list(list, content, key='infohash'):
-    remove_data_from_list(list, content, key)
-
-
-def remove_data_from_list(list, content, key='infohash'):
-    index = find_content_in_dictlist(list, content, key)
-    if index != -1:
-        del list[index]
-
-
-def sortList(list_to_sort, list_key, order='decrease'):
-    aux = sorted(zip(list_key, list_to_sort))
-    if order == 'decrease':
-        aux.reverse()
-    return [i for k, i in aux]
-
-
-def getPlural(n):
-    if n == 1:
-        return ''
-    else:
-        return 's'
-
-
 def find_prog_in_PATH(prog):
     envpath = os.path.expandvars('${PATH}')
     if sys.platform == 'win32':
@@ -467,29 +249,6 @@ def find_prog_in_PATH(prog):
             foundat = fullpath
             break
     return foundat
-
-
-def hostname_or_ip2ip(hostname_or_ip):
-    # Arno: don't DNS resolve always, grabs lock on most systems
-    ip = None
-    try:
-        # test that hostname_or_ip contains a xxx.xxx.xxx.xxx string
-        socket.inet_aton(hostname_or_ip)
-        ip = hostname_or_ip
-
-    except:
-        try:
-            # dns-lookup for hostname_or_ip into an ip address
-            ip = socket.gethostbyname(hostname_or_ip)
-            if not hostname_or_ip.startswith("superpeer"):
-                logger.info("hostname_or_ip2ip: resolved ip from hostname, an ip should have been provided %s" %\
-                    repr(hostname_or_ip))
-
-        except:
-            logger.error("hostname_or_ip2ip: invalid hostname %s", hostname_or_ip)
-            print_exc()
-
-    return ip
 
 
 def get_collected_torrent_filename(infohash):

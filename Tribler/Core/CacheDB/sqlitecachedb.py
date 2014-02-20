@@ -73,9 +73,8 @@ logger = logging.getLogger(__name__)
 __DEBUG_QUERIES__ = 'TRIBLER_DEBUG_DATABASE_QUERIES' in environ
 if __DEBUG_QUERIES__:
     from random import randint
-    from os.path import exists
     DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
-    while exists(DB_DEBUG_FILE):
+    while os.path.exists(DB_DEBUG_FILE):
         DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
 
 
@@ -85,8 +84,6 @@ class Warning(Exception):
 
 def init(state_dir, install_dir, db_exception_handler=None):
     """ create sqlite database """
-    global CREATE_SQL_FILE
-    global config_dir
     config_dir = state_dir
     CREATE_SQL_FILE = os.path.join(install_dir, CREATE_SQL_FILE_POSTFIX)
 
@@ -496,15 +493,6 @@ class SQLiteCacheDBBase:
     def executemany(self, sql, args):
         self._executemany(sql, args)
 
-    # TODO: may remove this, no one uses it.
-    def insert_or_replace(self, table_name, **argv):
-        if len(argv) == 1:
-            sql = 'INSERT OR REPLACE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
-        else:
-            questions = '?,' * len(argv)
-            sql = 'INSERT OR REPLACE INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values())
-
     def insert_or_ignore(self, table_name, **argv):
         if len(argv) == 1:
             sql = 'INSERT OR IGNORE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
@@ -694,8 +682,7 @@ class SQLiteCacheDBBase:
         try:
             return self.fetchall(sql, arg) or []
         except Exception as msg:
-            self._logger.error("sqldb: Wrong getAll sql statement: %s", sql)
-            print_exc()
+            self._logger.exception(u"Wrong getAll sql statement: %s", sql)
             raise Exception(msg)
 
 
