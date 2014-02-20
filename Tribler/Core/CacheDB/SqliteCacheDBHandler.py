@@ -13,7 +13,6 @@ from binascii import hexlify
 from Tribler.Core.TorrentDef import TorrentDef
 import os
 import threading
-import base64
 import urllib
 from random import sample
 import math
