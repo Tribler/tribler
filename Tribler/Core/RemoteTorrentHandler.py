@@ -10,7 +10,6 @@ import os
 
 import logging
 from traceback import print_exc
-from random import choice
 from binascii import hexlify
 from time import sleep, time
 

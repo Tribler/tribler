@@ -9,7 +9,6 @@ import sys
 import urllib
 import urlparse
 import wx
-import copy
 import logging
 
 from Tribler.Video.defs import *

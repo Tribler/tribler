@@ -1,7 +1,5 @@
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
 # see LICENSE.txt for license information
-import sys
-import os
 import wx
 from traceback import print_exc
 

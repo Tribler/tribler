@@ -9,8 +9,7 @@ import logging
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 from threading import RLock, Thread, currentThread
-from traceback import print_exc, print_stack
-import string
+from traceback import print_exc
 from cStringIO import StringIO
 
 import os
@@ -310,12 +309,12 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 if self.RANGE_REQUESTS_ENABLED and length and range:
                     # Handle RANGE query
                     bad = False
-                    type, seek = string.split(range, '=')
+                    type, seek = range.split('=')
                     if seek.find(",") != -1:
                         # - Range header contains set, not supported at the moment
                         bad = True
                     else:
-                        firstbytestr, lastbytestr = string.split(seek, '-')
+                        firstbytestr, lastbytestr = seek.split(seek'-')
                         firstbyte = bytestr2int(firstbytestr)
                         lastbyte = bytestr2int(lastbytestr)
 

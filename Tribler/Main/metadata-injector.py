@@ -13,9 +13,7 @@ from traceback import print_exc
 import optparse
 import os
 import random
-import shutil
 import sys
-import tempfile
 import time
 import json
 from hashlib import sha1

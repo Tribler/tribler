@@ -1,11 +1,9 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
 from Tribler.Core.Utilities.Crypto import sha
 from base64 import encodestring
 from copy import deepcopy
-import traceback
 import os
 import logging
 

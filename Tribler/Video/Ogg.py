@@ -9,7 +9,6 @@
          http://flac.sourceforge.net/ogg_mapping.html
 """
 
-import sys
 import os
 import logging
 from cStringIO import StringIO
