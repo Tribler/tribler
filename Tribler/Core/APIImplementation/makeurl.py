@@ -22,6 +22,7 @@ from struct import pack, unpack
 from base64 import b64encode, b64decode
 from M2Crypto import Rand  # TODO REMOVE FOR LICHT
 import logging
+from types import IntType
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.Crypto import sha
