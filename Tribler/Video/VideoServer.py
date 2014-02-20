@@ -481,6 +481,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 class VideoRawVLCServer:
+
     __single = None
 
     def __init__(self):
@@ -542,7 +543,7 @@ class VideoRawVLCServer:
                 try:
                     oldstream.close()
                 except:
-                    print_exc()
+                    self._logger.exception(u"Failed to close old stream")
             self.oldsid = sid
 
             streaminfo = self.get_inputstream(sid)
@@ -558,7 +559,7 @@ class VideoRawVLCServer:
 
             return size
         except:
-            print_exc()
+            self._logger.exception(u"Failed to read data")
             return -1
 
     def SeekDataCallback(self, pos, sid):
@@ -575,39 +576,5 @@ class VideoRawVLCServer:
             return -1
 
         except:
-            print_exc()
+            self._logger.exception(u"Failed to seek data")
             return -1
-
-
-class MultiHTTPServer(ThreadingMixIn, VideoHTTPServer):
-
-    """ MuliThreaded HTTP Server """
-
-    __single = None
-
-    def __init__(self, port):
-        if MultiHTTPServer.__single:
-            raise RuntimeError("MultiHTTPServer is Singleton")
-        MultiHTTPServer.__single = self
-
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.port = port
-        BaseHTTPServer.HTTPServer.__init__(self, ("127.0.0.1", self.port), SimpleServer)
-        self.daemon_threads = True
-        self.allow_reuse_address = True
-        # self.request_queue_size = 10
-
-        self.lock = RLock()
-
-        self.urlpath2streaminfo = {}  # Maps URL to streaminfo
-        self.mappers = []  # List of PathMappers
-
-        self.errorcallback = None
-        self.statuscallback = None
-
-    def background_serve(self):
-        name = "MultiHTTPServerThread-1"
-        self.thread2 = Thread(target=self.serve_forever, name=name)
-        self.thread2.setDaemon(True)
-        self.thread2.start()
