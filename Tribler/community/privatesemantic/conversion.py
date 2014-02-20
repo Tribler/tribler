@@ -57,7 +57,7 @@ class ForwardConversion(BinaryConversion):
         else:
             length = len(data) - offset
             if length % 20 != 0:
-                raise DropPacket("Invalid number of bytes available")
+                raise DropPacket("Invalid number of bytes available (sr)")
 
             if length:
                 hashpack = '20s' * (length / 20)

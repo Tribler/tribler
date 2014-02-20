@@ -1145,8 +1145,8 @@ class HForwardCommunity(ForwardCommunity):
             preference_list = [rsa_decrypt(self.key, preference) for preference in preference_list]
         preference_list = [hash_element(preference) for preference in preference_list]
 
-        assert all(isinstance(preference_list, str))
-        assert all(isinstance(his_preference_list, str))
+        assert all(isinstance(preference, str) for preference in preference_list)
+        assert all(isinstance(his_preference, str) for his_preference in his_preference_list)
 
         overlap = 0
         for pref in preference_list:
