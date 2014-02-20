@@ -2,8 +2,6 @@
 # see LICENSE.txt for license information
 #
 
-import sys
-import time
 import socket
 import logging
 import BaseHTTPServer
@@ -211,9 +209,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
     RANGE_REQUESTS_ENABLED = True
 
     def __init__(self, request, client_address, server):
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
-
         self._logger = logging.getLogger(self.__class__.__name__)
+
+        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def log_message(self, format, *args):
         self._logger.info(format, *args)
