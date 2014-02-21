@@ -14,7 +14,7 @@ class XXXFilter:
     def __init__(self, install_dir):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        termfilename = os.path.join(install_dir, LIBRARYNAME, u'Category', u'filter_terms.filter')
+        termfilename = os.path.join(install_dir, LIBRARYNAME, 'Category', 'filter_terms.filter')
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
 
     def initTerms(self, filename):
@@ -34,7 +34,7 @@ class XXXFilter:
         except:
             self._logger.exception(u"Failed to init terms.")
 
-        self._logger.debug(u'Read %d XXX terms from file %s', len(terms) + len(searchterms), filename)
+        self._logger.debug('Read %d XXX terms from file %s', len(terms) + len(searchterms), filename)
         return terms, searchterms
 
     def _getWords(self, string):
