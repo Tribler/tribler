@@ -133,6 +133,7 @@ class Socks5Connection(object):
 
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
+        accept = True
         if request.cmd == conversion.REQ_CMD_CONNECT:
             destination = (request.destination_host, request.destination_port)
 
@@ -174,8 +175,10 @@ class Socks5Connection(object):
                 conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
             self.write(response)
             logger.info("DENYING SOCKS5 Request")
+            accept = False
 
-        self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
+        if accept:
+            self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
     def _process_buffer(self):
         """
