@@ -35,7 +35,6 @@ from crypto.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_
 from crypto.polycreate import compute_coeff, polyval
 from collections import namedtuple
 from Tribler.community.privatesemantic.database import SemanticDatabase
-from Tribler.community.privatesemantic.payload import SimiRevealPayload
 from Tribler.community.privatesemantic.conversion import bytes_to_long, \
     long_to_bytes
 
@@ -910,7 +909,7 @@ class PForwardCommunity(ForwardCommunity):
         return messages
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), PSearchConversion(self)]
+        return [PSearchConversion(self)]
 
     def create_similarity_payload(self):
         t1 = time()
@@ -1081,7 +1080,7 @@ class HForwardCommunity(ForwardCommunity):
         return messages
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), HSearchConversion(self)]
+        return [HSearchConversion(self)]
 
     def create_similarity_payload(self):
         t1 = time()
@@ -1263,7 +1262,7 @@ class PoliForwardCommunity(ForwardCommunity):
         return paillier_init(ForwardCommunity.init_key(self))
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), PoliSearchConversion(self)]
+        return [PoliSearchConversion(self)]
 
     def initiate_meta_messages(self):
         messages = ForwardCommunity.initiate_meta_messages(self)
