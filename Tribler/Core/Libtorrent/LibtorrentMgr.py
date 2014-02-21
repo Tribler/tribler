@@ -1,6 +1,5 @@
 # Written by Egbert Bouman
 import os
-import sys
 import time
 import binascii
 import tempfile
@@ -407,4 +406,3 @@ class LibtorrentMgr:
             self.metainfo_cache[infohash] = (time.time(), metainfo)
         else:
             self.metainfo_cache[infohash][1] = metainfo
-

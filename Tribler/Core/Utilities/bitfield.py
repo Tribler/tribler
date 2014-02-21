@@ -1,7 +1,6 @@
 # Written by Bram Cohen, Uoti Urpala, and John Hoffman
 # see LICENSE.txt for license information
 
-import sys
 from functools import reduce
 
 try:

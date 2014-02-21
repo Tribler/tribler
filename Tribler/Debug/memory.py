@@ -6,10 +6,9 @@
 Use the garbage collector to monitor memory usage
 """
 
-from types import *
+from types import IntType, FloatType, StringType, UnicodeType, \
+    TupleType, ListType, DictType, FunctionType, ModuleType, FrameType
 import gc
-import inspect
-import sys
 import thread
 import time
 import logging

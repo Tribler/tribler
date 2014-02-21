@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 # Arno,2007-02-23: this poll class is used on win32
 
-import sys
 import logging
 from select import select
 from time import sleep

@@ -6,7 +6,6 @@
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
 
-import sys
 import os
 from datetime import date
 from time import time

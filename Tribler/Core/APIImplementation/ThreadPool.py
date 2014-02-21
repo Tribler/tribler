@@ -1,7 +1,6 @@
 # Written by Jelle Roozenburg, Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
 import time
 from traceback import print_exc
 import threading

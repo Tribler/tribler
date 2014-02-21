@@ -1,10 +1,8 @@
 # Written by John Hoffman
 # see LICENSE.txt for license information
 
-import sys
 import logging
 from cStringIO import StringIO
-from binascii import b2a_hex
 from Tribler.Core.MessageID import protocol_name
 
 try:

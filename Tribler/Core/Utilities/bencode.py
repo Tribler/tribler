@@ -12,7 +12,6 @@ except ImportError:
     UnicodeType = None
 
 from traceback import print_exc, print_stack
-import sys
 import logging
 
 logger = logging.getLogger(__name__)

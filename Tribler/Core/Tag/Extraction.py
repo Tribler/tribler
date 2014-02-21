@@ -1,7 +1,6 @@
 # Written by Raynor Vliegendhart
 # see LICENSE.txt for license information
 
-import sys
 import os
 
 from Tribler.__init__ import LIBRARYNAME

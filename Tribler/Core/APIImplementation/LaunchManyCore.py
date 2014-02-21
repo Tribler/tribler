@@ -5,12 +5,9 @@
 import errno
 import sys
 import os
-import pickle
 import binascii
 import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
-from traceback import print_exc, print_stack
-import traceback
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
@@ -38,7 +35,6 @@ from Tribler.Core.osutils import get_readable_torrent_name
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
 else:
-    import errno
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
 SPECIAL_VALUE = 481

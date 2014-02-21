@@ -4,9 +4,7 @@
 import sys
 import os
 import copy
-import math
 import logging
-from traceback import print_exc, print_stack
 from types import StringType, ListType, IntType, LongType
 from binascii import hexlify
 
@@ -168,7 +166,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
         file from the URL and convert it into a TorrentDef. If the URL starts
         with our URL scheme, we convert the URL to a URL-compatible TorrentDef.
-        
+
         If we can't download the .torrent file, this method returns None.
 
         @param url URL
@@ -927,7 +925,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
     def get_torrent_size(self):
         """
-        Finalizes the torrent def and converts the metainfo to string, returns the 
+        Finalizes the torrent def and converts the metainfo to string, returns the
         number of bytes the string would take on disk.
         """
         if not self.readonly:
@@ -1105,7 +1103,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise TorrentDefNotFinalizedException()
 
     def is_private(self):
-        """ Returns whether this TorrentDef is a private torrent. 
+        """ Returns whether this TorrentDef is a private torrent.
         @return Boolean """
         if not self.metainfo_valid:
             raise NotYetImplementedException()

@@ -13,16 +13,12 @@
 #
 #
 
-import ast
 import sys
 import codecs
-import copy
 import os.path
 import socket
 import random
 import logging
-
-from ConfigParser import ConfigParser, RawConfigParser
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults

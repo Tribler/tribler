@@ -4,8 +4,6 @@
 
 from Tribler.Core.exceptions import *
 
-DEBUG = False
-
 #
 # Tribler API base classes
 #

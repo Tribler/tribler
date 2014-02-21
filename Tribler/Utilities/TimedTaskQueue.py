@@ -6,7 +6,6 @@
 # that you still need to delegate the actual updating of the GUI to the
 # MainThread via the wx.CallAfter mechanism.
 #
-import sys
 import logging
 
 from threading import Thread, Condition, RLock, currentThread

@@ -3,7 +3,6 @@
 
 from gzip import GzipFile
 from StringIO import StringIO
-import sys
 import httplib
 import socket
 import urllib2

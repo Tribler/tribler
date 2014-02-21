@@ -3,7 +3,6 @@
 
 import wx
 import os
-import sys
 import logging
 
 from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText

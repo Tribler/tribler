@@ -1,12 +1,10 @@
 # Written by ABC authors
 # see LICENSE.txt for license information
 
-import sys
 import os
 import socket
 import logging
 
-from threading import Event, Semaphore
 from time import sleep
 from traceback import print_exc
 # from cStringIO import StringIO

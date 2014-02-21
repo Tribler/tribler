@@ -2,15 +2,12 @@
 # see LICENSE.txt for license information
 #
 
-import sys
-import time
 import socket
 import logging
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 from threading import RLock, Thread, currentThread
-from traceback import print_exc, print_stack
-import string
+from traceback import print_exc
 from cStringIO import StringIO
 
 import os
@@ -212,12 +209,12 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
     RANGE_REQUESTS_ENABLED = True
 
     def __init__(self, request, client_address, server):
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+
     def log_message(self, format, *args):
-        pass
+        self._logger.info(format, *args)
 
     def do_GET(self):
         """
@@ -231,7 +228,6 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             self.finish()
             return
 
-        global DEBUG
         try:
             if self.path.startswith("/webUI"):
                 DEBUG = DEBUGWEBUI
@@ -310,12 +306,12 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 if self.RANGE_REQUESTS_ENABLED and length and range:
                     # Handle RANGE query
                     bad = False
-                    type, seek = string.split(range, '=')
+                    type, seek = range.split('=')
                     if seek.find(",") != -1:
                         # - Range header contains set, not supported at the moment
                         bad = True
                     else:
-                        firstbytestr, lastbytestr = string.split(seek, '-')
+                        firstbytestr, lastbytestr = seek.split('-')
                         firstbyte = bytestr2int(firstbytestr)
                         lastbyte = bytestr2int(lastbytestr)
 
@@ -468,15 +464,12 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             finally:
                 self.server.release_inputstream(self.path)
 
-        except socket.error, e2:
+        except socket.error:
             pass
-            # print_exc()
 
-        except Exception, e:
-            if DEBUG:
-                self._logger.debug("videoserv: Error occured while serving %s", currentThread().getName())
-            print_exc()
-            self.error(e, self.path)
+        except Exception as ex:
+            self._logger.exception("videoserv: Error occured while serving %s", currentThread().getName())
+            self.error(ex, self.path)
 
     def error(self, e, url):
         if self.server.errorcallback is not None:
@@ -488,6 +481,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 class VideoRawVLCServer:
+
     __single = None
 
     def __init__(self):
@@ -549,7 +543,7 @@ class VideoRawVLCServer:
                 try:
                     oldstream.close()
                 except:
-                    print_exc()
+                    self._logger.exception(u"Failed to close old stream")
             self.oldsid = sid
 
             streaminfo = self.get_inputstream(sid)
@@ -565,7 +559,7 @@ class VideoRawVLCServer:
 
             return size
         except:
-            print_exc()
+            self._logger.exception(u"Failed to read data")
             return -1
 
     def SeekDataCallback(self, pos, sid):
@@ -582,39 +576,5 @@ class VideoRawVLCServer:
             return -1
 
         except:
-            print_exc()
+            self._logger.exception(u"Failed to seek data")
             return -1
-
-
-class MultiHTTPServer(ThreadingMixIn, VideoHTTPServer):
-
-    """ MuliThreaded HTTP Server """
-
-    __single = None
-
-    def __init__(self, port):
-        if MultiHTTPServer.__single:
-            raise RuntimeError("MultiHTTPServer is Singleton")
-        MultiHTTPServer.__single = self
-
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.port = port
-        BaseHTTPServer.HTTPServer.__init__(self, ("127.0.0.1", self.port), SimpleServer)
-        self.daemon_threads = True
-        self.allow_reuse_address = True
-        # self.request_queue_size = 10
-
-        self.lock = RLock()
-
-        self.urlpath2streaminfo = {}  # Maps URL to streaminfo
-        self.mappers = []  # List of PathMappers
-
-        self.errorcallback = None
-        self.statuscallback = None
-
-    def background_serve(self):
-        name = "MultiHTTPServerThread-1"
-        self.thread2 = Thread(target=self.serve_forever, name=name)
-        self.thread2.setDaemon(True)
-        self.thread2.start()

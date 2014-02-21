@@ -2,12 +2,9 @@
 # see LICENSE.txt for license information
 
 import sys
-import urlparse
-import binascii
 import random
 import time
-from traceback import print_exc, print_stack
-import threading
+from traceback import print_exc
 import logging
 
 from Tribler.Core.Swift.SwiftProcess import *

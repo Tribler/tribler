@@ -46,7 +46,7 @@ from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIG
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import current_thread, currentThread
+from threading import currentThread
 try:
     prctlimported = True
     import prctl
@@ -59,7 +59,6 @@ except ImportError as e:
 # import locale
 
 import wx
-from wx import xrc
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
@@ -68,8 +67,6 @@ from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from traceback import print_exc
 import urllib2
 import tempfile
-import thread
-import logging
 
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread

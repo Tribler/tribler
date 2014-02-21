@@ -1,7 +1,6 @@
 # written by Raynor Vliegendhart
 # see LICENSE.txt for license information
 import re
-import sys
 from itertools import islice
 import time
 import logging
