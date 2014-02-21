@@ -16,11 +16,8 @@ from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.Notifier import Notifier
-
-from Tribler.Video.VideoUtility import get_videoinfo
 
 if sys.platform == "win32":
     try:
@@ -169,8 +166,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.session = session
         self.tdef = tdef
         self.handle = None
-        self.vod_file = None
-        self.vod_lock = NoDispersyRLock()
+        self.vod_index = None
 
         self.notifier = Notifier.getInstance()
 
@@ -202,8 +198,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.prebuffsize = 5 * 1024 * 1024
         self.endbuffsize = 0
         self.vod_seekpos = 0
-        self.vod_status = ""
-        self.videoinfo = {'status' : None}
 
         self.lm_network_vod_event_callback = None
         self.pstate_for_restart = None
@@ -239,7 +233,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.dlruntimeconfig['max_desired_download_rate'] = 0
 
                 if not isinstance(self.tdef, TorrentDefNoMetainfo):
-                    self.set_files()
+                    self.set_corrected_infoname()
+                    self.set_filepieceranges()
 
                 self._logger.debug("LibtorrentDownloadImpl: setup: initialdlstatus %s %s", self.tdef.get_infohash(), initialdlstatus)
 
@@ -311,8 +306,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
         if self.handle:
             self.set_selected_files()
-            if self.get_mode() == DLMODE_VOD:
-                self.set_vod_mode(True)
 
             # If we lost resume_data always resume download in order to force checking
             if initialdlstatus != DLSTATUS_STOPPED or not resume_data:
@@ -336,32 +329,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.handle.name(), enable)
 
         if enable:
-            self.vod_status = ""
             self.vod_seekpos = 0
 
-            # Define which file to DL in VOD mode
-            self.videoinfo = {'live': self.get_def().get_live()}
+            filename = self.get_selected_files()[0] if self.tdef.is_multifile_torrent() else self.tdef.get_name()
+            self.vod_index = self.tdef.get_index_of_file_in_files(filename) if self.tdef.is_multifile_torrent() else 0
 
-            if self.tdef.is_multifile_torrent():
-                if len(self.get_selected_files()) == 0:
-                    raise VODNoFileSelectedInMultifileTorrentException()
-                filename = self.get_selected_files()[0]
-                self.videoinfo['index'] = self.get_def().get_index_of_file_in_files(filename)
-                self.videoinfo['inpath'] = filename
-                self.videoinfo['bitrate'] = self.get_def().get_bitrate(filename)
-
-            else:
-                filename = self.get_def().get_name()
-                self.videoinfo['index'] = 0
-                self.videoinfo['inpath'] = filename
-                self.videoinfo['bitrate'] = self.get_def().get_bitrate()
-
-            self.videoinfo['outpath'] = self.files[self.videoinfo['index']]
-            self.videoinfo['usercallback'] = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.get_video_event_callback(), event, params)
-            # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
-            self.videoinfo['status'] = None
-
-            self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
+            self.prebuffsize = max(int(self.get_vod_filesize() * 0.05), 5 * 1024 * 1024)
             self.endbuffsize = 1 * 1024 * 1024
 
             self.handle.set_sequential_download(True)
@@ -371,60 +344,16 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self.set_byte_priority([(self.get_vod_fileindex(), -self.endbuffsize, -1)], 1)
 
             self.progress = self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)])
-            if self.progress == 1.0:
-                self._logger.debug("LibtorrentDownloadImpl: VOD requested, but file complete on disk %s", self.videoinfo)
-                self.start_vod(complete=True)
-            else:
-                self._logger.debug("LibtorrentDownloadImpl: going into VOD mode %s", self.videoinfo)
-                self.set_state_callback(self.monitor_vod, delay=1.0)
+            self._logger.debug("LibtorrentDownloadImpl: going into VOD mode %s", filename)
         else:
             self.handle.set_sequential_download(False)
             self.handle.set_priority(0)
             if self.get_vod_fileindex() >= 0:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 
-            if self.vod_file:
-                with self.dllock:
-                    self.vod_file.close()
-                    self.vod_file = None
-
-    def monitor_vod(self, ds):
-        if not self.handle or self.handle.is_paused() or self.get_mode() != DLMODE_VOD:
-            return (0, False)
-
-        if self.endbuffsize and self.get_byte_progress([(self.get_vod_fileindex(), -self.endbuffsize - 1, -1)]) >= 1:
-            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-            self.endbuffsize = 0
-
-        bufferprogress = ds.get_vod_prebuffering_progress_consec()
-
-        self._logger.debug('LibtorrentDownloadImpl: bufferprogress = %.2f', bufferprogress)
-
-        if bufferprogress >= 1:
-            if not self.vod_status:
-                self.start_vod(complete=False)
-            else:
-                self.resume_vod()
-
-        elif bufferprogress <= 0.1 and self.vod_status:
-            self.pause_vod()
-
-        if bufferprogress >= 1 and not self.videoinfo.get('bitrate', None):
-            # Attempt to estimate the bitrate of the videofile with ffmpeg
-            videofile = self.videoinfo["outpath"][0]
-            videoanalyser = self.session.get_video_analyser_path()
-            duration, bitrate, _ = get_videoinfo(videofile, videoanalyser)
-            self.videoinfo['bitrate'] = bitrate
-            self.videoinfo['duration'] = duration
-
-        return (1.0, False)
-
-    def get_vod_duration(self):
-        return self.videoinfo.get('duration', None)
-
     def get_vod_fileindex(self):
-        if self.videoinfo and self.videoinfo.has_key('index'):
-            return self.videoinfo['index']
+        if self.vod_index != None:
+            return self.vod_index
         return -1
 
     def get_vod_filesize(self):
@@ -519,33 +448,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     pieces = list(set(pieces))
                     self.set_piece_priority(pieces, priority)
 
-    def start_vod(self, complete=False):
-        if not self.vod_status:
-            self.vod_status = "started"
-            self.vod_file = None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self)
-            self.lm_network_vod_event_callback(self.videoinfo, VODEVENT_START,
-                                              {"complete": complete,
-                                               "filename": self.videoinfo["outpath"][0] if complete else None,
-                                               "stream": self.vod_file,
-                                               "length": self.videoinfo['outpath'][1],
-                                               "bitrate": self.videoinfo["bitrate"]})
-
-            self._logger.debug("LibtorrentDownloadImpl: VOD started %s", self.videoinfo['outpath'][0])
-
-    def resume_vod(self):
-        if self.vod_status == "paused":
-            self.vod_status = "resumed"
-            self.videoinfo["usercallback"](VODEVENT_RESUME, {})
-
-            self._logger.debug("LibtorrentDownloadImpl: VOD resumed")
-
-    def pause_vod(self):
-        if self.vod_status != "paused":
-            self.vod_status = "paused"
-            self.videoinfo["usercallback"](VODEVENT_PAUSE, {})
-
-            self._logger.debug("LibtorrentDownloadImpl: VOD paused")
-
     def get_vod_info(self):
         return self.videoinfo
 
@@ -588,7 +490,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
         self.tdef = TorrentDef.load_from_dict(self.metadata)
         self.orig_files = [torrent_file.path for torrent_file in lt.torrent_info(self.metadata).files()]
-        self.set_files()
+        self.set_corrected_infoname()
+        self.set_filepieceranges()
 
         if self.session.lm.rtorrent_handler:
             self.session.lm.rtorrent_handler.save_torrent(self.tdef)
@@ -640,6 +543,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
                 self.session.lm.rawserver.add_task(reset_priorities, 5)
 
+            if self.endbuffsize:
+                self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+                self.endbuffsize = 0
+
     def update_lt_stats(self):
         status = self.handle.status()
         self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
@@ -657,29 +564,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.all_time_download = status.all_time_download
         self.finished_time = status.finished_time
 
-    def set_files(self):
+    def set_corrected_infoname(self):
         # H4xor this so the 'name' field is safe
         self.correctedinfoname = fix_filebasename(self.tdef.get_name_as_unicode())
 
-        metainfo = self.tdef.get_metainfo()
-        self.set_filepieceranges(metainfo)
-
         # Allow correctinfoname to be overwritten for multifile torrents only
-        if 'files' in metainfo['info'] and self.get_corrected_filename() and self.get_corrected_filename() != '':
+        if self.get_corrected_filename() and self.get_corrected_filename() != '' and 'files' in self.tdef.get_metainfo()['info']:
             self.correctedinfoname = self.get_corrected_filename()
-
-        self.files = []
-        if 'files' in metainfo['info']:
-            for x in metainfo['info']['files']:
-                savepath = torrentfilerec2savefilename(x)
-                full = savefilenames2finaldest(self.get_content_dest(), savepath)
-                # Arno: TODO: this sometimes gives too long filenames for
-                # Windows. When fixing this take into account that
-                # Download.get_dest_files() should still produce the same
-                # filenames as your modifications here.
-                self.files.append((full, x['length']))
-        else:
-            self.files.append((self.get_content_dest(), metainfo['info']['length']))
 
     def set_selected_files(self, selected_files=None):
         with self.dllock:
@@ -865,7 +756,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         d['prebuf'] = None
         d['firstpiece'] = 0
         d['npieces'] = ((self.length + 1023) / 1024)
-        d['status'] = self.vod_status
         return d
 
     def network_create_spew_from_peerlist(self):
@@ -984,10 +874,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         """ Returns the file to which the downloaded content is saved. """
         return os.path.join(self.get_dest_dir(), self.correctedinfoname)
 
-    def set_filepieceranges(self, metainfo):
+    def set_filepieceranges(self):
         """ Determine which file maps to which piece ranges for progress info """
         self._logger.debug("LibtorrentDownloadImpl: set_filepieceranges: %s", self.get_selected_files())
 
+        metainfo = self.tdef.get_metainfo()
         self.filepieceranges = maketorrent.get_length_filepieceranges_from_metainfo(metainfo, [])[1]
 
     def restart(self, initialdlstatus=None):

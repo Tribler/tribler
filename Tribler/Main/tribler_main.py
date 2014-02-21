@@ -256,10 +256,8 @@ class ABCApp():
             httpport = self.utility.read_config('videohttpport')
             if ALLOW_MULTIPLE or httpport == -1:
                 httpport = self.utility.get_free_random_port('videohttpport')
-            self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
-
             playbackmode = self.utility.read_config('videoplaybackmode')
-            self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
+            self.videoplayer = VideoPlayer.getInstance(self.utility, preferredplaybackmode=playbackmode, httpport=httpport)
 
             notification_init(self.utility)
             self.guiUtility.register()
@@ -627,9 +625,8 @@ class ABCApp():
 
             # Find State of currently playing video
             playds = None
-            d = self.videoplayer.get_vod_download()
             for ds in dslist:
-                if ds.get_download() == d:
+                if ds.get_download().get_mode() == DLMODE_VOD:
                     playds = ds
 
             # Apply status displaying from SwarmPlayer

@@ -431,7 +431,7 @@ class TopSearchPanel(FancyPanel):
 
             if len(playable_files) > 1:  # Create a popup
                 (_, largest_file) = max([(size, filename) for filename, size in torrent.files if filename in playable_files])
-                selected_file = VideoPlayer.getInstance().ask_user_to_select_video(playable_files, largest_file)
+                selected_file = self.guiutility.SelectVideo(playable_files, largest_file)
 
                 if selected_file:
                     self.guiutility.library_manager.playTorrent(torrent, selected_file)

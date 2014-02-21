@@ -549,16 +549,15 @@ class MainFrame(wx.Frame):
                     if len(videofiles) == 1:
                         selectedFile = videofiles[0]
                     elif cdef.get_def_type() == "torrent" and wx.Thread_IsMain():
-                        selectedFile = videoplayer.ask_user_to_select_video(videofiles)
+                        selectedFile = self.guiUtility.SelectVideo(videofiles)
 
                     if selectedFile:
                         # Swift requires swarmname to be part of the selectedfile
                         swift_selectedFile = tdef.get_name_as_unicode() + "/" + selectedFile if sdef and tdef else selectedFile
                         dscfg.set_selected_files([swift_selectedFile])
-                        dscfg.set_video_event_callback(videoplayer.sesscb_vod_event_callback)
-                        dscfg.set_mode(DLMODE_VOD)
+                        #dscfg.set_mode(DLMODE_VOD)
                         result = self.utility.session.start_download(cdef, dscfg)
-                        videoplayer.set_vod_download(result)
+                        videoplayer.play(result, 0)
 
                 else:
                     if selectedFiles:

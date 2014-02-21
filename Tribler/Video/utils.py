@@ -5,9 +5,14 @@ import os
 import sys
 import logging
 
+from traceback import print_exc
+
 from Tribler.Core.Utilities.unicode import unicode2str
-if (sys.platform == 'win32'):
+
+if sys.platform == 'win32':
     from Tribler.Core.Utilities.win32regchecker import Win32RegChecker, HKLM
+
+from Tribler.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME, PLAYBACKMODE_EXTERNAL_DEFAULT
 
 videoextdefaults = ['aac', 'asf', 'avi', 'dv', 'divx', 'flac', 'flc', 'flv', 'mkv', 'mpeg', 'mpeg4', 'mpegts', 'mpg4', 'mp3', 'mp4', 'mpg', 'mkv', 'mov', 'm4v', 'ogg', 'ogm', 'ogv', 'oga', 'ogx', 'qt', 'rm', 'swf', 'ts', 'vob', 'wmv', 'wav', 'webm']
 
@@ -22,7 +27,6 @@ def win32_retrieve_video_play_command(ext, videourl):
     if ext == '':
         return [None, None]
 
-    contenttype = None
     winfiletype = registry.readRootKey(ext)
     logger.debug("videoplay: winfiletype is %s %s", winfiletype, type(winfiletype))
     if winfiletype is None or winfiletype == '':
@@ -115,10 +119,38 @@ def quote_program_path(progpath):
         return progpath
 
 def escape_path(path):
-	if path[0] != '"' and path[0] != "'" and path.find(' ') != -1:
-		if sys.platform == 'win32':
-			# Add double quotes
-			path = "\"" + path + "\""
-		else:
-			path = "\'" + path + "\'"
-	return path
+    if path[0] != '"' and path[0] != "'" and path.find(' ') != -1:
+        if sys.platform == 'win32':
+            # Add double quotes
+            path = "\"" + path + "\""
+        else:
+            path = "\'" + path + "\'"
+    return path
+
+def return_feasible_playback_modes(syspath):
+    if sys.platform == 'darwin':
+        return [PLAYBACKMODE_EXTERNAL_DEFAULT]
+
+    l = []
+    try:
+        import Tribler.vlc as vlc
+
+        # Niels: check version of vlc
+        version = vlc.libvlc_get_version()
+        subversions = version.split(".")
+        if len(subversions) > 2:
+            version = subversions[0] + "." + subversions[1]
+        version = float(version)
+        if version < 0.9:
+            raise Exception("Incorrect vlc version. We require at least version 0.9, this is %s" % version)
+
+        l.append(PLAYBACKMODE_INTERNAL)
+    except Exception:
+        print_exc()
+
+    if sys.platform == 'win32':
+        l.append(PLAYBACKMODE_EXTERNAL_MIME)
+        l.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
+    else:
+        l.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
+    return l

@@ -817,14 +817,14 @@ class TriblerLaunchMany(Thread):
         # print >>sys.stderr,"tlm: set_activity",type,str,arg2
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
 
-    def network_vod_event_callback(self, videoinfo, event, params):
+    def network_vod_event_callback(self, callback, vod_source, vod_lock):
         """ Called by network thread """
 
-        self._logger.debug("tlm: network_vod_event_callback: event %s, params %s", event, params)
+        self._logger.debug("tlm: network_vod_event_callback: vod_source %s, vod_lock %s", vod_source, vod_lock)
 
         # Call Session threadpool to call user's callback
         try:
-            videoinfo['usercallback'](event, params)
+            callback(vod_source, vod_lock)
         except:
             print_exc()
 

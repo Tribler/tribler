@@ -733,3 +733,16 @@ class GUIUtility:
 
             if self.guiPage == 'selectedchannel':
                 wx.CallAfter(list.GetManager().reload, channelid)
+
+    def SelectVideo(self, videofiles, selected_file=None):
+        if len(videofiles) > 1:
+            videofiles.sort()
+            dialog = wx.SingleChoiceDialog(None, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play.', 'Which file do you want to play?', videofiles)
+            if selected_file in videofiles:
+                dialog.SetSelection(videofiles.index(selected_file))
+
+            selected_file = dialog.GetStringSelection() if dialog.ShowModal() == wx.ID_OK else None
+            dialog.Destroy()
+            return selected_file
+        elif len(videofiles) == 1:
+            return videofiles[0]
