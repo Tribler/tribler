@@ -253,31 +253,36 @@ class LibtorrentMgr:
                 self.upnp_mapper.delete_mapping(mapping)
 
     def process_alerts(self):
-        if self.ltsession:
-            alert = self.ltsession.pop_alert()
-            while alert:
-                alert_type = str(type(alert)).split("'")[1].split(".")[-1]
-                if alert_type == 'external_ip_alert':
-                    external_ip = str(alert).split()[-1]
-                    if self.external_ip != external_ip:
-                        self.external_ip = external_ip
-                        self._logger.info('LibtorrentMgr: external IP is now %s', self.external_ip)
-                handle = getattr(alert, 'handle', None)
-                if handle:
-                    if handle.is_valid():
-                        infohash = str(handle.info_hash())
-                        with self.torlock:
-                            if infohash in self.torrents:
-                                self.torrents[infohash][0].process_alert(alert, alert_type)
-                            elif infohash in self.metainfo_requests:
-                                if type(alert) == lt.metadata_received_alert:
-                                    self.got_metainfo(infohash)
-                            else:
-                                self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+        for ltsession in [self.ltsession, self.ltsession_anon]:
+            if ltsession:
+                alert = ltsession.pop_alert()
+                while alert:
+                    self.process_alert(alert)
+                    alert = ltsession.pop_alert()
+
+        self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
+
+    def process_alert(self, alert):
+        alert_type = str(type(alert)).split("'")[1].split(".")[-1]
+        if alert_type == 'external_ip_alert':
+            external_ip = str(alert).split()[-1]
+            if self.external_ip != external_ip:
+                self.external_ip = external_ip
+                self._logger.info('LibtorrentMgr: external IP is now %s', self.external_ip)
+        handle = getattr(alert, 'handle', None)
+        if handle:
+            if handle.is_valid():
+                infohash = str(handle.info_hash())
+                with self.torlock:
+                    if infohash in self.torrents:
+                        self.torrents[infohash][0].process_alert(alert, alert_type)
+                    elif infohash in self.metainfo_requests:
+                        if type(alert) == lt.metadata_received_alert:
+                            self.got_metainfo(infohash)
                     else:
-                        self._logger.debug("LibtorrentMgr: alert for invalid torrent")
-                alert = self.ltsession.pop_alert()
-            self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
+                        self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+            else:
+                self._logger.debug("LibtorrentMgr: alert for invalid torrent")
 
     def reachability_check(self):
         if self.ltsession and self.ltsession.status().has_incoming_connections:
