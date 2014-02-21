@@ -102,7 +102,7 @@ class Socks5Server(object, TunnelObserver):
         s5con = Socks5Connection(single_socket, self)
 
         try:
-            circuits = self._reserve_circuits(4)
+            circuits = self._reserve_circuits(1)
             session = Socks5Session(self.raw_server, s5con, circuits)
             self.tunnel.observers.append(session)
 

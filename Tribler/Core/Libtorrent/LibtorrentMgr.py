@@ -149,8 +149,8 @@ class LibtorrentMgr:
         proxy_settings.proxy_hostnames = True
         proxy_settings.proxy_peer_connections = True
         self.ltsession.set_peer_proxy(proxy_settings)
-        #self.ltsession.set_tracker_proxy(proxy_settings)
-        #self.ltsession.set_dht_proxy(proxy_settings)
+        self.ltsession.set_tracker_proxy(proxy_settings)
+        self.ltsession.set_dht_proxy(proxy_settings)
         self.ltsession.set_settings(settings)
 
     def set_max_connections(self, conns):

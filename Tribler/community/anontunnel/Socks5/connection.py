@@ -179,6 +179,10 @@ class Socks5Connection(object):
 
         if accept:
             self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
+        else:
+            self.state = ConnectionState.BEFORE_METHOD_REQUEST
+
+        return accept
 
     def _process_buffer(self):
         """
@@ -193,8 +197,13 @@ class Socks5Connection(object):
 
             # We are connected so the
             elif self.state == ConnectionState.CONNECTED:
-                if not self._try_request():
-                    break  # Not enough bytes so wait till we got more
+                try:
+                    if not self._try_request():
+                        break  # Not enough bytes so wait till we got more
+                except:
+                    self.buffer = ''
+                    logger.error("MALFORMED packet detected, try again!")
+
 
     def write(self, data):
         if self.single_socket is not None:
