@@ -87,19 +87,37 @@ class ForwardConversion(BinaryConversion):
         return self._decode_ping(placeholder, offset, data)
 
     def _encode_introduction_request(self, message):
+        import sys
+        print >> sys.stderr, 'encoding'
+
         data = BinaryConversion._encode_introduction_request(self, message)
 
+        print >> sys.stderr, 'encoding', data
+
         data.insert(0, pack('!?', bool(message.payload.introduce_me_to)))
+
+        print >> sys.stderr, 'encoding', data
+
         if message.payload.introduce_me_to:
             data.append(pack('!20s', message.payload.introduce_me_to))
+
+        print >> sys.stderr, 'encoding', data
+
         return data
 
     def _decode_introduction_request(self, placeholder, offset, data):
+        import sys
+        print >> sys.stderr, 'decoding'
+
         has_introduce_me, = unpack_from('!?', data, offset)
         offset += 1
 
+        print >> sys.stderr, 'decoding', has_introduce_me
+
         if has_introduce_me:
             offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data[:-20])
+
+            print >> sys.stderr, 'decoding', payload
 
             length = len(data) - offset
             if length != 20:
@@ -108,9 +126,12 @@ class ForwardConversion(BinaryConversion):
             candidate_mid, = unpack_from('!20s', data, offset)
             payload.set_introduce_me_to(candidate_mid)
 
+            print >> sys.stderr, 'decoding', candidate_mid
+
             offset += length
         else:
             offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
+            print >> sys.stderr, 'decoding', payload
 
         return offset, payload
 
