@@ -89,7 +89,7 @@ class ForwardConversion(BinaryConversion):
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
 
-        data.insert(0, pack('!?'), bool(message.payload.introduce_me_to))
+        data.insert(0, pack('!?', bool(message.payload.introduce_me_to)))
         if message.payload.introduce_me_to:
             data.append(pack('!20s', message.payload.introduce_me_to))
         return data
