@@ -89,16 +89,18 @@ class ForwardConversion(BinaryConversion):
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
 
+        data.insert(0, pack('!?'), bool(message.payload.introduce_me_to))
         if message.payload.introduce_me_to:
             data.append(pack('!20s', message.payload.introduce_me_to))
         return data
 
     def _decode_introduction_request(self, placeholder, offset, data):
-        offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
+        has_introduce_me, = unpack_from('!?', data, offset)
+        offset += 1
 
-        # if there's still bytes in this request, get introduce_me_to
-        has_stuff = len(data) > offset
-        if has_stuff:
+        if has_introduce_me:
+            offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data[:-20])
+
             length = len(data) - offset
             if length != 20:
                 raise DropPacket("Invalid number of bytes available (ir)")
@@ -107,6 +109,9 @@ class ForwardConversion(BinaryConversion):
             payload.set_introduce_me_to(candidate_mid)
 
             offset += length
+        else:
+            offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
+
         return offset, payload
 
     def _encode_decode(self, encode, decode, message):
