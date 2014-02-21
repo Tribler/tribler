@@ -124,6 +124,9 @@ class SaveAs(wx.Dialog):
 
         vSizer.Add(wx.StaticText(self, -1, 'Use the checkboxes to choose which files to download.\nUse ctrl+a to select all/deselect all.'), 0, wx.BOTTOM, 3)
 
+        self.anon_check = wx.CheckBox(self, -1, 'Use anonymous downloading mode', style=wx.ALIGN_RIGHT)
+        vSizer.Add(self.anon_check, 0, wx.TOP | wx.BOTTOM, 10)
+
         self.listCtrl = CheckSelectableListCtrl(self)
         self.listCtrl.InsertColumn(0, 'Name')
         self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
@@ -195,6 +198,9 @@ class SaveAs(wx.Dialog):
                     files.append(self.listCtrl.GetItem(index, 0).GetText())
                 return files
         return None
+
+    def GetAnonMode(self):
+        return self.anon_check.GetValue()
 
     def OnOk(self, event=None):
         if self.listCtrl:

@@ -452,11 +452,13 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
         return False
 
-    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, doemode=None, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
+    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
         self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
+
+        anon_mode = False
 
         # Niels: if you call startdownload with both a Swift sdef and a tdef/torrentfilename, we allow Swift to download the file in the first X seconds
         if sdef and (torrentfilename or tdef):
@@ -520,11 +522,17 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
+                        anon_mode = dlg.GetAnonMode()
                     else:
                         cancelDownload = True
                     dlg.Destroy()
                 else:
                     raise Exception("cannot create dialog, not on wx thread")
+
+            if anon_mode and (not tdef or sdef):
+                raise RuntimeError('Currently only torrents can be downloaded in anonymous mode')
+
+            dscfg.set_anon_mode(anon_mode)
 
             if not cancelDownload:
                 if destdir is not None:

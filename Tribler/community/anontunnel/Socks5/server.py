@@ -67,7 +67,7 @@ class Socks5Server(object, TunnelObserver):
             if self.awaiting_circuits == 0:
                 from Tribler.Core.Libtorrent import LibtorrentMgr
                 logger.error("Going to set anon tunnel utp only")
-                LibtorrentMgr.LibtorrentMgr.getInstance().set_anon_tunnel()
+                LibtorrentMgr.LibtorrentMgr.getInstance().set_anonymous_proxy()
             return result
 
         if lacking > 0:
