@@ -94,7 +94,7 @@ class ForwardConversion(BinaryConversion):
 
         if message.payload.introduce_me_to:
             data.append(pack('!20s', message.payload.introduce_me_to))
-        data.append(pack('!?', bool(message.payload.introduce_me_to)))
+        # data.append(pack('!?', bool(message.payload.introduce_me_to)))
 
         print >> sys.stderr, 'encoded', data
 
