@@ -94,7 +94,7 @@ class ForwardConversion(BinaryConversion):
 
         if message.payload.introduce_me_to:
             data.append(pack('!20s', message.payload.introduce_me_to))
-        # data.append(pack('!?', bool(message.payload.introduce_me_to)))
+        data.append(pack('!c', 'Y' if message.payload.introduce_me_to else 'N'))
 
         print >> sys.stderr, 'encoded', data
 
@@ -104,12 +104,12 @@ class ForwardConversion(BinaryConversion):
         import sys
         print >> sys.stderr, 'decoding'
 
-        has_introduce_me, = unpack('!?', data[-1:])
+        has_introduce_me, = unpack('!c', data[-1:])
         data = data[:-1]
 
         print >> sys.stderr, 'decoding', has_introduce_me
 
-        if has_introduce_me:
+        if has_introduce_me == 'Y':
             offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data[:-20])
 
             print >> sys.stderr, 'decoding', payload
