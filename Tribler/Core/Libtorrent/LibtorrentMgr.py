@@ -1,4 +1,5 @@
 # Written by Egbert Bouman
+from libtorrent import proxy_type
 import os
 import sys
 import time
@@ -133,6 +134,23 @@ class LibtorrentMgr:
         settings = self.ltsession.settings()
         settings.enable_outgoing_utp = enable
         settings.enable_incoming_utp = enable
+        self.ltsession.set_settings(settings)
+
+    def set_anon_tunnel(self):
+        settings = self.ltsession.settings()
+        settings.enable_outgoing_utp = True
+        settings.enable_incoming_utp = True
+        settings.enable_outgoing_tcp = False
+        settings.enable_incoming_tcp = False
+        proxy_settings = lt.proxy_settings()
+        proxy_settings.type = lt.proxy_type(proxy_type.socks5)
+        proxy_settings.hostname = "localhost"
+        proxy_settings.port = 1080
+        proxy_settings.proxy_hostnames = True
+        proxy_settings.proxy_peer_connections = True
+        self.ltsession.set_peer_proxy(proxy_settings)
+        #self.ltsession.set_tracker_proxy(proxy_settings)
+        #self.ltsession.set_dht_proxy(proxy_settings)
         self.ltsession.set_settings(settings)
 
     def set_max_connections(self, conns):

@@ -75,7 +75,7 @@ class SwiftProcess:
         args.append("127.0.0.1:" + str(self.cmdport))
         args.append("-g")  # HTTP gateway port
         args.append("127.0.0.1:" + str(self.httpport))
-        if socks5:
+        if False and socks5:
             args.append("--proxy")
             args.append("127.0.0.1:1080")
 
