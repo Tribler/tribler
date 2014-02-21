@@ -88,7 +88,7 @@ from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
-from Tribler.Utilities.LinuxSingleInstanceChecker import *
+from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
@@ -1132,13 +1132,7 @@ def run(params=None):
         params = sys.argv[1:]
     try:
         # Create single instance semaphore
-        # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
-        # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
-        #
-        if sys.platform != 'linux2':
-            single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
-        else:
-            single_instance_checker = LinuxSingleInstanceChecker("tribler")
+        single_instance_checker = SingleInstanceChecker("tribler")
 
         installdir = ABCApp.determine_install_dir()
 
