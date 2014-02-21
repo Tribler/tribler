@@ -1,4 +1,4 @@
-from struct import pack, unpack_from
+from struct import pack, unpack_from, unpack
 from random import choice, sample
 
 from Tribler.Core.Utilities.encoding import encode, decode
@@ -94,12 +94,9 @@ class ForwardConversion(BinaryConversion):
 
         print >> sys.stderr, 'encoding', data
 
-        data.insert(0, pack('!?', bool(message.payload.introduce_me_to)))
-
-        print >> sys.stderr, 'encoding', data
-
         if message.payload.introduce_me_to:
             data.append(pack('!20s', message.payload.introduce_me_to))
+        data.append(pack('!?', bool(message.payload.introduce_me_to)))
 
         print >> sys.stderr, 'encoding', data
 
@@ -109,8 +106,8 @@ class ForwardConversion(BinaryConversion):
         import sys
         print >> sys.stderr, 'decoding'
 
-        has_introduce_me, = unpack_from('!?', data, offset)
-        offset += 1
+        has_introduce_me, = unpack('!?', data[-1:])
+        data = data[:-1]
 
         print >> sys.stderr, 'decoding', has_introduce_me
 
@@ -132,6 +129,8 @@ class ForwardConversion(BinaryConversion):
         else:
             offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
             print >> sys.stderr, 'decoding', payload
+
+        offset += 1
 
         return offset, payload
 
