@@ -92,13 +92,11 @@ class ForwardConversion(BinaryConversion):
 
         data = BinaryConversion._encode_introduction_request(self, message)
 
-        print >> sys.stderr, 'encoding', data
-
         if message.payload.introduce_me_to:
             data.append(pack('!20s', message.payload.introduce_me_to))
         data.append(pack('!?', bool(message.payload.introduce_me_to)))
 
-        print >> sys.stderr, 'encoding', data
+        print >> sys.stderr, 'encoded', data
 
         return data
 
