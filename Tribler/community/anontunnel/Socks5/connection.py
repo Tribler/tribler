@@ -134,53 +134,60 @@ class Socks5Connection(object):
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
         accept = True
-        if request.cmd == conversion.REQ_CMD_CONNECT:
-            destination = (request.destination_host, request.destination_port)
 
-            logger.debug("Accepting TCP RELAY request, direct client to %s:%d",
-                         self.single_socket.get_myip(),
-                         self.single_socket.get_myport())
+        try:
+            if request.cmd == conversion.REQ_CMD_CONNECT:
+                destination = (request.destination_host, request.destination_port)
 
-            # Switch to TCP relay mode
-            self.open_tcp_relay(destination)
+                logger.debug("Accepting TCP RELAY request, direct client to %s:%d",
+                             self.single_socket.get_myip(),
+                             self.single_socket.get_myport())
 
+                # Switch to TCP relay mode
+                self.open_tcp_relay(destination)
+
+                response = conversion.encode_reply(
+                    0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4,
+                    self.single_socket.get_myip(), self.single_socket.get_myport())
+                self.write(response)
+            elif request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
+                socket = self.udp_associate()
+
+                # We use same IP as the single socket, but the port number comes
+                # from the newly created UDP listening socket
+                ip, port = self.single_socket.get_myip(), socket.getsockname()[1]
+
+                logger.info(
+                    "Accepting UDP ASSOCIATE request, direct client to %s:%d", ip,
+                    port)
+
+                response = conversion.encode_reply(
+                    0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
+                self.write(response)
+            elif request.cmd == conversion.REQ_CMD_BIND:
+                response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED,
+                                                   0x00, conversion.ADDRESS_TYPE_IPV4,
+                                                   "127.0.0.1", 1081)
+
+                self.write(response)
+            else:
+                # We will deny all other requests (BIND, and INVALID requests);
+                response = conversion.encode_reply(
+                    0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
+                    conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
+                self.write(response)
+                logger.info("DENYING SOCKS5 Request")
+                accept = False
+        except:
             response = conversion.encode_reply(
-                0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4,
-                self.single_socket.get_myip(), self.single_socket.get_myport())
+                    0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
+                    conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
             self.write(response)
-        elif request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
-            socket = self.udp_associate()
-
-            # We use same IP as the single socket, but the port number comes
-            # from the newly created UDP listening socket
-            ip, port = self.single_socket.get_myip(), socket.getsockname()[1]
-
-            logger.info(
-                "Accepting UDP ASSOCIATE request, direct client to %s:%d", ip,
-                port)
-
-            response = conversion.encode_reply(
-                0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
-            self.write(response)
-        elif request.cmd == conversion.REQ_CMD_BIND:
-            response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED,
-                                               0x00, conversion.ADDRESS_TYPE_IPV4,
-                                               "127.0.0.1", 1081)
-
-            self.write(response)
-        else:
-            # We will deny all other requests (BIND, and INVALID requests);
-            response = conversion.encode_reply(
-                0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
-                conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
-            self.write(response)
-            logger.info("DENYING SOCKS5 Request")
+            logger.error("Exception thrown. Writing unsupported command response")
             accept = False
 
         if accept:
             self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
-        else:
-            self.state = ConnectionState.BEFORE_METHOD_REQUEST
 
         return accept
 
