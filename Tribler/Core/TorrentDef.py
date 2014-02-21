@@ -20,7 +20,7 @@ import Tribler.Core.APIImplementation.maketorrent as maketorrent
 import Tribler.Core.APIImplementation.makeurl as makeurl
 from Tribler.Core.APIImplementation.miscutils import *
 
-from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL
+from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *
@@ -1192,10 +1192,16 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
         return False
 
     def get_name_as_unicode(self):
-        return unicode(self.name)
+        return unicode(self.name) if self.name else u''
 
     def get_files(self, exts=None):
         return []
+
+    def get_trackers_as_single_tuple(self):
+        if self.url and self.url.startswith('magnet:'):
+            _, _, trs = parse_magnetlink(self.url)
+            return tuple(trs)
+        return ()
 
     def has_trackers(self):
         return False

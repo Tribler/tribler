@@ -316,7 +316,7 @@ class TriblerLaunchMany(Thread):
 
             if isinstance(tdef, TorrentDefNoMetainfo):
                 self.torrent_db.addInfohash(tdef.get_infohash())
-                self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name().encode('utf_8'))
+                self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name_as_unicode())
                 write_my_pref()
             elif self.rtorrent_handler:
                 self.rtorrent_handler.save_torrent(tdef, write_my_pref)
@@ -406,22 +406,33 @@ class TriblerLaunchMany(Thread):
                 dl.add_trackers(new_trackers)
 
                 # Create a new TorrentDef
-                metainfo = old_def.get_metainfo()
-                if len(all_trackers) > 1:
-                    metainfo["announce-list"] = [all_trackers]
+                if isinstance(old_def, TorrentDefNoMetainfo):
+                    new_def = TorrentDefNoMetainfo(old_def.get_infohash(), old_def.get_name(), dl.get_magnet_link())
                 else:
-                    metainfo["announce"] = all_trackers[0]
-                new_def = TorrentDef.load_from_dict(metainfo)
+                    metainfo = old_def.get_metainfo()
+                    if len(all_trackers) > 1:
+                        metainfo["announce-list"] = [all_trackers]
+                    else:
+                        metainfo["announce"] = all_trackers[0]
+                    new_def = TorrentDef.load_from_dict(metainfo)
 
                 # Set TorrentDef + checkpoint
                 dl.set_def(new_def)
                 dl.checkpoint()
 
-                if self.rtorrent_handler:
+                if isinstance(old_def, TorrentDefNoMetainfo):
+                    def update_trackers_db(id, new_trackers):
+                        torrent_id = self.torrent_db.getTorrentID(id)
+                        if torrent_id != None:
+                            self.torrent_db.addTorrentTrackerMappingInBatch(torrent_id, new_trackers)
+                            self.session.uch.notify(NTFY_TORRENTS, NTFY_UPDATE, id)
+
+                    if self.session.get_megacache():
+                        self.database_thread.register(update_trackers_db, args=(id, new_trackers), priority=1024)
+
+                elif not isinstance(old_def, TorrentDefNoMetainfo) and self.rtorrent_handler:
                     # Update collected torrents
                     self.rtorrent_handler._save_torrent(new_def)
-                else:
-                    self.session.uch.notify(NTFY_TORRENTS, NTFY_UPDATE, id)
 
     def rawserver_fatalerrorfunc(self, e):
         """ Called by network thread """
@@ -554,7 +565,7 @@ class TriblerLaunchMany(Thread):
             if SwiftDef.is_swift_url(metainfo):
                 sdef = SwiftDef.load_from_url(metainfo)
             elif 'infohash' in metainfo:
-                tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'])
+                tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
             else:
                 tdef = TorrentDef.load_from_dict(metainfo)
 

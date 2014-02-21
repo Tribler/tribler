@@ -552,10 +552,12 @@ class TorrentDetails(AbstractDetails):
 
     def updateTrackersTab(self):
         self.trackerSizer.Clear(deleteWindows=True)
-        if hasattr(self.torrent, 'trackers'):
+        collected_trackers = hasattr(self.torrent, 'trackers')
+        notcollected_trackers = hasattr(self.torrent, 'torrent') and hasattr(self.torrent.torrent, 'trackers')
+        if collected_trackers or notcollected_trackers:
             self.notebook.ShowMessageOnPage(self.notebook.GetIndexFromText('Trackers'), False)
             if self.torrent.trackers and len(self.torrent.trackers) > 0:
-                for tracker in self.torrent.trackers:
+                for tracker in (self.torrent.trackers if collected_trackers else self.torrent.torrent.trackers):
                     if isinstance(tracker, basestring):
                         self._add_row(self.trackerTab, self.trackerSizer, None, tracker)
                 self.trackerSizer.Layout()
