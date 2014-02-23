@@ -1335,7 +1335,7 @@ class Anonymity(wx.Panel):
                     circuit = self.circuits.get(circuit_id, None)
 
                     if circuit:
-                        hops = [self.my_address] + copy.copy(circuit.hops)
+                        hops = [self.my_address] + list(copy.copy(circuit.hops))
                         for index in range(len(hops) - 1):
                             vertexid1 = self.peers.index(hops[index]) if hops[index] in self.peers else None
                             vertexid2 = self.peers.index(hops[index + 1]) if hops[index + 1] in self.peers else None
@@ -1565,7 +1565,7 @@ class Anonymity(wx.Panel):
                 for vertexid1, vertexid2 in self.edges:
                     if int_points.has_key(vertexid1) and int_points.has_key(vertexid2):
                         if set([vertexid1, vertexid2]) in self.selected_edges:
-                            gc.SetPen(wx.Pen(wx.BLUE))
+                            gc.SetPen(wx.Pen(wx.BLUE, 4))
                         else:
                             gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), 4))
                         x1, y1 = int_points[vertexid1]

@@ -527,8 +527,13 @@ class MainFrame(wx.Frame):
                 else:
                     raise Exception("cannot create dialog, not on wx thread")
 
-            if anon_mode and (not tdef or sdef):
-                raise RuntimeError('Currently only torrents can be downloaded in anonymous mode')
+            if anon_mode:
+                if not tdef:
+                    raise Exception('Currently only torrents can be downloaded in anonymous mode')
+                elif sdef:
+                    sdef = None
+                    cdef = tdef
+                    monitorSwiftProgress = False
 
             dscfg.set_anon_mode(anon_mode)
 
