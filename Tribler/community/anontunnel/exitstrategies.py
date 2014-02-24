@@ -1,7 +1,7 @@
 import socket
 import logging
 from Tribler.community.anontunnel import exitsocket
-from Tribler.community.anontunnel.community import TunnelObserver
+from Tribler.community.anontunnel.events import TunnelObserver
 
 __author__ = 'chris'
 

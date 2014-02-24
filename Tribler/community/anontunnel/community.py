@@ -12,17 +12,18 @@ from collections import defaultdict
 
 # Tribler and Dispersy imports
 from twisted.internet import defer
-from twisted.python.failure import Failure
 from Tribler.Core.Utilities import encoding
+from Tribler.community.anontunnel.cache import CircuitRequestCache, \
+    PingRequestCache
+from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message
-from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.candidate import Candidate, WalkCandidate, \
-    BootstrapCandidate, CANDIDATE_WALK_LIFETIME
+    BootstrapCandidate
 from Tribler.dispersy.community import Community
 
 # AnonTunnel imports
@@ -59,317 +60,6 @@ class ProxySettings:
         self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(
             length)
         self.crypto = crypto.NoCrypto() # crypto.DefaultCrypto()
-
-
-class RelayRoute(object):
-    """
-    Relay object containing the destination circuit, socket address and whether
-    it is online or not
-    """
-
-    def __init__(self, circuit_id, sock_addr):
-        """
-        @type sock_addr: (str, int)
-        @type circuit_id: int
-        @return:
-        """
-
-        self.sock_addr = sock_addr
-        self.circuit_id = circuit_id
-        self.online = False
-        self.last_incoming = time.time()
-
-    @property
-    def ping_time_remaining(self):
-        """
-        The time left before we consider the relay inactive
-        """
-        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
-        diff = self.last_incoming - too_old
-        return diff if diff > 0 else 0
-
-    @property
-    def bytes(self):
-        """
-        Number of bytes that have been sent to the destination address
-        """
-        return 0
-
-
-class Circuit:
-    """ Circuit data structure storing the id, state and hops """
-
-    def __init__(self, circuit_id, goal_hops=0, candidate=None, proxy=None,
-                 deferred=None):
-        """
-        Instantiate a new Circuit data structure
-        :type proxy: ProxyCommunity
-        :param circuit_id: the id of the candidate circuit
-        :param candidate: the first hop of the circuit
-        :return: Circuit
-        """
-
-        self._broken = False
-        self._hops = []
-        self._logger = logging.getLogger(__name__)
-
-        def __create_deferred():
-            def __errback(e):
-                self._logger.error("Unhandled deferred error: {0}".format(e))
-                return e
-
-            d = defer.Deferred()
-            d.addErrback(__errback)
-            return d
-
-        self.circuit_id = circuit_id
-        self.candidate = candidate
-        self.goal_hops = goal_hops
-        self.deferred = deferred if deferred else __create_deferred()
-        self.extend_strategy = None
-        self.last_incoming = time.time()
-
-        if proxy:
-            self.__stats = proxy.global_stats.circuit_stats[circuit_id]
-        else:
-            self.__stats = None
-
-        self.unverified_hop = None
-        ''' :type : Hop '''
-
-        self.proxy = proxy
-
-    @property
-    def hops(self):
-        """
-        Return a read only tuple version of the hop-list of this circuit
-        @rtype tuple[Hop]
-        """
-        return tuple(self._hops)
-
-    def add_hop(self, hop):
-        """
-        Adds a hop to the circuits hop collection
-        @param Hop hop: the hop to add
-        """
-        self._hops.append(hop)
-
-        if self.deferred and self.state == CIRCUIT_STATE_READY:
-            self.deferred.callback(self)
-
-    @property
-    def state(self):
-        """
-        The circuit state, can be either:
-         CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING or CIRCUIT_STATE_READY
-        @rtype: str
-        """
-        if self._broken:
-            return CIRCUIT_STATE_BROKEN
-
-        if len(self.hops) < self.goal_hops:
-            return CIRCUIT_STATE_EXTENDING
-        else:
-            return CIRCUIT_STATE_READY
-
-    @property
-    def ping_time_remaining(self):
-        """
-        The time left before we consider the circuit inactive, when it returns
-        0 a PING must be sent to keep the circuit, including relays at its hop,
-        alive.
-        """
-        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
-        diff = self.last_incoming - too_old
-        return diff if diff > 0 else 0
-
-    def __contains__(self, other):
-        if isinstance(other, Candidate):
-            # TODO: should compare to a list here
-            return other == self.candidate
-
-    def beat_heart(self):
-        """
-        Mark the circuit as active
-        """
-        self.last_incoming = time.time()
-
-    @property
-    def bytes_downloaded(self):
-        """
-        The total numbers of bytes downloaded over this circuit during its
-         entire lifetime
-        @rtype: long|None
-        """
-        return self.__stats.bytes_downloaded if self.__stats else None
-
-    @property
-    def bytes_uploaded(self):
-        """
-        The total numbers of bytes uploaded over this circuit during its
-         entire lifetime
-        @rtype: long|None
-        """
-        return self.__stats.bytes_uploaded if self.__stats else None
-
-    def tunnel_data(self, destination, payload):
-        """
-        Convenience method to tunnel data over this circuit
-        @param (str, int) destination: the destination of the packet
-        @param str payload: the packet's payload
-        @return bool: whether the tunnel request has succeeded, this is in no
-         way an acknowledgement of delivery!
-        """
-
-        return self.proxy.tunnel_data_to_end(destination, payload, self)
-
-    def destroy(self, reason='unknown'):
-        """
-        Destroys the circuit and calls the error callback of the circuit's
-        deferred if it has not been called before
-
-        @param str reason: the reason why the circuit is being destroyed
-        """
-        self._broken = True
-
-        if self.deferred and not self.deferred.called:
-            self.deferred.errback(
-                Failure(Exception("Circuit broken, reason=%s" % reason)))
-
-
-class Hop:
-    """
-    Circuit Hop containing the address, its public key and the first part of
-    the Diffie-Hellman handshake
-    """
-
-    def __init__(self, address, pub_key, dh_first_part):
-        """
-        @param (str, int) address: the socket address of the hop
-        @param M2Crypto.EC.EC_pub pub_key: the EC public key of the hop
-        @param long dh_first_part: first part of the DH-handshake
-        """
-        self.address = address
-        self.pub_key = pub_key
-        self.session_key = None
-        self.dh_first_part = dh_first_part
-
-    @property
-    def host(self):
-        """
-        The hop's hostname
-        """
-        return self.address[0]
-
-    @property
-    def port(self):
-        """
-        The hop's port
-        """
-        return self.address[1]
-
-
-class TunnelObserver:
-    """
-    The TunnelObserver class is being notified by the ProxyCommunity in case
-    a circuit / relay breaks, the global state changes or when data is being
-    sent and received
-    """
-
-    def __init__(self):
-        pass
-
-    def on_break_circuit(self, circuit):
-        """
-        Called when a circuit has been broken and removed from the
-        ProxyCommunity
-        @param Circuit circuit: the circuit that has been broken
-        """
-        pass
-
-    # noinspection PyMethodMayBeStatic
-    def on_break_relay(self, relay_key):
-        """
-        Called when a relay has been broken due to inactivity
-        @param ((str, int), int) relay_key: the identifier in
-            (sock_addr, circuit) format
-        """
-        pass
-
-    def on_incoming_from_tunnel(self, community, circuit, origin, data):
-        """
-        Called when we are receiving data from our circuit
-
-        @type community: Tribler.community.anontunnel.community.ProxyCommunity
-        @param Circuit circuit: the circuit the data was received on
-        @param (str, int) origin: the origin of the packet in sock_addr format
-        @param str data: the data received
-        """
-        pass
-
-    def on_exiting_from_tunnel(self, circuit_id, candidate, destination, data):
-        """
-        Called when a DATA message has been received destined for the outside
-        world
-
-        @param int circuit_id: the circuit id where the the DATA message was
-            received on
-        @param Candidate candidate: the relay candidate who relayed the message
-        @param (str, int) destination: the packet's ultimate destination
-        @param data: the payload
-        """
-        pass
-
-    def on_tunnel_stats(self, community, candidate, stats):
-        """
-        Called when a STATS message has been received
-        @type community: Tribler.community.anontunnel.community.ProxyCommunity
-        @type candidate: Candidate
-        @type stats: dict
-        """
-        pass
-
-    def on_enter_tunnel(self, circuit_id, candidate, origin, payload):
-        """
-        Called when we received a packet from the outside world
-
-        @param int circuit_id: the circuit for which we received data from the
-            outside world
-        @param Candidate candidate: the known relay for this circuit
-        @param (str, int) origin: the outside origin of the packet
-        @param str payload: the packet's payload
-        """
-        pass
-
-    def on_send_data(self, circuit_id, candidate, destination, payload):
-        """
-        Called when uploading data over a circuit
-
-        @param int circuit_id: the circuit where data being uploaded over
-        @param Candidate candidate: the relay used to send data over
-        @param (str, int) destination: the destination of the packet
-        @param str payload: the packet's payload
-        """
-        pass
-
-    def on_relay(self, from_key, to_key, direction, data):
-        """
-        Called when we are relaying data from_key to to_key
-
-        @param ((str, int), int) from_key: the relay we are getting data from
-        @param ((str, int), int) to_key: the relay we are sending data to
-        @param direction: ENDPOINT if we are relaying towards the end of the
-            tunnel, ORIGINATOR otherwise
-        @type data: str
-        @return:
-        """
-        pass
-
-    def on_unload(self):
-        """
-        Called when the ProxyCommunity is being unloaded
-        """
-        pass
 
 
 class ProxyCommunity(Community):
@@ -704,8 +394,8 @@ class ProxyCommunity(Community):
 
         if not payload:
             self._logger.warning("IGNORED %s from %s:%d over circuit %d",
-                           str_type, candidate.sock_addr[0],
-                           candidate.sock_addr[1], circuit_id)
+                                 str_type, candidate.sock_addr[0],
+                                 candidate.sock_addr[1], circuit_id)
             return
 
         if am_originator:
@@ -809,101 +499,6 @@ class ProxyCommunity(Community):
                 self._logger.debug("Got an encrypted message I can't encrypt. "
                                    "Dropping packet, probably old.")
 
-    class CircuitRequestCache(NumberCache):
-        @staticmethod
-        def create_number(force_number=-1):
-            return force_number if force_number >= 0 \
-                else NumberCache.create_number()
-
-        @staticmethod
-        def create_identifier(number, force_number=-1):
-            assert isinstance(number, (int, long)), type(number)
-            return u"request-cache:circuit-request:%d" % (number,)
-
-        def __init__(self, community, force_number):
-            NumberCache.__init__(self, community.request_cache, force_number)
-            self._logger = logging.getLogger(__name__)
-            self.community = community
-
-            self.circuit = None
-            """ :type : Tribler.community.anontunnel.community.Circuit """
-
-        @property
-        def timeout_delay(self):
-            return 5.0
-
-        def on_extended(self, extended_message):
-            """
-            :type extended_message : ExtendedMessage
-            """
-            unverified_hop = self.circuit.unverified_hop
-
-            session_key = pow(extended_message.key,
-                              unverified_hop.dh_first_part,
-                              DIFFIE_HELLMAN_MODULUS)
-            m = hashlib.sha1()
-            m.update(str(session_key))
-            key = m.digest()[0:16]
-
-            unverified_hop.session_key = key
-
-            self.circuit.add_hop(unverified_hop)
-            self.circuit.unverified_hop = None
-
-            try:
-                candidate_list = self.community.decrypt_candidate_list(
-                    key, extended_message.candidate_list)
-            except Exception as e:
-                reason = "Can't decrypt candidate list!"
-                self._logger.exception(reason)
-                self.community.remove_circuit(self.circuit.circuit_id, reason)
-                return
-
-            dispersy = self.community.dispersy
-            if dispersy.lan_address in candidate_list:
-                del candidate_list[dispersy.lan_address]
-
-            if dispersy.wan_address in candidate_list:
-                del candidate_list[dispersy.wan_address]
-
-            for hop in self.circuit.hops:
-                if hop.address in candidate_list:
-                    del candidate_list[hop.address]
-
-            if self.circuit.state == CIRCUIT_STATE_EXTENDING:
-                try:
-                    self.circuit.extend_strategy.extend(candidate_list)
-                except ValueError as e:
-                    self._logger.exception("Cannot extend due to exception:")
-                    reason = 'Extend error, state = %s' % self.circuit.state
-                    self.community.remove_circuit(self.number, reason)
-
-            elif self.circuit.state == CIRCUIT_STATE_READY:
-                self.on_success()
-
-            if self.community.notifier:
-                from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, \
-                    NTFY_CREATED, NTFY_EXTENDED
-
-                if len(self.circuit.hops) == 1:
-                    self.community.notifier.notify(
-                        NTFY_ANONTUNNEL, NTFY_CREATED, self.circuit)
-                else:
-                    self.community.notifier.notify(
-                        NTFY_ANONTUNNEL, NTFY_EXTENDED, self.circuit)
-
-        def on_success(self):
-            if self.circuit.state == CIRCUIT_STATE_READY:
-                self._logger.info("Circuit %d is ready", self.number)
-                self.community.dispersy.callback.register(
-                    self.community.request_cache.pop, args=(self.identifier,))
-
-        def on_timeout(self):
-            if not self.circuit.state == CIRCUIT_STATE_READY:
-                reason = 'timeout on CircuitRequestCache, state = %s' % \
-                         self.circuit.state
-                self.community.remove_circuit(self.number, reason)
-
     def _create_circuit(self, first_hop, goal_hops, extend_strategy=None,
                         deferred=None):
         """ Create a new circuit, with one initial hop
@@ -914,13 +509,13 @@ class ProxyCommunity(Community):
         @param T <= extendstrategies.ExtendStrategy extend_strategy: The extend
             strategy used
 
-        @rtype: Circuit
+        @rtype: Tribler.community.anontunnel.routing.Circuit
         """
         try:
             circuit_id = self._generate_circuit_id(first_hop.sock_addr)
 
             cache = self._request_cache.add(
-                ProxyCommunity.CircuitRequestCache(self, circuit_id))
+                CircuitRequestCache(self, circuit_id))
 
             circuit = cache.circuit = Circuit(
                 circuit_id=circuit_id,
@@ -1118,15 +713,76 @@ class ProxyCommunity(Community):
             return self.send_message(candidate, forwarding_relay.circuit_id,
                                      MESSAGE_EXTENDED, extended_message)
 
+        # This is ours!
+        circuit = self.circuits[circuit_id]
+        self._ours_on_created_extended(circuit, message)
+        return True
+
+    def _ours_on_created_extended(self, circuit, message):
+        """
+        @param ExtendedMessage | CreatedMessage message: the CREATED or
+            EXTENDED message we received
+        """
+
         request = self.dispersy.callback.call(
             self.request_cache.get,
-            args=(self.CircuitRequestCache.create_identifier(circuit_id),))
+            args=(CircuitRequestCache.create_identifier(circuit.circuit_id),))
 
-        if request:
-            request.on_extended(message)
-            return True
+        unverified_hop = circuit.unverified_hop
 
-        return False
+        session_key = pow(message.key,
+                          unverified_hop.dh_first_part,
+                          DIFFIE_HELLMAN_MODULUS)
+        m = hashlib.sha1()
+        m.update(str(session_key))
+        key = m.digest()[0:16]
+
+        unverified_hop.session_key = key
+
+        circuit.add_hop(unverified_hop)
+        circuit.unverified_hop = None
+
+        try:
+            candidate_list = self.decrypt_candidate_list(
+                key, message.candidate_list)
+        except Exception as e:
+            reason = "Can't decrypt candidate list!"
+            self._logger.exception(reason)
+            self.remove_circuit(circuit.circuit_id, reason)
+            return
+
+        dispersy = self.dispersy
+        if dispersy.lan_address in candidate_list:
+            del candidate_list[dispersy.lan_address]
+
+        if dispersy.wan_address in candidate_list:
+            del candidate_list[dispersy.wan_address]
+
+        for hop in circuit.hops:
+            if hop.address in candidate_list:
+                del candidate_list[hop.address]
+
+        if circuit.state == CIRCUIT_STATE_EXTENDING:
+            try:
+                circuit.extend_strategy.extend(candidate_list)
+            except ValueError as e:
+                self._logger.exception("Cannot extend due to exception:")
+                reason = 'Extend error, state = %s' % circuit.state
+                self.remove_circuit(circuit.circuit_id, reason)
+
+        elif circuit.state == CIRCUIT_STATE_READY:
+            request.on_success()
+
+        if self.notifier:
+            from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, \
+                NTFY_CREATED, NTFY_EXTENDED
+
+            if len(circuit.hops) == 1:
+                self.notifier.notify(
+                    NTFY_ANONTUNNEL, NTFY_CREATED, circuit)
+            else:
+                self.notifier.notify(
+                    NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit)
 
     def on_data(self, circuit_id, candidate, message):
         """
@@ -1246,46 +902,9 @@ class ProxyCommunity(Community):
         @return: whether the message could be handled correctly
         """
 
-        request = self.dispersy.callback.call(
-            self._request_cache.get,
-            args=(self.CircuitRequestCache.create_identifier(circuit_id),))
-
-        if request:
-            request.on_extended(message)
-            return True
-        return False
-
-    class PingRequestCache(NumberCache):
-
-        @staticmethod
-        def create_number(force_number=-1):
-            return force_number \
-                if force_number >= 0 \
-                else NumberCache.create_number()
-
-        @staticmethod
-        def create_identifier(number, force_number=-1):
-            assert isinstance(number, (int, long)), type(number)
-            return u"request-cache:ping-request:%d" % (number,)
-
-        def __init__(self, community, force_number):
-            NumberCache.__init__(self, community.request_cache, force_number)
-            self.community = community
-
-        @property
-        def timeout_delay(self):
-            return 10.0
-
-        @property
-        def cleanup_delay(self):
-            return 0.0
-
-        def on_pong(self, message):
-            self.community.dispersy.callback.register(
-                self.community.request_cache.pop, args=(self.identifier,))
-
-        def on_timeout(self):
-            self.community.remove_circuit(self.number, 'RequestCache')
+        circuit = self.circuits[circuit_id]
+        self._ours_on_created_extended(circuit, message)
+        return True
 
     def create_ping(self, candidate, circuit_id):
         """
@@ -1298,9 +917,9 @@ class ProxyCommunity(Community):
         """
 
         def __do_add():
-            identifier = self.PingRequestCache.create_identifier(circuit_id)
+            identifier = PingRequestCache.create_identifier(circuit_id)
             if not self._request_cache.has(identifier):
-                cache = self.PingRequestCache(self, circuit_id)
+                cache = PingRequestCache(self, circuit_id)
                 self._request_cache.add(cache)
 
         self._dispersy.callback.register(__do_add)
@@ -1339,7 +958,7 @@ class ProxyCommunity(Community):
         self._logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
         request = self.dispersy.callback.call(
             self._request_cache.get,
-            args=(self.PingRequestCache.create_identifier(circuit_id),))
+            args=(PingRequestCache.create_identifier(circuit_id),))
 
         if request:
             request.on_pong(message)
@@ -1454,7 +1073,7 @@ class ProxyCommunity(Community):
         """
         Dict of active circuits, a circuit is active when its state is
         CIRCUIT_STATE_READY
-        @rtype: dict[int, Circuit]
+        @rtype: dict[int, Tribler.community.anontunnel.routing.Circuit]
         """
         return {circuit_id: circuit
                 for circuit_id, circuit in self.circuits.items()
@@ -1499,7 +1118,8 @@ class ProxyCommunity(Community):
         @param (str, int) ultimate_destination: The destination outside the
             tunnel community
         @param str payload: The raw payload to send to the ultimate destination
-        @param Circuit circuit: The circuit id to tunnel data over
+        @param Tribler.community.anontunnel.routing.Circuit circuit: The
+            circuit id to tunnel data over
 
         @return: Whether the request has been handled successfully
         """
@@ -1551,9 +1171,8 @@ class ProxyCommunity(Community):
         """
 
         def __reserve(circuit):
-            self._logger.warning("Reserving circuit {0}".format(circuit.circuit_id))
+            self._logger.warning("Reserving circuit %d", circuit.circuit_id)
             self._reservations.add(circuit)
-
             return circuit
 
         def __errback(e):
@@ -1573,10 +1192,10 @@ class ProxyCommunity(Community):
                 deferred.addErrback(__errback)
 
                 # remove from the list when circuit is ready
-                deferred.addCallback(lambda circuit: __reserve(circuit))
+                deferred.addCallback(__reserve)
                 self._circuit_promises.append(deferred)
 
-        return deferred
+                return deferred
 
     def cancel_reservation(self, circuit):
         """

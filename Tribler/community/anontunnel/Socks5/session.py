@@ -1,7 +1,7 @@
 import logging
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.community.anontunnel.Socks5 import conversion
-from Tribler.community.anontunnel.community import TunnelObserver
+from Tribler.community.anontunnel.events import TunnelObserver
 
 
 class Socks5Session(TunnelObserver):
@@ -12,7 +12,7 @@ class Socks5Session(TunnelObserver):
     @param Socks5Connection connection: the Socks5Connection
     @param RawServer raw_server: The raw server, used to create and listen on
     UDP-sockets
-    @param list[Tribler.community.anontunnel.community.Circuit] circuits: the
+    @param list[Tribler.community.anontunnel.routing.Circuit] circuits: the
     circuits allocated to this session
     """
 

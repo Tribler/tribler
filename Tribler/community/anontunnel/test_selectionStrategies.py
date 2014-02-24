@@ -1,9 +1,9 @@
 from random import randint
 from unittest import TestCase
+from Tribler.community.anontunnel.routing import Circuit
 
 from Tribler.community.anontunnel.selectionstrategies import \
     LengthSelectionStrategy, RandomSelectionStrategy
-from Tribler.community.anontunnel.community import Circuit
 from Tribler.dispersy.candidate import Candidate
 
 

@@ -189,7 +189,6 @@ class Socks5Connection(object):
         in the current state
         """
         while len(self.buffer) > 0:
-
             self.state = self._guess_state()
 
             # We are at the initial state, so we expect a handshake request.
@@ -199,42 +198,26 @@ class Socks5Connection(object):
 
             # We are connected so the
             elif self.state == ConnectionState.CONNECTED:
-                try:
-                    if not self._try_request():
-                        break  # Not enough bytes so wait till we got more
-                except:
-                    self.state == ConnectionState.BEFORE_METHOD_REQUEST
-                    break
+                if not self._try_request():
+                    break  # Not enough bytes so wait till we got more
 
     def _guess_state(self):
         if len(self.buffer) < 3:
             return self.state
 
         buffer = self.buffer
-        if buffer[0] == chr(0x05) and buffer[1] == chr(0x01) and chr(0x00) == buffer[2]:
+        is_version = ord(buffer[0]) == 0x05
+        if is_version and buffer[1] == chr(0x01) and chr(0x00) == buffer[2]:
             self._logger.error("State GUESSING here!")
             return ConnectionState.BEFORE_METHOD_REQUEST
 
-        is_version = ord(buffer[0]) == 0x05
         has_valid_command = ord(buffer[1]) in {0x01, 0x02, 0x03}
-        has_valid_addr = ord(buffer[2]) in {0x01, 0x03, 0x04}
+        has_valid_address = ord(buffer[2]) in {0x01, 0x03, 0x04}
 
-        if is_version and has_valid_command and has_valid_addr:
+        if is_version and has_valid_command and has_valid_address:
             return ConnectionState.CONNECTED
 
         return self.state
-
-    def _recover_buffer(self, buffer):
-        for i in range(len(buffer) - 2):
-            is_version = buffer[i] == 0x05
-            has_valid_command = buffer[i+1] in {0x01, 0x02, 0x03}
-            has_valid_addr = buffer[i+2] in {0x01, 0x03, 0x04}
-
-            if is_version and has_valid_command and has_valid_addr:
-                self._logger.warning("Found new SOCKS5 packet at index %d" % i)
-                return buffer[i:]
-
-        return ''
 
     def write(self, data):
         if self.single_socket is not None:

@@ -4,7 +4,7 @@ import sqlite3
 import uuid
 import time
 
-from Tribler.community.anontunnel.community import TunnelObserver
+from Tribler.community.anontunnel.events import TunnelObserver
 
 __author__ = 'chris'
 

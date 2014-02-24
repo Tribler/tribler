@@ -6,8 +6,9 @@ import copy
 
 import wx
 import igraph
-from Tribler.community.anontunnel.community import Hop, ProxyCommunity
+from Tribler.community.anontunnel.community import ProxyCommunity
 import datetime
+from Tribler.community.anontunnel.routing import Hop
 
 try:
     import igraph.vendor.texttable
@@ -33,7 +34,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_PUNCTURE, NTFY_JOINED, NTFY_EXTENDED_FOR
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, LIST_BLUE
@@ -1287,7 +1288,6 @@ class Anonymity(wx.Panel):
 
         self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
         self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
-        self.session.add_observer(self.OnPuncture, NTFY_ANONTUNNEL, [NTFY_PUNCTURE])
         self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
         self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
 
@@ -1405,10 +1405,6 @@ class Anonymity(wx.Panel):
     @forceWxThread
     def OnSelect(self, subject, changeType, circuit, address):
         self.AppendToLog("Circuit %d has been selected for destination %s\n" % (circuit, address))
-
-    @forceWxThread
-    def OnPuncture(self, subject, changeType, address):
-        self.AppendToLog("We will puncture our NAT to %s:%d\n" % address)
 
     @forceWxThread
     def OnJoined(self, subject, changeType, address, circuit_id):

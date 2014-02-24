@@ -5,6 +5,7 @@ from random import getrandbits
 from Tribler.community.anontunnel.globals import *
 from Crypto.Util.number import long_to_bytes
 from Tribler.community.anontunnel.payload import *
+from Tribler.community.anontunnel.routing import Hop
 
 __author__ = 'chris'
 
@@ -78,7 +79,6 @@ class NeighbourSubset(ExtendStrategy):
         while dh_secret >= DIFFIE_HELLMAN_MODULUS:
             dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
 
-        from Tribler.community.anontunnel.community import Hop
         self.circuit.unverified_hop = Hop(
             sock_addr, extend_hop_public_key, dh_secret)
 

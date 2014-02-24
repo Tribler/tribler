@@ -1,10 +1,11 @@
+from Tribler.community.anontunnel.events import TunnelObserver
+
 __author__ = 'chris'
 
 import logging
 import socket
 from traceback import print_exc
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
-from Tribler.community.anontunnel.community import TunnelObserver
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY
 from .session import Socks5Session
 from .connection import Socks5Connection
@@ -41,11 +42,8 @@ class Socks5Server(object, TunnelObserver):
 
     def start(self):
         try:
-            port = self.raw_server.bind(
-                self.socks5_port, reuse=True, handler=self)
-
-            self._logger.info("Socks5Proxy bound to %s:%s", "0.0.0.0", port)
-
+            self.raw_server.bind(self.socks5_port, reuse=True, handler=self)
+            self._logger.info("SOCKS5 listening on port %d", self.socks5_port)
             self.tunnel.observers.append(self)
 
             self._reserve_circuits(4)
