@@ -212,7 +212,7 @@ class LibtorrentMgr:
                 self._logger.info("LibtorrentMgr: killing get_metainfo request for %s", infohash)
                 handle, _, _ = self.metainfo_requests.pop(infohash)
                 if handle:
-                    ltsession.remove_torrent(handle, 0)
+                    self.ltsession.remove_torrent(handle, 0)
 
             handle = ltsession.add_torrent(atp)
             infohash = str(handle.info_hash())
@@ -343,7 +343,10 @@ class LibtorrentMgr:
                     atp['url'] = magnet
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
-                handle = self.ltsession.add_torrent(atp)
+                try:
+                    handle = self.ltsession.add_torrent(atp)
+                except:
+                    pass
                 if notify:
                     self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
 
