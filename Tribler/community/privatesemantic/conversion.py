@@ -88,28 +88,15 @@ class ForwardConversion(BinaryConversion):
         return self._decode_ping(placeholder, offset, data)
 
     def _encode_introduction_request(self, message):
-        import sys
-        print >> sys.stderr, 'encoding', message.destination.candidates[0]
-
         data = BinaryConversion._encode_introduction_request(self, message)
 
         if not isinstance(message.destination.candidates[0], BootstrapCandidate):
             if message.payload.introduce_me_to:
                 data.insert(0, pack('!c20s', 'Y', message.payload.introduce_me_to))
-
-        print >> sys.stderr, 'encoded', data
-
         return data
 
     def _decode_introduction_request(self, placeholder, offset, data):
-        import sys
-        print >> sys.stderr, 'decoding'
-
         has_introduce_me, = unpack_from('!c', data, offset)
-
-        print >> sys.stderr, 'decoding', has_introduce_me
-
-
         if has_introduce_me == 'Y':
             # we assume that it contains an introduce_me, doesn't have to be true
             offset += 1
@@ -117,12 +104,9 @@ class ForwardConversion(BinaryConversion):
             offset += 20
 
             try:
+                # no exception, hence a valid mid
                 offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
-                # no exception, hence a valid
                 payload.set_introduce_me_to(candidate_mid)
-
-                print >> sys.stderr, 'decoding', payload
-
                 return offset, payload
 
             except DropPacket:
