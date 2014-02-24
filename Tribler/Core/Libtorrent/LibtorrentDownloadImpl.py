@@ -1094,7 +1094,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             pstate.add_section('state')
         pstate.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
         if isinstance(self.tdef, TorrentDefNoMetainfo):
-            pstate.set('state', 'metainfo', {'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode()})
+            pstate.set('state', 'metainfo', {'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode(), 'url': self.tdef.get_url()})
         else:
             pstate.set('state', 'metainfo', self.tdef.get_metainfo())
 
@@ -1107,23 +1107,20 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         pstate.set('state', 'engineresumedata', None)
         return pstate
 
-    def get_coopdl_role_object(self, role):
-        """ Called by network thread """
-        return None
-
-    def recontact_tracker(self):
-        """ Called by any thread """
-        pass
-
     def set_def(self, tdef):
         with self.dllock:
             self.tdef = tdef
 
     def add_trackers(self, trackers):
         with self.dllock:
-            if self.handle:
+            if self.handle and hasattr(self.handle, 'add_tracker'):
                 for tracker in trackers:
                     self.handle.add_tracker({'url': tracker, 'verified': False})
+
+    def get_magnet_link(self):
+        with self.dllock:
+            if self.handle:
+                return lt.make_magnet_uri(self.handle)
 
     #
     # External addresses

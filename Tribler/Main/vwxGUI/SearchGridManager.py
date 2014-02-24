@@ -274,6 +274,8 @@ class TorrentManager:
                             _, _, trs = parse_magnetlink(source)
                             trackers.extend(trs)
 
+                trackers.extend(self.torrent_db.getTrackerListByTorrentID(torrent_id))
+
                 if len(files) > 0:
                     # We still call getTorrent to fetch .torrent
                     self.getTorrent(torrent, None, prio=1)
