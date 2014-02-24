@@ -290,22 +290,23 @@ class StatsCrawler(TunnelObserver):
 
             result_id = cursor.lastrowid
 
-            for c in stats['circuits']:
+            for circuit in stats['circuits']:
                 cursor.execute('''
                     INSERT INTO result_circuit (
                         result_id, hops, bytes_up, bytes_down, time
                     ) VALUES (?, ?, ?, ?, ?)''',
                                [
-                                   result_id, c['hops'], c['bytes_up'],
-                                   c['bytes_down'],
-                                   c['time']
+                                   result_id, circuit['hops'],
+                                   circuit['bytes_up'],
+                                   circuit['bytes_down'],
+                                   circuit['time']
                                ])
 
-            for c in stats['relays']:
+            for relay in stats['relays']:
                 cursor.execute('''
                     INSERT INTO result_relay (result_id, bytes, time)
                         VALUES (?, ?, ?)
-                ''', [result_id, c['bytes'], c['time']])
+                ''', [result_id, relay['bytes'], relay['time']])
 
             self.conn.commit()
 

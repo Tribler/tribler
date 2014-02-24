@@ -2,9 +2,11 @@ import logging
 from random import getrandbits
 
 
-from Tribler.community.anontunnel.globals import *
 from Crypto.Util.number import long_to_bytes
-from Tribler.community.anontunnel.payload import *
+from Tribler.community.anontunnel.globals import CIRCUIT_STATE_EXTENDING, \
+    MESSAGE_EXTEND, DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_MODULUS, \
+    DIFFIE_HELLMAN_GENERATOR
+from Tribler.community.anontunnel.payload import ExtendMessage
 from Tribler.community.anontunnel.routing import Hop
 
 __author__ = 'chris'

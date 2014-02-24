@@ -60,8 +60,7 @@ class ProxySettings:
 
         self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
-        self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy(
-            self.max_circuits)
+        self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy()
         self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(
             length)
         self.crypto = crypto.NoCrypto() # crypto.DefaultCrypto()

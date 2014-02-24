@@ -27,9 +27,9 @@ class Circuit:
         self._logger = logging.getLogger(__name__)
 
         def __create_deferred():
-            def __errback(e):
-                self._logger.error("Unhandled deferred error: {0}".format(e))
-                return e
+            def __errback(error):
+                self._logger.error("Unhandled deferred error: %s", error)
+                return error
 
             d = defer.Deferred()
             d.addErrback(__errback)
@@ -50,7 +50,6 @@ class Circuit:
         self.unverified_hop = None
         ''' :type : Hop '''
 
-        self.proxy = proxy
 
     @property
     def hops(self):
@@ -106,24 +105,6 @@ class Circuit:
         Mark the circuit as active
         """
         self.last_incoming = time.time()
-
-    @property
-    def bytes_downloaded(self):
-        """
-        The total numbers of bytes downloaded over this circuit during its
-         entire lifetime
-        @rtype: long|None
-        """
-        return self.__stats.bytes_downloaded if self.__stats else None
-
-    @property
-    def bytes_uploaded(self):
-        """
-        The total numbers of bytes uploaded over this circuit during its
-         entire lifetime
-        @rtype: long|None
-        """
-        return self.__stats.bytes_uploaded if self.__stats else None
 
     def tunnel_data(self, destination, payload):
         """
@@ -208,10 +189,3 @@ class RelayRoute(object):
         too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
         diff = self.last_incoming - too_old
         return diff if diff > 0 else 0
-
-    @property
-    def bytes(self):
-        """
-        Number of bytes that have been sent to the destination address
-        """
-        return 0

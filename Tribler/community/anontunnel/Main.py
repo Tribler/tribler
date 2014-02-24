@@ -1,3 +1,7 @@
+"""
+AnonTunnel CLI interface
+"""
+
 import logging.config
 import threading
 import os
@@ -61,12 +65,12 @@ class AnonTunnel(Thread):
                                     failfunc=lambda (e): print_exc(),
                                     errorfunc=lambda (e): print_exc())
 
-        self.callback = Callback()
+        callback = Callback()
         self.socks5_port = socks5_port
         self.socks5_server = None
 
-        self.endpoint = DispersyBypassEndpoint(self.raw_server, port=10000)
-        self.dispersy = Dispersy(self.callback, self.endpoint, u".",
+        endpoint = DispersyBypassEndpoint(self.raw_server, port=10000)
+        self.dispersy = Dispersy(callback, endpoint, u".",
                                  u":memory:", crypto=ElgamalCrypto())
 
         self.community = None
@@ -78,20 +82,20 @@ class AnonTunnel(Thread):
         if not self.community or not then:
             return now, 0, 0, 0, 0, 0, 0
 
-        dt = now - then
+        diff = now - then
 
         stats = self.community.global_stats.stats
         relay_stats = self.community.global_stats.relay_stats
 
-        speed_exit = (stats['bytes_exit'] - bytes_exit0) / dt if then else 0
+        speed_exit = (stats['bytes_exit'] - bytes_exit0) / diff if then else 0
         bytes_exit = stats['bytes_exit']
 
-        speed_enter = (stats['bytes_enter'] - bytes_enter0) / dt if then else 0
+        speed_enter = (stats['bytes_enter'] - bytes_enter0) / diff if then else 0
         bytes_enter = stats['bytes_enter']
 
         relay_2 = sum([r.bytes[1] for r in relay_stats.values()])
 
-        speed_relay = (relay_2 - bytes_relay0) / dt if then else 0
+        speed_relay = (relay_2 - bytes_relay0) / diff if then else 0
         bytes_relay = relay_2
 
         return now, speed_exit, speed_enter, speed_relay, \
@@ -148,7 +152,7 @@ class AnonTunnel(Thread):
         self.community = self.dispersy.callback.call(_join_overlay, proxy_args)
         ''' :type : Tribler.community.anontunnel.community.ProxyCommunity '''
 
-        self.callback.register(self.__speed_stats)
+        self.dispersy.callback.register(self.__speed_stats)
         self.raw_server.listen_forever(None)
 
     def stop(self):
@@ -257,6 +261,8 @@ def main(argv):
 
     anon_tunnel.start()
 
+
+
     while 1:
         try:
             line = sys.stdin.readline()
@@ -296,15 +302,17 @@ def main(argv):
                 print >> sys.stderr, "Profiling disabled!"
 
         elif line == 'c\n':
+            stats = anon_tunnel.community.global_stats.circuit_stats
+
             print "========\nCircuits\n========\n" \
                   "id\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
-            for circuit in anon_tunnel.community.circuits.values():
+            for circuit_id, circuit in anon_tunnel.community.circuits:
                 print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (
                     circuit.circuit_id, circuit.candidate.sock_addr[0],
                     circuit.candidate.sock_addr[1],
                     circuit.goal_hops, len(circuit.hops),
-                    circuit.bytes_downloaded / 1024.0 / 1024.0,
-                    circuit.bytes_uploaded / 1024.0 / 1024.0
+                    stats[circuit_id].bytes_downloaded / 1024.0 / 1024.0,
+                    stats[circuit_id].bytes_uploaded / 1024.0 / 1024.0
                 )
 
                 for hop in circuit.hops[1:]:

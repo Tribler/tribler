@@ -201,14 +201,14 @@ class Socks5Connection(object):
         if len(self.buffer) < 3:
             return self.state
 
-        buffer = self.buffer
-        is_version = ord(buffer[0]) == 0x05
-        if is_version and buffer[1] == chr(0x01) and chr(0x00) == buffer[2]:
+        data = self.buffer
+        is_version = ord(data[0]) == 0x05
+        if is_version and data[1] == chr(0x01) and chr(0x00) == data[2]:
             self._logger.error("State GUESSING here!")
             return ConnectionState.BEFORE_METHOD_REQUEST
 
-        has_valid_command = ord(buffer[1]) in {0x01, 0x02, 0x03}
-        has_valid_address = ord(buffer[2]) in {0x01, 0x03, 0x04}
+        has_valid_command = ord(data[1]) in {0x01, 0x02, 0x03}
+        has_valid_address = ord(data[2]) in {0x01, 0x03, 0x04}
 
         if is_version and has_valid_command and has_valid_address:
             return ConnectionState.CONNECTED
