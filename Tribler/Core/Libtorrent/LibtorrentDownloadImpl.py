@@ -976,7 +976,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         pstate = self.dlconfig.copy()
 
         # Reset unpicklable params
-        pstate.set('downloadconfig', 'vod_usercallback', None)
         pstate.set('downloadconfig', 'mode', DLMODE_NORMAL)
 
         # Add state stuff

@@ -32,17 +32,6 @@ class UserCallbackHandler:
         Notifier.delInstance()
         self.threadpool.joinAll()
 
-    def perform_vod_usercallback(self, d, usercallback, event, params):
-        """ Called by network thread """
-        self._logger.debug("Session: perform_vod_usercallback() %s", repr(d.get_def().get_name()))
-
-        def session_vod_usercallback_target():
-            try:
-                usercallback(d, event, params)
-            except:
-                print_exc()
-        self.perform_usercallback(session_vod_usercallback_target)
-
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
         """ Called by network thread """
         self._logger.debug("Session: perform_getstate_usercallback()")

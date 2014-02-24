@@ -303,7 +303,7 @@ class TriblerLaunchMany(Thread):
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
-            d.setup(dscfg, pstate, initialdlstatus, self.network_engine_wrapper_created_callback, self.network_vod_event_callback, wrapperDelay=setupDelay)
+            d.setup(dscfg, pstate, initialdlstatus, self.network_engine_wrapper_created_callback, wrapperDelay=setupDelay)
 
         finally:
             self.sesslock.release()
@@ -817,17 +817,6 @@ class TriblerLaunchMany(Thread):
         # print >>sys.stderr,"tlm: set_activity",type,str,arg2
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
 
-    def network_vod_event_callback(self, callback, vod_source, vod_lock):
-        """ Called by network thread """
-
-        self._logger.debug("tlm: network_vod_event_callback: vod_source %s, vod_lock %s", vod_source, vod_lock)
-
-        # Call Session threadpool to call user's callback
-        try:
-            callback(vod_source, vod_lock)
-        except:
-            print_exc()
-
     def update_torrent_checking_period(self):
         # dynamically change the interval: update at least every 2h
         if self.rtorrent_handler:
@@ -867,7 +856,7 @@ class TriblerLaunchMany(Thread):
 
             # Store in list of Downloads, always.
             self.downloads[roothash] = d
-            d.setup(dscfg, pstate, initialdlstatus, None, self.network_vod_event_callback)
+            d.setup(dscfg, pstate, initialdlstatus, None)
 
         finally:
             self.sesslock.release()

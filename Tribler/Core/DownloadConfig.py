@@ -83,64 +83,6 @@ class DownloadConfigInterface(object):
         """
         self.dlconfig.set('downloadconfig', 'correctedfilename', correctedfilename)
 
-    def set_video_event_callback(self, usercallback):
-        """ Download the torrent in Video-On-Demand mode or as live stream.
-        When a playback event occurs, the usercallback function will be
-        called, with the following list of arguments:
-        <pre>
-            Download,event,params
-        </pre>
-        In which event is a string, and params a dictionary. The following
-        events are supported:
-        <pre>
-        VODEVENT_START:
-            The params dictionary will contain the fields
-
-                mimetype,stream,filename,length,bitrate,blocksize,url
-
-            If the filename is set, the video can be read from there. If not,
-            the video can be read from the stream, which is a file-like object
-            supporting the read(),seek(), and close() operations. It also
-            supports an available() method that returns the number of bytes
-            that can be read from the stream without blocking.  If the stream
-            is not set, the url key contains a URL for the video.
-
-            The MIME type of the video is given by "mimetype", the length of
-            the stream in bytes by "length" which may be None if the length is
-            unknown (e.g. when live streaming). bitrate is either the bitrate
-            as specified in the TorrentDef, or if that was lacking an dynamic
-            estimate calculated using the videoanalyser (e.g. ffmpeg), see
-            SessionConfig.set_video_analyser_path(). "blocksize" indicates
-            the preferred amount of data to read from the stream at a time.
-
-            To fetch a specific file from a multi-file torrent, use the
-            set_selected_files() method. This method sets the mode to DLMODE_VOD
-
-        VODEVENT_PAUSE:
-            The download engine would like video playback to be paused as the
-            data is not coming in fast enough / the data due is not available
-            yet.
-
-            The params dictionary contains the fields
-
-                autoresume
-
-            "autoresume" indicates whether or not the Core will generate
-            a VODEVENT_RESUME when it is ready again, or that this is left
-            to the core user.
-
-        VODEVENT_RESUME:
-            The download engine would like video playback to resume.
-        </pre>
-        The usercallback should ignore events it does not support.
-
-        The usercallback will be called by a popup thread which can be used
-        indefinitely (within reason) by the higher level code.
-
-        @param usercallback  A function with the above signature.
-        """
-        self.dlconfig.set('downloadconfig', 'vod_usercallback', usercallback)
-
     def set_mode(self, mode):
         """ Sets the mode of this download.
         @param mode DLMODE_NORMAL/DLMODE_VOD """
@@ -150,12 +92,6 @@ class DownloadConfigInterface(object):
         """ Returns the mode of this download.
         @return DLMODE_NORMAL/DLMODE_VOD """
         return self.dlconfig.get('downloadconfig', 'mode')
-
-    def get_video_event_callback(self):
-        """ Returns the function that was passed to set_video_event_callback().
-        @return A function.
-        """
-        return self.dlconfig.get('downloadconfig', 'vod_usercallback')
 
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must

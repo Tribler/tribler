@@ -152,11 +152,6 @@ LIVE_AUTHMETHOD_NONE = "None"  # No auth, also no abs. piece nr. or timestamp.
 LIVE_AUTHMETHOD_ECDSA = "ECDSA"  # Elliptic Curve DSA signatures
 LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
 
-# Video-On-Demand / live events
-VODEVENT_START = "start"
-VODEVENT_PAUSE = "pause"
-VODEVENT_RESUME = "resume"
-
 
 # Friendship messages
 F_REQUEST_MSG = "REQ"
