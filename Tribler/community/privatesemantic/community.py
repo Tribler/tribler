@@ -909,7 +909,7 @@ class PForwardCommunity(ForwardCommunity):
         return messages
 
     def initiate_conversions(self):
-        return [PSearchConversion(self)]
+        return [DefaultConversion(self), PSearchConversion(self)]
 
     def create_similarity_payload(self):
         t1 = time()
@@ -1080,7 +1080,7 @@ class HForwardCommunity(ForwardCommunity):
         return messages
 
     def initiate_conversions(self):
-        return [HSearchConversion(self)]
+        return [DefaultConversion(self), HSearchConversion(self)]
 
     def create_similarity_payload(self):
         t1 = time()
@@ -1262,7 +1262,7 @@ class PoliForwardCommunity(ForwardCommunity):
         return paillier_init(ForwardCommunity.init_key(self))
 
     def initiate_conversions(self):
-        return [PoliSearchConversion(self)]
+        return [DefaultConversion(self), PoliSearchConversion(self)]
 
     def initiate_meta_messages(self):
         messages = ForwardCommunity.initiate_meta_messages(self)
