@@ -1,8 +1,6 @@
 import random
 import logging
 
-logger = logging.getLogger(__name__)
-
 r = random.Random()
 
 __author__ = 'chris'
@@ -10,7 +8,7 @@ __author__ = 'chris'
 
 class SelectionStrategy:
     def __init__(self):
-        pass
+        self._logger = logging.getLogger(__name__)
 
     def select(self, circuits_to_select_from):
         pass
@@ -67,7 +65,7 @@ class LengthSelectionStrategy(SelectionStrategy):
         self.random = True if random_selection else False
 
     def can_select(self, circuits_to_select_from):
-        logger.debug(
+        self._logger.debug(
             "Trying to select from {0} with length between {1} and {2}".format(
                 [len(c.hops) for c in circuits_to_select_from], self.min,
                 self.max))
@@ -78,7 +76,7 @@ class LengthSelectionStrategy(SelectionStrategy):
 
     def select(self, circuits_to_select_from):
         if not self.can_select(circuits_to_select_from):
-            logger.error(
+            self._logger.error(
                 "ERROR select from {0} with length between {1} and {2}".format(
                     [len(c.hops) for c in circuits_to_select_from], self.min,
                     self.max))

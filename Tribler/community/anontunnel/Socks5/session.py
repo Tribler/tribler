@@ -3,8 +3,6 @@ from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.community.anontunnel.Socks5 import conversion
 from Tribler.community.anontunnel.community import TunnelObserver
 
-logger = logging.getLogger()
-
 
 class Socks5Session(TunnelObserver):
     """
@@ -21,6 +19,7 @@ class Socks5Session(TunnelObserver):
     def __init__(self, raw_server, connection, circuits):
         TunnelObserver.__init__(self)
         self.raw_server = raw_server
+        self._logger = logging.getLogger(__name__)
         self.connection = connection
         self.circuits = circuits
         ''' :type : list[Circuit] '''
@@ -42,24 +41,24 @@ class Socks5Session(TunnelObserver):
         Closes the session and the linked TCP connection
         @param str reason: the reason why the session should be closed
         """
-        logger.error("Closing session, reason = {0}".format(reason))
+        self._logger.error("Closing session, reason = {0}".format(reason))
         LibtorrentMgr.getInstance().ltsession_anon.pause()
 
         self.connection.close()
 
     def on_break_circuit(self, circuit):
         if circuit in self.circuits:
-            logger.error("A circuit has died, to enforce 3-way swift handshake"
-                         " we are signalling swift by closing TCP connection")
+            self._logger.error(
+                "A circuit has died, to enforce 3-way swift handshake "
+                "we are signalling swift by closing TCP connection")
             self.close_session()
 
     def _select(self, destination):
-
         if not destination in self.destinations:
             self._select_index = (self._select_index + 1) % len(self.circuits)
             self.destinations[destination] = self.circuits[self._select_index]
 
-            logger.error("SELECT circuit {0} for {1}".format(
+            self._logger.error("SELECT circuit {0} for {1}".format(
                 self.destinations[destination].circuit_id,
                 destination
             ))
@@ -78,8 +77,11 @@ class Socks5Session(TunnelObserver):
             request = conversion.decode_udp_packet(packet)
 
             circuit = self._select(request.destination)
-            logger.debug("Relaying UDP packets from {0} to {1}".format(
-                         self.remote_udp_address, request.destination))
+            self._logger.error(
+                "Relaying UDP packets from {0} to {1}".format(
+                    self.remote_udp_address, request.destination
+                )
+            )
 
             circuit.tunnel_data(request.destination, request.payload)
 
@@ -92,8 +94,9 @@ class Socks5Session(TunnelObserver):
         bytes_written = self._udp_socket.sendto(socks5_udp,
                                                 self.remote_udp_address)
         if bytes_written < len(socks5_udp):
-            logger.error("Packet drop on return!")
+            self._logger.error("Packet drop on return!")
 
-        logger.info("Returning UDP packets from %s to %s using proxy port %d",
-                    origin, self.remote_udp_address,
-                    self._udp_socket.getsockname()[1])
+        self._logger.info(
+            "Returning UDP packets from %s to %s using proxy port %d",
+            origin, self.remote_udp_address,
+            self._udp_socket.getsockname()[1])

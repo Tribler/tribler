@@ -7,12 +7,11 @@ from Crypto.Util.number import long_to_bytes
 from Tribler.community.anontunnel.payload import *
 
 __author__ = 'chris'
-logger = logging.getLogger(__name__)
 
 
 class ExtendStrategy:
     def __init__(self):
-        pass
+        self._logger = logging.getLogger(__name__)
 
     def extend(self, candidate_list=None):
         if not candidate_list:
@@ -40,7 +39,7 @@ class TrustThyNeighbour(ExtendStrategy):
         assert self.circuit.goal_hops > len(self.circuit.hops), \
             "Circuits with correct length cannot be extended"
 
-        logger.info("Trusting our tunnel to extend circuit %d",
+        self._logger.info("Trusting our tunnel to extend circuit %d",
                     self.circuit.circuit_id)
         self.proxy.send_message(self.circuit.candidate,
                                 self.circuit.circuit_id, MESSAGE_EXTEND,
@@ -89,13 +88,14 @@ class NeighbourSubset(ExtendStrategy):
             encrypted_dh_first_part = self.proxy.crypto.encrypt(
                 extend_hop_public_key,
                 long_to_bytes(dh_first_part, 2048 / 8))
-            logger.info("We chose %s from the list to extend circuit %d with "
-                        "encrypted DH first part %s",
-                        sock_addr, self.circuit.circuit_id, dh_first_part)
+            self._logger.info(
+                "We chose %s from the list to extend circuit %d with "
+                "encrypted DH first part %s",
+                sock_addr, self.circuit.circuit_id, dh_first_part)
 
             self.proxy.send_message(
                 self.circuit.candidate, self.circuit.circuit_id,
                 MESSAGE_EXTEND,
                 ExtendMessage(sock_addr, encrypted_dh_first_part))
         except BaseException as e:
-            logger.exception("Encryption error")
+            self._logger.exception("Encryption error")

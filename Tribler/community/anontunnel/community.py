@@ -42,8 +42,6 @@ __author__ = 'chris'
 
 import logging
 
-logger = logging.getLogger()
-
 
 class ProxySettings:
     """
@@ -113,10 +111,11 @@ class Circuit:
 
         self._broken = False
         self._hops = []
+        self._logger = logging.getLogger(__name__)
 
         def __create_deferred():
             def __errback(e):
-                logger.error("Unhandled deferred error: {0}".format(e))
+                self._logger.error("Unhandled deferred error: {0}".format(e))
                 return e
 
             d = defer.Deferred()
@@ -155,7 +154,7 @@ class Circuit:
         """
         self._hops.append(hop)
 
-        if self.state == CIRCUIT_STATE_READY:
+        if self.deferred and self.state == CIRCUIT_STATE_READY:
             self.deferred.callback(self)
 
     @property
@@ -182,7 +181,7 @@ class Circuit:
         """
         too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
         diff = self.last_incoming - too_old
-        return diff if diff > 0 else 00
+        return diff if diff > 0 else 0
 
     def __contains__(self, other):
         if isinstance(other, Candidate):
@@ -233,7 +232,7 @@ class Circuit:
         """
         self._broken = True
 
-        if not self.deferred.called:
+        if self.deferred and not self.deferred.called:
             self.deferred.errback(
                 Failure(Exception("Circuit broken, reason=%s" % reason)))
 
@@ -444,6 +443,7 @@ class ProxyCommunity(Community):
         Community.__init__(self, dispersy, master_member)
 
         self.lock = threading.RLock()
+        self._logger = logging.getLogger(__name__)
 
         self.settings = settings if settings else ProxySettings()
         # Custom conversion
@@ -490,8 +490,6 @@ class ProxyCommunity(Community):
         self.destination_circuit = {}
         ''' @type: dict[(str, int), int] '''
 
-        self._online = False
-
         self._circuit_promises = []
         self._reservations = set()
 
@@ -535,7 +533,7 @@ class ProxyCommunity(Community):
 
         with self.lock:
             while circuits_needed():
-                logger.debug("Need %d new circuits!", circuits_needed())
+                self._logger.debug("Need %d new circuits!", circuits_needed())
                 goal_hops = self.settings.length_strategy.circuit_length()
 
                 if goal_hops == 0:
@@ -677,7 +675,7 @@ class ProxyCommunity(Community):
                                distribution=(self.claim_global_time(),),
                                payload=(stats,))
 
-            logger.warning("Sending stats")
+            self._logger.warning("Sending stats")
             self.dispersy.store_update_forward([record], True, False, True)
 
         self.dispersy.callback.register(__send_stats)
@@ -692,7 +690,7 @@ class ProxyCommunity(Community):
         packet_type = self.proxy_conversion.get_type(data)
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
 
-        logger.debug(
+        self._logger.debug(
             "GOT %s from %s:%d over circuit %d",
             str_type if str_type else 'unknown-type-%d' % ord(packet_type),
             candidate.sock_addr[0],
@@ -702,10 +700,10 @@ class ProxyCommunity(Community):
 
         # Call any message filter before handing it over to our own handlers
         payload = self._filter_message(circuit_id, candidate,
-                                       packet_type, payload, )
+                                       packet_type, payload)
 
         if not payload:
-            logger.warning("IGNORED %s from %s:%d over circuit %d",
+            self._logger.warning("IGNORED %s from %s:%d over circuit %d",
                            str_type, candidate.sock_addr[0],
                            candidate.sock_addr[1], circuit_id)
             return
@@ -721,7 +719,7 @@ class ProxyCommunity(Community):
         else:
             self.__dict_inc(self.dispersy.statistics.success,
                             str_type + '-ignored')
-            logger.debug("Prev message was IGNORED")
+            self._logger.debug("Prev message was IGNORED")
 
     def __relay(self, circuit_id, data, relay_key, sock_addr):
         # First, relay packet if we know whom to forward message to for
@@ -751,7 +749,7 @@ class ProxyCommunity(Community):
             packet_type, 'unknown-type-%d' % ord(packet_type)
         )
 
-        logger.debug(
+        self._logger.debug(
             "GOT %s from %s:%d over circuit %d", str_type,
             sock_addr[0], sock_addr[1], circuit_id
         )
@@ -795,7 +793,7 @@ class ProxyCommunity(Community):
             self.__handle_incoming(circuit_id, is_originator, candidate, data)
 
         except Exception as e:
-            logger.exception(
+            self._logger.exception(
                 "Incoming from {3} on {4} message error."
                 "INITIAL={0}, ORIGINATOR={1}, RELAY={2}"
                 .format(is_initial, is_originator, is_relay, sock_addr,
@@ -808,8 +806,8 @@ class ProxyCommunity(Community):
                     circuit_id,
                     "Bad crypto, possible old circuit: {0}".format(e.message))
             else:
-                logger.debug("Got an encrypted message I can't encrypt. "
-                             "Dropping packet, probably old.")
+                self._logger.debug("Got an encrypted message I can't encrypt. "
+                                   "Dropping packet, probably old.")
 
     class CircuitRequestCache(NumberCache):
         @staticmethod
@@ -824,6 +822,7 @@ class ProxyCommunity(Community):
 
         def __init__(self, community, force_number):
             NumberCache.__init__(self, community.request_cache, force_number)
+            self._logger = logging.getLogger(__name__)
             self.community = community
 
             self.circuit = None
@@ -856,7 +855,7 @@ class ProxyCommunity(Community):
                     key, extended_message.candidate_list)
             except Exception as e:
                 reason = "Can't decrypt candidate list!"
-                logger.exception(reason)
+                self._logger.exception(reason)
                 self.community.remove_circuit(self.circuit.circuit_id, reason)
                 return
 
@@ -875,7 +874,7 @@ class ProxyCommunity(Community):
                 try:
                     self.circuit.extend_strategy.extend(candidate_list)
                 except ValueError as e:
-                    logger.exception("Cannot extend due to exception:")
+                    self._logger.exception("Cannot extend due to exception:")
                     reason = 'Extend error, state = %s' % self.circuit.state
                     self.community.remove_circuit(self.number, reason)
 
@@ -895,7 +894,7 @@ class ProxyCommunity(Community):
 
         def on_success(self):
             if self.circuit.state == CIRCUIT_STATE_READY:
-                logger.info("Circuit %d is ready", self.number)
+                self._logger.info("Circuit %d is ready", self.number)
                 self.community.dispersy.callback.register(
                     self.community.request_cache.pop, args=(self.identifier,))
 
@@ -951,7 +950,7 @@ class ProxyCommunity(Community):
             circuit.unverified_hop = Hop(first_hop.sock_addr,
                                          pub_key,
                                          dh_secret)
-            logger.info(
+            self._logger.info(
                 'Circuit %d is to be created, wants %d hops sending to %s:%d',
                 circuit_id, circuit.goal_hops,
                 first_hop.sock_addr[0],
@@ -965,7 +964,7 @@ class ProxyCommunity(Community):
 
             return circuit
         except Exception as e:
-            logger.exception("create_circuit")
+            self._logger.exception("create_circuit")
 
     def remove_circuit(self, circuit_id, additional_info=''):
         """
@@ -977,7 +976,7 @@ class ProxyCommunity(Community):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
         if circuit_id in self.circuits:
-            logger.error("Breaking circuit %d " + additional_info, circuit_id)
+            self._logger.error("Breaking circuit %d " + additional_info, circuit_id)
             circuit = self.circuits[circuit_id]
 
             circuit.destroy()
@@ -997,7 +996,7 @@ class ProxyCommunity(Community):
         @return: whether the removal was successful
         """
         if relay_key in self.relay_from_to:
-            logger.error(
+            self._logger.error(
                 ("Breaking relay %s:%d %d " + additional_info) % (
                     relay_key[0][0], relay_key[0][1], relay_key[1]))
 
@@ -1022,7 +1021,7 @@ class ProxyCommunity(Community):
         @param Candidate candidate: The candidate we got a CREATE message from
         @param CreateMessage message: The message's payload
         """
-        logger.info('We joined circuit %d with neighbour %s', circuit_id,
+        self._logger.info('We joined circuit %d with neighbour %s', circuit_id,
                     candidate)
 
         relay_key = (candidate.sock_addr, circuit_id)
@@ -1044,9 +1043,9 @@ class ProxyCommunity(Community):
         key = m.digest()[0:16]
 
         self.session_keys[relay_key] = key
-        #logger.debug("The create message's key   : {}".format(message.key))
-        #logger.debug("My diffie secret           : {}".format(self.dh_secret))
-        #logger.debug("SECRET {} FOR THE ORIGINATOR NODE".format(key))
+        #self._logger.debug("The create message's key   : {}".format(message.key))
+        #self._logger.debug("My diffie secret           : {}".format(self.dh_secret))
+        #self._logger.debug("SECRET {} FOR THE ORIGINATOR NODE".format(key))
 
         return_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
                          DIFFIE_HELLMAN_MODULUS)
@@ -1063,7 +1062,7 @@ class ProxyCommunity(Community):
             key_string = self.crypto.key_to_bin(ec_key)
 
             candidate_dict[candidate_temp.sock_addr] = key_string
-            logger.debug("Found candidate {0} with key".format(
+            self._logger.debug("Found candidate {0} with key".format(
                 candidate_temp.sock_addr))
 
         if self.notifier:
@@ -1110,7 +1109,7 @@ class ProxyCommunity(Community):
         del self.waiting_for[relay_key]
         self.directions[relay_key] = ORIGINATOR
         if relay_key in self.relay_from_to:
-            logger.debug("Got CREATED message, forward as EXTENDED to origin.")
+            self._logger.debug("Got CREATED message, forward as EXTENDED to origin.")
             extended_message = ExtendedMessage(message.key,
                                                message.candidate_list)
             forwarding_relay = self.relay_from_to[relay_key]
@@ -1155,7 +1154,7 @@ class ProxyCommunity(Community):
         # the packet is from the outside world and addressed to us from
         if circuit_id in self.circuits and message.origin \
                 and candidate == self.circuits[circuit_id].candidate:
-            logger.debug("Exit socket at {0}".format(message.destination))
+            self._logger.debug("Exit socket at {0}".format(message.destination))
 
             self.circuits[circuit_id].beat_heart()
             self.__notify(
@@ -1188,7 +1187,7 @@ class ProxyCommunity(Community):
 
         if message.extend_with:
             extend_with_addr = message.extend_with
-            logger.warning(
+            self._logger.warning(
                 "ON_EXTEND send CREATE for circuit (%s, %d) to %s:%d!",
                 candidate,
                 circuit_id,
@@ -1275,7 +1274,7 @@ class ProxyCommunity(Community):
 
         @property
         def timeout_delay(self):
-            return 5.0
+            return 10.0
 
         @property
         def cleanup_delay(self):
@@ -1306,7 +1305,7 @@ class ProxyCommunity(Community):
 
         self._dispersy.callback.register(__do_add)
 
-        logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
+        self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
@@ -1319,7 +1318,7 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-        logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
+        self._logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
         return self.send_message(
             destination=candidate,
             circuit_id=circuit_id,
@@ -1337,7 +1336,7 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-        logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
+        self._logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
         request = self.dispersy.callback.call(
             self._request_cache.get,
             args=(self.PingRequestCache.create_identifier(circuit_id),))
@@ -1432,7 +1431,7 @@ class ProxyCommunity(Community):
         str_type = MESSAGE_TYPE_STRING.get(
             message_type, "unknown-type-" + str(ord(message_type)))
 
-        logger.debug(
+        self._logger.debug(
             "SEND %s to %s:%d over circuit %d",
             str_type,
             destination.sock_addr[0], destination.sock_addr[1],
@@ -1469,7 +1468,7 @@ class ProxyCommunity(Community):
                     for relay_key, relay in self.relay_from_to.items()
                     if relay.ping_time_remaining == 0]
 
-                logger.info("removed %d relays", len(to_be_removed))
+                self._logger.info("removed %d relays", len(to_be_removed))
                 assert all(to_be_removed)
 
                 to_be_pinged = [
@@ -1477,11 +1476,11 @@ class ProxyCommunity(Community):
                     if circuit.ping_time_remaining < PING_INTERVAL
                     and circuit.candidate]
 
-                logger.info("pinging %d circuits", len(to_be_pinged))
+                self._logger.info("pinging %d circuits", len(to_be_pinged))
                 for circuit in to_be_pinged:
                     self.create_ping(circuit.candidate, circuit.circuit_id)
             except:
-                logger.exception("Ping error")
+                self._logger.exception("Ping error")
 
             yield PING_INTERVAL
 
@@ -1552,13 +1551,13 @@ class ProxyCommunity(Community):
         """
 
         def __reserve(circuit):
-            logger.warning("Reserving circuit {0}".format(circuit.circuit_id))
+            self._logger.warning("Reserving circuit {0}".format(circuit.circuit_id))
             self._reservations.add(circuit)
 
             return circuit
 
         def __errback(e):
-            logger.exception(e)
+            self._logger.exception(e)
             return e
 
         with self.lock:

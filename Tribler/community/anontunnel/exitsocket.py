@@ -4,7 +4,6 @@ __author__ = 'Chris'
 
 import logging
 
-logger = logging.getLogger()
 
 
 class TunnelExitSocket(object):
@@ -33,6 +32,7 @@ class TunnelExitSocket(object):
         self.destination_address = destination_address
         self.circuit_id = circuit_id
         self.socket = socket
+        self._logger = logging.getLogger(__name__)
 
     def sendto(self, data, destination):
         """
@@ -50,8 +50,9 @@ class TunnelExitSocket(object):
         """
 
         for source_address, packet in packets:
-            logger.info("ENTER DATA in TunnelExitSocket, packet FROM %s",
-                        source_address)
+            self._logger.debug(
+                "ENTER DATA in TunnelExitSocket, packet FROM %s",
+                source_address)
             self.proxy.tunnel_data_to_origin(
                 circuit_id=self.circuit_id,
                 candidate=self.destination_address,
@@ -85,6 +86,7 @@ class ShortCircuitExitSocket(object):
         self.destination_address = destination_address
         self.socket = socket
         self.circuit_id = circuit_id
+        self._logger = logging.getLogger(__name__)
 
     def data_came_in(self, packets):
         """
@@ -95,8 +97,10 @@ class ShortCircuitExitSocket(object):
         """
 
         for source_address, packet in packets:
-            logger.info("ENTER DATA in ShortCircuitSocket, packet FROM %s",
-                        source_address)
+            self._logger.info(
+                "ENTER DATA in ShortCircuitSocket, packet FROM %s",
+                source_address)
+
             message = DataMessage(("0.0.0.0", 0), packet, source_address)
             self.proxy.on_data(self.circuit_id, None, message)
 

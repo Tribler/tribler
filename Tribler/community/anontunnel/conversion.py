@@ -7,8 +7,6 @@ from Tribler.community.anontunnel.globals import *
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 import struct
 
-logger = logging.getLogger(__name__)
-
 #-----------------------------------------------------------------------------
 #: enable verbose print statements.
 DEBUG = True
@@ -17,6 +15,8 @@ DEBUG = True
 class ProxyConversion(BinaryConversion):
     def __init__(self, community):
         super(ProxyConversion, self).__init__(community, "\x01")
+
+        self._logger = logging.getLogger(__name__)
 
         self.define_meta_message(
             chr(1),
@@ -38,6 +38,8 @@ class ProxyConversion(BinaryConversion):
 
 class CustomProxyConversion():
     def __init__(self):
+        self._logger = logging.getLogger(__name__)
+
         self.encode_functions = {
             MESSAGE_CREATE: self.__encode_create,
             MESSAGE_CREATED: self.__encode_created,
@@ -242,7 +244,6 @@ class CustomProxyConversion():
         key = message_buffer[offset:]
 
         return CreateMessage(key)
-
 
 
 #: struct format lookup for specific word sizes.

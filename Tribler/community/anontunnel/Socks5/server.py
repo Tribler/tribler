@@ -10,8 +10,6 @@ from .session import Socks5Session
 from .connection import Socks5Connection
 
 
-logger = logging.getLogger()
-
 
 class NotEnoughCircuitsException(Exception):
     pass
@@ -28,6 +26,7 @@ class Socks5Server(object, TunnelObserver):
     """
     def __init__(self, tunnel, raw_server, socks5_port=1080):
         super(Socks5Server, self).__init__()
+        self._logger = logging.getLogger(__name__)
 
         self.tunnel = tunnel
         self.socks5_port = socks5_port
@@ -45,24 +44,24 @@ class Socks5Server(object, TunnelObserver):
             port = self.raw_server.bind(
                 self.socks5_port, reuse=True, handler=self)
 
-            logger.info("Socks5Proxy bound to %s:%s", "0.0.0.0", port)
+            self._logger.info("Socks5Proxy bound to %s:%s", "0.0.0.0", port)
 
             self.tunnel.observers.append(self)
 
             self._reserve_circuits(4)
         except socket.error:
-            logger.error(
+            self._logger.error(
                 "Cannot listen on SOCK5 port %s:%d, perhaps another "
                 "instance is running?",
                 "0.0.0.0", self.socks5_port)
         except:
-            logger.exception("Exception trying to reserve circuits")
+            self._logger.exception("Exception trying to reserve circuits")
 
     def _allocate_circuits(self, count):
         if count > len(self.reserved_circuits):
             raise NotEnoughCircuitsException("Not enough circuits!")
 
-        logger.info("Allocating {0} circuits for the Socks5Server")
+        self._logger.info("Allocating {0} circuits for the Socks5Server")
         circuits = self.reserved_circuits[0:count]
         del self.reserved_circuits[0:count]
 
@@ -80,14 +79,14 @@ class Socks5Server(object, TunnelObserver):
             self.awaiting_circuits -= 1
             if self.awaiting_circuits == 0:
                 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-                logger.error("Going to RESUME anonymous session")
+                self._logger.error("Going to RESUME anonymous session")
                 LibtorrentMgr.getInstance().set_anonymous_proxy()
             return result
 
         if lacking > 0:
             new = lacking - self.awaiting_circuits
 
-            logger.warning(
+            self._logger.warning(
                 "Require %d circuits, have %d, waiting %d, new %d",
                 count, len(self.reserved_circuits),
                 self.awaiting_circuits, new)
@@ -105,7 +104,7 @@ class Socks5Server(object, TunnelObserver):
 
         @param SingleSocket single_socket: the new connection
         """
-        logger.info("accepted SOCKS5 new connection")
+        self._logger.info("accepted SOCKS5 new connection")
         s5con = Socks5Connection(single_socket, self)
 
         try:
@@ -124,7 +123,7 @@ class Socks5Server(object, TunnelObserver):
         pass
 
     def connection_lost(self, single_socket):
-        logger.info("SOCKS5 TCP connection lost")
+        self._logger.info("SOCKS5 TCP connection lost")
 
         if single_socket not in self.tcp2session:
             return
@@ -136,9 +135,10 @@ class Socks5Server(object, TunnelObserver):
         good_circuits = [c for c in session.circuits
                          if c.state == CIRCUIT_STATE_READY]
 
-        logger.warning("Reclaiming %d good circuits due to %s:%d",
-                       len(good_circuits),
-                       single_socket.get_ip(), single_socket.get_port())
+        self._logger.warning(
+            "Reclaiming %d good circuits due to %s:%d",
+            len(good_circuits),
+            single_socket.get_ip(), single_socket.get_port())
 
         self.reserved_circuits = good_circuits + self.reserved_circuits
         s5con = session.connection
@@ -162,7 +162,7 @@ class Socks5Server(object, TunnelObserver):
         try:
             tcp_connection.data_came_in(data)
         except:
-            print_exc()
+            self._logger.exception("Error while handling incoming TCP data")
 
     def on_break_circuit(self, circuit):
         if circuit in self.reserved_circuits:

@@ -131,13 +131,13 @@ class LibtorrentMgr:
         if self.ltsession_anon:
             proxy_settings = lt.proxy_settings()
             proxy_settings.type = lt.proxy_type(proxy_type.socks5)
-            proxy_settings.hostname = "localhost"
+            proxy_settings.hostname = "127.0.0.1"
             proxy_settings.port = 1080
-            proxy_settings.proxy_hostnames = True
+            proxy_settings.proxy_hostnames = False
             proxy_settings.proxy_peer_connections = True
             self.ltsession_anon.set_peer_proxy(proxy_settings)
             self.ltsession_anon.set_tracker_proxy(proxy_settings)
-            #self.ltsession_anon.set_dht_proxy(proxy_settings)
+            self.ltsession_anon.set_dht_proxy(proxy_settings)
             self.ltsession_anon.resume()
 
     def shutdown(self):

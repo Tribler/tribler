@@ -4,9 +4,6 @@ Created on 3 jun. 2013
 @author: Chris
 """
 import logging
-
-logger = logging.getLogger(__name__)
-
 from Tribler.community.anontunnel.Socks5 import conversion
 
 
@@ -22,6 +19,10 @@ class ConnectionState:
     TCP_RELAY = 6
 
 
+class TcpRelay:
+    pass
+
+
 class Socks5Connection(object):
     """
     SOCKS5 TCP Connection handler
@@ -32,6 +33,8 @@ class Socks5Connection(object):
 
     def __init__(self, single_socket, socks5_server):
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
+        self._logger = logging.getLogger(__name__)
+        
         self.single_socket = single_socket
         ''' :type : SingleSocket '''
 
@@ -42,9 +45,6 @@ class Socks5Connection(object):
         self.tcp_relay = None
         self.udp_associate = None
         ''' :type : (Socks5Connection) -> socket '''
-
-    def open_tcp_relay(self, destination):
-        self.tcp_relay = self.socks5_server.start_connection(destination)
 
     def data_came_in(self, data):
         """
@@ -84,12 +84,12 @@ class Socks5Connection(object):
         # Only accept NO AUTH
         if request.version != 0x05 or len(
                 {0x00, 0x01, 0x02}.difference(request.methods)) == 2:
-            logger.info("Client has sent INVALID METHOD REQUEST")
+            self._logger.info("Client has sent INVALID METHOD REQUEST")
             self.buffer = ''
             self.close()
             return
 
-        logger.info("Client {0} has sent METHOD REQUEST".format(
+        self._logger.info("Client {0} has sent METHOD REQUEST".format(
             (self.single_socket.get_ip(), self.single_socket.get_port())
         ))
 
@@ -107,7 +107,7 @@ class Socks5Connection(object):
 
         :return: None
         """
-        logger.info("Relaying TCP data")
+        self._logger.info("Relaying TCP data")
         self.tcp_relay.sendall(self.buffer)
         self.buffer = ''
 
@@ -123,7 +123,7 @@ class Socks5Connection(object):
 
         :return: None
         """
-        logger.debug("Client {0} has sent PROXY REQUEST".format(
+        self._logger.debug("Client {0} has sent PROXY REQUEST".format(
             (self.single_socket.get_ip(), self.single_socket.get_port())
         ))
         offset, request = conversion.decode_request(0, self.buffer)
@@ -134,38 +134,20 @@ class Socks5Connection(object):
         self.buffer = self.buffer[offset:]
 
         assert isinstance(request, conversion.Request)
-
-
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
         accept = True
 
         try:
-            if request.cmd == conversion.REQ_CMD_CONNECT:
-                destination = (request.destination_host, request.destination_port)
-
-                logger.warning("Accepting TCP RELAY request from %s:%d, "
-                               "direct client to %s:%d",
-                             self.single_socket.get_ip(),
-                             self.single_socket.get_port(),
-                             self.single_socket.get_myip(),
-                             self.single_socket.get_myport())
-
-                # Switch to TCP relay mode
-                self.open_tcp_relay(destination)
-
-                response = conversion.encode_reply(
-                    0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4,
-                    self.single_socket.get_myip(), self.single_socket.get_myport())
-                self.write(response)
-            elif request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
+            if request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
                 socket = self.udp_associate()
 
                 # We use same IP as the single socket, but the port number comes
                 # from the newly created UDP listening socket
-                ip, port = self.single_socket.get_myip(), socket.getsockname()[1]
+                ip = self.single_socket.get_myip()
+                port = socket.getsockname()[1]
 
-                logger.warning(
+                self._logger.warning(
                     "Accepting UDP ASSOCIATE request from %s:%d, "
                     "direct client to %s:%d",
                     self.single_socket.get_ip(), self.single_socket.get_port(),
@@ -174,30 +156,26 @@ class Socks5Connection(object):
                 response = conversion.encode_reply(
                     0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
                 self.write(response)
-            #elif request.cmd == conversion.REQ_CMD_BIND:
-            #    logger.warning("Faking BIND request")
-            #
-            #    response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED,
-            #                                       0x00, conversion.ADDRESS_TYPE_IPV4,
-            #                                       "127.0.0.1", 1081)
-            #
-            #    self.write(response)
             else:
                 # We will deny all other requests (BIND, and INVALID requests);
                 response = conversion.encode_reply(
                     0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
                     conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
                 self.write(response)
-                logger.error("DENYING SOCKS5 Request from {0}".format(
-                    (self.single_socket.get_ip(), self.single_socket.get_port())
-                ))
+                self._logger.error(
+                    "DENYING SOCKS5 Request from {0}".format(
+                        (self.single_socket.get_ip(),
+                         self.single_socket.get_port())
+                    )
+                )
                 accept = False
         except:
             response = conversion.encode_reply(
                     0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
                     conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
             self.write(response)
-            logger.error("Exception thrown. Writing unsupported command response")
+            self._logger.exception("Exception thrown. Returning unsupported "
+                                   "command response")
             accept = False
 
         if accept:
@@ -211,6 +189,9 @@ class Socks5Connection(object):
         in the current state
         """
         while len(self.buffer) > 0:
+
+            self.state = self._guess_state()
+
             # We are at the initial state, so we expect a handshake request.
             if self.state == ConnectionState.BEFORE_METHOD_REQUEST:
                 if not self._try_handshake():
@@ -222,11 +203,38 @@ class Socks5Connection(object):
                     if not self._try_request():
                         break  # Not enough bytes so wait till we got more
                 except:
-                    self.buffer = ''
-                    logger.exception("MALFORMED packet from {0} detected, try again!".format(
-                        (self.single_socket.get_ip(), self.single_socket.get_port())
-                    ))
+                    self.state == ConnectionState.BEFORE_METHOD_REQUEST
+                    break
 
+    def _guess_state(self):
+        if len(self.buffer) < 3:
+            return self.state
+
+        buffer = self.buffer
+        if buffer[0] == chr(0x05) and buffer[1] == chr(0x01) and chr(0x00) == buffer[2]:
+            self._logger.error("State GUESSING here!")
+            return ConnectionState.BEFORE_METHOD_REQUEST
+
+        is_version = ord(buffer[0]) == 0x05
+        has_valid_command = ord(buffer[1]) in {0x01, 0x02, 0x03}
+        has_valid_addr = ord(buffer[2]) in {0x01, 0x03, 0x04}
+
+        if is_version and has_valid_command and has_valid_addr:
+            return ConnectionState.CONNECTED
+
+        return self.state
+
+    def _recover_buffer(self, buffer):
+        for i in range(len(buffer) - 2):
+            is_version = buffer[i] == 0x05
+            has_valid_command = buffer[i+1] in {0x01, 0x02, 0x03}
+            has_valid_addr = buffer[i+2] in {0x01, 0x03, 0x04}
+
+            if is_version and has_valid_command and has_valid_addr:
+                self._logger.warning("Found new SOCKS5 packet at index %d" % i)
+                return buffer[i:]
+
+        return ''
 
     def write(self, data):
         if self.single_socket is not None:
