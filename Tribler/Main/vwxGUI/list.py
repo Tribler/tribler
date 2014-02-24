@@ -1671,7 +1671,8 @@ class LibraryList(SizeList):
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
                    {'name': 'Swift ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name': 'Swift time seeding', 'width': '30em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
+                   {'name': 'Swift time seeding', 'width': '30em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
+                   {'name': 'Anonymous', 'width': '15em', 'autoRefresh': False}]
 
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8, 9, 10])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
@@ -1911,6 +1912,14 @@ class LibraryList(SizeList):
                 seeds, peers = ds.get_num_seeds_peers() if ds else (0, 0)
                 item.RefreshColumn(6, seeds + peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers." % (seeds, peers) if ds else '')
+
+                # Just for testing. Should be removed before release.
+                if ds and item.data[11] == -1:
+                    import libtorrent as lt
+                    downloadhash = ds.get_download().get_def().get_id()
+                    inAnonSession = LibtorrentMgr.getInstance().ltsession_anon.find_torrent(lt.big_number(downloadhash)).is_valid()
+                    inNormSession = LibtorrentMgr.getInstance().ltsession.find_torrent(lt.big_number(downloadhash)).is_valid()
+                    item.RefreshColumn(11, 'Yes' if inAnonSession and not inNormSession else ('No' if not inAnonSession and inNormSession else '??'))
 
                 # For updating torrent icons
                 torrent_ds, swift_ds = item.original_data.dslist
