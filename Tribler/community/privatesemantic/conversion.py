@@ -7,6 +7,7 @@ from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
 
 from binascii import hexlify, unhexlify
+from Tribler.dispersy.candidate import BootstrapCandidate
 def long_to_bytes(val, nrbytes=0):
     hex_val = '%x' % abs(val)
     if nrbytes:
@@ -88,13 +89,13 @@ class ForwardConversion(BinaryConversion):
 
     def _encode_introduction_request(self, message):
         import sys
-        print >> sys.stderr, 'encoding'
+        print >> sys.stderr, 'encoding', message.destination.candidates[0]
 
         data = BinaryConversion._encode_introduction_request(self, message)
 
-        data.insert(0, pack('!?', bool(message.payload.introduce_me_to)))
-        if message.payload.introduce_me_to:
-            data.append(pack('!20s', message.payload.introduce_me_to))
+        if not isinstance(message.destination.candidates[0], BootstrapCandidate):
+            if message.payload.introduce_me_to:
+                data.insert(0, pack('!c20s', 'Y', message.payload.introduce_me_to))
 
         print >> sys.stderr, 'encoded', data
 
@@ -104,31 +105,31 @@ class ForwardConversion(BinaryConversion):
         import sys
         print >> sys.stderr, 'decoding'
 
-        has_introduce_me, = unpack_from('!?', data, offset)
-        offset += 1
+        has_introduce_me, = unpack_from('!c', data, offset)
 
         print >> sys.stderr, 'decoding', has_introduce_me
 
+
         if has_introduce_me == 'Y':
-            offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data[:-20])
-
-            print >> sys.stderr, 'decoding', payload
-
-            length = len(data) - offset
-            if length != 20:
-                raise DropPacket("Invalid number of bytes available (ir)")
-
+            # we assume that it contains an introduce_me, doesn't have to be true
+            offset += 1
             candidate_mid, = unpack_from('!20s', data, offset)
-            payload.set_introduce_me_to(candidate_mid)
+            offset += 20
 
-            print >> sys.stderr, 'decoding', candidate_mid
+            try:
+                offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
+                # no exception, hence a valid
+                payload.set_introduce_me_to(candidate_mid)
 
-            offset += length
-        else:
-            offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
-            print >> sys.stderr, 'decoding', payload
+                print >> sys.stderr, 'decoding', payload
 
-        return offset, payload
+                return offset, payload
+
+            except DropPacket:
+                # could not decode, reset offset parse as normal introduction request
+                offset -= 21
+
+        return BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)
