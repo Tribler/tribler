@@ -92,12 +92,14 @@ class LibtorrentMgr:
 
         self.ltsession_anon = self.create_anonymous_session()
         self.ltsession_anon.pause()
+        self.set_anonymous_proxy()
 
     def getInstance(*args, **kw):
         if LibtorrentMgr.__single is None:
             LibtorrentMgr(*args, **kw)
         return LibtorrentMgr.__single
     getInstance = staticmethod(getInstance)
+    ''' :type : () -> LibtorrentMgr '''
 
     def delInstance():
         del LibtorrentMgr.__single
@@ -135,7 +137,7 @@ class LibtorrentMgr:
             proxy_settings.proxy_peer_connections = True
             self.ltsession_anon.set_peer_proxy(proxy_settings)
             self.ltsession_anon.set_tracker_proxy(proxy_settings)
-            self.ltsession_anon.set_dht_proxy(proxy_settings)
+            #self.ltsession_anon.set_dht_proxy(proxy_settings)
             self.ltsession_anon.resume()
 
     def shutdown(self):

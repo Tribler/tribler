@@ -1,3 +1,5 @@
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
+
 ORIGINATOR = "originator"
 ENDPOINT = "endpoint"
 
@@ -33,8 +35,7 @@ MESSAGE_TYPE_STRING = {
     MESSAGE_STATS: u'stats'
 }
 
-# PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
-PING_INTERVAL = 5.0
+PING_INTERVAL = (CANDIDATE_WALK_LIFETIME - 5.0) / 4
 # we use group 14 of the IETF rfc3526 with a 2048 bit modulus
 # http://tools.ietf.org/html/rfc3526
 DIFFIE_HELLMAN_GENERATOR = 2

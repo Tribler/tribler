@@ -13,6 +13,10 @@ from .connection import Socks5Connection
 logger = logging.getLogger()
 
 
+class NotEnoughCircuitsException(Exception):
+    pass
+
+
 class Socks5Server(object, TunnelObserver):
     """
     The SOCKS5 server which allows clients to proxy UDP over Circuits in the
@@ -54,6 +58,16 @@ class Socks5Server(object, TunnelObserver):
         except:
             logger.exception("Exception trying to reserve circuits")
 
+    def _allocate_circuits(self, count):
+        if count > len(self.reserved_circuits):
+            raise NotEnoughCircuitsException("Not enough circuits!")
+
+        logger.info("Allocating {0} circuits for the Socks5Server")
+        circuits = self.reserved_circuits[0:count]
+        del self.reserved_circuits[0:count]
+
+        return circuits
+
     def _reserve_circuits(self, count):
         lacking = max(0, count - len(self.reserved_circuits))
 
@@ -65,9 +79,9 @@ class Socks5Server(object, TunnelObserver):
         def __finally(result):
             self.awaiting_circuits -= 1
             if self.awaiting_circuits == 0:
-                from Tribler.Core.Libtorrent import LibtorrentMgr
-                logger.error("Going to set anon tunnel utp only")
-                LibtorrentMgr.LibtorrentMgr.getInstance().set_anonymous_proxy()
+                from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+                logger.error("Going to RESUME anonymous session")
+                LibtorrentMgr.getInstance().set_anonymous_proxy()
             return result
 
         if lacking > 0:
@@ -85,13 +99,6 @@ class Socks5Server(object, TunnelObserver):
                     .addCallback(__on_reserve) \
                     .addBoth(__finally)
 
-            raise ValueError("Not enough circuits, requesting new ones")
-        else:
-            circuits = self.reserved_circuits[0:count]
-            del self.reserved_circuits[0:count]
-
-            return circuits
-
     def external_connection_made(self, single_socket):
         """
         Called by the RawServer when a new connection has been made
@@ -102,11 +109,14 @@ class Socks5Server(object, TunnelObserver):
         s5con = Socks5Connection(single_socket, self)
 
         try:
-            circuits = self._reserve_circuits(1)
+            circuits = self._allocate_circuits(1)
             session = Socks5Session(self.raw_server, s5con, circuits)
             self.tunnel.observers.append(session)
 
             self.tcp2session[single_socket] = session
+        except NotEnoughCircuitsException:
+            self._reserve_circuits(1)
+            s5con.close()
         except:
             s5con.close()
 
@@ -126,7 +136,9 @@ class Socks5Server(object, TunnelObserver):
         good_circuits = [c for c in session.circuits
                          if c.state == CIRCUIT_STATE_READY]
 
-        logger.warning("Reclaiming %d good circuits", len(good_circuits))
+        logger.warning("Reclaiming %d good circuits due to %s:%d",
+                       len(good_circuits),
+                       single_socket.get_ip(), single_socket.get_port())
 
         self.reserved_circuits = good_circuits + self.reserved_circuits
         s5con = session.connection

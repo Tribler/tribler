@@ -60,7 +60,7 @@ class ProxySettings:
             self.max_circuits)
         self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(
             length)
-        self.crypto = crypto.DefaultCrypto()
+        self.crypto = crypto.NoCrypto() # crypto.DefaultCrypto()
 
 
 class RelayRoute(object):
@@ -114,10 +114,19 @@ class Circuit:
         self._broken = False
         self._hops = []
 
+        def __create_deferred():
+            def __errback(e):
+                logger.error("Unhandled deferred error: {0}".format(e))
+                return e
+
+            d = defer.Deferred()
+            d.addErrback(__errback)
+            return d
+
         self.circuit_id = circuit_id
         self.candidate = candidate
         self.goal_hops = goal_hops
-        self.deferred = deferred if deferred else defer.Deferred()
+        self.deferred = deferred if deferred else __create_deferred()
         self.extend_strategy = None
         self.last_incoming = time.time()
 
@@ -171,9 +180,9 @@ class Circuit:
         0 a PING must be sent to keep the circuit, including relays at its hop,
         alive.
         """
-        too_old = time.time() - 5.0
+        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
         diff = self.last_incoming - too_old
-        return diff if diff > 0 else 0
+        return diff if diff > 0 else 00
 
     def __contains__(self, other):
         if isinstance(other, Candidate):
@@ -787,9 +796,10 @@ class ProxyCommunity(Community):
 
         except Exception as e:
             logger.exception(
-                "Incoming message could not be handled."
-                "connection. INITIAL={0}, ORIGINATOR={1}, RELAY={2}"
-                .format(is_initial, is_originator, is_relay))
+                "Incoming from {3} on {4} message error."
+                "INITIAL={0}, ORIGINATOR={1}, RELAY={2}"
+                .format(is_initial, is_originator, is_relay, sock_addr,
+                        circuit_id))
 
             if relay_key in self.relay_from_to:
                 del self.relay_from_to[relay_key]
@@ -1327,13 +1337,6 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-
-        valid = circuit_id in self.circuits and \
-                self.circuits[circuit_id].candidate == candidate
-
-        if not valid:
-            raise ValueError("We got a PONG from a stranger, ABORT ABORT")
-
         logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
         request = self.dispersy.callback.call(
             self._request_cache.get,
@@ -1554,6 +1557,10 @@ class ProxyCommunity(Community):
 
             return circuit
 
+        def __errback(e):
+            logger.exception(e)
+            return e
+
         with self.lock:
             free = next((c for c in self.circuits.itervalues()
                          if c not in self._reservations), None)
@@ -1564,6 +1571,7 @@ class ProxyCommunity(Community):
 
             else:
                 deferred = defer.Deferred()
+                deferred.addErrback(__errback)
 
                 # remove from the list when circuit is ready
                 deferred.addCallback(lambda circuit: __reserve(circuit))

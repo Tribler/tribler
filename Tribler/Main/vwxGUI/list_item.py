@@ -309,7 +309,10 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
         return button
 
     def ShowSelected(self):
-        DoubleLineListItem.ShowSelected(self)
+        try:
+            DoubleLineListItem.ShowSelected(self)
+        except:
+            pass
 
         if self.hide_buttons and self.GetBackgroundColour() == self.list_deselected:
             self.buttonSizer.ShowItems(False)

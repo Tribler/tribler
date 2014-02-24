@@ -33,10 +33,10 @@ class Socks5Connection(object):
     def __init__(self, single_socket, socks5_server):
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
         self.single_socket = single_socket
-        """:type : SingleSocket"""
+        ''' :type : SingleSocket '''
 
         self.socks5_server = socks5_server
-        """:type : TcpConnectionHandler """
+        """ :type : TcpConnectionHandler """
 
         self.buffer = ''
         self.tcp_relay = None
@@ -89,7 +89,9 @@ class Socks5Connection(object):
             self.close()
             return
 
-        logger.info("Client has sent METHOD REQUEST")
+        logger.info("Client {0} has sent METHOD REQUEST".format(
+            (self.single_socket.get_ip(), self.single_socket.get_port())
+        ))
 
         # Respond that we would like to use NO AUTHENTICATION (0x00)
         response = conversion.encode_method_selection_message(
@@ -121,6 +123,9 @@ class Socks5Connection(object):
 
         :return: None
         """
+        logger.debug("Client {0} has sent PROXY REQUEST".format(
+            (self.single_socket.get_ip(), self.single_socket.get_port())
+        ))
         offset, request = conversion.decode_request(0, self.buffer)
 
         if request is None:
@@ -129,7 +134,7 @@ class Socks5Connection(object):
         self.buffer = self.buffer[offset:]
 
         assert isinstance(request, conversion.Request)
-        logger.debug("Client has sent PROXY REQUEST")
+
 
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
@@ -139,7 +144,10 @@ class Socks5Connection(object):
             if request.cmd == conversion.REQ_CMD_CONNECT:
                 destination = (request.destination_host, request.destination_port)
 
-                logger.debug("Accepting TCP RELAY request, direct client to %s:%d",
+                logger.warning("Accepting TCP RELAY request from %s:%d, "
+                               "direct client to %s:%d",
+                             self.single_socket.get_ip(),
+                             self.single_socket.get_port(),
                              self.single_socket.get_myip(),
                              self.single_socket.get_myport())
 
@@ -157,26 +165,32 @@ class Socks5Connection(object):
                 # from the newly created UDP listening socket
                 ip, port = self.single_socket.get_myip(), socket.getsockname()[1]
 
-                logger.info(
-                    "Accepting UDP ASSOCIATE request, direct client to %s:%d", ip,
-                    port)
+                logger.warning(
+                    "Accepting UDP ASSOCIATE request from %s:%d, "
+                    "direct client to %s:%d",
+                    self.single_socket.get_ip(), self.single_socket.get_port(),
+                    ip, port)
 
                 response = conversion.encode_reply(
                     0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
                 self.write(response)
-            elif request.cmd == conversion.REQ_CMD_BIND:
-                response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED,
-                                                   0x00, conversion.ADDRESS_TYPE_IPV4,
-                                                   "127.0.0.1", 1081)
-
-                self.write(response)
+            #elif request.cmd == conversion.REQ_CMD_BIND:
+            #    logger.warning("Faking BIND request")
+            #
+            #    response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED,
+            #                                       0x00, conversion.ADDRESS_TYPE_IPV4,
+            #                                       "127.0.0.1", 1081)
+            #
+            #    self.write(response)
             else:
                 # We will deny all other requests (BIND, and INVALID requests);
                 response = conversion.encode_reply(
                     0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
                     conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
                 self.write(response)
-                logger.info("DENYING SOCKS5 Request")
+                logger.error("DENYING SOCKS5 Request from {0}".format(
+                    (self.single_socket.get_ip(), self.single_socket.get_port())
+                ))
                 accept = False
         except:
             response = conversion.encode_reply(
@@ -209,7 +223,9 @@ class Socks5Connection(object):
                         break  # Not enough bytes so wait till we got more
                 except:
                     self.buffer = ''
-                    logger.error("MALFORMED packet detected, try again!")
+                    logger.exception("MALFORMED packet from {0} detected, try again!".format(
+                        (self.single_socket.get_ip(), self.single_socket.get_port())
+                    ))
 
 
     def write(self, data):
@@ -221,6 +237,7 @@ class Socks5Connection(object):
             self.single_socket.close()
             self.socks5_server.connection_lost(self.single_socket)
             self.single_socket = None
+            ''' :type : SingleSocket '''
 
             if self.tcp_relay:
                 self.tcp_relay.close()

@@ -1,4 +1,5 @@
 import logging
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.community.anontunnel.Socks5 import conversion
 from Tribler.community.anontunnel.community import TunnelObserver
 
@@ -42,6 +43,8 @@ class Socks5Session(TunnelObserver):
         @param str reason: the reason why the session should be closed
         """
         logger.error("Closing session, reason = {0}".format(reason))
+        LibtorrentMgr.getInstance().ltsession_anon.pause()
+
         self.connection.close()
 
     def on_break_circuit(self, circuit):
