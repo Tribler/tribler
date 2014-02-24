@@ -452,7 +452,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
         return False
 
-    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, doemode=None, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
+    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, anon_mode=False, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
         self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
@@ -520,11 +520,22 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
+                        anon_mode = dlg.GetAnonMode()
                     else:
                         cancelDownload = True
                     dlg.Destroy()
                 else:
                     raise Exception("cannot create dialog, not on wx thread")
+
+            if anon_mode:
+                if not tdef:
+                    raise Exception('Currently only torrents can be downloaded in anonymous mode')
+                elif sdef:
+                    sdef = None
+                    cdef = tdef
+                    monitorSwiftProgress = False
+
+            dscfg.set_anon_mode(anon_mode)
 
             if not cancelDownload:
                 if destdir is not None:

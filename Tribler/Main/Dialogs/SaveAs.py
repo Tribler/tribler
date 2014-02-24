@@ -73,6 +73,9 @@ class SaveAs(wx.Dialog):
 
         vSizer.Add(hSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
 
+        self.anon_check = wx.CheckBox(self, -1, 'Use anonymous downloading mode')
+        vSizer.Add(self.anon_check, 0, wx.TOP | wx.BOTTOM, 5)
+
         if tdef and tdef.get_files():
             self.AddFileList(tdef, selectedFiles, vSizer, len(vSizer.GetChildren()))
 
@@ -87,7 +90,7 @@ class SaveAs(wx.Dialog):
             sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
             vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
-            self.SetSize((600, 150))
+            self.SetSize((600, 185))
 
             # convert tdef into guidbtuple, and collect it using torrentsearch_manager.getTorrent
             torrent = Torrent.fromTorrentDef(tdef)
@@ -167,7 +170,7 @@ class SaveAs(wx.Dialog):
 
     def SetCollected(self, tdef):
         self.collected = tdef
-        self.SetSize((600, 450))
+        self.SetSize((600, 475))
         vSizer = self.GetSizer().GetItem(0).GetSizer()
         hsizer = vSizer.GetItem(len(vSizer.GetChildren()) - 2).GetSizer()
         self.Freeze()
@@ -195,6 +198,9 @@ class SaveAs(wx.Dialog):
                     files.append(self.listCtrl.GetItem(index, 0).GetText())
                 return files
         return None
+
+    def GetAnonMode(self):
+        return self.anon_check.GetValue()
 
     def OnOk(self, event=None):
         if self.listCtrl:

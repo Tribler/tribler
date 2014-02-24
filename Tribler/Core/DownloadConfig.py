@@ -151,6 +151,12 @@ class DownloadConfigInterface(object):
         @return DLMODE_NORMAL/DLMODE_VOD """
         return self.dlconfig.get('downloadconfig', 'mode')
 
+    def set_anon_mode(self, anon_mode):
+        self.dlconfig.set('downloadconfig', 'anon_mode', anon_mode)
+
+    def get_anon_mode(self):
+        return self.dlconfig.get('downloadconfig', 'anon_mode')
+
     def get_video_event_callback(self):
         """ Returns the function that was passed to set_video_event_callback().
         @return A function.

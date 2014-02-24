@@ -255,7 +255,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             if not self.cew_scheduled:
                 self.ltmgr = self.session.lm.ltmgr
-                if not self.ltmgr or (isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready()):
+                if not self.ltmgr or (isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready()) or \
+                   (self.get_anon_mode() and self.ltmgr.ltsession_anon.is_paused()):
                     self._logger.info("LibtorrentDownloadImpl: LTMGR or DHT not ready, rescheduling create_engine_wrapper")
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=initialdlstatus)
                     self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
@@ -275,6 +276,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         atp["paused"] = True
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
+        atp["anon_mode"] = self.get_anon_mode()
 
         resume_data = pstate.get('state', 'engineresumedata') if pstate else None
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
@@ -603,6 +605,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             os.rmdir(self.unwanteddir_abs)
 
     def on_performance_alert(self, alert):
+        if self.get_anon_mode():
+            return
+
         # When the send buffer watermark is too low, double the buffer size to a maximum of 50MiB. This is the same mechanism as Deluge uses.
         if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"):
             settings = self.ltmgr.ltsession.settings()

@@ -7,6 +7,7 @@ import copy
 import wx
 import igraph
 from Tribler.community.anontunnel.community import Hop, ProxyCommunity
+import datetime
 
 try:
     import igraph.vendor.texttable
@@ -29,7 +30,7 @@ from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler,\
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_PUNCTURE, NTFY_JOINED, NTFY_EXTENDED_FOR
@@ -839,32 +840,32 @@ class RightDispersyPanel(FancyPanel):
 
                     name = stat_dict['entry'].split('\n')[0]
                     combined_name = name.split()[0]
-                    
+
                     label = "duration = %7.2f ; entry = %s" % (stat_dict['duration'], name)
                     combined_runtime[combined_name].append((stat_dict['duration'], label, tuple(stat_list)))
 
                 for key, runtimes in combined_runtime.iteritems():
                     if len(runtimes) > 1:
                         total_duration = 0
-                        
-                        subcalls = defaultdict(list) 
+
+                        subcalls = defaultdict(list)
                         for duration, label, stat_list in runtimes:
                             total_duration += duration
                             subcalls[label].append(stat_list)
-                        
+
                         _subcalls = {}
                         for label, subcall_list in subcalls.iteritems():
                             if len(subcall_list) > 1:
                                 _subcalls[label] = subcall_list
                             else:
                                 _subcalls[label] = subcall_list[0]
-                                
+
                         runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = _subcalls
-                        
+
                     else:
                         duration, label, stat_list = runtimes[0]
                         runtime[label] = stat_list
-                    
+
             self.AddDataToTree(runtime, parentNode, self.runtime_tree, prepend=False, sort_dict=True)
 
         self.Layout()
@@ -1243,7 +1244,7 @@ class Anonymity(wx.Panel):
 
         self.AddComponents()
 
-        self.my_address = Hop(('127.0.0.1', 0),None, None)
+        self.my_address = Hop(('127.0.0.1', 0), None, None)
 
         self.vertices = {}
         self.edges = []
@@ -1334,7 +1335,7 @@ class Anonymity(wx.Panel):
                     circuit = self.circuits.get(circuit_id, None)
 
                     if circuit:
-                        hops = [self.my_address] + copy.copy(circuit.hops)
+                        hops = [self.my_address] + list(copy.copy(circuit.hops))
                         for index in range(len(hops) - 1):
                             vertexid1 = self.peers.index(hops[index]) if hops[index] in self.peers else None
                             vertexid2 = self.peers.index(hops[index + 1]) if hops[index + 1] in self.peers else None
@@ -1389,30 +1390,33 @@ class Anonymity(wx.Panel):
 
         self.old_edges = new_edges
 
+    def AppendToLog(self, msg):
+        self.log_text.AppendText('[%s]: %s' % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
+
     @forceWxThread
     def OnExtended(self, subject, changeType, circuit):
         if changeType == NTFY_CREATED:
-            self.log_text.AppendText("Created circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1].host, circuit.hops[-1].port))
+            self.AppendToLog("Created circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1].host, circuit.hops[-1].port))
         if changeType == NTFY_EXTENDED:
-            self.log_text.AppendText("Extended circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1].host, circuit.hops[-1].port))
+            self.AppendToLog("Extended circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1].host, circuit.hops[-1].port))
         if changeType == NTFY_BROKEN:
-            self.log_text.AppendText("Circuit %d has been broken\n" % circuit)
+            self.AppendToLog("Circuit %d has been broken\n" % circuit)
 
     @forceWxThread
     def OnSelect(self, subject, changeType, circuit, address):
-        self.log_text.AppendText("Circuit %d has been selected for destination %s\n" % (circuit, address))
+        self.AppendToLog("Circuit %d has been selected for destination %s\n" % (circuit, address))
 
     @forceWxThread
     def OnPuncture(self, subject, changeType, address):
-        self.log_text.AppendText("We will puncture our NAT to %s:%d\n" % address)
+        self.AppendToLog("We will puncture our NAT to %s:%d\n" % address)
 
     @forceWxThread
     def OnJoined(self, subject, changeType, address, circuit_id):
-        self.log_text.AppendText("Joined an external circuit %d with %s:%d\n" % (circuit_id, address[0], address[1]))
+        self.AppendToLog("Joined an external circuit %d with %s:%d\n" % (circuit_id, address[0], address[1]))
 
     @forceWxThread
     def OnExtendedFor(self, subject, changeType, extended_for, extended_with):
-        self.log_text.AppendText("Extended an external circuit (%s:%d, %d) with (%s:%d, %d)\n" % (
+        self.AppendToLog("Extended an external circuit (%s:%d, %d) with (%s:%d, %d)\n" % (
             extended_for[0].sock_addr[0], extended_for[0].sock_addr[1], extended_for[1], extended_with[0].sock_addr[0],
             extended_with[0].sock_addr[1], extended_with[1]))
 
@@ -1561,9 +1565,9 @@ class Anonymity(wx.Panel):
                 for vertexid1, vertexid2 in self.edges:
                     if int_points.has_key(vertexid1) and int_points.has_key(vertexid2):
                         if set([vertexid1, vertexid2]) in self.selected_edges:
-                            gc.SetPen(wx.Pen(wx.BLUE))
+                            gc.SetPen(wx.Pen(wx.BLUE, 4))
                         else:
-                            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229),4))
+                            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), 4))
                         x1, y1 = int_points[vertexid1]
                         x2, y2 = int_points[vertexid2]
                         gc.DrawLines([(x1, y1), (x2, y2)])
@@ -1602,7 +1606,7 @@ class Anonymity(wx.Panel):
                 if self.vertex_active_evt:
                     self.vertex_active = self.PositionToVertex(self.vertex_active_evt, int_points)
                     self.vertex_active_evt = None
-                    
+
                 if self.vertex_active in int_points:
                     x, y = int_points[self.vertex_active]
                     pen = wx.Pen(self.vertex_to_colour.get(self.vertex_active, wx.BLACK), 1, wx.USER_DASH)
@@ -1613,7 +1617,7 @@ class Anonymity(wx.Panel):
                     text_height = dc.GetTextExtent('gG')[1]
                     box_height = text_height + 3
 
-                    # Draw status box                
+                    # Draw status box
                     x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
                     y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
                     gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
