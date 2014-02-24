@@ -1,4 +1,5 @@
 # Written by Arno Bakker
+# Heavily modified by Egbert Bouman
 # see LICENSE.txt for license information
 import os
 import sys
@@ -11,7 +12,7 @@ from multiprocessing.synchronize import RLock
 
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_BUFFER, NTFY_VIDEO_STARTED
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_BUFFER, NTFY_VIDEO_STARTED, DLMODE_NORMAL
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 
 from Tribler.Video.utils import win32_retrieve_video_play_command, quote_program_path, escape_path, return_feasible_playback_modes
@@ -86,13 +87,6 @@ class VideoPlayer:
         else:
             self.launch_video_player(self.get_video_player(None, url))
 
-        if self.vod_download:
-            self.vod_download.set_mode(0)
-            self.vod_info.pop(self.vod_download.get_def().get_id(), None)
-
-        self.vod_download, self.vod_fileindex = (download, fileindex)
-        self.vod_download.set_state_callback(self.monitor_vod)
-
     def monitor_vod(self, ds):
         dl = ds.get_download() if ds else None
 
@@ -140,14 +134,26 @@ class VideoPlayer:
     def get_vod_download(self):
         return self.vod_download
 
+    def set_vod_download(self, download):
+        if self.vod_download:
+            self.vod_download.set_mode(DLMODE_NORMAL)
+            vi_dict = self.vod_info.pop(self.vod_download.get_def().get_id(), None)
+            if vi_dict and vi_dict.has_key('stream'):
+                vi_dict['stream'][0].close()
+
+        self.vod_download = download
+        self.vod_download.set_state_callback(self.monitor_vod)
+
     def get_vod_fileindex(self):
         return self.vod_fileindex
+
+    def set_vod_fileindex(self, fileindex):
+        self.vod_fileindex = fileindex
 
     def get_vod_filename(self, download):
         filename = download.get_selected_files()[0] if download.get_def().is_multifile_torrent() else download.get_def().get_name()
         filename = os.path.join(download.get_content_dest(), filename)
         return filename
-
 
 
     def launch_video_player(self, cmd, download=None):

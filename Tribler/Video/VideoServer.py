@@ -1,5 +1,5 @@
-# Written by Jan David Mol, Arno Bakker
-# Heavily modified by Egbert Bouman
+# Written by Egbert Bouman
+# Based on SimpleServer written by Jan David Mol, Arno Bakker
 # see LICENSE.txt for license information
 #
 import sys
@@ -68,7 +68,7 @@ class VideoServer:
 
     @cherrypy.expose
     def default(self, downloadhash, fileindex):
-        print >> sys.stderr, "VideoServer: VOD request for", downloadhash, "/", fileindex
+        print >> sys.stderr, "VideoServer: VOD request:", cherrypy.url()
         downloadhash = unhexlify(downloadhash)
         download = self.session.get_download(downloadhash)
 
@@ -76,12 +76,18 @@ class VideoServer:
             raise cherrypy.HTTPError(404, "Not Found")
             return
 
-        filename, length = download.get_def().get_files_with_length()[int(fileindex)]
+        fileindex = int(fileindex)
+        filename, length = download.get_def().get_files_with_length()[fileindex]
 
         requested_range = http.get_ranges(cherrypy.request.headers.get('Range'), length)
         if requested_range == []:
             raise cherrypy.HTTPError(416, "Requested Range Not Satisfiable")
             return
+
+        # Notify the videoplayer (which will put the old VOD download back in normal mode).
+        if self.videoplayer.get_vod_fileindex() != fileindex or self.videoplayer.get_vod_download() != download:
+            self.videoplayer.set_vod_fileindex(fileindex)
+            self.videoplayer.set_vod_download(download)
 
         # Put download in sequential mode + trigger initial buffering.
         if download.get_def().get_def_type() != "torrent" or download.get_def().is_multifile_torrent():
@@ -95,10 +101,6 @@ class VideoServer:
         download.set_state_callback(wait_for_buffer)
         download.set_mode(DLMODE_VOD)
         download.restart()
-
-        # Put old VOD download back in normal mode.
-#        if self.videoplayer.get_vod_download():
-#            self.videoplayer.get_vod_download().set_mode(DLMODE_NORMAL)
 
         # Wait for buffering to complete.
         self.event.wait()
