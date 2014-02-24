@@ -5,6 +5,24 @@ __author__ = 'chris'
 
 
 class CircuitRequestCache(NumberCache):
+    """
+    Circuit request cache is used to keep track of circuit building. It
+    succeeds when the circuit reaches full length.
+
+    On timeout the circuit is removed
+
+    @param ProxyCommunity community: the instance of the ProxyCommunity
+    @param int force_number:
+    """
+
+    def __init__(self, community, force_number):
+        NumberCache.__init__(self, community.request_cache, force_number)
+        self._logger = logging.getLogger(__name__)
+        self.community = community
+
+        self.circuit = None
+        ''' :type : Tribler.community.anontunnel.community.Circuit '''
+
     @staticmethod
     def create_number(force_number=-1):
         return force_number if force_number >= 0 \
@@ -15,19 +33,15 @@ class CircuitRequestCache(NumberCache):
         assert isinstance(number, (int, long)), type(number)
         return u"request-cache:circuit-request:%d" % (number,)
 
-    def __init__(self, community, force_number):
-        NumberCache.__init__(self, community.request_cache, force_number)
-        self._logger = logging.getLogger(__name__)
-        self.community = community
-
-        self.circuit = None
-        """ :type : Tribler.community.anontunnel.community.Circuit """
-
     @property
     def timeout_delay(self):
         return 5.0
 
     def on_success(self):
+        """
+        Mark the Request as successful, cancelling the timeout
+        """
+
         from Tribler.community.anontunnel.globals \
             import CIRCUIT_STATE_READY
 
@@ -47,6 +61,16 @@ class CircuitRequestCache(NumberCache):
 
 
 class PingRequestCache(NumberCache):
+    """
+    Request cache that is used to time-out PING messages
+
+    @param ProxyCommunity community: instance of the ProxyCommunity
+    @param force_number:
+    """
+    def __init__(self, community, force_number):
+        NumberCache.__init__(self, community.request_cache, force_number)
+        self.community = community
+
     @staticmethod
     def create_number(force_number=-1):
         return force_number \
@@ -57,10 +81,6 @@ class PingRequestCache(NumberCache):
     def create_identifier(number, force_number=-1):
         assert isinstance(number, (int, long)), type(number)
         return u"request-cache:ping-request:%d" % (number,)
-
-    def __init__(self, community, force_number):
-        NumberCache.__init__(self, community.request_cache, force_number)
-        self.community = community
 
     @property
     def timeout_delay(self):

@@ -1,3 +1,9 @@
+"""
+Contains the DispersyBypassEndpoint to be used as Dispersy endpoint when the
+ProxyCommunity is being used
+"""
+
+
 from Queue import Queue, Full
 from threading import Thread
 from Tribler.dispersy.endpoint import RawserverEndpoint
@@ -22,7 +28,6 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         self.consumer_thread = Thread(target=self.__consumer)
         self.consumer_thread.start()
         self._logger = logging.getLogger(__name__)
-
 
     def listen_to(self, prefix, handler):
         """

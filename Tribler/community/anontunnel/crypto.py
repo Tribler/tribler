@@ -203,7 +203,7 @@ class DefaultCrypto(object):
 
 def get_cryptor(op, key, alg='aes_128_ecb', iv=None):
     if iv is None:
-        iv = '\0' * 256
+        iv = chr(0) * 256
     cryptor = M2Crypto.EVP.Cipher(alg=alg, key=key, iv=iv, op=op)
     return cryptor
 

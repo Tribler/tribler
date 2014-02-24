@@ -28,13 +28,12 @@ from Tribler.community.anontunnel.selectionstrategies import \
 
 logging.config.fileConfig(
     os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 try:
     import yappi
 except ImportError:
-    yappi = None
     logger.warning("Yappi not installed, profiling options won't be available")
 
 
@@ -73,37 +72,48 @@ class AnonTunnel(Thread):
         self.community = None
         ''' @type: ProxyCommunity '''
 
-    def __speed_stats(self):
-        t1 = None
-        bytes_exit = 0
-        bytes_enter = 0
-        bytes_relay = 0
+    def __calc_diff(self, then, bytes_exit0, bytes_enter0, bytes_relay0):
+        now = time.time()
+
+        if not self.community or not then:
+            return now, 0, 0, 0, 0, 0, 0
+
+        dt = now - then
+
         stats = self.community.global_stats.stats
         relay_stats = self.community.global_stats.relay_stats
 
+        speed_exit = (stats['bytes_exit'] - bytes_exit0) / dt if then else 0
+        bytes_exit = stats['bytes_exit']
+
+        speed_enter = (stats['bytes_enter'] - bytes_enter0) / dt if then else 0
+        bytes_enter = stats['bytes_enter']
+
+        relay_2 = sum([r.bytes[1] for r in relay_stats.values()])
+
+        speed_relay = (relay_2 - bytes_relay0) / dt if then else 0
+        bytes_relay = relay_2
+
+        return now, speed_exit, speed_enter, speed_relay, \
+               bytes_exit, bytes_enter, bytes_relay
+
+    def __speed_stats(self):
+        time = None
+        bytes_exit = 0
+        bytes_enter = 0
+        bytes_relay = 0
+
         while True:
-            t2 = time.time()
-            if self.community and t1 and t2 > t1:
-                speed_exit = (stats['bytes_exit'] - bytes_exit) / (t2 - t1)
-                bytes_exit = stats['bytes_exit']
+            stats = self.__calc_diff(time, bytes_exit, bytes_enter, bytes_relay)
+            time, speed_exit, speed_enter, speed_relay, bytes_exit, bytes_enter, bytes_relay = stats
 
-                speed_enter = (stats['bytes_enter'] - bytes_enter) / (t2 - t1)
-                bytes_enter = stats['bytes_enter']
+            active_circuits = len(self.community.circuits)
+            num_routes = len(self.community.relay_from_to) / 2
 
-                relay_2 = sum([r.bytes[1] for r in relay_stats.values()])
+            print "CIRCUITS %d RELAYS %d EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s\n" % (
+                active_circuits, num_routes, speed_exit / 1024.0,
+                speed_enter / 1024.0, speed_relay / 1024.0),
 
-                speed_relay = (relay_2 - bytes_relay) / (t2 - t1)
-                bytes_relay = relay_2
-                active_circuits = len(self.community.active_circuits)
-                num_routes = len(self.community.relay_from_to) / 2
-
-                print ("CIRCUITS %d RELAYS %d EXIT %.2f KB/s ENTER %.2f KB/s"
-                       " RELAY %.2f KB/s\n") % (active_circuits, num_routes,
-                                              speed_exit / 1024.0,
-                                              speed_enter / 1024.0,
-                                              speed_relay / 1024.0),
-
-            t1 = t2
             yield 3.0
 
     def run(self):

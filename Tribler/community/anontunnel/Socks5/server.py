@@ -59,7 +59,7 @@ class Socks5Server(object, TunnelObserver):
         if count > len(self.reserved_circuits):
             raise NotEnoughCircuitsException("Not enough circuits!")
 
-        self._logger.info("Allocating {0} circuits for the Socks5Server")
+        self._logger.info("Allocating %d circuits for Socks5 server", count)
         circuits = self.reserved_circuits[0:count]
         del self.reserved_circuits[0:count]
 

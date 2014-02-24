@@ -31,13 +31,18 @@ from Tribler.community.anontunnel import crypto
 from Tribler.community.anontunnel import extendstrategies
 from Tribler.community.anontunnel import selectionstrategies
 from Tribler.community.anontunnel import lengthstrategies
-from globals import *
 from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, \
     CreatedMessage, ExtendedMessage, \
     PongMessage, PingMessage, DataMessage
 from Tribler.community.anontunnel.conversion import CustomProxyConversion, \
     ProxyConversion
 from Crypto.Util.number import bytes_to_long, long_to_bytes
+from Tribler.community.anontunnel.globals import MESSAGE_EXTEND, \
+    MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_DATA, MESSAGE_EXTENDED, \
+    MESSAGE_PING, MESSAGE_PONG, MESSAGE_TYPE_STRING, \
+    DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_GENERATOR, \
+    DIFFIE_HELLMAN_MODULUS, CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, \
+    ORIGINATOR, PING_INTERVAL, ENDPOINT
 
 __author__ = 'chris'
 
@@ -137,7 +142,7 @@ class ProxyCommunity(Community):
 
         self.settings = settings if settings else ProxySettings()
         # Custom conversion
-        self.packet_prefix = "fffffffe".decode("HEX")
+        self.__packet_prefix = "fffffffe".decode("HEX")
 
         self.observers = []
         ''' :type : list of TunnelObserver'''
@@ -167,8 +172,7 @@ class ProxyCommunity(Community):
         self.key = self.my_member.private_key
         self.session_keys = {}
 
-        sr = random.SystemRandom()
-        sys.modules["random"] = sr
+        sys.modules["random"] = random.SystemRandom()
 
         self.send_transformers = []
         self.receive_transformers = []
@@ -196,7 +200,7 @@ class ProxyCommunity(Community):
         self.global_stats.start()
 
         # Listen to prefix endpoint
-        dispersy.endpoint.listen_to(self.packet_prefix, self.__handle_packet)
+        dispersy.endpoint.listen_to(self.__packet_prefix, self.__handle_packet)
         dispersy.callback.register(self.__ping_circuits)
 
         if integrate_with_tribler:
@@ -420,8 +424,8 @@ class ProxyCommunity(Community):
         direction = self.directions[relay_key]
         next_relay = self.relay_from_to[relay_key]
 
-        for f in self.relay_transformers:
-            data = f(direction, sock_addr, circuit_id, data)
+        for transformer in self.relay_transformers:
+            data = transformer(direction, sock_addr, circuit_id, data)
 
         this_relay_key = (next_relay.sock_addr, next_relay.circuit_id)
 
@@ -461,7 +465,7 @@ class ProxyCommunity(Community):
         @param orig_packet:
         @return:
         """
-        packet = orig_packet[len(self.packet_prefix):]
+        packet = orig_packet[len(self.__packet_prefix):]
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (sock_addr, circuit_id)
 
@@ -475,14 +479,12 @@ class ProxyCommunity(Community):
                 return self.__relay(circuit_id, data, relay_key, sock_addr)
 
             candidate = self._get_cached_candidate(sock_addr)
-
             if not candidate:
-                raise Exception("No known candidate at {0}, "
-                                "bailing out!".format(sock_addr))
+                self._logger.error("Unknown candidate at %s, drop!", sock_addr)
+                return
 
             self.__handle_incoming(circuit_id, is_originator, candidate, data)
-
-        except Exception as e:
+        except:
             self._logger.exception(
                 "Incoming from {3} on {4} message error."
                 "INITIAL={0}, ORIGINATOR={1}, RELAY={2}"
@@ -490,14 +492,9 @@ class ProxyCommunity(Community):
                         circuit_id))
 
             if relay_key in self.relay_from_to:
-                del self.relay_from_to[relay_key]
+                self.remove_relay(relay_key, "error on incoming packet!")
             elif circuit_id in self.circuits:
-                self.remove_circuit(
-                    circuit_id,
-                    "Bad crypto, possible old circuit: {0}".format(e.message))
-            else:
-                self._logger.debug("Got an encrypted message I can't encrypt. "
-                                   "Dropping packet, probably old.")
+                self.remove_circuit(circuit_id, "error on incoming packet!")
 
     def _create_circuit(self, first_hop, goal_hops, extend_strategy=None,
                         deferred=None):
@@ -558,7 +555,7 @@ class ProxyCommunity(Community):
                               CreateMessage(encrypted_dh_first_part))
 
             return circuit
-        except Exception as e:
+        except Exception:
             self._logger.exception("create_circuit")
 
     def remove_circuit(self, circuit_id, additional_info=''):
@@ -646,7 +643,7 @@ class ProxyCommunity(Community):
                          DIFFIE_HELLMAN_MODULUS)
 
         candidate_dict = {}
-        for i in range(1, 5):
+        for _ in range(1, 5):
             candidate_temp = next(self.dispersy_yield_verified_candidates(),
                                   None)
             if not candidate_temp:
@@ -745,7 +742,7 @@ class ProxyCommunity(Community):
         try:
             candidate_list = self.decrypt_candidate_list(
                 key, message.candidate_list)
-        except Exception as e:
+        except Exception:
             reason = "Can't decrypt candidate list!"
             self._logger.exception(reason)
             self.remove_circuit(circuit.circuit_id, reason)
@@ -1062,7 +1059,7 @@ class ProxyCommunity(Community):
         # we need to make sure that this endpoint is thread safe
         return self.dispersy.endpoint.send(
             candidates=[destination],
-            packets=[self.packet_prefix + packet])
+            packets=[self.__packet_prefix + packet])
 
     def __dict_inc(self, statistics_dict, key, inc=1):
         key = u"anontunnel-" + key
@@ -1104,9 +1101,9 @@ class ProxyCommunity(Community):
             yield PING_INTERVAL
 
     def __notify(self, method, *args, **kwargs):
-        for o in self.observers:
+        for observer in self.observers:
             try:
-                func = getattr(o, method)
+                func = getattr(observer, method)
                 func(*args, **kwargs)
             except AttributeError:
                 pass
@@ -1130,10 +1127,9 @@ class ProxyCommunity(Community):
                     "on_exiting_from_tunnel",
                     circuit.circuit_id, None, ultimate_destination, payload)
             else:
-                self.send_message(circuit.candidate, circuit.circuit_id,
-                                  MESSAGE_DATA,
-                                  DataMessage(ultimate_destination,
-                                              payload, None))
+                self.send_message(
+                    circuit.candidate, circuit.circuit_id, MESSAGE_DATA,
+                    DataMessage(ultimate_destination, payload, None))
 
                 self.__notify(
                     "on_send_data",
@@ -1175,9 +1171,9 @@ class ProxyCommunity(Community):
             self._reservations.add(circuit)
             return circuit
 
-        def __errback(e):
-            self._logger.exception(e)
-            return e
+        def __errback(error):
+            self._logger.error("We got an unhandled error: %s", error)
+            return error
 
         with self.lock:
             free = next((c for c in self.circuits.itervalues()
