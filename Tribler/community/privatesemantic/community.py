@@ -934,7 +934,7 @@ class PForwardCommunity(ForwardCommunity):
 
         if encrypted_vector:
             Payload = namedtuple('Payload', ['key_n', 'preference_list', 'global_vector'])
-            return Payload(self.key.n, encrypted_vector, global_vector)
+            return Payload(long(self.key.n), encrypted_vector, global_vector)
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
