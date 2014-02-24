@@ -343,10 +343,8 @@ class LibtorrentMgr:
                     atp['url'] = magnet
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
-                try:
-                    handle = self.ltsession.add_torrent(atp)
-                except:
-                    pass
+                handle = self.ltsession.add_torrent(atp)
+
                 if notify:
                     self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
 
