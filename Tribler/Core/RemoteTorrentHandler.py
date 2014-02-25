@@ -89,7 +89,8 @@ class RemoteTorrentHandler:
         return self.registered
 
     def shutdown(self):
-        self.tqueue.shutdown(True)
+        if self.registered:
+            self.tqueue.shutdown(True)
 
     def set_max_num_torrents(self, max_num_torrents):
         self.max_num_torrents = max_num_torrents
