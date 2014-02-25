@@ -89,7 +89,7 @@ class NeighbourSubset(ExtendStrategy):
         try:
             encrypted_dh_first_part = self.proxy.crypto.encrypt(
                 extend_hop_public_key,
-                long_to_bytes(dh_first_part, 2048 / 8))
+                long_to_bytes(dh_first_part, DIFFIE_HELLMAN_MODULUS_SIZE / 8))
             self._logger.info(
                 "We chose %s from the list to extend circuit %d with "
                 "encrypted DH first part %s",
@@ -99,5 +99,5 @@ class NeighbourSubset(ExtendStrategy):
                 self.circuit.candidate, self.circuit.circuit_id,
                 MESSAGE_EXTEND,
                 ExtendMessage(sock_addr, encrypted_dh_first_part))
-        except BaseException as e:
+        except BaseException:
             self._logger.exception("Encryption error")
