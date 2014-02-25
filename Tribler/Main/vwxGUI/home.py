@@ -1245,7 +1245,7 @@ class Anonymity(wx.Panel):
 
         self.AddComponents()
 
-        self.my_address = Hop(('127.0.0.1', 0), None, None)
+        self.my_address = Hop(('127.0.0.1', 0))
 
         self.vertices = {}
         self.edges = []

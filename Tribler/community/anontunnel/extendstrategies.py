@@ -1,16 +1,10 @@
 import logging
-from random import getrandbits
-
-
-from Crypto.Util.number import long_to_bytes
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_EXTENDING, \
-    MESSAGE_EXTEND, DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_MODULUS, \
-    DIFFIE_HELLMAN_GENERATOR
+    MESSAGE_EXTEND
 from Tribler.community.anontunnel.payload import ExtendMessage
 from Tribler.community.anontunnel.routing import Hop
 
 __author__ = 'chris'
-
 
 class ExtendStrategy:
     def __init__(self):
@@ -77,27 +71,18 @@ class NeighbourSubset(ExtendStrategy):
         extend_hop_public_key = self.proxy.dispersy.crypto.key_from_public_bin(
             extend_hop_public_key)
 
-        dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        self.circuit.candidate.pub_key = extend_hop_public_key
+        self.circuit.unverified_hop = Hop(sock_addr)
+        self.circuit.unverified_hop.pub_key = extend_hop_public_key
 
-        self.circuit.unverified_hop = Hop(
-            sock_addr, extend_hop_public_key, dh_secret)
-
-        dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
-                            DIFFIE_HELLMAN_MODULUS)
         try:
-            encrypted_dh_first_part = self.proxy.crypto.encrypt(
-                extend_hop_public_key,
-                long_to_bytes(dh_first_part, DIFFIE_HELLMAN_MODULUS_SIZE / 8))
             self._logger.info(
-                "We chose %s from the list to extend circuit %d with "
-                "encrypted DH first part %s",
-                sock_addr, self.circuit.circuit_id, dh_first_part)
+                "We chose %s from the list to extend circuit %d",
+                sock_addr, self.circuit.circuit_id)
 
             self.proxy.send_message(
                 self.circuit.candidate, self.circuit.circuit_id,
                 MESSAGE_EXTEND,
-                ExtendMessage(sock_addr, encrypted_dh_first_part))
+                ExtendMessage(sock_addr))
         except BaseException:
             self._logger.exception("Encryption error")

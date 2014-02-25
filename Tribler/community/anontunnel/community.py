@@ -3,7 +3,6 @@ AnonTunnel community module
 """
 
 # Python imports
-import hashlib
 import sys
 import threading
 import random
@@ -12,7 +11,6 @@ from collections import defaultdict
 
 # Tribler and Dispersy imports
 from twisted.internet import defer
-from Tribler.Core.Utilities import encoding
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
@@ -36,12 +34,10 @@ from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, \
     PongMessage, PingMessage, DataMessage
 from Tribler.community.anontunnel.conversion import CustomProxyConversion, \
     ProxyConversion
-from Crypto.Util.number import bytes_to_long, long_to_bytes
 from Tribler.community.anontunnel.globals import MESSAGE_EXTEND, \
     MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_DATA, MESSAGE_EXTENDED, \
     MESSAGE_PING, MESSAGE_PONG, MESSAGE_TYPE_STRING, \
-    DIFFIE_HELLMAN_MODULUS_SIZE, DIFFIE_HELLMAN_GENERATOR, \
-    DIFFIE_HELLMAN_MODULUS, CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, \
+    CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, \
     ORIGINATOR, PING_INTERVAL, ENDPOINT
 
 __author__ = 'chris'
@@ -56,14 +52,14 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(1, 3)
+        length = random.randint(1,3)
 
         self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy()
         self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(
             length)
-        self.crypto = crypto.NoCrypto() # crypto.DefaultCrypto()
+        self.crypto = crypto.DefaultCrypto()
 
 
 class ProxyCommunity(Community):
@@ -82,7 +78,12 @@ class ProxyCommunity(Community):
         # generated: Wed Sep 18 22:47:22 2013
         # curve: high <<< NID_sect571r1 >>>
         # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de57bb1ac5dec351d172fe692555898ac944b68c730590f850ab931c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696f57eec3b8f2f77e7ab56fd8d6d63
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000404608
+        # 29f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7b42402f3c5cfa183d8d
+        # 96738c40ffd909a70020488e3b59b67de57bb1ac5dec351d172fe692555898ac94
+        # 4b68c730590f850ab931c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485
+        # d08ff4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696f57eec3b8
+        # f2f77e7ab56fd8d6d63
         # pub-sha1 089515d307ed31a25eec2c54667ddcd2d402c041
         #-----BEGIN PUBLIC KEY-----
         # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQEYIKfm7cvDLCUkEqm+IX/cOHphlHo
@@ -177,6 +178,9 @@ class ProxyCommunity(Community):
         self.receive_transformers = []
         ''' @type: dict[,(Candidate, int, str) -> ] '''
         self.relay_transformers = []
+        self.before_send_transformers = defaultdict(list)
+        self.after_receive_transformers = defaultdict(list)
+
         self._message_filters = defaultdict(list)
 
         # Map destination address to the circuit to be used
@@ -380,8 +384,15 @@ class ProxyCommunity(Community):
 
         # Try to parse the packet
         _, payload = self.proxy_conversion.decode(data)
+
         packet_type = self.proxy_conversion.get_type(data)
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
+
+        # Call any message filter before handing it over to our own handlers
+        for transformer in self.after_receive_transformers[packet_type]:
+            payload = transformer(candidate, circuit_id, payload)
+            if not payload:
+                return None
 
         self._logger.debug(
             "GOT %s from %s:%d over circuit %d",
@@ -390,10 +401,6 @@ class ProxyCommunity(Community):
             candidate.sock_addr[1],
             circuit_id
         )
-
-        # Call any message filter before handing it over to our own handlers
-        payload = self._filter_message(circuit_id, candidate,
-                                       packet_type, payload)
 
         if not payload:
             self._logger.warning("IGNORED %s from %s:%d over circuit %d",
@@ -526,21 +533,8 @@ class ProxyCommunity(Community):
                 circuit.extend_strategy = self.settings.extend_strategy(
                     self, circuit)
 
-            pub_key = iter(first_hop.get_members()).next()._ec
+            circuit.unverified_hop = Hop(first_hop.sock_addr)
 
-            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-            while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-                dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-
-            dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
-                                DIFFIE_HELLMAN_MODULUS)
-
-            encrypted_dh_first_part = self.crypto.encrypt(
-                pub_key, long_to_bytes(dh_first_part, DIFFIE_HELLMAN_MODULUS_SIZE / 8))
-
-            circuit.unverified_hop = Hop(first_hop.sock_addr,
-                                         pub_key,
-                                         dh_secret)
             self._logger.info(
                 'Circuit %d is to be created, wants %d hops sending to %s:%d',
                 circuit_id, circuit.goal_hops,
@@ -551,7 +545,7 @@ class ProxyCommunity(Community):
             self.circuits[circuit_id] = circuit
             self.waiting_for[(first_hop.sock_addr, circuit_id)] = True
             self.send_message(first_hop, circuit_id, MESSAGE_CREATE,
-                              CreateMessage(encrypted_dh_first_part))
+                              CreateMessage())
 
             return circuit
         except Exception:
@@ -612,34 +606,10 @@ class ProxyCommunity(Community):
         @param Candidate candidate: The candidate we got a CREATE message from
         @param CreateMessage message: The message's payload
         """
-        self._logger.info('We joined circuit %d with neighbour %s', circuit_id,
-                    candidate)
-
         relay_key = (candidate.sock_addr, circuit_id)
         self.directions[relay_key] = ENDPOINT
-
-        dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-
-        my_key = self.my_member._ec
-
-        decrypted_dh_first_part = bytes_to_long(
-            self.crypto.decrypt(my_key, message.key))
-
-        key = pow(decrypted_dh_first_part, dh_secret, DIFFIE_HELLMAN_MODULUS)
-
-        m = hashlib.sha1()
-        m.update(str(key))
-        key = m.digest()[0:16]
-
-        self.session_keys[relay_key] = key
-        #self._logger.debug("The create message's key   : {}".format(message.key))
-        #self._logger.debug("My diffie secret           : {}".format(self.dh_secret))
-        #self._logger.debug("SECRET {} FOR THE ORIGINATOR NODE".format(key))
-
-        return_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
-                         DIFFIE_HELLMAN_MODULUS)
+        self._logger.info('We joined circuit %d with neighbour %s', circuit_id,
+                    candidate)
 
         candidate_dict = {}
         for _ in range(1, 5):
@@ -662,27 +632,14 @@ class ProxyCommunity(Community):
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED,
                                  candidate.sock_addr, circuit_id)
 
-        index = (candidate.sock_addr, circuit_id)
-        encrypted_cand_dict = self.encrypt_candidate_list(
-            self.session_keys[index], candidate_dict)
-
         return self.send_message(
             destination=candidate,
             circuit_id=circuit_id,
             message_type=MESSAGE_CREATED,
-            message=CreatedMessage(return_key, encrypted_cand_dict)
+            message=CreatedMessage(candidate_dict)
         )
 
-    @staticmethod
-    def encrypt_candidate_list(key, cand_dict):
-        encoded_dict = encoding.encode(cand_dict)
-        return crypto.aes_encode(key, encoded_dict)
 
-    @staticmethod
-    def decrypt_candidate_list(key, encrypted_cand_dict):
-        encoded_dict = crypto.aes_decode(key, encrypted_cand_dict)
-        offset, cand_dict = encoding.decode(encoded_dict)
-        return cand_dict
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards
@@ -710,9 +667,11 @@ class ProxyCommunity(Community):
                                      MESSAGE_EXTENDED, extended_message)
 
         # This is ours!
-        circuit = self.circuits[circuit_id]
-        self._ours_on_created_extended(circuit, message)
-        return True
+        if circuit_id in self.circuits:
+            circuit = self.circuits[circuit_id]
+            self._ours_on_created_extended(circuit, message)
+            return True
+        return False
 
     def _ours_on_created_extended(self, circuit, message):
         """
@@ -724,28 +683,7 @@ class ProxyCommunity(Community):
             self.request_cache.get,
             args=(CircuitRequestCache.create_identifier(circuit.circuit_id),))
 
-        unverified_hop = circuit.unverified_hop
-
-        session_key = pow(message.key,
-                          unverified_hop.dh_first_part,
-                          DIFFIE_HELLMAN_MODULUS)
-        m = hashlib.sha1()
-        m.update(str(session_key))
-        key = m.digest()[0:16]
-
-        unverified_hop.session_key = key
-
-        circuit.add_hop(unverified_hop)
-        circuit.unverified_hop = None
-
-        try:
-            candidate_list = self.decrypt_candidate_list(
-                key, message.candidate_list)
-        except Exception:
-            reason = "Can't decrypt candidate list!"
-            self._logger.exception(reason)
-            self.remove_circuit(circuit.circuit_id, reason)
-            return
+        candidate_list = message.candidate_list
 
         dispersy = self.dispersy
         if dispersy.lan_address in candidate_list:
@@ -982,15 +920,6 @@ class ProxyCommunity(Community):
 
         return circuit_id
 
-    def _filter_message(self, candidate, circuit_id, message_type, payload):
-        for f in self._message_filters[message_type]:
-            payload = f(candidate, circuit_id, payload)
-
-            if not payload:
-                return None
-
-        return payload
-
     def remove_message_filter(self, message_type, filter_func):
         """
         Removes a message filter
@@ -1019,6 +948,9 @@ class ProxyCommunity(Community):
         @param BaseMessage message: the messages content in object form
         @return:
         """
+        for transformer in self.before_send_transformers[message_type]:
+            message = transformer(destination, circuit_id, message)
+
         content = self.proxy_conversion.encode(message_type, message)
 
         for transformer in self.send_transformers:
