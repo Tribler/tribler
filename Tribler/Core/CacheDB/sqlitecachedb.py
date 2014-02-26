@@ -146,10 +146,12 @@ class safe_dict(dict):
             self.lock.release()
 
 
-class SQLiteCacheDBBase:
+class SQLiteCacheDBBase(object):
+
     lock = threading.RLock()
 
     def __init__(self, db_exception_handler=None):
+        super(SQLiteCacheDBBase, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.exception_handler = db_exception_handler
