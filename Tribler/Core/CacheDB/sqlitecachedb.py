@@ -56,7 +56,6 @@ CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'  # db file path = DB_DIR_NAME/DB_FILE_NAME
 DEFAULT_BUSY_TIMEOUT = 10000
-SHOW_ALL_EXECUTE = False
 TEST_OVERRIDE = False
 
 INITIAL_UPGRADE_PAUSE = 10
@@ -434,7 +433,7 @@ class SQLiteCacheDBBase(ThreadSafeSingleton):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -457,7 +456,7 @@ class SQLiteCacheDBBase(ThreadSafeSingleton):
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -2364,7 +2363,7 @@ class SQLiteCacheDB(SQLiteCacheDBV5):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -2385,7 +2384,7 @@ class SQLiteCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
