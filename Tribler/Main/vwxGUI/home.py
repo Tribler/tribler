@@ -6,8 +6,9 @@ import copy
 
 import wx
 import igraph
-from Tribler.community.anontunnel.community import Hop, ProxyCommunity
+from Tribler.community.anontunnel.community import ProxyCommunity
 import datetime
+from Tribler.community.anontunnel.routing import Hop
 
 try:
     import igraph.vendor.texttable
@@ -33,7 +34,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_PUNCTURE, NTFY_JOINED, NTFY_EXTENDED_FOR
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, LIST_BLUE
@@ -1244,7 +1245,7 @@ class Anonymity(wx.Panel):
 
         self.AddComponents()
 
-        self.my_address = Hop(('127.0.0.1', 0), None, None)
+        self.my_address = Hop(('127.0.0.1', 0))
 
         self.vertices = {}
         self.edges = []
@@ -1287,7 +1288,6 @@ class Anonymity(wx.Panel):
 
         self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
         self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
-        self.session.add_observer(self.OnPuncture, NTFY_ANONTUNNEL, [NTFY_PUNCTURE])
         self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
         self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
 
@@ -1346,6 +1346,7 @@ class Anonymity(wx.Panel):
 
     def OnUpdateCircuits(self, event):
         self.circuits = dict(self.proxy_community.circuits)
+        stats = self.proxy_community.global_stats.circuit_stats
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -1356,8 +1357,12 @@ class Anonymity(wx.Panel):
                 pos = self.circuit_to_listindex[circuit_id]
             self.circuit_list.SetStringItem(pos, 1, str(circuit.state))
             self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)) + "/" + str(circuit.goal_hops))
-            self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(circuit.bytes_uploaded))
-            self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(circuit.bytes_downloaded))
+
+            bytes_uploaded = stats[circuit_id].bytes_uploaded
+            bytes_downloaded = stats[circuit_id].bytes_downloaded
+
+            self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(bytes_uploaded))
+            self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(bytes_downloaded))
 
         # Remove old circuits
         old_circuits = [circuit_id for circuit_id in self.circuit_to_listindex if circuit_id not in self.circuits]
@@ -1405,10 +1410,6 @@ class Anonymity(wx.Panel):
     @forceWxThread
     def OnSelect(self, subject, changeType, circuit, address):
         self.AppendToLog("Circuit %d has been selected for destination %s\n" % (circuit, address))
-
-    @forceWxThread
-    def OnPuncture(self, subject, changeType, address):
-        self.AppendToLog("We will puncture our NAT to %s:%d\n" % address)
 
     @forceWxThread
     def OnJoined(self, subject, changeType, address, circuit_id):

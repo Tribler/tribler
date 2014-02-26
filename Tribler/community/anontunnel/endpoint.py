@@ -1,11 +1,13 @@
+"""
+Contains the DispersyBypassEndpoint to be used as Dispersy endpoint when the
+ProxyCommunity is being used
+"""
+
+
 from Queue import Queue, Full
 from threading import Thread
-import logging
-
 from Tribler.dispersy.endpoint import RawserverEndpoint
-
-logger = logging.getLogger(__name__)
-
+import logging
 __author__ = 'chris'
 
 
@@ -25,6 +27,7 @@ class DispersyBypassEndpoint(RawserverEndpoint):
 
         self.consumer_thread = Thread(target=self.__consumer)
         self.consumer_thread.start()
+        self._logger = logging.getLogger(__name__)
 
     def listen_to(self, prefix, handler):
         """
@@ -76,7 +79,7 @@ class DispersyBypassEndpoint(RawserverEndpoint):
                 else:
                     normal_packets.append(packet)
         except Full:
-            logger.warning(
+            self._logger.warning(
                 "DispersyBypassEndpoint cant keep up with incoming packets!")
 
         RawserverEndpoint.data_came_in(self, normal_packets)
@@ -93,6 +96,6 @@ class DispersyBypassEndpoint(RawserverEndpoint):
                 try:
                     self._socket.sendto(p, c.sock_addr)
                 except IOError:
-                    logger.exception("Error writing to socket!")
+                    self._logger.exception("Error writing to socket!")
 
         return True

@@ -39,6 +39,13 @@ class Request(object):
         self.destination_host = destination_address
         self.destination_port = destination_port
 
+    @property
+    def destination(self):
+        """
+        The destination address as a tuple
+        @rtype: (str, int)
+        """
+        return self.destination_host, self.destination_port
 
 class UdpRequest(object):
     """

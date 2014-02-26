@@ -4,11 +4,9 @@ import sqlite3
 import uuid
 import time
 
-from Tribler.community.anontunnel.community import TunnelObserver
+from Tribler.community.anontunnel.events import TunnelObserver
 
 __author__ = 'chris'
-
-logger = logging.getLogger()
 
 
 class CircuitStats:
@@ -50,6 +48,9 @@ class StatsCollector(TunnelObserver):
         """
 
         TunnelObserver.__init__(self)
+        
+        self._logger = logging.getLogger(__name__)
+        
         self.stats = {
             'bytes_returned': 0,
             'bytes_exit': 0,
@@ -90,7 +91,7 @@ class StatsCollector(TunnelObserver):
         if self.running:
             raise ValueError("Cannot start an already running stats collector")
 
-        logger.error("Resuming stats collecting!")
+        self._logger.error("Resuming stats collecting!")
         self.running = True
         self.proxy.observers.append(self)
         self.proxy.dispersy.callback.register(self.__calc_speeds)
@@ -133,7 +134,10 @@ class StatsCollector(TunnelObserver):
                 if r.timestamp is None:
                     r.timestamp = time.time()
                 elif r.timestamp < t2:
-                    if len(r.bytes_list) == 0 or r.bytes[-1] != r.bytes_list[-1]:
+                    changed = len(r.bytes_list) == 0 \
+                        or r.bytes[-1] != r.bytes_list[-1]
+
+                    if changed:
                         r.bytes_list.append(r.bytes[-1])
                         r.times.append(t2)
 
@@ -200,7 +204,7 @@ class StatsCollector(TunnelObserver):
 
     def on_unload(self):
         if self.download_stats:
-            logger.error("Sharing statistics now!")
+            self._logger.error("Sharing statistics now!")
             self.share_stats()
 
     def share_stats(self):
@@ -216,7 +220,8 @@ class StatsCrawler(TunnelObserver):
 
     def __init__(self, raw_server):
         TunnelObserver.__init__(self)
-        logger.warning("Running StatsCrawler")
+        self._logger = logging.getLogger(__name__)
+        self._logger.warning("Running StatsCrawler")
         self.raw_server = raw_server
         self.conn = None
 
@@ -285,33 +290,34 @@ class StatsCrawler(TunnelObserver):
 
             result_id = cursor.lastrowid
 
-            for c in stats['circuits']:
+            for circuit in stats['circuits']:
                 cursor.execute('''
                     INSERT INTO result_circuit (
                         result_id, hops, bytes_up, bytes_down, time
                     ) VALUES (?, ?, ?, ?, ?)''',
                                [
-                                   result_id, c['hops'], c['bytes_up'],
-                                   c['bytes_down'],
-                                   c['time']
+                                   result_id, circuit['hops'],
+                                   circuit['bytes_up'],
+                                   circuit['bytes_down'],
+                                   circuit['time']
                                ])
 
-            for c in stats['relays']:
+            for relay in stats['relays']:
                 cursor.execute('''
                     INSERT INTO result_relay (result_id, bytes, time)
                         VALUES (?, ?, ?)
-                ''', [result_id, c['bytes'], c['time']])
+                ''', [result_id, relay['bytes'], relay['time']])
 
             self.conn.commit()
 
-            logger.warning("Storing stats data of %s:%d" % sock_address)
+            self._logger.warning("Storing stats data of %s:%d" % sock_address)
         except sqlite3.IntegrityError:
-            logger.error("Stat already exists of %s:%d" % sock_address)
+            self._logger.error("Stat already exists of %s:%d" % sock_address)
         except BaseException:
-            logger.exception()
+            self._logger.exception()
 
         cursor.close()
 
     def stop(self):
-        logger.error("Stopping crawler")
+        self._logger.error("Stopping crawler")
         self.conn.close()
