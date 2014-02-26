@@ -251,7 +251,6 @@ class EmbeddedPlayerPanel(wx.Panel):
             try:
                 if self.download:
                     self.download.vod_seekpos = None
-                    self.ShowLoading()
                 self.vlcwrap.set_media_position_relative(position, self.GetState() in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED])
 
                 length = self.vlcwrap.get_stream_information_length()
@@ -405,11 +404,6 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.logowin.loading.SetLabel("Loading\nfailed")
         else:
             self.logowin.loading.SetValue(progress)
-
-        if self.logowin.IsShown() and progress == 1.0:
-            self.HideLoading()
-        if not self.logowin.IsShown() and progress == 0.0:
-            self.ShowLoading()
 
         if self.vlcwrap:
             self.slider.SetPieces(pieces_complete)

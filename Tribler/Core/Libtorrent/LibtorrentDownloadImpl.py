@@ -1,4 +1,4 @@
-    # Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
+# Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
 
 import sys
 import time
@@ -31,10 +31,10 @@ class VODFile(object):
 
     def __init__(self, f, d):
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger.setLevel(logging.DEBUG)
 
         self._file = f
         self._download = d
-        self._closing = False
 
         pieces = self._download.tdef.get_pieces()
         self.pieces = [pieces[x:x + 20]for x in xrange(0, len(pieces), 20)]
@@ -48,10 +48,10 @@ class VODFile(object):
 
         self._logger.debug('VODFile: get bytes %s - %s', oldpos, oldpos + args[0])
 
-        while not self._closing and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
+        while not self._file.closed and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1 and self._download.vod_seekpos != None:
             time.sleep(1)
 
-        if self._closing:
+        if self._file.closed:
             self._logger.debug('VODFile: got no bytes, file is closed')
             return ''
 
@@ -152,7 +152,6 @@ class VODFile(object):
         return allpiecesok
 
     def close(self, *args):
-        self._closing = True
         self._file.close(*args)
 
 

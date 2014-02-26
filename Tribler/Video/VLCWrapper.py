@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 def check_threading():
     if currentThread().getName() != "MainThread":
-        logger.info("VLCWrapper: Thread violation!")
-        print_stack()
+        raise Exception("VLCWrapper: Thread violation!")
 
 
 class VLCWrapper:

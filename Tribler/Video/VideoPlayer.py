@@ -12,7 +12,7 @@ from multiprocessing.synchronize import RLock
 
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_BUFFER, NTFY_VIDEO_STARTED, DLMODE_NORMAL
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_STARTED, DLMODE_NORMAL
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 
 from Tribler.Video.utils import win32_retrieve_video_play_command, quote_program_path, escape_path, return_feasible_playback_modes
@@ -41,7 +41,7 @@ class VideoPlayer:
         self.videoframe = None
         self.vod_download = None
         self.vod_fileindex = None
-        self.vod_playing = False
+        self.vod_playing = None
         self.vod_info = defaultdict(dict)
 
         feasible = return_feasible_playback_modes(self.utility.getPath())
@@ -86,6 +86,7 @@ class VideoPlayer:
             self.launch_video_player(url, download)
         else:
             self.launch_video_player(self.get_video_player(None, url))
+        self.vod_playing = None
 
     def monitor_vod(self, ds):
         dl = ds.get_download() if ds else None
@@ -95,13 +96,15 @@ class VideoPlayer:
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
-        if bufferprogress >= 1 and not self.vod_playing:
-            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFER, self.vod_download, self.vod_fileindex, True)
-            self.vod_playing = True
+        print >> sys.stderr, "monitor_vod", bufferprogress, dl.get_def().get_name(), dl.vod_seekpos
 
+        if bufferprogress >= 1:
+            if not self.vod_playing:
+                self.vod_playing = True
+            self.resume_playback()
         elif bufferprogress <= 0.1 and self.vod_playing:
-            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFER, self.vod_download, self.vod_fileindex, False)
             self.vod_playing = False
+            self.pause_playback()
 
         dl_def = dl.get_def()
         dl_hash = dl_def.get_id()
@@ -142,7 +145,8 @@ class VideoPlayer:
                 vi_dict['stream'][0].close()
 
         self.vod_download = download
-        self.vod_download.set_state_callback(self.monitor_vod)
+        if self.vod_download:
+            self.vod_download.set_state_callback(self.monitor_vod)
 
     def get_vod_fileindex(self):
         return self.vod_fileindex
@@ -151,10 +155,11 @@ class VideoPlayer:
         self.vod_fileindex = fileindex
 
     def get_vod_filename(self, download):
-        filename = download.get_selected_files()[0] if download.get_def().is_multifile_torrent() else download.get_def().get_name()
-        filename = os.path.join(download.get_content_dest(), filename)
-        return filename
-
+        if download.get_def().get_def_type() == 'torrent':
+            if download.get_def().is_multifile_torrent():
+                return os.path.join(download.get_content_dest(), download.get_selected_files()[0])
+            else:
+                return download.get_content_dest()
 
     def launch_video_player(self, cmd, download=None):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
@@ -194,12 +199,24 @@ class VideoPlayer:
 
         return cmd
 
+    @forceWxThread
+    def pause_playback(self):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().Pause(gui_vod_event=True)
+
+    @forceWxThread
+    def resume_playback(self):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            self.videoframe.get_videopanel().Resume()
+
+    @forceWxThread
     def stop_playback(self):
-        """ Stop playback in current video window """
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
             self.videoframe.get_videopanel().Stop()
             self.videoframe.Stop()
+        self.set_vod_download(None)
 
+    @forceWxThread
     def recreate_videopanel(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
             # Playing a video can cause a deadlock in libvlc_media_player_stop. Until we come up with something cleverer, we fix this by recreating the videopanel.

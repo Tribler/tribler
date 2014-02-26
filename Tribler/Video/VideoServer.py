@@ -11,7 +11,7 @@ from multiprocessing.synchronize import Event
 from binascii import unhexlify
 from cherrypy.lib import http
 
-from Tribler.Core.simpledefs import DLMODE_VOD, DLMODE_NORMAL, NTFY_TORRENTS, NTFY_VIDEO_BUFFER
+from Tribler.Core.simpledefs import DLMODE_VOD, DLMODE_NORMAL, NTFY_TORRENTS
 
 
 class VideoServer:
@@ -32,9 +32,6 @@ class VideoServer:
         from Tribler.Video.VideoPlayer import VideoPlayer
         self.videoplayer = VideoPlayer.getInstance()
 
-        self.event = Event()
-        self.session.add_observer(self.on_buffer, NTFY_TORRENTS, [NTFY_VIDEO_BUFFER])
-
     def getInstance(*args, **kw):
         if VideoServer.__single is None:
             VideoServer(*args, **kw)
@@ -54,6 +51,7 @@ class VideoServer:
             cherrypy.server.socket_port = self.port
             cherrypy.server.socket_timeout = 3600
             cherrypy.server.protocol_version = 'HTTP/1.1'
+            cherrypy.server.thread_pool = 1
 
             app = cherrypy.tree.mount(self, config={'/':{}})
             app.log.access_log.setLevel(logging.NOTSET)
@@ -68,9 +66,14 @@ class VideoServer:
 
     @cherrypy.expose
     def default(self, downloadhash, fileindex):
-        print >> sys.stderr, "VideoServer: VOD request:", cherrypy.url()
+        print >> sys.stderr, "VideoServer: VOD request", cherrypy.url()
         downloadhash = unhexlify(downloadhash)
         download = self.session.get_download(downloadhash)
+
+        if download and download.get_def().get_def_type() == 'swift':
+            print >> sys.stderr, "VideoServer: ignoring VOD request for swift"
+            raise cherrypy.HTTPError(404, "Not Found")
+            return
 
         if not download or not fileindex.isdigit() or int(fileindex) > len(download.get_def().get_files()):
             raise cherrypy.HTTPError(404, "Not Found")
@@ -84,26 +87,23 @@ class VideoServer:
             raise cherrypy.HTTPError(416, "Requested Range Not Satisfiable")
             return
 
-        # Notify the videoplayer (which will put the old VOD download back in normal mode).
         if self.videoplayer.get_vod_fileindex() != fileindex or self.videoplayer.get_vod_download() != download:
+            # Notify the videoplayer (which will put the old VOD download back in normal mode).
             self.videoplayer.set_vod_fileindex(fileindex)
             self.videoplayer.set_vod_download(download)
 
-        # Put download in sequential mode + trigger initial buffering.
-        if download.get_def().get_def_type() != "torrent" or download.get_def().is_multifile_torrent():
-            download.set_selected_files([filename])
-        self.event = Event()
-        def wait_for_buffer(ds):
-            if ds.get_vod_prebuffering_progress() == 1.0:
-                self.event.set()
-                return (0, False)
-            return (1.0, False)
-        download.set_state_callback(wait_for_buffer)
-        download.set_mode(DLMODE_VOD)
-        download.restart()
+            # Put download in sequential mode + trigger initial buffering.
+            if download.get_def().get_def_type() != "torrent" or download.get_def().is_multifile_torrent():
+                download.set_selected_files([filename])
+            download.set_mode(DLMODE_VOD)
+            download.restart()
 
-        # Wait for buffering to complete.
-        self.event.wait()
+            # Wait for buffering to complete.
+            self.wait_for_buffer(download)
+
+            print >> sys.stderr, "VideoServer: restart"
+        else:
+            print >> sys.stderr, "VideoServer: seek?"
 
         mimetype = mimetypes.guess_type(filename)[0]
         piecelen = 2 ** 16 if download.get_def().get_def_type() == "swift" else download.get_def().get_piece_length()
@@ -118,6 +118,8 @@ class VideoServer:
             firstbyte = 0
             nbytes2send = length
             cherrypy.response.status = 200
+
+        print >> sys.stderr, "VideoServer: requested range", firstbyte, "-", firstbyte + nbytes2send
 
         cherrypy.response.headers['Content-Type'] = mimetype
         cherrypy.response.headers['Accept-Ranges'] = 'bytes'
@@ -149,8 +151,6 @@ class VideoServer:
                         yield data
                         nbyteswritten += len(data)
 
-                    self.event.wait()
-
                 if nbyteswritten != nbytes2send:
                     self._logger.error("VideoServer: sent wrong amount, wanted %s got %s", nbytes2send, nbyteswritten)
 
@@ -161,9 +161,13 @@ class VideoServer:
 
     default._cp_config = {'response.stream': True}
 
-    def on_buffer(self, subject, changeType, download, fileindex, buffer_full):
-        print >> sys.stderr, "VideoServer: on_buffer", buffer_full
-        if buffer_full:
-            self.event.set()
-        else:
-            self.event.clear()
+    def wait_for_buffer(self, download):
+        event = Event()
+        def wait_for_buffer(ds):
+            print >> sys.stderr, "wait_for_buffer", ds.get_vod_prebuffering_progress(), download.get_def().get_name(), download.vod_seekpos
+            if download.vod_seekpos == None or ds.get_vod_prebuffering_progress() == 1.0 or ds.get_download().vod_seekpos == None:
+                event.set()
+                return (0, False)
+            return (1.0, False)
+        download.set_state_callback(wait_for_buffer)
+        event.wait()
