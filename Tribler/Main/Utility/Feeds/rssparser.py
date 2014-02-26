@@ -7,17 +7,17 @@ import re
 import logging
 from copy import deepcopy
 from shutil import copyfile
-from Tribler.Core.TorrentDef import TorrentDef
-from traceback import print_exc
-from threading import Thread, RLock, Event
-
-from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
-from Tribler.Core.Utilities.bencode import bencode, bdecode
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from urlparse import urlparse
-from urllib2 import URLError, HTTPError
 import imghdr
 import tempfile
+from traceback import print_exc
+from threading import Thread, RLock, Event
+import lxml.html
+
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
+from Tribler.Core.Utilities.bencode import bdecode
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 try:
     from Tribler.Main.Utility.Feeds import feedparser
@@ -50,6 +50,8 @@ class RssParser(Thread):
         self.key_callbacks = {}
 
         self.urls_changed = Event()
+        self.rss_parser = RSSFeedParser()
+        self.url_resourceretriever = URLResourceRetriever()
         self.isRegistered = False
 
     def getInstance(*args, **kw):
@@ -206,104 +208,53 @@ class RssParser(Thread):
 
     def _refresh(self):
         channel_url = None
-        try:
-            self.key_url_lock.acquire()
+        with self.key_url_lock:
             channel_url = deepcopy(self.key_url)
-        finally:
-            self.key_url_lock.release()
 
         if channel_url:
             for key, urls in channel_url.iteritems():
                 if key in self.key_callbacks:
                     for url in urls:
-                        self._logger.debug("RssParser: getting rss %s %d", url, len(urls))
+                        self._logger.debug(u"Getting rss %s", url)
 
                         historyfile = self.gethistfilename(url, key)
                         urls_already_seen = URLHistory(historyfile)
                         urls_already_seen.read()
 
-                        newItems = self.readUrl(url, urls_already_seen)
-                        for title, new_urls, description, thumbnail in newItems:
-                            downloaded_thumbnail_list = []
-                            thumbnail_tempdir = tempfile.mkdtemp()
-                            if thumbnail:
-                                thumbnail_count = 1
-                                try:
-                                    self._logger.debug("Trying to download thumbnail %s", thumbnail)
+                        for title, description, url_list in self.rss_parser.parse(url):
+                            tempdir = tempfile.mkdtemp()
+                            self._logger.debug(u"-------------------")
+                            self._logger.debug(u"TEMPDIR %s for [%s]", tempdir, title)
+                            try:
+                                torrent_list, image_list, useless_url_list = \
+                                    self.url_resourceretriever.retrieve(url_list, tempdir, urls_already_seen)
+                            except:
+                                self._logger.exception(u"Failed to retrieve data.")
+                                continue
 
-                                    referer = urlparse(thumbnail)
-                                    referer = referer.scheme + "://" + referer.netloc + "/"
-                                    stream = urlOpenTimeout(thumbnail, referer=referer)
-                                    thumbnail_data = stream.read()
-                                    stream.close()
+                            for useless_url in useless_url_list:
+                                urls_already_seen.add(useless_url)
 
-                                    thumbnail_filename = u"thumbnail-%d" % thumbnail_count
-                                    thumbnail_filepath = os.path.join(thumbnail_tempdir, thumbnail_filename)
-                                    f = open(thumbnail_filepath, "wb")
-                                    f.write(thumbnail_data)
-                                    f.close()
+                            # call callback for everything valid torrent
+                            for torrent_url, torrent in torrent_list:
+                                urls_already_seen.add(torrent_url)
 
-                                    # check image type
-                                    image_type = imghdr.what(thumbnail_filepath)
-                                    if image_type:
-                                        # rename the file with extension
-                                        old_thumbnail_filepath = thumbnail_filepath
-                                        thumbnail_filename += u"." + image_type
-                                        thumbnail_filepath += u"." + image_type
-                                        os.rename(old_thumbnail_filepath, thumbnail_filepath)
+                                def processCallbacks(key, torrent, extra_info):
+                                    for callback in self.key_callbacks[key]:
+                                        try:
+                                            callback(key, torrent, extraInfo=extra_info)
+                                        except:
+                                            self._logger.exception(u"Failed to process torrent callback.")
 
-                                        # add to the downloaded thumbnail list
-                                        downloaded_thumbnail_list.append(thumbnail_filename)
-                                    else:
-                                        # it's not an image, remove it.
-                                        os.remove(thumbnail_filepath)
-
-                                    thumbnail_count += 1
-
-                                except HTTPError as http_error:
-                                    if http_error.code == 404:
-                                        self._logger.debug("Could not find URL %s", thumbnail)
-                                    else:
-                                        self._logger.exception("Could not download thumbnail %s", thumbnail)
-                                except:
-                                    self._logger.exception("Could not download thumbnail %s", thumbnail)
-
-                            for new_url in new_urls:
-                                urls_already_seen.add(new_url)
-                                urls_already_seen.write()
-
-                                try:
-                                    self._logger.debug("RssParser: trying %s", new_url)
-
-                                    referer = urlparse(new_url)
-                                    referer = referer.scheme + "://" + referer.netloc + "/"
-                                    stream = urlOpenTimeout(new_url, referer=referer)
-                                    bdata = stream.read()
-                                    stream.close()
-
-                                    bddata = bdecode(bdata, 1)
-                                    torrent = TorrentDef._create(bddata)
-
-                                    def processCallbacks(key):
-                                        for callback in self.key_callbacks[key]:
-                                            try:
-                                                callback(key, torrent, extraInfo={'title': title, 'description': description, 'thumbnail': thumbnail, 'thumbnail-tempdir': thumbnail_tempdir, 'thumbnail-file-list': downloaded_thumbnail_list})
-                                            except:
-                                                self._logger.exception(u"Failed to process torrent callback.")
-
-                                    if self.remote_th.is_registered():
-                                        callback = lambda key = key: processCallbacks(key)
-                                        self.remote_th.save_torrent(torrent, callback)
-                                    else:
-                                        processCallbacks(key)
-
-                                except HTTPError as http_error:
-                                    if http_error.code == 404:
-                                        self._logger.debug("Could not find URL %s", new_url)
-                                    else:
-                                        self._logger.exception("Could not download %s", new_url)
-                                except:
-                                    self._logger.exception("RssParser: could not download %s", new_url)
+                                extra_info = {'title': title,
+                                    'description': description,
+                                    'thumbnail-tempdir': tempdir,
+                                    'thumbnail-file-list': [image_path for image_url, image_path in image_list]}
+                                if self.remote_th.is_registered():
+                                    callback = lambda key = key, torrent=torrent, extra_info=extra_info: processCallbacks(key, torrent, extra_info)
+                                    self.remote_th.save_torrent(torrent, callback)
+                                else:
+                                    processCallbacks(key, torrent, extra_info)
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
 
@@ -311,50 +262,229 @@ class RssParser(Thread):
                                 if not self.isRegistered:
                                     return
 
-    def readUrl(self, url, urls_already_seen):
-        self._logger.debug("RssParser: reading url %s", url)
+                        urls_already_seen.write()
 
-        newItems = []
+class URLResourceRetriever(object):
 
+    def __init__(self):
+        super(URLResourceRetriever, self).__init__()
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+    def retrieve(self, url_list, work_dir, urls_already_seen):
+        """Retrieves and identifies resources from a list of URLs.
+        It returns a list of identified URL and file pair, including:
+          (1) .torrent (URL, torrent object)
+          (2) pictures (URL, picture-file-path)
+        """
+        torrent_list = []
+        image_list = []
+        useless_url_list = []
+        image_count = 1
+        for url in url_list:
+            if urls_already_seen.contains(url):
+                self._logger.debug(u"Skip, URL already seen [%s]", url)
+                continue
+
+            # download the thing
+            stream = None
+            self._logger.debug(u"Trying to download [%s]", url)
+            try:
+                referer = urlparse(url)
+                referer = referer.scheme + "://" + referer.netloc + "/"
+                stream = urlOpenTimeout(url, referer=referer)
+                data = stream.read()
+            except:
+                self._logger.exception(u"Could not download %s", url)
+                useless_url_list.append(url)
+                continue
+            finally:
+                if stream:
+                    stream.close()
+
+            self._logger.debug(u"Trying to save [%s]", url)
+            tmp_file = None
+            tmp_path = None
+            try:
+                tmp_file_no, tmp_path = tempfile.mkstemp(dir=work_dir)
+                tmp_file = os.fdopen(tmp_file_no, 'wb')
+                tmp_file.write(data)
+            except:
+                self._logger.exception(u"Could not save %s -> %s", url, tmp_path)
+                continue
+            finally:
+                if tmp_file:
+                    tmp_file.close()
+
+            # check if it is an image
+            self._logger.debug(u"Trying to do image check [%s] [%s]", url, tmp_path)
+            image_result = self.__try_image(tmp_path, work_dir, image_count)
+            if image_result:
+                self._logger.debug(u"Got image %s -> %s", url, image_result)
+                image_list.append((url, image_result))
+                image_count += 1
+                continue
+
+            # check if it is a torrent file
+            self._logger.debug(u"Trying to do torrent check [%s] [%s]", url, tmp_path)
+            torrent_result = self.__try_torrent(tmp_path)
+            if torrent_result:
+                self._logger.debug(u"Got torrent %s", url)
+                torrent_list.append((url, torrent_result))
+                os.remove(tmp_path)
+                continue
+
+            # useless URL
+            self._logger.debug(u"Useless URL %s", url)
+            useless_url_list.append(url)
+            if tmp_path:
+                self._logger.debug(u"Remove file %s", tmp_path)
+                os.remove(tmp_path)
+
+        return torrent_list, image_list, useless_url_list
+
+    def __try_image(self, filepath, work_dir, image_count):
+        """Checks if a file is an image. If it is an image, the file will be
+           renamed with extension and the new file path will be returned.
+           Otherwise, the file will be removed.
+        """
+        image_type = imghdr.what(filepath)
+        if image_type:
+            # rename the file
+            old_filepath = filepath
+            new_filename = u"thumbnail-%d.%s" % (image_count, image_type)
+            new_filepath = os.path.join(work_dir, new_filename)
+            os.rename(old_filepath, new_filepath)
+
+            return new_filepath
+        else:
+            return None
+
+    def __try_torrent(self, filepath):
+        """Checks if a file is a torrent. If it is a torrent, returns the
+           parsed torrent.
+        """
+        filestream = None
         try:
-            feedparser._HTMLSanitizer.acceptable_elements = ['p', 'br']
-            d = feedparser.parse(url)
-            for entry in d.entries:
-                title = entry.title
+            filestream = open(filepath, 'rb')
+            data = filestream.read()
+            bddata = bdecode(data, 1)
+            return TorrentDef._create(bddata)
+        except:
+            return None
+        finally:
+            if filestream:
+                filestream.close()
 
-                discovered_links = set()
-                for link in entry.links:
-                    discovered_links.add(link['href'])
+class RSSFeedParser(object):
 
-                for enclosure in entry.enclosures:
-                    discovered_links.add(enclosure['href'])
+    def __init__(self):
+        super(RSSFeedParser, self).__init__()
+        self._logger = logging.getLogger(self.__class__.__name__)
 
-                try:
-                    for content in entry.media_content:
-                        discovered_links.add(content['url'])
-                except:
-                    pass
+    def __parse_html(self, content):
+        """Parses an HTML content and find links.
+        """
+        if content is None:
+            return None
+        url_set = set()
 
-                description = ''
-                if getattr(entry, 'summary', False):
-                    description = entry.summary
-                    if description:
-                        description = re.sub("<.*?>", "\n", description)
-                        description = re.sub("\n+", "\n", description)
+        xml_parser = lxml.html.fromstring(content)
+        a_list = xml_parser.xpath('//a')
+        for a_item in a_list:
+            a_href = a_item.attrib.get('href', None)
+            if a_href:
+                url_set.add(a_href)
 
-                try:
-                    thumbnail = entry.media_thumbnail[0]['url']
-                except:
-                    thumbnail = None
+        img_list = xml_parser.xpath('//img')
+        for img_item in img_list:
+            img_src = img_item.attrib.get('src', None)
+            if img_src:
+                url_set.add(img_src)
 
-                new_urls = [discovered_url for discovered_url in discovered_links if not urls_already_seen.contains(discovered_url)]
+        return url_set
 
-                if len(new_urls) > 0:
-                    newItems.append((title, new_urls, description, thumbnail))
-        except URLError:
-            self._logger.debug("RssParser: could not open url %s", url)
+    def __html2plaintext(self, html_content):
+        """Converts an HTML document to plain text.
+        """
+        content = html_content.replace('\r\n', '\n')
 
-        return newItems
+        content = re.sub('<br[ \t\r\n\v\f]*.*/>', '\n', content)
+        content = re.sub('<p[ \t\r\n\v\f]*.*/>', '\n', content)
+
+        content = re.sub('<p>', '', content)
+        content = re.sub('</p>', '\n', content)
+
+        content = re.sub('<.+/>', '', content)
+        content = re.sub('<.+>', '', content)
+        content = re.sub('</.+>', '', content)
+
+        content = re.sub('[\n]+', '\n', content)
+        content = re.sub('[ \t\v\f]+', ' ', content)
+
+        parsed_html_content = u''
+        for line in content.split('\n'):
+            trimed_line = line.strip()
+            if trimed_line:
+                parsed_html_content += trimed_line.encode('utf-8') + u'\n'
+
+        return parsed_html_content
+
+    def parse(self, url):
+        """Parses a RSS feed. This methods supports RSS 2.0 and Media RSS.
+        """
+        feed = feedparser.parse(url)
+
+        parsed_item_list = []
+        for item in feed.entries:
+            all_url_set = set()
+
+            # ordinary RSS elements
+            title = item.get(u'title', None)
+            link = item.get(u'link', None)
+            description = item.get(u'description', None)
+            # <description> can be an HTML document
+            description_url_set = self.__parse_html(description)
+            if description_url_set:
+                all_url_set.update(description_url_set)
+
+            if link:
+                all_url_set.add(link)
+
+            # get urls from enclosures
+            for enclosure in item.enclosures:
+                enclosure_url = enclosure.get(u'url', None)
+                if enclosure_url:
+                    all_url_set.add(enclosure_url)
+
+            # media RSS elements
+            media_title = item.get(u'media:title', None)
+            media_description = item.get(u'media:description', None)
+            # <media:description> can be an HTML document
+            media_description_url_set = self.__parse_html(media_description)
+            if media_description_url_set:
+                all_url_set.update(media_description_url_set)
+
+            media_thumbnail_list = item.get(u'media_thumbnail', None)
+            if media_thumbnail_list:
+                for media_thumbnail in media_thumbnail_list:
+                    url = media_thumbnail.get(u'url', None)
+                    if url:
+                        all_url_set.add(url)
+
+            # sssemble the information, including:
+            # use media:title, and media:description as default information
+            the_title = media_title if media_title else title
+            the_title = the_title if the_title is not None else u''
+            the_description = media_description if media_description else description
+            the_description = the_description if the_description is not None else u''
+            if the_description:
+                the_description = self.__html2plaintext(the_description)
+
+            parsed_item = (the_title, the_description, all_url_set)
+            parsed_item_list.append(parsed_item)
+
+        return parsed_item_list
+
 
 # Written by Freek Zindel, Arno Bakker
 class URLHistory:
@@ -374,10 +504,6 @@ class URLHistory:
 
     def contains(self, dirtyurl):
         url = self.clean_link(dirtyurl)
-
-        # Poor man's filter
-        if url.endswith(".jpg") or url.endswith(".JPG"):
-            return True
 
         t = self.urls.get(url, None)
         if t is None:

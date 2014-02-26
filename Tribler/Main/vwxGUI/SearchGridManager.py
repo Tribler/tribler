@@ -807,8 +807,6 @@ class TorrentManager:
 
         return metadata_mod_list
 
-
-    @forceDispersyThread
     def createMetadataModificationFromDef(self, channel_id, tdef, extraInfo={}, forward=True):
         torrent = Torrent.fromTorrentDef(tdef)
 

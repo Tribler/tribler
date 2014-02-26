@@ -133,6 +133,12 @@ class TriblerLaunchMany(Thread):
                 # try_register(nocachedb, self.database_thread)!
 
                 success = self.dispersy.start()
+
+                # for debugging purpose
+                from Tribler.dispersy.endpoint import NullEndpoint
+                self.dispersy._endpoint = NullEndpoint()
+                self.dispersy._endpoint.open(self.dispersy)
+
                 diff = timemod.time() - now
                 if success:
                     self._logger.info("lmc: Dispersy started successfully in %.2f seconds [port: %d]", diff, self.dispersy.wan_address[1])
