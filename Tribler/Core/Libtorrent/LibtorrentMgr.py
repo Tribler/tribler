@@ -116,6 +116,7 @@ class LibtorrentMgr:
         settings.enable_incoming_utp = True
         settings.enable_outgoing_tcp = False
         settings.enable_incoming_tcp = False
+        settings.anonymous_mode = True
         ltsession = lt.session(flags=1)
         ltsession.set_settings(settings)
         ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
