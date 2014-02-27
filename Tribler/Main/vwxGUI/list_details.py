@@ -1846,10 +1846,10 @@ class MyChannelPlaylist(AbstractDetails):
         gridSizer.AddGrowableRow(1)
 
         if can_edit:
-            self.name = wx.TextCtrl(self, value=playlist.get('name', ''))
+            self.name = EditText(self, playlist.get('name', ''))
             self.name.SetMaxLength(40)
 
-            self.description = wx.TextCtrl(self, value=playlist.get('description', ''), style=wx.TE_MULTILINE)
+            self.description = EditText(self, playlist.get('description', ''), multiline=True)
             self.description.SetMaxLength(2000)
         else:
             self.name = StaticText(self, -1, playlist.get('name', ''))
