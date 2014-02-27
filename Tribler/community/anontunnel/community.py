@@ -59,7 +59,7 @@ class ProxySettings:
         self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy()
         self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(
             length)
-        self.crypto = crypto.DefaultCrypto()
+        self.crypto = crypto.NoCrypto()
 
 
 class ProxyCommunity(Community):
@@ -170,7 +170,6 @@ class ProxyCommunity(Community):
         self._heartbeat_candidates = {}
 
         self.key = self.my_member.private_key
-        self.session_keys = {}
 
         sys.modules["random"] = random.SystemRandom()
 
@@ -588,9 +587,6 @@ class ProxyCommunity(Community):
             # after removing one side the other will follow.
             del self.relay_from_to[relay_key]
 
-            if relay_key in self.session_keys:
-                del self.session_keys[relay_key]
-
             self.__notify("on_break_relay", relay_key)
             return True
         return False
@@ -682,6 +678,9 @@ class ProxyCommunity(Community):
             args=(CircuitRequestCache.create_identifier(circuit.circuit_id),))
 
         candidate_list = message.candidate_list
+
+        circuit.add_hop(circuit.unverified_hop)
+        circuit.unverified_hop = None
 
         dispersy = self.dispersy
         if dispersy.lan_address in candidate_list:
