@@ -53,8 +53,7 @@ class NoCrypto(object):
         self.proxy.after_receive_transformers[MESSAGE_EXTENDED]\
             .remove(self._decrypt_extended_content)
 
-    @staticmethod
-    def _encrypt_created_content(candidate, circuit_id, message):
+    def _encrypt_created_content(self, candidate, circuit_id, message):
         """
         Candidate list must be converted to a string in nocrypto
 
@@ -79,8 +78,7 @@ class NoCrypto(object):
             _, message.candidate_list = decode(message.candidate_list)
         return message
 
-    @staticmethod
-    def _decrypt_extended_content(candidate, circuit_id, message):
+    def _decrypt_extended_content(self, candidate, circuit_id, message):
         """
         Convert candidate list from string to dict
 
@@ -253,8 +251,7 @@ class DefaultCrypto(TunnelObserver):
 
         return message
 
-    @staticmethod
-    def _decrypt_extend_content(candidate, circuit_id, message):
+    def _decrypt_extend_content(self, candidate, circuit_id, message):
         """
         Nothing is encrypted in an Extend message
 
@@ -316,7 +313,6 @@ class DefaultCrypto(TunnelObserver):
                 candidate, circuit_id, message)
         return message
 
-    @staticmethod
     def _encrypt_extended_content(self, candidate, circuit_id, message):
         """
         Everything is already encrypted in an Extended message
@@ -515,8 +511,7 @@ class DefaultCrypto(TunnelObserver):
 
         return data
 
-    @staticmethod
-    def _encrypt_candidate_list(key, cand_dict):
+    def _encrypt_candidate_list(self, key, cand_dict):
         """
         This method encrypts a candidate list with the given public elgamal key
 
@@ -527,14 +522,13 @@ class DefaultCrypto(TunnelObserver):
         encoded_dict = encoding.encode(cand_dict)
         return aes_encrypt_str(key, encoded_dict)
 
-    @staticmethod
-    def _decrypt_candidate_list(key, encrypted_cand_dict):
+    def _decrypt_candidate_list(self, key, encrypted_cand_dict):
         """
         This method decrypts a candidate list with the given private elgamal
         key
 
         @param key: Private Elliptic Curve Elgamal key
-        @param string encrypted_cand_dict: Encoded dict
+        @param string cand_dict: Encoded dict
         @return dict: Dict filled with candidates
         """
         encoded_dict = aes_decrypt_str(key, encrypted_cand_dict)
