@@ -51,11 +51,15 @@ except ImportError:
     from M2Crypto import EVP
 
     def aes_encrypt_str(aes_key, plain_str):
-        cipher = EVP.Cipher(alg='aes_128_cfb', key=long_to_bytes(aes_key, 16), iv='\x00' * 16, op=1)
+        if isinstance(aes_key, long):
+            aes_key = long_to_bytes(aes_key, 16)
+        cipher = EVP.Cipher(alg='aes_128_cfb', key=aes_key, iv='\x00' * 16, op=1)
         ret = cipher.update(plain_str)
         return ret + cipher.final()
 
     def aes_decrypt_str(aes_key, encr_str):
-        cipher = EVP.Cipher(alg='aes_128_cfb', key=long_to_bytes(aes_key, 16), iv='\x00' * 16, op=0)
+        if isinstance(aes_key, long):
+            aes_key = long_to_bytes(aes_key, 16)
+        cipher = EVP.Cipher(alg='aes_128_cfb', key=aes_key, iv='\x00' * 16, op=0)
         ret = cipher.update(encr_str)
         return ret + cipher.final()

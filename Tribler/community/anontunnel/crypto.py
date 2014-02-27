@@ -6,6 +6,9 @@ import random
 from Tribler.Core.Utilities import encoding
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.events import TunnelObserver
+from Tribler.community.privatesemantic.crypto.optional_crypto import \
+    aes_encrypt_str, aes_decrypt_str
+
 
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
     ENDPOINT, MESSAGE_CREATE, MESSAGE_EXTEND, MESSAGE_EXTENDED, \
@@ -391,7 +394,7 @@ class DefaultCrypto(TunnelObserver):
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
         elif relay_key in self.session_keys:
-            content = aes_encode(self.session_keys[relay_key], content)
+            content = aes_encrypt_str(self.session_keys[relay_key], content)
             logger.debug("Adding AES layer for circuit %s with key %s" % (
                 circuit_id, self.session_keys[relay_key]))
         # If own circuit, AES layers have to be added
@@ -404,7 +407,7 @@ class DefaultCrypto(TunnelObserver):
                     "Adding AES layer for hop %s:%s with key %s" %
                     (hop.host, hop.port, hop.session_key)
                 )
-                content = aes_encode(hop.session_key, content)
+                content = aes_encrypt_str(hop.session_key, content)
         else:
             raise CryptoError("Don't know how to encrypt outgoing message")
 
@@ -441,7 +444,7 @@ class DefaultCrypto(TunnelObserver):
                     next_relay.circuit_id,
                     self.session_keys[
                         next_relay_key]))
-            data = aes_encode(
+            data = aes_encrypt_str(
                 self.session_keys[next_relay_key], data)
 
         # Message is going upstream so I have to remove my onion layer
@@ -450,7 +453,7 @@ class DefaultCrypto(TunnelObserver):
                 "AES decoding circuit {0} towards ENDPOINT, key {1}".format(
                     next_relay.circuit_id,
                     self.session_keys[relay_key]))
-            data = aes_decode(
+            data = aes_decrypt_str(
                 self.session_keys[relay_key], data)
         else:
             raise ValueError("The parameter 'direction' must be either"
@@ -485,7 +488,7 @@ class DefaultCrypto(TunnelObserver):
             # last node in circuit, circuit already exists
             logger.debug("I am the last node in the already existing circuit, "
                          "decrypt with AES")
-            data = aes_decode(
+            data = aes_decrypt_str(
                 self.session_keys[relay_key], data)
 
         # If I am the circuits originator I want to peel layers
@@ -497,7 +500,7 @@ class DefaultCrypto(TunnelObserver):
             for hop in self.proxy.circuits[circuit_id].hops:
                 logger.debug(
                     "Peeling layer with key {0}".format(hop.session_key))
-                data = aes_decode(hop.session_key, data)
+                data = aes_decrypt_str(hop.session_key, data)
         # I don't know the sender! Let's decrypt with my private Elgamal key
         else:
             # last node in circuit, circuit does not exist yet,
@@ -518,7 +521,7 @@ class DefaultCrypto(TunnelObserver):
         @return string: encoded version of the candidate dict
         """
         encoded_dict = encoding.encode(cand_dict)
-        return aes_encode(key, encoded_dict)
+        return aes_encrypt_str(key, encoded_dict)
 
     def _decrypt_candidate_list(self, key, encrypted_cand_dict):
         """
@@ -529,7 +532,7 @@ class DefaultCrypto(TunnelObserver):
         @param string cand_dict: Encoded dict
         @return dict: Dict filled with candidates
         """
-        encoded_dict = aes_decode(key, encrypted_cand_dict)
+        encoded_dict = aes_decrypt_str(key, encrypted_cand_dict)
         offset, cand_dict = encoding.decode(encoded_dict)
         return cand_dict
 
@@ -543,14 +546,14 @@ def get_cryptor(op, key, alg='aes_128_ecb', iv=None):
     return cryptor
 
 
-def aes_encode(key, plaintext):
+def aes_encrypt_str(key, plaintext):
     cryptor = get_cryptor(1, key)
     ret = cryptor.update(plaintext)
     ret = ret + cryptor.final()
     return ret
 
 
-def aes_decode(key, ciphertext):
+def aes_decrypt_str(key, ciphertext):
     cryptor = get_cryptor(0, key)
     ret = cryptor.update(ciphertext)
     ret = ret + cryptor.final()
