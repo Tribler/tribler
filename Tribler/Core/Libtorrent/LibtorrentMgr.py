@@ -90,9 +90,7 @@ class LibtorrentMgr:
 
         self.upnp_mappings = {}
 
-        self.ltsession_anon = self.create_anonymous_session()
-        self.ltsession_anon.pause()
-        self.set_anonymous_proxy()
+        self.ltsession_anon = None
 
     def getInstance(*args, **kw):
         if LibtorrentMgr.__single is None:
@@ -110,6 +108,9 @@ class LibtorrentMgr:
         return LibtorrentMgr.__single != None
     hasInstance = staticmethod(hasInstance)
 
+    def is_anon_ready(self):
+        return self.ltsession_anon is not None
+
     def create_anonymous_session(self):
         settings = lt.session_settings()
         settings.enable_outgoing_utp = True
@@ -125,23 +126,18 @@ class LibtorrentMgr:
                                  lt.alert.category_t.storage_notification |
                                  lt.alert.category_t.performance_warning |
                                  lt.alert.category_t.debug_notification)
-        ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
-        return ltsession
 
-    def set_anonymous_proxy(self):
-        if self.ltsession_anon:
-            proxy_settings = lt.proxy_settings()
-            proxy_settings.type = lt.proxy_type(proxy_type.socks5)
-            proxy_settings.hostname = "127.0.0.1"
-            proxy_settings.port = 1080
-            proxy_settings.proxy_hostnames = True
-            proxy_settings.proxy_peer_connections = True
-            self.ltsession_anon.set_proxy(proxy_settings)
-            # self.ltsession_anon.set_peer_proxy(proxy_settings)
-            # self.ltsession_anon.set_tracker_proxy(proxy_settings)
-            # self.ltsession_anon.set_dht_proxy(proxy_settings)
-            self.ltsession_anon.resume()
-            # self.ltsession_anon.start_dht()
+        proxy_settings = lt.proxy_settings()
+        proxy_settings.type = lt.proxy_type(proxy_type.socks5)
+        proxy_settings.hostname = "127.0.0.1"
+        proxy_settings.port = 1080
+        proxy_settings.proxy_hostnames = False
+        proxy_settings.proxy_peer_connections = True
+
+        self.ltsession_anon = ltsession
+        self.ltsession_anon.set_proxy(proxy_settings)
+
+        ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
 
     def shutdown(self):
         # Save DHT state

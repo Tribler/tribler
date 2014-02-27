@@ -47,6 +47,9 @@ class Circuit:
         self.unverified_hop = None
         ''' :type : Hop '''
 
+        if self.deferred and self.state == CIRCUIT_STATE_READY:
+            self.deferred.callback(self)
+
 
     @property
     def hops(self):
