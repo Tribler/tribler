@@ -181,8 +181,6 @@ class ProxyCommunity(Community):
         self.before_send_transformers = defaultdict(list)
         self.after_receive_transformers = defaultdict(list)
 
-        self._message_filters = defaultdict(list)
-
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
         ''' @type: dict[(str, int), int] '''
@@ -388,7 +386,7 @@ class ProxyCommunity(Community):
         packet_type = self.proxy_conversion.get_type(data)
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
 
-        # Call any message filter before handing it over to our own handlers
+        # Call any message transformer before handing it over to our own handlers
         for transformer in self.after_receive_transformers[packet_type]:
             payload = transformer(candidate, circuit_id, payload)
             if not payload:
@@ -919,24 +917,6 @@ class ProxyCommunity(Community):
             circuit_id = random.randint(1, 255000)
 
         return circuit_id
-
-    def remove_message_filter(self, message_type, filter_func):
-        """
-        Removes a message filter
-        @param str message_type: the message type the filter applies to
-        @param (int, WalkCandidate, str, str) -> str filter_func: the filter
-         to remove
-        """
-        self._message_filters[message_type].remove(filter_func)
-
-    def add_message_filter(self, message_type, filter_func):
-        """
-        Adds a message filter
-        @param str message_type: the message type the filter applies to
-        @param (int, WalkCandidate, str, str) -> str filter_func: the filter
-         to add
-        """
-        self._message_filters[message_type].append(filter_func)
 
     def send_message(self, destination, circuit_id, message_type, message):
         """
