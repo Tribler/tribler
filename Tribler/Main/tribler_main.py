@@ -556,6 +556,8 @@ class ABCApp():
 
     # TODO: this has to be moved, we cannot pollute the main.py file with stuff like this
     def setup_anon_test(self, tunnel, frame):
+        return
+
         if not frame:
             self.utility.session.lm.rawserver.add_task(lambda: self.setup_anon_test(tunnel, self.frame), 5.0)
             return

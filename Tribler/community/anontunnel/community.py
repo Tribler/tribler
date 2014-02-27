@@ -1047,7 +1047,7 @@ class ProxyCommunity(Community):
                     ultimate_destination, payload)
 
     def tunnel_data_to_origin(self, circuit_id, candidate, source_address,
-                              payload, accepted_on):
+                              payload):
         """
         Tunnel data to originator
 
@@ -1062,7 +1062,7 @@ class ProxyCommunity(Community):
         with self.lock:
             result = self.send_message(
                 candidate, circuit_id, MESSAGE_DATA,
-                DataMessage(accepted_on, payload, source_address))
+                DataMessage(None, payload, source_address))
 
             if result:
                 self.__notify("on_enter_tunnel", circuit_id, candidate,

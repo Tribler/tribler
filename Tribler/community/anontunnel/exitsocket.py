@@ -57,7 +57,6 @@ class TunnelExitSocket(object):
                 circuit_id=self.circuit_id,
                 candidate=self.destination_address,
                 source_address=source_address,
-                accepted_on=self.socket.getsockname(),
                 payload=packet)
 
 

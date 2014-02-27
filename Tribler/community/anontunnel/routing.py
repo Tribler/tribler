@@ -42,10 +42,7 @@ class Circuit:
         self.extend_strategy = None
         self.last_incoming = time.time()
 
-        if proxy:
-            self.__stats = proxy.global_stats.circuit_stats[circuit_id]
-        else:
-            self.__stats = None
+        self.proxy = proxy
 
         self.unverified_hop = None
         ''' :type : Hop '''

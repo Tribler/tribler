@@ -12,16 +12,19 @@ class Socks5Session(TunnelObserver):
     @param Socks5Connection connection: the Socks5Connection
     @param RawServer raw_server: The raw server, used to create and listen on
     UDP-sockets
-    @param list[Tribler.community.anontunnel.routing.Circuit] circuits: the
-    circuits allocated to this session
+    @param Socks5Server server:  the socks5 server
     """
 
-    def __init__(self, raw_server, connection, circuits):
+    def __init__(self, raw_server, connection, server):
         TunnelObserver.__init__(self)
         self.raw_server = raw_server
         self._logger = logging.getLogger(__name__)
         self.connection = connection
-        self.circuits = circuits
+
+        self.circuits = []
+
+        self.server = server
+
         ''' :type : list[Circuit] '''
         self.destinations = {}
         ''' :type: dict[(str, int), Circuit] '''
@@ -32,6 +35,15 @@ class Socks5Session(TunnelObserver):
         self._select_index = -1
 
     def _udp_associate(self):
+        if not self.circuits:
+            from Tribler.community.anontunnel.Socks5.server import \
+                NotEnoughCircuitsException
+            try:
+                self.circuits = self.server.allocate_circuits(1)
+            except NotEnoughCircuitsException as e:
+                self.close_session("not enough circuits")
+                return None
+
         self._udp_socket = self.raw_server.create_udpsocket(0, "0.0.0.0")
         self.raw_server.start_listening_udp(self._udp_socket, self)
         return self._udp_socket
@@ -77,7 +89,7 @@ class Socks5Session(TunnelObserver):
             request = conversion.decode_udp_packet(packet)
 
             circuit = self._select(request.destination)
-            self._logger.error(
+            self._logger.info(
                 "Relaying UDP packets from {0} to {1}".format(
                     self.remote_udp_address, request.destination
                 )
@@ -86,6 +98,13 @@ class Socks5Session(TunnelObserver):
             circuit.tunnel_data(request.destination, request.payload)
 
     def on_incoming_from_tunnel(self, community, circuit, origin, data):
+        if circuit not in self.circuits:
+            return
+
+        if not self.remote_udp_address:
+            self._logger.warning("No return address yet, dropping packet!")
+            return
+
         self.destinations[origin] = circuit
 
         socks5_udp = conversion.encode_udp_packet(
