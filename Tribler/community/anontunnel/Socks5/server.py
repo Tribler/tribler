@@ -46,7 +46,7 @@ class Socks5Server(object, TunnelObserver):
             self._logger.info("SOCKS5 listening on port %d", self.socks5_port)
             self.tunnel.observers.append(self)
 
-            self._reserve_circuits(2)
+            self._reserve_circuits(4)
         except socket.error:
             self._logger.error(
                 "Cannot listen on SOCK5 port %s:%d, perhaps another "
@@ -77,7 +77,7 @@ class Socks5Server(object, TunnelObserver):
             if self.awaiting_circuits == 0:
                 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
                 self._logger.error("Going to RESUME anonymous session")
-                LibtorrentMgr.getInstance().set_anonymous_proxy()
+                # LibtorrentMgr.getInstance().set_anonymous_proxy()
             return result
 
         if lacking > 0:

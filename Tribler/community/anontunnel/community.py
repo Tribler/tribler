@@ -52,7 +52,7 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(1,3)
+        length = random.randint(1, 3)
 
         self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
