@@ -376,7 +376,7 @@ class SQLiteCacheDBBase:
                 print_exc()
 
             if os.path.isfile(dbfile_path):
-                self.close(clean=True)
+                self.close()
                 os.remove(dbfile_path)
 
             if os.path.isfile(sql_create):

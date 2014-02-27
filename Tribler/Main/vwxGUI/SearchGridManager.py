@@ -479,7 +479,7 @@ class TorrentManager:
                 TorrentChecking.getInstance().addGuiRequest(hit)
 
         for candidate, torrents in to_be_prefetched.iteritems():
-            self.downloadTorrentmessagesFromPeer(candidate, torrents, sesscb_prefetch_done, prio=1)
+            self.downloadTorrentmessagesFromPeer(candidate, torrents, None, prio=1)
 
     def getSearchKeywords(self):
         return self.searchkeywords, len(self.hits), self.filteredResults
