@@ -37,10 +37,14 @@ try:
     from Crypto.Cipher import AES
 
     def aes_encrypt_str(aes_key, plain_str):
+        if isinstance(aes_key, long):
+            aes_key = long_to_bytes(aes_key, 16)
         cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
         return cipher.encrypt(plain_str)
 
     def aes_decrypt_str(aes_key, encr_str):
+        if isinstance(aes_key, long):
+            aes_key = long_to_bytes(aes_key, 16)
         cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
         return cipher.decrypt(encr_str)
 
