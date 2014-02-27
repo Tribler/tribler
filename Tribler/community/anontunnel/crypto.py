@@ -1,5 +1,4 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
-import M2Crypto
 import hashlib
 import logging
 import random
@@ -535,26 +534,3 @@ class DefaultCrypto(TunnelObserver):
         encoded_dict = aes_decrypt_str(key, encrypted_cand_dict)
         offset, cand_dict = encoding.decode(encoded_dict)
         return cand_dict
-
-# SHOULD BE IMPORTED FROM NIELS
-
-
-def get_cryptor(op, key, alg='aes_128_ecb', iv=None):
-    if iv is None:
-        iv = chr(0) * 256
-    cryptor = M2Crypto.EVP.Cipher(alg=alg, key=key, iv=iv, op=op)
-    return cryptor
-
-
-def aes_encrypt_str(key, plaintext):
-    cryptor = get_cryptor(1, key)
-    ret = cryptor.update(plaintext)
-    ret = ret + cryptor.final()
-    return ret
-
-
-def aes_decrypt_str(key, ciphertext):
-    cryptor = get_cryptor(0, key)
-    ret = cryptor.update(ciphertext)
-    ret = ret + cryptor.final()
-    return ret
