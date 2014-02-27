@@ -209,8 +209,8 @@ class CustomProxyConversion():
     @staticmethod
     def __encode_created(message):
         #key = long_to_bytes(messages.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
-        return struct.pack("!L", len(message.key)) + message.key + message\
-            .candidate_list
+        return struct.pack("!L", len(message.key)) + message.key + \
+               message.candidate_list
 
     @staticmethod
     def __decode_created(message_buffer, offset=0):
@@ -227,8 +227,8 @@ class CustomProxyConversion():
 
     @staticmethod
     def __encode_extended(message):
-        return struct.pack("!L", len(message.key)) + message.key + message\
-            .candidate_list
+        return struct.pack("!L", len(message.key)) + message.key + \
+               message.candidate_list
 
     @staticmethod
     def __decode_extended(message_buffer, offset=0):
