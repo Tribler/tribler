@@ -52,13 +52,12 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(1,3)
+        length = random.randint(1, 3)
 
         self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
-        self.select_strategy = selectionstrategies.RoundRobinSelectionStrategy()
-        self.length_strategy = lengthstrategies.ConstantCircuitLengthStrategy(
-            length)
+        self.select_strategy = selectionstrategies.RoundRobin()
+        self.length_strategy = lengthstrategies.ConstantCircuitLength(length)
         self.crypto = crypto.DefaultCrypto()
 
 
@@ -282,21 +281,21 @@ class ProxyCommunity(Community):
 
     def initiate_meta_messages(self):
         """
-        Called by dispersy when we need to define the messages we would like to
-        use in the community
+        Called by dispersy when we need to define the messages we would like
+        to use in the community
         @rtype: list[Message]
         """
         return [Message(
-            self
-            , u"stats"
-            , MemberAuthentication()
-            , PublicResolution()
-            , LastSyncDistribution(synchronization_direction=u"DESC",
-                                   priority=128, history_size=1)
-            , CommunityDestination(node_count=10)
-            , StatsPayload()
-            , self.dispersy._generic_timeline_check
-            , self._on_stats
+            self,
+            u"stats",
+            MemberAuthentication(),
+            PublicResolution(),
+            LastSyncDistribution(synchronization_direction=u"DESC",
+                                   priority=128, history_size=1),
+            CommunityDestination(node_count=10),
+            StatsPayload(),
+            self.dispersy._generic_timeline_check,
+            self._on_stats
         )]
 
     def _initialize_meta_messages(self):
@@ -385,7 +384,7 @@ class ProxyCommunity(Community):
         packet_type = self.proxy_conversion.get_type(data)
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
 
-        # Call any message transformer before handing it over to our own handlers
+        # Call any msg transformer before handing it over to our own handlers
         for transformer in self.after_receive_transformers[packet_type]:
             payload = transformer(candidate, circuit_id, payload)
             if not payload:
@@ -506,8 +505,8 @@ class ProxyCommunity(Community):
         @param WalkCandidate first_hop: The first hop of our circuit, needs to
             be a candidate.
         @param int goal_hops: The number of hops the circuit should reach
-        @param T <= extendstrategies.ExtendStrategy extend_strategy: The extend
-            strategy used
+        @param T <= extendstrategies.ExtendStrategy extend_strategy:
+        The extend strategy used
 
         @rtype: Tribler.community.anontunnel.routing.Circuit
         """
@@ -558,7 +557,8 @@ class ProxyCommunity(Community):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
         if circuit_id in self.circuits:
-            self._logger.error("Breaking circuit %d " + additional_info, circuit_id)
+            self._logger.error("Breaking circuit %d " + additional_info,
+                               circuit_id)
             circuit = self.circuits[circuit_id]
 
             circuit.destroy()
@@ -651,7 +651,8 @@ class ProxyCommunity(Community):
         del self.waiting_for[relay_key]
         self.directions[relay_key] = ORIGINATOR
         if relay_key in self.relay_from_to:
-            self._logger.debug("Got CREATED message, forward as EXTENDED to origin.")
+            self._logger.debug("Got CREATED message, "
+                               "forward as EXTENDED to origin.")
             extended_message = ExtendedMessage(message.key,
                                                message.candidate_list)
             forwarding_relay = self.relay_from_to[relay_key]
@@ -741,7 +742,8 @@ class ProxyCommunity(Community):
         # the packet is from the outside world and addressed to us from
         if circuit_id in self.circuits and message.origin \
                 and candidate == self.circuits[circuit_id].candidate:
-            self._logger.debug("Exit socket at {0}".format(message.destination))
+            self._logger.debug("Exit socket at {0}"
+                               .format(message.destination))
 
             self.circuits[circuit_id].beat_heart()
             self.__notify(

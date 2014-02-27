@@ -25,7 +25,7 @@ from Tribler.dispersy.dispersy import Dispersy
 from Tribler.community.anontunnel.extendstrategies import TrustThyNeighbour, \
     NeighbourSubset
 from Tribler.community.anontunnel.lengthstrategies import \
-    RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
+    RandomCircuitLengthStrategy, ConstantCircuitLength
 from Tribler.community.anontunnel.selectionstrategies import \
     RandomSelectionStrategy, LengthSelectionStrategy
 
@@ -237,10 +237,10 @@ def main(argv):
                      ', '.join(args.length_strategy[1:]))
 
     elif args.length_strategy[:1] == ['constant']:
-        strategy = ConstantCircuitLengthStrategy(*args.length_strategy[1:])
+        strategy = ConstantCircuitLength(*args.length_strategy[1:])
         proxy_settings.length_strategy = strategy
         logger.error(
-            "Using ConstantCircuitLengthStrategy with arguments %s",
+            "Using ConstantCircuitLength with arguments %s",
             ', '.join(args.length_strategy[1:]))
 
     # Circuit selection strategies

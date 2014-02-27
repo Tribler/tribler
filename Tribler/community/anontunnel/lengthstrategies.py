@@ -21,9 +21,9 @@ class RandomCircuitLengthStrategy(CircuitLengthStrategy):
         return randint(self.min, self.max)
 
 
-class ConstantCircuitLengthStrategy(CircuitLengthStrategy):
+class ConstantCircuitLength(CircuitLengthStrategy):
     def __init__(self, desired_length):
-        super(ConstantCircuitLengthStrategy, self).__init__()
+        super(ConstantCircuitLength, self).__init__()
         self.desired_length = int(desired_length)
 
     def circuit_length(self):

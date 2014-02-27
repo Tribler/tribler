@@ -1,6 +1,6 @@
 from unittest import TestCase
 from Tribler.community.anontunnel.lengthstrategies import \
-    RandomCircuitLengthStrategy, ConstantCircuitLengthStrategy
+    RandomCircuitLengthStrategy, ConstantCircuitLength
 
 __author__ = 'chris'
 
@@ -18,5 +18,5 @@ class TestRandomCircuitLengthStrategy(TestCase):
 
 class TestConstantCircuitLengthStrategy(TestCase):
     def test_circuit_length(self):
-        ls = ConstantCircuitLengthStrategy(42)
+        ls = ConstantCircuitLength(42)
         self.assertEqual(ls.circuit_length(), 42, "Should be 42 exactly")

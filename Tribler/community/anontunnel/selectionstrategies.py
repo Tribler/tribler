@@ -20,7 +20,7 @@ class SelectionStrategy:
         pass
 
 
-class RoundRobinSelectionStrategy(SelectionStrategy):
+class RoundRobin(SelectionStrategy):
     """
     Selects circuits in round robin fashion
     """
