@@ -134,16 +134,17 @@ class Hop:
     the Diffie-Hellman handshake
     """
 
-    def __init__(self, address, pub_key, dh_first_part):
+    def __init__(self, address):
         """
         @param (str, int) address: the socket address of the hop
         @param M2Crypto.EC.EC_pub pub_key: the EC public key of the hop
         @param long dh_first_part: first part of the DH-handshake
         """
         self.address = address
-        self.pub_key = pub_key
+        self.pub_key = None
         self.session_key = None
-        self.dh_first_part = dh_first_part
+        self.dh_first_part = None
+        self.dh_secret = None
 
     @property
     def host(self):

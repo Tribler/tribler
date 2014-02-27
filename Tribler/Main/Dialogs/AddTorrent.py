@@ -104,21 +104,21 @@ class AddTorrent(wx.Dialog):
         if input.startswith("http://"):
             destdir = self.defaultDLConfig.get_dest_dir()
             if self.choose and self.choose.IsChecked():
-                destdir = self._GetDestPath(torrenturl=input)
+                destdir, anon_mode = self._GetDestPath(torrenturl=input)
                 if not destdir:
                     return
 
-            if self.frame.startDownloadFromUrl(str(input), destdir):
+            if self.frame.startDownloadFromUrl(str(input), destdir, anon_mode=anon_mode):
                 self.EndModal(wx.ID_OK)
 
         elif input.startswith("magnet:"):
             destdir = self.defaultDLConfig.get_dest_dir()
             if self.choose and self.choose.IsChecked():
-                destdir = self._GetDestPath()
+                destdir, anon_mode = self._GetDestPath()
                 if not destdir:
                     return
 
-            if self.frame.startDownloadFromMagnet(str(input), destdir):
+            if self.frame.startDownloadFromMagnet(str(input), destdir, anon_mode=anon_mode):
                 self.EndModal(wx.ID_OK)
 
     def OnLibrary(self, event):
@@ -149,15 +149,15 @@ class AddTorrent(wx.Dialog):
                 torrentfilename = None
                 if len(filenames) == 1:
                     torrentfilename = filenames[0]
-                destdir = self._GetDestPath(torrentfilename)
+                destdir, anon_mode = self._GetDestPath(torrentfilename)
                 if not destdir:
                     return
 
             if getattr(self.frame, 'startDownloads', False):
-                self.frame.startDownloads(filenames, fixtorrent=True, destdir=destdir)
+                self.frame.startDownloads(filenames, fixtorrent=True, destdir=destdir, anon_mode=anon_mode)
             else:
                 for filename in filenames:
-                    self.frame.startDownload(filename, fixtorrent=True, destdir=destdir)
+                    self.frame.startDownload(filename, fixtorrent=True, destdir=destdir, anon_mode=anon_mode)
 
     def OnBrowse(self, event):
         dlg = wx.FileDialog(None, "Please select the .torrent file(s).", wildcard="torrent (*.torrent)|*.torrent", style=wx.FD_OPEN | wx.FD_MULTIPLE)
@@ -220,5 +220,6 @@ class AddTorrent(wx.Dialog):
 
             if id == wx.ID_OK:
                 destdir = dlg.GetPath()
+                anon_mode = dlg.GetAnonMode()
             dlg.Destroy()
-        return destdir
+        return (destdir, anon_mode)

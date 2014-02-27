@@ -149,7 +149,9 @@ class CustomProxyConversion():
         key = message_buffer[offset:]
 
         extend_with = (host, port) if host and port else None
-        return ExtendMessage(extend_with, key)
+        message = ExtendMessage(extend_with)
+        message.key = key
+        return message
 
     @staticmethod
     def __encode_data(data_message):
@@ -208,7 +210,7 @@ class CustomProxyConversion():
     @staticmethod
     def __encode_created(messages):
         key = long_to_bytes(messages.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
-        return key + encode(messages.candidate_list)
+        return key + messages.candidate_list
 
     @staticmethod
     def __decode_created(message_buffer, offset=0):
@@ -217,14 +219,15 @@ class CustomProxyConversion():
             message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)])
         offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
 
-        offset, candidate_dict = decode(message_buffer[offset:])
-
-        return CreatedMessage(key, candidate_dict)
+        encrypted_candidate_list = message_buffer[offset:]
+        message = CreatedMessage(encrypted_candidate_list)
+        message.key = key
+        return message
 
     @staticmethod
     def __encode_extended(message):
         key = long_to_bytes(message.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
-        return key + encode(message.candidate_list)
+        return key + message.candidate_list
 
     @staticmethod
     def __decode_extended(message_buffer, offset=0):
@@ -233,9 +236,9 @@ class CustomProxyConversion():
             message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)])
         offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
 
-        offset, candidate_dict = decode(message_buffer[offset:])
+        encrypted_candidate_list = message_buffer[offset:]
 
-        return ExtendedMessage(key, candidate_dict)
+        return ExtendedMessage(key, encrypted_candidate_list)
 
     @staticmethod
     def __encode_create(create_message):

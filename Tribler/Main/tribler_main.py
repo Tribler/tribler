@@ -12,7 +12,6 @@
 # see LICENSE.txt for license information
 #
 import glob
-from scrapy.settings.default_settings import DOWNLOAD_DELAY
 
 import sys
 import logging
@@ -536,7 +535,7 @@ class ABCApp():
             dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))
 
             proxy_community = dispersy.define_auto_load(ProxyCommunity,
-                                     (dispersy_member, ),
+                                     (dispersy_member,),
                                      load=True)
 
             socks_server = Socks5Server(proxy_community[0], s.lm.rawserver)
@@ -568,7 +567,7 @@ class ABCApp():
         hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
 
         @forceWxThread
-        def thank_you(file_size, start_time, end_time ):
+        def thank_you(file_size, start_time, end_time):
             avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
             wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
@@ -592,13 +591,13 @@ class ABCApp():
                     _callback.download_finished_at = time_module.time()
                     _callback.download_completed = True
                     stats_collector.download_stats = {
-                        'size': 50 * 1024**2,
+                        'size': 50 * 1024 ** 2,
                         'download_time': _callback.download_finished_at - _callback.download_started_at
                     }
 
                     stats_collector.share_stats()
                     stats_collector.stop()
-                    thank_you(50 * 1024**2, _callback.download_started_at, _callback.download_finished_at)
+                    thank_you(50 * 1024 ** 2, _callback.download_started_at, _callback.download_finished_at)
                 else:
                     _callback.peer_added = False
                 return 1.0, False

@@ -116,6 +116,7 @@ class LibtorrentMgr:
         settings.enable_incoming_utp = True
         settings.enable_outgoing_tcp = False
         settings.enable_incoming_tcp = False
+        settings.anonymous_mode = True
         ltsession = lt.session(flags=1)
         ltsession.set_settings(settings)
         ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
@@ -214,7 +215,7 @@ class LibtorrentMgr:
                 self._logger.info("LibtorrentMgr: killing get_metainfo request for %s", infohash)
                 handle, _, _ = self.metainfo_requests.pop(infohash)
                 if handle:
-                    ltsession.remove_torrent(handle, 0)
+                    self.ltsession.remove_torrent(handle, 0)
 
             handle = ltsession.add_torrent(atp)
             infohash = str(handle.info_hash())
@@ -346,6 +347,7 @@ class LibtorrentMgr:
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
                 handle = self.ltsession.add_torrent(atp)
+
                 if notify:
                     self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
 
