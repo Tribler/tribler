@@ -10,10 +10,8 @@
 # "dead" trackers over and over again.
 # ============================================================
 
-import sys
 import time
 import logging
-from threading import RLock
 
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT

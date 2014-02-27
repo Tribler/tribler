@@ -6,7 +6,6 @@
 #
 # TODO: add comments
 # ============================================================
-import sys
 import os
 import binascii
 import time
@@ -16,36 +15,28 @@ import select
 import socket
 
 import threading
-from threading import Thread, RLock, Event
 import Queue
-
-from traceback import print_exc, print_stack
 
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core import NoDispersyRLock
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     prctlimported = True
     import prctl
-except ImportError as e:
+except ImportError:
     prctlimported = False
 
 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 from Tribler.TrackerChecking.TrackerInfoCache import TrackerInfoCache
 from Tribler.TrackerChecking.TrackerSession import TrackerSession
-from Tribler.TrackerChecking.TrackerSession import\
-    TRACKER_ACTION_CONNECT, TRACKER_ACTION_ANNOUNCE, TRACKER_ACTION_SCRAPE
-from Tribler.TrackerChecking.TrackerSession import\
-    UDP_TRACKER_RECHECK_INTERVAL, UDP_TRACKER_MAX_RETRIES
-from Tribler.TrackerChecking.TrackerSession import\
-    MAX_TRACKER_MULTI_SCRAPE
+from Tribler.TrackerChecking.TrackerSession import TRACKER_ACTION_CONNECT
+from Tribler.TrackerChecking.TrackerSession import MAX_TRACKER_MULTI_SCRAPE
 
+from Tribler.Core.Misc.Singleton import Singleton
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, bin2str
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
@@ -62,7 +53,7 @@ DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30
 # ============================================================
 # This is the single-threaded tracker checking class.
 # ============================================================
-class TorrentChecking(Thread):
+class TorrentChecking(Singleton, threading.Thread):
 
     __single = None
 
@@ -74,11 +65,7 @@ class TorrentChecking(Thread):
             torrent_check_interval=DEFAULT_TORRENT_CHECK_INTERVAL,
             max_torrrent_check_retries=DEFAULT_MAX_TORRENT_CHECK_RETRIES,
             torrrent_check_retry_interval=DEFAULT_TORRENT_CHECK_RETRY_INTERVAL):
-        if TorrentChecking.__single:
-            raise RuntimeError("Torrent Checking is singleton")
-        TorrentChecking.__single = self
-
-        Thread.__init__(self)
+        super(TorrentChecking, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -114,24 +101,10 @@ class TorrentChecking(Thread):
 
         self._tor_col_dir = Session.get_instance().get_torrent_collecting_dir()
 
-    # ------------------------------------------------------------
-    # (Public API)
-    # The public interface to initialize and get the single instance.
-    # ------------------------------------------------------------
-    @staticmethod
-    def getInstance(*args, **kw):
-        if TorrentChecking.__single is None:
-            TorrentChecking(*args, **kw)
-        return TorrentChecking.__single
-
-    # ------------------------------------------------------------
-    # (Public API)
-    # The public interface to delete the single instance.
-    # ------------------------------------------------------------
-    @staticmethod
-    def delInstance():
-        TorrentChecking.__single.shutdown()
-        TorrentChecking.__single = None
+    def finalize(self):
+        """Finalizes the TorrentChecking module.
+        """
+        self.shutdown()
 
     # ------------------------------------------------------------
     # (Public API)
@@ -467,7 +440,7 @@ class TorrentChecking(Thread):
             try:
                 all_torrent_list = self._torrentdb.getTorrentsOnTracker(tracker, current_time)
             except:
-                print_exc()
+                self._logger.exception(u"Could not get torrents from DB.")
                 return
 
             # get the torrents that should be checked
@@ -520,8 +493,7 @@ class TorrentChecking(Thread):
                     pass
 
                 except Exception as e:
-                    self._logger.error('TorrentChecking: Unexpected error while handling requests %s', e)
-                    print_exc()
+                    self._logger.exception('TorrentChecking: Unexpected error while handling requests %s', e)
 
                 if requests:
                     callback(requests)
@@ -539,8 +511,7 @@ class TorrentChecking(Thread):
                     self._selectTorrentsToCheck()
 
                 except Exception as e:
-                    self._logger.error('TorrentChecking: Unexpected error during TorrentSelection: %s', e)
-                    print_exc()
+                    self._logger.exception('TorrentChecking: Unexpected error during TorrentSelection: %s', e)
 
                 last_time_select_torrent = current_time
                 time_remaining = self._torrent_select_interval
@@ -636,8 +607,7 @@ class TorrentChecking(Thread):
 
                 # All kinds of unexpected exceptions
                 except Exception as err:
-                    self._logger.error('TorrentChecking: Unexpected exception: %s', err)
-                    print_exc()
+                    self._logger.exception('TorrentChecking: Unexpected exception: %s', err)
 
                 self._logger.debug('TorrentChecking: sessions: %d', len(self._session_list))
                 for session in self._session_list:
@@ -666,7 +636,7 @@ class InterruptSocket:
         self.socket.bind((self.ip, 0))
         self.port = self.socket.getsockname()[1]
         self._logger.debug("Bound InterruptSocket on port %s", self.port)
-        
+
         self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def interrupt(self):

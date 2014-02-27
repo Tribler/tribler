@@ -1741,7 +1741,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)")
             self.execute_write("CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check)")
             self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
-            self.clean_db(True)
 
             self.database_update.release()
 

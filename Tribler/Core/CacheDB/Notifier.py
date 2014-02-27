@@ -1,46 +1,43 @@
 # Written by Jelle Roozenburg
 # see LICENSE.txt for license information
 
-import threading
-
-from Tribler.Core.simpledefs import *
-from threading import Timer
+from threading import Lock, Timer
 import logging
 
-class Notifier:
+from Tribler.Core.simpledefs import NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, \
+    NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, \
+    NTFY_MARKINGS, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, \
+    NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_PROXYDOWNLOADER, \
+    NTFY_PROXYDISCOVERY, NTFY_DISPERSY, NTFY_TRACKERINFO, \
+    NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE
+from Tribler.Core.Misc.Singleton import Singleton
 
-    SUBJECTS = [NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_PROXYDOWNLOADER, NTFY_PROXYDISCOVERY, NTFY_DISPERSY, NTFY_TRACKERINFO]
+class Notifier(Singleton):
 
-    # . . .
-    # todo: add all datahandler types+other observables
+    SUBJECTS = [NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS,
+        NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS,
+        NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST,
+        NTFY_VOTECAST, NTFY_PROXYDOWNLOADER, NTFY_PROXYDISCOVERY, NTFY_DISPERSY,
+        NTFY_TRACKERINFO]
+
     __single = None
 
     def __init__(self, pool=None):
-        if Notifier.__single:
-            raise RuntimeError("Notifier is singleton")
+        super(Notifier, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.pool = pool
+        self._pool = pool
 
-        self.observers = []
-        self.observerscache = {}
-        self.observertimers = {}
-        self.observerLock = threading.Lock()
+        self._observer_list = []
+        self._observers_cache = {}
+        self._observer_timers = {}
+        self._observer_lock = Lock()
 
-        Notifier.__single = self
-
-    def getInstance(*args, **kw):
-        if Notifier.__single is None:
-            Notifier(*args, **kw)
-        return Notifier.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        if Notifier.__single:
-            Notifier.__single.remove_observers()
-        Notifier.__single = None
-    delInstance = staticmethod(delInstance)
+    def finalize(self):
+        """Finalizes this module.
+        """
+        self.remove_observers()
 
     def add_observer(self, func, subject, changeTypes=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id=None, cache=0):
         """
@@ -52,47 +49,43 @@ class Notifier:
                     callbacks when peer-searchresults of of search
                     with id=='a_search_id' come in
         """
-        assert isinstance(changeTypes, list)
-        assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS' % subject
+        assert isinstance(changeTypes, list), u"change_types is of type %s" % type(changeTypes)
+        assert subject in Notifier.SUBJECTS, u"subject is not in SUBJECTS %s" % subject
 
         obs = (func, subject, changeTypes, id, cache)
-        self.observerLock.acquire()
-        self.observers.append(obs)
-        self.observerLock.release()
+        with self._observer_lock:
+            self._observer_list.append(obs)
 
     def remove_observer(self, func):
-        """ Remove all observers with function func
+        """ Removes an observer with function func
         """
-
-        self.observerLock.acquire()
-        i = 0
-        while i < len(self.observers):
-            ofunc = self.observers[i][0]
-            if ofunc == func:
-                del self.observers[i]
-            else:
-                i += 1
-        self.observerLock.release()
+        with self._observer_lock:
+            i = 0
+            while i < len(self._observer_list):
+                ofunc = self._observer_list[i][0]
+                if ofunc == func:
+                    del self._observer_list[i]
+                else:
+                    i += 1
 
     def remove_observers(self):
-        with self.observerLock:
-            for t in self.observertimers.values():
-                t.cancel()
-            self.observerscache = {}
-            self.observertimers = {}
-            self.observers = []
+        with self._observer_lock:
+            for timer in self._observer_timers.values():
+                timer.cancel()
+            self._observers_cache = {}
+            self._observer_timers = {}
+            self._observer_list = []
 
     def notify(self, subject, changeType, obj_id, *args):
         """
         Notify all interested observers about an event with threads from the pool
         """
         tasks = []
-        assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS' % subject
 
         args = [subject, changeType, obj_id] + list(args)
 
-        self.observerLock.acquire()
-        for ofunc, osubject, ochangeTypes, oid, cache in self.observers:
+        self._observer_lock.acquire()
+        for ofunc, osubject, ochangeTypes, oid, cache in self._observer_list:
             try:
                 if (subject == osubject and
                     changeType in ochangeTypes and
@@ -101,20 +94,20 @@ class Notifier:
                     if not cache:
                         tasks.append(ofunc)
                     else:
-                        if ofunc not in self.observerscache:
+                        if ofunc not in self._observers_cache:
                             def doQueue(ofunc):
-                                self.observerLock.acquire()
-                                if ofunc in self.observerscache:
-                                    events = self.observerscache[ofunc]
-                                    del self.observerscache[ofunc]
-                                    del self.observertimers[ofunc]
+                                self._observer_lock.acquire()
+                                if ofunc in self._observers_cache:
+                                    events = self._observers_cache[ofunc]
+                                    del self._observers_cache[ofunc]
+                                    del self._observer_timers[ofunc]
                                 else:
                                     events = []
-                                self.observerLock.release()
+                                self._observer_lock.release()
 
                                 if events:
-                                    if self.pool:
-                                        self.pool.queueTask(ofunc, (events,))
+                                    if self._pool:
+                                        self._pool.queueTask(ofunc, (events,))
                                     else:
                                         ofunc(events)
 
@@ -122,17 +115,16 @@ class Notifier:
                             t.setName("Notifier-timer-%s" % subject)
                             t.start()
 
-                            self.observerscache[ofunc] = []
-                            self.observertimers[ofunc] = t
+                            self._observers_cache[ofunc] = []
+                            self._observer_timers[ofunc] = t
 
-                        self.observerscache[ofunc].append(args)
+                        self._observers_cache[ofunc].append(args)
             except:
-                print_exc()
-                self._logger.error("notify: OIDs were %s %s", repr(oid), repr(obj_id))
+                self._logger.exception(u"OIDs were %s %s", repr(oid), repr(obj_id))
 
-        self.observerLock.release()
+        self._observer_lock.release()
         for task in tasks:
-            if self.pool:
-                self.pool.queueTask(task, args)
+            if self._pool:
+                self._pool.queueTask(task, args)
             else:
                 task(*args)  # call observer function in this thread
