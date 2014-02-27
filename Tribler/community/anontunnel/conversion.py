@@ -208,16 +208,17 @@ class CustomProxyConversion():
         return DataMessage(destination, payload, origin)
 
     @staticmethod
-    def __encode_created(messages):
-        key = long_to_bytes(messages.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
-        return key + messages.candidate_list
+    def __encode_created(message):
+        #key = long_to_bytes(messages.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
+        return struct.pack("!L", len(message.key)) + message.key + \
+               message.candidate_list
 
     @staticmethod
     def __decode_created(message_buffer, offset=0):
-
-        key = bytes_to_long(
-            message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)])
-        offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
+        key_length, = struct.unpack_from("!L", message_buffer[offset:offset + 4])
+        offset += 4
+        key = message_buffer[offset:offset+key_length]
+        offset += key_length
 
         encrypted_candidate_list = message_buffer[offset:]
         message = CreatedMessage(encrypted_candidate_list)
@@ -226,15 +227,15 @@ class CustomProxyConversion():
 
     @staticmethod
     def __encode_extended(message):
-        key = long_to_bytes(message.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
-        return key + message.candidate_list
+        return struct.pack("!L", len(message.key)) + message.key + \
+               message.candidate_list
 
     @staticmethod
     def __decode_extended(message_buffer, offset=0):
-
-        key = bytes_to_long(
-            message_buffer[offset:offset + (DIFFIE_HELLMAN_MODULUS_SIZE / 8)])
-        offset += (DIFFIE_HELLMAN_MODULUS_SIZE / 8)
+        key_length, = struct.unpack_from("!L", message_buffer[offset:])
+        offset += 4
+        key = message_buffer[offset:offset+key_length]
+        offset += key_length
 
         encrypted_candidate_list = message_buffer[offset:]
 

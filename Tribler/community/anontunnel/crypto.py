@@ -4,6 +4,8 @@ import hashlib
 import logging
 import random
 from Tribler.Core.Utilities import encoding
+from Tribler.Core.Utilities.encoding import encode, decode
+from Tribler.community.anontunnel.events import TunnelObserver
 
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
     ENDPOINT, MESSAGE_CREATE, MESSAGE_EXTEND, MESSAGE_EXTENDED, \
@@ -12,36 +14,105 @@ from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
 
 logger = logging.getLogger()
 
-
 class CryptoError(Exception):
     pass
 
-
 class NoCrypto(object):
     def enable(self, proxy):
-        pass
+        """
+        Method which enables the "nocrypto" cryptography settings for the given
+        community. NoCrypto encodes and decodes candidate lists, everything is
+        passed as a string in the messages
+
+        @param ProxyCommunity proxy: Proxy community to which this crypto
+         object is coupled
+        """
+        self.proxy = proxy
+        proxy.before_send_transformers[MESSAGE_CREATED]\
+            .append(self._encrypt_created_content)
+        proxy.after_receive_transformers[MESSAGE_CREATED]\
+            .append(self._decrypt_created_content)
+        proxy.after_receive_transformers[MESSAGE_EXTENDED]\
+            .append(self._decrypt_extended_content)
 
     def disable(self):
-        pass
+        """
+        Disables the crypto settings
+        """
+        self.proxy.before_send_transformers[MESSAGE_CREATED]\
+            .remove(self._encrypt_created_content)
+        self.proxy.after_receive_transformers[MESSAGE_CREATED]\
+            .remove(self._decrypt_created_content)
+        self.proxy.after_receive_transformers[MESSAGE_EXTENDED]\
+            .remove(self._decrypt_extended_content)
 
+    def _encrypt_created_content(self, candidate, circuit_id, message):
+        """
+        Candidate list must be converted to a string in nocrypto
 
-class DefaultCrypto(object):
+        @param Candidate candidate: Destination of the message
+        @param int circuit_id: Circuit identifier
+        @param CreatedMessage message: Message as passed from the community
+        @return CreatedMessage: Version of the message with candidate string
+        """
+        message.candidate_list = encode(message.candidate_list)
+        return message
+
+    def _decrypt_created_content(self, candidate, circuit_id, message):
+        """
+        If created is for us, decode candidate list from string to dict
+
+        @param Candidate candidate: Sender of the message
+        @param int circuit_id: Circuit identifier
+        @param CreatedMessage message: Message as passed from the community
+        @return CreatedMessage: Message with candidates as dict
+        """
+        if circuit_id in self.proxy.circuits:
+            _, message.candidate_list = decode(message.candidate_list)
+        return message
+
+    def _decrypt_extended_content(self, candidate, circuit_id, message):
+        """
+        Convert candidate list from string to dict
+
+        @param Candidate candidate: Sender of the message
+        @param int circuit_id: Circuit identifier
+        @param ExtendedMessage message: Message as passed from the community
+        @return ExtendedMessage: Extended message with candidate list as dict
+        """
+        _, message.candidate_list = decode(message.candidate_list)
+        return message
+
+class DefaultCrypto(TunnelObserver):
     def __init__(self):
         self.proxy = None
         """ :type proxy: ProxyCommunity """
         self._logger = logging.getLogger(__name__)
         self._received_secrets = {}
+        self.session_keys = {}
 
-    @property
-    def session_keys(self):
-        return self.proxy.session_keys
+    def on_break_relay(self, relay_key):
+        """
+        Method called whenever a relay is broken after for example a timeout
+        or an invalid packet. Callback from the community to remove the session
+        key
+        @param relay_key:
+        """
+        if relay_key in self.session_keys:
+                del self.session_keys[relay_key]
 
     def enable(self, proxy):
         """
-        :type proxy: ProxyCommunity
-        :param proxy:
+        Method which enables the "defaultcrypto" cryptography settings for
+        the given community. Default crypto uses cryptography for all message
+        types, based on exchanged secrets established with DIFFIE HELLMAN and
+        Elliptic Curve Elgamal. See documentation for extra info.
+
+        @param ProxyCommunity proxy: Proxy community to which this crypto
+         object is coupled
         """
         self.proxy = proxy
+        proxy.observers.append(self)
 
         proxy.relay_transformers.append(self._crypto_relay_packet)
         proxy.receive_transformers.append(self._crypto_incoming_packet)
@@ -64,6 +135,9 @@ class DefaultCrypto(object):
             .append(self._decrypt_extended_content)
 
     def disable(self):
+        """
+        Disables the crypto settings
+        """
         self.proxy.relay_transformers.remove(self._crypto_relay_packet)
         self.proxy.receive_transformers.remove(self._crypto_incoming_packet)
         self.proxy.send_transformers.remove(self._crypto_outgoing_packet)
@@ -123,17 +197,17 @@ class DefaultCrypto(object):
         The first part of the DIFFIE HELLMAN handshake is encrypted with
         Elgamal and is decrypted here
 
-        @param Candidate candidate: Destination of the message
+        @param Candidate candidate: Sender of the message
         @param int circuit_id: Circuit identifier
         @param CreateMessage message: Message as passed from the community
         @return CreateMessage: Message with decrypted contents
         """
         relay_key = (candidate.sock_addr, circuit_id)
         my_key = self.proxy.my_member._ec
-        decrypted_dh_first_part = bytes_to_long(
-            self.proxy.crypto.decrypt(my_key, message.key))
+        decrypted_dh_first_part = self.proxy.crypto.decrypt(
+            my_key, message.key)
         message.key = decrypted_dh_first_part
-        self._received_secrets[relay_key] = message.key
+        self._received_secrets[relay_key] = bytes_to_long(message.key)
         return message
 
     def _encrypt_extend_content(self, candidate, circuit_id, message):
@@ -173,7 +247,7 @@ class DefaultCrypto(object):
         """
         Nothing is encrypted in an Extend message
 
-        @param Candidate candidate: Destination of the message
+        @param Candidate candidate: Sender of the message
         @param int circuit_id: Circuit identifier
         @param ExtendMessage message: Message as passed from the community
         @return ExtendMessage: Message with decrypted contents
@@ -206,12 +280,12 @@ class DefaultCrypto(object):
         m.update(str(key))
         key = m.digest()[0:16]
 
-        self.proxy.session_keys[relay_key] = key
+        self.session_keys[relay_key] = key
         return_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
                          DIFFIE_HELLMAN_MODULUS)
-        message.key = return_key
+        message.key = long_to_bytes(return_key)
         message.candidate_list = self._encrypt_candidate_list(
-            self.proxy.session_keys[relay_key], message.candidate_list)
+            self.session_keys[relay_key], message.candidate_list)
 
         return message
 
@@ -221,7 +295,7 @@ class DefaultCrypto(object):
         The candidate list should be decrypted as if it was an Extended
         message.
 
-        @param Candidate candidate: Destination of the message
+        @param Candidate candidate: Sender of the message
         @param int circuit_id: Circuit identifier
         @param CreatedMessage message: Message as passed from the community
         @return CreatedMessage: Message with decrypted contents
@@ -249,13 +323,13 @@ class DefaultCrypto(object):
         If the candidate list is undecryptable, the message is malformed and
         the circuit should be broken.
 
-        @param Candidate candidate:
-        @param int circuit_id:
-        @param ExtendedMessage message:
+        @param Candidate candidate: Sender of the message
+        @param int circuit_id: Circuit identifier
+        @param ExtendedMessage message: Message as passed from the community
         @return ExtendedMessage: Extended message with unencrypted contents
         """
         unverified_hop = self.proxy.circuits[circuit_id].unverified_hop
-        session_key = pow(message.key,
+        session_key = pow(bytes_to_long(message.key),
                           unverified_hop.dh_secret,
                           DIFFIE_HELLMAN_MODULUS)
         m = hashlib.sha1()
@@ -271,11 +345,7 @@ class DefaultCrypto(object):
             self.proxy.remove_circuit(circuit_id, reason)
             return None
 
-
-        self.proxy.circuits[circuit_id].add_hop(unverified_hop)
-        self.proxy.circuits[circuit_id].unverified_hop = None
         return message
-
 
 
     def _crypto_outgoing_packet(self, candidate, circuit_id, message_type, content):
@@ -470,7 +540,6 @@ def aes_encode(key, plaintext):
     ret = cryptor.update(plaintext)
     ret = ret + cryptor.final()
     return ret
-
 
 def aes_decode(key, ciphertext):
     cryptor = get_cryptor(0, key)

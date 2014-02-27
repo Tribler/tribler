@@ -19,20 +19,20 @@ class PongMessage(BaseMessage):
 
 
 class CreateMessage(BaseMessage):
-    def __init__(self, key=None):
+    def __init__(self, key=""):
         self.key = key
 
 
 class CreatedMessage(BaseMessage):
     def __init__(self, candidate_list):
-        self.key = None
+        self.key = ""
         self.candidate_list = candidate_list
 
 
 class ExtendMessage(BaseMessage):
     def __init__(self, extend_with):
         self.extend_with = extend_with
-        self.key = None
+        self.key = ""
 
     @property
     def host(self):
