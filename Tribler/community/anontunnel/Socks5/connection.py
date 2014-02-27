@@ -4,6 +4,7 @@ Created on 3 jun. 2013
 @author: Chris
 """
 import logging
+import traceback
 from Tribler.community.anontunnel.Socks5 import conversion
 
 
@@ -90,9 +91,10 @@ class Socks5Connection(object):
         ))
 
         # Respond that we would like to use NO AUTHENTICATION (0x00)
-        response = conversion.encode_method_selection_message(
-            conversion.SOCKS_VERSION, 0x00)
-        self.write(response)
+        if self.state is not ConnectionState.CONNECTED:
+            response = conversion.encode_method_selection_message(
+                conversion.SOCKS_VERSION, 0x00)
+            self.write(response)
 
         # We are connected now, the next incoming message will be a REQUEST
         self.state = ConnectionState.CONNECTED
@@ -138,6 +140,11 @@ class Socks5Connection(object):
             if request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
                 socket = self.udp_associate()
 
+                if not socket:
+                    self._logger.error("No circuits, bailing out!")
+                    self.close()
+                    return
+
                 # We use same IP as the single socket, but the port number comes
                 # from the newly created UDP listening socket
                 ip = self.single_socket.get_myip()
@@ -152,6 +159,26 @@ class Socks5Connection(object):
                 response = conversion.encode_reply(
                     0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
                 self.write(response)
+
+                accept = False
+
+            elif request.cmd == conversion.REQ_CMD_BIND:
+                response = conversion.encode_reply(
+                    0x05, conversion.REP_SUCCEEDED, 0x00,
+                    conversion.ADDRESS_TYPE_IPV4, "127.0.0.1", 1081)
+                self.write(response)
+
+                self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
+            elif request.cmd == conversion.REQ_CMD_CONNECT:
+                self._logger.warning(
+                    "TCP req to %s:%d support it. Returning HOST UNREACHABLE",
+                    *request.destination)
+                response = conversion.encode_reply(
+                    0x05, conversion.REP_HOST_UNREACHABLE, 0x00,
+                    conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
+                self.write(response)
+
+                accept = False
             else:
                 # We will deny all other requests (BIND, and INVALID requests);
                 response = conversion.encode_reply(
@@ -196,6 +223,8 @@ class Socks5Connection(object):
             elif self.state == ConnectionState.CONNECTED:
                 if not self._try_request():
                     break  # Not enough bytes so wait till we got more
+            else:
+                self.buffer = ''
 
     def _guess_state(self):
         if len(self.buffer) < 3:
@@ -221,8 +250,11 @@ class Socks5Connection(object):
 
     def close(self):
         if self.single_socket is not None:
+            self._logger.error(
+                "On close() of %s:%d", self.single_socket.get_ip(),
+                self.single_socket.get_port())
+
             self.single_socket.close()
-            self.socks5_server.connection_lost(self.single_socket)
             self.single_socket = None
             ''' :type : SingleSocket '''
 

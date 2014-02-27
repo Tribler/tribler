@@ -46,7 +46,7 @@ class Socks5Server(object, TunnelObserver):
             self._logger.info("SOCKS5 listening on port %d", self.socks5_port)
             self.tunnel.observers.append(self)
 
-            self._reserve_circuits(4)
+            self._reserve_circuits(2)
         except socket.error:
             self._logger.error(
                 "Cannot listen on SOCK5 port %s:%d, perhaps another "
@@ -55,7 +55,7 @@ class Socks5Server(object, TunnelObserver):
         except:
             self._logger.exception("Exception trying to reserve circuits")
 
-    def _allocate_circuits(self, count):
+    def allocate_circuits(self, count):
         if count > len(self.reserved_circuits):
             raise NotEnoughCircuitsException("Not enough circuits!")
 
@@ -70,7 +70,6 @@ class Socks5Server(object, TunnelObserver):
 
         def __on_reserve(circuit):
             self.reserved_circuits.append(circuit)
-
             return circuit
 
         def __finally(result):
@@ -106,10 +105,8 @@ class Socks5Server(object, TunnelObserver):
         s5con = Socks5Connection(single_socket, self)
 
         try:
-            circuits = self._allocate_circuits(1)
-            session = Socks5Session(self.raw_server, s5con, circuits)
+            session = Socks5Session(self.raw_server, s5con, self)
             self.tunnel.observers.append(session)
-
             self.tcp2session[single_socket] = session
         except NotEnoughCircuitsException:
             self._reserve_circuits(1)
