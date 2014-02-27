@@ -291,7 +291,7 @@ class ProxyCommunity(Community):
             MemberAuthentication(),
             PublicResolution(),
             LastSyncDistribution(synchronization_direction=u"DESC",
-                                   priority=128, history_size=1),
+                                 priority=128, history_size=1),
             CommunityDestination(node_count=10),
             StatsPayload(),
             self.dispersy._generic_timeline_check,
@@ -362,6 +362,7 @@ class ProxyCommunity(Community):
         Send a stats message to the community
         @param dict stats: the statistics dictionary to share
         """
+
         def __send_stats():
             meta = self.get_meta_message(u"stats")
             record = meta.impl(authentication=(self._my_member,),
@@ -602,8 +603,8 @@ class ProxyCommunity(Community):
         """
         relay_key = (candidate.sock_addr, circuit_id)
         self.directions[relay_key] = ENDPOINT
-        self._logger.info('We joined circuit %d with neighbour %s', circuit_id,
-                    candidate)
+        self._logger.info('We joined circuit %d with neighbour %s'
+                          , circuit_id, candidate)
 
         candidate_dict = {}
         for _ in range(1, 5):
@@ -632,8 +633,6 @@ class ProxyCommunity(Community):
             message_type=MESSAGE_CREATED,
             message=CreatedMessage(candidate_dict)
         )
-
-
 
     def on_created(self, circuit_id, candidate, message):
         """ Handle incoming CREATED messages relay them backwards towards
@@ -697,7 +696,7 @@ class ProxyCommunity(Community):
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             try:
                 circuit.extend_strategy.extend(candidate_list)
-            except ValueError as e:
+            except ValueError:
                 self._logger.exception("Cannot extend due to exception:")
                 reason = 'Extend error, state = %s' % circuit.state
                 self.remove_circuit(circuit.circuit_id, reason)
@@ -1007,7 +1006,7 @@ class ProxyCommunity(Community):
                 self._logger.info("pinging %d circuits", len(to_be_pinged))
                 for circuit in to_be_pinged:
                     self.create_ping(circuit.candidate, circuit.circuit_id)
-            except:
+            except Exception:
                 self._logger.exception("Ping error")
 
             yield PING_INTERVAL

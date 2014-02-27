@@ -14,10 +14,15 @@ from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
 
 logger = logging.getLogger()
 
+
 class CryptoError(Exception):
     pass
 
+
 class NoCrypto(object):
+    def __init__(self):
+        self.proxy = None
+
     def enable(self, proxy):
         """
         Method which enables the "nocrypto" cryptography settings for the given
@@ -85,6 +90,7 @@ class NoCrypto(object):
 
 class DefaultCrypto(TunnelObserver):
     def __init__(self):
+        TunnelObserver.__init__(self)
         self.proxy = None
         """ :type proxy: ProxyCommunity """
         self._logger = logging.getLogger(__name__)
@@ -347,8 +353,8 @@ class DefaultCrypto(TunnelObserver):
 
         return message
 
-
-    def _crypto_outgoing_packet(self, candidate, circuit_id, message_type, content):
+    def _crypto_outgoing_packet(self, candidate, circuit_id,
+                                message_type, content):
         """
         Apply crypto to outgoing messages. The current protocol handles 3
         distinct cases: CREATE/CREATED, ORIGINATOR, ENDPOINT / RELAY.
@@ -529,17 +535,20 @@ class DefaultCrypto(TunnelObserver):
 
 # SHOULD BE IMPORTED FROM NIELS
 
+
 def get_cryptor(op, key, alg='aes_128_ecb', iv=None):
     if iv is None:
         iv = chr(0) * 256
     cryptor = M2Crypto.EVP.Cipher(alg=alg, key=key, iv=iv, op=op)
     return cryptor
 
+
 def aes_encode(key, plaintext):
     cryptor = get_cryptor(1, key)
     ret = cryptor.update(plaintext)
     ret = ret + cryptor.final()
     return ret
+
 
 def aes_decode(key, ciphertext):
     cryptor = get_cryptor(0, key)
