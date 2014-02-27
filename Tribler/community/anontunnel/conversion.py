@@ -2,11 +2,10 @@ import logging
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.globals import MESSAGE_CREATE, \
     MESSAGE_CREATED, MESSAGE_EXTEND, MESSAGE_EXTENDED, MESSAGE_DATA, \
-    MESSAGE_PING, MESSAGE_PONG, DIFFIE_HELLMAN_MODULUS_SIZE
+    MESSAGE_PING, MESSAGE_PONG
 from Tribler.community.anontunnel.payload import ExtendMessage, DataMessage, \
     PingMessage, PongMessage, CreatedMessage, ExtendedMessage, CreateMessage
 from Tribler.dispersy.conversion import BinaryConversion
-from Crypto.Util.number import long_to_bytes, bytes_to_long
 import struct
 
 
@@ -215,9 +214,10 @@ class CustomProxyConversion():
 
     @staticmethod
     def __decode_created(message_buffer, offset=0):
-        key_length, = struct.unpack_from("!L", message_buffer[offset:offset + 4])
+        key_length, = struct.unpack_from("!L",
+                                         message_buffer[offset:offset + 4])
         offset += 4
-        key = message_buffer[offset:offset+key_length]
+        key = message_buffer[offset:offset + key_length]
         offset += key_length
 
         encrypted_candidate_list = message_buffer[offset:]
