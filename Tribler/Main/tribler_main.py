@@ -556,12 +556,9 @@ class ABCApp():
 
     # TODO: this has to be moved, we cannot pollute the main.py file with stuff like this
     def setup_anon_test(self, tunnel, frame):
-        return
-
         if not frame:
             self.utility.session.lm.rawserver.add_task(lambda: self.setup_anon_test(tunnel, self.frame), 5.0)
             return
-
 
         root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
         hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
