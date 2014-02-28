@@ -6,10 +6,14 @@ import os
 import logging
 from traceback import print_exc
 from time import time
+from math import sqrt
+import threading
+
+from Tribler.Core.Misc.Singleton import Singleton
 
 from Tribler.Category.Category import Category
-from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
-from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
+from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
@@ -19,23 +23,20 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
-    forceDispersyThread, forcePrioDispersyThread, \
-    onDispersyThread, warnDispersyThread
+    forceDispersyThread, forcePrioDispersyThread, warnDispersyThread
 
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename, parse_magnetlink
-from Tribler.Core.Session import Session
+from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Video.VideoPlayer import VideoPlayer
 
-from math import sqrt
 from __init__ import *
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Search.Bundler import Bundler
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent, \
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
+    CollectedTorrent, RemoteTorrent, NotCollectedTorrent, LibraryTorrent, \
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation, \
     RemoteChannelTorrent, Marking
-import threading
+
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
@@ -46,14 +47,10 @@ SEARCHMODE_NONE = 3
 VOTE_LIMIT = -5
 
 
-class TorrentManager:
-    # Code to make this a singleton
-    __single = None
+class TorrentManager(Singleton):
 
     def __init__(self, guiUtility):
-        if TorrentManager.__single:
-            raise RuntimeError("TorrentManager is singleton")
-
+        super(TorrentManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.guiUtility = guiUtility
@@ -87,16 +84,6 @@ class TorrentManager:
 
         self.category = Category.getInstance()
         self.xxx_category = 0
-
-    def getInstance(*args, **kw):
-        if TorrentManager.__single is None:
-            TorrentManager.__single = TorrentManager(*args, **kw)
-        return TorrentManager.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        TorrentManager.__single = None
-    delInstance = staticmethod(delInstance)
 
     def getCollectedFilename(self, torrent, retried=False):
         """
@@ -764,14 +751,10 @@ class TorrentManager:
         return return_dict
 
 
-class LibraryManager:
-    # Code to make this a singleton
-    __single = None
+class LibraryManager(Singleton):
 
     def __init__(self, guiUtility):
-        if LibraryManager.__single:
-            raise RuntimeError("LibraryManager is singleton")
-
+        super(LibraryManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.guiUtility = guiUtility
@@ -796,16 +779,6 @@ class LibraryManager:
         self.wantpeers = []
 
         self.last_vod_torrent = None
-
-    def getInstance(*args, **kw):
-        if LibraryManager.__single is None:
-            LibraryManager.__single = LibraryManager(*args, **kw)
-        return LibraryManager.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        LibraryManager.__single = None
-    delInstance = staticmethod(delInstance)
 
     @warnWxThread
     def _get_videoplayer(self):
@@ -1143,16 +1116,13 @@ class LibraryManager:
             self.gridmgr.refresh()
 
 
-class ChannelManager:
-    # Code to make this a singleton
-    __single = None
+class ChannelManager(Singleton):
 
     def __init__(self):
-        if ChannelManager.__single:
-            raise RuntimeError("ChannelManager is singleton")
-        self.connected = False
-
+        super(ChannelManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
+
+        self.connected = False
 
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = {}
@@ -1172,16 +1142,6 @@ class ChannelManager:
         self.oldsearchkeywords = []
 
         self.category = Category.getInstance()
-
-    def getInstance(*args, **kw):
-        if ChannelManager.__single is None:
-            ChannelManager.__single = ChannelManager(*args, **kw)
-        return ChannelManager.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        ChannelManager.__single = None
-    delInstance = staticmethod(delInstance)
 
     def connect(self, session, library_manager, torrentsearch_manager):
         if not self.connected:

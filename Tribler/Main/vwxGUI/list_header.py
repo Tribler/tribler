@@ -12,6 +12,8 @@ import sys
 import wx
 import os
 import logging
+
+from Tribler.Core.Misc.Singleton import Singleton
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
 from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI.list_body import FixedListBody
@@ -20,26 +22,13 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_item import ColumnsManager, TorrentListItem, ChannelListItem, LibraryListItem, ChannelListItemNoButton, PlaylistItemNoButton, PlaylistItem
 
 
-class ListHeaderIcon:
-    __single = None
+class ListHeaderIcon(Singleton):
 
     def __init__(self):
-        if ListHeaderIcon.__single:
-            raise RuntimeError("ListHeaderIcon is singleton")
-        ListHeaderIcon.__single = self
-        self.icons = {}
-
+        super(ListHeaderIcon, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    def getInstance(*args, **kw):
-        if ListHeaderIcon.__single is None:
-            ListHeaderIcon(*args, **kw)
-        return ListHeaderIcon.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        ListHeaderIcon.__single = None
-    delInstance = staticmethod(delInstance)
+        self.icons = {}
 
     @warnWxThread
     def getBitmaps(self, parent, background):

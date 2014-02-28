@@ -7,6 +7,7 @@ import urllib
 import logging
 from datetime import timedelta
 
+from Tribler.Core.Misc.Singleton import Singleton
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -21,20 +22,11 @@ from Tribler.Main.vwxGUI.list_details import *
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 
-class ColumnsManager:
-    __single = None
+class ColumnsManager(Singleton):
 
     def __init__(self):
-        if ColumnsManager.__single:
-            raise RuntimeError("ColumnsManager is singleton")
-        ColumnsManager.__single = self
+        super(ColumnsManager, self).__init__()
         self.defaults = {}
-
-    def getInstance(*args, **kw):
-        if ColumnsManager.__single is None:
-            ColumnsManager(*args, **kw)
-        return ColumnsManager.__single
-    getInstance = staticmethod(getInstance)
 
     def setColumns(self, itemtype, columns):
         self.defaults[itemtype.__name__] = columns

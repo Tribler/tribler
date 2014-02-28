@@ -9,7 +9,7 @@
 import logging
 
 from threading import Thread, Condition, RLock, currentThread
-from traceback import print_exc, print_stack, format_stack
+from traceback import print_stack
 from time import time
 try:
     prctlimported = True
@@ -18,11 +18,12 @@ except ImportError as e:
     prctlimported = False
 
 
-class TimedTaskQueue:
+class TimedTaskQueue(object):
 
     __single = None
 
     def __init__(self, nameprefix="TimedTaskQueue", isDaemon=True):
+        super(TimedTaskQueue, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.cond = Condition(RLock())
@@ -30,11 +31,8 @@ class TimedTaskQueue:
         self.count = 0.0  # serves to keep task that were scheduled at the same time in FIFO order
         self.thread = Thread(target=self.run)
         self.thread.setDaemon(isDaemon)
-        self.thread.setName(nameprefix +self.thread.getName())
+        self.thread.setName(nameprefix + self.thread.getName())
         self.thread.start()
-
-        if __debug__:
-            self.callstack = {}  # callstack by self.count
 
     def shutdown(self, immediately=False):
         self.add_task("stop", -time() if immediately else 0)
@@ -54,9 +52,6 @@ class TimedTaskQueue:
 
         debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
         self._logger.debug("ttqueue: ADD EVENT %s %s %s", t, task, debug_call_name)
-
-        if __debug__:
-            self.callstack[self.count] = format_stack()
 
         if id != None:  # remove all redundant tasks
             self.queue = filter(lambda item: item[3] != id, self.queue)
@@ -112,9 +107,6 @@ class TimedTaskQueue:
                     # Event due, execute
                     self._logger.debug("ttqueue: EVENT DUE")
                     self.queue.pop(0)
-                    if __debug__:
-                        assert count in self.callstack
-                        stack = self.callstack.pop(count)
                     break
             self.cond.release()
 
@@ -128,7 +120,7 @@ class TimedTaskQueue:
                         break
                     else:
                         (when, count, task, id) = self.queue[-1]
-                        t = when - time() +0.001
+                        t = when - time() + 0.001
                         self.add_task('quit', t)
                 else:
                     t1 = time()
@@ -140,9 +132,4 @@ class TimedTaskQueue:
                         debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
                         self._logger.debug("ttqueue: EVENT TOOK %s %s", took, debug_call_name)
             except:
-                print_exc()
-                if __debug__:
-                    self._logger.debug("<<<<<<<<<<<<<<<<")
-                    self._logger.debug("TASK QUEUED FROM")
-                    self._logger.debug("".join(stack))
-                    self._logger.debug(">>>>>>>>>>>>>>>>")
+                self._logger.exception(u"Failed to execute task.")

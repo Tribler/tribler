@@ -14,6 +14,7 @@ from wx import xrc
 
 from Tribler.__init__ import LIBRARYNAME
 
+from Tribler.Core.Misc.Singleton import Singleton
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords, fts3_preprocess
@@ -27,13 +28,10 @@ from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
 
-class GUIUtility:
-    __single = None
+class GUIUtility(Singleton):
 
     def __init__(self, utility=None, params=None, app=None):
-        if GUIUtility.__single:
-            raise RuntimeError("GUIUtility is singleton")
-        GUIUtility.__single = self
+        super(GUIUtility, self).__init__()
         self.registered = False
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -68,26 +66,14 @@ class GUIUtility:
 
         self.listicon = ListHeaderIcon.getInstance()
 
-    def getInstance(*args, **kw):
-        if GUIUtility.__single is None:
-            GUIUtility(*args, **kw)
-        return GUIUtility.__single
-    getInstance = staticmethod(getInstance)
-
-    def hasInstance():
-        return GUIUtility.__single != None
-    hasInstance = staticmethod(hasInstance)
-
-    def delInstance():
-        if GUIUtility.__single:
-            GUIUtility.__single.listicon.delInstance()
-            GUIUtility.__single.library_manager.delInstance()
-            GUIUtility.__single.channelsearch_manager.delInstance()
-            GUIUtility.__single.torrentsearch_manager.delInstance()
-            GUIUtility.__single.torrentstate_manager.delInstance()
-
-        GUIUtility.__single = None
-    delInstance = staticmethod(delInstance)
+    def finalize(self):
+        """This is called when tribler deletes this singleton instance.
+        """
+        self.listicon.delInstance()
+        self.library_manager.delInstance()
+        self.channelsearch_manager.delInstance()
+        self.torrentsearch_manager.delInstance()
+        self.torrentstate_manager.delInstance()
 
     def register(self):
         if not self.registered:

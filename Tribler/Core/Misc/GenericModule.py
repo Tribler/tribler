@@ -8,8 +8,8 @@ class GenericModule(object):
     finalized (or shutdown).
     """
 
-    def __init__(self):
-        super(GenericModule, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(GenericModule, self).__init__(*args, **kwargs)
 
     def initialize(self):
         """Initializes this module.

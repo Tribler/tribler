@@ -1,10 +1,7 @@
-from Tribler.community.channel.community import ChannelCommunity
-
 import os
 import sys
 import json
 import shutil
-import thread
 import hashlib
 import binascii
 import logging
@@ -16,32 +13,19 @@ try:
 except ImportError, e:
     prctlimported = False
 
+from Tribler.Core.Misc.Singleton import Singleton
 from Tribler.Core.Swift.SwiftDef import SwiftDef
+from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import *
 from threading import currentThread, Thread
 from traceback import print_exc
 
 
-class TorrentStateManager:
-    # Code to make this a singleton
-    __single = None
+class TorrentStateManager(Singleton):
 
     def __init__(self, guiUtility):
-        if TorrentStateManager.__single:
-            raise RuntimeError("TorrentStateManager is singleton")
-        TorrentStateManager.__single = self
-
+        super(TorrentStateManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-
-    def getInstance(*args, **kw):
-        if TorrentStateManager.__single is None:
-            TorrentStateManager(*args, **kw)
-        return TorrentStateManager.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        TorrentStateManager.__single = None
-    delInstance = staticmethod(delInstance)
 
     def connect(self, torrent_manager, library_manager, channelsearch_manager):
         self.torrent_manager = torrent_manager

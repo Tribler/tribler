@@ -3,29 +3,25 @@
 
 import os
 import re
+from Tribler.Core.Misc.Singleton import Singleton
 from Tribler.Category.init_category import getCategoryInfo
 from FamilyFilter import XXXFilter
 
-import sys
 import logging
 
 from Tribler.__init__ import LIBRARYNAME
 
 category_file = "category.conf"
 
-class Category:
+class Category(Singleton):
 
-    # Code to make this a singleton
-    __single = None
     __size_change = 1024 * 1024
 
     def __init__(self, install_dir='.', ffEnabled=False):
+        super(Category, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        if Category.__single:
-            raise RuntimeError("Category is singleton")
         filename = os.path.join(install_dir, LIBRARYNAME, 'Category', category_file)
-        Category.__single = self
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(rankcmp)
@@ -39,17 +35,6 @@ class Category:
 
         self.ffEnabled = ffEnabled
         self.set_family_filter(None)
-
-    # return Category instance
-    def getInstance(*args, **kw):
-        if Category.__single is None:
-            Category(*args, **kw)
-        return Category.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        Category.__single = None
-    delInstance = staticmethod(delInstance)
 
     def getCategoryKeys(self):
         if self.category_info is None:

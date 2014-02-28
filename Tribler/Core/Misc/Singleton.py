@@ -10,10 +10,10 @@ class Singleton(GenericModule):
 
     __singleton = None
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         if Singleton.__singleton:
             raise RuntimeError(u"Recreating singleton %s" % self.__class__.__name__)
-        super(Singleton, self).__init__()
+        super(Singleton, self).__init__(*args, **kwargs)
 
     @classmethod
     def getInstance(cls, *args, **kwargs):
@@ -48,10 +48,10 @@ class ThreadSafeSingleton(GenericModule):
     __singleton = None
     __singleton_lock = RLock()
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         if ThreadSafeSingleton.__singleton:
             raise RuntimeError(u"Recreating singleton %s" % self.__class__.__name__)
-        super(ThreadSafeSingleton, self).__init__()
+        super(ThreadSafeSingleton, self).__init__(*args, **kwargs)
 
     @classmethod
     def getInstance(cls, *args, **kwargs):
