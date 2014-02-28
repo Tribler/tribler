@@ -5,9 +5,10 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 class ConfirmationDialog(wx.Dialog):
 
-    def __init__(self, parent, name, msg_bold='', msg=''):
-        wx.Dialog.__init__(self, parent=parent, size=(475, 210), name = name)
+    def __init__(self, parent, name, msg_bold='', msg='', title='', center_on_frame=True):
+        wx.Dialog.__init__(self, parent=parent, size=(475, 210), name=name)
 
+        self.SetTitle(title)
         self.checkbox = wx.CheckBox(self, label='Don\'t show this dialog again')
         self.checkbox.SetValue(False)
         messageText1 = wx.StaticText(self, label=msg_bold)
@@ -31,7 +32,10 @@ class ConfirmationDialog(wx.Dialog):
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         mainSizer.Add(bodySizer, 1, wx.EXPAND | wx.ALL, 15)
         mainSizer.Add(buttonSizer, 0, wx.EXPAND | wx.ALL, 15)
-        self.SetSizer(mainSizer)
+        self.SetSizerAndFit(mainSizer)
+        if center_on_frame:
+            x, y, w, h = GUIUtility.getInstance().frame.GetScreenRect()
+            self.SetPosition((x + ((w - self.GetSize().x) / 2), y + ((h - self.GetSize().y) / 2)))
 
     def OnConfirm(self, event):
         if self.checkbox.GetValue():
