@@ -1088,10 +1088,7 @@ class ABCApp():
                     sdef.add_content(o)  # single file .torrent
                 else:
                     xi = os.path.join(tdef.get_name_as_unicode(), i)
-                    if sys.platform == "win32":
-                        xi = xi.replace("\\", "/")
-                    si = xi.encode("UTF-8")  # spec format
-                    sdef.add_content(o, si)  # multi-file .torrent
+                    sdef.add_content(o, xi)  # multi-file .torrent
 
             specpn = sdef.finalize(self.sconfig.get_swift_path(), destdir=destdir)
 

@@ -107,10 +107,7 @@ class TorrentStateManager:
         for thumbfile in thumb_filenames:
             if os.path.exists(thumbfile):
                 xi = os.path.relpath(thumbfile, torcoldir)
-                if sys.platform == "win32":
-                    xi = xi.replace("\\", "/")
-                si = xi.encode("UTF-8")
-                sdef.add_content(thumbfile, si)
+                sdef.add_content(thumbfile, xi)
 
         specpn = sdef.finalize(session.get_swift_path(), destdir=torcoldir)
         hex_roothash = sdef.get_roothash_as_hex()
@@ -168,41 +165,6 @@ class TorrentStateManager:
             path_exists = os.path.exists(filename)
             self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
 
-        """
-        # Calculate sha1 of the thumbnails.
-        contenthash = hashlib.sha1()
-        for fn in thumb_filenames:
-            with open(fn, 'rb') as fp:
-                contenthash.update(fp.read())
-        contenthash_hex = contenthash.hexdigest()
-
-        # Move files to torcoldir/thumbs-infohash/contenthash.
-        finaldir = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash), contenthash_hex)
-        shutil.move(tempdir, finaldir)
-        thumb_filenames = [fn.replace(tempdir, finaldir) for fn in thumb_filenames]
-
-        # Create SwiftDef.
-        sdef = SwiftDef()
-        sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
-        for thumbfile in thumb_filenames:
-            if os.path.exists(thumbfile):
-                xi = os.path.relpath(thumbfile, torcoldir)
-                if sys.platform == "win32":
-                    xi = xi.replace("\\", "/")
-                si = xi.encode("UTF-8")
-                sdef.add_content(thumbfile, si)
-
-        specpn = sdef.finalize(self.session.get_swift_path(), destdir=torcoldir)
-        hex_roothash = sdef.get_roothash_as_hex()
-
-        try:
-            swift_filename = os.path.join(torcoldir, hex_roothash)
-            shutil.move(specpn, swift_filename)
-            shutil.move(specpn + '.mhash', swift_filename + '.mhash')
-            shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
-        except:
-            print_exc()
-        """
         roothash_hex, contenthash_hex = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
 
         # Create modification
