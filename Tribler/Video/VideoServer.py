@@ -28,6 +28,7 @@ class VideoServer:
         self.port = port
         self.session = session
         self.started = False
+        self.event = Event()
 
         from Tribler.Video.VideoPlayer import VideoPlayer
         self.videoplayer = VideoPlayer.getInstance()
@@ -71,7 +72,7 @@ class VideoServer:
         download = self.session.get_download(downloadhash)
 
         if download and download.get_def().get_def_type() == 'swift':
-            #raise cherrypy.HTTPRedirect("download.vod_url") 
+            #raise cherrypy.HTTPRedirect(download.vod_url) 
             print >> sys.stderr, "VideoServer: ignoring VOD request for swift"
             raise cherrypy.HTTPError(404, "Not Found")
             return
@@ -98,13 +99,6 @@ class VideoServer:
                 download.set_selected_files([filename])
             download.set_mode(DLMODE_VOD)
             download.restart()
-
-            # Wait for buffering to complete.
-            self.wait_for_buffer(download)
-
-            print >> sys.stderr, "VideoServer: restart"
-        else:
-            print >> sys.stderr, "VideoServer: seek?"
 
         mimetype = mimetypes.guess_type(filename)[0]
         piecelen = 2 ** 16 if download.get_def().get_def_type() == "swift" else download.get_def().get_piece_length()
@@ -135,7 +129,13 @@ class VideoServer:
 
         def write_data():
             stream, lock = self.videoplayer.get_vod_stream(downloadhash)
+
+            self.wait_for_buffer(download)
+
             with lock:
+                if stream.closed:
+                    return
+
                 stream.seek(firstbyte)
                 nbyteswritten = 0
                 while True:
@@ -163,12 +163,14 @@ class VideoServer:
     default._cp_config = {'response.stream': True}
 
     def wait_for_buffer(self, download):
-        event = Event()
+        self.event = Event()
         def wait_for_buffer(ds):
             print >> sys.stderr, "wait_for_buffer", ds.get_vod_prebuffering_progress(), download.get_def().get_name(), download.vod_seekpos
-            if download.vod_seekpos == None or ds.get_vod_prebuffering_progress() == 1.0 or ds.get_download().vod_seekpos == None:
-                event.set()
+            if download.vod_seekpos == None or download != self.videoplayer.get_vod_download() or \
+               ds.get_vod_prebuffering_progress() == 1.0 or ds.get_download().vod_seekpos == None:
+                self.event.set()
                 return (0, False)
             return (1.0, False)
         download.set_state_callback(wait_for_buffer)
-        event.wait()
+        self.event.wait()
+        self.event.clear()

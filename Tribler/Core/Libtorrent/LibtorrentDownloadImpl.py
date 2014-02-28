@@ -31,7 +31,6 @@ class VODFile(object):
 
     def __init__(self, f, d):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._logger.setLevel(logging.DEBUG)
 
         self._file = f
         self._download = d
@@ -153,6 +152,10 @@ class VODFile(object):
 
     def close(self, *args):
         self._file.close(*args)
+
+    @property
+    def closed(self):
+        return self._file.closed
 
 
 class LibtorrentDownloadImpl(DownloadConfigInterface):

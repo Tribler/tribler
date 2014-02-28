@@ -190,7 +190,6 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
-                self.HideLoading()
                 self.vlcwrap.start()
                 self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
                 self.ppbtn.Enable(True)

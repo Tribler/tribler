@@ -166,6 +166,7 @@ class VideoPlayer:
             self.videoframe.get_videopanel().Load(cmd, download)
             self.videoframe.show_videoframe()
             self.videoframe.get_videopanel().StartPlay()
+            self.videoframe.get_videopanel().ShowLoading()
         else:
             # Launch an external player. Play URL from network or disk.
             try:
