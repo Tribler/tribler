@@ -12,6 +12,7 @@ from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
 import logging
+from traceback import print_exc
 
 try:
     prctlimported = True

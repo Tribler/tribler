@@ -529,7 +529,10 @@ class SearchCommunity(Community):
                     toCollect.setdefault(infohash, []).append(message.candidate)
 
         if len(toInsert) > 0:
-            self._torrent_db.on_torrent_collect_response(toInsert.values())
+            toInsert = toInsert.values()
+            while toInsert:
+                self._torrent_db.on_torrent_collect_response(toInsert[:50])
+                toInsert = toInsert[50:]
 
         hashes = [hash_ for hash_ in toCollect.keys() if hash_]
         if hashes:
