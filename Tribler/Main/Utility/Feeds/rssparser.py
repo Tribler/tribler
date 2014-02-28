@@ -12,7 +12,6 @@ import imghdr
 import tempfile
 from traceback import print_exc
 from threading import Thread, RLock, Event
-import lxml.html
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
@@ -234,10 +233,12 @@ class RssParser(Thread):
 
                             for useless_url in useless_url_list:
                                 urls_already_seen.add(useless_url)
+                            urls_already_seen.write()
 
                             # call callback for everything valid torrent
                             for torrent_url, torrent in torrent_list:
                                 urls_already_seen.add(torrent_url)
+                                urls_already_seen.write()
 
                                 def processCallbacks(key, torrent, extra_info):
                                     for callback in self.key_callbacks[key]:
@@ -261,8 +262,6 @@ class RssParser(Thread):
                                 # Should we stop?
                                 if not self.isRegistered:
                                     return
-
-                        urls_already_seen.write()
 
 class URLResourceRetriever(object):
 
@@ -388,14 +387,13 @@ class RSSFeedParser(object):
             return None
         url_set = set()
 
-        xml_parser = lxml.html.fromstring(content)
-        a_list = xml_parser.xpath('//a')
+        a_list = re.findall(r'<a.+href=[\'"]?([^\'" >]+)', content)
         for a_item in a_list:
             a_href = a_item.attrib.get('href', None)
             if a_href:
                 url_set.add(a_href)
 
-        img_list = xml_parser.xpath('//img')
+        img_list = re.findall(r'<img.+src=[\'"]?([^\'" >]+)', content)
         for img_item in img_list:
             img_src = img_item.attrib.get('src', None)
             if img_src:

@@ -93,7 +93,11 @@ class TorrentStateManager:
 
         # Move files to torcoldir/thumbs-infohash/contenthash.
         finaldir = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash), contenthash_hex)
-        shutil.move(tempdir, finaldir)
+        # ignore the folder that has already been downloaded
+        if os.path.exists(finaldir):
+            shutil.rmtree(tempdir)
+        else:
+            shutil.move(tempdir, finaldir)
         thumb_filenames = [fn.replace(tempdir, finaldir) for fn in thumb_filenames]
 
         if len(thumb_filenames) == 1:
