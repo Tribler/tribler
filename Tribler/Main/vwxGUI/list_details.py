@@ -471,7 +471,7 @@ class TorrentDetails(AbstractDetails):
 
         # Toggle thumbnails
         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.torrent.infohash))
-        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']]
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
         show_thumbnails = bool(thumb_files)
         self.thumbnails.Show(show_thumbnails)
         if show_thumbnails:
@@ -1463,7 +1463,7 @@ class PlaylistDetails(AbstractDetails):
                     bmps = []
                     for torrent in self.playlist_torrents:
                         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(torrent.infohash))
-                        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']]
+                        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
                         if thumb_files:
                             bmps.append(wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY))
                         if len(bmps) > 3:

@@ -21,6 +21,8 @@ LIST_ITEM_BATCH_SIZE = 5
 LIST_ITEM_MAX_SIZE = 50
 LIST_RATE_LIMIT = 1
 
+THUMBNAIL_FILETYPES = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
+
 DEFAULT_BACKGROUND = wx.Colour(255, 255, 255)
 LIST_LIGHTBLUE = wx.Colour(240, 248, 255)
 LIST_BLUE = wx.Colour(216, 237, 255)
