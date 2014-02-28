@@ -218,7 +218,7 @@ class SwiftDownloadImpl(DownloadConfigInterface):
             self.dllock.release()
 
     def i2ithread_vod_event_callback(self, httpurl):
-        self._logger.debug("SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER %s %s mode %s", httpurl, self.get_mode())
+        self._logger.debug("SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER %s mode %s", httpurl, self.get_mode())
 
         self.dllock.acquire()
         try:
