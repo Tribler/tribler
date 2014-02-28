@@ -41,11 +41,6 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
                                              TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 
-try:
-    import wxversion
-    wxversion.select('2.8')
-except:
-    pass
 import wx
 from wx import xrc
 # import hotshot
@@ -472,13 +467,18 @@ class MainFrame(wx.Frame):
                 new_trackers = list(set(cdef.get_trackers_as_single_tuple()) - set(d.get_def().get_trackers_as_single_tuple()))
                 if not new_trackers:
                     raise DuplicateDownloadException()
+
                 else:
-                    # Show update tracker dialog
-                    dialog = wx.MessageDialog(None, 'This torrent is already being downloaded. Do you wish to load the trackers from it?', 'Tribler', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-                    if dialog.ShowModal() == wx.ID_YES:
-                        # Update trackers
-                        self.utility.session.update_trackers(cdef.get_id(), new_trackers)
-                    dialog.Destroy()
+                    @forceWxThread
+                    def do_gui():
+                        # Show update tracker dialog
+                        dialog = wx.MessageDialog(None, 'This torrent is already being downloaded. Do you wish to load the trackers from it?', 'Tribler', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                        if dialog.ShowModal() == wx.ID_YES:
+                            # Update trackers
+                            self.utility.session.update_trackers(cdef.get_id(), new_trackers)
+                        dialog.Destroy()
+
+                    do_gui()
                 return
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
@@ -492,7 +492,7 @@ class MainFrame(wx.Frame):
                     defaultname = tdef.get_name_as_unicode()
 
                 if wx.Thread_IsMain():
-                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
+                    dlg = SaveAs(None, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
                     dlg.CenterOnParent()
 
                     if isinstance(tdef, TorrentDefNoMetainfo):

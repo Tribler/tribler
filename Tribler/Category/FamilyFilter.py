@@ -2,9 +2,7 @@
 # see LICENSE.txt for license information
 
 import re
-import sys
 import os
-from traceback import print_exc
 import logging
 
 from Tribler.__init__ import LIBRARYNAME
@@ -34,7 +32,7 @@ class XXXFilter:
                     terms.add(line)
             f.close()
         except:
-            print_exc()
+            self._logger.exception(u"Failed to init terms.")
 
         self._logger.debug('Read %d XXX terms from file %s', len(terms) + len(searchterms), filename)
         return terms, searchterms

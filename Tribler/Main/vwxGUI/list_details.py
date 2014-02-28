@@ -14,9 +14,9 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist, NotCollectedTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.IconsManager import IconsManager
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
+    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
@@ -315,7 +315,7 @@ class TorrentDetails(AbstractDetails):
         self.marking_vSizer = wx.BoxSizer(wx.VERTICAL)
         self.marking_vSizer.Add(wx.StaticLine(self.detailsTab, -1, style=wx.LI_HORIZONTAL), 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 5)
         self.marking_vSizer.Add(self.marking_hSizer, 1, wx.EXPAND)
-        self.markicon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
+        self.markicon = GuiImageManager.getInstance().getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
         self.markicon = wx.StaticBitmap(self.detailsTab, -1, self.markicon)
         ulfont = self.GetFont()
         ulfont.SetUnderlined(True)
@@ -350,8 +350,8 @@ class TorrentDetails(AbstractDetails):
         self.filesList.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFilesSelected)
 
         self.il = wx.ImageList(16, 16)
-        self.play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'file_video.png'), wx.BITMAP_TYPE_ANY))
-        self.file_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'file_default.png'), wx.BITMAP_TYPE_ANY))
+        self.play_img = self.il.Add(GuiImageManager.getInstance().getImage(u"file_video.png"))
+        self.file_img = self.il.Add(GuiImageManager.getInstance().getImage(u"file_default.png"))
         self.filesList.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         self.filesList.setResizeColumn(0)
@@ -471,10 +471,11 @@ class TorrentDetails(AbstractDetails):
 
         # Toggle thumbnails
         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.torrent.infohash))
-        show_thumbnails = os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] == '.jpg']
+        show_thumbnails = bool(thumb_files)
         self.thumbnails.Show(show_thumbnails)
         if show_thumbnails:
-            bmps = [wx.Bitmap(os.path.join(thumb_dir, thumb), wx.BITMAP_TYPE_ANY) for thumb in os.listdir(thumb_dir)[:4]]
+            bmps = [wx.Bitmap(thumb, wx.BITMAP_TYPE_ANY) for thumb in thumb_files[:4]]
             res = limit_resolution(bmps[0].GetSize(), (175, 175)) if bmps else None
             bmps = [bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() for bmp in bmps if bmp.IsOk()] if res else []
             self.thumbnails.SetBitmaps(bmps)
@@ -551,10 +552,12 @@ class TorrentDetails(AbstractDetails):
 
     def updateTrackersTab(self):
         self.trackerSizer.Clear(deleteWindows=True)
-        if hasattr(self.torrent, 'trackers'):
+        collected_trackers = hasattr(self.torrent, 'trackers')
+        notcollected_trackers = hasattr(self.torrent, 'torrent') and hasattr(self.torrent.torrent, 'trackers')
+        if collected_trackers or notcollected_trackers:
             self.notebook.ShowMessageOnPage(self.notebook.GetIndexFromText('Trackers'), False)
             if self.torrent.trackers and len(self.torrent.trackers) > 0:
-                for tracker in self.torrent.trackers:
+                for tracker in (self.torrent.trackers if collected_trackers else self.torrent.torrent.trackers):
                     if isinstance(tracker, basestring):
                         self._add_row(self.trackerTab, self.trackerSizer, None, tracker)
                 self.trackerSizer.Layout()
@@ -958,7 +961,7 @@ class LibraryDetails(TorrentDetails):
         self.refresh_counter = 0
         self.bw_history = []
 
-        self.im = IconsManager.getInstance()
+        self.gui_image_manager = GuiImageManager.getInstance()
 
         TorrentDetails.__init__(self, parent)
 
@@ -1032,7 +1035,7 @@ class LibraryDetails(TorrentDetails):
         self.peersSizer.Add(self.peerList, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
 
         self.country_to_index = {}
-        for code, flag in self.im.country_flags.iteritems():
+        for code, flag in self.gui_image_manager.getCountryFlagDict().iteritems():
             self.country_to_index[code] = self.peersTab.il.Add(flag)
 
         self.availability_hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1460,8 +1463,9 @@ class PlaylistDetails(AbstractDetails):
                     bmps = []
                     for torrent in self.playlist_torrents:
                         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(torrent.infohash))
-                        if os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0:
-                            bmps.append(wx.Bitmap(os.path.join(thumb_dir, os.listdir(thumb_dir)[0]), wx.BITMAP_TYPE_ANY))
+                        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] == '.jpg']
+                        if thumb_files:
+                            bmps.append(wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY))
                         if len(bmps) > 3:
                             break
 
@@ -1842,10 +1846,10 @@ class MyChannelPlaylist(AbstractDetails):
         gridSizer.AddGrowableRow(1)
 
         if can_edit:
-            self.name = wx.TextCtrl(self, value=playlist.get('name', ''))
+            self.name = EditText(self, playlist.get('name', ''))
             self.name.SetMaxLength(40)
 
-            self.description = wx.TextCtrl(self, value=playlist.get('description', ''), style=wx.TE_MULTILINE)
+            self.description = EditText(self, playlist.get('description', ''), multiline=True)
             self.description.SetMaxLength(2000)
         else:
             self.name = StaticText(self, -1, playlist.get('name', ''))
@@ -1984,7 +1988,7 @@ class ChannelsExpandedPanel(wx.Panel):
 
             def CreateLinkStaticText():
                 link = LinkStaticText(self, '', icon=None, font_colour=self.fg_colour)
-                link_icon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+                link_icon = GuiImageManager.getInstance().getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0)
                 link_icon = link_icon.ConvertToImage().Rotate90(False).ConvertToBitmap()
                 link_icon = wx.StaticBitmap(self, -1, link_icon)
                 link.Insert(0, link_icon, 0, wx.CENTER | wx.RIGHT, 3)
@@ -2062,7 +2066,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.torrent = None
         self.fileindex = 0
 
-        self.close_icon = wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, "images", "close.png"), wx.BITMAP_TYPE_ANY)
+        self.close_icon = GuiImageManager.getInstance().getImage(u"close.png")
         self.fg_colour = self.GetForegroundColour()
         self.bg_colour = LIST_LIGHTBLUE
         self.SetBackgroundColour(self.bg_colour)

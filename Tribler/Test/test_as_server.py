@@ -12,7 +12,7 @@ import shutil
 import time
 import gc
 import wx
-import Image
+from PIL import Image
 import re
 
 from traceback import print_exc
@@ -21,7 +21,6 @@ from threading import enumerate as enumerate_threads
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.Utilities import LinuxSingleInstanceChecker
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
@@ -54,7 +53,7 @@ class AbstractServer(unittest.TestCase):
         for path in os.listdir(BASE_DIR):
             path = os.path.join(BASE_DIR, path)
             if path.startswith(STATE_DIR) or path.startswith(DEST_DIR):
-                shutil.rmtree(path)
+                shutil.rmtree(unicode(path))
 
     def tearDown(self):
         self.tearDownCleanup()
@@ -182,7 +181,7 @@ class TestAsServer(AbstractServer):
                 time.sleep(seconds)
             callback()
 
-    def CallConditional(self, timeout, condition, callback, assertMsg=None):
+    def CallConditional(self, timeout, condition, callback, assertMsg=None, assertCallback=None):
         t = time.time()
 
         def DoCheck():
@@ -199,8 +198,9 @@ class TestAsServer(AbstractServer):
                         print_exc()
                         self.assert_(False, 'Condition or callback raised an exception, quitting (%s)' % (assertMsg or "no-assert-msg"), do_assert=False)
                 else:
-                    print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
-                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
+                    print >> sys.stderr, "test_as_server: %s, condition was not satisfied in %d seconds (%s)" % ('calling callback' if assertCallback else 'quitting' , timeout, assertMsg or "no-assert-msg")
+                    assertcall = assertCallback if assertCallback else self.assert_
+                    assertcall(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
         self.Call(0, DoCheck)
 
     def quit(self):

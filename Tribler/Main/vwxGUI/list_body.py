@@ -10,7 +10,8 @@ from time import time
 import re
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, \
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, \
     _set_font, ActionButton
 
 from __init__ import *
@@ -214,7 +215,7 @@ class ListItem(wx.Panel):
 
     @warnWxThread
     def GetIcon(self, icontype, background, state):
-        return NativeIcon.getInstance().getBitmap(self, icontype, background, state)
+        return GuiImageManager.getInstance().getBitmap(self, icontype, background, state)
 
     @warnWxThread
     def RefreshData(self, data):

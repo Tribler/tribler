@@ -3,7 +3,6 @@
 
 import threading
 import time
-import sys
 import logging
 
 # Factory vars

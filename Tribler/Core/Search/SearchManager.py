@@ -4,7 +4,6 @@
 # ARNOCOMMENT: remove this now it doesn't use KeywordSearch anymore?
 
 import re
-import sys
 import logging
 
 # from Tribler.Core.Search.KeywordSearch import KeywordSearch

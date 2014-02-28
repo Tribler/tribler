@@ -46,7 +46,7 @@ from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIG
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import current_thread, currentThread
+from threading import currentThread
 try:
     prctlimported = True
     import prctl
@@ -58,16 +58,7 @@ except ImportError as e:
 # "English[United Kingdom]"
 # import locale
 
-# 20/10/09 Boudewijn: on systems that install multiple wx versions we
-# would prefer 2.8.
-try:
-    import wxversion
-    wxversion.select('2.8')
-except:
-    pass
-
 import wx
-from wx import xrc
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
@@ -76,12 +67,11 @@ from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from traceback import print_exc
 import urllib2
 import tempfile
-import thread
-import logging
 
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 # from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
@@ -95,7 +85,7 @@ from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
-from Tribler.Utilities.LinuxSingleInstanceChecker import *
+from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
@@ -171,8 +161,10 @@ class ABCApp():
         self.utility = None
         self.videoplayer = None
 
+        self.gui_image_manager = GuiImageManager.getInstance(installdir)
+
         try:
-            bm = wx.Bitmap(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'splash.png'), wx.BITMAP_TYPE_ANY)
+            bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
             self.splash.setTicks(10)
             self.splash.Show()
@@ -963,6 +955,7 @@ class ABCApp():
         GUIUtility.delInstance()
         GUIDBProducer.delInstance()
         DefaultDownloadStartupConfig.delInstance()
+        GuiImageManager.delInstance()
 
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
@@ -1124,13 +1117,7 @@ def run(params=None):
         params = sys.argv[1:]
     try:
         # Create single instance semaphore
-        # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
-        # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
-        #
-        if sys.platform != 'linux2':
-            single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
-        else:
-            single_instance_checker = LinuxSingleInstanceChecker("tribler")
+        single_instance_checker = SingleInstanceChecker("tribler")
 
         installdir = ABCApp.determine_install_dir()
 

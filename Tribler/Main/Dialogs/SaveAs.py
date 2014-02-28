@@ -222,7 +222,7 @@ class SaveAs(wx.Dialog):
         self.EndModal(wx.ID_CANCEL)
 
     def OnBrowseDir(self, event):
-        dlg = wx.DirDialog(self, "Please select a directory to save this torrent", style=wx.wx.DD_NEW_DIR_BUTTON)
+        dlg = wx.DirDialog(None, "Please select a directory to save this torrent", style=wx.wx.DD_NEW_DIR_BUTTON)
         dlg.SetPath(self.defaultdir)
 
         if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):

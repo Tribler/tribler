@@ -5,7 +5,6 @@
 # its CMDGW interface
 #
 
-import sys
 import logging
 from threading import Thread, Lock, currentThread, Event
 import socket

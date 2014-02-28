@@ -3,19 +3,16 @@
 # Additionally DelayedResult is returned, allowing a thread to wait for result
 
 import wx
-from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException, \
-    DelayedResult, SenderNoWx
+from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, \
+    AbortedException, SenderNoWx
 
 import threading
 import logging
 from collections import namedtuple
-from Queue import Queue
 from threading import Event, Lock, RLock
 from thread import get_ident
 from time import time
-import sys
-from traceback import format_stack, extract_stack, format_exc, print_exc, \
-    print_stack
+from traceback import extract_stack, format_exc, print_exc, print_stack
 import os
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from inspect import isgeneratorfunction
@@ -65,6 +62,10 @@ class GUIDBProducer():
     @classmethod
     def delInstance(cls, *args, **kw):
         GUIDBProducer.__single = None
+
+    @classmethod
+    def hasInstance(cls):
+        return GUIDBProducer.__single != None
 
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
@@ -324,17 +325,21 @@ def startWorker(
     else:
         sender = MySenderCallAfter(consumer, result, jobID, args=cargs, kwargs=ckwargs)
 
-    thread = GUIDBProducer.getInstance()
-    thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs,
-            name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, priority=priority, workerType=workerType)
+    if GUIDBProducer.hasInstance():
+        thread = GUIDBProducer.getInstance()
+        thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs,
+                name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, priority=priority, workerType=workerType)
 
-    return result
+        return result
 
 
 def cancelWorker(uId):
-    thread = GUIDBProducer.getInstance()
-    thread.Remove(uId)
+    if GUIDBProducer.hasInstance():
+        thread = GUIDBProducer.getInstance()
+        thread.Remove(uId)
 
 def onWorkerThread(type):
-    dbProducer = GUIDBProducer.getInstance()
-    return dbProducer.onSameThread(type)
+    if GUIDBProducer.hasInstance():
+        dbProducer = GUIDBProducer.getInstance()
+        return dbProducer.onSameThread(type)
+    return False

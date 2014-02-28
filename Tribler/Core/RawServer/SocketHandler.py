@@ -53,11 +53,11 @@ class InterruptSocket:
         self.port = None
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        
+
         self.socket.bind((self.ip, 0))
         self.port = self.socket.getsockname()[1]
         self._logger.debug("Bound InterruptSocket on port %s", self.port)
-        
+
         # start listening to the InterruptSocket
         self.socket_handler.single_sockets[self.socket.fileno()] = self
         self.socket_handler.poll.register(self.socket, POLLIN)
@@ -466,13 +466,6 @@ class SocketHandler:
                         newsock, addr = s.accept()
                         self._logger.debug("SocketHandler: Got connection from %s", newsock.getpeername())
                         if not self.btengine_said_reachable:
-                            try:
-                                from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-                                dmh = DialbackMsgHandler.getInstance()
-                                dmh.network_btengine_reachable_callback()
-                            except ImportError:
-                                print_exc()
-                                pass
                             self.btengine_said_reachable = True
 
                         # Only use the new socket if we can spare the

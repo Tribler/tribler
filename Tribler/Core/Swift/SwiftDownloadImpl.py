@@ -27,13 +27,11 @@
 #       (Linux done)
 #
 
-import sys
-import copy
+import time
 import shutil
 import logging
 
-from traceback import print_exc, print_stack
-from threading import RLock, currentThread
+from traceback import print_exc
 from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import *
@@ -235,6 +233,7 @@ class SwiftDownloadImpl(DownloadConfigInterface):
             self._logger.debug("SwiftDownloadImpl: i2ithread_vod_event_callback %s %s", httpurl)
 
             self.vod_url = httpurl
+
         finally:
             self.dllock.release()
 
@@ -591,16 +590,6 @@ class SwiftDownloadImpl(DownloadConfigInterface):
         pstate.set('state', 'engineresumedata', None)
         return pstate
 
-    #
-    # Coop download
-    #
-    def get_coopdl_role_object(self, role):
-        """ Called by network thread """
-        return None
-
-    def recontact_tracker(self):
-        """ Called by any thread """
-        pass
 
     #
     # MOREINFO

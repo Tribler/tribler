@@ -4,9 +4,7 @@
 import sys
 import os
 import copy
-import math
 import logging
-from traceback import print_exc, print_stack
 from types import StringType, ListType, IntType, LongType
 from binascii import hexlify
 
@@ -20,7 +18,7 @@ import Tribler.Core.APIImplementation.maketorrent as maketorrent
 import Tribler.Core.APIImplementation.makeurl as makeurl
 from Tribler.Core.APIImplementation.miscutils import *
 
-from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL
+from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *
@@ -168,7 +166,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
         file from the URL and convert it into a TorrentDef. If the URL starts
         with our URL scheme, we convert the URL to a URL-compatible TorrentDef.
-        
+
         If we can't download the .torrent file, this method returns None.
 
         @param url URL
@@ -925,6 +923,24 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         f.write(bdata)
         f.close()
 
+    def get_torrent_size(self):
+        """
+        Finalizes the torrent def and converts the metainfo to string, returns the
+        number of bytes the string would take on disk.
+        """
+        if not self.readonly:
+            self.finalize()
+
+        # Boudewijn, 10/09/10: do not save the 'initial peers'.  (1)
+        # they should not be saved, as they are unlikely to be there
+        # the next time, and (2) bencode does not understand tuples
+        # and converts the (addres,port) tuple into a list.
+        if 'initial peers' in self.metainfo:
+            del self.metainfo['initial peers']
+
+        bdata = bencode(self.metainfo)
+        return len(bdata)
+
     def get_bitrate(self, file=None):
         """ Returns the bitrate of the specified file. If no file is specified,
         we assume this is a single-file torrent.
@@ -1087,7 +1103,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise TorrentDefNotFinalizedException()
 
     def is_private(self):
-        """ Returns whether this TorrentDef is a private torrent. 
+        """ Returns whether this TorrentDef is a private torrent.
         @return Boolean """
         if not self.metainfo_valid:
             raise NotYetImplementedException()
@@ -1174,10 +1190,16 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
         return False
 
     def get_name_as_unicode(self):
-        return unicode(self.name)
+        return unicode(self.name) if self.name else u''
 
     def get_files(self, exts=None):
         return []
+
+    def get_trackers_as_single_tuple(self):
+        if self.url and self.url.startswith('magnet:'):
+            _, _, trs = parse_magnetlink(self.url)
+            return tuple(trs)
+        return ()
 
     def has_trackers(self):
         return False

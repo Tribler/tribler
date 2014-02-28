@@ -1,6 +1,5 @@
 from threading import Thread, Event
 import shutil
-import sys
 import os
 import time
 import logging

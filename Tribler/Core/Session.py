@@ -6,12 +6,9 @@
 import os
 import sys
 import copy
-import binascii
 import logging
-from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
-from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.Base import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -74,7 +71,7 @@ class Session(SessionConfigInterface):
                 scfg = SessionStartupConfig.load(cfgfilename)
             except:
                 # If that fails, create a fresh config with factory defaults
-                print_exc()
+                self._logger.exception(u"Failed to init startup config")
                 scfg = SessionStartupConfig()
         else:  # overrides any saved config
             # Work from copy

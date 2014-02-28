@@ -2,7 +2,7 @@ import sys
 import logging
 
 from threading import current_thread, local, setprofile
-from time import sleep, time
+from time import time
 from Tribler.Main.tribler import run
 
 stats = {}

@@ -1,18 +1,16 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat, Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
 import wx
 import os
 import logging
-from binascii import hexlify
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from time import time
 
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, NULL, forceAndReturnDBThread, forceDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Main.globals import DefaultDownloadStartupConfig
@@ -36,7 +34,6 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation, \
     RemoteChannelTorrent, Marking
 import threading
-from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.search.community import SearchCommunity
@@ -277,6 +274,8 @@ class TorrentManager:
                             _, _, trs = parse_magnetlink(source)
                             trackers.extend(trs)
 
+                trackers.extend(self.torrent_db.getTrackerListByTorrentID(torrent_id))
+
                 if len(files) > 0:
                     # We still call getTorrent to fetch .torrent
                     self.getTorrent(torrent, None, prio=1)
@@ -480,7 +479,7 @@ class TorrentManager:
                 TorrentChecking.getInstance().addGuiRequest(hit)
 
         for candidate, torrents in to_be_prefetched.iteritems():
-            self.downloadTorrentmessagesFromPeer(candidate, torrents, sesscb_prefetch_done, prio=1)
+            self.downloadTorrentmessagesFromPeer(candidate, torrents, None, prio=1)
 
     def getSearchKeywords(self):
         return self.searchkeywords, len(self.hits), self.filteredResults

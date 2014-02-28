@@ -1,7 +1,6 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
 import re
 from threading import Timer
 import logging

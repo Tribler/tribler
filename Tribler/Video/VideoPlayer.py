@@ -227,4 +227,3 @@ class VideoPlayer:
     def set_player_status_and_progress(self, progress, progress_consec, pieces_complete, error=False):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().UpdateStatus(progress, progress_consec, pieces_complete, error)
-

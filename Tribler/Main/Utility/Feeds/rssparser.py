@@ -2,7 +2,6 @@
 
 import os
 import sha
-import sys
 import time
 import re
 import logging

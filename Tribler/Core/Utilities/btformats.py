@@ -1,12 +1,8 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
-import sys
 from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
-from re import compile
 
-# reg = compile(r'^[^/\\.~][^/\\]*$')
-# reg = compile(r'^[^/\\]*$')
 
 ints = (LongType, IntType)
 

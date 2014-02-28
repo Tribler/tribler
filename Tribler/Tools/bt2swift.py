@@ -3,13 +3,11 @@
 #
 
 import sys
-import shutil
 import time
 import tempfile
 import random
 import os
 import getopt
-from traceback import print_exc
 from threading import Condition
 
 from Tribler.Core.API import *

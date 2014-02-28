@@ -12,7 +12,7 @@ import atexit
 import logging
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap, ICON_MAX_DIM
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import isInteger
@@ -123,8 +123,8 @@ class SettingsDialog(wx.Dialog):
         self.myname = self.utility.session.get_nickname()
         mime, data = self.utility.session.get_mugshot()
         if data is None:
-            im = IconsManager.getInstance()
-            self.mugshot = im.get_default('PEER_THUMB')
+            gui_image_manager = GuiImageManager.getInstance()
+            self.mugshot = gui_image_manager.getImage(u"PEER_THUMB")
         else:
             self.mugshot = data2wxBitmap(mime, data)
 
@@ -455,7 +455,7 @@ class SettingsDialog(wx.Dialog):
         dlg.Destroy()
 
     def BrowseClicked(self, event=None):
-        dlg = wx.DirDialog(self, "Choose download directory", style=wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.DirDialog(None, "Choose download directory", style=wx.DEFAULT_DIALOG_STYLE)
         dlg.SetPath(self.defaultDLConfig.get_dest_dir())
         if dlg.ShowModal() == wx.ID_OK:
             self.elements['diskLocationCtrl'].SetForegroundColour(wx.BLACK)
