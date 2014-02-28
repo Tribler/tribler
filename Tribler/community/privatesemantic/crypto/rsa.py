@@ -156,6 +156,14 @@ if __name__ == "__main__":
     print "Encrypting took", t2 - t1
     print "Decrypting took", time() - t2
 
+    his_n = key.n
+    fake_phi = his_n / 2
+
+    t1 = time()
+    for i in range(1000):
+        rsa_compatible(his_n, fake_phi + i)
+
+    print "Compatible took", time() - t2
 
 
 
