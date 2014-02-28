@@ -461,7 +461,9 @@ class MainFrame(wx.Frame):
             if torrentfilename and tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
 
-            cdef = sdef or tdef
+            # Prefer to download using libtorrent
+            #cdef = sdef or tdef
+            cdef = tdef or sdef
 
             d = self.utility.session.get_download(cdef.get_id())
             if d and cdef.get_def_type() == 'torrent':
@@ -505,7 +507,8 @@ class MainFrame(wx.Frame):
                     if dlg.ShowModal() == wx.ID_OK:
                         # If the dialog has collected a torrent, use the new tdef
                         tdef = dlg.GetCollected() or tdef
-                        cdef = sdef or tdef
+                        #cdef = sdef or tdef
+                        cdef = tdef or sdef
 
                         # for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
