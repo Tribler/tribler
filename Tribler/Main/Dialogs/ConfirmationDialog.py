@@ -11,12 +11,16 @@ class ConfirmationDialog(wx.Dialog):
         self.SetTitle(title)
         self.checkbox = wx.CheckBox(self, label='Don\'t show this dialog again')
         self.checkbox.SetValue(False)
-        messageText1 = wx.StaticText(self, label=msg_bold)
-        _set_font(messageText1, fontweight=wx.FONTWEIGHT_BOLD)
-        messageText2 = wx.StaticText(self, label=msg)
         messageSizer = wx.BoxSizer(wx.VERTICAL)
-        messageSizer.Add(messageText1, 1, wx.EXPAND)
-        messageSizer.Add(messageText2, 1, wx.EXPAND)
+
+        if msg_bold:
+            messageText1 = wx.StaticText(self, label=msg_bold)
+            _set_font(messageText1, fontweight=wx.FONTWEIGHT_BOLD)
+            messageSizer.Add(messageText1, 1, wx.EXPAND)
+        if msg:
+            messageText2 = wx.StaticText(self, label=msg)
+            messageSizer.Add(messageText2, 1, wx.EXPAND | wx.TOP, 10 if msg_bold else 0)
+
         messageSizer.Add(self.checkbox, 0, wx.EXPAND | wx.TOP, 15)
         bodySizer = wx.BoxSizer(wx.HORIZONTAL)
         bodySizer.Add(wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_CMN_DIALOG)), 0, wx.ALIGN_TOP | wx.RIGHT, 15)
