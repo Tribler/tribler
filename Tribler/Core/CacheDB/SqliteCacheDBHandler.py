@@ -20,15 +20,13 @@ from struct import unpack_from
 
 import logging
 
-from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Search.SearchManager import split_into_keywords, \
     filter_keywords
-from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
+from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Category.Category import Category
-from Tribler.Core.defaults import DEFAULTPORT
-from threading import RLock, Lock
+from threading import Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 import binascii
 from Tribler.Core.Misc.Singleton import ThreadSafeSingleton
@@ -52,8 +50,6 @@ MAX_KEYWORD_LENGTH = 50
 # Rahim:
 MAX_POPULARITY_REC_PER_TORRENT = 5  # maximum number of records in popularity table for each torrent
 MAX_POPULARITY_REC_PER_TORRENT_PEER = 3  # maximum number of records per each combination of torrent and peer
-
-from Tribler.Core.Search.SearchManager import split_into_keywords
 
 
 DEFAULT_ID_CACHE_SIZE = 1024 * 5
