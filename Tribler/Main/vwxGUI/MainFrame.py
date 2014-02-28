@@ -35,6 +35,7 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
     ManageChannel
 
 
+from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.Utility.GuiDBHandler import startWorker
@@ -1061,9 +1062,14 @@ class MainFrame(wx.Frame):
                         confirmmsg = self.utility.lang.get('confirmmsg')
                         confirmtitle = self.utility.lang.get('confirm')
 
-                    dialog = wx.MessageDialog(self, confirmmsg, confirmtitle, wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-                    result = dialog.ShowModal()
-                    dialog.Destroy()
+                    dialog_name = 'closeconfirmation'
+                    if not self.shutdown_and_upgrade_notes and not self.guiUtility.ReadGuiSetting('show_%s' % dialog_name, default=True):
+                        result = wx.ID_OK
+                    else:
+                        dialog = ConfirmationDialog(None, dialog_name, confirmmsg, title=confirmtitle)
+                        result = dialog.ShowModal()
+                        dialog.Destroy()
+
                     if result != wx.ID_OK:
                         event.Veto()
 
