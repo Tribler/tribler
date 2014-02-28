@@ -71,6 +71,7 @@ class VideoServer:
         download = self.session.get_download(downloadhash)
 
         if download and download.get_def().get_def_type() == 'swift':
+            #raise cherrypy.HTTPRedirect("download.vod_url") 
             print >> sys.stderr, "VideoServer: ignoring VOD request for swift"
             raise cherrypy.HTTPError(404, "Not Found")
             return
