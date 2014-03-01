@@ -35,7 +35,6 @@ from crypto.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_
 from crypto.polycreate import compute_coeff, polyval
 from collections import namedtuple
 from Tribler.community.privatesemantic.database import SemanticDatabase
-from Tribler.community.privatesemantic.payload import SimiRevealPayload
 from Tribler.community.privatesemantic.conversion import bytes_to_long, \
     long_to_bytes
 
@@ -935,7 +934,7 @@ class PForwardCommunity(ForwardCommunity):
 
         if encrypted_vector:
             Payload = namedtuple('Payload', ['key_n', 'preference_list', 'global_vector'])
-            return Payload(self.key.n, encrypted_vector, global_vector)
+            return Payload(long(self.key.n), encrypted_vector, global_vector)
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
@@ -1145,8 +1144,8 @@ class HForwardCommunity(ForwardCommunity):
             preference_list = [rsa_decrypt(self.key, preference) for preference in preference_list]
         preference_list = [hash_element(preference) for preference in preference_list]
 
-        assert all(isinstance(preference_list, str))
-        assert all(isinstance(his_preference_list, str))
+        assert all(isinstance(preference, str) for preference in preference_list)
+        assert all(isinstance(his_preference, str) for his_preference in his_preference_list)
 
         overlap = 0
         for pref in preference_list:
