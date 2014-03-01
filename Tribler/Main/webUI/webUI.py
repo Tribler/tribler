@@ -4,11 +4,13 @@ import sys
 import os
 import logging
 from binascii import hexlify, unhexlify
+
+from Tribler.Core.Misc import Singleton
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
 import json
 from functools import wraps
-from cherrypy import response, expose
+from cherrypy import response
 from cherrypy.lib.auth_basic import checkpassword_dict
 from traceback import print_exc
 
@@ -27,14 +29,10 @@ def jsonify(func):
     return wrapper
 
 
-class WebUI():
-    __single = None
+class WebUI(Singleton):
 
     def __init__(self, library_manager, torrentsearch_manager, port):
-        if WebUI.__single:
-            raise RuntimeError("WebUI is singleton")
-        WebUI.__single = self
-
+        super(WebUI, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.currentTokens = set()
@@ -47,16 +45,6 @@ class WebUI():
 
         self.started = False
         self.hasauth = False
-
-    def getInstance(*args, **kw):
-        if WebUI.__single is None:
-            WebUI(*args, **kw)
-        return WebUI.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        WebUI.__single = None
-    delInstance = staticmethod(delInstance)
 
     def start(self):
         if not self.started:

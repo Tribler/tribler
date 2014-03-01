@@ -13,6 +13,7 @@ from traceback import print_exc
 from binascii import hexlify
 from time import sleep, time
 
+from Tribler.Core.Misc.Singleton import Singleton
 from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH, \
     DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
@@ -32,12 +33,10 @@ SWIFTFAILED_TIMEOUT = 5 * 60  # 5 minutes
 LOW_PRIO_COLLECTING = 2
 
 
-class RemoteTorrentHandler:
-
-    __single = None
+class RemoteTorrentHandler(Singleton):
 
     def __init__(self):
-        RemoteTorrentHandler.__single = self
+        super(RemoteTorrentHandler, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -52,16 +51,6 @@ class RemoteTorrentHandler:
         self.tnrequester = None
 
         self.num_torrents = 0
-
-    def getInstance(*args, **kw):
-        if RemoteTorrentHandler.__single is None:
-            RemoteTorrentHandler(*args, **kw)
-        return RemoteTorrentHandler.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        RemoteTorrentHandler.__single = None
-    delInstance = staticmethod(delInstance)
 
     def register(self, dispersy, database_thead, session, max_num_torrents):
         self.session = session

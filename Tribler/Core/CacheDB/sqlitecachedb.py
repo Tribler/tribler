@@ -12,6 +12,7 @@ from traceback import print_exc, print_stack
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_DISPERSY, NTFY_STARTED
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.Utilities.unicode import dunno2unicode
+from Tribler.Core.Misc.Singleton import ThreadSafeSingleton
 
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
@@ -55,27 +56,15 @@ CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'  # db file path = DB_DIR_NAME/DB_FILE_NAME
 DEFAULT_BUSY_TIMEOUT = 10000
-SHOW_ALL_EXECUTE = False
 TEST_OVERRIDE = False
 
 INITIAL_UPGRADE_PAUSE = 10
 SUCCESIVE_UPGRADE_PAUSE = 5
 UPGRADE_BATCH_SIZE = 100
 
-DEBUG_THREAD = False
-DEBUG_TIME = True
-
 TRHEADING_DEBUG = False
-DEPRECATION_DEBUG = False
 
 logger = logging.getLogger(__name__)
-
-__DEBUG_QUERIES__ = 'TRIBLER_DEBUG_DATABASE_QUERIES' in environ
-if __DEBUG_QUERIES__:
-    from random import randint
-    DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
-    while os.path.exists(DB_DEBUG_FILE):
-        DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
 
 
 class Warning(Exception):
@@ -146,10 +135,12 @@ class safe_dict(dict):
             self.lock.release()
 
 
-class SQLiteCacheDBBase:
+class SQLiteCacheDBBase(ThreadSafeSingleton):
+
     lock = threading.RLock()
 
     def __init__(self, db_exception_handler=None):
+        super(SQLiteCacheDBBase, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.exception_handler = db_exception_handler
@@ -442,7 +433,7 @@ class SQLiteCacheDBBase:
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -465,7 +456,7 @@ class SQLiteCacheDBBase:
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -1750,7 +1741,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)")
             self.execute_write("CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check)")
             self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
-            self.clean_db(True)
 
             self.database_update.release()
 
@@ -2295,28 +2285,20 @@ def forceAndReturnDBThread(func):
     return invoke_func
 
 
-class SQLiteNoCacheDB(SQLiteCacheDBV5):
-    if __debug__:
-        __counter = 0
+class SQLiteCacheDB(SQLiteCacheDBV5):
 
     def __init__(self, *args, **kargs):
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
-
-        if __debug__:
-            if self.__counter > 0:
-                print_stack()
-                raise RuntimeError("please use getInstance instead of the constructor")
-            self.__counter += 1
 
     @forceDBThread
     def initialBegin(self):
         global _shouldCommit
         try:
-            self._logger.info("SQLiteNoCacheDB.initialBegin: BEGIN")
-            self._execute("BEGIN;")
+            self._logger.info(u"SQLiteNoCacheDB.initialBegin: BEGIN")
+            self._execute(u"BEGIN;")
 
         except:
-            self._logger.error("INITIAL BEGIN FAILED")
+            self._logger.exception(u"INITIAL BEGIN FAILED")
             raise
         _shouldCommit = True
 
@@ -2325,11 +2307,10 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         global _shouldCommit
         if _shouldCommit and onDBThread():
             try:
-                self._logger.info("SQLiteNoCacheDB.commitNow: COMMIT")
-                self._execute("COMMIT;")
+                self._logger.info(u"SQLiteNoCacheDB.commitNow: COMMIT")
+                self._execute(u"COMMIT;")
             except:
-                self._logger.error("COMMIT FAILED")
-                print_exc()
+                self._logger.exception(u"COMMIT FAILED")
                 raise
             _shouldCommit = False
 
@@ -2338,15 +2319,13 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
             if not exiting:
                 try:
-                    self._logger.info("SQLiteNoCacheDB.commitNow: BEGIN")
-                    self._execute("BEGIN;")
+                    self._logger.info(u"SQLiteNoCacheDB.commitNow: BEGIN")
+                    self._execute(u"BEGIN;")
                 except:
-                    self._logger.error("BEGIN FAILED")
+                    self._logger.exception(u"BEGIN FAILED")
                     raise
             else:
-                self._logger.info("SQLiteNoCacheDB.commitNow: not calling BEGIN exiting")
-
-            # print_stack()
+                self._logger.info(u"SQLiteNoCacheDB.commitNow: not calling BEGIN exiting")
 
         elif vacuum:
             self._execute("VACUUM;")
@@ -2383,31 +2362,15 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
-
-        if __DEBUG_QUERIES__:
-            f = open(DB_DEBUG_FILE, 'a')
-
-            if args is None:
-                f.write('QueryDebug: (%f) %s\n' % (time(), sql))
-                for row in cur.execute('EXPLAIN QUERY PLAN ' + sql).fetchall():
-                    f.write('%s %s %s\t%s\n' % row)
-            else:
-                f.write('QueryDebug: (%f) %s %s\n' % (time(), sql, str(args)))
-                for row in cur.execute('EXPLAIN QUERY PLAN ' + sql, args).fetchall():
-                    f.write('%s %s %s\t%s\n' % row[:4])
 
         try:
             if args is None:
                 result = cur.execute(sql)
             else:
                 result = cur.execute(sql, args)
-
-            if __DEBUG_QUERIES__:
-                f.write('QueryDebug: (%f) END\n' % time())
-                f.close()
 
             return result
 
@@ -2420,31 +2383,15 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
-
-        if __DEBUG_QUERIES__:
-            f = open(DB_DEBUG_FILE, 'a')
-
-            if args is None:
-                f.write('QueryDebug-executemany: (%f) %s\n' % (time(), sql))
-                for row in cur.executemany('EXPLAIN QUERY PLAN ' + sql).fetchall():
-                    f.write('%s %s %s\t%s\n' % row)
-            else:
-                f.write('QueryDebug-executemany: (%f) %s %d times\n' % (time(), sql, len(args)))
-                for row in cur.executemany('EXPLAIN QUERY PLAN ' + sql, args).fetchall():
-                    f.write('%s %s %s\t%s\n' % row)
 
         try:
             if args is None:
                 result = cur.executemany(sql)
             else:
                 result = cur.executemany(sql, args)
-
-            if __DEBUG_QUERIES__:
-                f.write('QueryDebug: (%f) END\n' % time())
-                f.close()
 
             return result
 
@@ -2453,46 +2400,5 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             self._logger.exception('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
             raise msg
 
-# Arno, 2012-08-02: If this becomes multithreaded again, reinstate safe_dict() in caches
-
-
-class SQLiteCacheDB(SQLiteNoCacheDB):
-    __single = None  # used for multithreaded singletons pattern
-
-    @classmethod
-    def getInstance(cls, *args, **kw):
-        # Singleton pattern with double-checking to ensure that it can only create one object
-        if cls.__single is None:
-            cls.lock.acquire()
-            try:
-                if cls.__single is None:
-                    cls.__single = cls(*args, **kw)
-                    # print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
-            finally:
-                cls.lock.release()
-        return cls.__single
-
-    @classmethod
-    def delInstance(cls, *args, **kw):
-        cls.__single = None
-
-    @classmethod
-    def hasInstance(cls, *args, **kw):
-        return cls.__single != None
-
-    def __init__(self, *args, **kargs):
-        # always use getInstance() to create this object
-        if self.__single != None:
-            raise RuntimeError("SQLiteCacheDB is singleton")
-        SQLiteNoCacheDB.__init__(self, *args, **kargs)
-
     def schedule_task(self, task, delay=0.0):
         register_task(None, task, delay=delay)
-
-if __name__ == '__main__':
-    configure_dir = sys.argv[1]
-    config = {}
-    config['state_dir'] = configure_dir
-    config['install_dir'] = u'.'
-    sqlite_test = init(config)
-    sqlite_test.test()

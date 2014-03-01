@@ -6,19 +6,15 @@
 # ============================================================
 from abc import ABCMeta, abstractmethod
 
-import sys
 import struct
-import binascii
 import random
 import urllib
 import time
 import logging
 
 import socket
-from threading import RLock
 
 from Tribler.Core.Utilities.bencode import bdecode
-from traceback import print_exc
 from Tribler.Core import NoDispersyRLock
 
 # Although these are the actions for UDP trackers, they can still be used as

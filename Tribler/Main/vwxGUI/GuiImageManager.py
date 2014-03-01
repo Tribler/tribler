@@ -12,22 +12,17 @@ import sys
 import logging
 import cStringIO
 
+from Tribler.Core.Misc.Singleton import Singleton
 from Tribler.Main.vwxGUI import warnWxThread
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
 
 
-class GuiImageManager(object):
-
-    __single = None
+class GuiImageManager(Singleton):
 
     def __init__(self, tribler_path):
-        if GuiImageManager.__single:
-            raise RuntimeError("GuiImageManager is singleton")
-
-        object.__init__(self)
-
+        super(GuiImageManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.IMAGE_SUBDIR = os.path.join(tribler_path, u"Tribler", u"Main", u"vwxGUI", u"images")
@@ -42,19 +37,6 @@ class GuiImageManager(object):
 
         self._icons = {}
 
-
-    @staticmethod
-    def getInstance(*args, **kw):
-        if GuiImageManager.__single is None:
-            GuiImageManager.__single = GuiImageManager(*args, **kw)
-        return GuiImageManager.__single
-
-
-    @staticmethod
-    def delInstance(*args, **kw):
-        GuiImageManager.__single = None
-
-
     @warnWxThread
     def __loadAllImages(self):
         """
@@ -68,7 +50,6 @@ class GuiImageManager(object):
 
         self.__initDefaultImages()
         self.__initFlagImages()
-
 
     def __initDefaultImages(self):
         """
@@ -114,7 +95,6 @@ class GuiImageManager(object):
             self._default_dict[name][ICON_MAX_DIM] = wx.BitmapFromImage(big_image)
             self._default_dict[name][SMALL_ICON_MAX_DIM] = wx.BitmapFromImage(small_image)
 
-
     def __initFlagImages(self):
         """
         Loads the country flags from files.
@@ -146,7 +126,6 @@ class GuiImageManager(object):
                     self._logger.warn(u"Country flag[%s] is of size [%dx%d], NOT [%dx%d].",
                         flag, bitmap.GetWidth(), bitmap.GetHeight(), 16, 11)
                 self._flag_dict[os.path.splitext(flag)[0].lower()] = bitmap
-
 
     @warnWxThread
     def getImage(self, name, dimension=None):
@@ -183,7 +162,6 @@ class GuiImageManager(object):
 
         return image
 
-
     @warnWxThread
     def getCountryFlagDict(self):
         """
@@ -191,17 +169,15 @@ class GuiImageManager(object):
         """
         return self._flag_dict
 
-
     @warnWxThread
     def getPeerThumbnail(self, raw_data, dim=ICON_MAX_DIM):
         """
         Gets the peer thumbnail.
         """
-        if data is None:
+        if raw_data is None:
             return None
 
-        return data2wxBitmap("image/jpeg", cStringIO.StringIO(data), dim)
-
+        return data2wxBitmap("image/jpeg", cStringIO.StringIO(raw_data), dim)
 
     @warnWxThread
     def getBitmap(self, parent, type, background, state):
@@ -246,7 +222,6 @@ class GuiImageManager(object):
         if state not in icons[background]:
             icons[background][state] = self.__createBitmap(parent, background, type, state)
         return icons[background][state]
-
 
     def __createBitmap(self, parent, background, type, state):
         if state == 1:

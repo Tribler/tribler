@@ -9,11 +9,12 @@ from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, \
 import threading
 import logging
 from collections import namedtuple
-from threading import Event, Lock, RLock
+from threading import Event, Lock
 from thread import get_ident
 from time import time
 from traceback import extract_stack, format_exc, print_exc, print_stack
 import os
+from Tribler.Core.Misc.Singleton import ThreadSafeSingleton
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from inspect import isgeneratorfunction
 from random import randint
@@ -25,15 +26,10 @@ DEFAULT_PRI_DISPERSY = 0
 logger = logging.getLogger(__name__)
 
 
-class GUIDBProducer():
-    # Code to make this a singleton
-    __single = None
-    __singleton_lock = RLock()
+class GUIDBProducer(ThreadSafeSingleton):
 
     def __init__(self, database_thread):
-        if GUIDBProducer.__single:
-            raise RuntimeError("GuiDBProducer is singleton")
-
+        super(GUIDBProducer, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.database_thread = database_thread
@@ -51,21 +47,6 @@ class GUIDBProducer():
         self.uIdsLock = Lock()
 
         self.nrCallbacks = {}
-
-    @classmethod
-    def getInstance(cls, *args, **kw):
-        with cls.__singleton_lock:
-            if GUIDBProducer.__single is None:
-                GUIDBProducer.__single = GUIDBProducer(*args, **kw)
-        return GUIDBProducer.__single
-
-    @classmethod
-    def delInstance(cls, *args, **kw):
-        GUIDBProducer.__single = None
-
-    @classmethod
-    def hasInstance(cls):
-        return GUIDBProducer.__single != None
 
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident

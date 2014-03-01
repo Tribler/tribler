@@ -2,43 +2,18 @@
 # see LICENSE.txt for license information
 
 import os
+import re
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
+from Tribler.Core.Misc.Singleton import ThreadSafeSingleton
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Tag.StopwordsFilter import StopwordsFilter
 
-import re
-import threading
 
-
-class TermExtraction:
-    __single = None
-    lock = threading.Lock()
-
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if TermExtraction.__single is None:
-            TermExtraction.lock.acquire()
-            try:
-                if TermExtraction.__single is None:
-                    TermExtraction(*args, **kw)
-            finally:
-                TermExtraction.lock.release()
-        return TermExtraction.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if TermExtraction.__single:
-            TermExtraction.lock.acquire()
-            TermExtraction.__single = None
-            TermExtraction.lock.release()
-    delInstance = staticmethod(delInstance)
+class TermExtraction(ThreadSafeSingleton):
 
     def __init__(self, install_dir='.'):
-        if TermExtraction.__single is not None:
-            raise RuntimeError("TermExtraction is singleton")
-        TermExtraction.__single = self
+        super(TermExtraction, self).__init__()
 
         filterfn = os.path.join(install_dir, LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
         self.stopwords_filter = StopwordsFilter(stopwordsfilename=filterfn)
