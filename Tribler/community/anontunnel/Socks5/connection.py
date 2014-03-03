@@ -4,11 +4,14 @@ Created on 3 jun. 2013
 @author: Chris
 """
 import logging
-import traceback
+from socket import socket
 from Tribler.community.anontunnel.Socks5 import conversion
 
 
 class ConnectionState:
+    """
+    Enumeration of possible SOCKS5 connection states
+    """
     def __init__(self):
         pass
 
@@ -18,6 +21,24 @@ class ConnectionState:
     PROXY_REQUEST_RECEIVED = 'PROXY_REQUEST_RECEIVED'
     PROXY_REQUEST_ACCEPTED = 'PROXY_REQUEST_ACCEPTED'
     TCP_RELAY = 'TCP_RELAY'
+
+
+class Socks5ConnectionObserver:
+    """
+    Socks5 Connection observer
+    """
+
+    def __init__(self):
+        pass
+
+    def on_udp_associate_request(self, connection, request):
+        """
+
+        @param Socks5Connection connection: the Socks5 connection we got the
+        request on
+        @param Request request: the request received
+        """
+        pass
 
 
 class Socks5Connection(object):
@@ -31,7 +52,10 @@ class Socks5Connection(object):
     def __init__(self, single_socket, socks5_server):
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
         self._logger = logging.getLogger(__name__)
-        
+
+        self.observers = []
+        ''' :type : list[Socks5ConnectionObserver] '''
+
         self.single_socket = single_socket
         ''' :type : SingleSocket '''
 
@@ -109,6 +133,63 @@ class Socks5Connection(object):
         self.tcp_relay.sendall(self.buffer)
         self.buffer = ''
 
+    def deny_request(self, request, drop_connection=True):
+        """
+        Deny SOCKS5 request
+        @param Request request: the request to deny
+        @param bool drop_connection: whether to drop the connection or not
+        """
+        if self.state != ConnectionState.PROXY_REQUEST_RECEIVED:
+            raise ValueError("There must be a request before we can deny it")
+
+        self.state = ConnectionState.CONNECTED
+
+        response = conversion.encode_reply(
+            0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
+            conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
+
+        self.write(response)
+
+        if self.single_socket:
+            self._logger.error(
+                "DENYING SOCKS5 Request from {0}".format(
+                (self.single_socket.get_ip(),
+                 self.single_socket.get_port())
+                )
+            )
+
+        if drop_connection:
+            self.close()
+
+    def accept_udp_associate(self, request, udp_socket):
+        """
+        Accept the UDP request given and redirect the client to the udp_socket
+        @param request:
+        @param socket udp_socket: the udp relay socket
+        """
+
+        if not isinstance(udp_socket, socket):
+            raise ValueError("Parameter udp_socket must be of socket type")
+
+        if self.state != ConnectionState.PROXY_REQUEST_RECEIVED:
+            raise ValueError("SOCKS5 connection has not been established yet!")
+
+        # We use same IP as the single socket, but the port number
+        # comes from the newly created UDP listening socket
+        ip = self.single_socket.get_myip()
+        port = udp_socket.getsockname()[1]
+
+        self._logger.warning(
+            "Accepting UDP ASSOCIATE request from %s:%d, "
+            "direct client to %s:%d",
+            self.single_socket.get_ip(), self.single_socket.get_port(),
+            ip, port)
+
+        response = conversion.encode_reply(
+            0x05, conversion.REP_SUCCEEDED, 0x00,
+            conversion.ADDRESS_TYPE_IPV4, ip, port)
+        self.write(response)
+
     def _try_request(self):
         """
         Try to consume a REQUEST message and respond whether we will accept the
@@ -138,36 +219,15 @@ class Socks5Connection(object):
 
         try:
             if request.cmd == conversion.REQ_CMD_UDP_ASSOCIATE:
-                socket = self.udp_associate()
-
-                if not socket:
-                    self._logger.error("No circuits, bailing out!")
-                    self.close()
-                    return
-
-                # We use same IP as the single socket, but the port number comes
-                # from the newly created UDP listening socket
-                ip = self.single_socket.get_myip()
-                port = socket.getsockname()[1]
-
-                self._logger.warning(
-                    "Accepting UDP ASSOCIATE request from %s:%d, "
-                    "direct client to %s:%d",
-                    self.single_socket.get_ip(), self.single_socket.get_port(),
-                    ip, port)
-
-                response = conversion.encode_reply(
-                    0x05, 0x00, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
-                self.write(response)
+                for observer in self.observers:
+                    observer.on_udp_associate_request(self, request)
 
                 accept = False
-
             elif request.cmd == conversion.REQ_CMD_BIND:
                 response = conversion.encode_reply(
                     0x05, conversion.REP_SUCCEEDED, 0x00,
                     conversion.ADDRESS_TYPE_IPV4, "127.0.0.1", 1081)
                 self.write(response)
-
                 self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
             elif request.cmd == conversion.REQ_CMD_CONNECT:
                 self._logger.warning(
@@ -177,20 +237,9 @@ class Socks5Connection(object):
                     0x05, conversion.REP_HOST_UNREACHABLE, 0x00,
                     conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
                 self.write(response)
-
                 accept = False
             else:
-                # We will deny all other requests (BIND, and INVALID requests);
-                response = conversion.encode_reply(
-                    0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
-                    conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
-                self.write(response)
-                self._logger.error(
-                    "DENYING SOCKS5 Request from {0}".format(
-                        (self.single_socket.get_ip(),
-                         self.single_socket.get_port())
-                    )
-                )
+                self.deny_request(request, False)
                 accept = False
         except:
             response = conversion.encode_reply(

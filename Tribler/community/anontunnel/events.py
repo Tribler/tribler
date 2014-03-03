@@ -1,43 +1,11 @@
+"""
+Event handling related module
+
+Can be safely imported as it does not import any dependencies in the global
+ namespace
+"""
+
 __author__ = 'chris'
-
-
-class TriblerNotifier(object):
-    def __init__(self, community):
-        from Tribler.Core.CacheDB.Notifier import Notifier
-        self.notifier = Notifier.getInstance()
-        community.subscribe("circuit_created", self._on_circuit_created)
-        community.subscribe("circuit_extended_for",
-                            self._on_circuit_extended_for)
-        community.subscribe("circuit_extended", self._on_circuit_extended)
-        community.subscribe("circuit_broken", self._on_circuit_broken)
-        community.subscribe("circuit_select", self._on_circuit_select)
-        community.subscribe("joined", self._on_joined)
-
-    def _on_circuit_select(self, circuit_id, destination):
-        from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_SELECT
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_SELECT, circuit_id,
-                             destination)
-
-    def _on_circuit_broken(self, circuit_id):
-        from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_BROKEN
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_BROKEN, circuit_id)
-
-    def _on_circuit_created(self, circuit):
-        from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_CREATED
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, circuit)
-
-    def _on_circuit_extended(self, circuit):
-        from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit)
-
-    def _on_circuit_extended_for(self, extended_for, extended_with):
-        from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_EXTENDED_FOR
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED_FOR, extended_for,
-                             extended_with)
-
-    def _on_joined(self, address, circuit_id):
-        from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
-        self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, address, circuit_id)
 
 
 class TunnelObserver:

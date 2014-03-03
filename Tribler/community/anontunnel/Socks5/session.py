@@ -1,10 +1,12 @@
 import logging
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.community.anontunnel.Socks5 import conversion
+from Tribler.community.anontunnel.Socks5.connection import \
+    Socks5ConnectionObserver
 from Tribler.community.anontunnel.events import TunnelObserver
 
 
-class Socks5Session(TunnelObserver):
+class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
     """
     A SOCKS5 session, composed by a TCP connection, an UDP proxy port and a
     list of circuits where data can be tunneled over
@@ -14,27 +16,30 @@ class Socks5Session(TunnelObserver):
     UDP-sockets
     @param Socks5Server server:  the socks5 server
     """
-
     def __init__(self, raw_server, connection, server):
         TunnelObserver.__init__(self)
         self.raw_server = raw_server
         self._logger = logging.getLogger(__name__)
         self.connection = connection
-
-        self.circuits = []
-
+        self.connection.observers.append(self)
         self.server = server
 
+        self.circuits = []
         ''' :type : list[Circuit] '''
+
         self.destinations = {}
         ''' :type: dict[(str, int), Circuit] '''
-        self.connection.udp_associate = self._udp_associate
         self.remote_udp_address = None
         self._udp_socket = None
 
         self._select_index = -1
 
-    def _udp_associate(self):
+    def on_udp_associate_request(self, connection, request):
+        """
+        @param Socks5Connection connection: the connection
+        @param request:
+        @return:
+        """
         if not self.circuits:
             from Tribler.community.anontunnel.Socks5.server import \
                 NotEnoughCircuitsException
@@ -42,11 +47,12 @@ class Socks5Session(TunnelObserver):
                 self.circuits = self.server.allocate_circuits(1)
             except NotEnoughCircuitsException as e:
                 self.close_session("not enough circuits")
-                return None
+                connection.deny_request(request)
+                return
 
         self._udp_socket = self.raw_server.create_udpsocket(0, "0.0.0.0")
         self.raw_server.start_listening_udp(self._udp_socket, self)
-        return self._udp_socket
+        connection.accept_udp_associate(request, self._udp_socket)
 
     def close_session(self, reason='unspecified'):
         """
@@ -54,7 +60,7 @@ class Socks5Session(TunnelObserver):
         @param str reason: the reason why the session should be closed
         """
         self._logger.error("Closing session, reason = {0}".format(reason))
-        LibtorrentMgr.getInstance().ltsession_anon.pause()
+#        LibtorrentMgr.getInstance().ltsession_anon.pause()
 
         self.connection.close()
 
