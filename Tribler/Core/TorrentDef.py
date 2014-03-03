@@ -16,7 +16,7 @@ from Tribler.Core.Base import *
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 import Tribler.Core.APIImplementation.makeurl as makeurl
-from Tribler.Core.APIImplementation.miscutils import *
+from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
