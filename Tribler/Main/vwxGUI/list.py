@@ -1914,7 +1914,9 @@ class LibraryList(SizeList):
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers." % (seeds, peers) if ds else '')
 
                 # Just for testing. Should be removed before release.
-                if ds and item.data[11] == -1:
+                if ds and item.data[11] == -1 and \
+                        LibtorrentMgr.getInstance().ltsession_anon:
+
                     import libtorrent as lt
                     downloadhash = ds.get_download().get_def().get_id()
                     inAnonSession = LibtorrentMgr.getInstance().ltsession_anon.find_torrent(lt.big_number(downloadhash)).is_valid()
