@@ -333,8 +333,10 @@ class DefaultCrypto(TunnelObserver):
 
         @param Candidate candidate: Sender of the message
         @param int circuit_id: Circuit identifier
-        @param ExtendedMessage message: Message as passed from the community
-        @return ExtendedMessage: Extended message with unencrypted contents
+        @param ExtendedMessage|CreatedMessage message: Message as passed from
+        the community
+        @return ExtendedMessage|CreatedMessage: Extended message with
+        unencrypted contents
         """
         unverified_hop = self.proxy.circuits[circuit_id].unverified_hop
         session_key = pow(bytes_to_long(message.key),
