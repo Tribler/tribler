@@ -4,6 +4,7 @@ from Tribler.community.anontunnel.Socks5 import conversion
 from Tribler.community.anontunnel.Socks5.connection import \
     Socks5ConnectionObserver
 from Tribler.community.anontunnel.events import TunnelObserver
+from Tribler.community.anontunnel.selectionstrategies import RoundRobin
 
 
 class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
@@ -29,10 +30,11 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
 
         self.destinations = {}
         ''' :type: dict[(str, int), Circuit] '''
+
+        self.selection_strategy = RoundRobin()
+
         self.remote_udp_address = None
         self._udp_socket = None
-
-        self._select_index = -1
 
     def on_udp_associate_request(self, connection, request):
         """
@@ -44,7 +46,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
             from Tribler.community.anontunnel.Socks5.server import \
                 NotEnoughCircuitsException
             try:
-                self.circuits = self.server.allocate_circuits(1)
+                self.circuits = self.server.allocate_circuits(3)
             except NotEnoughCircuitsException as e:
                 self.close_session("not enough circuits")
                 connection.deny_request(request)
@@ -60,8 +62,6 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         @param str reason: the reason why the session should be closed
         """
         self._logger.error("Closing session, reason = {0}".format(reason))
-#        LibtorrentMgr.getInstance().ltsession_anon.pause()
-
         self.connection.close()
 
     def on_break_circuit(self, circuit):
@@ -73,8 +73,8 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
 
     def _select(self, destination):
         if not destination in self.destinations:
-            self._select_index = (self._select_index + 1) % len(self.circuits)
-            self.destinations[destination] = self.circuits[self._select_index]
+            selected_circuit = self.selection_strategy.select(self.circuits)
+            self.destinations[destination] = selected_circuit
 
             self._logger.error("SELECT circuit {0} for {1}".format(
                 self.destinations[destination].circuit_id,
