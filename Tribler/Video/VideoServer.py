@@ -58,12 +58,15 @@ class VideoServer:
             app.log.access_log.setLevel(logging.NOTSET)
             app.log.error_log.setLevel(logging.NOTSET)
 
-            cherrypy.engine.start()
+            if cherrypy.engine.state == cherrypy.engine.states.EXITING:
+                cherrypy.engine.restart()
+            else:
+                cherrypy.engine.start()
             self.started = True
 
     def stop(self):
         if self.started:
-            cherrypy.engine.stop()
+            cherrypy.engine.exit()
 
     @cherrypy.expose
     def default(self, downloadhash, fileindex):
