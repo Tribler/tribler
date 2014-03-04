@@ -199,7 +199,7 @@ class TriblerLaunchMany(Thread):
                 self.database_thread = FakeCallback()
 
             if self.session.get_megacache():
-                import Tribler.Core.CacheDB.cachedb as cachedb
+                import Tribler.Core.CacheDB.sqlitecachedb as cachedb
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler, MiscDBHandler
                 from Tribler.Category.Category import Category
                 from Tribler.Core.Tag.Extraction import TermExtraction

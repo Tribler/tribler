@@ -10,15 +10,13 @@
 # "dead" trackers over and over again.
 # ============================================================
 
-import sys
 import time
 import logging
-from threading import RLock
 
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forceAndReturnDBThread
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core import NoDispersyRLock
 
 # some default configurations

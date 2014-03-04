@@ -1,16 +1,14 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-import sys
 import os
-from os import environ
 from time import time
 from base64 import encodestring, decodestring
 import threading
-from traceback import print_exc, print_stack
+from traceback import print_exc
 
-from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_DISPERSY, NTFY_STARTED
-from Tribler.__init__ import LIBRARYNAME
+from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
+from Tribler import LIBRARYNAME
 from Tribler.Core.Utilities.unicode import dunno2unicode
 
 # ONLY USE APSW >= 3.5.9-r1
@@ -18,7 +16,6 @@ import apsw
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from threading import currentThread, RLock
 import inspect
-from Tribler.Core.Swift.SwiftDef import SwiftDef
 
 import logging
 
@@ -55,27 +52,15 @@ CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'  # db file path = DB_DIR_NAME/DB_FILE_NAME
 DEFAULT_BUSY_TIMEOUT = 10000
-SHOW_ALL_EXECUTE = False
 TEST_OVERRIDE = False
 
 INITIAL_UPGRADE_PAUSE = 10
 SUCCESIVE_UPGRADE_PAUSE = 5
 UPGRADE_BATCH_SIZE = 100
 
-DEBUG_THREAD = False
-DEBUG_TIME = True
-
 TRHEADING_DEBUG = False
-DEPRECATION_DEBUG = False
 
 logger = logging.getLogger(__name__)
-
-__DEBUG_QUERIES__ = 'TRIBLER_DEBUG_DATABASE_QUERIES' in environ
-if __DEBUG_QUERIES__:
-    from random import randint
-    DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
-    while os.path.exists(DB_DEBUG_FILE):
-        DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
 
 
 class Warning(Exception):
@@ -164,7 +149,6 @@ class SQLiteCacheDBBase:
         self.show_execute = False
 
         # TODO: All global variables must be protected to be thread safe?
-        self.applied_pragma = False
         self.database_update = None
 
     def __del__(self):
@@ -230,7 +214,7 @@ class SQLiteCacheDBBase:
             assert dbfile_path, "You must specify the path of database file"
 
             if dbfile_path.lower() != ':memory:':
-                db_dir, db_filename = os.path.split(dbfile_path)
+                db_dir = os.path.dirname(dbfile_path)
                 if db_dir and not os.path.isdir(db_dir):
                     os.makedirs(db_dir)
 
@@ -240,33 +224,31 @@ class SQLiteCacheDBBase:
             cur = con.cursor()
             self.cursor_table[thread_name] = cur
 
-        if not self.applied_pragma:
-            self.applied_pragma = True
-            page_size, = next(cur.execute("PRAGMA page_size"))
-            if page_size < 8192:
-                # journal_mode and page_size only need to be set once.  because of the VACUUM this
-                # is very expensive
-                self._logger.info("begin page_size upgrade...")
-                cur.execute("PRAGMA journal_mode = DELETE;")
-                cur.execute("PRAGMA page_size = 8192;")
-                cur.execute("VACUUM;")
-                self._logger.info("...end page_size upgrade")
+        page_size, = next(cur.execute("PRAGMA page_size"))
+        if page_size < 8192:
+            # journal_mode and page_size only need to be set once.  because of the VACUUM this
+            # is very expensive
+            self._logger.info("begin page_size upgrade...")
+            cur.execute("PRAGMA journal_mode = DELETE;")
+            cur.execute("PRAGMA page_size = 8192;")
+            cur.execute("VACUUM;")
+            self._logger.info("...end page_size upgrade")
 
-            # http://www.sqlite.org/pragma.html
-            # When synchronous is NORMAL, the SQLite database engine will still
-            # pause at the most critical moments, but less often than in FULL
-            # mode. There is a very small (though non-zero) chance that a power
-            # failure at just the wrong time could corrupt the database in
-            # NORMAL mode. But in practice, you are more likely to suffer a
-            # catastrophic disk failure or some other unrecoverable hardware
-            # fault.
-            #
-            cur.execute("PRAGMA synchronous = NORMAL;")
-            cur.execute("PRAGMA cache_size = 10000;")
+        # http://www.sqlite.org/pragma.html
+        # When synchronous is NORMAL, the SQLite database engine will still
+        # pause at the most critical moments, but less often than in FULL
+        # mode. There is a very small (though non-zero) chance that a power
+        # failure at just the wrong time could corrupt the database in
+        # NORMAL mode. But in practice, you are more likely to suffer a
+        # catastrophic disk failure or some other unrecoverable hardware
+        # fault.
+        #
+        cur.execute("PRAGMA synchronous = NORMAL;")
+        cur.execute("PRAGMA cache_size = 10000;")
 
-            # Niels 19-09-2012: even though my database upgraded to increase the pagesize it did not keep wal mode?
-            # Enabling WAL on every starup
-            cur.execute("PRAGMA journal_mode = WAL;")
+        # Niels 19-09-2012: even though my database upgraded to increase the pagesize it did not keep wal mode?
+        # Enabling WAL on every starup
+        cur.execute("PRAGMA journal_mode = WAL;")
 
         return cur
 
@@ -442,7 +424,7 @@ class SQLiteCacheDBBase:
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -465,7 +447,7 @@ class SQLiteCacheDBBase:
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
 
@@ -2296,17 +2278,9 @@ def forceAndReturnDBThread(func):
 
 
 class SQLiteNoCacheDB(SQLiteCacheDBV5):
-    if __debug__:
-        __counter = 0
 
     def __init__(self, *args, **kargs):
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
-
-        if __debug__:
-            if self.__counter > 0:
-                print_stack()
-                raise RuntimeError("please use getInstance instead of the constructor")
-            self.__counter += 1
 
     @forceDBThread
     def initialBegin(self):
@@ -2316,7 +2290,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             self._execute("BEGIN;")
 
         except:
-            self._logger.error("INITIAL BEGIN FAILED")
+            self._logger.exception("INITIAL BEGIN FAILED")
             raise
         _shouldCommit = True
 
@@ -2328,8 +2302,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 self._logger.info("SQLiteNoCacheDB.commitNow: COMMIT")
                 self._execute("COMMIT;")
             except:
-                self._logger.error("COMMIT FAILED")
-                print_exc()
+                self._logger.exception("COMMIT FAILED")
                 raise
             _shouldCommit = False
 
@@ -2341,12 +2314,10 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                     self._logger.info("SQLiteNoCacheDB.commitNow: BEGIN")
                     self._execute("BEGIN;")
                 except:
-                    self._logger.error("BEGIN FAILED")
+                    self._logger.exception("BEGIN FAILED")
                     raise
             else:
                 self._logger.info("SQLiteNoCacheDB.commitNow: not calling BEGIN exiting")
-
-            # print_stack()
 
         elif vacuum:
             self._execute("VACUUM;")
@@ -2383,31 +2354,15 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
-
-        if __DEBUG_QUERIES__:
-            f = open(DB_DEBUG_FILE, 'a')
-
-            if args is None:
-                f.write('QueryDebug: (%f) %s\n' % (time(), sql))
-                for row in cur.execute('EXPLAIN QUERY PLAN ' + sql).fetchall():
-                    f.write('%s %s %s\t%s\n' % row)
-            else:
-                f.write('QueryDebug: (%f) %s %s\n' % (time(), sql, str(args)))
-                for row in cur.execute('EXPLAIN QUERY PLAN ' + sql, args).fetchall():
-                    f.write('%s %s %s\t%s\n' % row[:4])
 
         try:
             if args is None:
                 result = cur.execute(sql)
             else:
                 result = cur.execute(sql, args)
-
-            if __DEBUG_QUERIES__:
-                f.write('QueryDebug: (%f) END\n' % time())
-                f.close()
 
             return result
 
@@ -2420,31 +2375,15 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):
         cur = self.getCursor()
 
-        if SHOW_ALL_EXECUTE or self.show_execute:
+        if self.show_execute:
             thread_name = threading.currentThread().getName()
             self._logger.info('===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
-
-        if __DEBUG_QUERIES__:
-            f = open(DB_DEBUG_FILE, 'a')
-
-            if args is None:
-                f.write('QueryDebug-executemany: (%f) %s\n' % (time(), sql))
-                for row in cur.executemany('EXPLAIN QUERY PLAN ' + sql).fetchall():
-                    f.write('%s %s %s\t%s\n' % row)
-            else:
-                f.write('QueryDebug-executemany: (%f) %s %d times\n' % (time(), sql, len(args)))
-                for row in cur.executemany('EXPLAIN QUERY PLAN ' + sql, args).fetchall():
-                    f.write('%s %s %s\t%s\n' % row)
 
         try:
             if args is None:
                 result = cur.executemany(sql)
             else:
                 result = cur.executemany(sql, args)
-
-            if __DEBUG_QUERIES__:
-                f.write('QueryDebug: (%f) END\n' % time())
-                f.close()
 
             return result
 
@@ -2488,11 +2427,3 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
 
     def schedule_task(self, task, delay=0.0):
         register_task(None, task, delay=delay)
-
-if __name__ == '__main__':
-    configure_dir = sys.argv[1]
-    config = {}
-    config['state_dir'] = configure_dir
-    config['install_dir'] = u'.'
-    sqlite_test = init(config)
-    sqlite_test.test()

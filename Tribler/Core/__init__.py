@@ -11,7 +11,7 @@ import logging
 ## (here) and correct.
 ##
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 from Tribler.Core.version import version_id
 
 logger = logging.getLogger(__name__)

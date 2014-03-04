@@ -2,10 +2,9 @@
 # Modified by Raul Jimenez to integrate KTH DHT
 # see LICENSE.txt for license information
 
-import sys
 from threading import currentThread
 import logging
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 
