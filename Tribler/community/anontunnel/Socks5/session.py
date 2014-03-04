@@ -46,7 +46,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
             from Tribler.community.anontunnel.Socks5.server import \
                 NotEnoughCircuitsException
             try:
-                self.circuits = self.server.allocate_circuits(3)
+                self.circuits = self.server.allocate_circuits(2)
             except NotEnoughCircuitsException as e:
                 self.close_session("not enough circuits")
                 connection.deny_request(request)

@@ -207,7 +207,7 @@ class AddTorrent(wx.Dialog):
 
     def _GetDestPath(self, torrentfilename=None, torrenturl=None):
         destdir = None
-
+        anon_mode = False
         tdef = None
         if torrentfilename:
             tdef = TorrentDef.load(torrentfilename)

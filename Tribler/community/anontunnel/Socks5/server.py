@@ -46,7 +46,7 @@ class Socks5Server(object, TunnelObserver):
             self._logger.info("SOCKS5 listening on port %d", self.socks5_port)
             self.tunnel.observers.append(self)
 
-            self._reserve_circuits(6)
+            self._reserve_circuits(4)
         except socket.error:
             self._logger.error(
                 "Cannot listen on SOCK5 port %s:%d, perhaps another "

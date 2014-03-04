@@ -576,8 +576,6 @@ class ABCApp():
                     if not _callback.download_started_at:
                         _callback.download_started_at = time_module.time()
                         stats_collector.start()
-                        for host in hosts:
-                            result.add_peer(host)
 
                     stats_collector.download_stats = {
                         'size': ds.get_progress() * ds.get_length(),
@@ -601,7 +599,7 @@ class ABCApp():
 
             _callback.download_completed = False
             _callback.download_started_at = None
-            _callback.peer_added = False
+            _callback.peer_added = True
 
             return _callback
 
@@ -619,11 +617,17 @@ class ABCApp():
         except BaseException, e:
             print_exc()
 
-        sdef = SwiftDef.load_from_url("tswift://" + hosts[0][0] + ":" + str(hosts[0][1]) + "/" + root_hash)
-        sdef.set_name("AnonTunnel test (50 MB)")
+        def __magnet_loaded(sdef):
+            # sdef.set_name("AnonTunnel test (50 MB)")
+            result = frame.startDownload(tdef=sdef, destdir=dest_dir, anon_mode=True)
+            result.set_state_callback(state_call(result), delay=1)
 
-        result = frame.startDownload(sdef=sdef, destdir=dest_dir)
-        result.set_state_callback(state_call(result), delay=1)
+
+        TorrentDef.retrieve_from_magnet(
+            "magnet:?xt=urn:btih:YHM6QQKW6A3O2PGAC7ESZS7C2TC4OVDG&tr=udp%3A%2F%2Fdevristo.com%3A1337%2Fannounce",
+            __magnet_loaded)
+
+        # sdef = SwiftDef.load_from_url("tswift://" + hosts[0][0] + ":" + str(hosts[0][1]) + "/" + root_hash)
 
     @staticmethod
     def determine_install_dir():
