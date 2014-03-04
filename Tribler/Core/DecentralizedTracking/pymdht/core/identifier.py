@@ -10,7 +10,6 @@ This module provides the Id object and necessary tools.
 # int(a, 16) hex>int
 # hex() int>hex
 
-import sys
 import random
 import base64
 
@@ -52,6 +51,7 @@ class Id(object):
     """
 
     def __init__(self, hex_or_bin_id):
+        super(Id, self).__init__()
         self._bin_id = None
         self._bin = None
         self._hex = None
@@ -194,41 +194,6 @@ class Id(object):
         """
         return self.distance(other).log
 
-    def get_prefix(self, prefix_len):
-        return self.bin_str[:prefix_len]
-
-    def get_bit(self, index):
-        if self.long & (1 << (ID_SIZE_BITS - index - 1)):
-            return 1
-        else:
-            return 0
-
-    def DD_order_closest(self, id_list):
-        """Return a list with the Id objects in 'id_list' ordered
-        according to the distance to self. The closest id first.
-
-        The original list is not modified.
-
-        """
-        id_list_copy = id_list[:]
-        max_distance = ID_SIZE_BITS + 1
-        log_distance_list = []
-        for element in id_list:
-            log_distance_list.append(self.log_distance(element))
-
-        result = []
-        for _ in range(len(id_list)):
-            lowest_index = None
-            lowest_distance = max_distance
-            for j in range(len(id_list_copy)):
-                if log_distance_list[j] < lowest_distance:
-                    lowest_index = j
-                    lowest_distance = log_distance_list[j]
-            result.append(id_list_copy[lowest_index])
-            del log_distance_list[lowest_index]
-            del id_list_copy[lowest_index]
-        return result
-
     def generate_close_id(self, log_distance):
         assert log_distance < ID_SIZE_BITS
         if log_distance < 0:
@@ -236,7 +201,6 @@ class Id(object):
         byte_num, bit_num = divmod(log_distance, BITS_PER_BYTE)
         byte_index = len(self.bin_id) - byte_num - 1  # -1 correction
         int_byte = ord(self.bin_id[byte_index])
-        import sys
         # Flip bit
         int_byte = int_byte ^ (1 << bit_num)
         for i in range(bit_num):
@@ -253,15 +217,6 @@ class Id(object):
         result = Id(bin_id)
         return result
 
-    def set_bit(self, index, value):
-        if value:
-            long_id = self.long | (1 << index)
-        else:
-            long_id = self.long & (ALL_ONES_LONG ^ (1 << index))
-        return Id(long_id)
-
-MAX_ID = Id(MAX_ID_LONG)
-
 
 class RandomId(Id):
 
@@ -273,4 +228,4 @@ class RandomId(Id):
             long_id = long(bin_prefix, 2)
             long_id = long_id << padding_len
         long_id = long_id + random.randint(0, (1 << padding_len) - 1)
-        Id.__init__(self, long_id)
+        super(RandomId, self).__init__(long_id)

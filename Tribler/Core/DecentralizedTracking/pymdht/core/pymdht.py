@@ -12,7 +12,6 @@ Find usage examples in server_dht.py and interactive_dht.py.
 
 """
 
-import sys
 import os
 import ptime as time
 
@@ -32,7 +31,7 @@ VERSION_LABEL = ''.join(
      ])
 
 
-class Pymdht:
+class Pymdht(object):
 
     """Pymdht is the interface for the whole package.
 
@@ -54,6 +53,7 @@ class Pymdht:
                  debug_level,
                  bootsrap_mode=False,
                  swift_port=0):
+        super(Pymdht, self).__init__()
         logging_conf.setup(conf_path, debug_level)
         state_filename = os.path.join(conf_path, controller.STATE_FILENAME)
         self.controller = controller.Controller(VERSION_LABEL,

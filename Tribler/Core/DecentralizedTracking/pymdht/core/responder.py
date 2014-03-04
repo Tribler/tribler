@@ -4,7 +4,6 @@ created.
 
 """
 import logging
-import logging_conf
 
 import message
 import tracker
@@ -19,6 +18,7 @@ class Responder(object):
 
     def __init__(self, my_id, routing_m, msg_f,
                  bootstrap_mode=False):
+        super(Responder, self).__init__()
         self._my_id = my_id
         self._routing_m = routing_m
         self.msg_f = msg_f

@@ -12,6 +12,7 @@ class SuperBucket(object):
 
     def __init__(self, index, max_nodes, ips_in_main,
                  ips_in_replacement):
+        super(SuperBucket, self).__init__()
         self.index = index
         self.main = Bucket(max_nodes, ips_in_main)
         self.replacement = Bucket(max_nodes, ips_in_replacement)
@@ -22,6 +23,7 @@ class SuperBucket(object):
 class Bucket(object):
 
     def __init__(self, max_rnodes, ips_in_table):
+        super(Bucket, self).__init__()
         self.max_rnodes = max_rnodes
         self.ips_in_table = ips_in_table
         self.rnodes = []
@@ -123,18 +125,15 @@ NUM_NODES = 8
 
 class RoutingTable(object):
 
-    '''
-    '''
-
     def __init__(self, my_node, nodes_per_bucket):
         assert len(nodes_per_bucket) == NUM_SBUCKETS
+        super(RoutingTable, self).__init__()
         self.my_node = my_node
         self.nodes_per_bucket = nodes_per_bucket
         self.sbuckets = [None] * NUM_SBUCKETS
         self.num_rnodes = 0
         self._ips_in_main = set()
         self._ips_in_replacement = None  # set() #bugfix
-        return
 
     def get_sbucket(self, log_distance):
         index = log_distance
@@ -189,7 +188,6 @@ class RoutingTable(object):
         return rnodes
 
     def print_stats(self):
-        num_nodes = 0
         for i, sbucket in enumerate(self.sbuckets):
             if sbucket and len(sbucket.main):
                 logger.info('%d %d %d', i, len(sbucket.main), len(sbucket.replacement))

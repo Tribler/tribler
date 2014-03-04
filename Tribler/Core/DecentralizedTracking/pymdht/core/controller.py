@@ -15,11 +15,7 @@ implementations of routing and lookup managers in parallel.
 
 size_estimation = False
 
-import sys
 import ptime as time
-import datetime
-import os
-import cPickle
 try:
     prctlimported = True
     import prctl
@@ -28,14 +24,11 @@ except ImportError as e:
 from threading import currentThread
 
 import logging
-import logging_conf
 
 import state
 import identifier
-from identifier import Id
 import message
 from querier import Querier
-from message import QUERY, RESPONSE, ERROR
 from node import Node
 import responder
 # import pkgutil
@@ -53,7 +46,7 @@ CACHE_VALID_PERIOD = 5 * 60  # 5 minutes
 PENDING_LOOKUP_TIMEOUT = 30
 
 
-class Controller:
+class Controller(object):
 
     def __init__(self, version_label,
                  my_node, state_filename,
@@ -61,6 +54,7 @@ class Controller:
                  experimental_m_mod,
                  private_dht_name,
                  bootstrap_mode):
+        super(Controller, self).__init__()
 
         if size_estimation:
             self._size_estimation_file = open('size_estimation.dat', 'w')
@@ -267,7 +261,6 @@ class Controller:
         """
         exp_queries_to_send = []
 
-        data = datagram.data
         addr = datagram.addr
         datagrams_to_send = []
         try:

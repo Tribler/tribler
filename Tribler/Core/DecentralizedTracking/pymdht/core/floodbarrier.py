@@ -9,9 +9,7 @@ host processing too many messages from a single host.
 """
 
 import ptime as time
-import collections
 import logging
-import logging_conf
 
 logger = logging.getLogger('dht')
 
@@ -26,6 +24,7 @@ class HalfPeriodRegister(object):
     """Helper class. Not meant to be used outside this module"""
 
     def __init__(self):
+        super(HalfPeriodRegister, self).__init__()
         self.ip_dict = {}
 
     def get_num_packets(self, ip):
@@ -47,10 +46,13 @@ class FloodBarrier(object):
     def __init__(self, checking_period=CHECKING_PERIOD,
                  max_packets_per_period=MAX_PACKETS_PER_PERIOD,
                  blocking_period=BLOCKING_PERIOD):
+        super(FloodBarrier, self).__init__()
+
         self.checking_period = checking_period
         self.max_packets_per_period = max_packets_per_period
         self.blocking_period = blocking_period
 
+        self.half_period_timeout = 0
         self.last_half_period_time = time.time()
         self.ip_registers = [HalfPeriodRegister(), HalfPeriodRegister()]
         self.blocked_ips = {}
@@ -91,6 +93,5 @@ class FloodBarrier(object):
                 # IP is currently blocked (block hasn't expired)
                 return True
         else:
-
             # IP is not blocked
             return False
