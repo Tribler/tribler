@@ -4,6 +4,7 @@
 import base64
 from cStringIO import StringIO
 from M2Crypto import BIO
+from hashlib import sha1 as sha
 
 # Switch between using Python's builtin SHA1 function or M2Crypto/OpenSSL's
 # TODO: optimize such that less memory is allocated, e.g. reuse a single
