@@ -266,7 +266,7 @@ class Session(SessionConfigInterface):
                 return
 
         self.lm.remove_id(id)
-        self.uch.perform_removestate_callback(id, [], False)
+        self.uch.perform_removestate_callback(id, [])
 
     def set_download_states_callback(self, usercallback, getpeerlist=None):
         """

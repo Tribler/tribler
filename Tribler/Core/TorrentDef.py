@@ -10,7 +10,7 @@ from binascii import hexlify
 
 import Tribler
 from Tribler.Core.simpledefs import *
-from Tribler.Core.defaults import *
+from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
 from Tribler.Core.Utilities.bencode import bencode, bdecode
@@ -63,7 +63,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         self.input = {}  # fields added by user, waiting to be turned into torrent file
         # Define the built-in default here
-        self.input.update(tdefdefaults)
+        self.input.update(TDEF_DEFAULTS)
         try:
             self.input['encoding'] = sys.getfilesystemencoding()
         except:
@@ -896,7 +896,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @return Boolean.
         """
         if self.metainfo_valid:
-            return Tribler.Core.Overlay.permid.verify_torrent_signature(self.metainfo)
+            return Tribler.Core.permid.verify_torrent_signature(self.metainfo)
         else:
             raise TorrentDefNotFinalizedException()
 
@@ -1139,18 +1139,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             return ValueError("File not found in torrent")
         else:
             raise ValueError("File not found in single-file torrent")
-
-    #
-    # Copyable interface
-    #
-    def copy(self):
-        input = copy.copy(self.input)
-        metainfo = copy.copy(self.metainfo)
-        infohash = self.infohash
-        t = TorrentDef(input, metainfo, infohash)
-        t.metainfo_valid = self.metainfo_valid
-        t.set_cs_keys(self.get_cs_keys_as_ders())
-        return t
 
 
 class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):

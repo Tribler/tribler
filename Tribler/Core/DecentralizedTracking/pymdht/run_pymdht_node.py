@@ -4,14 +4,12 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
-import core.ptime as time
 import sys
 import os
 from optparse import OptionParser
-
 import logging
-import core.logging_conf as logging_conf
 
+import core.ptime as time
 import core.identifier as identifier
 import core.node as node
 import core.pymdht as pymdht
