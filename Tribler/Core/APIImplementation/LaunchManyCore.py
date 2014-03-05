@@ -17,13 +17,13 @@ from traceback import print_exc
 try:
     prctlimported = True
     import prctl
-except ImportError as e:
+except ImportError:
     prctlimported = False
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.Core.simpledefs import *
-from Tribler.Core.exceptions import *
+from Tribler.Core.exceptions import DuplicateDownloadException, \
+    OperationNotEnabledByConfigurationException
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
