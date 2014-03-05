@@ -3,7 +3,6 @@
 """ Definition of a torrent, that is, a collection of files or a live stream. """
 import sys
 import os
-import copy
 import logging
 from types import StringType, ListType, IntType, LongType
 from binascii import hexlify
@@ -277,47 +276,16 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                 self.input['files'].remove(d)
                 break
 
-    def create_live(self, name, bitrate, playtime="1:00:00", authconfig=None):
+    def create_live(self, name, bitrate, playtime="1:00:00"):
         """ Create a live streaming multimedia torrent with a specific bitrate.
-
-        The authconfig is a subclass LiveSourceAuthConfig with the key
-        information required to allow authentication of packets from the source,
-        or None. In the latter case there is no source authentication. The other
-        two legal values are:
-        <pre>
-        * An instance of ECDSALiveSourceAuthConfig.
-        * An Instance of RSALiveSourceAuthConfig.
-        </pre>
-        When using the ECDSA method, a sequence number, real-time timestamp and
-        an ECDSA signature of 64 bytes is put in each piece. As a result, the
-        content in each packet is get_piece_length()-81, so that this into
-        account when selecting the bitrate.
-
-        When using the RSA method, a sequence number, real-time timestamp and
-        a RSA signature of keysize/8 bytes is put in each piece.
-
-        The info from the authconfig is stored in the 'info' part of the
-        torrent file when finalized, so changing the authentication info changes
-        the identity (infohash) of the torrent.
 
         @param name The name of the stream.
         @param bitrate The desired bitrate in bytes per second.
         @param playtime The virtual playtime of the stream as a string in
         [hh:]mm:ss format.
-        @param authconfig Parameters for the authentication of the source
         """
         self.input['bps'] = bitrate
         self.input['playtime'] = playtime  # size of virtual content
-
-        # For source auth
-        authparams = {}
-        if authconfig is None:
-            authparams['authmethod'] = LIVE_AUTHMETHOD_NONE
-        else:
-            authparams['authmethod'] = authconfig.get_method()
-            authparams['pubkey'] = authconfig.get_pubkey()
-
-        self.input['live'] = authparams
 
         d = {'inpath': name, 'outpath': None, 'playtime': None, 'length': None}
         self.input['files'].append(d)
