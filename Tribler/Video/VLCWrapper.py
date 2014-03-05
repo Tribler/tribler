@@ -28,11 +28,10 @@ class VLCWrapper:
     each time to create a VLCWindow.
     """
 
-    def __init__(self, installdir):
+    def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         check_threading()
-        self.installdir = installdir
         self.window = None
         self.windowpassedtovlc = -1
         self.initialized = False
@@ -159,8 +158,8 @@ class VLCWrapper:
         params += ["--key-toggle-fullscreen", "Esc"]
 
         # Arno, 2009-07-22: Not sure whether sys.argv0 gives right dir.
-        if sys.platform == 'darwin':
-            params += ["--plugin-path", "%s/vlc/plugins" % (self.installdir)]
+        # if sys.platform == 'darwin':
+        #    params += ["--plugin-path", "%s/vlc/plugins" % (self.installdir)]
 
         params += ["--no-video-title-show"]
         params += ["--no-osd"]

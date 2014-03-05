@@ -4,7 +4,6 @@
 # TODO: we download from Tribler
 #
 
-import os
 import sys
 import time
 from tempfile import mkstemp
@@ -14,10 +13,7 @@ from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-
-# Tribler.Core.Video.PiecePickerStreaming.TEST_VOD_OVERRIDE = True
-
-DEBUG = True
+from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 
 
 class TestVideoOnDemand(TestAsServer):
@@ -33,7 +29,6 @@ class TestVideoOnDemand(TestAsServer):
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
-        self.vodstarted = False
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
@@ -57,15 +52,17 @@ class TestVideoOnDemand(TestAsServer):
         dscfg = DownloadStartupConfig()
         destdir = os.path.dirname(self.sourcefn)
         dscfg.set_dest_dir(destdir)
-        dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
+        dscfg.set_mode(DLMODE_VOD)
+
+        download = self.session.start_download(self.tdef, dscfg)
+        download.set_state_callback(self.state_callback)
 
         self.session.set_download_states_callback(self.states_callback)
-        self.session.start_download(self.tdef, dscfg)
 
     def states_callback(self, dslist):
         ds = dslist[0]
         d = ds.get_download()
-    #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+        # print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
         print >> sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
             (d.get_def().get_name(),
                 dlstatus_strings[ds.get_status()],
@@ -76,14 +73,13 @@ class TestVideoOnDemand(TestAsServer):
 
         return (1.0, [])
 
-    def sesscb_vod_event_callback(self, d, event, params):
-        if self.vodstarted:
-            return
-        self.vodstarted = True
+    def state_callback(self, ds):
+        download = ds.get_download()
+        if ds.get_vod_prebuffering_progress() == 1.0:
 
-        print >> sys.stderr, "Test: vod_event_callback", event, params
-        if event == VODEVENT_START:
-            stream = params['stream']
+            print >> sys.stderr, "Test: state_callback"
+
+            stream = VODFile(open(download.get_content_dest(), 'rb'), download)
 
             # Read last piece
             lastpieceoff = ((self.contentlen - 1) / self.piecelen) * self.piecelen
@@ -102,6 +98,9 @@ class TestVideoOnDemand(TestAsServer):
             lastsize = 1
             self.stream_read(stream, lastoff, lastsize, self.piecelen)
 
+            return (0, False)
+        return (1.0, False)
+
     def stream_read(self, stream, off, size, blocksize):
         stream.seek(off)
         data = stream.read(blocksize)
@@ -117,19 +116,6 @@ class TestVideoOnDemand(TestAsServer):
         print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
         time.sleep(5)
 
-        dlist = self.session.get_downloads()
-        d = dlist[0]
-        vs = d.get_vod_info()['status']
-
-        if vs:
-            goodrange = ((0, 0), (9, 8))
-            self.assertEqual(vs.movie_range, goodrange)
-            self.assertEqual(vs.first_piecelen, 10)
-            self.assertEqual(vs.last_piecelen, 9)
-            self.assertEqual(vs.first_piece, 0)
-            self.assertEqual(vs.last_piece, 9)
-            self.assertEqual(vs.movie_numpieces, 10)
-
     def test_100(self):
         self.contentlen = 100
         self.piecelen = 10
@@ -138,19 +124,6 @@ class TestVideoOnDemand(TestAsServer):
         print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
         time.sleep(5)
 
-        dlist = self.session.get_downloads()
-        d = dlist[0]
-        vs = d.get_vod_info()['status']
-
-        if vs:
-            goodrange = ((0, 0), (9, 9))
-            self.assertEqual(vs.movie_range, goodrange)
-            self.assertEqual(vs.first_piecelen, 10)
-            self.assertEqual(vs.last_piecelen, 10)
-            self.assertEqual(vs.first_piece, 0)
-            self.assertEqual(vs.last_piece, 9)
-            self.assertEqual(vs.movie_numpieces, 10)
-
     def test_101(self):
         self.contentlen = 101
         self.piecelen = 10
@@ -158,16 +131,3 @@ class TestVideoOnDemand(TestAsServer):
 
         print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
         time.sleep(5)
-
-        dlist = self.session.get_downloads()
-        d = dlist[0]
-        vs = d.get_vod_info()['status']
-
-        if vs:
-            goodrange = ((0, 0), (10, 0))
-            self.assertEqual(vs.movie_range, goodrange)
-            self.assertEqual(vs.first_piecelen, 10)
-            self.assertEqual(vs.last_piecelen, 1)
-            self.assertEqual(vs.first_piece, 0)
-            self.assertEqual(vs.last_piece, 10)
-            self.assertEqual(vs.movie_numpieces, 11)

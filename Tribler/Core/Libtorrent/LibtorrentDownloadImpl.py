@@ -316,6 +316,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 # If we only needed to perform checking, pause download after it is complete
                 self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
 
+            if self.get_mode() == DLMODE_VOD:
+                self.set_vod_mode(True)
+
             self.handle.resolve_countries(True)
 
         else:
@@ -449,9 +452,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 if pieces:
                     pieces = list(set(pieces))
                     self.set_piece_priority(pieces, priority)
-
-    def get_vod_info(self):
-        return self.videoinfo
 
     def process_alert(self, alert, alert_type):
         if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
@@ -891,7 +891,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             if self.handle is None:
                 self.error = None
-                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback, self.pstate_for_restart, self.session.lm.network_vod_event_callback, initialdlstatus=initialdlstatus)
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback, self.pstate_for_restart, initialdlstatus=initialdlstatus)
             else:
                 self.handle.resume()
                 self.set_vod_mode(self.get_mode() == DLMODE_VOD)

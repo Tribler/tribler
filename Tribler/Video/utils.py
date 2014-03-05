@@ -127,7 +127,7 @@ def escape_path(path):
             path = "\'" + path + "\'"
     return path
 
-def return_feasible_playback_modes(syspath):
+def return_feasible_playback_modes():
     if sys.platform == 'darwin':
         return [PLAYBACKMODE_EXTERNAL_DEFAULT]
 

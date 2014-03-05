@@ -44,12 +44,12 @@ class VideoPlayer:
         self.vod_playing = None
         self.vod_info = defaultdict(dict)
 
-        feasible = return_feasible_playback_modes(self.utility.getPath())
+        feasible = return_feasible_playback_modes()
         self.playbackmode = preferredplaybackmode if preferredplaybackmode in feasible else feasible[0]
-        self.vlcwrap = VLCWrapper(self.utility.getPath()) if self.playbackmode == PLAYBACKMODE_INTERNAL else None
+        self.vlcwrap = VLCWrapper() if self.playbackmode == PLAYBACKMODE_INTERNAL else None
 
         # Start HTTP server for serving video
-        self.videoserver = VideoServer.getInstance(httpport, self.utility.session)
+        self.videoserver = VideoServer.getInstance(httpport, self.session)
         self.videoserver.start()
 
         self.notifier = Notifier.getInstance()

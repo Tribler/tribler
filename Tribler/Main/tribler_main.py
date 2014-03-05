@@ -260,12 +260,12 @@ class ABCApp():
                 channel_only = f.readline()
                 f.close()
 
-            self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
+            self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(), self.splash.tick)
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
-            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
+            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
                 vlcwrap = self.videoplayer.get_vlcwrap()
 
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
