@@ -6,25 +6,25 @@ import os
 import logging
 from types import StringType, ListType, IntType, LongType
 from binascii import hexlify
+from urllib2 import URLError
 
-import Tribler
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, P2PURL_SCHEME
 from Tribler.Core.defaults import TDEF_DEFAULTS
-from Tribler.Core.exceptions import *
-from Tribler.Core.Base import *
+from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException, \
+    TorrentDefNotFinalizedException, NotYetImplementedException
+from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 import Tribler.Core.APIImplementation.makeurl as makeurl
 from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs
+import Tribler.Core.permid
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
-from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.Crypto import sha
 
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-from urllib2 import URLError
 
 
 class TorrentDef(ContentDefinition, Serializable, Copyable):

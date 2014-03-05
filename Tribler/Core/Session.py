@@ -6,16 +6,23 @@
 import os
 import sys
 import copy
+import socket
 import logging
 
-from Tribler.Core.simpledefs import *
-from Tribler.Core.Base import *
-from Tribler.Core.SessionConfig import *
+from Tribler.Core.simpledefs import STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, \
+    STATEDIR_DLPSTATE_DIR, STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, \
+    NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_SEEDINGSTATS, \
+    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_SEEDINGSTATSSETTINGS, \
+    NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE
+#from Tribler.Core.Base import *
+from Tribler.Core.exceptions import NotYetImplementedException, \
+    OperationNotEnabledByConfigurationException
+from Tribler.Core.SessionConfig import SessionConfigInterface, \
+    SessionStartupConfig
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core import NoDispersyRLock
-import socket
 
 GOTM2CRYPTO = False
 try:

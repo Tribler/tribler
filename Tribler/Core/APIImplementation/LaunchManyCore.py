@@ -21,7 +21,8 @@ except ImportError:
     prctlimported = False
 
 from Tribler.Core.RawServer.RawServer import RawServer
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, \
+    NTFY_UPDATE, NTFY_INSERT, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP
 from Tribler.Core.exceptions import DuplicateDownloadException, \
     OperationNotEnabledByConfigurationException
 
