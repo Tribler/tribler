@@ -49,24 +49,22 @@ class VideoServer:
             cherrypy.log.error_log.setLevel(logging.NOTSET)
             cherrypy.log.screen = False
 
-            cherrypy.server.socket_port = self.port
-            cherrypy.server.socket_timeout = 3600
-            cherrypy.server.protocol_version = 'HTTP/1.1'
-            cherrypy.server.thread_pool = 1
-
             app = cherrypy.tree.mount(self, config={'/':{}})
             app.log.access_log.setLevel(logging.NOTSET)
             app.log.error_log.setLevel(logging.NOTSET)
 
-            if cherrypy.engine.state == cherrypy.engine.states.EXITING:
-                cherrypy.engine.restart()
-            else:
-                cherrypy.engine.start()
+            self.server = cherrypy._cpserver.Server()
+            self.server.bind_addr = ('127.0.0.1', self.port)
+            self.server.socket_timeout = 3600
+            self.server.protocol_version = 'HTTP/1.1'
+            self.server.thread_pool = 1
+            self.server.subscribe()
+            self.server.start()
             self.started = True
 
     def stop(self):
         if self.started:
-            cherrypy.engine.exit()
+            self.server.stop()
 
     @cherrypy.expose
     def default(self, downloadhash, fileindex):
