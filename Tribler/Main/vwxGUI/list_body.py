@@ -515,7 +515,7 @@ class ListItem(wx.Panel):
 class AbstractListBody():
 
     @warnWxThread
-    def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT):
+    def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT, grid_columns=0):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.columns = columns
@@ -534,18 +534,26 @@ class AbstractListBody():
 
         self.hasFilter = hasFilter
 
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-
         self.listpanel = wx.Panel(self, name="LIST")
+        self.messagePanel = wx.Panel(self.listpanel)
 
         # vertical sizer containing all items
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.listpanel.SetSizer(self.vSizer)
+        self.grid_columns = grid_columns
+        if self.grid_columns > 0:
+            self.vSizer = wx.FlexGridSizer(0, self.grid_columns, 0, 0)
+        else:
+            self.vSizer = wx.BoxSizer(wx.VERTICAL)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.vSizer, 1, wx.EXPAND)
+        sizer.Add(self.messagePanel, 0, wx.EXPAND)
+        self.listpanel.SetSizer(sizer)
+
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.listpanel, 1)
         self.SetSizer(hSizer)
 
         # messagePanel text
-        self.messagePanel = wx.Panel(self.listpanel)
         self.messagePanel.SetBackgroundColour(DEFAULT_BACKGROUND)
         self.messagePanel.Show(False)
         messageVSizer = wx.BoxSizer(wx.VERTICAL)
@@ -595,6 +603,7 @@ class AbstractListBody():
         self.lastMouseLeftDownEvent = None
         self.curWidth = -1
         self.Bind(wx.EVT_SIZE, self.OnEventSize)
+
         self.ShowLoading()
 
     @warnWxThread
@@ -867,7 +876,6 @@ class AbstractListBody():
 
         if not self.messagePanel.IsShown():
             self.messagePanel.Show()
-            self.vSizer.Add(self.messagePanel, 0, wx.EXPAND | wx.BOTTOM, 1)
 
         self.messagePanel.Layout()
 
@@ -1043,11 +1051,7 @@ class AbstractListBody():
                 if key == thiskey:
                     self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange=self.showChange, list_selected=self.list_selected, list_expanded=self.list_expanded)
 
-                    if self.messagePanel.IsShown():
-                        before = len(self.vSizer.GetChildren()) - 1
-                        self.vSizer.Insert(before, self.items[key], 0, wx.EXPAND | wx.BOTTOM, 1)
-                    else:
-                        self.vSizer.Add(self.items[key], 0, wx.EXPAND | wx.BOTTOM, 1)
+                    self.vSizer.Add(self.items[key], 0, wx.EXPAND | wx.BOTTOM, 1)
 
                     self.OnChange()
                     return True
@@ -1071,7 +1075,6 @@ class AbstractListBody():
             # Check if we need to clear vSizer
             self.messagePanel.Show(False)
             self.loadNext.Show(False)
-            self.vSizer.Remove(self.messagePanel)
 
             message = ''
             header = None
@@ -1252,10 +1255,11 @@ class AbstractListBody():
         select = None
         for index, data in enumerate(self.data):
             if data[0] == key:
-                if next and len(self.data) > index + 1:
-                    select = self.data[index + 1][0]
-                elif not next and index > 0:
-                    select = self.data[index - 1][0]
+                offset = self.grid_columns or 1
+                if next and len(self.data) > index + offset:
+                    select = self.data[index + offset][0]
+                elif not next and index >= offset:
+                    select = self.data[index - offset][0]
                 break
 
         if select:
@@ -1296,14 +1300,39 @@ class AbstractListBody():
                 self.OnChange()
 
             self.Thaw()
+
+        if self.grid_columns > 0 and self.items:
+            column_width = self.items.values()[0].GetSize().x
+            viewable_width = self.listpanel.GetParent().GetSize().x
+
+            if viewable_width / column_width != self.grid_columns:
+                self.grid_columns = viewable_width / column_width
+                self.vSizer.Clear()
+                self.vSizer = wx.FlexGridSizer(0, self.grid_columns, 0, 0)
+                self.listpanel.GetSizer().Insert(0, self.vSizer, 1, wx.EXPAND)
+                self.listpanel.GetSizer().Detach(1)
+                self.Rebuild()
+
         event.Skip()
+
+    def SetGrid(self, enable):
+        # Set the default value, later we calculate the correct value by triggering a resize event
+        self.grid_columns = 4 if enable else 0
+        self.vSizer.Clear()
+        self.vSizer = wx.FlexGridSizer(0, self.grid_columns, 0, 0) if enable else wx.BoxSizer(wx.VERTICAL)
+        self.listpanel.GetSizer().Insert(0, self.vSizer, 1, wx.EXPAND)
+        self.listpanel.GetSizer().Detach(1)
+        self.Rebuild()
+        # Resize event
+        if enable:
+            self.SendSizeEvent()
 
 
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
 
-    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=LIST_ITEM_MAX_SIZE, listRateLimit=LIST_RATE_LIMIT):
+    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=LIST_ITEM_MAX_SIZE, listRateLimit=LIST_RATE_LIMIT, grid_columns=0):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max=list_item_max)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max=list_item_max, grid_columns=grid_columns)
 
         homeId = wx.NewId()
         endId = wx.NewId()

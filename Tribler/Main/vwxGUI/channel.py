@@ -243,6 +243,7 @@ class SelectedChannelList(GenericSearchList):
         self.session = self.guiutility.utility.session
         self.channelsearch_manager = self.guiutility.channelsearch_manager
 
+        self.display_grid = False
         self.title = None
         self.channel = None
         self.iamModerator = False
@@ -274,7 +275,7 @@ class SelectedChannelList(GenericSearchList):
         self.inFavoriteChannel = gui_image_manager.getImage(u"starEnabled.png")
         self.outFavoriteChannel = gui_image_manager.getImage(u"star.png")
 
-        GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, borders=False, showChange=True, parent=parent)
+        GenericSearchList.__init__(self, None, wx.WHITE, [0, 0], True, borders=False, showChange=True, parent=parent)
 
         self.list.OnBack = self.OnBack
         self.list.Bind(wx.EVT_SHOW, lambda evt: self.notebook.SetSelection(0))
@@ -337,8 +338,11 @@ class SelectedChannelList(GenericSearchList):
                 return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s" % self.channel.name
             else:
                 return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
-        else:
-            pass
+
+    def CreateList(self, parent=None, listRateLimit=1):
+        if not parent:
+            parent = self
+        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=listRateLimit, grid_columns=4 if self.display_grid else 0)
 
     @warnWxThread
     def CreateHeader(self, parent):
@@ -362,6 +366,18 @@ class SelectedChannelList(GenericSearchList):
 
             return True
         return False
+
+    def SetGrid(self, enable):
+        self.display_grid = enable
+
+        new_raw_data = []
+        for data in self.list.raw_data:
+            if enable and (len(data) < 4 or data[3] == TorrentListItem):
+                new_raw_data.append(list(data[:3]) + [ThumbnailListItem])
+            elif not enable and data[3] == ThumbnailListItem:
+                new_raw_data.append(list(data[:3]) + [TorrentListItem])
+        self.list.SetData(new_raw_data)
+        self.list.SetGrid(self.display_grid)
 
     @warnWxThread
     def SetChannel(self, channel):
@@ -436,6 +452,8 @@ class SelectedChannelList(GenericSearchList):
             shouldDrag = len(playlists) > 0 and (self.channel.iamModerator or self.channel.isOpen())
             if shouldDrag:
                 data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, DragItem) for torrent in torrents]
+            elif self.display_grid:
+                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, ThumbnailListItem) for torrent in torrents]
             else:
                 data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, TorrentListItem) for torrent in torrents]
             self.list.SetData(data)
@@ -489,7 +507,7 @@ class SelectedChannelList(GenericSearchList):
             detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistDetails)
             detailspanel.showPlaylist(item.original_data)
             item.expandedPanel = detailspanel
-        elif isinstance(item, TorrentListItem):
+        elif isinstance(item, TorrentListItem) or isinstance(item, ThumbnailListItem):
             detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
             detailspanel.setTorrent(item.original_data)
             item.expandedPanel = detailspanel
