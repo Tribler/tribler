@@ -96,8 +96,6 @@ class VideoPlayer:
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
-        print >> sys.stderr, "monitor_vod", bufferprogress, dl.get_def().get_name(), dl.vod_seekpos
-
         if bufferprogress >= 1:
             if not self.vod_playing:
                 self.vod_playing = True

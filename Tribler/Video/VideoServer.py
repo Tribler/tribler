@@ -129,9 +129,9 @@ class VideoServer:
             cherrypy.response.headers['Connection'] = 'Keep-Alive'
 
         def write_data():
-            stream, lock = self.videoplayer.get_vod_stream(downloadhash)
-
             self.wait_for_buffer(download)
+
+            stream, lock = self.videoplayer.get_vod_stream(downloadhash)
 
             with lock:
                 if stream.closed:
@@ -166,7 +166,6 @@ class VideoServer:
     def wait_for_buffer(self, download):
         self.event = Event()
         def wait_for_buffer(ds):
-            print >> sys.stderr, "wait_for_buffer", ds.get_vod_prebuffering_progress(), download.get_def().get_name(), download.vod_seekpos
             if download.vod_seekpos == None or download != self.videoplayer.get_vod_download() or \
                ds.get_vod_prebuffering_progress() == 1.0 or ds.get_download().vod_seekpos == None:
                 self.event.set()
