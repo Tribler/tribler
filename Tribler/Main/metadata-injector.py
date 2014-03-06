@@ -85,7 +85,7 @@ def dispersy_started(session, opt):
 
         def on_torrent_callback(dirpath, infohash, torrent_data):
             torrentdef = TorrentDef.load_from_dict(torrent_data)
-            channelsearch_manager.createTorrentFromDef(myChannelId, torrentdef)
+            channelManager.createTorrentFromDef(myChannelId, torrentdef)
 
             # save torrent to collectedtorrents
             filename = torrentManager.getCollectedFilenameFromDef(torrentdef)
@@ -165,7 +165,7 @@ def main():
     session = Session(sscfg)
     session.start()
 
-    dispersy = s.get_dispersy_instance()
+    dispersy = session.get_dispersy_instance()
     dispersy.callback.call(define_communities, args=(session,))
     dispersy.callback.register(dispersy_started, args=(session, opt))
 
