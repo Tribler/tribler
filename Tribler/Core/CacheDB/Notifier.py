@@ -2,14 +2,17 @@
 # see LICENSE.txt for license information
 
 import threading
+import logging
 
 from Tribler.Core.simpledefs import *
-from threading import Timer
-import logging
+
 
 class Notifier:
 
-    SUBJECTS = [NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_PROXYDOWNLOADER, NTFY_PROXYDISCOVERY, NTFY_DISPERSY, NTFY_TRACKERINFO]
+    SUBJECTS = [NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS,
+        NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS,
+        NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST,
+        NTFY_VOTECAST, NTFY_DISPERSY, NTFY_TRACKERINFO]
 
     # . . .
     # todo: add all datahandler types+other observables
@@ -63,21 +66,19 @@ class Notifier:
     def remove_observer(self, func):
         """ Remove all observers with function func
         """
-
-        self.observerLock.acquire()
-        i = 0
-        while i < len(self.observers):
-            ofunc = self.observers[i][0]
-            if ofunc == func:
-                del self.observers[i]
-            else:
-                i += 1
-        self.observerLock.release()
+        with self.observerLock:
+            i = 0
+            while i < len(self.observers):
+                ofunc = self.observers[i][0]
+                if ofunc == func:
+                    del self.observers[i]
+                else:
+                    i += 1
 
     def remove_observers(self):
         with self.observerLock:
-            for t in self.observertimers.values():
-                t.cancel()
+            for timer in self.observertimers.values():
+                timer.cancel()
             self.observerscache = {}
             self.observertimers = {}
             self.observers = []
@@ -118,7 +119,7 @@ class Notifier:
                                     else:
                                         ofunc(events)
 
-                            t = Timer(cache, doQueue, (ofunc,))
+                            t = threading.Timer(cache, doQueue, (ofunc,))
                             t.setName("Notifier-timer-%s" % subject)
                             t.start()
 
@@ -127,8 +128,7 @@ class Notifier:
 
                         self.observerscache[ofunc].append(args)
             except:
-                print_exc()
-                self._logger.error("notify: OIDs were %s %s", repr(oid), repr(obj_id))
+                self._logger.exception("OIDs were %s %s", repr(oid), repr(obj_id))
 
         self.observerLock.release()
         for task in tasks:

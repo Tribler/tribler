@@ -89,14 +89,12 @@ from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
-from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoServer import SimpleServer
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
 import Tribler.Core.DecentralizedTracking.pymdht.core

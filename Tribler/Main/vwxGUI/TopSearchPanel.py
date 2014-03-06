@@ -1,11 +1,10 @@
 # Written by Niels Zeilemaker
 import os
 import sys
-import time
 import logging
 import wx.animate
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent

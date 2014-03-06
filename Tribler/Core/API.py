@@ -199,7 +199,6 @@ from Tribler.Core.exceptions import *
 from Tribler.Core.TorrentDef import *
 try:
     import M2Crypto
-    from Tribler.Core.LiveSourceAuthConfig import *
 except ImportError:
     pass
 from Tribler.Core.Swift.SwiftDef import *

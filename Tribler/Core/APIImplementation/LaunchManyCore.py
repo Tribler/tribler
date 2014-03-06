@@ -17,13 +17,14 @@ from traceback import print_exc
 try:
     prctlimported = True
     import prctl
-except ImportError as e:
+except ImportError:
     prctlimported = False
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.RawServer.RawServer import RawServer
-from Tribler.Core.simpledefs import *
-from Tribler.Core.exceptions import *
+from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, \
+    NTFY_UPDATE, NTFY_INSERT, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP
+from Tribler.Core.exceptions import DuplicateDownloadException, \
+    OperationNotEnabledByConfigurationException
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -199,7 +200,7 @@ class TriblerLaunchMany(Thread):
                 self.database_thread = FakeCallback()
 
             if self.session.get_megacache():
-                import Tribler.Core.CacheDB.cachedb as cachedb
+                import Tribler.Core.CacheDB.sqlitecachedb as cachedb
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler, MiscDBHandler
                 from Tribler.Category.Category import Category
                 from Tribler.Core.Tag.Extraction import TermExtraction

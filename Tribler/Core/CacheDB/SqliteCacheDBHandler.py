@@ -5,7 +5,7 @@
 # for any function you add to database.
 # Please reuse the functions in sqlitecachedb as much as possible
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, SQLiteNoCacheDB
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from copy import deepcopy
 from traceback import print_exc
 from time import time
@@ -20,14 +20,12 @@ from struct import unpack_from
 
 import logging
 
-from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Search.SearchManager import split_into_keywords, \
     filter_keywords
-from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
+from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Category.Category import Category
-from Tribler.Core.defaults import DEFAULTPORT
 from threading import RLock, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 import binascii
@@ -51,8 +49,6 @@ MAX_KEYWORD_LENGTH = 50
 # Rahim:
 MAX_POPULARITY_REC_PER_TORRENT = 5  # maximum number of records in popularity table for each torrent
 MAX_POPULARITY_REC_PER_TORRENT_PEER = 3  # maximum number of records per each combination of torrent and peer
-
-from Tribler.Core.Search.SearchManager import split_into_keywords
 
 
 DEFAULT_ID_CACHE_SIZE = 1024 * 5
