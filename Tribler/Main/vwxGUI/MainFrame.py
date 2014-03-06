@@ -43,7 +43,7 @@ import atexit
 import re
 import urlparse
 
-from threading import currentThread, enumerate
+import threading
 import time
 from traceback import print_exc, print_stack
 import urllib
@@ -1108,7 +1108,7 @@ class MainFrame(wx.Frame):
         self.quit(event != None or force)
 
         self._logger.debug("mainframe: OnCloseWindow END")
-        ts = enumerate()
+        ts = threading.enumerate()
         for t in ts:
             self._logger.info("mainframe: Thread still running %s daemon %s", t.getName(), t.isDaemon())
 
@@ -1171,7 +1171,7 @@ class MainFrame(wx.Frame):
                 return
 
             if not wx.Thread_IsMain():
-                self._logger.debug("main: setActivity thread %s is NOT MAIN THREAD", currentThread().getName())
+                self._logger.debug("main: setActivity thread %s is NOT MAIN THREAD", threading.currentThread().getName())
                 print_stack()
 
             if type == NTFY_ACT_NONE:
