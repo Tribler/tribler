@@ -144,10 +144,9 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_monitor():
             from Tribler.Video.VideoPlayer import VideoPlayer
-            d = VideoPlayer.getInstance().get_vod_download()
 
             self.screenshot('After starting a VOD download')
-            self.CallConditional(60, lambda: d.network_calc_prebuf_frac() == 1.0, check_playlist, "streaming did not start")
+            self.CallConditional(60, lambda: VideoPlayer.getInstance().vod_playing, check_playlist, "streaming did not start")
 
         def do_vod():
             from Tribler.Video.VideoPlayer import VideoPlayer

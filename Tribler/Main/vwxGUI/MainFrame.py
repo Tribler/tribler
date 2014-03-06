@@ -553,11 +553,13 @@ class MainFrame(wx.Frame):
 
                     if selectedFile:
                         # Swift requires swarmname to be part of the selectedfile
-                        swift_selectedFile = tdef.get_name_as_unicode() + "/" + selectedFile if sdef and tdef else selectedFile
-                        dscfg.set_selected_files([swift_selectedFile])
-                        #dscfg.set_mode(DLMODE_VOD)
+                        # selectedFile = tdef.get_name_as_unicode() + "/" + selectedFile if sdef and tdef else selectedFile
+                        dscfg.set_selected_files([selectedFile])
                         result = self.utility.session.start_download(cdef, dscfg)
-                        videoplayer.play(result, 0)
+
+                        files = result.get_def().get_files() if result.get_def().get_def_type() == 'torrent' else []
+                        fileindex = files.index(selectedFile) if selectedFile in files else None
+                        videoplayer.play(result, fileindex)
 
                 else:
                     if selectedFiles:

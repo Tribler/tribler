@@ -4,16 +4,17 @@ from threading import currentThread
 from unittest import skip
 
 from Tribler.Core.API import *
-from Tribler.Video.VideoServer import VideoHTTPServer
+from Tribler.Video.VideoServer import VideoServer
 from Tribler.Test.test_as_server import TestAsServer
 
 
 def state_callback(d, ds):
     print >> sys.stderr, "main: Stats", dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error()
+    if ds.get_vod_prebuffering_progress() == 1.0:
+        vod_ready_callback(d)
 
-
-def vod_ready_callback(d, event, params):
-    print >> sys.stderr, "main: VOD ready callback called", currentThread().getName(), "###########################################################", params["mimetype"]
+def vod_ready_callback(d):
+    print >> sys.stderr, "main: VOD ready callback called", currentThread().getName(), "###########################################################"
 
     """
     f = open("video.avi","wb")
@@ -28,8 +29,8 @@ def vod_ready_callback(d, event, params):
     stream.close()
     """
 
-    videoserv = VideoHTTPServer.getInstance()
-    videoserv.set_inputstream('video/mpeg', params["stream"], None)
+    videoserv = VideoServer.getInstance()
+    # videoserv.set_inputstream('video/mpeg', params["stream"], None)
 
 
 class TestVod(TestAsServer):
@@ -38,12 +39,12 @@ class TestVod(TestAsServer):
         TestAsServer.setUp(self)
 
         self.port = 6789
-        self.serv = VideoHTTPServer.getInstance(self.port)
-        self.serv.background_serve()
+        self.serv = VideoServer.getInstance(self.port, self.session)
+        self.serv.start()
 
     def tearDown(self):
-        self.serv.shutdown()
-        VideoHTTPServer.delInstance()
+        self.serv.stop()
+        VideoServer.delInstance()
 
         TestAsServer.tearDown(self)
 
@@ -56,7 +57,6 @@ class TestVod(TestAsServer):
 
         # dcfg.set_saveas('/arno')
         dcfg = DownloadStartupConfig.get_copy_of_default()
-        dcfg.set_video_start_callback(vod_ready_callback)
 
         # dcfg.set_selected_files('MATRIX-XP_engl_L.avi') # play this video
         # dcfg.set_selected_files('field-trip-west-siberia.avi')
