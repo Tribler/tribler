@@ -28,8 +28,8 @@ def getUniformedURL(tracker_url):
     # check if there is any strange binary in URL
     try:
         unicode(tracker_url)
-    except Exception as e:
-        logger.exception(u"Bad URL: %s", tracker_url)
+    except Exception:
+        logger.exception(u"Bad URL")
         return None
 
     tracker_url = tracker_url.strip()
