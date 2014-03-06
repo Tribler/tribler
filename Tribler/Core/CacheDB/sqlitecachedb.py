@@ -151,6 +151,9 @@ class SQLiteCacheDBBase:
         # TODO: All global variables must be protected to be thread safe?
         self.database_update = None
 
+        # for threading problem
+        self._pragma_applied = False
+
     def __del__(self):
         self.close_all()
 
@@ -224,31 +227,33 @@ class SQLiteCacheDBBase:
             cur = con.cursor()
             self.cursor_table[thread_name] = cur
 
-        page_size, = next(cur.execute("PRAGMA page_size"))
-        if page_size < 8192:
-            # journal_mode and page_size only need to be set once.  because of the VACUUM this
-            # is very expensive
-            self._logger.info("begin page_size upgrade...")
-            cur.execute("PRAGMA journal_mode = DELETE;")
-            cur.execute("PRAGMA page_size = 8192;")
-            cur.execute("VACUUM;")
-            self._logger.info("...end page_size upgrade")
+        if not self._pragma_applied:
+            self._pragma_applied = True
+            page_size, = next(cur.execute("PRAGMA page_size"))
+            if page_size < 8192:
+                # journal_mode and page_size only need to be set once.  because of the VACUUM this
+                # is very expensive
+                self._logger.info("begin page_size upgrade...")
+                cur.execute("PRAGMA journal_mode = DELETE;")
+                cur.execute("PRAGMA page_size = 8192;")
+                cur.execute("VACUUM;")
+                self._logger.info("...end page_size upgrade")
 
-        # http://www.sqlite.org/pragma.html
-        # When synchronous is NORMAL, the SQLite database engine will still
-        # pause at the most critical moments, but less often than in FULL
-        # mode. There is a very small (though non-zero) chance that a power
-        # failure at just the wrong time could corrupt the database in
-        # NORMAL mode. But in practice, you are more likely to suffer a
-        # catastrophic disk failure or some other unrecoverable hardware
-        # fault.
-        #
-        cur.execute("PRAGMA synchronous = NORMAL;")
-        cur.execute("PRAGMA cache_size = 10000;")
+            # http://www.sqlite.org/pragma.html
+            # When synchronous is NORMAL, the SQLite database engine will still
+            # pause at the most critical moments, but less often than in FULL
+            # mode. There is a very small (though non-zero) chance that a power
+            # failure at just the wrong time could corrupt the database in
+            # NORMAL mode. But in practice, you are more likely to suffer a
+            # catastrophic disk failure or some other unrecoverable hardware
+            # fault.
+            #
+            cur.execute("PRAGMA synchronous = NORMAL;")
+            cur.execute("PRAGMA cache_size = 10000;")
 
-        # Niels 19-09-2012: even though my database upgraded to increase the pagesize it did not keep wal mode?
-        # Enabling WAL on every starup
-        cur.execute("PRAGMA journal_mode = WAL;")
+            # Niels 19-09-2012: even though my database upgraded to increase the pagesize it did not keep wal mode?
+            # Enabling WAL on every starup
+            cur.execute("PRAGMA journal_mode = WAL;")
 
         return cur
 
