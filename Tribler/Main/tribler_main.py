@@ -139,11 +139,10 @@ ALLOW_MULTIPLE = False
 
 class ABCApp():
 
-    def __init__(self, params, single_instance_checker, installdir):
+    def __init__(self, params, installdir):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.params = params
-        self.single_instance_checker = single_instance_checker
         self.installdir = installdir
 
         self.state_dir = None
@@ -982,8 +981,6 @@ class ABCApp():
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
 
-        if not ALLOW_MULTIPLE:
-            del self.single_instance_checker
         return 0
 
     def db_exception_handler(self, e):
@@ -1167,7 +1164,7 @@ def run(params=None):
             app = wx.GetApp()
             if not app:
                 app = wx.PySimpleApp(redirect=False)
-            abc = ABCApp(params, single_instance_checker, installdir)
+            abc = ABCApp(params, installdir)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)
