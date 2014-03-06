@@ -11,11 +11,15 @@ import urlparse
 import wx
 import logging
 
-from Tribler.Video.defs import *
+from Tribler.Video.defs import PLAYBACKMODE_INTERNAL, MEDIASTATE_PLAYING, \
+    PLAYBACKMODE_EXTERNAL_DEFAULT, PLAYBACKMODE_EXTERNAL_MIME
 from Tribler.Video.VideoServer import VideoHTTPServer, VideoRawVLCServer
-from Tribler.Video.utils import win32_retrieve_video_play_command, win32_retrieve_playcmd_from_mimetype, quote_program_path, videoextdefaults
+from Tribler.Video.utils import win32_retrieve_video_play_command, \
+    win32_retrieve_playcmd_from_mimetype, quote_program_path, videoextdefaults
 
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLMODE_VOD, VODEVENT_START, \
+    VODEVENT_PAUSE, VODEVENT_RESUME, DLMODE_NORMAL, NTFY_TORRENTS, NTFY_VIDEO_STOPPED, \
+    NTFY_VIDEO_STARTED
 from Tribler.Core.Utilities.unicode import unicode2str, bin2unicode
 
 from Tribler.Video.CachingStream import SmartCachingStream

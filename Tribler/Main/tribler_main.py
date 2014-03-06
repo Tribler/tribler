@@ -14,7 +14,8 @@
 
 import sys
 import logging
-from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, \
+    convertDefaultDownloadConfig, convertDownloadCheckpoints
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -28,7 +29,6 @@ logger = logging.getLogger(__name__)
 #
 import urllib
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
 original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
@@ -41,12 +41,11 @@ import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
-from Tribler.dispersy.community import HardKilledCommunity
 from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import currentThread
+from threading import currentThread, Thread
 try:
     prctlimported = True
     import prctl
@@ -72,28 +71,40 @@ from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-# from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 
 from Tribler.Main.Utility.utility import Utility
-from Tribler.Main.Utility.constants import *
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
 from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
-from Tribler.Utilities.Instance2Instance import *
+from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, \
+    Instance2InstanceServer, InstanceConnectionHandler
 from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 
-from Tribler.Core.API import *
-from Tribler.Core.simpledefs import NTFY_MODIFIED
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT, \
+    NTFY_REACHABLE, NTFY_ACTIVITIES, NTFY_UPDATE, NTFY_CREATE, NTFY_CHANNELCAST, \
+    NTFY_STATE, NTFY_VOTECAST, NTFY_MYPREFERENCES, NTFY_TORRENTS, NTFY_COMMENTS, \
+    NTFY_PLAYLISTS, NTFY_DELETE, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_PEERS, \
+    NTFY_MARKINGS, NTFY_FINISHED, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, \
+    NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, \
+    STATEDIR_SWIFTRESEED_DIR, \
+    dlstatus_strings, \
+    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
+    DLSTATUS_SEEDING, DLSTATUS_STOPPED
+from Tribler.Core.Swift.SwiftDef import SwiftDef
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.DownloadConfig import get_default_dest_dir
+from Tribler.Core.osutils import fix_filebasename
+
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
-from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...

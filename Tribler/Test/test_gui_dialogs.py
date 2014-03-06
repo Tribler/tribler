@@ -2,22 +2,21 @@
 # see LICENSE.txt for license information
 
 import unittest
-import sys
 import wx
 import binascii
 import os
+from threading import Event
+from traceback import print_exc
 
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
-from Tribler.Main.vwxGUI.list_item import ChannelListItem
+
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from Tribler.Main.Dialogs.SaveAs import SaveAs
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
+from Tribler.Main.vwxGUI.list_item import ChannelListItem
 from Tribler.Main.vwxGUI.settingsDialog import SettingsDialog
-from threading import Event
-from traceback import print_exc
 
 
 class TestGuiDialogs(TestGuiAsServer):

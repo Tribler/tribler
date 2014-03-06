@@ -5,7 +5,6 @@ from binascii import hexlify
 import socket
 import os
 import sys
-import time
 import threading
 import libtorrent as lt
 

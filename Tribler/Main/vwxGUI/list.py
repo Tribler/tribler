@@ -1,40 +1,48 @@
 # Written by Niels Zeilemaker
-import os
 import sys
 import logging
-from threading import currentThread
-from traceback import print_stack
 from math import log
+from time import time
+from colorsys import hsv_to_rgb, rgb_to_hsv
+import re
+import copy
 
 import wx
-from wx import html
 from wx.lib.wordwrap import wordwrap
-from time import time
-from datetime import date, datetime
-from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Main.vwxGUI.widgets import HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
-from Tribler.Core.API import *
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from Tribler.Category.Category import Category
+
+from Tribler.Core.simpledefs import NTFY_MISC, DLSTATUS_STOPPED, \
+    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
+    DLSTATUS_HASHCHECKING
+from Tribler.Core.exceptions import NotYetImplementedException
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 
-from Tribler import LIBRARYNAME
-
-from __init__ import *
-from list_body import *
-from list_item import *
-from list_details import *
-from list_footer import *
-from list_header import *
-
-from widgets import _set_font, SwarmHealth
+from Tribler.Main.vwxGUI import warnWxThread, DEFAULT_BACKGROUND, \
+    LIST_GREY, LIST_GREEN, LIST_ORANGE, LIST_DESELECTED, SEPARATOR_GREY, \
+    GRADIENT_LGREY, GRADIENT_DGREY, TRIBLER_RED, format_time
+from Tribler.Main.vwxGUI.list_header import ListHeader, DownloadFilter, \
+    TorrentFilter, ChannelFilter
+from Tribler.Main.vwxGUI.list_body import ListBody, FixedListBody
+from Tribler.Main.vwxGUI.list_footer import ListFooter
+from Tribler.Main.vwxGUI.list_item import ChannelListItem, TorrentListItem, \
+    ChannelListItemAssociatedTorrents, ColumnsManager, LibraryListItem, \
+    DragItem, ActivityListItem
+from Tribler.Main.vwxGUI.list_details import TorrentDetails, ChannelDetails, \
+    SearchInfoPanel, LibraryDetails, LibraryInfoPanel, ChannelInfoPanel, \
+    ChannelsExpandedPanel, VideoplayerExpandedPanel
+from Tribler.Main.vwxGUI.widgets import HorizontalGauge, TorrentStatus, \
+    FancyPanel, TransparentStaticBitmap, _set_font, SwarmHealth, LinkStaticText, \
+    TransparentText, TagText, BetterText
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
-from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
-from Tribler.Category.Category import Category
+from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, \
+    ChannelTorrent, Channel
+
 
 DEBUG_RELEVANCE = False
 MAX_REFRESH_PARTIAL = 5
@@ -1604,7 +1612,7 @@ class SearchList(GenericSearchList):
             if len(suggestions) > 0:
                 def create_suggestion(parentPanel):
                     vSizer = wx.BoxSizer(wx.VERTICAL)
-                    vSizer.Add(StaticText(parentPanel, -1, "Alternatively, try one of the following suggestions:"))
+                    vSizer.Add(BetterText(parentPanel, -1, "Alternatively, try one of the following suggestions:"))
                     for suggestion, hits in suggestions:
                         label = LinkStaticText(parentPanel, suggestion)
                         label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)

@@ -12,19 +12,12 @@
 import os
 import sys
 
-# TODO: cleanup imports
-
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
 # errors on Vista in "Regional and Language Settings Options" different from
 # "English[United Kingdom]"
 # import locale
-import signal
-import commands
-import pickle
 import traceback
 import logging
-
-from wx.html import HtmlWindow
 
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
@@ -39,43 +32,44 @@ from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
-                                             TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
+from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, \
+    LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
+    TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 
 import wx
-from wx import xrc
-# import hotshot
 
 import subprocess
 import atexit
 import re
 import urlparse
 
-from threading import Thread, Event, currentThread, enumerate
+from threading import currentThread, enumerate
 import time
 from traceback import print_exc, print_stack
-from cStringIO import StringIO
 import urllib
 
-from Tribler.Main.Utility.constants import *  # IGNORE:W0611
+from Tribler.Category.Category import Category
+
+from Tribler.Core.simpledefs import dlstatus_strings, NTFY_MYPREFERENCES, \
+    DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_SEEDING, \
+    NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP, \
+    NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS, \
+    NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL
+from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Swift.SwiftDef import SwiftDef
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.Utilities.utilities import parse_magnetlink
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.Dialogs.ThreadSafeProgressDialog import ThreadSafeProgressDialog
-from Tribler.Main.notification import init as notification_init
-from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
-from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
-
-from Tribler.Category.Category import Category
-
-
-from Tribler.Core.simpledefs import *
-from Tribler.Core.API import *
-from Tribler.Core.Utilities.utilities import show_permid, parse_magnetlink
 
 #
 #

@@ -21,7 +21,11 @@ from struct import unpack_from
 import logging
 
 from Notifier import Notifier
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, \
+    NTFY_INSERT, NTFY_DELETE, NTFY_CREATE, NTFY_MODIFIED, NTFY_TRACKERINFO, \
+    NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS, NTFY_CHANNELCAST, \
+    NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, \
+    NTFY_MARKINGS, NTFY_STATE
 from Tribler.Core.Search.SearchManager import split_into_keywords, \
     filter_keywords
 from Tribler.Core.Utilities.unicode import dunno2unicode

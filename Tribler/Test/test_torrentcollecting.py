@@ -1,22 +1,22 @@
 # Written by Niels Zeilemaker
 # see LICENSE.txt for license information
 
+import os
 import sys
 import time
+from shutil import move
+import threading
+from traceback import print_exc
 
 from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core.Session import Session
-from Tribler.community.search.community import SearchCommunity
 from Tribler.Core.TorrentDef import TorrentDef
-import os
-import threading
-from shutil import copy, move
 from Tribler.Core.Swift.SwiftDef import SwiftDef
+
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from traceback import print_exc
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, \
-    STATEDIR_SWIFTRESEED_DIR
+
 
 class TestTorrentCollecting(TestAsServer):
     """

@@ -12,12 +12,15 @@ import logging
 from threading import currentThread
 from traceback import print_exc
 
-from Tribler.Video.defs import *
+from Tribler.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
+    MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
 from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
+from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, \
+    ActionButton, TransparentText, VideoVolume, VideoSlider
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, \
+    warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED
 from Tribler.Core.CacheDB.Notifier import Notifier
 

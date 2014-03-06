@@ -1,22 +1,22 @@
 # Written by Niels Zeilemaker
 import wx
 import wx.lib.scrolledpanel as scrolled
+from wx._core import PyDeadObjectError
+
+from _abcoll import Iterable
 
 import sys
 import logging
-from threading import currentThread
-from traceback import print_stack, print_exc
+from traceback import print_exc
 from time import time
-import re
 
+from Tribler.Main.vwxGUI import warnWxThread, LIST_SELECTED, LIST_EXPANDED, \
+    LIST_DARKBLUE, LIST_DESELECTED, DEFAULT_BACKGROUND, LIST_ITEM_BATCH_SIZE, \
+    LIST_AUTOSIZEHEADER, LIST_HIGHTLIGHT, LIST_RATE_LIMIT, LIST_ITEM_MAX_SIZE
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, \
     _set_font, ActionButton
-
-from __init__ import *
-from wx._core import PyDeadObjectError
-from _abcoll import Iterable
 
 
 class ListItem(wx.Panel):

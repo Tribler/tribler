@@ -19,12 +19,11 @@ import json
 from hashlib import sha1
 import logging
 
-from Tribler.Core.API import *
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
-
-from Tribler.community.channel.community import forceDispersyThread
 
 logger = logging.getLogger(__name__)
 
