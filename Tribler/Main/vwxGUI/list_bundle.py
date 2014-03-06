@@ -1,13 +1,11 @@
 # written by Raynor Vliegendhart
 # see LICENSE.txt for license information
 
-import os
-import sys
 import wx
 import logging
-from Tribler.__init__ import LIBRARYNAME
+
 from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
