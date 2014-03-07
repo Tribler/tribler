@@ -162,6 +162,8 @@ class Torrent(Helper):
     def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
         Helper.__init__(self)
 
+        assert isinstance(infohash, str), type(infohash)
+
         self.infohash = infohash
         self.swift_hash = swift_hash
         self.swift_torrent_hash = swift_torrent_hash
@@ -355,6 +357,7 @@ class Torrent(Helper):
     @staticmethod
     def fromTorrentDef(tdef):
         return Torrent(-1, tdef.get_infohash(), None, None, tdef.get_name(), None, tdef.get_length(), None, None, 0, 0, False)
+
 
 class RemoteTorrent(Torrent):
     __slots__ = ()
@@ -693,8 +696,8 @@ class Comment(Helper):
         else:
             from Tribler.Core.simpledefs import NTFY_PEERS
             from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-            peer_db = GUIUtility.utility.session.open_dbhandler(NTFY_PEERS)
-            raw_data = self._peer_db.getPeerById(peerid, keys=u"thumbnail")
+            peer_db = GUIUtility.getInstance().utility.session.open_dbhandler(NTFY_PEERS)
+            raw_data = peer_db.getPeerById(self.peer_id, keys=u"thumbnail")
             data = gui_image_manager.getPeerThumbnail(raw_data, SMALL_ICON_MAX_DIM)
 
         if data is None:

@@ -415,15 +415,9 @@ class SearchCommunity(Community):
                     if DEBUG:
                         self._logger.debug("SearchCommunity: got search response identifier not found %s", message.payload.identifier)
 
-    def create_torrent_request(self, torrents, candidate):
+    def create_torrent_request(self, infohash, candidate):
         torrentdict = {}
-        for torrent in torrents:
-            if isinstance(torrent, list):
-                cid, infohash = torrent
-            else:
-                cid = self._master_member.mid
-                infohash = torrent
-            torrentdict.setdefault(cid, set()).add(infohash)
+        torrentdict[self._master_member.mid] = set([infohash, ])
 
         # create torrent-request message
         meta = self.get_meta_message(u"torrent-request")
