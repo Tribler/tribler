@@ -915,6 +915,7 @@ class ThumbnailListItem(ListItem, FancyPanel):
         self.columns = self.controls = []
         self.data = data
         self.original_data = original_data
+        self.bitmap_size = (175, 175)
 
         self.showChange = showChange
         self.list_deselected = LIST_DESELECTED
@@ -948,10 +949,25 @@ class ThumbnailListItem(ListItem, FancyPanel):
 
         if thumb_files:
             bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
-            res = limit_resolution(bmp.GetSize(), (175, 175))
+            res = limit_resolution(bmp.GetSize(), self.bitmap_size)
             bmp = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
             if bmp:
                 self.thumbnail.SetBitmap(bmp)
+        else:
+            bmp = wx.EmptyBitmap(*self.bitmap_size)
+            dc = wx.MemoryDC(bmp)
+            dc.SetBackground(wx.Brush(wx.Colour(230, 230, 230)))
+            dc.Clear()
+
+            font = self.GetFont()
+            font.SetPointSize(font.GetPointSize() + 4)
+            dc.SetFont(font)
+            dc.SetTextForeground(wx.Colour(100, 100, 100))
+            dc.DrawLabel('No picture\navailable', (0, 0) + self.bitmap_size, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+            dc.SelectObject(wx.NullBitmap)
+            del dc
+
+            self.thumbnail.SetBitmap(bmp)
 
         def ShortenText(statictext, text):
             for i in xrange(len(text), 0, -1):
