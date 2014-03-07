@@ -29,15 +29,15 @@ class VideoPlayer:
 
     __single = None
 
-    def __init__(self, utility, preferredplaybackmode=None, httpport=6880):
+    def __init__(self, session, videoplayerpath, preferredplaybackmode=None, httpport=6880):
         if VideoPlayer.__single:
             raise RuntimeError("VideoPlayer is singleton")
         VideoPlayer.__single = self
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.utility = utility
-        self.session = utility.session
+        self.session = session
+        self.videoplayerpath = videoplayerpath
         self.videoframe = None
         self.vod_download = None
         self.vod_fileindex = None
@@ -182,7 +182,7 @@ class VideoPlayer:
                 self._logger.debug("Videoplayer: win32 reg said cmd is %s", cmd)
                 return 'start /B "TriblerVideo" ' + cmd
 
-        qprogpath = quote_program_path(self.utility.read_config('videoplayerpath'))
+        qprogpath = quote_program_path(self.videoplayerpath)
         if not qprogpath:
             return None
 

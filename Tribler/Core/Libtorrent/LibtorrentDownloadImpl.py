@@ -201,7 +201,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.endbuffsize = 0
         self.vod_seekpos = 0
 
-        self.lm_network_vod_event_callback = None
         self.pstate_for_restart = None
 
         self.cew_scheduled = False
@@ -210,7 +209,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     def get_def(self):
         return self.tdef
 
-    def setup(self, dcfg=None, pstate=None, initialdlstatus=None, lm_network_engine_wrapper_created_callback=None, lm_network_vod_event_callback=None, wrapperDelay=0):
+    def setup(self, dcfg=None, pstate=None, initialdlstatus=None, lm_network_engine_wrapper_created_callback=None, wrapperDelay=0):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case
@@ -240,7 +239,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 self._logger.debug("LibtorrentDownloadImpl: setup: initialdlstatus %s %s", self.tdef.get_infohash(), initialdlstatus)
 
-                self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=initialdlstatus, wrapperDelay=wrapperDelay)
+                self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus, wrapperDelay=wrapperDelay)
 
             self.pstate_for_restart = pstate
 
@@ -249,21 +248,21 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.error = e
                 print_exc()
 
-    def create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None, wrapperDelay=0):
+    def create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=None, wrapperDelay=0):
         with self.dllock:
             if not self.cew_scheduled:
                 self.ltmgr = self.session.lm.ltmgr
                 if not self.ltmgr or (isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready()):
                     self._logger.info("LibtorrentDownloadImpl: LTMGR or DHT not ready, rescheduling create_engine_wrapper")
-                    create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=initialdlstatus)
+                    create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus)
                     self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
                     self.dlstate = DLSTATUS_METADATA
                 else:
-                    network_create_engine_wrapper_lambda = lambda: self.network_create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus)
+                    network_create_engine_wrapper_lambda = lambda: self.network_create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus)
                     self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda, wrapperDelay)
                     self.cew_scheduled = True
 
-    def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None):
+    def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=None):
         # Called by any thread, assume dllock already acquired
         self._logger.debug("LibtorrentDownloadImpl: create_engine_wrapper()")
 
@@ -304,7 +303,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             atp["name"] = str(self.tdef.get_name())
 
         self.handle = self.ltmgr.add_torrent(self, atp)
-        self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
         if self.handle:
             self.set_selected_files()

@@ -249,7 +249,7 @@ class ABCApp():
             if ALLOW_MULTIPLE or httpport == -1:
                 httpport = self.utility.get_free_random_port('videohttpport')
             playbackmode = self.utility.read_config('videoplaybackmode')
-            self.videoplayer = VideoPlayer.getInstance(self.utility, preferredplaybackmode=playbackmode, httpport=httpport)
+            self.videoplayer = VideoPlayer.getInstance(s, self.utility.read_config('videoplayerpath'), preferredplaybackmode=playbackmode, httpport=httpport)
 
             notification_init(self.utility)
             self.guiUtility.register()

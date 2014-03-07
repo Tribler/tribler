@@ -45,13 +45,13 @@ class VideoServer:
 
     def start(self):
         if not self.started:
-            cherrypy.log.access_log.setLevel(logging.NOTSET)
-            cherrypy.log.error_log.setLevel(logging.NOTSET)
-            cherrypy.log.screen = False
+            cherrypy.log.access_log.setLevel(logging.ERROR)
+            cherrypy.log.error_log.setLevel(logging.ERROR)
+            cherrypy.log.screen = True
 
             app = cherrypy.tree.mount(self, config={'/':{}})
-            app.log.access_log.setLevel(logging.NOTSET)
-            app.log.error_log.setLevel(logging.NOTSET)
+            app.log.access_log.setLevel(logging.ERROR)
+            app.log.error_log.setLevel(logging.ERROR)
 
             self.server = cherrypy._cpserver.Server()
             self.server.bind_addr = ('127.0.0.1', self.port)
@@ -86,7 +86,7 @@ class VideoServer:
         filename, length = download.get_def().get_files_with_length()[fileindex]
 
         requested_range = http.get_ranges(cherrypy.request.headers.get('Range'), length)
-        if requested_range == []:
+        if len(requested_range) != 1:
             raise cherrypy.HTTPError(416, "Requested Range Not Satisfiable")
             return
 
@@ -109,7 +109,7 @@ class VideoServer:
             firstbyte, lastbyte = requested_range[0]
             nbytes2send = lastbyte - firstbyte
             cherrypy.response.status = 206
-            cherrypy.response.headers['Content-Range'] = 'bytes %d-%d/%d' % (firstbyte, lastbyte + 1, length)
+            cherrypy.response.headers['Content-Range'] = 'bytes %d-%d/%d' % (firstbyte, lastbyte - 1, length)
         else:
             firstbyte = 0
             nbytes2send = length
