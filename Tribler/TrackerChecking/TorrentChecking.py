@@ -40,7 +40,6 @@ from Tribler.TrackerChecking.TrackerSession import MAX_TRACKER_MULTI_SCRAPE
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
-from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
 
 # some settings
@@ -81,7 +80,6 @@ class TorrentChecking(Thread):
         self._logger.debug('Starting TorrentChecking from %s.', threading.currentThread().getName())
         self.setDaemon(True)
 
-        self._mldhtchecker = mainlineDHTChecker.getInstance()
         self._torrentdb = TorrentDBHandler.getInstance()
         self._interrupt_socket = InterruptSocket()
 
