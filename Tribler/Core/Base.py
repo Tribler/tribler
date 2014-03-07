@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 """ Base classes for the Core API """
 
-from Tribler.Core.exceptions import *
+from Tribler.Core.exceptions import NotYetImplementedException
 
 #
 # Tribler API base classes

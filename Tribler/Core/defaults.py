@@ -151,6 +151,6 @@ tdefmetadefaults['createmerkletorrent'] = 0
 tdefmetadefaults['torrentsigkeypairfilename'] = None
 tdefmetadefaults['thumb'] = None  # JPEG data
 
-tdefdefaults = {}
-tdefdefaults.update(tdefdictdefaults)
-tdefdefaults.update(tdefmetadefaults)
+TDEF_DEFAULTS = {}
+TDEF_DEFAULTS.update(tdefdictdefaults)
+TDEF_DEFAULTS.update(tdefmetadefaults)

@@ -3,7 +3,7 @@
 
 import os
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Tag.StopwordsFilter import StopwordsFilter
 

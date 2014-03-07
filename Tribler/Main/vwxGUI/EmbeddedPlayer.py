@@ -6,15 +6,12 @@
 #
 
 import wx
-import os
-import sys
 import time
 import logging
 
 from threading import currentThread
 from traceback import print_exc
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Video.defs import *
 from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer

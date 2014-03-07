@@ -14,11 +14,12 @@
 #
 #
 
+import os
 from types import StringType
 
-from Tribler.Core.simpledefs import *
-from Tribler.Core.defaults import *
-from Tribler.Core.Base import *
+from Tribler.Core.simpledefs import DLMODE_VOD, UPLOAD
+from Tribler.Core.defaults import dldefaults
+from Tribler.Core.Base import Serializable, Copyable
 from Tribler.Core.osutils import get_desktop_dir
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
@@ -36,6 +37,7 @@ class DownloadConfigInterface(object):
     cf. libtorrent torrent_handle
     """
     def __init__(self, dlconfig=None):
+        super(DownloadConfigInterface, self).__init__()
 
         self.dlconfig = dlconfig or CallbackConfigParser()
 

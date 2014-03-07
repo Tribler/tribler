@@ -866,7 +866,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
             # Offload the removal of the dlcheckpoint to another thread
             if removestate:
-                self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), None, False)
+                self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), None)
 
             return (self.tdef.get_infohash(), pstate)
 

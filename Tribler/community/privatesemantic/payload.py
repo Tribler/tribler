@@ -1,5 +1,4 @@
 from Tribler.dispersy.payload import Payload, IntroductionRequestPayload
-from Tribler.dispersy.bloomfilter import BloomFilter
 
 MAXLONG128 = (1 << 1024) - 1
 MAXLONG256 = (1 << 2048) - 1
@@ -9,8 +8,8 @@ class SimilarityRequest(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, key_n, preference_list):
             assert isinstance(identifier, int), type(identifier)
-            assert not key_n or isinstance(key_n, long), 'key_n should be long'
-            assert not preference_list or isinstance(preference_list, list), 'preferencelist should be list'
+            assert not key_n or isinstance(key_n, long), type(key_n)
+            assert not preference_list or isinstance(preference_list, list), type(preference_list)
             if preference_list:
                 for preference in preference_list:
                     assert isinstance(preference, long), type(preference)
@@ -118,7 +117,7 @@ class EncryptedVectorPayload(Payload):
         def __init__(self, meta, identifier, key_n, preference_list, global_vector):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
-                assert isinstance(key_n, long), 'key_n should be long'
+                assert isinstance(key_n, long), type(key_n)
                 assert key_n < MAXLONG128
                 assert isinstance(preference_list, list), 'preference_list should be list not %s' % type(preference_list)
                 for preference in preference_list:
@@ -157,7 +156,7 @@ class EncryptedSumPayload(Payload):
         def __init__(self, meta, identifier, _sum):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
-                assert isinstance(_sum, long), 'sum should be long'
+                assert isinstance(_sum, long), type(_sum)
                 assert _sum < MAXLONG256
 
             super(EncryptedSumPayload.Implementation, self).__init__(meta)
@@ -184,9 +183,9 @@ class EncryptedSumsPayload(Payload):
                 assert _sum < MAXLONG256
 
                 for candidate_mid, address_sum in _sums:
-                    assert isinstance(candidate_mid, str), 'candidate_mid should be str'
+                    assert isinstance(candidate_mid, str), type(candidate_mid)
                     assert len(candidate_mid) == 20, len(candidate_mid)
-                    assert isinstance(address_sum, long), 'address_sum should be long'
+                    assert isinstance(address_sum, long), type(address_sum)
                     assert address_sum < MAXLONG256
 
             super(EncryptedSumsPayload.Implementation, self).__init__(meta)
@@ -211,9 +210,9 @@ class PoliSimilarityRequest(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, key_n, key_g, coefficients):
             assert isinstance(identifier, int), type(identifier)
-            assert not key_n or isinstance(key_n, long), 'key_n should be long'
-            assert not key_g or isinstance(key_g, long), 'key_g should be long'
-            assert not coefficients or isinstance(coefficients, dict), 'preferencelist should be dict'
+            assert not key_n or isinstance(key_n, long), type(key_n)
+            assert not key_g or isinstance(key_g, long), type(key_g)
+            assert not coefficients or isinstance(coefficients, dict), type(coefficients)
             if coefficients:
                 for partition, coeffs in coefficients.iteritems():
                     assert isinstance(partition, int), type(partition)
@@ -247,7 +246,7 @@ class EncryptedPoliResponsePayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, my_response):
             assert isinstance(identifier, int), type(identifier)
-            assert isinstance(my_response, list), 'my_response should be list not %s' % type(my_response)
+            assert isinstance(my_response, list), type(my_response)
             for py in my_response:
                 assert isinstance(py, long), type(py)
 
@@ -271,7 +270,7 @@ class EncryptedPoliResponsesPayload(EncryptedPoliResponsePayload):
             assert isinstance(bundled_responses, list)
             assert len(bundled_responses) == len(set(mid for mid, _ in bundled_responses)), 'bundled_responses should not contain more than one entry per mid'
             for candidate_mid, response in bundled_responses:
-                assert isinstance(candidate_mid, str), 'candidate_mid should be str'
+                assert isinstance(candidate_mid, str), type(candidate_mid)
                 assert len(candidate_mid) == 20, len(candidate_mid)
 
                 assert isinstance(response, list), type(response)

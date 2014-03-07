@@ -6,7 +6,6 @@
 #
 # TODO: add comments
 # ============================================================
-import sys
 import os
 import binascii
 import time
@@ -16,16 +15,15 @@ import select
 import socket
 
 import threading
-from threading import Thread, RLock, Event
+from threading import Thread
 import Queue
 
-from traceback import print_exc, print_stack
+from traceback import print_exc
 
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core import NoDispersyRLock
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     prctlimported = True
@@ -36,17 +34,12 @@ except ImportError as e:
 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 from Tribler.TrackerChecking.TrackerInfoCache import TrackerInfoCache
 from Tribler.TrackerChecking.TrackerSession import TrackerSession
-from Tribler.TrackerChecking.TrackerSession import\
-    TRACKER_ACTION_CONNECT, TRACKER_ACTION_ANNOUNCE, TRACKER_ACTION_SCRAPE
-from Tribler.TrackerChecking.TrackerSession import\
-    UDP_TRACKER_RECHECK_INTERVAL, UDP_TRACKER_MAX_RETRIES
-from Tribler.TrackerChecking.TrackerSession import\
-    MAX_TRACKER_MULTI_SCRAPE
+from Tribler.TrackerChecking.TrackerSession import TRACKER_ACTION_CONNECT
+from Tribler.TrackerChecking.TrackerSession import MAX_TRACKER_MULTI_SCRAPE
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, bin2str
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
 
@@ -666,7 +659,7 @@ class InterruptSocket:
         self.socket.bind((self.ip, 0))
         self.port = self.socket.getsockname()[1]
         self._logger.debug("Bound InterruptSocket on port %s", self.port)
-        
+
         self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def interrupt(self):

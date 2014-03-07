@@ -2,7 +2,6 @@
 # Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
-import random
 import wx
 import os
 import sys
@@ -12,11 +11,11 @@ from time import time
 
 from wx import xrc
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.Search.SearchManager import split_into_keywords, fts3_preprocess
+from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer

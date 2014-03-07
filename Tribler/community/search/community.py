@@ -523,13 +523,16 @@ class SearchCommunity(Community):
                 pong_request = True
 
             if pong_request and message.payload.hashtype == SWIFT_INFOHASHES:
-                for roothash, infohash, seeders, leechers, ago in message.payload.torrents:
-                    toInsert[infohash] = [infohash, roothash]
+                for swift_torrent_hash, infohash, seeders, leechers, ago in message.payload.torrents:
+                    toInsert[infohash] = [infohash, swift_torrent_hash]
                     toPopularity[infohash] = [seeders, leechers, time() - (ago * 60)]
                     toCollect.setdefault(infohash, []).append(message.candidate)
 
         if len(toInsert) > 0:
-            self._torrent_db.on_torrent_collect_response(toInsert.values())
+            toInsert = toInsert.values()
+            while toInsert:
+                self._torrent_db.on_torrent_collect_response(toInsert[:50])
+                toInsert = toInsert[50:]
 
         hashes = [hash_ for hash_ in toCollect.keys() if hash_]
         if hashes:

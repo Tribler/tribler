@@ -21,7 +21,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 
 from __init__ import *
 from list_body import *

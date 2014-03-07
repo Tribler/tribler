@@ -36,7 +36,7 @@ from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import *
-from Tribler.Core.DownloadConfig import get_default_dest_dir, DownloadConfigInterface
+from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Main.globals import DownloadStartupConfig
 
 # ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
@@ -477,7 +477,7 @@ class SwiftDownloadImpl(DownloadConfigInterface):
 
                 # content and .mhash file is removed by swift engine if requested
                 roothash = self.sdef.get_roothash()
-                self.session.uch.perform_removestate_callback(roothash, None, False)
+                self.session.uch.perform_removestate_callback(roothash, None)
 
             return (self.sdef.get_roothash(), pstate)
         finally:
