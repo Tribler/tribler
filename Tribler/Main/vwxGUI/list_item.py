@@ -902,7 +902,7 @@ class LibraryListItem(TorrentListItem):
         pass
 
 
-class ThumbnailListItem(ListItem, FancyPanel):
+class ThumbnailListItem(TorrentListItem, FancyPanel):
 
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED, list_selected_and_expanded=LIST_DARKBLUE):
         FancyPanel.__init__(self, parent, border=wx.RIGHT | wx.BOTTOM)
@@ -923,9 +923,8 @@ class ThumbnailListItem(ListItem, FancyPanel):
         self.list_expanded = list_expanded
         self.list_selected_and_expanded = list_selected_and_expanded
 
-        self.highlightTimer = None
+        self.highlightTimer = self.expandedPanel = self.dlbutton = None
         self.selected = self.expanded = False
-        self.expandedPanel = None
         self.SetBackgroundColour(self.list_deselected)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -984,6 +983,24 @@ class ThumbnailListItem(ListItem, FancyPanel):
         self.vSizer.Add(name, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
 
         self.hSizer.Layout()
+
+    def GetContextMenu(self):
+        menu = TorrentListItem.GetContextMenu(self)
+        menu.DestroyId(menu.FindItem('Show labels..'))
+        return menu
+
+    def CanShowHover(self, event):
+        event.Enable(False)
+        event.Check(False)
+
+    def ShowSelected(self):
+        DoubleLineListItem.ShowSelected(self)
+
+    def GetIcons(self):
+        return []
+
+    def SetThumbnailIcon(self):
+        pass
 
 
 class ActivityListItem(ListItem):
