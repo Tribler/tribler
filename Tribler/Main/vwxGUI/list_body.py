@@ -1306,7 +1306,7 @@ class AbstractListBody():
             viewable_width = self.listpanel.GetParent().GetSize().x
 
             if viewable_width / column_width != self.grid_columns:
-                self.grid_columns = viewable_width / column_width
+                self.grid_columns = (viewable_width / column_width) or 1
                 self.vSizer.Clear()
                 self.vSizer = wx.FlexGridSizer(0, self.grid_columns, 0, 0)
                 self.listpanel.GetSizer().Insert(0, self.vSizer, 1, wx.EXPAND)
