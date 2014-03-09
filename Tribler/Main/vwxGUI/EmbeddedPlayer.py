@@ -159,7 +159,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
         # 26/05/09 Boudewijn: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
-            self.slider.Enable(True)
+            self.slider.Enable(False)
 
             # Arno, 2009-02-17: If we don't do this VLC gets the wrong playlist somehow
             self.vlcwrap.stop()
@@ -221,6 +221,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.ppbtn.Enable(True)
                 self.HideLoading()
                 self.vlcwrap.resume()
+                self.slider.Enable(True)
 
     @warnWxThread
     def PlayPause(self, evt=None):

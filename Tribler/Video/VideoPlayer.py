@@ -107,16 +107,15 @@ class VideoPlayer:
         dl_def = dl.get_def()
         dl_hash = dl_def.get_id()
 
-        if bufferprogress >= 1:
-            if not self.vod_info[dl_hash].has_key('bitrate'):
-                self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (dl_hash, self.vod_fileindex))
+        if bufferprogress >= 1 and not self.vod_info[dl_hash].has_key('bitrate'):
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (dl_hash, self.vod_fileindex))
 
-                # Attempt to estimate the bitrate and duration of the videofile with ffmpeg.
-                videofile = self.get_vod_filename(dl)
-                videoanalyser = self.session.get_video_analyser_path()
-                duration, bitrate, _ = get_videoinfo(videofile, videoanalyser)
-                self.vod_info[dl_hash]['bitrate'] = bitrate
-                self.vod_info[dl_hash]['duration'] = duration
+            # Attempt to estimate the bitrate and duration of the videofile with ffmpeg.
+            videofile = self.get_vod_filename(dl)
+            videoanalyser = self.session.get_video_analyser_path()
+            duration, bitrate, _ = get_videoinfo(videofile, videoanalyser)
+            self.vod_info[dl_hash]['bitrate'] = bitrate
+            self.vod_info[dl_hash]['duration'] = duration
 
         return (1, False)
 
