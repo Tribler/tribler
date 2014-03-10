@@ -12,7 +12,7 @@ from multiprocessing.synchronize import RLock
 
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_STARTED, DLMODE_NORMAL
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_STARTED, DLMODE_NORMAL, NTFY_VIDEO_BUFFERING
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 
 from Tribler.Video.utils import win32_retrieve_video_play_command, quote_program_path, escape_path, return_feasible_playback_modes
@@ -97,16 +97,16 @@ class VideoPlayer:
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
+        dl_def = dl.get_def()
+        dl_hash = dl_def.get_id()
+
         if bufferprogress >= 1:
             if not self.vod_playing:
                 self.vod_playing = True
-            self.resume_playback()
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
         elif bufferprogress <= 0.1 and self.vod_playing:
             self.vod_playing = False
-            self.pause_playback()
-
-        dl_def = dl.get_def()
-        dl_hash = dl_def.get_id()
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, True))
 
         if bufferprogress >= 1 and not self.vod_info[dl_hash].has_key('bitrate'):
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (dl_hash, self.vod_fileindex))
@@ -199,13 +199,3 @@ class VideoPlayer:
         self._logger.debug("Videoplayer: using external user-defined player by executing %s", cmd)
 
         return cmd
-
-    @forceWxThread
-    def pause_playback(self):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
-            self.videoframe.get_videopanel().Pause(gui_vod_event=True)
-
-    @forceWxThread
-    def resume_playback(self):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
-            self.videoframe.get_videopanel().Resume()

@@ -18,7 +18,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 class EmbeddedPlayerPanel(wx.Panel):
@@ -133,6 +133,19 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.guiutility.frame.Layout()
 
             self.guiutility.library_manager.add_download_state_callback(self.OnStatesCallback)
+
+            self.guiutility.utility.session.add_observer(self.OnVideoBuffering, NTFY_TORRENTS, [NTFY_VIDEO_BUFFERING])
+
+    def OnVideoBuffering(self, subject, changeType, torrent_tuple):
+        download_hash, _, is_buffering = torrent_tuple
+        if self.download and self.download.get_def().get_id() == download_hash:
+            @forceWxThread
+            def do_gui():
+                if is_buffering:
+                    self.Pause(gui_vod_event=True)
+                else:
+                    self.Resume()
+            do_gui()
 
     def OnStatesCallback(self, dslist, magnetlist):
         if not self.download:
