@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import socket
+from binascii import b2a_hex
 from sha import sha
 from traceback import print_exc
 from types import DictType, StringType, IntType, ListType
