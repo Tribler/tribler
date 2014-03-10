@@ -209,10 +209,3 @@ class VideoPlayer:
     def resume_playback(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().Resume()
-
-    @forceWxThread
-    def stop_playback(self):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
-            self.videoframe.get_videopanel().Stop()
-            self.videoframe.Stop()
-        self.set_vod_download(None)

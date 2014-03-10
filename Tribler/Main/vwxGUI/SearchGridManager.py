@@ -921,11 +921,9 @@ class LibraryManager:
         ds = torrent.get('ds')
 
         # videoplayer calls should be on gui thread, hence forceWxThread
-        self.guiUtility.ShowPlayer()
-        self.guiUtility.frame.videoframe.recreate_vlc_window()
 
-        videoplayer = self._get_videoplayer()
-        videoplayer.stop_playback()
+        self.guiUtility.ShowPlayer()
+        self.stopPlayback()
 
         if ds is None:
             torrent_filename = self.torrentsearch_manager.getCollectedFilename(torrent)
@@ -947,7 +945,15 @@ class LibraryManager:
             selectedinfilename = selectedinfilename or torrent.videofiles[0]
             files = download.get_def().get_files() if download.get_def().get_def_type() == 'torrent' else []
             fileindex = files.index(selectedinfilename) if selectedinfilename in files else None
+            videoplayer = self._get_videoplayer()
             videoplayer.play(download, fileindex)
+
+    def stopPlayback(self):
+        if self.guiUtility.frame.videoframe:
+            self.guiUtility.frame.videoframe.recreate_vlc_window()
+            self.guiUtility.frame.videoframe.get_videopanel().Stop()
+        videoplayer = self._get_videoplayer()
+        videoplayer.set_vod_download(None)
 
     def startDownloadFromUrl(self, url, useDefault=False):
         if useDefault:
@@ -1046,7 +1052,7 @@ class LibraryManager:
         playd = videoplayer.get_vod_download()
 
         if playd == download:
-            videoplayer.stop_playback()
+            self.stopPlayback()
 
     def connect(self, session, torrentsearch_manager, channelsearch_manager):
         if not self.connected:

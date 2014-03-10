@@ -1087,11 +1087,10 @@ class MainFrame(wx.Frame):
         self.utility.abcquitting = True
         self.GUIupdate = False
 
-        if VideoPlayer.hasInstance():
-            self._logger.info("mainframe: Closing videoplayer")
+        if self.videoframe:
+            self._logger.info("mainframe: Stopping internal player")
 
-            videoplayer = VideoPlayer.getInstance()
-            videoplayer.stop_playback()
+            self.videoframe.get_videopanel().Stop()
 
         try:
             self._logger.info("mainframe: Restoring from taskbar")
