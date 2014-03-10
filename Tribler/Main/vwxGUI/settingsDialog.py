@@ -364,7 +364,7 @@ class SettingsDialog(wx.Dialog):
                     if getattr(self, 'icondata', False):
                         target.set_mugshot(self.icondata, mime='image/jpeg')
                 except:
-                    self._logger.exception()
+                    self._logger.exception("Could not set target")
 
             # tit-4-tat
             t4t_option = self.utility.read_config('t4t_option')
@@ -499,11 +499,11 @@ class SettingsDialog(wx.Dialog):
             try:
                 target.set_torrent_collecting_dir(os.path.join(defaultdestdir, STATEDIR_TORRENTCOLL_DIR))
             except:
-                self._logger.exception()
+                self._logger.exception("Could not set target torrent collecting dir")
             try:
                 target.set_swift_meta_dir(os.path.join(defaultdestdir, STATEDIR_SWIFTRESEED_DIR))
             except:
-                self._logger.exception()
+                self._logger.exception("Could not set target swift meta dir")
 
         scfg.save(cfgfilename)
 
@@ -571,7 +571,7 @@ class SettingsDialog(wx.Dialog):
                 f.close()
                 os.remove(thumbfilename)
         except:
-            self._logger.exception()
+            self._logger.exception("Could not read thumbnail")
             self.show_inputerror(self.utility.lang.get('iconbadformat'))
 
     def show_inputerror(self, txt):
