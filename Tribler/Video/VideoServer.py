@@ -7,7 +7,7 @@ import logging
 import cherrypy
 import mimetypes
 
-from multiprocessing.synchronize import Event
+from threading import Event
 from binascii import unhexlify
 from cherrypy.lib import http
 from cherrypy.process.plugins import Daemonizer

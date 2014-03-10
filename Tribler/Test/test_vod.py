@@ -7,7 +7,7 @@
 import sys
 from tempfile import mkstemp
 from M2Crypto import Rand
-from multiprocessing.synchronize import Event
+from threading import Event
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Core.simpledefs import *
