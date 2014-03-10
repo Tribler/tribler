@@ -535,6 +535,8 @@ class TorrentChecking(Thread):
 
                 last_time_select_torrent = current_time
                 time_remaining = self._torrent_select_interval
+            else:
+                self._logger.debug('TorrentChecking: Will wait for an interrupt for %.1f', time_remaining)
 
             # create read and write socket check list
             # check non-blocking connection TCP sockets if they are writable
