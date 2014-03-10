@@ -73,6 +73,7 @@ class VideoPlayer:
     def shutdown(self):
         if self.videoserver:
             self.videoserver.stop()
+        self.set_vod_download(None)
 
     def get_vlcwrap(self):
         return self.vlcwrap
@@ -91,7 +92,7 @@ class VideoPlayer:
     def monitor_vod(self, ds):
         dl = ds.get_download() if ds else None
 
-        if dl != self.vod_download:
+        if dl != self.vod_download or not VideoPlayer.hasInstance():
             return (0, False)
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
