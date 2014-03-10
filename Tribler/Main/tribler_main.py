@@ -15,6 +15,7 @@
 import sys
 import logging
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.Core.osutils import fix_filebasename
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
