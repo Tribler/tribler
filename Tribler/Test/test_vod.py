@@ -5,9 +5,9 @@
 #
 
 import sys
-import time
 from tempfile import mkstemp
 from M2Crypto import Rand
+from multiprocessing.synchronize import Event
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Core.simpledefs import *
@@ -98,6 +98,8 @@ class TestVideoOnDemand(TestAsServer):
             lastsize = 1
             self.stream_read(stream, lastoff, lastsize, self.piecelen)
 
+            self.event.set()
+
             return (0, False)
         return (1.0, False)
 
@@ -109,25 +111,28 @@ class TestVideoOnDemand(TestAsServer):
         self.assertEquals(data, self.content[off:off + size])
 
     def test_99(self):
+        self.event = Event()
         self.contentlen = 99
         self.piecelen = 10
         self.create_torrent()
 
         print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
-        time.sleep(5)
+        assert self.event.wait(5)
 
     def test_100(self):
+        self.event = Event()
         self.contentlen = 100
         self.piecelen = 10
         self.create_torrent()
 
         print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
-        time.sleep(5)
+        assert self.event.wait(5)
 
     def test_101(self):
+        self.event = Event()
         self.contentlen = 101
         self.piecelen = 10
         self.create_torrent()
 
         print >> sys.stderr, "Test: Letting network thread create Download, sleeping"
-        time.sleep(5)
+        assert self.event.wait(5)
