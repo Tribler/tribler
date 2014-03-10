@@ -578,7 +578,7 @@ class TorrentChecking(Thread):
                         session.handleRequest()
 
                     # check readable sockets
-                    self._logger.debug('TorrentChecking: got %d readable sockets', len(read_socket_list) - 1)
+                    self._logger.debug('TorrentChecking: got %d readable sockets', len(read_socket_list))
                     for read_socket in read_socket_list:
                         session = session_dict.get(read_socket, self._interrupt_socket)
                         session.handleRequest()
@@ -603,6 +603,8 @@ class TorrentChecking(Thread):
                             session = self._session_list[i]
 
                             if session.hasFailed() or session.hasFinished():
+                                self._logger.debug('TorrentChecking: session[%s] is %s', session.getTracker(), 'failed' if session.hasFailed() else 'finished')
+
                                 self._tracker_info_cache.updateTrackerInfo(session.getTracker(), session.hasFailed())
 
                                 # set torrent remaining responses
