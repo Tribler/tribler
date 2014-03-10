@@ -123,7 +123,9 @@ class VideoPlayer:
     def get_vod_stream(self, dl_hash):
         if not self.vod_info[dl_hash].has_key('stream') and self.session.get_download(dl_hash):
             download = self.session.get_download(dl_hash)
-            self.vod_info[dl_hash]['stream'] = (VODFile(open(self.get_vod_filename(download), 'rb'), download), RLock())
+            vod_filename = self.get_vod_filename(download)
+            if os.path.exists(vod_filename):
+                self.vod_info[dl_hash]['stream'] = (VODFile(open(vod_filename, 'rb'), download), RLock())
 
         if self.vod_info[dl_hash].has_key('stream'):
             return self.vod_info[dl_hash]['stream']

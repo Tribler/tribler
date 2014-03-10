@@ -11,7 +11,7 @@ from multiprocessing.synchronize import Event
 from binascii import unhexlify
 from cherrypy.lib import http
 
-from Tribler.Core.simpledefs import DLMODE_VOD, DLMODE_NORMAL, NTFY_TORRENTS
+from Tribler.Core.simpledefs import DLMODE_VOD
 
 
 class VideoServer:
@@ -133,7 +133,11 @@ class VideoServer:
             if has_changed:
                 self.wait_for_buffer(download)
 
-            stream, lock = self.videoplayer.get_vod_stream(downloadhash)
+            stream = None
+            while not stream:
+                stream, lock = self.videoplayer.get_vod_stream(downloadhash)
+                if download != self.videoplayer.get_vod_download():
+                    return
 
             with lock:
                 if stream.closed:
