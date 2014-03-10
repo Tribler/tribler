@@ -922,9 +922,9 @@ class LibraryManager:
 
         # videoplayer calls should be on gui thread, hence forceWxThread
         self.guiUtility.ShowPlayer()
+        self.guiUtility.frame.videoframe.recreate_vlc_window()
 
         videoplayer = self._get_videoplayer()
-        videoplayer.recreate_videopanel()
         videoplayer.stop_playback()
 
         if ds is None:

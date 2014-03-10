@@ -216,14 +216,3 @@ class VideoPlayer:
             self.videoframe.get_videopanel().Stop()
             self.videoframe.Stop()
         self.set_vod_download(None)
-
-    @forceWxThread
-    def recreate_videopanel(self):
-        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe:
-            # Playing a video can cause a deadlock in libvlc_media_player_stop. Until we come up with something cleverer, we fix this by recreating the videopanel.
-            self.videoframe.recreate_videopanel()
-
-    @forceWxThread
-    def set_player_status_and_progress(self, progress, progress_consec, pieces_complete, error=False):
-        if self.videoframe is not None:
-            self.videoframe.get_videopanel().UpdateStatus(progress, progress_consec, pieces_complete, error)

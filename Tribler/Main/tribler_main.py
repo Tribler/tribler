@@ -615,25 +615,6 @@ class ABCApp():
 #                    if self.ratestatecallbackcount % 120 == 0:
 #                        wantpeers.append(True)
 
-            # Find State of currently playing video
-            playds = None
-            for ds in dslist:
-                if ds.get_download().get_mode() == DLMODE_VOD:
-                    playds = ds
-
-            # Apply status displaying from SwarmPlayer
-            if playds:
-                def do_video():
-                    if playds.get_status() == DLSTATUS_HASHCHECKING:
-                        progress = progress_consec = playds.get_progress()
-                    else:
-                        progress = playds.get_vod_prebuffering_progress()
-                        progress_consec = playds.get_vod_prebuffering_progress_consec()
-                    self.videoplayer.set_player_status_and_progress(progress, progress_consec, \
-                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True], \
-                                                                    playds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
-                wx.CallAfter(do_video)
-
             # Check to see if a download has finished
             newActiveDownloads = []
             doCheckpoint = False

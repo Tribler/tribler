@@ -18,7 +18,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 class EmbeddedPlayerPanel(wx.Panel):
@@ -131,6 +131,23 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.logowin.Show(False)
             self.ctrlsizer.ShowItems(True)
             self.guiutility.frame.Layout()
+
+            self.guiutility.library_manager.add_download_state_callback(self.OnStatesCallback)
+
+    def OnStatesCallback(self, dslist, magnetlist):
+        if not self.download:
+            return
+
+        for ds in dslist:
+            if ds.get_download() == self.download:
+                if ds.get_status() == DLSTATUS_HASHCHECKING:
+                    progress = progress_consec = ds.get_progress()
+                else:
+                    progress = ds.get_vod_prebuffering_progress()
+                    progress_consec = ds.get_vod_prebuffering_progress_consec()
+
+                pieces_complete = ds.get_pieces_complete() if ds.get_progress() < 1.0 else [True]
+                self.UpdateStatus(progress, progress_consec, pieces_complete, ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
 
     def OnVolumeChanged(self, volume):
         if self.mute.GetBitmapLabel() == self.bmp_muted:  # unmute
@@ -462,6 +479,16 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.logowin.Show(False)
             self.vlcwin.Show(True)
             self.Layout()
+
+    def RecreateVLCWindow(self):
+        if self.vlcwrap:
+            vlcwin = VLCWindow(self, self.vlcwrap)
+            vlcwin.SetMinSize(EmbeddedPlayerPanel.VIDEO_SIZE)
+            vlcwin.Show(self.vlcwin.IsShown())
+            self.GetSizer().Replace(self.vlcwin, vlcwin)
+            self.vlcwin.Destroy()
+            self.vlcwin = vlcwin
+            self.TellLVCWrapWindow4Playback()
 
 
 class VLCWindow(wx.Panel):
