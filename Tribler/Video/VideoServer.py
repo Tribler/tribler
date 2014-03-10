@@ -86,11 +86,12 @@ class VideoServer:
         filename, length = download.get_def().get_files_with_length()[fileindex]
 
         requested_range = http.get_ranges(cherrypy.request.headers.get('Range'), length)
-        if len(requested_range) != 1:
+        if requested_range != None and len(requested_range) != 1:
             raise cherrypy.HTTPError(416, "Requested Range Not Satisfiable")
             return
 
-        if self.videoplayer.get_vod_fileindex() != fileindex or self.videoplayer.get_vod_download() != download:
+        has_changed = self.videoplayer.get_vod_fileindex() != fileindex or self.videoplayer.get_vod_download() != download
+        if has_changed:
             # Notify the videoplayer (which will put the old VOD download back in normal mode).
             self.videoplayer.set_vod_fileindex(fileindex)
             self.videoplayer.set_vod_download(download)
@@ -129,7 +130,8 @@ class VideoServer:
             cherrypy.response.headers['Connection'] = 'Keep-Alive'
 
         def write_data():
-            self.wait_for_buffer(download)
+            if has_changed:
+                self.wait_for_buffer(download)
 
             stream, lock = self.videoplayer.get_vod_stream(downloadhash)
 
@@ -166,8 +168,7 @@ class VideoServer:
     def wait_for_buffer(self, download):
         self.event = Event()
         def wait_for_buffer(ds):
-            if download.vod_seekpos == None or download != self.videoplayer.get_vod_download() or \
-               ds.get_vod_prebuffering_progress() == 1.0 or ds.get_download().vod_seekpos == None:
+            if download.vod_seekpos == None or download != self.videoplayer.get_vod_download() or ds.get_vod_prebuffering_progress() == 1.0:
                 self.event.set()
                 return (0, False)
             return (1.0, False)
