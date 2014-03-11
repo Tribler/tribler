@@ -442,9 +442,19 @@ class TorrentDetails(AbstractDetails):
     def updateDetailsTab(self):
         self.Freeze()
 
+        the_description = self.torrent.get('description', '')
+        if not the_description:
+            # try metadata
+            metadata = self.torrent.get('metadata', None)
+            if metadata:
+                the_description = metadata.get('description', '')
+
+        if not the_description:
+            the_description = 'No description yet, be the first to add a description.'
+
         todo = []
         todo.append((self.name, self.torrent.name))
-        todo.append((self.description, self.torrent.description if self.torrent.get('description', '') else 'No description yet, be the first to add a description.'))
+        todo.append((self.description, the_description))
         todo.append((self.type, ', '.join(self.torrent.categories).capitalize() if isinstance(self.torrent.categories, list) else 'Unknown'))
         todo.append((self.uploaded, self.torrent.formatCreationDate() if hasattr(self.torrent, 'formatCreationDate') else ''))
         todo.append((self.filesize, '%s in %d file(s)' % (self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files)) if hasattr(self.torrent, 'files') else '%s' % self.guiutility.utility.size_format(self.torrent.length)))
@@ -459,7 +469,7 @@ class TorrentDetails(AbstractDetails):
         self.downloaded.Show(bool(self.torrent.state))
 
         # Toggle description
-        show_description = self.canEdit or bool(self.torrent.get('description', ''))
+        show_description = self.canEdit or bool(the_description)
         self.description_title.Show(show_description)
         self.description.Show(show_description)
 

@@ -340,6 +340,7 @@ class TorrentManager:
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
+            t.metadata_db = self.metadata_db
 
             _ = t.channel
             return t
@@ -572,6 +573,7 @@ class TorrentManager:
                 t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
+                t.metadata_db = self.metadata_db
                 t.assignRelevance(a[-11])
                 return t
 

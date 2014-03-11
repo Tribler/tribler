@@ -156,6 +156,7 @@ class Torrent(Helper):
         'name', 'torrent_file_name', 'length', 'category_id', 'status_id',
         'num_seeders', 'num_leechers', '_channel',
         'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
+        'metadata_db',
         'dslist', '_progress', 'relevance_score', 'query_candidates',
         'magnetstatus')
 
@@ -183,6 +184,7 @@ class Torrent(Helper):
         self.misc_db = None
         self.torrent_db = None
         self.channelcast_db = None
+        self.metadata_db = None
 
         self.relevance_score = None
         self.query_candidates = None
@@ -226,6 +228,17 @@ class Torrent(Helper):
 
     def hasChannel(self):
         return self.channel
+
+    @cacheProperty
+    def metadata(self):
+        self._logger.debug("Torrent: fetching metadata from DB %s", self)
+
+        metadata_result = self.metadata_db.getMetdataDateByInfohash(self.infohash)
+        if metadata_result:
+            metadata_dict = {}
+            for key, value in metadata_result:
+                metadata_dict[key] = value
+            return metadata_dict
 
     @property
     def swarminfo(self):

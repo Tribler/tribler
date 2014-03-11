@@ -287,6 +287,15 @@ class MetadataDBHandler(BasicDBHandler):
         sql = "DELETE FROM MetadataMessage WHERE dispersy_id = ?"
         self._db.execute_write(sql, (dispersy_id,))
 
+    def getMetdataDateByInfohash(self, infohash):
+        sql = """
+        SELECT data.data_key, data.data_value
+        FROM MetadataMessage as msg, MetadataData as data
+        WHERE msg.infohash = ? AND msg.message_id = data.message_id
+        """
+        result = self._db.fetchall(sql, (bin2str(infohash),))
+        return result
+
     def getMetadataData(self, message_id):
         sql = "SELECT data_key, data_value FROM MetadataData WHERE message_id = ?"
         result = self._db.fetchall(sql, (message_id,))
