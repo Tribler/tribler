@@ -42,6 +42,7 @@ class TestVideoHTTPServer(TestAsServer):
     def tearDown(self):
         """ unittest test tear down code """
         TestAsServer.tearDown(self)
+        VideoPlayer.shutdown()
         VideoPlayer.delInstance()
         time.sleep(2)
 

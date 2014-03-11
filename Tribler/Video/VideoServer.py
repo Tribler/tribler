@@ -10,7 +10,6 @@ import mimetypes
 from threading import Event
 from binascii import unhexlify
 from cherrypy.lib import http
-from cherrypy.process.plugins import Daemonizer
 
 from Tribler.Core.simpledefs import DLMODE_VOD
 
@@ -53,8 +52,6 @@ class VideoServer:
             app = cherrypy.tree.mount(self, config={'/':{}})
             app.log.access_log.setLevel(logging.ERROR)
             app.log.error_log.setLevel(logging.ERROR)
-
-            Daemonizer(cherrypy.engine).subscribe()
 
             self.server = cherrypy._cpserver.Server()
             self.server.bind_addr = ('127.0.0.1', self.port)
