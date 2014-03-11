@@ -17,10 +17,11 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
 from Tribler.Main.vwxGUI import warnWxThread, GRADIENT_DGREY, SEPARATOR_GREY, \
-    LIST_AT_HIGHLIST, LIST_SELECTED, LIST_EXPANDED, format_time, THUMBNAIL_FILETYPES
+    LIST_AT_HIGHLIST, LIST_SELECTED, LIST_EXPANDED, format_time, \
+    LIST_DARKBLUE, LIST_DESELECTED, THUMBNAIL_FILETYPES
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, \
-    ProgressButton, MaxBetterText
+    ProgressButton, MaxBetterText, FancyPanel
 from Tribler.Main.vwxGUI.list_body import ListItem
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM

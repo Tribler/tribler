@@ -28,6 +28,7 @@ from Tribler.Main.vwxGUI import CHANNEL_MAX_NON_FAVORITE, warnWxThread, \
     LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED, DEFAULT_BACKGROUND, \
     format_time, showError
 from Tribler.Main.vwxGUI.list import BaseManager, GenericSearchList, SizeList, List, XRCPanel
+from Tribler.Main.vwxGUI.list_body import ListBody
 from Tribler.Main.vwxGUI.list_footer import CommentFooter, PlaylistFooter, \
     ManageChannelFilesFooter, ManageChannelPlaylistFooter
 from Tribler.Main.vwxGUI.list_header import ChannelHeader, SelectedChannelFilter, \
@@ -35,7 +36,7 @@ from Tribler.Main.vwxGUI.list_header import ChannelHeader, SelectedChannelFilter
 from Tribler.Main.vwxGUI.list_item import PlaylistItem, ColumnsManager, DragItem, \
     TorrentListItem, CommentItem, CommentActivityItem, NewTorrentActivityItem, \
     TorrentActivityItem, ModificationActivityItem, ModerationActivityItem, \
-    MarkingActivityItem, ModificationItem, ModerationItem
+    MarkingActivityItem, ModificationItem, ModerationItem, ThumbnailListItem
 from Tribler.Main.vwxGUI.list_details import AbstractDetails, SelectedchannelInfoPanel, \
     PlaylistDetails, PlaylistInfoPanel, TorrentDetails, MyChannelPlaylist
 

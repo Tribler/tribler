@@ -12,7 +12,7 @@ import json
 
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, \
-    NTFY_VOTECAST, NTFY_CHANNELCAST
+    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_METADATA
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
@@ -25,6 +25,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
     forceDispersyThread, forcePrioDispersyThread, warnDispersyThread
+from Tribler.community.metadata.community import MetadataCommunity
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -213,10 +214,10 @@ class TorrentManager:
         """
         TORRENT is a GuiDBTuple containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
-        
+
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
-        
+
         DUPLICATE can be True: the message will be downloaded from peers
         regardless of a previous/current download attempt (returns
         True). Or DUPLICATE can be False: the message will only be
