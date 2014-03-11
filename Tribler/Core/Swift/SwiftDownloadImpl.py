@@ -36,7 +36,7 @@ from traceback import print_exc
 from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, DLSTATUS_WAITING4HASHCHECK, \
-    DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLMODE_VOD, DLMODE_NORMAL, VODEVENT_START, \
+    DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLMODE_VOD, DLMODE_NORMAL, \
     PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.DownloadState import DownloadState

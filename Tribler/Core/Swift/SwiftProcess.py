@@ -12,8 +12,7 @@ from threading import RLock, currentThread, Thread
 from traceback import print_exc
 from collections import defaultdict
 
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, VODEVENT_START, \
-    DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Utilities.FastI2I import FastI2IConnection
 
 try:
