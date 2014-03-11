@@ -4,8 +4,7 @@
 import wx
 import logging
 
-from Tribler.Video.defs import *
-from Tribler.__init__ import LIBRARYNAME
+from Tribler.Video.defs import MEDIASTATE_PLAYING
 
 
 class VideoBaseFrame:

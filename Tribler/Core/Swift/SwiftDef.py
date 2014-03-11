@@ -1,6 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+import os
 import sys
 import urlparse
 import binascii
@@ -9,9 +10,10 @@ import random
 import time
 import logging
 
-from Tribler.Core.Base import *
-from Tribler.Core.simpledefs import *
-from Tribler.Core.Swift.util import *
+from Tribler.Core.Base import ContentDefinition
+from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
+from Tribler.Core.Swift.util import filelist2swiftspec
 
 
 class SwiftDef(ContentDefinition):

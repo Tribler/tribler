@@ -5,7 +5,6 @@ import unittest
 
 import sys
 import time
-from traceback import print_exc
 from threading import RLock, enumerate as enumerate_threads
 
 from Tribler.Core.APIImplementation.ThreadPool import ThreadPool

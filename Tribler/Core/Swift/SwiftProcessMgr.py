@@ -7,8 +7,7 @@ import time
 from traceback import print_exc
 import logging
 
-from Tribler.Core.Swift.SwiftProcess import *
-from Tribler.Utilities.Instance2Instance import *
+from Tribler.Core.Swift.SwiftProcess import SwiftProcess
 
 
 class SwiftProcessMgr:

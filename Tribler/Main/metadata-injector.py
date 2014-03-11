@@ -19,12 +19,11 @@ import json
 from hashlib import sha1
 import logging
 
-from Tribler.Core.API import *
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
-
-from Tribler.community.channel.community import forceDispersyThread
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,7 @@ def dispersy_started(session, opt):
 
         def on_torrent_callback(dirpath, infohash, torrent_data):
             torrentdef = TorrentDef.load_from_dict(torrent_data)
-            channelsearch_manager.createTorrentFromDef(myChannelId, torrentdef)
+            channelManager.createTorrentFromDef(myChannelId, torrentdef)
 
             # save torrent to collectedtorrents
             filename = torrentManager.getCollectedFilenameFromDef(torrentdef)
@@ -165,7 +164,7 @@ def main():
     session = Session(sscfg)
     session.start()
 
-    dispersy = s.get_dispersy_instance()
+    dispersy = session.get_dispersy_instance()
     dispersy.callback.call(define_communities, args=(session,))
     dispersy.callback.register(dispersy_started, args=(session, opt))
 

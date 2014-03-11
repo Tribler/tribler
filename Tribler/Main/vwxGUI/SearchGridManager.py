@@ -6,12 +6,16 @@ import os
 import logging
 from traceback import print_exc
 from time import time
+from math import sqrt
+import threading
 
 from Tribler.Category.Category import Category
-from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
-from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
+from Tribler.Core.simpledefs import NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, \
+    NTFY_VOTECAST, NTFY_CHANNELCAST
+from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
-from Tribler.Core.simpledefs import *
+
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -19,23 +23,23 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
-    forceDispersyThread, forcePrioDispersyThread, \
-    onDispersyThread, warnDispersyThread
+    forceDispersyThread, forcePrioDispersyThread, warnDispersyThread
 
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename, parse_magnetlink
-from Tribler.Core.Session import Session
+from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Video.VideoPlayer import VideoPlayer
 
-from math import sqrt
-from __init__ import *
+from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, \
+    TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS, CHANNEL_REQ_COLUMNS, \
+    PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS, MODERATION_REQ_COLUMNS, \
+    MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Search.Bundler import Bundler
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent, \
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
+    CollectedTorrent, RemoteTorrent, NotCollectedTorrent, LibraryTorrent, \
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation, \
     RemoteChannelTorrent, Marking
-import threading
+
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler

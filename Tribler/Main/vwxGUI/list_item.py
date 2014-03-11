@@ -1,24 +1,33 @@
 # Written by Niels Zeilemaker, Egbert Bouman
 import wx
+import os
 import sys
 import json
 import shutil
 import urllib
 import logging
+import binascii
 from datetime import timedelta
 
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, DLSTATUS_METADATA, \
+    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK
+from Tribler.Core.osutils import startfile
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+
+from Tribler.Main.vwxGUI import warnWxThread, GRADIENT_DGREY, SEPARATOR_GREY, \
+    LIST_AT_HIGHLIST, LIST_SELECTED, LIST_EXPANDED, format_time
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, _set_font, TagText
+from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, \
+    ProgressButton, MaxBetterText
+from Tribler.Main.vwxGUI.list_body import ListItem
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
-from Tribler.Main.Utility.GuiDBTuples import MergedDs
-from Tribler import LIBRARYNAME
+from Tribler.Main.Utility.GuiDBTuples import MergedDs, Torrent, CollectedTorrent
 
-from Tribler.Main.vwxGUI.list_body import *
-from Tribler.Main.vwxGUI.list_details import *
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Video.VideoUtility import limit_resolution
 
 
 class ColumnsManager:

@@ -1,11 +1,11 @@
 import sys
-import unittest
 
+from Tribler.Test.test_as_server import AbstractServer
+from Tribler.Test.bak_tribler_sdb import init_bak_tribler_sdb
+
+from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB import sqlitecachedb
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.Test.bak_tribler_sdb import init_bak_tribler_sdb
-from Tribler.Core.Session import Session
-from Tribler.Test.test_as_server import AbstractServer
 
 
 class TestSqliteCacheDB(AbstractServer):

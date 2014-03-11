@@ -6,15 +6,19 @@ import wx.xrc as xrc
 import wx.lib.imagebrowser as ib
 import sys
 import os
-import cStringIO
 import tempfile
 import atexit
+import time
 import logging
 
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, \
+    STATEDIR_TORRENTCOLL_DIR, STATEDIR_SWIFTRESEED_DIR
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.osutils import get_picture_dir
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
-from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import isInteger
 
 
@@ -360,7 +364,7 @@ class SettingsDialog(wx.Dialog):
                     if getattr(self, 'icondata', False):
                         target.set_mugshot(self.icondata, mime='image/jpeg')
                 except:
-                    print_exc()
+                    self._logger.exception("Could not set target")
 
             # tit-4-tat
             t4t_option = self.utility.read_config('t4t_option')
@@ -495,11 +499,11 @@ class SettingsDialog(wx.Dialog):
             try:
                 target.set_torrent_collecting_dir(os.path.join(defaultdestdir, STATEDIR_TORRENTCOLL_DIR))
             except:
-                print_exc()
+                self._logger.exception("Could not set target torrent collecting dir")
             try:
                 target.set_swift_meta_dir(os.path.join(defaultdestdir, STATEDIR_SWIFTRESEED_DIR))
             except:
-                print_exc()
+                self._logger.exception("Could not set target swift meta dir")
 
         scfg.save(cfgfilename)
 
@@ -513,7 +517,7 @@ class SettingsDialog(wx.Dialog):
                         newfile = os.path.join(new, file)
 
                         if os.path.isdir(oldfile):
-                            self.rename_or_merge(oldfile, newfile)
+                            rename_or_merge(oldfile, newfile)
 
                         elif os.path.exists(newfile):
                             if not ignore:
@@ -567,7 +571,7 @@ class SettingsDialog(wx.Dialog):
                 f.close()
                 os.remove(thumbfilename)
         except:
-            print_exc()
+            self._logger.exception("Could not read thumbnail")
             self.show_inputerror(self.utility.lang.get('iconbadformat'))
 
     def show_inputerror(self, txt):

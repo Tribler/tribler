@@ -1,34 +1,50 @@
 # Written by Niels Zeilemaker
 import wx
+
+import os
+import sys
 import logging
 from time import time
 import pickle
+from shutil import copyfile
+from random import sample
+from traceback import print_exc
+import re
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
-from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
-from Tribler.Core.API import *
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, \
+    EditText, BetterText
 
-from list import *
-from list_footer import *
-from list_header import *
-from list_body import *
-from list_item import *
-from list_details import *
-from __init__ import *
+from Tribler.Category.Category import Category
+
+from Tribler.Core.simpledefs import NTFY_MISC
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+
+from Tribler.Main.vwxGUI import CHANNEL_MAX_NON_FAVORITE, warnWxThread, \
+    LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED, DEFAULT_BACKGROUND, \
+    format_time, showError
+from Tribler.Main.vwxGUI.list import BaseManager, GenericSearchList, SizeList, List, XRCPanel
+from Tribler.Main.vwxGUI.list_footer import CommentFooter, PlaylistFooter, \
+    ManageChannelFilesFooter, ManageChannelPlaylistFooter
+from Tribler.Main.vwxGUI.list_header import ChannelHeader, SelectedChannelFilter, \
+    SelectedPlaylistFilter, PlaylistHeader, ManageChannelHeader, TitleHeader
+from Tribler.Main.vwxGUI.list_item import PlaylistItem, ColumnsManager, DragItem, \
+    TorrentListItem, CommentItem, CommentActivityItem, NewTorrentActivityItem, \
+    TorrentActivityItem, ModificationActivityItem, ModerationActivityItem, \
+    MarkingActivityItem, ModificationItem, ModerationItem
+from Tribler.Main.vwxGUI.list_details import AbstractDetails, SelectedchannelInfoPanel, \
+    PlaylistDetails, PlaylistInfoPanel, TorrentDetails, MyChannelPlaylist
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.community.channel.community import ChannelCommunity
-from Tribler.Main.Utility.GuiDBTuples import Torrent
+from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, ChannelTorrent
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
-from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
-import wx.lib.agw.flatnotebook as fnb
-from wx._controls import StaticLine
-from shutil import copyfile
-from Tribler.Main.vwxGUI.list_details import PlaylistDetails
+
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
-from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
-from random import sample
 
 
 class ChannelManager(BaseManager):
@@ -1169,7 +1185,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.identifier = EditText(self.overviewpage, '')
         self.identifier.SetMaxLength(40)
         self.identifier.SetEditable(False)
-        self.identifierText = StaticText(self.overviewpage, -1, 'You can use this identifier to allow other to manually join this channel.\nCopy and paste it in an email and let others join by going to Favorites and "Add Favorite channel"')
+        self.identifierText = BetterText(self.overviewpage, -1, 'You can use this identifier to allow other to manually join this channel.\nCopy and paste it in an email and let others join by going to Favorites and "Add Favorite channel"')
 
         identSizer.Add(self.identifier, 0, wx.EXPAND)
         identSizer.Add(self.identifierText, 0, wx.EXPAND)
@@ -2356,7 +2372,7 @@ class ModificationList(List):
         dlg.OnExpand = lambda a: False
         dlg.OnChange = vSizer.Layout
 
-        why = StaticText(dlg, -1, 'Why do you want to revert this modification?')
+        why = BetterText(dlg, -1, 'Why do you want to revert this modification?')
         _set_font(why, fontweight=wx.FONTWEIGHT_BOLD)
         ori_why_colour = why.GetForegroundColour()
         vSizer.Add(why, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 7)

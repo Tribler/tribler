@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import socket
+from binascii import b2a_hex
 from sha import sha
 from traceback import print_exc
 from types import DictType, StringType, IntType, ListType
@@ -20,7 +21,8 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.Utilities.bitfield import Bitfield
-from Tribler.Core.MessageID import *
+from Tribler.Core.MessageID import REQUEST, UNCHOKE, HAVE, INTERESTED, \
+    NOT_INTERESTED, EXTEND, BITFIELD, HASHPIECE, getMessageName
 from Tribler.Core.Merkle.merkle import MerkleTree
 
 DEBUG = True
