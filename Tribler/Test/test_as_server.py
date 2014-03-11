@@ -12,6 +12,7 @@ import gc
 import wx
 from PIL import Image
 import re
+import logging
 
 from traceback import print_exc
 from threading import enumerate as enumerate_threads
@@ -41,6 +42,8 @@ OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
 class AbstractServer(unittest.TestCase):
 
     def setUp(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.setUpCleanup()
         self.annotate_dict = {}
 

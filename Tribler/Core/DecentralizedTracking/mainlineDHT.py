@@ -38,7 +38,7 @@ def init(addr, conf_path, swift_port):
                             private_dht_name,
                             log_level,
                             swift_port=swift_port)
-        logger.debug('dht: DHT running')
+        logger.debug('Swift DHT running')
     return dht
 
 def deinit(dht):
@@ -46,4 +46,4 @@ def deinit(dht):
         try:
             dht.stop()
         except:
-            pass
+            logger.exception('could not stop Swift DHT')

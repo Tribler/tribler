@@ -26,6 +26,7 @@ class TestTorrentChecking(TestAsServer):
         TestAsServer.setUpPreSession(self)
         self.config.set_torrent_checking(True)
         self.config.set_megacache(True)
+        self.config.set_torrent_checking_period(5.0)
 
     # ------------------------------------------------------------
     # Unit Test for TorrentChecking thread.
@@ -36,9 +37,11 @@ class TestTorrentChecking(TestAsServer):
         tdef.metainfo_valid = True
 
         self.tdb.addExternalTorrent(tdef)
-        sleep(30)
+        sleep(15)
 
         torrent = self.tdb.getTorrent(tdef.get_infohash())
+        self._logger.debug('got torrent %s', torrent)
+
         num_seeders = torrent['num_seeders']
         num_leechers = torrent['num_leechers']
         assert num_leechers >= 0 or num_seeders >= 0, (num_leechers, num_seeders)

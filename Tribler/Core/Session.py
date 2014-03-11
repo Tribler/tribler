@@ -517,9 +517,9 @@ class Session(SessionConfigInterface):
 
         self.lm.rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
 
-    def download_torrentmessages_from_peer(self, candidate, infohashes, usercallback, prio=0):
-        """ Ask the designated peer to send us the torrentfile for the torrent
-        identified by the passed infohash. If the torrent is succesfully
+    def download_torrentmessage_from_peer(self, candidate, infohash, usercallback, prio=0):
+        """ Ask the designated peer to send us the torrentmessage for the torrent
+        identified by the passed infohash. If the torrentmessage is succesfully
         received, the usercallback method is called with the infohash as first
         and the contents of the torrentfile (bencoded dict) as second parameter.
         If the torrent could not be obtained, the callback is not called.
@@ -533,7 +533,7 @@ class Session(SessionConfigInterface):
         if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrentmessages(candidate, infohashes, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrentmessage(candidate, infohash, usercallback, prio)
 
     def get_dispersy_instance(self):
         if not self.get_dispersy():

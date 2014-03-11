@@ -241,7 +241,7 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking = None
 
     def init(self):
-        if self.session.get_mainline_dht():
+        if self.spm:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             try:
                 self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.get_mainline_dht_listen_port()), self.session.get_state_dir(), self.session.get_swift_cmd_listen_port())
@@ -256,13 +256,6 @@ class TriblerLaunchMany(Thread):
 
         # add task for tracker checking
         if self.session.get_torrent_checking():
-            if self.session.get_mainline_dht():
-                # Create torrent-liveliness checker based on DHT
-                from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
-
-                c = mainlineDHTChecker.getInstance()
-                c.register(self.mainline_dht)
-
             try:
                 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
                 self.torrent_checking_period = self.session.get_torrent_checking_period()

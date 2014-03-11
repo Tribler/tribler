@@ -38,7 +38,7 @@ class UserCallbackHandler(object):
             try:
                 usercallback(d, event, params)
             except:
-                self._logger.exception("User callback failure")
+                self._logger.exception('Could not perform vodcallback')
         self.perform_usercallback(session_vod_usercallback_target)
 
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
@@ -50,7 +50,7 @@ class UserCallbackHandler(object):
                 (when, getpeerlist) = usercallback(data)
                 returncallback(usercallback, when, getpeerlist)
             except:
-                self._logger.exception("Callback failure")
+                self._logger.exception('Could not perform usercallback')
         self.perform_usercallback(session_getstate_usercallback_target)
 
     def perform_removestate_callback(self, infohash, contentdests):

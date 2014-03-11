@@ -76,6 +76,7 @@ class TorrentManager:
 
         # Requests for torrents
         self.requestedTorrents = set()
+        self.requestedTorrentsMessages = set()
 
         # For asking for a refresh when remote results came in
         self.gridmgr = None
@@ -202,23 +203,22 @@ class TorrentManager:
             # only add to requestedTorrents if we have peers
             self.requestedTorrents.add(torrent.infohash)
 
-            candidates = list(torrent.query_candidates)
-            for candidate in candidates:
+            for candidate in torrent.query_candidates:
                 self.session.download_torrentfile_from_peer(candidate, torrent.infohash, torrent.swift_torrent_hash, callback, prio)
 
         return True
 
-    def downloadTorrentmessagesFromPeer(self, candidate, torrents, callback=None, prio=0):
+    def downloadTorrentmessageFromPeer(self, torrent, callback=None, duplicate=True, prio=0):
         """
         TORRENT is a GuiDBTuple containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
-
+        
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
-
-        DUPLICATE can be True: the file will be downloaded from peers
+        
+        DUPLICATE can be True: the message will be downloaded from peers
         regardless of a previous/current download attempt (returns
-        True). Or DUPLICATE can be False: the file will only be
+        True). Or DUPLICATE can be False: the message will only be
         downloaded when it was not yet attempted to download (when
         False is returned no callback will be made)
 
@@ -227,8 +227,19 @@ class TorrentManager:
 
         Returns True or False
         """
-        infohashes = set([torrent.infohash for torrent in torrents])
-        self.session.download_torrentmessages_from_peer(candidate, infohashes, callback, prio)
+        # return False when duplicate
+        if not duplicate and torrent.infohash in self.requestedTorrentsMessages:
+            return False
+
+        if torrent.query_candidates == None or len(torrent.query_candidates) == 0:
+            return False
+
+        else:
+            # only add to requestedTorrents if we have peers
+            self.requestedTorrentsMessages.add(torrent.infohash)
+
+            for candidate in torrent.query_candidates:
+                self.session.download_torrentmessage_from_peer(candidate, torrent.infohash, callback, prio)
         return True
 
     def downloadTorrent(self, torrent, dest=None, secret=False, vodmode=False, selectedFiles=None):
@@ -280,9 +291,14 @@ class TorrentManager:
 
                 trackers.extend(self.torrent_db.getTrackerListByTorrentID(torrent_id))
 
+                if 'DHT' in trackers:
+                    trackers.remove('DHT')
+                if 'no-DHT' in trackers:
+                    trackers.remove('no-DHT')
+
                 if len(files) > 0:
                     # We still call getTorrent to fetch .torrent
-                    self.getTorrent(torrent, None, prio=1)
+                    self.getTorrent(torrent, None)
 
                     torrent = NotCollectedTorrent(torrent, files, trackers)
                 else:
@@ -444,36 +460,36 @@ class TorrentManager:
         """
         begin_time = time()
 
-        def sesscb_prefetch_done(infohash):
-            # find the original hit
-            for hit in self.hits:
-                if hit.infohash == infohash:
-                    self._logger.debug("Prefetch: in %.1fs %s", time() - begin_time, hit.name)
-                    return
-            self._logger.debug("Prefetch BUG. We got a hit from something we didn't ask for")
+        def sesscb_prefetch_done(torrent_fn):
+            try:
+                tdef = TorrentDef.load(torrent_fn)
+
+                # find the original hit
+                for hit in self.hits:
+                    if hit.infohash == tdef.get_infohash():
+                        self._logger.debug("Prefetch: in %.1fs %s", time() - begin_time, hit.name)
+                        return
+                self._logger.debug("Prefetch BUG. We got a hit from something we didn't ask for")
+            except:
+                pass
 
         # we will prefetch 2 types of torrents, full .torrent files and torrentmessages (only containing the info dict)
         hit_counter_limit = [25, 150]
         prefetch_counter = [0, 0]
-        prefetch_counter_limit = [3, 15]
-
-        to_be_prefetched = {}
+        prefetch_counter_limit = [5, 10]
 
         for i, hit in enumerate(self.hits):
             torrent_filename = self.getCollectedFilename(hit, retried=True)
             if not torrent_filename:
                 # this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
-                    if self.downloadTorrentfileFromPeers(hit, lambda infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
+                    if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False, prio=1):
                         self._logger.debug("Prefetch: attempting to download actual torrent %s", hit.name)
                         prefetch_counter[0] += 1
 
                 elif prefetch_counter[1] < prefetch_counter_limit[1] and i < hit_counter_limit[1]:
-                    if hit.query_candidates and len(hit.query_candidates) > 0:
-                        for candidate in hit.query_candidates:
-                            if candidate not in to_be_prefetched:
-                                to_be_prefetched[candidate] = set()
-                            to_be_prefetched[candidate].add(hit)
+                    if self.downloadTorrentmessageFromPeer(hit, None, duplicate=False, prio=1):
+                        self._logger.debug("Prefetch: attempting to download torrent message %s", hit.name)
                         prefetch_counter[1] += 1
                 else:
                     break
@@ -481,9 +497,6 @@ class TorrentManager:
             else:
                 # schedule health check
                 TorrentChecking.getInstance().addGuiRequest(hit)
-
-        for candidate, torrents in to_be_prefetched.iteritems():
-            self.downloadTorrentmessagesFromPeer(candidate, torrents, None, prio=1)
 
     def getSearchKeywords(self):
         return self.searchkeywords, len(self.hits), self.filteredResults
