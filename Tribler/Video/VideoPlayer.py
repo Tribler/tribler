@@ -197,4 +197,4 @@ class VideoPlayer:
 
         self._logger.debug("Videoplayer: using external user-defined player by executing %s", cmd)
 
-        return cmd
+        return cmd

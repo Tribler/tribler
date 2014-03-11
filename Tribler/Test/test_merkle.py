@@ -6,13 +6,15 @@ import unittest
 from tempfile import mkstemp
 import os
 from types import StringType, DictType
-from math import ceil
+from math import ceil, log
+from traceback import print_exc
+import sha
 
-from Tribler.Core.API import *
-from Tribler.Core.Merkle.merkle import *
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Merkle.merkle import MerkleTree, \
+    get_tree_height, create_tree, get_hashes_for_piece
 from Tribler.Core.Utilities.bencode import bdecode
 
-from traceback import print_exc
 
 DEBUG = False
 
@@ -110,8 +112,7 @@ class TestMerkleHashes(unittest.TestCase):
         self.assertEquals(self.calc_digest(data), digest, msg)
 
     def calc_digest(self, data):
-        digester = sha()
-        digester.update(data)
+        digester = sha.new(data)
         return digester.digest()
 
     def _test_8piece_tree_uncle_calc(self):

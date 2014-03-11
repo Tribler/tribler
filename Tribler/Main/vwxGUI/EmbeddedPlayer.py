@@ -12,7 +12,8 @@ import logging
 from threading import currentThread
 from traceback import print_exc
 
-from Tribler.Video.defs import *
+from Tribler.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
+    MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
 from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager

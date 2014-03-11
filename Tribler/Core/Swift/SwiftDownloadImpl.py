@@ -27,6 +27,7 @@
 #       (Linux done)
 #
 
+import os
 import time
 import shutil
 import logging
@@ -34,8 +35,11 @@ import logging
 from traceback import print_exc
 from Tribler.Core import NoDispersyRLock
 
-from Tribler.Core.simpledefs import *
-from Tribler.Core.DownloadState import *
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, DLSTATUS_WAITING4HASHCHECK, \
+    DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLMODE_VOD, DLMODE_NORMAL, VODEVENT_START, \
+    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
+from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 from Tribler.Main.globals import DownloadStartupConfig
 

@@ -39,7 +39,7 @@ class UserCallbackHandler(object):
                 (when, getpeerlist) = usercallback(data)
                 returncallback(usercallback, when, getpeerlist)
             except:
-                self._logger.exception()
+                self._logger.exception('Could not perform usercallback')
         self.perform_usercallback(session_getstate_usercallback_target)
 
     def perform_removestate_callback(self, infohash, contentdests):
@@ -51,7 +51,7 @@ class UserCallbackHandler(object):
             try:
                 self.sesscb_removestate(infohash, contentdests)
             except:
-                self._logger.exception()
+                self._logger.exception("Could not remove state")
         self.perform_usercallback(session_removestate_callback_target)
 
     def perform_usercallback(self, target):
@@ -82,7 +82,7 @@ class UserCallbackHandler(object):
                 os.remove(filename)
         except:
             # Show must go on
-            self._logger.exception()
+            self._logger.exception("Could not remove state")
 
     def notify(self, subject, changeType, obj_id, *args):
         """

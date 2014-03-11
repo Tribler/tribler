@@ -1,23 +1,21 @@
 import os
-import sys
 import unittest
 
 from time import time
-from binascii import unhexlify, hexlify
+from binascii import unhexlify
 from shutil import copy as copyFile
+
+from Tribler.Test.test_as_server import AbstractServer
+from Tribler.Test.bak_tribler_sdb import FILES_DIR, init_bak_tribler_sdb
 
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from bak_tribler_sdb import *
-
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler,\
-    MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler,\
-    VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler,\
-    MiscDBHandler
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Test.test_as_server import AbstractServer
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, \
+    MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler, \
+    NetworkBuzzDBHandler, MiscDBHandler
+
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
 M_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_multiple.torrent')

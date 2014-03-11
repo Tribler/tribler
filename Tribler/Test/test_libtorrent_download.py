@@ -6,7 +6,6 @@ from time import time
 
 import binascii
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 DEBUG = True
 

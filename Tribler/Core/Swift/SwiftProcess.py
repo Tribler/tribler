@@ -8,14 +8,13 @@ import binascii
 import urllib
 import json
 import logging
-from threading import RLock
+from threading import RLock, currentThread, Thread
 from traceback import print_exc
 from collections import defaultdict
 
-from Tribler.Core.simpledefs import *
-# from Tribler.Utilities.Instance2Instance import *
-from Tribler.Utilities.FastI2I import *
-from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, VODEVENT_START, \
+    DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Utilities.FastI2I import FastI2IConnection
 
 try:
     WindowsError

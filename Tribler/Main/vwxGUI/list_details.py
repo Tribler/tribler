@@ -1,27 +1,39 @@
 # Written by Niels Zeilemaker, Egbert Bouman
 import os
+import sys
 import re
 import binascii
+from time import time
 import logging
+import copy
+import wx
 
-from __init__ import *
 from Tribler.Core.osutils import startfile
-from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
-    DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA, DLMODE_NORMAL, UPLOAD, DOWNLOAD, NTFY_TORRENTS, \
+from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
+    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
+    DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, \
+    DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS, \
     NTFY_VIDEO_STARTED, NTFY_VIDEO_STOPPED, NTFY_VIDEO_ENDED
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist, NotCollectedTorrent
+
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
+    CollectedTorrent, Channel, Playlist, NotCollectedTorrent
+from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, startWorker, \
+    GRADIENT_LGREY, GRADIENT_DGREY, THUMBNAIL_FILETYPES, GUI_PRI_DISPERSY, \
+    DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY, DOWNLOADING_COLOUR, \
+    SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
+from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
+    SelectableListCtrl, _set_font, BetterText as StaticText, \
+    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, \
+    FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
 from Tribler.Video.VideoPlayer import VideoPlayer
-import copy
 
 
 class AbstractDetails(FancyPanel):

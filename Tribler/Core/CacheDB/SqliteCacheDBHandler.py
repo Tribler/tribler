@@ -21,7 +21,11 @@ from struct import unpack_from
 import logging
 
 from Notifier import Notifier
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, \
+    NTFY_INSERT, NTFY_DELETE, NTFY_CREATE, NTFY_MODIFIED, NTFY_TRACKERINFO, \
+    NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS, NTFY_CHANNELCAST, \
+    NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, \
+    NTFY_MARKINGS, NTFY_STATE
 from Tribler.Core.Search.SearchManager import split_into_keywords, \
     filter_keywords
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -126,7 +130,7 @@ class MiscDBHandler(BasicDBHandler):
         st = self._db.fetchall(sql)
         self._torrent_status_name2id_dict.update(dict(st))
 
-        self._torrent_status_id2name_dict =\
+        self._torrent_status_id2name_dict = \
             dict([(x, y) for (y, x) in self._torrent_status_name2id_dict.iteritems()])
         self._torrent_status_id2name_dict[None] = 'unknown'
 
@@ -139,7 +143,7 @@ class MiscDBHandler(BasicDBHandler):
         self._category_name2id_dict.update(dict(ct))
         self._category_name2id_dict[u'unknown'] = 0
 
-        self._category_id2name_dict =\
+        self._category_id2name_dict = \
             dict([(x, y) for (y, x) in self._category_name2id_dict.iteritems()])
         self._category_id2name_dict[None] = u'unknown'
 
@@ -147,7 +151,7 @@ class MiscDBHandler(BasicDBHandler):
         sql = u'SELECT name, source_id FROM TorrentSource'
         st = self._db.fetchall(sql)
         self._torrent_source_name2id_dict = dict(st)
-        self._torrent_source_id2name_dict =\
+        self._torrent_source_id2name_dict = \
             dict([(x, y) for (y, x) in self._torrent_source_name2id_dict.iteritems()])
         self._torrent_source_id2name_dict[None] = u'unknown'
 
@@ -202,7 +206,7 @@ class PeerDBHandler(BasicDBHandler):
         return self.size()
 
     def getPeerID(self, permid):
-        return self.getPeerIDS([permid,])[0]
+        return self.getPeerIDS([permid, ])[0]
 
     def getPeerIDS(self, permids):
         to_select = []
@@ -375,7 +379,7 @@ class TorrentDBHandler(BasicDBHandler):
         self._nb = NetworkBuzzDBHandler.getInstance()
 
     def getTorrentID(self, infohash):
-        return self.getTorrentIDS([infohash,])[0]
+        return self.getTorrentIDS([infohash, ])[0]
 
     def getTorrentIDS(self, infohashes):
         to_select = []
@@ -536,7 +540,7 @@ class TorrentDBHandler(BasicDBHandler):
                 to_be_inserted.append(infohashes[i])
 
         status_id = self.misc_db.torrentStatusName2Id(u'good')
-        sql = "INSERT OR IGNORE INTO Torrent (infohash, status_id) VALUES (?, ?)"
+        sql = "INSERT INTO Torrent (infohash, status_id) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.getTorrentIDS(infohashes), to_be_inserted
 
@@ -913,6 +917,8 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.execute_write(sql,
             (seeders, leechers, last_check, next_check,
              status_id, retries, torrent_id))
+
+        self._logger.debug("cachedbhandler: update result %d/%d for %s/%d", seeders, leechers, bin2str(infohash), torrent_id)
 
         # notify
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)

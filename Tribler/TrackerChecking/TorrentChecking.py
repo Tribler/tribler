@@ -40,7 +40,6 @@ from Tribler.TrackerChecking.TrackerSession import MAX_TRACKER_MULTI_SCRAPE
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
-from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
 
 # some settings
@@ -81,7 +80,6 @@ class TorrentChecking(Thread):
         self._logger.debug('Starting TorrentChecking from %s.', threading.currentThread().getName())
         self.setDaemon(True)
 
-        self._mldhtchecker = mainlineDHTChecker.getInstance()
         self._torrentdb = TorrentDBHandler.getInstance()
         self._interrupt_socket = InterruptSocket()
 
@@ -537,6 +535,8 @@ class TorrentChecking(Thread):
 
                 last_time_select_torrent = current_time
                 time_remaining = self._torrent_select_interval
+            else:
+                self._logger.debug('TorrentChecking: Will wait for an interrupt for %.1f', time_remaining)
 
             # create read and write socket check list
             # check non-blocking connection TCP sockets if they are writable
@@ -580,7 +580,7 @@ class TorrentChecking(Thread):
                         session.handleRequest()
 
                     # check readable sockets
-                    self._logger.debug('TorrentChecking: got %d readable sockets', len(read_socket_list) - 1)
+                    self._logger.debug('TorrentChecking: got %d readable sockets', len(read_socket_list))
                     for read_socket in read_socket_list:
                         session = session_dict.get(read_socket, self._interrupt_socket)
                         session.handleRequest()
@@ -605,6 +605,8 @@ class TorrentChecking(Thread):
                             session = self._session_list[i]
 
                             if session.hasFailed() or session.hasFinished():
+                                self._logger.debug('TorrentChecking: session[%s] is %s', session.getTracker(), 'failed' if session.hasFailed() else 'finished')
+
                                 self._tracker_info_cache.updateTrackerInfo(session.getTracker(), session.hasFailed())
 
                                 # set torrent remaining responses

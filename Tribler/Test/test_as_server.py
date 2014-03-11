@@ -6,20 +6,19 @@ import unittest
 
 import os
 import sys
-import tempfile
-import random
 import shutil
 import time
 import gc
 import wx
 from PIL import Image
 import re
+import logging
 
 from traceback import print_exc
 from threading import enumerate as enumerate_threads
 
-from Tribler.Core.Session import *
-from Tribler.Core.SessionConfig import *
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -43,6 +42,8 @@ OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
 class AbstractServer(unittest.TestCase):
 
     def setUp(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.setUpCleanup()
         self.annotate_dict = {}
 

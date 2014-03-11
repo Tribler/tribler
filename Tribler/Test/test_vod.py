@@ -10,7 +10,7 @@ from M2Crypto import Rand
 from threading import Event
 
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, VODEVENT_START
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
