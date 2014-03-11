@@ -11,7 +11,6 @@ from .session import Socks5Session
 from .connection import Socks5Connection
 
 
-
 class NotEnoughCircuitsException(Exception):
     pass
 

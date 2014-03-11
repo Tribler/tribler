@@ -11,6 +11,7 @@ from collections import defaultdict
 
 # Tribler and Dispersy imports
 from twisted.internet import defer
+from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
@@ -104,7 +105,7 @@ class ProxyCommunity(Community):
     # noinspection PyMethodOverriding
     @classmethod
     def load_community(cls, dispersy, master, my_member, settings=None,
-                       integrate_with_tribler=True):
+                       tribler_session=None):
         try:
             dispersy.database.execute(
                 u"SELECT 1 FROM community WHERE master = ?",
@@ -112,12 +113,12 @@ class ProxyCommunity(Community):
         except StopIteration:
             return cls.join_community(
                 dispersy, master, my_member, my_member,
-                settings, integrate_with_tribler=integrate_with_tribler
+                settings, tribler_session=tribler_session
             )
         else:
             return super(ProxyCommunity, cls).load_community(
                 dispersy, master, settings,
-                integrate_with_tribler=integrate_with_tribler
+                tribler_session=tribler_session
             )
 
     @property
@@ -128,9 +129,10 @@ class ProxyCommunity(Community):
         return self.dispersy.crypto
 
     def __init__(self, dispersy, master_member, settings=None,
-                 integrate_with_tribler=True):
+                 tribler_session=None):
         """
         @type master_member: Tribler.dispersy.member.Member
+        @type tribler_session : Tribler.Core.Session.Session
         """
         self._original_on_introduction_request = None
         self._original_on_introduction_response = None
@@ -202,10 +204,12 @@ class ProxyCommunity(Community):
         dispersy.endpoint.listen_to(self.__packet_prefix, self.__handle_packet)
         dispersy.callback.register(self.__ping_circuits)
 
-        if integrate_with_tribler:
+        if tribler_session:
             from Tribler.Core.CacheDB.Notifier import Notifier
-
+            self.tribler_session = tribler_session
             self.notifier = Notifier.getInstance()
+
+            tribler_session.lm.rawserver.add_task(self.setup_anon_test)
         else:
             self.notifier = None
 
@@ -1116,3 +1120,85 @@ class ProxyCommunity(Community):
 
                 return True
         return False
+
+    def setup_anon_test(self):
+        import os
+        import glob
+        from stats import StatsCollector
+        import wx
+        from Tribler.Core.TorrentDef import TorrentDef
+        from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
+        from Tribler.Main.globals import DefaultDownloadStartupConfig
+
+        root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
+        hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
+
+        hosts = [("devristo.com", 51413)]
+
+        @forceWxThread
+        def thank_you(file_size, start_time, end_time):
+            avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
+            wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
+
+        def state_call(download):
+            stats_collector = StatsCollector(self)
+
+            def _callback(ds):
+                if ds.get_status() == DLSTATUS_DOWNLOADING:
+                    # for peer in hosts:
+                    #     download.add_peer(peer)
+
+                    if not _callback.download_started_at:
+                        _callback.download_started_at = time.time()
+                        stats_collector.start()
+
+                    stats_collector.download_stats = {
+                        'size': ds.get_progress() * ds.get_length(),
+                        'download_time': time.time() - _callback.download_started_at
+                    }
+
+                elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
+                    _callback.download_finished_at = time.time()
+                    _callback.download_completed = True
+                    stats_collector.download_stats = {
+                        'size': 50 * 1024 ** 2,
+                        'download_time': _callback.download_finished_at - _callback.download_started_at
+                    }
+
+                    stats_collector.share_stats()
+                    stats_collector.stop()
+                    thank_you(50 * 1024 ** 2, _callback.download_started_at, _callback.download_finished_at)
+                else:
+                    _callback.peer_added = False
+                return 1.0, False
+
+            _callback.download_completed = False
+            _callback.download_started_at = None
+            _callback.peer_added = False
+
+            return _callback
+
+        dest_dir = os.path.abspath("./.TriblerAnonTunnel/")
+        self.tribler_session.set_swift_meta_dir(dest_dir + "/swift_meta/")
+        try:
+            download = dest_dir + "/" + root_hash
+            for file in glob.glob(download + "*"):
+                os.remove(file)
+
+            meta = self.tribler_session.get_swift_meta_dir() + "/" + root_hash
+
+            for file in glob.glob(meta + "*"):
+                os.remove(file)
+        except:
+            self._logger.exception("Exception while deleting previously downloaded test")
+
+        tdef = TorrentDef.load("50M.torrent")
+        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+        dscfg = defaultDLConfig.copy()
+        ''' :type : DefaultDownloadStartupConfig '''
+
+        dscfg.set_anon_mode(True)
+        dscfg.set_dest_dir(dest_dir)
+
+        result = self.tribler_session.start_download(tdef, dscfg)
+        result.set_state_callback(state_call(result), delay=1)

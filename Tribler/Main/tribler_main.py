@@ -515,10 +515,10 @@ class ABCApp():
             dispersy.define_auto_load(SearchCommunity,
                                      (s.dispersy_member,),
                                      load=True)
-            # dispersy.define_auto_load(AllChannelCommunity,
-            #                               (s.dispersy_member,),
-            #                               {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
-            #                               load=True)
+            dispersy.define_auto_load(AllChannelCommunity,
+                                          (s.dispersy_member,),
+                                          {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                          load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
@@ -528,23 +528,18 @@ class ABCApp():
             #                               (swift_process,),
             #                               load=True)
 
-            # dispersy.define_auto_load(ChannelCommunity, load=True)
-            # dispersy.define_auto_load(PreviewChannelCommunity)
+            dispersy.define_auto_load(ChannelCommunity, load=True)
+            dispersy.define_auto_load(PreviewChannelCommunity)
 
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))
 
-            proxy_community = dispersy.define_auto_load(ProxyCommunity,
-                                     (dispersy_member,),
-                                     load=True)
+            proxy_community = dispersy.define_auto_load(
+                ProxyCommunity, (dispersy_member, None, s), load=True)
 
             socks_server = Socks5Server(proxy_community[0], s.lm.rawserver)
             socks_server.start()
             exitstrategies.DefaultExitStrategy(s.lm.rawserver, proxy_community[0])
-
-            delay = ANON_DOWNLOAD_DELAY
-
-            s.lm.rawserver.add_task(lambda: self.setup_anon_test(socks_server.tunnel, self.frame), delay)
 
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
@@ -554,86 +549,11 @@ class ABCApp():
 
         return s
 
-    # TODO: this has to be moved, we cannot pollute the main.py file with stuff like this
-    def setup_anon_test(self, tunnel, frame):
-        if not frame:
-            self.utility.session.lm.rawserver.add_task(lambda: self.setup_anon_test(tunnel, self.frame), 5.0)
-            return
-
-        root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
-        hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
-
-        @forceWxThread
-        def thank_you(file_size, start_time, end_time):
-            avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
-            wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
-
-        def state_call(download):
-            stats_collector = StatsCollector(tunnel)
-
-            def _callback(ds):
-                if ds.get_status() == DLSTATUS_DOWNLOADING:
-                    if not _callback.download_started_at:
-                        _callback.download_started_at = time_module.time()
-                        stats_collector.start()
-
-                    stats_collector.download_stats = {
-                        'size': ds.get_progress() * ds.get_length(),
-                        'download_time': time_module.time() - _callback.download_started_at
-                    }
-
-                elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
-                    _callback.download_finished_at = time_module.time()
-                    _callback.download_completed = True
-                    stats_collector.download_stats = {
-                        'size': 50 * 1024 ** 2,
-                        'download_time': _callback.download_finished_at - _callback.download_started_at
-                    }
-
-                    stats_collector.share_stats()
-                    stats_collector.stop()
-                    thank_you(50 * 1024 ** 2, _callback.download_started_at, _callback.download_finished_at)
-                else:
-                    _callback.peer_added = False
-                return 1.0, False
-
-            _callback.download_completed = False
-            _callback.download_started_at = None
-            _callback.peer_added = True
-
-            return _callback
-
-        dest_dir = os.path.abspath("./.TriblerAnonTunnel/")
-        self.sconfig.set_swift_meta_dir(dest_dir + "/swift_meta/");
-        try:
-            download = dest_dir + "/" + root_hash
-            for file in glob.glob(download + "*"):
-                os.remove(file)
-
-            meta = self.sconfig.get_swift_meta_dir() + "/" + root_hash
-
-            for file in glob.glob(meta + "*"):
-                os.remove(file)
-        except BaseException, e:
-            print_exc()
-
-        def __magnet_loaded(sdef):
-            # sdef.set_name("AnonTunnel test (50 MB)")
-            result = frame.startDownload(tdef=sdef, destdir=dest_dir, anon_mode=True)
-            result.set_state_callback(state_call(result), delay=1)
-
-
-        TorrentDef.retrieve_from_magnet(
-            "magnet:?xt=urn:btih:YHM6QQKW6A3O2PGAC7ESZS7C2TC4OVDG&tr=udp%3A%2F%2Fdevristo.com%3A1337%2Fannounce",
-            __magnet_loaded)
-
-        # sdef = SwiftDef.load_from_url("tswift://" + hosts[0][0] + ":" + str(hosts[0][1]) + "/" + root_hash)
 
     @staticmethod
     def determine_install_dir():
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
-
         # apply trick to obtain the executable location
         # see http://www.py2exe.org/index.cgi/WhereAmI
         # Niels, 2012-01-31: py2exe should only apply to windows

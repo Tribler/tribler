@@ -143,6 +143,12 @@ class SessionConfigInterface(object):
         self.sessconfig.set('general', 'minport', port)
         self.sessconfig.set('general', 'maxport', port)
 
+    def set_socks5_listen_port(self, port):
+        self.sessconfig.set('socks5', 'listen_port', port)
+
+    def get_socks5_listen_port(self):
+        return self.sessconfig.get('socks5', 'listen_port')
+
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.
         @return Port number. """
