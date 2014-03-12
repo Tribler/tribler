@@ -2,7 +2,6 @@
 
 # see LICENSE.txt for license information
 import wx
-import wx.xrc as xrc
 import wx.lib.imagebrowser as ib
 import sys
 import os
@@ -16,18 +15,53 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, \
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_picture_dir
+from Tribler.Core.Utilities.utilities import isInteger
+
+from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
-from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
-from Tribler.Core.Utilities.utilities import isInteger
+from Tribler.Main.vwxGUI.widgets import _set_font
+
+
+def create_section(parent, hsizer, label):
+    panel = wx.Panel(parent)
+
+    vsizer = wx.BoxSizer(wx.VERTICAL)
+
+    title = wx.StaticText(panel, label=label)
+    _set_font(title, 1, wx.FONTWEIGHT_BOLD)
+    vsizer.Add(title, 0, wx.EXPAND | wx.BOTTOM, 7)
+
+    hsizer.Add(panel, 1, wx.EXPAND)
+    panel.SetSizer(vsizer)
+    return panel, vsizer
+
+def create_subsection(parent, parent_sizer, label, num_cols=1, vgap=0, hgap=0):
+    line = wx.StaticLine(parent, size=(-1,1), style=wx.LI_HORIZONTAL)
+    parent_sizer.Add(line, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 7)
+
+    title = wx.StaticText(parent, label=label)
+    _set_font(title, 0, wx.FONTWEIGHT_BOLD)
+    parent_sizer.Add(title, 0, wx.EXPAND)
+
+    if num_cols == 1:
+        sizer = wx.BoxSizer(wx.VERTICAL)
+    else:
+        sizer = wx.FlexGridSizer(cols=num_cols, vgap=vgap, hgap=hgap)
+        sizer.AddGrowableCol(1)
+
+    parent_sizer.Add(sizer, 0, wx.EXPAND)
+    return sizer
 
 
 class SettingsDialog(wx.Dialog):
 
     def __init__(self):
+        super(SettingsDialog, self).__init__(None, size=(600, 600),
+            title="Settings", name="settingsDialog")
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.elementsName = ['myNameField',
+        self.ELEMENT_NAME_LIST = ['myNameField',
                              'thumb',
                              'edit',
                              'browse',
@@ -35,14 +69,6 @@ class SettingsDialog(wx.Dialog):
                              'firewallStatusText',
                              'uploadCtrl',
                              'downloadCtrl',
-                             'zeroUp',
-                             'fiftyUp',
-                             'hundredUp',
-                             'unlimitedUp',
-                             'seventyfiveDown',
-                             'threehundredDown',
-                             'sixhundreddDown',
-                             'unlimitedDown',
                              'diskLocationCtrl',
                              'diskLocationChoice',
                              'portChange',
@@ -62,56 +88,59 @@ class SettingsDialog(wx.Dialog):
         self.elements = {}
         self.currentPortValue = None
 
-        pre = wx.PreDialog()
-        self.PostCreate(pre)
-        if sys.platform == 'linux2':
-            self.Bind(wx.EVT_SIZE, self.OnCreate)
-        else:
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        self.__init_dialog()
 
-    def OnCreate(self, event):
-        if sys.platform == 'linux2':
-            self.Unbind(wx.EVT_SIZE)
-        else:
-            self.Unbind(wx.EVT_WINDOW_CREATE)
+    def __create_dialog(self):
+        self._tree_ctrl = wx.TreeCtrl(self, name="settings_tree",
+            style=wx.TR_DEFAULT_STYLE | wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_SINGLE)
+        self._tree_ctrl.SetMinSize(wx.Size(150, -1))
+        tree_root = self._tree_ctrl.AddRoot('Root')
+        self._tree_ctrl.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
-        wx.CallAfter(self._PostInit)
-        event.Skip()
-        return True
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.Add(self._tree_ctrl, 0, wx.EXPAND | wx.RIGHT, 10)
 
-    def _PostInit(self):
+        self._general_panel, self._general_id = self.__create_s1(tree_root, hsizer)
+        self._conn_panel, self._conn_id = self.__create_s2(tree_root, hsizer)
+        self._bandwidth_panel, self._bandwidth_id = self.__create_s3(tree_root, hsizer)
+        self._seeding_panel, self._seeding_id = self.__create_s4(tree_root, hsizer)
+        self._experimental_panel, self._experimental_id = self.__create_s5(tree_root, hsizer)
+
+        self._general_panel.Show(True)
+        self._conn_panel.Show(False)
+        self._bandwidth_panel.Show(False)
+        self._seeding_panel.Show(False)
+        self._experimental_panel.Show(False)
+
+        self._save_btn = wx.Button(self, wx.ID_OK, label="Save")
+        self._cancel_btn = wx.Button(self, wx.ID_CANCEL, label="Cancel")
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        btn_sizer.AddButton(self._save_btn)
+        btn_sizer.AddButton(self._cancel_btn)
+        btn_sizer.Realize()
+
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.Add(hsizer, 1, wx.EXPAND)
+        vsizer.Add(btn_sizer, 0, wx.EXPAND)
+        self.SetSizer(vsizer)
+
+    def __init_dialog(self):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
-        dialog = xrc.XRCCTRL(self, "settingsDialog")
-        for element in self.elementsName:
-            xrcElement = xrc.XRCCTRL(dialog, element)
-            if not xrcElement:
-                self._logger.info('settingsOverviewPanel: Error: Could not identify xrc element: %s', element)
-            self.elements[element] = xrcElement
+        self.__create_dialog()
 
-        # Building tree
-        self.tree = xrc.XRCCTRL(self, "settings_tree")
-        root = self.tree.AddRoot('Root')
-        self.tree.SelectItem(self.tree.AppendItem(root, 'General', data=wx.TreeItemData(xrc.XRCCTRL(self, "general_panel"))), True)
-        self.tree.AppendItem(root, 'Connection', data=wx.TreeItemData(xrc.XRCCTRL(self, "connection_panel")))
-        self.tree.AppendItem(root, 'Limits', data=wx.TreeItemData(xrc.XRCCTRL(self, "bandwidth_panel")))
-        self.tree.AppendItem(root, 'Seeding', data=wx.TreeItemData(xrc.XRCCTRL(self, "seeding_panel")))
-        self.tree.AppendItem(root, 'Experimental', data=wx.TreeItemData(xrc.XRCCTRL(self, "exp_panel")))
-        self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
+        for element_name in self.ELEMENT_NAME_LIST:
+            element = self.FindWindowByName(element_name)
+            if not element:
+                self._logger.info('settingsOverviewPanel: Error: Could not identify xrc element: %s', element_name)
+            self.elements[element_name] = element
+
+        self._tree_ctrl.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
         # Bind event listeners
-        self.elements['zeroUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(0, event))
-        self.elements['fiftyUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(50, event))
-        self.elements['hundredUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(100, event))
-        self.elements['unlimitedUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp('unlimited', event))
-
-        self.elements['seventyfiveDown'].Bind(wx.EVT_BUTTON, lambda event: self.setDown(75, event))
-        self.elements['threehundredDown'].Bind(wx.EVT_BUTTON, lambda event: self.setDown(300, event))
-        self.elements['sixhundreddDown'].Bind(wx.EVT_BUTTON, lambda event: self.setDown(600, event))
-        self.elements['unlimitedDown'].Bind(wx.EVT_BUTTON, lambda event: self.setDown('unlimited', event))
-
         self.elements['uploadCtrl'].Bind(wx.EVT_KEY_DOWN, self.removeUnlimited)
         self.elements['downloadCtrl'].Bind(wx.EVT_KEY_DOWN, self.removeUnlimited)
 
@@ -120,8 +149,8 @@ class SettingsDialog(wx.Dialog):
 
         self.elements['lt_proxytype'].Bind(wx.EVT_CHOICE, self.ProxyTypeChanged)
 
-        self.Bind(wx.EVT_BUTTON, self.saveAll, id=xrc.XRCID("wxID_OK"))
-        self.Bind(wx.EVT_BUTTON, self.cancelAll, id=xrc.XRCID("wxID_CANCEL"))
+        self._save_btn.Bind(wx.EVT_BUTTON, self.saveAll)
+        self._cancel_btn.Bind(wx.EVT_BUTTON, self.cancelAll)
 
         # Loading settings
         self.myname = self.utility.session.get_nickname()
@@ -205,20 +234,22 @@ class SettingsDialog(wx.Dialog):
 
         self.elements['enable_utp'].SetValue(self.utility.session.get_libtorrent_utp())
 
+        self._tree_ctrl.SelectItem(self._general_id)
+
         wx.CallAfter(self.Refresh)
 
     def OnSelectionChanging(self, event):
         old_item = event.GetOldItem()
         new_item = event.GetItem()
         try:
-            self.ShowPage(self.tree.GetItemData(new_item).GetData(), self.tree.GetItemData(old_item).GetData())
+            self.ShowPage(self._tree_ctrl.GetItemData(new_item).GetData(), self._tree_ctrl.GetItemData(old_item).GetData())
         except:
             pass
 
     def ShowPage(self, page, oldpage):
         if oldpage == None:
-            selection = self.tree.GetSelection()
-            oldpage = self.tree.GetItemData(selection).GetData()
+            selection = self._tree_ctrl.GetSelection()
+            oldpage = self._tree_ctrl.GetItemData(selection).GetData()
 
         oldpage.Hide()
 
@@ -578,3 +609,229 @@ class SettingsDialog(wx.Dialog):
         dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def __create_s1(self, tree_root, sizer):
+        general_panel, gp_vsizer = create_section(self, sizer, "General")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "General", data=wx.TreeItemData(general_panel))
+
+        # Tribler Profile
+        gp_s1_sizer = create_subsection(general_panel, gp_vsizer, "Tribler Profile", 2)
+
+        gp_s1_nickname_title = wx.StaticText(general_panel, -1, label="Nickname")
+        gp_s1_nickname_title.SetMinSize(wx.Size(100, -1))
+        gp_s1_nickname_text = wx.TextCtrl(general_panel, -1, name="myNameField", style=wx.TE_PROCESS_ENTER)
+        gp_s1_sizer.Add(gp_s1_nickname_title)
+        gp_s1_sizer.Add(gp_s1_nickname_text, 1, wx.EXPAND)
+
+        gp_s1_profile_image_title = wx.StaticText(general_panel, label="Profile Image")
+        gp_s1_sizer.Add(gp_s1_profile_image_title)
+        gp_s1_profile_image = wx.StaticBitmap(general_panel, size=(80,80), name="thumb")
+        gp_s1_profile_image_button = wx.Button(general_panel, label="Change Image", name="edit")
+        gp_s1_porfile_vsizer = wx.BoxSizer(wx.VERTICAL)
+        gp_s1_porfile_vsizer.Add(gp_s1_profile_image, 0, wx.LEFT, 1)
+        gp_s1_porfile_vsizer.Add(gp_s1_profile_image_button)
+        gp_s1_sizer.Add(gp_s1_porfile_vsizer, 0, wx.TOP, 3)
+
+        # Download Location
+        gp_s2_sizer = create_subsection(general_panel, gp_vsizer, "Download Location", 1)
+
+        gp_s2_label = wx.StaticText(general_panel, label="Save files to:")
+        gp_s2_sizer.Add(gp_s2_label)
+        gp_s2_hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        gp_s2_text = wx.TextCtrl(general_panel, name="diskLocationCtrl", style=wx.TE_PROCESS_ENTER)
+        gp_s2_hsizer.Add(gp_s2_text, 1, wx.ALIGN_CENTER_VERTICAL)
+        gp_s2_button = wx.Button(general_panel, label="Browse", name="browse")
+        gp_s2_hsizer.Add(gp_s2_button)
+        gp_s2_sizer.Add(gp_s2_hsizer, 0, wx.EXPAND)
+        gp_s2_checkbox = wx.CheckBox(general_panel,
+            label="Let me choose a location for every download", name="diskLocationChoice")
+        gp_s2_checkbox.SetValue(False)
+        gp_s2_sizer.Add(gp_s2_checkbox)
+
+        # Minimize
+        gp_s3_sizer = create_subsection(general_panel, gp_vsizer, "Minimize", 1)
+
+        gp_s3_checkbox = wx.CheckBox(general_panel, label="Minimize to tray", name="minimize_to_tray")
+        gp_s3_checkbox.SetValue(False)
+        gp_s3_sizer.Add(gp_s3_checkbox)
+
+        return general_panel, item_id
+
+    def __create_s2(self, tree_root, sizer):
+        conn_panel, cn_vsizer = create_section(self, sizer, "Connection")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Connection", data=wx.TreeItemData(conn_panel))
+
+        # Firewall-status
+        cn_s1_sizer = create_subsection(conn_panel, cn_vsizer, "Firewall-status", 2, 3)
+        cn_s1_port_label = wx.StaticText(conn_panel, label="Current port")
+        cn_s1_port_label.SetMinSize(wx.Size(80, -1))
+        cn_s1_sizer.Add(cn_s1_port_label)
+        cn_s1_port_text = wx.TextCtrl(conn_panel, name="firewallValue", style=wx.TE_PROCESS_ENTER)
+        cn_s1_sizer.Add(cn_s1_port_text)
+
+        cn_s1_status_label = wx.StaticText(conn_panel, label="Status")
+        cn_s1_sizer.Add(cn_s1_status_label)
+        cn_s1_status_text = wx.StaticText(conn_panel, name="firewallStatusText")
+        cn_s1_sizer.Add(cn_s1_status_text)
+
+        # BitTorrent proxy settings
+        cn_s2_sizer = create_subsection(conn_panel, cn_vsizer, "BitTorrent proxy settings", 2, 3)
+        cn_s2_type_label = wx.StaticText(conn_panel, label="Type")
+        cn_s2_sizer.Add(cn_s2_type_label)
+        cn_s2_type_choice = wx.Choice(conn_panel, name="lt_proxytype")
+        cn_s2_type_choice.AppendItems(["None", "Socks4", "Socks5",
+            "Socks5 with authentication", "HTTP", "HTTP with authentication"])
+        cn_s2_sizer.Add(cn_s2_type_choice)
+
+        cn_s2_server_label = wx.StaticText(conn_panel, label="Server")
+        cn_s2_sizer.Add(cn_s2_server_label, 0, wx.LEFT)
+        cn_s2_server_text = wx.TextCtrl(conn_panel, name="lt_proxyserver", style=wx.TE_PROCESS_ENTER)
+        cn_s2_sizer.Add(cn_s2_server_text, 0, wx.EXPAND)
+
+        cn_s2_port_label = wx.StaticText(conn_panel, label="Port")
+        cn_s2_sizer.Add(cn_s2_port_label, 0, wx.LEFT)
+        cn_s2_port_text = wx.TextCtrl(conn_panel, name="lt_proxyport", style=wx.TE_PROCESS_ENTER)
+        cn_s2_sizer.Add(cn_s2_port_text, 0, wx.EXPAND)
+
+        cn_s2_username_label = wx.StaticText(conn_panel, label="Username")
+        cn_s2_sizer.Add(cn_s2_username_label, 0, wx.LEFT)
+        cn_s2_username_text = wx.TextCtrl(conn_panel, name="lt_proxyusername", style=wx.TE_PROCESS_ENTER)
+        cn_s2_sizer.Add(cn_s2_username_text, 0, wx.EXPAND)
+
+        cn_s2_password_label = wx.StaticText(conn_panel, label="Password")
+        cn_s2_sizer.Add(cn_s2_password_label, 0, wx.LEFT)
+        cn_s2_password_text = wx.TextCtrl(conn_panel, name="lt_proxypassword",
+            style=wx.TE_PROCESS_ENTER | wx.TE_PASSWORD)
+        cn_s2_sizer.Add(cn_s2_password_text, 0, wx.EXPAND)
+
+        # BitTorrent features
+        cn_s3_sizer = create_subsection(conn_panel, cn_vsizer, "BitTorrent features", 1)
+        cn_s3_check = wx.CheckBox(conn_panel, size=(200,50), name="enable_utp",
+            label="Enable bandwidth management (uTP)")
+        cn_s3_sizer.Add(cn_s3_check, 0, wx.EXPAND)
+
+        return conn_panel, item_id
+
+    def __create_s3(self, tree_root, sizer):
+        bandwidth_panel, bp_vsizer = create_section(self, sizer, "Bandwidth")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Bandwidth", data=wx.TreeItemData(bandwidth_panel))
+
+        # Bandwidth Limits
+        bp_s1_sizer = create_subsection(bandwidth_panel, bp_vsizer, "Bandwidth Limits", 1)
+        bp_s1_limitupload_label = wx.StaticText(bandwidth_panel, label="Limit upload rate")
+        bp_s1_sizer.Add(bp_s1_limitupload_label)
+        bp_s1_hsizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        bp_s1_p1_text = wx.TextCtrl(bandwidth_panel, name="uploadCtrl")
+        bp_s1_hsizer1.Add(bp_s1_p1_text)
+        bp_s1_p1_label = wx.StaticText(bandwidth_panel, label="KB/s")
+        bp_s1_hsizer1.Add(bp_s1_p1_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
+        bp_s1_hsizer1.AddStretchSpacer(1)
+        # up buttons
+        for btn_label1 in ("0", "50", "100", "unlimited"):
+            bp_s1_p1_btn = wx.Button(bandwidth_panel, label=btn_label1, style=wx.BU_EXACTFIT)
+            bp_s1_p1_btn.Bind(wx.EVT_BUTTON, lambda event: self.setUp(btn_label1, event))
+            bp_s1_hsizer1.Add(bp_s1_p1_btn)
+        bp_s1_sizer.Add(bp_s1_hsizer1, 0, wx.EXPAND)
+
+        bp_s1_limitdownload_label = wx.StaticText(bandwidth_panel, label="Limit download rate")
+        bp_s1_sizer.Add(bp_s1_limitdownload_label)
+        bp_s1_hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        bp_s1_p2_text = wx.TextCtrl(bandwidth_panel, name="downloadCtrl")
+        bp_s1_hsizer2.Add(bp_s1_p2_text)
+        bp_s1_p2_label = wx.StaticText(bandwidth_panel, label="KB/s")
+        bp_s1_hsizer2.Add(bp_s1_p2_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
+        bp_s1_hsizer2.AddStretchSpacer(1)
+        # down buttons
+        for btn_label2 in ("75", "300", "600", "unlimited"):
+            bp_s1_p2_btn = wx.Button(bandwidth_panel, label=btn_label2, style=wx.BU_EXACTFIT)
+            bp_s1_p2_btn.Bind(wx.EVT_BUTTON, lambda event: self.setDown(btn_label2, event))
+            bp_s1_hsizer2.Add(bp_s1_p2_btn)
+        bp_s1_sizer.Add(bp_s1_hsizer2, 0, wx.EXPAND)
+
+        return bandwidth_panel, item_id
+
+    def __create_s4(self, tree_root, sizer):
+        seeding_panel, sd_vsizer = create_section(self, sizer, "Seeding")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Seeding", data=wx.TreeItemData(seeding_panel))
+
+        # BitTorrent-peers
+        sd_s1_sizer = create_subsection(seeding_panel, sd_vsizer, "BitTorrent-peers", 2)
+        sd_s1_radio_btn1 = wx.RadioButton(seeding_panel, label="Seed until UL/DL ratio >",
+            name="t4t0", style=wx.RB_GROUP)
+        sd_s1_sizer.Add(sd_s1_radio_btn1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sd_s1_choice = wx.Choice(seeding_panel, name="t4t0choice")
+        sd_s1_choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
+        sd_s1_sizer.Add(sd_s1_choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+
+        sd_s1_radio_btn2 = wx.RadioButton(seeding_panel,
+            label="Unlimited seeding", name="t4t1")
+        sd_s1_sizer.Add(sd_s1_radio_btn2, 0, wx.ALIGN_CENTER_VERTICAL)
+        sd_s1_sizer.AddStretchSpacer()
+
+        sd_s1_radio_btn3 = wx.RadioButton(seeding_panel,
+            label="Seeding for (hours:minutes)", name="t4t2")
+        sd_s1_sizer.Add(sd_s1_radio_btn3, 0, wx.ALIGN_CENTER_VERTICAL)
+        sd_s1_text = wx.TextCtrl(seeding_panel, name="t4t2text",
+            style=wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sd_s1_sizer.Add(sd_s1_text)
+
+        sd_s1_radio_btn4 = wx.RadioButton(seeding_panel,
+            label="No seeding", name="t4t3")
+        sd_s1_sizer.Add(sd_s1_radio_btn4, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        # Tribler-peers
+        sd_s2_sizer = create_subsection(seeding_panel, sd_vsizer, "Tribler-peers", 2)
+        sd_s2_radio_btn1 = wx.RadioButton(seeding_panel, label="Seed to peers with UL/DL ratio",
+            name="g2g0", style=wx.RB_GROUP)
+        sd_s2_sizer.Add(sd_s2_radio_btn1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sd_s2_choice = wx.Choice(seeding_panel, name="g2g0choice")
+        sd_s2_choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
+        sd_s2_sizer.Add(sd_s2_choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+
+        sd_s2_radio_btn2 = wx.RadioButton(seeding_panel,
+            label="Unlimited seeding (Boost your reputation)", name="g2g1")
+        sd_s2_sizer.Add(sd_s2_radio_btn2, 0, wx.ALIGN_CENTER_VERTICAL)
+        sd_s2_sizer.AddStretchSpacer(1)
+
+        sd_s2_radio_btn3 = wx.RadioButton(seeding_panel,
+            label="Seeding for (hours:minutes)", name="g2g2")
+        sd_s2_sizer.Add(sd_s2_radio_btn3, 0, wx.ALIGN_CENTER_VERTICAL)
+        sd_s2_text = wx.TextCtrl(seeding_panel, name="g2g2text",
+            style=wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        sd_s2_sizer.Add(sd_s2_text)
+
+        sd_s2_radio_btn4 = wx.RadioButton(seeding_panel,
+            label="No seeding", name="g2g3")
+        sd_s2_sizer.Add(sd_s2_radio_btn4, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        sd_vsizer.AddStretchSpacer(1)
+
+        sd_faq_text = wx.StaticText(seeding_panel, label="Why differ between 'normal' BitTorrent and Tribler-peers?\nBecause between Tribler-peers you will build up a repuation.\nThis is not the case for 'normal' BitTorrent-peers.")
+        sd_vsizer.Add(sd_faq_text)
+
+        return seeding_panel, item_id
+
+    def __create_s5(self, tree_root, sizer):
+        exp_panel, exp_vsizer = create_section(self, sizer, "Experimental")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Experimental", data=wx.TreeItemData(exp_panel))
+
+        # Web UI
+        exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Web UI", 2, 3)
+        exp_s1_check = wx.CheckBox(exp_panel, label="Enable webUI", name="use_webui")
+        exp_s1_sizer.Add(exp_s1_check, 0, wx.EXPAND)
+        exp_s1_sizer.AddStretchSpacer()
+        exp_s1_port_label = wx.StaticText(exp_panel, label="Current port")
+        exp_s1_port_label.SetMinSize(wx.Size(100, -1))
+        exp_s1_sizer.Add(exp_s1_port_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        exp_s1_port_text = wx.TextCtrl(exp_panel, name="webui_port", style=wx.TE_PROCESS_ENTER)
+        exp_s1_sizer.Add(exp_s1_port_text)
+
+        exp_s1_faq_text = wx.StaticText(exp_panel, label="The Tribler webUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\n\nFurthermore, we additionally allow you to control Tribler using your Browser. Go to http://localhost:PORT/gui to view your \ndownloads in the browser.")
+        exp_vsizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
+
+        return exp_panel, item_id
