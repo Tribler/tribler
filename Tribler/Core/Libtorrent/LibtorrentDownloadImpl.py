@@ -10,7 +10,11 @@ from traceback import print_exc
 import logging
 
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.simpledefs import *
+
+from Tribler.Core.simpledefs import DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, \
+    DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, \
+    UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLMODE_VOD, NTFY_INSERT, NTFY_ACT_MEET, DLSTATUS_STOPPED_ON_ERROR, \
+    NTFY_ACTIVITIES, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
 from Tribler.Core.APIImplementation import maketorrent
