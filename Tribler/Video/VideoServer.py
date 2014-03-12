@@ -5,6 +5,7 @@
 import sys
 import logging
 import cherrypy
+import threading
 import mimetypes
 
 from threading import Event
@@ -56,7 +57,7 @@ class VideoServer:
             self.server = cherrypy._cpserver.Server()
             self.server.bind_addr = ('127.0.0.1', self.port)
             self.server.socket_timeout = 3600
-            self.server.shutdown_timeout = 10
+            self.server.shutdown_timeout = 5
             self.server.protocol_version = 'HTTP/1.1'
             self.server.thread_pool = 1
             self.server.subscribe()
@@ -65,7 +66,12 @@ class VideoServer:
 
     def stop(self):
         if self.started:
-            self.server.stop()
+            try:
+                self.server.stop()
+            except:
+                for thread in threading.enumerate():
+                    if thread.name.startswith('CP Server'):
+                        thread.join()
 
     @cherrypy.expose
     def default(self, downloadhash, fileindex):
