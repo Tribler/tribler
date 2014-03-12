@@ -1,4 +1,5 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
+from collections import defaultdict
 import hashlib
 import logging
 import random
@@ -20,9 +21,91 @@ logger = logging.getLogger()
 class CryptoError(Exception):
     pass
 
-
-class NoCrypto(object):
+class Crypto(TunnelObserver):
     def __init__(self):
+        TunnelObserver.__init__(self)
+        self.outgoing_packet_crypto = []
+        self.incoming_packet_crypto = []
+        self.relay_packet_crypto = []
+        self.encrypt_outgoing_packet_content = defaultdict(list)
+        self.decrypt_incoming_packet_content = defaultdict(list)
+
+    def handle_incoming_packet(self, candidate, circuit_id, data):
+        """
+        As soon as a packet comes in it has to be decrypted depending on candidate / circuit id
+        @param candidate: The originator of the packet
+        @param circuit_id: The circuit ID in the packet
+        @param data: The packet data
+        @return: The unencrypted data
+        """
+        for decrypt in self.incoming_packet_crypto:
+            data = decrypt(candidate, circuit_id, data)
+            if not data:
+                return None
+        return data
+
+    def handle_incoming_packet_content(self, candidate, circuit_id, payload, packet_type):
+        """
+        As soon as an incoming packet is decrypted, the content has to be decrypted
+        depending on the packet type
+        @param candidate: The originator of the packet
+        @param circuit_id: The circuit ID in the packet
+        @param payload: The packet data
+        @param packet_type: The type of the packet
+        @return: The payload with unencrypted content
+        """
+        for decrypt in self.decrypt_incoming_packet_content[packet_type]:
+            payload = decrypt(candidate, circuit_id, payload)
+            if not payload:
+                return None
+        return payload
+
+    def handle_outgoing_packet(self, destination, circuit_id, message_type, content):
+        """
+        Outgoing packets have to be encrypted according to the destination, packet type and
+        circuit identifier
+        @param destination: The originator of the packet
+        @param circuit_id: The circuit ID in the packet
+        @param message_type: The type of the packet
+        @param content: The packet data
+        @return: The encrypted content
+        """
+        for encrypt in self.outgoing_packet_crypto:
+            content = encrypt(destination, circuit_id, message_type, content)
+        return content
+
+    def handle_outgoing_packet_content(self, destination, circuit_id, message, message_type):
+        """
+        Content of outgoing packets have to be encrypted according to the destination, 4
+        message type and circuit identifier
+        @param destination: The originator of the packet
+        @param circuit_id: The circuit ID in the packet
+        @param message_type: The type of the packet
+        @param message: The message
+        @return: The message with encrypted content
+        """
+        for encrypt in self.encrypt_outgoing_packet_content[message_type]:
+            message = encrypt(destination, circuit_id, message)
+        return message
+
+    def handle_relay_packet(self, direction, sock_addr, circuit_id, data):
+        """
+        Relayed messages have to be encrypted / decrypted depending on direction, sock address and
+        circuit identifier
+        @param direction: direction of the packet
+        @param circuit_id: The circuit ID in the packet
+        @param sock_addr: socket address of the originator of the message
+        @param data: The message data
+        @return: The message data, en- / decrypted according to the circuitdirection
+        """
+        for crypt in self.relay_packet_crypto:
+            data = crypt(direction, sock_addr, circuit_id, data)
+        return data
+
+
+class NoCrypto(Crypto):
+    def __init__(self):
+        Crypto.__init__(self)
         self.proxy = None
 
     def enable(self, proxy):
@@ -35,11 +118,11 @@ class NoCrypto(object):
          object is coupled
         """
         self.proxy = proxy
-        proxy.before_send_transformers[MESSAGE_CREATED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED]\
             .append(self._encrypt_created_content)
-        proxy.after_receive_transformers[MESSAGE_CREATED]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED]\
             .append(self._decrypt_created_content)
-        proxy.after_receive_transformers[MESSAGE_EXTENDED]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED]\
             .append(self._decrypt_extended_content)
 
     def disable(self):
@@ -90,9 +173,9 @@ class NoCrypto(object):
         _, message.candidate_list = decode(message.candidate_list)
         return message
 
-class DefaultCrypto(TunnelObserver):
+class DefaultCrypto(Crypto):
     def __init__(self):
-        TunnelObserver.__init__(self)
+        Crypto.__init__(self)
         self.proxy = None
         """ :type proxy: ProxyCommunity """
         self._logger = logging.getLogger(__name__)
@@ -107,7 +190,7 @@ class DefaultCrypto(TunnelObserver):
         @param relay_key:
         """
         if relay_key in self.session_keys:
-                del self.session_keys[relay_key]
+            del self.session_keys[relay_key]
 
     def enable(self, proxy):
         """
@@ -122,48 +205,48 @@ class DefaultCrypto(TunnelObserver):
         self.proxy = proxy
         proxy.observers.append(self)
 
-        proxy.relay_transformers.append(self._crypto_relay_packet)
-        proxy.receive_transformers.append(self._crypto_incoming_packet)
-        proxy.send_transformers.append(self._crypto_outgoing_packet)
-        proxy.before_send_transformers[MESSAGE_CREATE]\
+        self.relay_packet_crypto.append(self._crypto_relay_packet)
+        self.incoming_packet_crypto.append(self._crypto_incoming_packet)
+        self.outgoing_packet_crypto.append(self._crypto_outgoing_packet)
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATE]\
             .append(self._encrypt_create_content)
-        proxy.before_send_transformers[MESSAGE_CREATED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED]\
             .append(self._encrypt_created_content)
-        proxy.before_send_transformers[MESSAGE_EXTEND]\
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND]\
             .append(self._encrypt_extend_content)
-        proxy.before_send_transformers[MESSAGE_EXTENDED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED]\
             .append(self._encrypt_extended_content)
-        proxy.after_receive_transformers[MESSAGE_CREATE]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATE]\
             .append(self._decrypt_create_content)
-        proxy.after_receive_transformers[MESSAGE_CREATED]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED]\
             .append(self._decrypt_created_content)
-        proxy.after_receive_transformers[MESSAGE_EXTEND]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTEND]\
             .append(self._decrypt_extend_content)
-        proxy.after_receive_transformers[MESSAGE_EXTENDED]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED]\
             .append(self._decrypt_extended_content)
 
     def disable(self):
         """
         Disables the crypto settings
         """
-        self.proxy.relay_transformers.remove(self._crypto_relay_packet)
-        self.proxy.receive_transformers.remove(self._crypto_incoming_packet)
-        self.proxy.send_transformers.remove(self._crypto_outgoing_packet)
-        self.proxy.before_send_transformers[MESSAGE_CREATE]\
+        self.relay_packet_crypto.remove(self._crypto_relay_packet)
+        self.incoming_packet_crypto.remove(self._crypto_incoming_packet)
+        self.outgoing_packet_crypto.remove(self._crypto_outgoing_packet)
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATE]\
             .remove(self._encrypt_create_content)
-        self.proxy.before_send_transformers[MESSAGE_CREATED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED]\
             .remove(self._encrypt_created_content)
-        self.proxy.before_send_transformers[MESSAGE_EXTEND]\
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND]\
             .remove(self._encrypt_extend_content)
-        self.proxy.before_send_transformers[MESSAGE_EXTENDED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED]\
             .remove(self._encrypt_extended_content)
-        self.proxy.after_receive_transformers[MESSAGE_CREATE]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATE]\
             .remove(self._decrypt_create_content)
-        self.proxy.after_receive_transformers[MESSAGE_CREATED]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED]\
             .remove(self._decrypt_created_content)
-        self.proxy.after_receive_transformers[MESSAGE_EXTEND]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTEND]\
             .remove(self._decrypt_extend_content)
-        self.proxy.after_receive_transformers[MESSAGE_EXTENDED]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED]\
             .remove(self._decrypt_extended_content)
 
     def _encrypt_create_content(self, candidate, circuit_id, message):
