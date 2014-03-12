@@ -53,7 +53,7 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(1, 1)
+        length = random.randint(3, 3)
 
         self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
@@ -174,13 +174,6 @@ class ProxyCommunity(Community):
 
         sys.modules["random"] = random.SystemRandom()
 
-        self.send_transformers = []
-        self.receive_transformers = []
-        ''' @type: dict[,(Candidate, int, str) -> ] '''
-        self.relay_transformers = []
-        self.before_send_transformers = defaultdict(list)
-        self.after_receive_transformers = defaultdict(list)
-
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
         ''' @type: dict[(str, int), int] '''
@@ -221,6 +214,10 @@ class ProxyCommunity(Community):
                     yield 5.0
 
         self.dispersy.callback.register(__loop_discover)
+
+    @property
+    def packet_crypto(self):
+        return self.settings.crypto
 
     def __discover(self):
         circuits_needed = lambda: max(
@@ -379,9 +376,12 @@ class ProxyCommunity(Community):
         self.dispersy.callback.register(__send_stats)
 
     def __handle_incoming(self, circuit_id, am_originator, candidate, data):
-        # Transform incoming data using registered transformers
-        for f in self.receive_transformers:
-            data = f(candidate, circuit_id, data)
+        # Let packet_crypto handle decrypting the incoming packet
+        data = self.packet_crypto.handle_incoming_packet(candidate, circuit_id, data)
+
+        if not data:
+            self._logger.error("Circuit ID {0} doesn't talk crypto language, dropping packet".format(circuit_id))
+            return None
 
         # Try to parse the packet
         _, payload = self.proxy_conversion.decode(data)
@@ -389,11 +389,12 @@ class ProxyCommunity(Community):
         packet_type = self.proxy_conversion.get_type(data)
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
 
-        # Call any msg transformer before handing it over to our own handlers
-        for transformer in self.after_receive_transformers[packet_type]:
-            payload = transformer(candidate, circuit_id, payload)
-            if not payload:
-                return None
+        # Let packet_crypto handle decrypting packet contents
+        payload = self.packet_crypto.handle_incoming_packet_content(candidate, circuit_id, payload, packet_type)
+
+        # If un-decrypt-able, drop packet
+        if not payload:
+            return None
 
         self._logger.debug(
             "GOT %s from %s:%d over circuit %d",
@@ -431,8 +432,8 @@ class ProxyCommunity(Community):
         direction = self.directions[relay_key]
         next_relay = self.relay_from_to[relay_key]
 
-        for transformer in self.relay_transformers:
-            data = transformer(direction, sock_addr, circuit_id, data)
+        # let packet_crypto handle en-/decrypting relay packet
+        data = self.packet_crypto.handle_relay_packet(direction, sock_addr, circuit_id, data)
 
         this_relay_key = (next_relay.sock_addr, next_relay.circuit_id)
 
@@ -932,15 +933,9 @@ class ProxyCommunity(Community):
         @param BaseMessage message: the messages content in object form
         @return:
         """
-        for transformer in self.before_send_transformers[message_type]:
-            message = transformer(destination, circuit_id, message)
-
+        message = self.packet_crypto.handle_outgoing_packet_content(destination, circuit_id, message, message_type)
         content = self.proxy_conversion.encode(message_type, message)
-
-        for transformer in self.send_transformers:
-            content = transformer(destination, circuit_id, message_type,
-                                  content)
-
+        content = self.packet_crypto.handle_outgoing_packet(destination, circuit_id, message_type, content)
         return self.send_packet(destination, circuit_id, message_type, content)
 
     def send_packet(self, destination, circuit_id, message_type, packet,
