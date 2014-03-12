@@ -306,7 +306,7 @@ def main(argv):
 
             print "========\nCircuits\n========\n" \
                   "id\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
-            for circuit_id, circuit in anon_tunnel.community.circuits:
+            for circuit_id, circuit in anon_tunnel.community.circuits.items():
                 print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (
                     circuit.circuit_id, circuit.candidate.sock_addr[0],
                     circuit.candidate.sock_addr[1],

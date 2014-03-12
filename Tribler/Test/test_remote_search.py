@@ -12,9 +12,6 @@ DEBUG = True
 
 class TestRemoteQuery(TestGuiAsServer):
 
-    """
-    Testing QUERY message of Social Network extension V1
-    """
     def test_remotesearch(self):
         def do_assert():
             self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
@@ -113,7 +110,7 @@ class TestRemoteQuery(TestGuiAsServer):
         else:
             def wait_for_chansearch():
                 print >> sys.stderr, "tgs: frame ready, staring to wait for channelsearch to be ready"
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 5, callback, 'did not connect to more than 5 peers within 300s')
+                self.CallConditional(300, lambda: False, callback, 'did not connect to more than 5 peers within 300s', assertCallback=lambda *argv, **kwarg: callback())
             TestGuiAsServer.startTest(self, wait_for_chansearch)
 
 

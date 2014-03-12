@@ -41,11 +41,6 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
                                              TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 
-try:
-    import wxversion
-    wxversion.select('2.8')
-except:
-    pass
 import wx
 from wx import xrc
 # import hotshot
@@ -500,7 +495,7 @@ class MainFrame(wx.Frame):
                     defaultname = tdef.get_name_as_unicode()
 
                 if wx.Thread_IsMain():
-                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
+                    dlg = SaveAs(None, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
                     dlg.CenterOnParent()
 
                     if isinstance(tdef, TorrentDefNoMetainfo):

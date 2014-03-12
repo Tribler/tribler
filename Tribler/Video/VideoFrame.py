@@ -2,8 +2,6 @@
 # see LICENSE.txt for license information
 
 import wx
-import sys
-import os
 import logging
 
 from Tribler.Video.defs import *

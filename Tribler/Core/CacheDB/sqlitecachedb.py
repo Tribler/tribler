@@ -4,7 +4,7 @@
 import sys
 import os
 from os import environ
-from time import sleep, time
+from time import time
 from base64 import encodestring, decodestring
 import threading
 from traceback import print_exc, print_stack
@@ -16,7 +16,7 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
-from threading import currentThread, Event, RLock, Lock
+from threading import currentThread, RLock
 import inspect
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 
@@ -55,7 +55,6 @@ CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'  # db file path = DB_DIR_NAME/DB_FILE_NAME
 DEFAULT_BUSY_TIMEOUT = 10000
-NULL = None
 SHOW_ALL_EXECUTE = False
 TEST_OVERRIDE = False
 
@@ -74,10 +73,8 @@ logger = logging.getLogger(__name__)
 __DEBUG_QUERIES__ = 'TRIBLER_DEBUG_DATABASE_QUERIES' in environ
 if __DEBUG_QUERIES__:
     from random import randint
-    from os.path import exists
-    from time import time
     DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
-    while exists(DB_DEBUG_FILE):
+    while os.path.exists(DB_DEBUG_FILE):
         DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
 
 
@@ -87,8 +84,6 @@ class Warning(Exception):
 
 def init(state_dir, install_dir, db_exception_handler=None):
     """ create sqlite database """
-    global CREATE_SQL_FILE
-    global config_dir
     config_dir = state_dir
     CREATE_SQL_FILE = os.path.join(install_dir, CREATE_SQL_FILE_POSTFIX)
 
@@ -369,7 +364,7 @@ class SQLiteCacheDBBase:
             cur = self.openDB(dbfile_path, busytimeout)
             if check_version:
                 sqlite_db_version = self.readDBVersion()
-                if sqlite_db_version == NULL or int(sqlite_db_version) < 1:
+                if sqlite_db_version == None or int(sqlite_db_version) < 1:
                     raise NotImplementedError
         except Exception as exception:
             if isinstance(exception, Warning):
@@ -498,15 +493,6 @@ class SQLiteCacheDBBase:
     def executemany(self, sql, args):
         self._executemany(sql, args)
 
-    # TODO: may remove this, no one uses it.
-    def insert_or_replace(self, table_name, **argv):
-        if len(argv) == 1:
-            sql = 'INSERT OR REPLACE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
-        else:
-            questions = '?,' * len(argv)
-            sql = 'INSERT OR REPLACE INTO %s %s VALUES (%s);' % (table_name, tuple(argv.keys()), questions[:-1])
-        self.execute_write(sql, argv.values())
-
     def insert_or_ignore(self, table_name, **argv):
         if len(argv) == 1:
             sql = 'INSERT OR IGNORE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
@@ -571,11 +557,9 @@ class SQLiteCacheDBBase:
         return result
 
     def fetchone(self, sql, args=None):
-        # returns NULL: if the result is null
-        # return None: if it doesn't found any match results
         find = self.execute_read(sql, args)
         if not find:
-            return NULL
+            return
         else:
             find = list(find)
             if len(find) > 0:
@@ -583,7 +567,7 @@ class SQLiteCacheDBBase:
                     self._logger.debug("FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement %s, %s", sql, len(find))
                 find = find[0]
             else:
-                return NULL
+                return
         if len(find) > 1:
             return find
         else:
@@ -698,8 +682,7 @@ class SQLiteCacheDBBase:
         try:
             return self.fetchall(sql, arg) or []
         except Exception as msg:
-            self._logger.error("sqldb: Wrong getAll sql statement: %s", sql)
-            print_exc()
+            self._logger.exception(u"Wrong getAll sql statement: %s", sql)
             raise Exception(msg)
 
 
@@ -1338,8 +1321,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
                                     FROM TermFrequency TF1, TermFrequency TF2
                                     WHERE TF1.term = ? AND TF2.term = ?"""
-            import time
-            dbg_ts1 = time.time()
+            dbg_ts1 = time()
 
             records = self.fetchall(sql)
             termcount = {}
@@ -1360,7 +1342,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.executemany(ins_terms_sql, termcount.items())
             self.executemany(ins_phrase_sql, phrases)
 
-            dbg_ts2 = time.time()
+            dbg_ts2 = time()
             self._logger.debug('DB Upgradation: extracting and inserting terms took %s s', dbg_ts2 - dbg_ts1)
 
             self.database_update.release()
@@ -1369,8 +1351,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.database_update.acquire()
 
             self._logger.debug("STARTING UPGRADE")
-            import time
-            t1 = time.time()
+            t1 = time()
 
             from Tribler.Core.Search.SearchManager import split_into_keywords
 
@@ -1386,10 +1367,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     if len(keyword) == 2:
                         values.append((keyword, torrent_id))
 
-            t2 = time.time()
+            t2 = time()
 
             self.executemany(u"INSERT OR IGNORE INTO InvertedIndex VALUES(?, ?)", values)
-            self._logger.debug("INSERTING NEW KEYWORDS TOOK %s INSERTING took %s", time.time() - t1, time.time() - t2)
+            self._logger.debug("INSERTING NEW KEYWORDS TOOK %s INSERTING took %s", time() - t1, time() - t2)
 
             self.database_update.release()
 
@@ -1405,7 +1386,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 return peer_id
 
             from Tribler.Core.Session import Session
-            from time import time
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
             from Tribler.Core.Search.SearchManager import split_into_keywords
             from Tribler.Core.TorrentDef import TorrentDef
@@ -2188,8 +2168,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             tqueue.add_task(upgradeDBV19, INITIAL_UPGRADE_PAUSE)
 
     def clean_db(self, vacuum=False):
-        from time import time
-
         self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)")
         self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0")
         self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")

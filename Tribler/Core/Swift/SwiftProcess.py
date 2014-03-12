@@ -9,7 +9,7 @@ import urllib
 import json
 import logging
 from threading import RLock
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from collections import defaultdict
 
 from Tribler.Core.simpledefs import *

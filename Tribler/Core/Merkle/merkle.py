@@ -5,9 +5,8 @@ Reference Implementation of Merkle hash torrent extension, as now
 standardized in http://www.bittorrent.org/beps/bep_0030.html (yay!)
 """
 
-from math import log, pow, floor
+from math import log, floor
 from Tribler.Core.Utilities.Crypto import sha
-import sys
 import logging
 
 logger = logging.getLogger(__name__)

@@ -6,7 +6,6 @@ import subprocess
 
 from re import search
 from math import sqrt
-import colorsys
 from Tribler.Main.vwxGUI import forceAndReturnWxThread
 
 

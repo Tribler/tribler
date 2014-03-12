@@ -10,11 +10,10 @@ import os
 
 import logging
 from traceback import print_exc
-from random import choice
 from binascii import hexlify
 from time import sleep, time
 
-from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH,\
+from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH, \
     DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.TorrentDef import TorrentDef
@@ -96,6 +95,7 @@ class RemoteTorrentHandler:
         self.max_num_torrents = max_num_torrents
 
     def __check_overflow(self):
+        global LOW_PRIO_COLLECTING
         while True:
             self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
             self._logger.debug("rtorrent: check overflow: current %d max %d", self.num_torrents, self.max_num_torrents)
@@ -106,15 +106,19 @@ class RemoteTorrentHandler:
 
                 self._logger.info("rtorrent: ** limit space:: %d %d %d", self.num_torrents, self.max_num_torrents, num_delete)
 
+                LOW_PRIO_COLLECTING = 20
+
                 while num_delete > 0:
                     to_remove = min(num_delete, num_per_step)
                     num_delete -= to_remove
                     self.torrent_db.freeSpace(to_remove)
                     yield 5.0
-                LOW_PRIO_COLLECTING = 4
 
             elif self.num_torrents > (self.max_num_torrents * .75):
-                LOW_PRIO_COLLECTING = 3
+                LOW_PRIO_COLLECTING = 10
+
+            elif self.num_torrents > (self.max_num_torrents * .5):
+                LOW_PRIO_COLLECTING = 5
 
             else:
                 LOW_PRIO_COLLECTING = 2
@@ -136,20 +140,22 @@ class RemoteTorrentHandler:
 
             return self._searchcommunity
 
-    def has_thumbnail(self, infohash):
+    def has_thumbnail(self, infohash, contenthash=None):
         thumb_dir = os.path.join(self.tor_col_dir, 'thumbs-' + binascii.hexlify(infohash))
+        if contenthash:
+            thumb_dir = os.path.join(thumb_dir, binascii.hexlify(contenthash))
         return os.path.isdir(thumb_dir) and os.listdir(thumb_dir)
 
-    def download_thumbnail(self, candidate, roothash, infohash, usercallback=None, timeout=None):
-        if self.registered and not self.has_thumbnail(roothash):
-            raw_lambda = lambda candidate = candidate, roothash = roothash, infohash = infohash, usercallback = usercallback, timeout = timeout: self._download_thumbnail(candidate, roothash, infohash, usercallback, timeout)
+    def download_thumbnail(self, candidate, roothash, infohash, contenthash=None, usercallback=None, timeout=None):
+        if self.registered and not self.has_thumbnail(infohash, contenthash):
+            raw_lambda = lambda candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_thumbnail(candidate, roothash, infohash, contenthash, usercallback, timeout)
             self.scheduletask(raw_lambda)
 
-    def _download_thumbnail(self, candidate, roothash, infohash, usercallback, timeout):
+    def _download_thumbnail(self, candidate, roothash, infohash, contenthash, usercallback, timeout):
         if usercallback:
             self.callbacks.setdefault(roothash, set()).add(usercallback)
 
-        self.tnrequester.add_request((roothash, infohash), candidate, timeout)
+        self.tnrequester.add_request((roothash, infohash, contenthash), candidate, timeout)
 
         self._logger.debug('rtorrent: adding thumbnail request: %s %s', roothash or '', candidate)
 
@@ -401,7 +407,7 @@ class RemoteTorrentHandler:
             items = qsize.items()
             if items:
                 items.sort()
-                return "%s: " % qname + ",".join(map(str, items))
+                return "%s: " % qname + ",".join(map(lambda a: "%d/%d" % a, items))
             return ''
         return ", ".join([qstring for qstring in [getQueueSize("TQueue", self.trequesters), getQueueSize("DQueue", self.drequesters), getQueueSize("MQueue", self.mrequesters)] if qstring])
 
@@ -422,11 +428,15 @@ class RemoteTorrentHandler:
             return '', ''
         return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TQueue", self.trequesters), getQueueSuccess("DQueue", self.drequesters), getQueueSuccess("MQueue", self.mrequesters)] if qstring]
 
-    def remove_all_requests(self):
-        self._logger.info("ONLY USE FOR TESTING PURPOSES")
-        for requester in self.trequesters.values() + self.mrequesters.values() + self.drequesters.values():
-            requester.remove_all_requests
-
+    def getBandwidthSpent(self):
+        def getQueueBW(qname, requesters):
+            bw = 0
+            for requester in requesters.itervalues():
+                bw += requester.bandwidth
+            if bw:
+                return "%s: " % qname + "%.1f KB" % (bw / 1024.0)
+            return ''
+        return ", ".join([qstring for qstring in [getQueueBW("TQueue", self.trequesters), getQueueBW("DQueue", self.drequesters)] if qstring])
 
 class Requester:
     REQUEST_INTERVAL = 0.5
@@ -445,6 +455,8 @@ class Requester:
         self.requests_success = 0
         self.requests_fail = 0
         self.requests_on_disk = 0
+
+        self.bandwidth = 0
 
     def add_request(self, hash, candidate, timeout=None):
         was_empty = self.queue.empty()
@@ -468,10 +480,6 @@ class Requester:
 
     def remove_request(self, hash):
         del self.sources[hash]
-
-    def remove_all_requests(self):
-        self.queue = Queue.Queue()
-        self.sources = {}
 
     def doRequest(self):
         try:
@@ -620,6 +628,7 @@ class TorrentRequester(Requester):
 
             self.remote_th.notify_possible_torrent_roothash(roothash)
             self.requests_success += 1
+            self.bandwidth += d.get_total_down()
             return (0, False)
         else:
             diff = time() - getattr(d, 'started_downloading', time())
@@ -734,6 +743,7 @@ class MagnetRequester(Requester):
             self.requestedInfohashes.remove(infohash)
 
         self.requests_success += 1
+        self.bandwidth += tdef.get_torrent_size()
 
     def __torrentdef_failed(self, infohash):
         if infohash in self.requestedInfohashes:
@@ -756,10 +766,10 @@ class ThumbnailRequester(Requester):
         self.dscfg.set_swift_meta_dir(session.get_torrent_collecting_dir())
 
     def doFetch(self, hash_tuple, candidates):
-        roothash, infohash = hash_tuple
+        roothash, infohash, contenthash = hash_tuple
         attempting_download = False
 
-        if self.remote_th.has_thumbnail(infohash):
+        if self.remote_th.has_thumbnail(infohash, contenthash):
             self.remote_th.notify_possible_thumbnail_roothash(roothash)
 
         elif candidates:

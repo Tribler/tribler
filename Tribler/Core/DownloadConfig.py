@@ -14,9 +14,6 @@
 #
 #
 
-import ast
-import copy
-
 from types import StringType
 
 from Tribler.Core.simpledefs import *

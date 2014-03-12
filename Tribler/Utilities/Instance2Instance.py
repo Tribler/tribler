@@ -8,7 +8,6 @@
 # - [cmd]\r\n
 #
 #
-import sys
 import socket
 import logging
 from traceback import print_exc

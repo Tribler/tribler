@@ -2,11 +2,7 @@
 # Updated by George Milescu
 # see LICENSE.txt for license information
 """ Contains a snapshot of the state of the Download at a specific point in time. """
-import time
-
-import sys
 import logging
-from traceback import print_exc, print_stack
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
@@ -45,7 +41,7 @@ class DownloadState(Serializable):
         self.haveslice = None
         self.stats = None
         self.length = None
-        
+
         name = self.download.get_def().get_name()
 
         if stats is None:

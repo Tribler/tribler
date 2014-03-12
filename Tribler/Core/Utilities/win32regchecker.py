@@ -2,9 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
-import os
 import logging
-from traceback import print_exc
 
 if (sys.platform == 'win32'):
     import _winreg

@@ -1132,8 +1132,8 @@ class ProxyCommunity(Community):
 
         root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
         hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
+        hosts = [("94.23.38.156", 51413)]
 
-        hosts = [("devristo.com", 51413)]
 
         @forceWxThread
         def thank_you(file_size, start_time, end_time):
@@ -1192,7 +1192,7 @@ class ProxyCommunity(Community):
         except:
             self._logger.exception("Exception while deleting previously downloaded test")
 
-        tdef = TorrentDef.load("50M.torrent")
+        tdef = TorrentDef.load("public.torrent")
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
         ''' :type : DefaultDownloadStartupConfig '''
@@ -1202,3 +1202,6 @@ class ProxyCommunity(Community):
 
         result = self.tribler_session.start_download(tdef, dscfg)
         result.set_state_callback(state_call(result), delay=1)
+
+        for peer in hosts:
+            result.add_peer(peer)

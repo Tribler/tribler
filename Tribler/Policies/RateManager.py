@@ -1,7 +1,6 @@
 # Written by Arno Bakker and ABC authors
 # see LICENSE.txt for license information
 
-import sys
 import logging
 from sets import Set
 from threading import RLock
@@ -93,7 +92,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         self.global_max_speed[UPLOAD] = 0.0
         self.global_max_speed[DOWNLOAD] = 0.0
         self.global_max_seedupload_speed = 0.0
-        
+
         self.ltmgr = None
 
     def set_global_max_speed(self, direct, speed):
@@ -160,11 +159,11 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                 for ds in todoset:
                     d = ds.get_download()
                     d.set_max_speed(dir, localmaxspeed)
-        
-        
+
+
         if self.ltmgr == None and LibtorrentMgr.hasInstance():
             self.ltmgr = LibtorrentMgr.getInstance()
-            
+
         if self.ltmgr:
             rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
             libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
@@ -304,7 +303,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
 
         if self.ltmgr == None and LibtorrentMgr.hasInstance():
             self.ltmgr = LibtorrentMgr.getInstance()
-            
+
         if self.ltmgr:
             rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
             libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
@@ -417,7 +416,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
 
         if self.ltmgr == None and LibtorrentMgr.hasInstance():
             self.ltmgr = LibtorrentMgr.getInstance()
-            
+
         if self.ltmgr:
             rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
             libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)

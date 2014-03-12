@@ -4,14 +4,12 @@
 from bisect import insort
 from SocketHandler import SocketHandler
 import socket
-from cStringIO import StringIO
 from traceback import print_exc
 from select import error
 from threading import Event, RLock
 from thread import get_ident
 from Tribler.Core.Utilities.clock import clock
 import sys
-import time
 import logging
 from Tribler.Core import NoDispersyRLock
 

@@ -1,7 +1,6 @@
 # Written by Boxun Zhang
 # see LICENSE.txt for license information
 
-import sys
 import logging
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLMODE_VOD

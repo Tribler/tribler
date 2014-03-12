@@ -1,9 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
 import os
-import shutil
 import binascii
 from threading import currentThread
 from traceback import print_exc

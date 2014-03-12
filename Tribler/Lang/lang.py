@@ -5,7 +5,7 @@ import sys
 import os
 import logging
 
-from traceback import print_exc, print_stack
+from traceback import print_exc
 from cStringIO import StringIO
 
 from Tribler.__init__ import LIBRARYNAME

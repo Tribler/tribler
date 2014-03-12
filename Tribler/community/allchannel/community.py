@@ -427,7 +427,6 @@ class AllChannelCommunity(Community):
         if self.integrate_with_tribler:
             votelist = []
             for message in messages:
-                logger.debug("%s", message)
                 dispersy_id = message.packet_id
                 channel_id = getattr(message, "channel_id", 0)
 

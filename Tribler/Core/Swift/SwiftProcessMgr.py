@@ -1,7 +1,11 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+import sys
+import random
 import time
+from traceback import print_exc
+import logging
 import itertools
 
 from Tribler.Core.Swift.SwiftProcess import *

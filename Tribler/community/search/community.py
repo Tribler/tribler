@@ -29,8 +29,7 @@ from Tribler.dispersy.requestcache import NumberCache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate
 from Tribler.dispersy.cache import IntroductionRequestCache
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler, \
-    LOW_PRIO_COLLECTING
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 from os import path
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -109,12 +108,12 @@ class SearchCommunity(Community):
         self.dispersy.callback.register(self.fast_walker)
 
     def fast_walker(self):
-        for cycle in xrange(10):
+        for cycle in xrange(5):
             now = time()
 
             # count -everyone- that is active (i.e. walk or stumble)
             active_canidates = list(self.dispersy_yield_verified_candidates())
-            if len(active_canidates) > 20:
+            if len(active_canidates) > 10:
                 logger.debug("there are %d active non-bootstrap candidates available, prematurely quitting fast walker", len(active_canidates))
                 break
 
@@ -128,13 +127,13 @@ class SearchCommunity(Community):
                 self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
 
             # poke bootstrap peers
-            if cycle < 2:
+            if cycle % 2:
                 for candidate in self._dispersy.bootstrap_candidates:
                     logger.debug("extra walk to %s", candidate)
                     self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
 
             # wait for NAT hole punching
-            yield 1.0
+            yield 2.0
 
         logger.debug("finished")
 
@@ -541,6 +540,8 @@ class SearchCommunity(Community):
                         from Tribler.Core.CacheDB.sqlitecachedb import bin2str
                         self._logger.debug("SearchCommunity: requesting .torrent after receiving ping/pong %s %s %s", candidate, bin2str(infohash), bin2str(roothash))
 
+                    # low_prio changes, hence we need to import it here
+                    from Tribler.Core.RemoteTorrentHandler import LOW_PRIO_COLLECTING
                     self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio=LOW_PRIO_COLLECTING, timeout=CANDIDATE_WALK_LIFETIME)
 
     def _create_pingpong(self, meta_name, candidates, identifiers=None):

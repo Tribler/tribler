@@ -18,6 +18,7 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Video.defs import *
 from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED
@@ -35,6 +36,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
 
         self._logger = logging.getLogger(self.__class__.__name__)
+
+        self._gui_image_manager = GuiImageManager.getInstance()
 
         self.utility = utility
         self.guiutility = utility.guiUtility
@@ -73,18 +76,18 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.slider.Enable(False)
             self.timeposition = TransparentText(self.ctrlpanel, -1, "--:-- / --:--")
 
-            self.bmp_muted = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_muted.png"))
-            self.bmp_unmuted = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_unmuted.png"))
+            self.bmp_muted = self._gui_image_manager.getImage(u"video_muted.png")
+            self.bmp_unmuted = self._gui_image_manager.getImage(u"video_unmuted.png")
             self.mute = ActionButton(self.ctrlpanel, -1, self.bmp_unmuted)
             self.mute.Bind(wx.EVT_LEFT_UP, self.MuteClicked)
 
-            self.bmp_pause = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_pause.png"))
-            self.bmp_play = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_play.png"))
+            self.bmp_pause = self._gui_image_manager.getImage(u"video_pause.png")
+            self.bmp_play = self._gui_image_manager.getImage(u"video_play.png")
             self.ppbtn = ActionButton(self.ctrlpanel, -1, self.bmp_play)
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
             self.ppbtn.Enable(False)
 
-            self.sbtn = ActionButton(self.ctrlpanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_stop.png")))
+            self.sbtn = ActionButton(self.ctrlpanel, -1, self._gui_image_manager.getImage(u"video_stop.png"))
             self.sbtn.Bind(wx.EVT_LEFT_UP, self.OnStop)
             self.sbtn.Enable(False)
 
@@ -93,7 +96,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.volctrl.SetValue(self.volume)
             self.volctrl.SetMinSize((30, 17))
 
-            self.fsbtn = ActionButton(self.ctrlpanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_fullscreen.png")))
+            self.fsbtn = ActionButton(self.ctrlpanel, -1, self._gui_image_manager.getImage(u"video_fullscreen.png"))
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
             self.fsbtn.Enable(False)
 

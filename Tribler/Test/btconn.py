@@ -2,12 +2,10 @@
 # see LICENSE.txt for license information
 
 import socket
-import sys
+import logging
 from binascii import b2a_hex
 from struct import pack, unpack
 from StringIO import StringIO
-
-DEBUG = False
 
 current_version = 3  # TODO: Fix this temporary hack.
 lowest_version = 2
@@ -35,6 +33,9 @@ class BTConnection:
         assert user_infohash is None or len(user_infohash) == 20
         assert myid is None or isinstance(myid, str)
         assert myid is None or len(myid) == 20
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         self.hisport = port
         self.buffer = StringIO()
         if mylistenport is None:
@@ -68,8 +69,7 @@ class BTConnection:
             self.expected_infohash = user_infohash
         handshake += self.expected_infohash
         handshake += self.myid
-        if DEBUG:
-            print >> sys.stderr, "btconn: Sending handshake len", len(handshake)
+        self._logger.debug(u"btconn: Sending handshake len %d", len(handshake))
         self.s.send(handshake)
 
     def get_my_id(self):
@@ -93,9 +93,7 @@ class BTConnection:
         low_ver = unpack('<H', self.hisid[16:18])[0]
         assert(low_ver == lowest_version)
         cur_ver = unpack('<H', self.hisid[18:20])[0]
-        # if DEBUG:
-        #    print >> sys.stderr, "btconn: his cur_ver: ", cur_ver
-        #    print >> sys.stderr, "btconn: my curr_ver: ", current_version
+
         assert(cur_ver == current_version)
 
     def read_handshake_medium_rare(self, close_ok=False):
@@ -125,8 +123,8 @@ class BTConnection:
         if len(size_data) == 0:
             return size_data
         size = toint(size_data)
-        if DEBUG and size > 10000:
-            print >> sys.stderr, "btconn: waiting for message size", size
+        if size > 10000:
+            self._logger.debug("btconn: waiting for message size %d", size)
         if size == 0:
             # BT keep alive message, don't report upwards
             return self.recv()
@@ -139,18 +137,17 @@ class BTConnection:
         while True:
             try:
                 data = self.s.recv(nwant)
-            except socket.error as e:
-                if e[0] == 10035:
+            except socket.error as ex:
+                if ex[0] == 10035:
                     # WSAEWOULDBLOCK on Windows
                     continue
-                elif e[0] == 10054:
+                elif ex[0] == 10054:
                     # WSAECONNRESET on Windows
-                    print >> sys.stderr, "btconn:", e, "converted to EOF"
+                    self._logger.exception(u"converted to EOF")
                     return ''  # convert to EOF
                 else:
-                    raise e
-            if DEBUG:
-                print >> sys.stderr, "btconn: _readn got", len(data), "bytes"
+                    raise ex
+            self._logger.debug(u"_readn got %d bytes", len(data))
             if len(data) == 0:
                 # raise socket.error(ECONNRESET,'arno says connection closed')
                 return data

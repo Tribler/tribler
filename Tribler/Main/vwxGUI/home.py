@@ -406,7 +406,10 @@ class NetworkPanel(HomePanel):
         self.nrFiles = StaticText(panel)
         self.totalSize = StaticText(panel)
         self.queueSize = StaticText(panel)
+        self.queueSize.SetToolTipString('Number of torrents queued per prio')
         self.queueSuccess = StaticText(panel)
+        self.queueBW = StaticText(panel)
+        self.queueBW.SetToolTipString('Bandwidth spent on collecting .torrents')
         self.nrChannels = StaticText(panel)
 
         self.freeMem = None
@@ -429,6 +432,8 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.queueSize, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Torrent queue success'))
         gridSizer.Add(self.queueSuccess, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Torrent queue bw'))
+        gridSizer.Add(self.queueBW, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Channels found'))
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND)
         if self.freeMem:
@@ -463,6 +468,7 @@ class NetworkPanel(HomePanel):
             self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
+        self.queueBW.SetLabel(self.remotetorrenthandler.getBandwidthSpent())
 
         qsuccess = self.remotetorrenthandler.getQueueSuccess()
         qlabel = ", ".join(label for label, tooltip in qsuccess)
