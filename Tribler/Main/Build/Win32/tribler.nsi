@@ -133,13 +133,14 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images"
+ CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\default"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\flags"
- SetOutPath "$INSTDIR\Tribler\Main\vwxGUI"
- File Tribler\Main\vwxGUI\*.*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
- File Tribler\Main\vwxGUI\images\*.*
+ File Tribler\Main\vwxGUI\images\*
+ SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images\default"
+ File Tribler\Main\vwxGUI\images\default\*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images\flags"
- File Tribler\Main\vwxGUI\images\flags\*.*
+ File Tribler\Main\vwxGUI\images\flags\*
 
  CreateDirectory "$INSTDIR\Tribler\Main\webUI"
  CreateDirectory "$INSTDIR\Tribler\Main\webUI\static"
@@ -163,8 +164,8 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht"
  CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht\core"
  SetOutPath "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht\core"
- File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.main
- File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.backup
+ File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_stable
+ File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_unstable
 
  ; End
  SetOutPath "$INSTDIR"
