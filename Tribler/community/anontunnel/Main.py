@@ -19,7 +19,7 @@ from Tribler.community.anontunnel.community import ProxyCommunity, \
     ProxySettings
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
 from Tribler.community.privatesemantic.crypto.elgamalcrypto import \
-    ElgamalCrypto
+    ElgamalCrypto, NoElgamalCrypto
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.community.anontunnel.extendstrategies import TrustThyNeighbour, \
