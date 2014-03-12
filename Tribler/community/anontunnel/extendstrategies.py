@@ -66,7 +66,7 @@ class NeighbourSubset(ExtendStrategy):
                                                 (None, None))
 
         if not sock_addr:
-            raise ValueError("No candidates to extend, bailing out ")
+            self._logger.warning("No candidates to extend, bailing out.")
 
         extend_hop_public_key = self.proxy.dispersy.crypto.key_from_public_bin(
             extend_hop_public_key)
