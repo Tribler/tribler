@@ -64,8 +64,8 @@ class SettingsDialog(wx.Dialog):
 
     def __init__(self):
         super(SettingsDialog, self).__init__(None, size=(600, 600),
-            title="Settings", name="settingsDialog")
-        self.SetExtraStyle(wx.WS_EX_VALIDATE_RECURSIVELY)
+            title="Settings", name="settingsDialog", style=wx.DEFAULT_DIALOG_STYLE)
+        self.SetExtraStyle(self.GetExtraStyle() | wx.WS_EX_VALIDATE_RECURSIVELY)
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.guiUtility = GUIUtility.getInstance()
@@ -112,8 +112,6 @@ class SettingsDialog(wx.Dialog):
 
         # select General page by default
         self._tree_ctrl.SelectItem(self._general_id)
-
-        wx.CallAfter(self.Refresh)
 
     def OnSelectionChanging(self, event):
         old_item = event.GetOldItem()
