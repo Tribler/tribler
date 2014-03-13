@@ -26,7 +26,6 @@ DOWNLOAD = 'down'
 
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
-DLMODE_SVC = 2  # Ric: added download mode for Scalable Video Coding (SVC)
 
 PERSISTENTSTATE_CURRENTVERSION = 5
 """
@@ -85,6 +84,7 @@ NTFY_MAGNET_CLOSE = 'magnet_close'
 NTFY_VIDEO_STARTED = 'video_started'
 NTFY_VIDEO_STOPPED = 'video_stopped'
 NTFY_VIDEO_ENDED = 'video_ended'
+NTFY_VIDEO_BUFFERING = 'video_bufering'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0
@@ -103,11 +103,6 @@ NTFY_ACT_ACTIVE = 9
 LIVE_AUTHMETHOD_NONE = "None"  # No auth, also no abs. piece nr. or timestamp.
 LIVE_AUTHMETHOD_ECDSA = "ECDSA"  # Elliptic Curve DSA signatures
 LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
-
-# Video-On-Demand / live events
-VODEVENT_START = "start"
-VODEVENT_PAUSE = "pause"
-VODEVENT_RESUME = "resume"
 
 
 P2PURL_SCHEME = "tribe"  # No colon

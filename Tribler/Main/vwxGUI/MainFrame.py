@@ -542,19 +542,22 @@ class MainFrame(wx.Frame):
                 selectedFile = None
                 if vodmode:
                     self._logger.info('MainFrame: startDownload: Starting in VOD mode')
+                    videoplayer = VideoPlayer.getInstance()
+
                     if len(videofiles) == 1:
                         selectedFile = videofiles[0]
-                    else:
-                        selectedFile = None
+                    elif cdef.get_def_type() == "torrent" and wx.Thread_IsMain():
+                        selectedFile = self.guiUtility.SelectVideo(videofiles)
 
-                    # Swift requires swarmname to be part of the selectedfile
-                    if cdef.get_def_type() == 'swift' and tdef and selectedFile:
-                        swift_selectedFile = tdef.get_name_as_unicode() + "/" + selectedFile
-                    else:
-                        swift_selectedFile = selectedFile
+                    if selectedFile:
+                        # Swift requires swarmname to be part of the selectedfile
+                        # selectedFile = tdef.get_name_as_unicode() + "/" + selectedFile if sdef and tdef else selectedFile
+                        dscfg.set_selected_files([selectedFile])
+                        result = self.utility.session.start_download(cdef, dscfg)
 
-                    videoplayer = VideoPlayer.getInstance()
-                    result = videoplayer.start_and_play(cdef, dscfg, swift_selectedFile)
+                        files = result.get_def().get_files() if result.get_def().get_def_type() == 'torrent' else []
+                        fileindex = files.index(selectedFile) if selectedFile in files else None
+                        videoplayer.play(result, fileindex)
 
                 else:
                     if selectedFiles:
@@ -662,12 +665,11 @@ class MainFrame(wx.Frame):
 
             self._logger.info("Switching to Bittorrent")
             cdef = TorrentDef.load(torrentfilename)
-            dscfg = dscfg.copy()
-            dscfg.set_selected_files(selectedFiles or [])
             if vodmode:
-                videoplayer = VideoPlayer.getInstance()
-                wx.CallAfter(videoplayer.start_and_play, cdef, dscfg, selectedFile)
+                wx.CallAfter(self.startDownload, tdef=cdef, destdir=dscfg.get_dest_dir(), vodmode=True, selectedFiles=[selectedFile] if selectedFile else [])
             else:
+                dscfg = dscfg.copy()
+                dscfg.set_selected_files(selectedFiles or [])
                 self.utility.session.start_download(cdef, dscfg)
         return (0, False)
 
@@ -1079,11 +1081,10 @@ class MainFrame(wx.Frame):
         self.utility.abcquitting = True
         self.GUIupdate = False
 
-        if VideoPlayer.hasInstance():
-            self._logger.info("mainframe: Closing videoplayer")
+        if self.videoframe:
+            self._logger.info("mainframe: Stopping internal player")
 
-            videoplayer = VideoPlayer.getInstance()
-            videoplayer.stop_playback()
+            self.videoframe.get_videopanel().Stop()
 
         try:
             self._logger.info("mainframe: Restoring from taskbar")

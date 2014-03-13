@@ -12,8 +12,7 @@ from threading import RLock, currentThread, Thread
 from traceback import print_exc
 from collections import defaultdict
 
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, VODEVENT_START, \
-    DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Utilities.FastI2I import FastI2IConnection
 
 try:
@@ -229,7 +228,7 @@ class SwiftProcess:
             elif words[0] == "PLAY":
                 # print >>sys.stderr,"sp: i2ithread_readlinecallback: Got PLAY",cmd
                 httpurl = words[2]
-                d.i2ithread_vod_event_callback(VODEVENT_START, httpurl)
+                d.i2ithread_vod_event_callback(httpurl)
             elif words[0] == "MOREINFO":
                 jsondata = cmd[len("MOREINFO ") + 40 + 1:]
                 midict = json.loads(jsondata)

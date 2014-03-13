@@ -938,12 +938,9 @@ class LibraryManager:
         ds = torrent.get('ds')
 
         # videoplayer calls should be on gui thread, hence forceWxThread
-        self.guiUtility.ShowPlayer()
 
-        videoplayer = self._get_videoplayer()
-        videoplayer.recreate_videopanel()
-        videoplayer.stop_playback()
-        videoplayer.show_loading()
+        self.guiUtility.ShowPlayer()
+        self.stopPlayback()
 
         if ds is None:
             torrent_filename = self.torrentsearch_manager.getCollectedFilename(torrent)
@@ -954,14 +951,26 @@ class LibraryManager:
                     sdef = None
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=[selectedinfilename or torrent.videofiles[0]])
+                self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=[selectedinfilename or torrent.videofiles[0]])
 
             else:
                 self._logger.info(".TORRENT MISSING REQUESTING FROM PEERS")
                 callback = lambda torrentfilename: self.playTorrent(torrent, selectedinfilename)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
         else:
-            videoplayer.play(ds, selectedinfilename or torrent.videofiles[0])
+            download = ds.get_download()
+            selectedinfilename = selectedinfilename or torrent.videofiles[0]
+            files = download.get_def().get_files() if download.get_def().get_def_type() == 'torrent' else []
+            fileindex = files.index(selectedinfilename) if selectedinfilename in files else None
+            videoplayer = self._get_videoplayer()
+            videoplayer.play(download, fileindex)
+
+    def stopPlayback(self):
+        if self.guiUtility.frame.videoframe:
+            self.guiUtility.frame.videoframe.recreate_vlc_window()
+            self.guiUtility.frame.videoframe.get_videopanel().Stop()
+        videoplayer = self._get_videoplayer()
+        videoplayer.set_vod_download(None)
 
     def startDownloadFromUrl(self, url, useDefault=False):
         if useDefault:
@@ -1060,7 +1069,7 @@ class LibraryManager:
         playd = videoplayer.get_vod_download()
 
         if playd == download:
-            videoplayer.stop_playback()
+            self.stopPlayback()
 
     def connect(self, session, torrentsearch_manager, channelsearch_manager):
         if not self.connected:

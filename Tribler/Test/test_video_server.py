@@ -1,22 +1,22 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-
-import unittest
-
 import os
 import sys
 import time
 import socket
+import random
+import binascii
 from traceback import print_exc
 
-from Tribler.Video.VideoServer import VideoHTTPServer
-from Tribler.Test.test_as_server import BASE_DIR
-import random
+from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
+from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
-DEBUG = False
+DEBUG = True
 
 
-class TestVideoHTTPServer(unittest.TestCase):
+class TestVideoHTTPServer(TestAsServer):
 
     """
     Class for testing HTTP-based video server.
@@ -26,34 +26,25 @@ class TestVideoHTTPServer(unittest.TestCase):
 
     def setUp(self):
         """ unittest test setup code """
+        TestAsServer.setUp(self)
         self.port = random.randint(10000, 60000)
-        self.serv = VideoHTTPServer.getInstance(self.port)
-        self.serv.background_serve()
-        self.serv.register(self.videoservthread_error_callback, self.videoservthread_set_status_callback)
-
+        self.videoplayer = VideoPlayer.getInstance(self.session, None, httpport=self.port)
         self.sourcefn = os.path.join(BASE_DIR, "API", "file.wmv")  # 82KB or 82948 bytes
         self.sourcesize = os.path.getsize(self.sourcefn)
 
         # wait 5s to allow server to start
         time.sleep(5)
 
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+        self.config.set_libtorrent(True)
+
     def tearDown(self):
         """ unittest test tear down code """
-        self.serv.shutdown()
-        VideoHTTPServer.delInstance()
-
+        TestAsServer.tearDown(self)
+        VideoPlayer.getInstance().shutdown()
+        VideoPlayer.delInstance()
         time.sleep(2)
-
-    def videoservthread_error_callback(self, e, url):
-        """ Called by HTTP serving thread """
-        if DEBUG:
-            print >> sys.stderr, "test: ERROR", e, url
-        self.assert_(False)
-
-    def videoservthread_set_status_callback(self, status):
-        """ Called by HTTP serving thread """
-        if DEBUG:
-            print >> sys.stderr, "test: STATUS", status
 
     #
     # Tests
@@ -74,14 +65,20 @@ class TestVideoHTTPServer(unittest.TestCase):
     # Internal
     #
     def register_file_stream(self):
-        stream = open(self.sourcefn, "rb")
+        self.tdef = TorrentDef()
+        self.tdef.add_content(self.sourcefn)
+        self.tdef.set_tracker("http://127.0.0.1:12/announce")
+        self.tdef.finalize()
 
-        streaminfo = {'mimetype': 'video/x-ms-wmv', 'stream': stream, 'length': self.sourcesize}
+        dscfg = DownloadStartupConfig()
+        dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
 
-        self.serv.set_inputstream(streaminfo, "/stream")
+        download = self.session.start_download(self.tdef, dscfg)
+        while not download.handle:
+            time.sleep(1)
 
     def get_std_header(self):
-        msg = "GET /stream HTTP/1.1\r\n"
+        msg = "GET /%s/0 HTTP/1.1\r\n" % binascii.hexlify(self.tdef.get_infohash())
         msg += "Host: 127.0.0.1:" + str(self.port) + "\r\n"
         return msg
 

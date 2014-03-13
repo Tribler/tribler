@@ -14,8 +14,9 @@
 
 import sys
 import logging
-from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, \
-    convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.Core.osutils import fix_filebasename
+
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -252,23 +253,13 @@ class ABCApp():
                 self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
                 self.i2is.start()
 
-            # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
-            # Range: GETs causes performance problems in our code. Disable for now.
-            # Arno, 2010-01-22: With the addition of a CachingStream the problem
-            # is less severe (see VideoPlayer), so keep GET Range enabled.
-            #
-            # SimpleServer.RANGE_REQUESTS_ENABLED = False
-
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
-
             httpport = self.utility.read_config('videohttpport')
             if ALLOW_MULTIPLE or httpport == -1:
                 httpport = self.utility.get_free_random_port('videohttpport')
-            self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
-
             playbackmode = self.utility.read_config('videoplaybackmode')
-            self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
+            self.videoplayer = VideoPlayer.getInstance(s, self.utility.read_config('videoplayerpath'), preferredplaybackmode=playbackmode, httpport=httpport)
 
             notification_init(self.utility)
             self.guiUtility.register()
@@ -279,12 +270,12 @@ class ABCApp():
                 channel_only = f.readline()
                 f.close()
 
-            self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
+            self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(), self.splash.tick)
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
-            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
+            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
                 vlcwrap = self.videoplayer.get_vlcwrap()
 
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
@@ -634,26 +625,6 @@ class ABCApp():
 #                    if self.ratestatecallbackcount % 120 == 0:
 #                        wantpeers.append(True)
 
-            # Find State of currently playing video
-            playds = None
-            d = self.videoplayer.get_vod_download()
-            for ds in dslist:
-                if ds.get_download() == d:
-                    playds = ds
-
-            # Apply status displaying from SwarmPlayer
-            if playds:
-                def do_video():
-                    if playds.get_status() == DLSTATUS_HASHCHECKING:
-                        progress = progress_consec = playds.get_progress()
-                    else:
-                        progress = playds.get_vod_prebuffering_progress()
-                        progress_consec = playds.get_vod_prebuffering_progress_consec()
-                    self.videoplayer.set_player_status_and_progress(progress, progress_consec, \
-                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True], \
-                                                                    playds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
-                wx.CallAfter(do_video)
-
             # Check to see if a download has finished
             newActiveDownloads = []
             doCheckpoint = False
@@ -678,7 +649,7 @@ class ABCApp():
                             notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
 
                             # Arno, 2012-05-04: Swift reseeding
-                            #if self.utility.read_config('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
+                            # if self.utility.read_config('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
                             #    self.sesscb_reseed_via_swift(download)
 
                             doCheckpoint = True
