@@ -8,10 +8,11 @@ from traceback import print_exc
 from time import time
 from math import sqrt
 import threading
+import json
 
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, \
-    NTFY_VOTECAST, NTFY_CHANNELCAST
+    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_METADATA
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
@@ -24,6 +25,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
     forceDispersyThread, forcePrioDispersyThread, warnDispersyThread
+from Tribler.community.metadata.community import MetadataCommunity
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -37,7 +39,7 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
     CollectedTorrent, RemoteTorrent, NotCollectedTorrent, LibraryTorrent, \
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation, \
-    RemoteChannelTorrent, Marking
+    RemoteChannelTorrent, Marking, MetadataModification
 
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.community.search.community import SearchCommunity
@@ -212,10 +214,10 @@ class TorrentManager:
         """
         TORRENT is a GuiDBTuple containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
-        
+
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
-        
+
         DUPLICATE can be True: the message will be downloaded from peers
         regardless of a previous/current download attempt (returns
         True). Or DUPLICATE can be False: the message will only be
@@ -339,6 +341,7 @@ class TorrentManager:
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
+            t.metadata_db = self.metadata_db
 
             _ = t.channel
             return t
@@ -353,6 +356,7 @@ class TorrentManager:
             self.col_torrent_dir = self.session.get_torrent_collecting_dir()
 
             self.misc_db = session.open_dbhandler(NTFY_MISC)
+            self.metadata_db = session.open_dbhandler(NTFY_METADATA)
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
             self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
@@ -483,7 +487,7 @@ class TorrentManager:
             if not torrent_filename:
                 # this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
-                    if self.downloadTorrentfileFromPeers(hit, sesscb_prefetch_done, duplicate=False, prio=1):
+                    if self.downloadTorrentfileFromPeers(hit, lambda _,infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
                         self._logger.debug("Prefetch: attempting to download actual torrent %s", hit.name)
                         prefetch_counter[0] += 1
 
@@ -570,6 +574,7 @@ class TorrentManager:
                 t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
+                t.metadata_db = self.metadata_db
                 t.assignRelevance(a[-11])
                 return t
 
@@ -779,6 +784,55 @@ class TorrentManager:
             else:
                 return_dict[hit.infohash] = 0
         return return_dict
+
+
+    @forceDispersyThread
+    def modifyTorrent(self, torrent, modifications):
+        for community in self.dispersy.get_communities():
+            if isinstance(community, MetadataCommunity):
+                community.create_metadata_message(torrent.infohash,
+                    torrent.swift_hash, modifications)
+                break
+
+
+    def getTorrentModifications(self, torrent):
+        message_list = self.metadata_db.getMetadataMessageList(
+            torrent.infohash, torrent.swift_hash,
+            columns=("message_id",))
+        if not message_list:
+            return []
+
+        metadata_mod_list = []
+        for message_id, in message_list:
+            data_list = self.metadata_db.getMetadataData(message_id)
+            for key, value in data_list:
+                metadata_mod_list.append(MetadataModification(torrent, message_id, key, value))
+
+        return metadata_mod_list
+
+    def createMetadataModificationFromDef(self, channel_id, tdef, extraInfo={}, forward=True):
+        torrent = Torrent.fromTorrentDef(tdef)
+
+        modifications = []
+        for key, value in extraInfo.iteritems():
+            if key == 'thumbnail':
+                continue
+            if key == 'thumbnail-tempdir':
+                continue
+            elif key == 'thumbnail-file-list':
+                continue
+            modifications.append((key, value))
+
+        # handle the downloaded thumbnails
+        if extraInfo['thumbnail-file-list']:
+            from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
+            roothash_hex, contenthash_hex = TorrentStateManager.getInstance()._create_metadata_roothash_and_contenthash(extraInfo['thumbnail-tempdir'], torrent)
+
+            modifications.append(('swift-thumbnails', json.dumps((None, roothash_hex, contenthash_hex))))
+
+            self.modifyTorrent(torrent, modifications)
+
+        return True
 
 
 class LibraryManager:

@@ -192,6 +192,117 @@ class MiscDBHandler(BasicDBHandler):
         return source_id
 
 
+class MetadataDBHandler(BasicDBHandler):
+
+    def __init__(self):
+        if MetadataDBHandler._single:
+            raise RuntimeError("MetadataDBHandler is singleton")
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, None)
+
+    def getMetadataMessageList(self, infohash, roothash, columns):
+        """
+        Gets a list of metadata messages with the given hash-type and
+        hash-value.
+        """
+        if infohash:
+            infohash_str = bin2str(infohash)
+        else:
+            infohash_str = None
+
+        if roothash:
+            roothash_str = bin2str(roothash)
+        else:
+            roothash_str = None
+
+        column_str = ",".join(columns)
+        sql = "SELECT %s FROM MetadataMessage WHERE infohash = ? OR roothash = ?" % column_str
+        raw_result_list = self._db.fetchall(sql, (infohash_str, roothash_str))
+
+        processed_result_list = []
+        if raw_result_list:
+            for raw_result in raw_result_list:
+                this_result = []
+                idx = 0
+                for column in columns:
+                    if column == "infohash":
+                        this_result.append(str2bin(raw_result[idx]))
+                    elif column == "roothash":
+                        this_result.append(str2bin(raw_result[idx]))
+                    elif column == "this_mid":
+                        this_result.append(str(raw_result[idx]))
+                    elif column == "previous_mid":
+                        this_result.append(str(raw_result[idx]))
+                    else:
+                        this_result.append(raw_result[idx])
+
+                    idx += 1
+
+                processed_result_list.append(tuple(this_result))
+
+        return processed_result_list
+
+    def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
+            infohash, roothash,
+            prev_metadata_mid=None, prev_metadata_global_time=None):
+        """
+        Adds a Metadata message and get its message ID.
+        """
+        if this_mid:
+            this_mid_str = buffer(this_mid)
+        else:
+            this_mid_str = None
+
+        if prev_metadata_mid:
+            prev_metadata_mid_str = buffer(prev_metadata_mid)
+        else:
+            prev_metadata_mid_str = None
+
+        if infohash:
+            infohash_str = bin2str(infohash)
+        else:
+            infohash_str = None
+
+        if roothash:
+            roothash_str = bin2str(roothash)
+        else:
+            roothash_str = None
+
+        sql = "INSERT INTO MetadataMessage(dispersy_id, this_global_time, this_mid, infohash, roothash, previous_mid, previous_global_time) VALUES(?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
+        values = (dispersy_id, this_global_time, this_mid_str,
+            infohash_str, roothash_str,
+            prev_metadata_mid_str, prev_metadata_global_time)
+
+        result = self._db.fetchone(sql, values)
+        return result
+
+    def addMetadataDataInBatch(self, value_tuple_list):
+        """
+        Adds metadata data in batch.
+        """
+        sql = "INSERT INTO MetadataData(message_id, data_key, data_value) VALUES(?, ?, ?)"
+        self._db.executemany(sql, value_tuple_list)
+
+    def deleteMetadataMessage(self, dispersy_id):
+        sql = "DELETE FROM MetadataMessage WHERE dispersy_id = ?"
+        self._db.execute_write(sql, (dispersy_id,))
+
+    def getMetdataDateByInfohash(self, infohash):
+        sql = """
+        SELECT data.data_key, data.data_value
+        FROM MetadataMessage as msg, MetadataData as data
+        WHERE msg.infohash = ? AND msg.message_id = data.message_id
+        """
+        result = self._db.fetchall(sql, (bin2str(infohash),))
+        return result
+
+    def getMetadataData(self, message_id):
+        sql = "SELECT data_key, data_value FROM MetadataData WHERE message_id = ?"
+        result = self._db.fetchall(sql, (message_id,))
+        return result
+
+
+
 class PeerDBHandler(BasicDBHandler):
 
     def __init__(self):

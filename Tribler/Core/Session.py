@@ -13,7 +13,7 @@ from Tribler.Core.simpledefs import STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_
     STATEDIR_DLPSTATE_DIR, STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, \
     NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_SEEDINGSTATS, \
     NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_SEEDINGSTATSSETTINGS, \
-    NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE
+    NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_METADATA
 from Tribler.Core.exceptions import NotYetImplementedException, \
     OperationNotEnabledByConfigurationException
 from Tribler.Core.SessionConfig import SessionConfigInterface, \
@@ -396,7 +396,9 @@ class Session(SessionConfigInterface):
         try:
             if subject == NTFY_MISC:
                 return self.lm.misc_db
-            if subject == NTFY_PEERS:
+            elif subject == NTFY_METADATA:
+                return self.lm.metadata_db
+            elif subject == NTFY_PEERS:
                 return self.lm.peer_db
             elif subject == NTFY_TORRENTS:
                 return self.lm.torrent_db

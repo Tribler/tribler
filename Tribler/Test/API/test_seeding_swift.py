@@ -62,11 +62,7 @@ class TestSeeding(TestAsServer):
             if len(filenames) == 1:
                 self.sdef.add_content(os.path.join(destdir, f))
             else:
-                xi = f
-                if sys.platform == "win32":
-                    xi = xi.replace("\\", "/")
-                si = xi.encode("UTF-8")
-                self.sdef.add_content(os.path.join(destdir, f), si)
+                self.sdef.add_content(os.path.join(destdir, f), f)
 
         specpn = self.sdef.finalize(self.session.get_swift_path(), destdir=destdir)
 

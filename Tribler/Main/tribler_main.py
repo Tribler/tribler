@@ -376,6 +376,7 @@ class ABCApp():
             if my_channel:
                 self.torrentfeed.register(self.utility.session, my_channel)
                 self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                self.torrentfeed.addCallback(my_channel, self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
@@ -463,6 +464,7 @@ class ABCApp():
             from Tribler.community.allchannel.community import AllChannelCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
+            from Tribler.community.metadata.community import MetadataCommunity
 
             self._logger.info("tribler: Preparing communities...")
             now = time()
@@ -475,6 +477,12 @@ class ABCApp():
                                            (s.dispersy_member,),
                                            {},
                                            load=True)
+
+            # load metadata community
+            dispersy.define_auto_load(MetadataCommunity,
+                               (s.dispersy_member,),
+                               {},
+                               load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
@@ -771,6 +779,7 @@ class ABCApp():
 
                     self.torrentfeed.register(self.utility.session, objectID)
                     self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                    self.torrentfeed.addCallback(objectID, self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
 
                 self.frame.managechannel.channelUpdated(objectID, created=changeType == NTFY_CREATE, modified=changeType == NTFY_MODIFIED)
 
@@ -1050,10 +1059,7 @@ class ABCApp():
                     sdef.add_content(o)  # single file .torrent
                 else:
                     xi = os.path.join(tdef.get_name_as_unicode(), i)
-                    if sys.platform == "win32":
-                        xi = xi.replace("\\", "/")
-                    si = xi.encode("UTF-8")  # spec format
-                    sdef.add_content(o, si)  # multi-file .torrent
+                    sdef.add_content(o, xi)  # multi-file .torrent
 
             specpn = sdef.finalize(self.sconfig.get_swift_path(), destdir=destdir)
 

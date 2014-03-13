@@ -839,6 +839,9 @@ class SelectedChannelFilter(TorrentFilter):
         self.SetBackgroundColour(wx.WHITE)
         TorrentFilter.AddComponents(self, spacers)
         self.search.SetDescriptiveText('Filter channel content')
+        button = wx.ToggleButton(self.filter_panel, -1, 'Show grid')
+        button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.parent_list.SetGrid(evt.GetEventObject().GetValue()))
+        self.filter_sizer.Insert(len(self.filter_sizer.GetChildren()) - 2, button, 0, wx.CENTER | wx.RIGHT, 3)
 
 
 class SelectedPlaylistFilter(TorrentFilter):

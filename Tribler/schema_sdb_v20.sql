@@ -12,19 +12,41 @@
 --   v8: Published as part of Tribler 5.5/6.0?
 --   v9: Published as part of Tribler 5.5
 
--- 
+--
 -- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
 --
--- v4: ChannelCast is an extension of the concept of ModerationCast, with 
---     an additional integrity measure. 'torrenthash' field is used to protect 
+-- v4: ChannelCast is an extension of the concept of ModerationCast, with
+--     an additional integrity measure. 'torrenthash' field is used to protect
 --     the integrity of the torrent file created by the publisher, from fake-
---     tracker attack, by including sha1 hash of the dictionary corresponding 
+--     tracker attack, by including sha1 hash of the dictionary corresponding
 --     to the entire torrent.
 --
---     'InvertedIndex' table is used for precise keyword matching than 
+--     'InvertedIndex' table is used for precise keyword matching than
 --     substring search that was used previously.
 
 BEGIN TRANSACTION create_table;
+
+----------------------------------------
+
+CREATE TABLE MetadataMessage (
+  message_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  dispersy_id            INTEGER NOT NULL,
+  this_global_time       INTEGER NOT NULL,
+  this_mid               TEXT NOT NULL,
+  infohash               TEXT NOT NULL,
+  roothash               TEXT,
+  previous_mid           TEXT,
+  previous_global_time   INTEGER
+);
+
+CREATE TABLE MetadataData (
+  message_id  INTEGER,
+  data_key    TEXT NOT NULL,
+  data_value  INTEGER,
+  FOREIGN KEY (message_id) REFERENCES MetadataMessage(message_id) ON DELETE CASCADE
+);
+
+
 
 ----------------------------------------
 
@@ -113,8 +135,8 @@ CREATE UNIQUE INDEX infohash_idx
   ON Torrent
   (infohash);
 
-CREATE INDEX Torrent_insert_idx 
-  ON Torrent 
+CREATE INDEX Torrent_insert_idx
+  ON Torrent
   (insert_time, swift_torrent_hash);
 
 CREATE INDEX Torrent_info_roothash_idx
@@ -232,7 +254,7 @@ CREATE TABLE BundlerPreference (
 
 CREATE TABLE IF NOT EXISTS _Channels (
   id                        integer         PRIMARY KEY ASC,
-  dispersy_cid              text,       
+  dispersy_cid              text,
   peer_id                   integer,
   name                      text            NOT NULL,
   description               text,
@@ -455,7 +477,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 19);
+INSERT INTO MyInfo VALUES ('version', 20);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');

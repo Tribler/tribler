@@ -69,7 +69,7 @@ class TestMyChannel(TestGuiAsServer):
             torrent = self.guiUtility.channelsearch_manager.getTorrentFromChannel(self.frame.managechannel.channel, infohash)
 
             def check_for_modifications():
-                modifications = self.guiUtility.channelsearch_manager.getTorrentModifications(torrent)
+                modifications = self.guiUtility.torrentsearch_manager.getTorrentModifications(torrent)
                 videoinfo_valid = False
                 swiftthumbnails_valid = False
                 for modification in modifications:

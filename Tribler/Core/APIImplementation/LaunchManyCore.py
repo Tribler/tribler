@@ -133,6 +133,12 @@ class TriblerLaunchMany(Thread):
                 # try_register(nocachedb, self.database_thread)!
 
                 success = self.dispersy.start()
+
+                # for debugging purpose
+                #from Tribler.dispersy.endpoint import NullEndpoint
+                #self.dispersy._endpoint = NullEndpoint()
+                #self.dispersy._endpoint.open(self.dispersy)
+
                 diff = timemod.time() - now
                 if success:
                     self._logger.info("lmc: Dispersy started successfully in %.2f seconds [port: %d]", diff, self.dispersy.wan_address[1])
@@ -201,7 +207,7 @@ class TriblerLaunchMany(Thread):
 
             if self.session.get_megacache():
                 import Tribler.Core.CacheDB.sqlitecachedb as cachedb
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler, MiscDBHandler
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler, MiscDBHandler, MetadataDBHandler
                 from Tribler.Category.Category import Category
                 from Tribler.Core.Tag.Extraction import TermExtraction
                 from Tribler.Core.CacheDB.sqlitecachedb import try_register
@@ -215,6 +221,7 @@ class TriblerLaunchMany(Thread):
                 self.term = TermExtraction.getInstance(self.session.get_install_dir())
 
                 self.misc_db = MiscDBHandler.getInstance()
+                self.metadata_db = MetadataDBHandler.getInstance()
 
                 self.peer_db = PeerDBHandler.getInstance()
 
@@ -711,6 +718,7 @@ class TriblerLaunchMany(Thread):
 
         if self.session.get_megacache():
             self.misc_db.delInstance()
+            self.metadata_db.delInstance()
             self.peer_db.delInstance()
             self.torrent_db.delInstance()
             self.mypref_db.delInstance()
