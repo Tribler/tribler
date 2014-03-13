@@ -178,10 +178,6 @@ class GuiImageManager(object):
                     image = wx.Bitmap(image_path, wx.BITMAP_TYPE_ANY)
                     self._other_dict[name] = image
 
-            # image doesn't exist
-            else:
-                self._logger.warn("Image[%s] doesn't exist.", name)
-
         return image
 
 
