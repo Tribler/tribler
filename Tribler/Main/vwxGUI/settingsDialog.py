@@ -21,7 +21,8 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.vwxGUI.widgets import _set_font, EditText
-from Tribler.Main.vwxGUI.validator import DirectoryValidator, NetworkSpeedValidator
+from Tribler.Main.vwxGUI.validator import DirectoryValidator, NetworkSpeedValidator, \
+    NumberValidator
 
 
 def create_section(parent, hsizer, label):
@@ -171,7 +172,7 @@ class SettingsDialog(wx.Dialog):
                 self.guiUtility.app.ratelimiter.set_global_max_speed(UPLOAD if config_option == 'maxuploadrate' else DOWNLOAD, value)
 
         valport = self._firewall_value.GetValue()
-        if valport != self.utility.session.get_listen_port():
+        if valport != str(self.utility.session.get_listen_port()):
             scfg.set_listen_port(int(valport))
 
             scfg.set_dispersy_port(int(valport) - 1)
@@ -199,7 +200,7 @@ class SettingsDialog(wx.Dialog):
             restart = True
 
         valwebuiport = self._webui_port.GetValue()
-        if valwebuiport != self.utility.read_config('webui_port'):
+        if valwebuiport != str(self.utility.read_config('webui_port')):
             self.utility.write_config('webui_port', valwebuiport)
             restart = True
 
@@ -502,7 +503,7 @@ class SettingsDialog(wx.Dialog):
         # Firewall-status
         cn_s1_sizer = create_subsection(conn_panel, cn_vsizer, "Firewall-status", 2, 3)
         add_label(conn_panel, cn_s1_sizer, "Current port")
-        self._firewall_value = wx.SpinCtrl(conn_panel, min=1, max=65535, initial=10000)
+        self._firewall_value = EditText(conn_panel, validator=NumberValidator(min=1, max=65535))
         self._firewall_value.SetMinSize(wx.Size(150, -1))
         cn_s1_sizer.Add(self._firewall_value)
 
@@ -524,7 +525,7 @@ class SettingsDialog(wx.Dialog):
         cn_s2_sizer.Add(self._lt_proxyserver, 0, wx.EXPAND)
 
         add_label(conn_panel, cn_s2_sizer, "Port")
-        self._lt_proxyport = wx.SpinCtrl(conn_panel, min=1, max=65535, initial=80)
+        self._lt_proxyport = EditText(conn_panel, validator=NumberValidator(min=1, max=65535))
         self._lt_proxyport.SetMinSize(wx.Size(150, -1))
         cn_s2_sizer.Add(self._lt_proxyport, 0, wx.EXPAND)
 
@@ -551,7 +552,7 @@ class SettingsDialog(wx.Dialog):
             self._firewall_status_text.SetLabel('Your network connection is working properly.')
         else:
             self._firewall_status_text.SetLabel('Tribler has not yet received any incoming\nconnections. Unless you\'re using a proxy, this\ncould indicate a problem with your network\nconnection.')
-        self._firewall_value.SetValue(self.utility.session.get_listen_port())
+        self._firewall_value.SetValue(str(self.utility.session.get_listen_port()))
         # uTP
         self._enable_utp.SetValue(self.utility.session.get_libtorrent_utp())
         # proxy
@@ -559,7 +560,7 @@ class SettingsDialog(wx.Dialog):
         self._lt_proxytype.SetSelection(ptype)
         if server:
             self._lt_proxyserver.SetValue(server[0])
-            self._lt_proxyport.SetValue(server[1])
+            self._lt_proxyport.SetValue(str(server[1]))
         if auth:
             self._lt_proxyusername.SetValue(auth[0])
             self._lt_proxypassword.SetValue(auth[1])
@@ -709,7 +710,7 @@ class SettingsDialog(wx.Dialog):
         exp_s1_port_label = wx.StaticText(exp_panel, label="Current port")
         exp_s1_port_label.SetMinSize(wx.Size(100, -1))
         exp_s1_sizer.Add(exp_s1_port_label, 0, wx.ALIGN_CENTER_VERTICAL)
-        self._webui_port = wx.SpinCtrl(exp_panel, min=1, max=65535, initial=80)
+        self._webui_port = EditText(exp_panel, validator=NumberValidator(min=1, max=65535))
         self._webui_port.SetMinSize(wx.Size(150, -1))
         exp_s1_sizer.Add(self._webui_port)
 
@@ -718,6 +719,6 @@ class SettingsDialog(wx.Dialog):
 
         # load values
         self._use_webui.SetValue(self.utility.read_config('use_webui'))
-        self._webui_port.SetValue(self.utility.read_config('webui_port'))
+        self._webui_port.SetValue(str(self.utility.read_config('webui_port')))
 
         return exp_panel, item_id
