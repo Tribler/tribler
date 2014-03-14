@@ -15,19 +15,9 @@ DEB_UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -e 's/-[^-]*$$//')
 GIT_URL = https://github.com/Tribler/tribler.git
 
 %:
-	dh $@ --with python2 
+	dh $@ --with python2
 
 override_dh_auto_configure:
-	chmod a-x Tribler/Tools/bitbucket-live-noauth.py
-	chmod a-x Tribler/Tools/pipe-babscam-h264-nosound-mencoder.sh
-	chmod a-x Tribler/Tools/pipe-babscam-h264-aac-gop-sync.sh
-	chmod a-x Tribler/Tools/pipe-arnocam-home.sh
-	chmod a-x Tribler/Tools/bitbucket-live.py
-	chmod a-x Tribler/Tools/pipe-arnocam-jip.sh
-	chmod a-x Tribler/Tools/pipe-babscam-h264-mp3.sh
-	chmod a-x Tribler/Tools/pipe-babscam-mpeg4-mp3-sync.sh
-	chmod a+x Tribler/community/demers/das4/demers.conf
-	chmod a+x Tribler/community/privatesearch/das4/search.conf
 	dh_auto_configure
 
 override_dh_auto_build:
