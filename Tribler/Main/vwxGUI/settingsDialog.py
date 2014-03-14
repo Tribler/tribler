@@ -503,6 +503,7 @@ class SettingsDialog(wx.Dialog):
         cn_s1_sizer = create_subsection(conn_panel, cn_vsizer, "Firewall-status", 2, 3)
         add_label(conn_panel, cn_s1_sizer, "Current port")
         self._firewall_value = wx.SpinCtrl(conn_panel, min=1, max=65535, initial=10000)
+        self._firewall_value.SetMinSize(wx.Size(150, -1))
         cn_s1_sizer.Add(self._firewall_value)
 
         add_label(conn_panel, cn_s1_sizer, "Status")
@@ -524,6 +525,7 @@ class SettingsDialog(wx.Dialog):
 
         add_label(conn_panel, cn_s2_sizer, "Port")
         self._lt_proxyport = wx.SpinCtrl(conn_panel, min=1, max=65535, initial=80)
+        self._lt_proxyport.SetMinSize(wx.Size(150, -1))
         cn_s2_sizer.Add(self._lt_proxyport, 0, wx.EXPAND)
 
         add_label(conn_panel, cn_s2_sizer, "Username")
@@ -548,7 +550,7 @@ class SettingsDialog(wx.Dialog):
         if self.guiUtility.frame.SRstatusbar.IsReachable():
             self._firewall_status_text.SetLabel('Your network connection is working properly.')
         else:
-            self._firewall_status_text.SetLabel('Tribler has not yet received any incoming\nconnections. Unless you\'re using a proxy, this could\nindicate a problem with your network connection.')
+            self._firewall_status_text.SetLabel('Tribler has not yet received any incoming\nconnections. Unless you\'re using a proxy, this\ncould indicate a problem with your network\nconnection.')
         self._firewall_value.SetValue(self.utility.session.get_listen_port())
         # uTP
         self._enable_utp.SetValue(self.utility.session.get_libtorrent_utp())
@@ -708,6 +710,7 @@ class SettingsDialog(wx.Dialog):
         exp_s1_port_label.SetMinSize(wx.Size(100, -1))
         exp_s1_sizer.Add(exp_s1_port_label, 0, wx.ALIGN_CENTER_VERTICAL)
         self._webui_port = wx.SpinCtrl(exp_panel, min=1, max=65535, initial=80)
+        self._webui_port.SetMinSize(wx.Size(150, -1))
         exp_s1_sizer.Add(self._webui_port)
 
         exp_s1_faq_text = wx.StaticText(exp_panel, label="The Tribler webUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\n\nFurthermore, we additionally allow you to control Tribler\nusing your Browser. Go to http://localhost:PORT/gui to\nview your downloads in the browser.")
