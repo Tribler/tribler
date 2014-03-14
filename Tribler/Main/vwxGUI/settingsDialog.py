@@ -2,7 +2,7 @@
 
 # see LICENSE.txt for license information
 import wx
-import wx.xrc as xrc
+import wx.lib.masked.textctrl
 import wx.lib.imagebrowser as ib
 import sys
 import os
@@ -16,209 +16,115 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, \
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_picture_dir
+
+from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
-from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
-from Tribler.Core.Utilities.utilities import isInteger
+from Tribler.Main.vwxGUI.widgets import _set_font, EditText
+from Tribler.Main.vwxGUI.validator import DirectoryValidator, NetworkSpeedValidator
 
+
+def create_section(parent, hsizer, label):
+    panel = wx.Panel(parent)
+
+    vsizer = wx.BoxSizer(wx.VERTICAL)
+
+    title = wx.StaticText(panel, label=label)
+    _set_font(title, 1, wx.FONTWEIGHT_BOLD)
+    vsizer.AddSpacer((1,7))
+    vsizer.Add(title, 0, wx.EXPAND | wx.BOTTOM, -7)
+
+    hsizer.Add(panel, 1, wx.EXPAND)
+    panel.SetSizer(vsizer)
+    return panel, vsizer
+
+def create_subsection(parent, parent_sizer, label, num_cols=1, vgap=0, hgap=0):
+    line = wx.StaticLine(parent, size=(-1,1), style=wx.LI_HORIZONTAL)
+    parent_sizer.Add(line, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 7)
+
+    title = wx.StaticText(parent, label=label)
+    _set_font(title, 0, wx.FONTWEIGHT_BOLD)
+    parent_sizer.Add(title, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+    if num_cols == 1:
+        sizer = wx.BoxSizer(wx.VERTICAL)
+    else:
+        sizer = wx.FlexGridSizer(cols=num_cols, vgap=vgap, hgap=hgap)
+        sizer.AddGrowableCol(1)
+
+    parent_sizer.Add(sizer, 0, wx.EXPAND)
+    return sizer
+
+def add_label(parent, sizer, label):
+    label = wx.StaticText(parent, label=label)
+    label.SetMinSize((100,-1))
+    sizer.Add(label)
 
 class SettingsDialog(wx.Dialog):
 
     def __init__(self):
+        super(SettingsDialog, self).__init__(None, size=(600, 600),
+            title="Settings", name="settingsDialog", style=wx.DEFAULT_DIALOG_STYLE)
+        self.SetExtraStyle(self.GetExtraStyle() | wx.WS_EX_VALIDATE_RECURSIVELY)
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.elementsName = ['myNameField',
-                             'thumb',
-                             'edit',
-                             'browse',
-                             'firewallValue',
-                             'firewallStatusText',
-                             'uploadCtrl',
-                             'downloadCtrl',
-                             'zeroUp',
-                             'fiftyUp',
-                             'hundredUp',
-                             'unlimitedUp',
-                             'seventyfiveDown',
-                             'threehundredDown',
-                             'sixhundreddDown',
-                             'unlimitedDown',
-                             'diskLocationCtrl',
-                             'diskLocationChoice',
-                             'portChange',
-                             'minimize_to_tray',
-                             't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',
-                             'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',
-                             'use_webui',
-                             'webui_port',
-                             'lt_proxytype',
-                             'lt_proxyserver',
-                             'lt_proxyport',
-                             'lt_proxyusername',
-                             'lt_proxypassword',
-                             'enable_utp']
-
-        self.myname = None
-        self.elements = {}
-        self.currentPortValue = None
-
-        pre = wx.PreDialog()
-        self.PostCreate(pre)
-        if sys.platform == 'linux2':
-            self.Bind(wx.EVT_SIZE, self.OnCreate)
-        else:
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-
-    def OnCreate(self, event):
-        if sys.platform == 'linux2':
-            self.Unbind(wx.EVT_SIZE)
-        else:
-            self.Unbind(wx.EVT_WINDOW_CREATE)
-
-        wx.CallAfter(self._PostInit)
-        event.Skip()
-        return True
-
-    def _PostInit(self):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
-        dialog = xrc.XRCCTRL(self, "settingsDialog")
-        for element in self.elementsName:
-            xrcElement = xrc.XRCCTRL(dialog, element)
-            if not xrcElement:
-                self._logger.info('settingsOverviewPanel: Error: Could not identify xrc element: %s', element)
-            self.elements[element] = xrcElement
+        # create the dialog and widgets
+        self._tree_ctrl = wx.TreeCtrl(self,
+            style=wx.TR_DEFAULT_STYLE | wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_SINGLE)
+        self._tree_ctrl.SetMinSize(wx.Size(150, -1))
+        tree_root = self._tree_ctrl.AddRoot('Root')
+        self._tree_ctrl.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
-        # Building tree
-        self.tree = xrc.XRCCTRL(self, "settings_tree")
-        root = self.tree.AddRoot('Root')
-        self.tree.SelectItem(self.tree.AppendItem(root, 'General', data=wx.TreeItemData(xrc.XRCCTRL(self, "general_panel"))), True)
-        self.tree.AppendItem(root, 'Connection', data=wx.TreeItemData(xrc.XRCCTRL(self, "connection_panel")))
-        self.tree.AppendItem(root, 'Limits', data=wx.TreeItemData(xrc.XRCCTRL(self, "bandwidth_panel")))
-        self.tree.AppendItem(root, 'Seeding', data=wx.TreeItemData(xrc.XRCCTRL(self, "seeding_panel")))
-        self.tree.AppendItem(root, 'Experimental', data=wx.TreeItemData(xrc.XRCCTRL(self, "exp_panel")))
-        self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.Add(self._tree_ctrl, 0, wx.EXPAND | wx.RIGHT, 10)
 
-        # Bind event listeners
-        self.elements['zeroUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(0, event))
-        self.elements['fiftyUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(50, event))
-        self.elements['hundredUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(100, event))
-        self.elements['unlimitedUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp('unlimited', event))
+        self._general_panel, self._general_id = self.__create_s1(tree_root, hsizer)
+        self._conn_panel, self._conn_id = self.__create_s2(tree_root, hsizer)
+        self._bandwidth_panel, self._bandwidth_id = self.__create_s3(tree_root, hsizer)
+        self._seeding_panel, self._seeding_id = self.__create_s4(tree_root, hsizer)
+        self._experimental_panel, self._experimental_id = self.__create_s5(tree_root, hsizer)
 
-        self.elements['seventyfiveDown'].Bind(wx.EVT_BUTTON, lambda event: self.setDown(75, event))
-        self.elements['threehundredDown'].Bind(wx.EVT_BUTTON, lambda event: self.setDown(300, event))
-        self.elements['sixhundreddDown'].Bind(wx.EVT_BUTTON, lambda event: self.setDown(600, event))
-        self.elements['unlimitedDown'].Bind(wx.EVT_BUTTON, lambda event: self.setDown('unlimited', event))
+        self._general_panel.Show(True)
+        self._conn_panel.Show(False)
+        self._bandwidth_panel.Show(False)
+        self._seeding_panel.Show(False)
+        self._experimental_panel.Show(False)
 
-        self.elements['uploadCtrl'].Bind(wx.EVT_KEY_DOWN, self.removeUnlimited)
-        self.elements['downloadCtrl'].Bind(wx.EVT_KEY_DOWN, self.removeUnlimited)
+        self._save_btn = wx.Button(self, wx.ID_OK, label="Save")
+        self._cancel_btn = wx.Button(self, wx.ID_CANCEL, label="Cancel")
 
-        self.elements['edit'].Bind(wx.EVT_BUTTON, self.EditClicked)
-        self.elements['browse'].Bind(wx.EVT_BUTTON, self.BrowseClicked)
+        btn_sizer = wx.StdDialogButtonSizer()
+        btn_sizer.AddButton(self._save_btn)
+        btn_sizer.AddButton(self._cancel_btn)
+        btn_sizer.Realize()
 
-        self.elements['lt_proxytype'].Bind(wx.EVT_CHOICE, self.ProxyTypeChanged)
+        self._save_btn.Bind(wx.EVT_BUTTON, self.saveAll)
+        self._cancel_btn.Bind(wx.EVT_BUTTON, self.cancelAll)
 
-        self.Bind(wx.EVT_BUTTON, self.saveAll, id=xrc.XRCID("wxID_OK"))
-        self.Bind(wx.EVT_BUTTON, self.cancelAll, id=xrc.XRCID("wxID_CANCEL"))
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.Add(hsizer, 1, wx.EXPAND | wx.ALL, 10)
+        vsizer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        self.SetSizer(vsizer)
 
-        # Loading settings
-        self.myname = self.utility.session.get_nickname()
-        mime, data = self.utility.session.get_mugshot()
-        if data is None:
-            gui_image_manager = GuiImageManager.getInstance()
-            self.mugshot = gui_image_manager.getImage(u"PEER_THUMB")
-        else:
-            self.mugshot = data2wxBitmap(mime, data)
-
-        self.elements['myNameField'].SetValue(self.myname)
-        self.elements['thumb'].SetBitmap(self.mugshot)
-
-        if self.guiUtility.frame.SRstatusbar.IsReachable():
-            self.elements['firewallStatusText'].SetLabel('Your network connection is working properly.')
-        else:
-            self.elements['firewallStatusText'].SetLabel('Tribler has not yet received any incoming connections. \nUnless you\'re using a proxy, this could indicate a problem\nwith your network connection.')
-
-        self.currentPortValue = str(self.utility.session.get_listen_port())
-        self.elements['firewallValue'].SetValue(self.currentPortValue)
-
-        convert = lambda v: 'unlimited' if v == 0 else ('0' if v == -1 else str(v))
-        self.elements['downloadCtrl'].SetValue(convert(self.utility.read_config('maxdownloadrate')))
-        self.elements['uploadCtrl'].SetValue(convert(self.utility.read_config('maxuploadrate')))
-
-        self.currentDestDir = self.defaultDLConfig.get_dest_dir()
-        self.elements['diskLocationCtrl'].SetValue(self.currentDestDir)
-        self.elements['diskLocationChoice'].SetValue(self.utility.read_config('showsaveas'))
-
-        if sys.platform != "darwin":
-            min_to_tray = self.utility.read_config('mintray') == 1
-            self.elements['minimize_to_tray'].SetValue(min_to_tray)
-        else:
-            self.elements['minimize_to_tray'].Enable(False)
-
-        self.elements['t4t0'].SetLabel(self.utility.lang.get('no_leeching'))
-        self.elements['t4t0'].Refresh()
-        self.elements['t4t1'].SetLabel(self.utility.lang.get('unlimited_seeding'))
-        self.elements['t4t2'].SetLabel(self.utility.lang.get('seed_sometime'))
-        self.elements['t4t3'].SetLabel(self.utility.lang.get('no_seeding'))
-
-        self.elements['g2g0'].SetLabel(self.utility.lang.get('seed_for_large_ratio'))
-        self.elements['g2g1'].SetLabel(self.utility.lang.get('boost__reputation'))
-        self.elements['g2g2'].SetLabel(self.utility.lang.get('seed_sometime'))
-        self.elements['g2g3'].SetLabel(self.utility.lang.get('no_seeding'))
-
-        t4t_option = self.utility.read_config('t4t_option')
-        self.elements['t4t%d' % t4t_option].SetValue(True)
-        t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
-        index = self.elements['t4t0choice'].FindString(str(t4t_ratio))
-        if index != wx.NOT_FOUND:
-            self.elements['t4t0choice'].Select(index)
-
-        t4t_hours = self.utility.read_config('t4t_hours')
-        t4t_minutes = self.utility.read_config('t4t_mins')
-        self.elements['t4t2text'].SetLabel("%d:%d" % (t4t_hours, t4t_minutes))
-
-        g2g_option = self.utility.read_config('g2g_option')
-        self.elements['g2g%d' % g2g_option].SetValue(True)
-        g2g_ratio = self.utility.read_config('g2g_ratio') / 100.0
-        index = self.elements['g2g0choice'].FindString(str(g2g_ratio))
-        if index != wx.NOT_FOUND:
-            self.elements['g2g0choice'].Select(index)
-
-        g2g_hours = self.utility.read_config('g2g_hours')
-        g2g_mins = self.utility.read_config('g2g_mins')
-        self.elements['g2g2text'].SetLabel("%d:%d" % (g2g_hours, g2g_mins))
-
-        self.elements['use_webui'].SetValue(self.utility.read_config('use_webui'))
-        self.elements['webui_port'].SetValue(str(self.utility.read_config('webui_port')))
-
-        ptype, server, auth = self.utility.session.get_libtorrent_proxy_settings()
-        self.elements['lt_proxytype'].SetSelection(ptype)
-        if server:
-            self.elements['lt_proxyserver'].SetValue(server[0])
-            self.elements['lt_proxyport'].SetValue(str(server[1]))
-        if auth:
-            self.elements['lt_proxyusername'].SetValue(auth[0])
-            self.elements['lt_proxypassword'].SetValue(auth[1])
-        self.ProxyTypeChanged()
-
-        self.elements['enable_utp'].SetValue(self.utility.session.get_libtorrent_utp())
-
-        wx.CallAfter(self.Refresh)
+        # select General page by default
+        self._tree_ctrl.SelectItem(self._general_id)
 
     def OnSelectionChanging(self, event):
         old_item = event.GetOldItem()
         new_item = event.GetItem()
         try:
-            self.ShowPage(self.tree.GetItemData(new_item).GetData(), self.tree.GetItemData(old_item).GetData())
+            self.ShowPage(self._tree_ctrl.GetItemData(new_item).GetData(), self._tree_ctrl.GetItemData(old_item).GetData())
         except:
             pass
 
     def ShowPage(self, page, oldpage):
         if oldpage == None:
-            selection = self.tree.GetSelection()
-            oldpage = self.tree.GetItemData(selection).GetData()
+            selection = self._tree_ctrl.GetSelection()
+            oldpage = self._tree_ctrl.GetItemData(selection).GetData()
 
         oldpage.Hide()
 
@@ -230,220 +136,157 @@ class SettingsDialog(wx.Dialog):
 
     def setUp(self, value, event=None):
         self.resetUploadDownloadCtrlColour()
-        self.elements['uploadCtrl'].SetValue(str(value))
+        self._upload_ctrl.SetValue(str(value))
 
         if event:
             event.Skip()
 
     def setDown(self, value, event=None):
         self.resetUploadDownloadCtrlColour()
-        self.elements['downloadCtrl'].SetValue(str(value))
+        self._download_ctrl.SetValue(str(value))
 
         if event:
             event.Skip()
 
     def resetUploadDownloadCtrlColour(self):
-        self.elements['uploadCtrl'].SetForegroundColour(wx.BLACK)
-        self.elements['downloadCtrl'].SetForegroundColour(wx.BLACK)
-
-    def removeUnlimited(self, event):
-        textCtrl = event.GetEventObject()
-        if textCtrl.GetValue().strip() == 'unlimited':
-            textCtrl.SetValue('')
-        event.Skip()
+        self._upload_ctrl.SetForegroundColour(wx.BLACK)
+        self._download_ctrl.SetForegroundColour(wx.BLACK)
 
     def saveAll(self, event):
-        errors = {}
+        if not self.Validate():
+            return
 
-        valdown = self.elements['downloadCtrl'].GetValue().strip()
-        if valdown != 'unlimited' and (not valdown.isdigit() or int(valdown) <= 0):
-            errors['downloadCtrl'] = 'Value must be a digit'
+        restart = False
 
-        valup = self.elements['uploadCtrl'].GetValue().strip()
-        if valup != 'unlimited' and (not valup.isdigit() or int(valup) < 0):
-            errors['uploadCtrl'] = 'Value must be a digit'
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = self.utility.session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
 
-        valport = self.elements['firewallValue'].GetValue().strip()
-        if not isInteger(valport):
-            errors['firewallValue'] = 'Value must be a digit'
+        valdown = self._download_ctrl.GetValue()
+        valup = self._upload_ctrl.GetValue()
+        convert = lambda v: 0 if v == 'unlimited' else (-1 if v == '0' else int(v))
+        for config_option, value in [('maxdownloadrate', convert(valdown)), ('maxuploadrate', convert(valup))]:
+            if self.utility.read_config(config_option) != value:
+                self.utility.write_config(config_option, value)
+                self.guiUtility.app.ratelimiter.set_global_max_speed(UPLOAD if config_option == 'maxuploadrate' else DOWNLOAD, value)
 
-        valdir = self.elements['diskLocationCtrl'].GetValue().strip()
-        if not os.path.exists(valdir):
-            errors['diskLocationCtrl'] = 'Location does not exist'
+        valport = self._firewall_value.GetValue()
+        if valport != self.utility.session.get_listen_port():
+            scfg.set_listen_port(int(valport))
 
-        valname = self.elements['myNameField'].GetValue()
-        if len(valname) > 40:
-            errors['myNameField'] = 'Max 40 characters'
+            scfg.set_dispersy_port(int(valport) - 1)
+            self.saveDefaultDownloadConfig(scfg)
 
-        hours_min = self.elements['t4t2text'].GetValue()
-        if len(hours_min) == 0:
-            if self.elements['t4t2'].GetValue():
-                errors['t4t2text'] = 'Need value'
-        else:
-            hours_min = hours_min.split(':')
+            self.guiUtility.set_firewall_restart(True)
+            restart = True
 
-            for value in hours_min:
-                if not value.isdigit():
-                    if self.elements['t4t2'].GetValue():
-                        errors['t4t2text'] = 'Needs to be integer'
-                    else:
-                        self.elements['t4t2text'].SetValue('')
+        showSave = int(self._disk_location_choice.IsChecked())
+        if showSave != self.utility.read_config('showsaveas'):
+            self.utility.write_config('showsaveas', showSave)
+            self.saveDefaultDownloadConfig(scfg)
 
-        hours_min = self.elements['g2g2text'].GetValue()
-        if len(hours_min) == 0:
-            if self.elements['g2g2'].GetValue():
-                errors['g2g2text'] = 'Need value'
-        else:
-            hours_min = hours_min.split(':')
-            for value in hours_min:
-                if not value.isdigit():
-                    if self.elements['g2g2'].GetValue():
-                        errors['g2g2text'] = 'Needs to be hours:minutes'
-                    else:
-                        self.elements['g2g2text'].SetValue('')
+        valdir = self._disk_location_ctrl.GetValue()
+        if valdir != self.currentDestDir:
+            self.defaultDLConfig.set_dest_dir(valdir)
 
-        valwebuiport = self.elements['webui_port'].GetValue().strip()
-        if not isInteger(valwebuiport):
-            errors['webui_port'] = 'Value must be a digit'
+            self.saveDefaultDownloadConfig(scfg)
+            self.moveCollectedTorrents(self.currentDestDir, valdir)
+            restart = True
 
-        valltproxyport = self.elements['lt_proxyport'].GetValue().strip()
-        if not valltproxyport.isdigit() and (self.elements['lt_proxytype'].GetSelection() or valltproxyport != ''):
-            errors['lt_proxyport'] = 'Value must be a digit'
+        useWebUI = self._use_webui.IsChecked()
+        if useWebUI != self.utility.read_config('use_webui'):
+            self.utility.write_config('use_webui', useWebUI)
+            restart = True
 
-        if len(errors) == 0:  # No errors found, continue saving
-            restart = False
+        valwebuiport = self._webui_port.GetValue()
+        if valwebuiport != self.utility.read_config('webui_port'):
+            self.utility.write_config('webui_port', valwebuiport)
+            restart = True
 
-            state_dir = self.utility.session.get_state_dir()
-            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
-            scfg = SessionStartupConfig.load(cfgfilename)
-
-            convert = lambda v: 0 if v == 'unlimited' else (-1 if v == '0' else int(v))
-            for config_option, value in [('maxdownloadrate', convert(valdown)), ('maxuploadrate', convert(valup))]:
-                if self.utility.read_config(config_option) != value:
-                    self.utility.write_config(config_option, value)
-                    self.guiUtility.app.ratelimiter.set_global_max_speed(UPLOAD if config_option == 'maxuploadrate' else DOWNLOAD, value)
-
-            if valport != self.currentPortValue:
-                scfg.set_listen_port(int(valport))
-
-                scfg.set_dispersy_port(int(valport) - 1)
-                self.saveDefaultDownloadConfig(scfg)
-
-                self.guiUtility.set_firewall_restart(True)
-                restart = True
-
-            showSave = int(self.elements['diskLocationChoice'].IsChecked())
-            if showSave != self.utility.read_config('showsaveas'):
-                self.utility.write_config('showsaveas', showSave)
-                self.saveDefaultDownloadConfig(scfg)
-
-            if valdir != self.currentDestDir:
-                self.defaultDLConfig.set_dest_dir(valdir)
-
-                self.saveDefaultDownloadConfig(scfg)
-                self.moveCollectedTorrents(self.currentDestDir, valdir)
-                restart = True
-
-            useWebUI = self.elements['use_webui'].IsChecked()
-            if useWebUI != self.utility.read_config('use_webui'):
-                self.utility.write_config('use_webui', useWebUI)
-                restart = True
-
-            if valwebuiport != str(self.utility.read_config('webui_port')):
-                self.utility.write_config('webui_port', valwebuiport)
-                restart = True
-
-            curMintray = self.utility.read_config('mintray')
-            minimizeToTray = 1 if self.elements['minimize_to_tray'].IsChecked() else 0
+        curMintray = self.utility.read_config('mintray')
+        if self._minimize_to_tray:
+            minimizeToTray = 1 if self._minimize_to_tray.IsChecked() else 0
             if minimizeToTray != curMintray:
                 self.utility.write_config('mintray', minimizeToTray)
 
-            for target in [scfg, self.utility.session]:
-                try:
-                    target.set_nickname(self.elements['myNameField'].GetValue())
-                    if getattr(self, 'icondata', False):
-                        target.set_mugshot(self.icondata, mime='image/jpeg')
-                except:
-                    self._logger.exception("Could not set target")
+        for target in [scfg, self.utility.session]:
+            try:
+                target.set_nickname(self._my_name_field.GetValue())
+                if getattr(self, 'icondata', False):
+                    target.set_mugshot(self.icondata, mime='image/jpeg')
+            except:
+                self._logger.exception("Could not set target")
 
-            # tit-4-tat
-            t4t_option = self.utility.read_config('t4t_option')
-            for i in range(4):
-                if self.elements['t4t%d' % i].GetValue():
-                    self.utility.write_config('t4t_option', i)
+        # tit-4-tat
+        t4t_option = self.utility.read_config('t4t_option')
+        for i in range(4):
+            if getattr(self, '_t4t%d' % i).GetValue():
+                self.utility.write_config('t4t_option', i)
 
-                    if i != t4t_option:
-                        restart = True
+                if i != t4t_option:
+                    restart = True
 
-                    break
-            t4t_ratio = int(float(self.elements['t4t0choice'].GetStringSelection()) * 100)
-            self.utility.write_config("t4t_ratio", t4t_ratio)
+                break
+        t4t_ratio = int(float(self._t4t0choice.GetStringSelection()) * 100)
+        self.utility.write_config("t4t_ratio", t4t_ratio)
 
-            hours_min = self.elements['t4t2text'].GetValue()
-            hours_min = hours_min.split(':')
-            if len(hours_min) > 0:
-                if len(hours_min) > 1:
-                    self.utility.write_config("t4t_hours", hours_min[0] or 0)
-                    self.utility.write_config("t4t_mins", hours_min[1] or 0)
-                else:
-                    self.utility.write_config("t4t_hours", hours_min[0] or 0)
-                    self.utility.write_config("t4t_mins", 0)
+        hours_min = self._t4t2text.GetValue()
+        hours_min = hours_min.split(':')
+        if len(hours_min) > 0:
+            if len(hours_min) > 1:
+                self.utility.write_config("t4t_hours", hours_min[0] or 0)
+                self.utility.write_config("t4t_mins", hours_min[1] or 0)
+            else:
+                self.utility.write_config("t4t_hours", hours_min[0] or 0)
+                self.utility.write_config("t4t_mins", 0)
 
-            # give-2-get
-            g2g_option = self.utility.read_config('g2g_option')
-            for i in range(4):
-                if self.elements['g2g%d' % i].GetValue():
-                    self.utility.write_config("g2g_option", i)
+        # give-2-get
+        g2g_option = self.utility.read_config('g2g_option')
+        for i in range(4):
+            if getattr(self, '_g2g%d' % i).GetValue():
+                self.utility.write_config("g2g_option", i)
 
-                    if i != g2g_option:
-                        restart = True
-                    break
-            g2g_ratio = int(float(self.elements['g2g0choice'].GetStringSelection()) * 100)
-            self.utility.write_config("g2g_ratio", g2g_ratio)
+                if i != g2g_option:
+                    restart = True
+                break
+        g2g_ratio = int(float(self._g2g0choice.GetStringSelection()) * 100)
+        self.utility.write_config("g2g_ratio", g2g_ratio)
 
-            hours_min = self.elements['g2g2text'].GetValue()
-            hours_min = hours_min.split(':')
-            if len(hours_min) > 0:
-                if len(hours_min) > 1:
-                    self.utility.write_config("g2g_hours", hours_min[0] or 0)
-                    self.utility.write_config("g2g_mins", hours_min[1] or 0)
-                else:
-                    self.utility.write_config("g2g_hours", hours_min[0] or 0)
-                    self.utility.write_config("g2g_mins", 0)
+        hours_min = self._g2g2text.GetValue()
+        hours_min = hours_min.split(':')
+        if len(hours_min) > 0:
+            if len(hours_min) > 1:
+                self.utility.write_config("g2g_hours", hours_min[0] or 0)
+                self.utility.write_config("g2g_mins", hours_min[1] or 0)
+            else:
+                self.utility.write_config("g2g_hours", hours_min[0] or 0)
+                self.utility.write_config("g2g_mins", 0)
 
-            # Proxy settings
-            old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
-            new_ptype = self.elements['lt_proxytype'].GetSelection()
-            new_server = (self.elements['lt_proxyserver'].GetValue(), int(self.elements['lt_proxyport'].GetValue())) if self.elements['lt_proxyserver'].GetValue() and self.elements['lt_proxyport'].GetValue() else None
-            new_auth = (self.elements['lt_proxyusername'].GetValue(), self.elements['lt_proxypassword'].GetValue()) if self.elements['lt_proxyusername'].GetValue() and self.elements['lt_proxypassword'].GetValue() else None
-            if old_ptype != new_ptype or old_server != new_server or old_auth != new_auth:
-                self.utility.session.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
-                scfg.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
+        # Proxy settings
+        old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
+        new_ptype = self._lt_proxytype.GetSelection()
+        new_server = (self._lt_proxyserver.GetValue(), int(self._lt_proxyport.GetValue())) if self._lt_proxyserver.GetValue() and self._lt_proxyport.GetValue() else None
+        new_auth = (self._lt_proxyusername.GetValue(), self._lt_proxypassword.GetValue()) if self._lt_proxyusername.GetValue() and self._lt_proxypassword.GetValue() else None
+        if old_ptype != new_ptype or old_server != new_server or old_auth != new_auth:
+            self.utility.session.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
+            scfg.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
 
-            enable_utp = self.elements['enable_utp'].GetValue()
-            if enable_utp != self.utility.session.get_libtorrent_utp():
-                self.utility.session.set_libtorrent_utp(enable_utp)
-                scfg.set_libtorrent_utp(enable_utp)
+        enable_utp = self._enable_utp.GetValue()
+        if enable_utp != self.utility.session.get_libtorrent_utp():
+            self.utility.session.set_libtorrent_utp(enable_utp)
+            scfg.set_libtorrent_utp(enable_utp)
 
-            scfg.save(cfgfilename)
+        scfg.save(cfgfilename)
 
-            self.utility.flush_config()
+        self.utility.flush_config()
 
-            if restart:
-                dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?", "Restart required", wx.ICON_QUESTION | wx.YES_NO | wx.YES_DEFAULT)
-                if dlg.ShowModal() == wx.ID_YES:
-                    self.guiUtility.frame.Restart()
-                dlg.Destroy()
-            self.EndModal(1)
-            event.Skip()
-        else:
-            for error in errors.keys():
-                if sys.platform != 'darwin':
-                    self.elements[error].SetForegroundColour(wx.RED)
-                self.elements[error].SetValue(errors[error])
-
-            parentPanel = self.elements[error].GetParent()
-            self.ShowPage(parentPanel, None)
+        if restart:
+            dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?", "Restart required", wx.ICON_QUESTION | wx.YES_NO | wx.YES_DEFAULT)
+            if dlg.ShowModal() == wx.ID_YES:
+                self.guiUtility.frame.Restart()
+            dlg.Destroy()
+        self.EndModal(1)
+        event.Skip()
 
     def cancelAll(self, event):
         self.EndModal(1)
@@ -462,17 +305,17 @@ class SettingsDialog(wx.Dialog):
         dlg = wx.DirDialog(None, "Choose download directory", style=wx.DEFAULT_DIALOG_STYLE)
         dlg.SetPath(self.defaultDLConfig.get_dest_dir())
         if dlg.ShowModal() == wx.ID_OK:
-            self.elements['diskLocationCtrl'].SetForegroundColour(wx.BLACK)
-            self.elements['diskLocationCtrl'].SetValue(dlg.GetPath())
+            self._disk_location_ctrl.SetForegroundColour(wx.BLACK)
+            self._disk_location_ctrl.SetValue(dlg.GetPath())
         else:
             pass
 
     def ProxyTypeChanged(self, event=None):
-        selection = self.elements['lt_proxytype'].GetStringSelection()
-        self.elements['lt_proxyusername'].Enable(selection.endswith('with authentication'))
-        self.elements['lt_proxypassword'].Enable(selection.endswith('with authentication'))
-        self.elements['lt_proxyserver'].Enable(selection != 'None')
-        self.elements['lt_proxyport'].Enable(selection != 'None')
+        selection = self._lt_proxytype.GetStringSelection()
+        self._lt_proxyusername.Enable(selection.endswith('with authentication'))
+        self._lt_proxypassword.Enable(selection.endswith('with authentication'))
+        self._lt_proxyserver.Enable(selection != 'None')
+        self._lt_proxyport.Enable(selection != 'None')
 
     def _SelectAll(self, dlg, event, nrchoices):
         if event.ControlDown():
@@ -557,7 +400,7 @@ class SettingsDialog(wx.Dialog):
             else:
                 if sys.platform != 'darwin':
                     bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM, ICON_MAX_DIM), -1)
-                    thumbpanel = self.elements['thumb']
+                    thumbpanel = self._thumb
                     thumbpanel.SetBitmap(bm)
 
                 # Arno, 2008-10-21: scale image!
@@ -578,3 +421,300 @@ class SettingsDialog(wx.Dialog):
         dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def __create_s1(self, tree_root, sizer):
+        general_panel, gp_vsizer = create_section(self, sizer, "General")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "General", data=wx.TreeItemData(general_panel))
+
+        # Tribler Profile
+        gp_s1_sizer = create_subsection(general_panel, gp_vsizer, "Tribler Profile", 2)
+
+        add_label(general_panel, gp_s1_sizer, "Nickname")
+        self._my_name_field = wx.TextCtrl(general_panel, style=wx.TE_PROCESS_ENTER)
+        self._my_name_field.SetMaxLength(40)
+        gp_s1_sizer.Add(self._my_name_field, 1, wx.EXPAND)
+
+        add_label(general_panel, gp_s1_sizer, "Profile Image")
+        self._thumb = wx.StaticBitmap(general_panel, size=(80,80))
+        self._edit = wx.Button(general_panel, label="Change Image")
+        gp_s1_porfile_vsizer = wx.BoxSizer(wx.VERTICAL)
+        gp_s1_porfile_vsizer.Add(self._thumb, 0, wx.LEFT, 1)
+        gp_s1_porfile_vsizer.Add(self._edit)
+        gp_s1_sizer.Add(gp_s1_porfile_vsizer, 0, wx.TOP, 3)
+
+        # Download Location
+        gp_s2_sizer = create_subsection(general_panel, gp_vsizer, "Download Location", 1)
+
+        gp_s2_label = wx.StaticText(general_panel, label="Save files to:")
+        gp_s2_sizer.Add(gp_s2_label)
+        gp_s2_hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self._disk_location_ctrl = EditText(general_panel,
+            validator=DirectoryValidator())
+        gp_s2_hsizer.Add(self._disk_location_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
+        self._browse = wx.Button(general_panel, label="Browse")
+        gp_s2_hsizer.Add(self._browse)
+        gp_s2_sizer.Add(gp_s2_hsizer, 0, wx.EXPAND)
+        self._disk_location_choice = wx.CheckBox(general_panel,
+            label="Let me choose a location for every download")
+        self._disk_location_choice.SetValue(False)
+        gp_s2_sizer.Add(self._disk_location_choice)
+
+        # Minimize
+        if sys.platform == "darwin":
+            self._minimize_to_tray = None
+        else:
+            gp_s3_sizer = create_subsection(general_panel, gp_vsizer, "Minimize", 1)
+
+            self._minimize_to_tray = wx.CheckBox(general_panel, label="Minimize to tray")
+            self._minimize_to_tray.SetValue(False)
+            gp_s3_sizer.Add(self._minimize_to_tray)
+
+        self._edit.Bind(wx.EVT_BUTTON, self.EditClicked)
+        self._browse.Bind(wx.EVT_BUTTON, self.BrowseClicked)
+
+        # nickname
+        self._my_name_field.SetValue(self.utility.session.get_nickname())
+        # thumbnail
+        mime, data = self.utility.session.get_mugshot()
+        if data is None:
+            gui_image_manager = GuiImageManager.getInstance()
+            mugshot = gui_image_manager.getImage(u"PEER_THUMB")
+        else:
+            mugshot = data2wxBitmap(mime, data)
+        self._thumb.SetBitmap(mugshot)
+        # download location
+        self.currentDestDir = self.defaultDLConfig.get_dest_dir()
+        self._disk_location_ctrl.SetValue(self.currentDestDir)
+        self._disk_location_choice.SetValue(self.utility.read_config('showsaveas'))
+        # minimize to tray
+        if sys.platform != "darwin":
+            min_to_tray = self.utility.read_config('mintray') == 1
+            self._minimize_to_tray.SetValue(min_to_tray)
+
+        return general_panel, item_id
+
+    def __create_s2(self, tree_root, sizer):
+        conn_panel, cn_vsizer = create_section(self, sizer, "Connection")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Connection", data=wx.TreeItemData(conn_panel))
+
+        # Firewall-status
+        cn_s1_sizer = create_subsection(conn_panel, cn_vsizer, "Firewall-status", 2, 3)
+        add_label(conn_panel, cn_s1_sizer, "Current port")
+        self._firewall_value = wx.SpinCtrl(conn_panel, min=1, max=65535, initial=10000)
+        cn_s1_sizer.Add(self._firewall_value)
+
+        add_label(conn_panel, cn_s1_sizer, "Status")
+        self._firewall_status_text = wx.StaticText(conn_panel)
+        cn_s1_sizer.Add(self._firewall_status_text)
+
+        # BitTorrent proxy settings
+        cn_s2_sizer = create_subsection(conn_panel, cn_vsizer, "BitTorrent proxy settings", 2, 3)
+        add_label(conn_panel, cn_s2_sizer, "Type")
+        self._lt_proxytype = wx.Choice(conn_panel)
+        self._lt_proxytype.AppendItems(["None", "Socks4", "Socks5",
+            "Socks5 with authentication", "HTTP", "HTTP with authentication"])
+        cn_s2_sizer.Add(self._lt_proxytype)
+
+        add_label(conn_panel, cn_s2_sizer, "Server")
+        self._lt_proxyserver = wx.TextCtrl(conn_panel, style=wx.TE_PROCESS_ENTER)
+        self._lt_proxyserver.SetMaxLength(1024)
+        cn_s2_sizer.Add(self._lt_proxyserver, 0, wx.EXPAND)
+
+        add_label(conn_panel, cn_s2_sizer, "Port")
+        self._lt_proxyport = wx.SpinCtrl(conn_panel, min=1, max=65535, initial=80)
+        cn_s2_sizer.Add(self._lt_proxyport, 0, wx.EXPAND)
+
+        add_label(conn_panel, cn_s2_sizer, "Username")
+        self._lt_proxyusername = wx.TextCtrl(conn_panel, style=wx.TE_PROCESS_ENTER)
+        self._lt_proxyusername.SetMaxLength(255)
+        cn_s2_sizer.Add(self._lt_proxyusername, 0, wx.EXPAND)
+
+        add_label(conn_panel, cn_s2_sizer, "Password")
+        self._lt_proxypassword = wx.TextCtrl(conn_panel, style=wx.TE_PROCESS_ENTER | wx.TE_PASSWORD)
+        self._lt_proxypassword.SetMaxLength(255)
+        cn_s2_sizer.Add(self._lt_proxypassword, 0, wx.EXPAND)
+
+        # BitTorrent features
+        cn_s3_sizer = create_subsection(conn_panel, cn_vsizer, "BitTorrent features", 1)
+        self._enable_utp = wx.CheckBox(conn_panel, size=(200,-1),
+            label="Enable bandwidth management (uTP)")
+        cn_s3_sizer.Add(self._enable_utp, 0, wx.EXPAND)
+
+        self._lt_proxytype.Bind(wx.EVT_CHOICE, self.ProxyTypeChanged)
+
+        # firewall status
+        if self.guiUtility.frame.SRstatusbar.IsReachable():
+            self._firewall_status_text.SetLabel('Your network connection is working properly.')
+        else:
+            self._firewall_status_text.SetLabel('Tribler has not yet received any incoming\nconnections. Unless you\'re using a proxy, this could\nindicate a problem with your network connection.')
+        self._firewall_value.SetValue(self.utility.session.get_listen_port())
+        # uTP
+        self._enable_utp.SetValue(self.utility.session.get_libtorrent_utp())
+        # proxy
+        ptype, server, auth = self.utility.session.get_libtorrent_proxy_settings()
+        self._lt_proxytype.SetSelection(ptype)
+        if server:
+            self._lt_proxyserver.SetValue(server[0])
+            self._lt_proxyport.SetValue(server[1])
+        if auth:
+            self._lt_proxyusername.SetValue(auth[0])
+            self._lt_proxypassword.SetValue(auth[1])
+        self.ProxyTypeChanged()
+
+        return conn_panel, item_id
+
+    def __create_s3(self, tree_root, sizer):
+        bandwidth_panel, bp_vsizer = create_section(self, sizer, "Bandwidth")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Bandwidth", data=wx.TreeItemData(bandwidth_panel))
+
+        # Bandwidth Limits
+        bp_s1_sizer = create_subsection(bandwidth_panel, bp_vsizer, "Bandwidth Limits", 1)
+        bp_s1_limitupload_label = wx.StaticText(bandwidth_panel, label="Limit upload rate")
+        bp_s1_sizer.Add(bp_s1_limitupload_label)
+        bp_s1_hsizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        self._upload_ctrl = EditText(bandwidth_panel, validator=NetworkSpeedValidator())
+        bp_s1_hsizer1.Add(self._upload_ctrl)
+        bp_s1_p1_label = wx.StaticText(bandwidth_panel, label="KB/s")
+        bp_s1_hsizer1.Add(bp_s1_p1_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
+        bp_s1_hsizer1.AddStretchSpacer(1)
+        # up buttons
+        for btn_label1 in ("0", "50", "100", "unlimited"):
+            bp_s1_p1_btn = wx.Button(bandwidth_panel, label=btn_label1, style=wx.BU_EXACTFIT)
+            bp_s1_p1_btn.Bind(wx.EVT_BUTTON, lambda event, label=btn_label1: self.setUp(label, event))
+            bp_s1_hsizer1.Add(bp_s1_p1_btn)
+        bp_s1_sizer.Add(bp_s1_hsizer1, 0, wx.EXPAND)
+
+        bp_s1_limitdownload_label = wx.StaticText(bandwidth_panel, label="Limit download rate")
+        bp_s1_sizer.Add(bp_s1_limitdownload_label)
+        bp_s1_hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        self._download_ctrl = EditText(bandwidth_panel, validator=NetworkSpeedValidator())
+        bp_s1_hsizer2.Add(self._download_ctrl)
+        bp_s1_p2_label = wx.StaticText(bandwidth_panel, label="KB/s")
+        bp_s1_hsizer2.Add(bp_s1_p2_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
+        bp_s1_hsizer2.AddStretchSpacer(1)
+        # down buttons
+        for btn_label2 in ("75", "300", "600", "unlimited"):
+            bp_s1_p2_btn = wx.Button(bandwidth_panel, label=btn_label2, style=wx.BU_EXACTFIT)
+            bp_s1_p2_btn.Bind(wx.EVT_BUTTON, lambda event, label=btn_label2: self.setDown(label, event))
+            bp_s1_hsizer2.Add(bp_s1_p2_btn)
+        bp_s1_sizer.Add(bp_s1_hsizer2, 0, wx.EXPAND)
+
+        # upload/download rate
+        convert = lambda v: 'unlimited' if v == 0 else ('0' if v == -1 else str(v))
+        self._download_ctrl.SetValue(convert(self.utility.read_config('maxdownloadrate')))
+        self._upload_ctrl.SetValue(convert(self.utility.read_config('maxuploadrate')))
+
+        return bandwidth_panel, item_id
+
+    def __create_s4(self, tree_root, sizer):
+        seeding_panel, sd_vsizer = create_section(self, sizer, "Seeding")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Seeding", data=wx.TreeItemData(seeding_panel))
+
+        # BitTorrent-peers
+        sd_s1_sizer = create_subsection(seeding_panel, sd_vsizer, "BitTorrent-peers", 2)
+        self._t4t0 = wx.RadioButton(seeding_panel,
+            label="Seed until UL/DL ratio >", style=wx.RB_GROUP)
+        sd_s1_sizer.Add(self._t4t0, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._t4t0choice = wx.Choice(seeding_panel)
+        self._t4t0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
+        sd_s1_sizer.Add(self._t4t0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+
+        self._t4t1 = wx.RadioButton(seeding_panel,
+            label="Unlimited seeding")
+        sd_s1_sizer.Add(self._t4t1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sd_s1_sizer.AddStretchSpacer()
+
+        self._t4t2 = wx.RadioButton(seeding_panel, label="Seeding for (hours:minutes)")
+        sd_s1_sizer.Add(self._t4t2, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._t4t2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
+        self._t4t2text.SetCtrlParameters(mask="##:##", defaultValue="00:00",
+            useFixedWidthFont=False)
+        sd_s1_sizer.Add(self._t4t2text)
+
+        self._t4t3 = wx.RadioButton(seeding_panel, label="No seeding")
+        sd_s1_sizer.Add(self._t4t3, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        # Tribler-peers
+        sd_s2_sizer = create_subsection(seeding_panel, sd_vsizer, "Tribler-peers", 2)
+        self._g2g0 = wx.RadioButton(seeding_panel,
+            label="Seed to peers with UL/DL ratio", style=wx.RB_GROUP)
+        sd_s2_sizer.Add(self._g2g0, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._g2g0choice = wx.Choice(seeding_panel)
+        self._g2g0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
+        sd_s2_sizer.Add(self._g2g0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+
+        self._g2g1 = wx.RadioButton(seeding_panel,
+            label="Unlimited seeding (Boost your reputation)")
+        sd_s2_sizer.Add(self._g2g1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sd_s2_sizer.AddStretchSpacer(1)
+
+        self._g2g2 = wx.RadioButton(seeding_panel,
+            label="Seeding for (hours:minutes)")
+        sd_s2_sizer.Add(self._g2g2, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._g2g2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
+        self._g2g2text.SetCtrlParameters(mask="##:##", defaultValue="00:00",
+            useFixedWidthFont=False)
+        sd_s2_sizer.Add(self._g2g2text)
+
+        self._g2g3 = wx.RadioButton(seeding_panel,
+            label="No seeding")
+        sd_s2_sizer.Add(self._g2g3, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        sd_vsizer.AddStretchSpacer(1)
+
+        sd_faq_text = wx.StaticText(seeding_panel, label="Why differ between 'normal' BitTorrent and Tribler-peers?\nBecause between Tribler-peers you will build up a repuation.\nThis is not the case for 'normal' BitTorrent-peers.")
+        sd_vsizer.Add(sd_faq_text)
+
+        # other things
+        t4t_option = self.utility.read_config('t4t_option')
+        getattr(self, '_t4t%d' % t4t_option).SetValue(True)
+        t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
+        index = self._t4t0choice.FindString(str(t4t_ratio))
+        if index != wx.NOT_FOUND:
+            self._t4t0choice.Select(index)
+
+        t4t_hours = self.utility.read_config('t4t_hours')
+        t4t_minutes = self.utility.read_config('t4t_mins')
+        self._t4t2text.SetValue("%02d:%02d" % (t4t_hours, t4t_minutes))
+
+        g2g_option = self.utility.read_config('g2g_option')
+        getattr(self, '_g2g%d' % g2g_option).SetValue(True)
+        g2g_ratio = self.utility.read_config('g2g_ratio') / 100.0
+        index = self._g2g0choice.FindString(str(g2g_ratio))
+        if index != wx.NOT_FOUND:
+            self._g2g0choice.Select(index)
+
+        g2g_hours = self.utility.read_config('g2g_hours')
+        g2g_mins = self.utility.read_config('g2g_mins')
+        self._g2g2text.SetLabel("%02d:%02d" % (g2g_hours, g2g_mins))
+
+        return seeding_panel, item_id
+
+    def __create_s5(self, tree_root, sizer):
+        exp_panel, exp_vsizer = create_section(self, sizer, "Experimental")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Experimental", data=wx.TreeItemData(exp_panel))
+
+        # Web UI
+        exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Web UI", 2, 3)
+        self._use_webui = wx.CheckBox(exp_panel, label="Enable webUI")
+        exp_s1_sizer.Add(self._use_webui, 0, wx.EXPAND)
+        exp_s1_sizer.AddStretchSpacer()
+        exp_s1_port_label = wx.StaticText(exp_panel, label="Current port")
+        exp_s1_port_label.SetMinSize(wx.Size(100, -1))
+        exp_s1_sizer.Add(exp_s1_port_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._webui_port = wx.SpinCtrl(exp_panel, min=1, max=65535, initial=80)
+        exp_s1_sizer.Add(self._webui_port)
+
+        exp_s1_faq_text = wx.StaticText(exp_panel, label="The Tribler webUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\n\nFurthermore, we additionally allow you to control Tribler\nusing your Browser. Go to http://localhost:PORT/gui to\nview your downloads in the browser.")
+        exp_vsizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
+
+        # load values
+        self._use_webui.SetValue(self.utility.read_config('use_webui'))
+        self._webui_port.SetValue(self.utility.read_config('webui_port'))
+
+        return exp_panel, item_id
