@@ -1,6 +1,4 @@
 # Written by Egbert Bouman
-import sys
-import functools
 
 def checkHandleAndSynchronize(default=None):
     def wrap(f):
@@ -21,8 +19,8 @@ def waitForHandleAndSynchronize(default=None):
                 if download.handle and download.handle.is_valid():
                     return f(*args, **kwargs)
                 else:
-                    lambda_f = lambda a = args, kwa = kwargs: f(*a, **kwa)
-                    download.rawserver.add_task(lambda_f, 1)
+                    lambda_f = lambda a = args, kwa = kwargs: invoke_func(*a, **kwa)
+                    download.session.lm.rawserver.add_task(lambda_f, 1)
                     return default
         return invoke_func
 
