@@ -13,8 +13,8 @@ from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, \
     DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, \
-    UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLMODE_VOD, NTFY_INSERT, NTFY_ACT_MEET, DLSTATUS_STOPPED_ON_ERROR, \
-    NTFY_ACTIVITIES, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
+    UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR, DLMODE_NORMAL, \
+    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
 from Tribler.Core.APIImplementation import maketorrent
@@ -464,10 +464,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
             with self.dllock:
 
-                if alert.category() == lt.alert.category_t.debug_notification:
-                    if alert_type == 'peer_connect_alert':
-                        self.on_peer_connect_alert(alert)
-                elif alert_type == 'metadata_received_alert':
+                if alert_type == 'metadata_received_alert':
                     self.on_metadata_received_alert(alert)
                 elif alert_type == 'file_renamed_alert':
                     self.on_file_renamed_alert(alert)
@@ -479,9 +476,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     self.on_torrent_finished_alert(alert)
                 else:
                     self.update_lt_stats()
-
-    def on_peer_connect_alert(self, alert):
-        self.notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % (alert.ip[0], alert.ip[1]))
 
     def on_metadata_received_alert(self, alert):
         self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
