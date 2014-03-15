@@ -365,6 +365,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return self.vod_index
         return -1
 
+    @checkHandleAndSynchronize(0)
     def get_vod_filesize(self):
         fileindex = self.get_vod_fileindex()
         if fileindex >= 0:
@@ -372,7 +373,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return file_entry.size
         return 0
 
-    @checkHandleAndSynchronize()
+    @checkHandleAndSynchronize(0.0)
     def get_piece_progress(self, pieces, consecutive=False):
         if not pieces:
             return 1.0
@@ -392,7 +393,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return float(pieces_have) / pieces_all
         return 0.0
 
-    @checkHandleAndSynchronize()
+    @checkHandleAndSynchronize(0.0)
     def get_byte_progress(self, byteranges, consecutive=False):
         pieces = []
         for fileindex, bytes_begin, bytes_end in byteranges:
@@ -1011,18 +1012,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         """
         self.handle.connect_peer(addr, 0)
 
+    @waitForHandleAndSynchronize(True)
     def dlconfig_changed_callback(self, section, name, new_value, old_value):
-        if self.handle:
-            if section == 'downloadconfig' and name == 'max_upload_rate':
-                self.handle.set_upload_limit(int(new_value * 1024))
-            elif section == 'downloadconfig' and name == 'max_download_rate':
-                self.handle.set_download_limit(int(new_value * 1024))
-            elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
-                return False
-
-        else:
-            network_dlconfig_changed_callback = lambda: self.dlconfig_changed_callback(section, name, new_value, old_value)
-            self.session.lm.rawserver.add_task(network_dlconfig_changed_callback, 1.0)
+        if section == 'downloadconfig' and name == 'max_upload_rate':
+            self.handle.set_upload_limit(int(new_value * 1024))
+        elif section == 'downloadconfig' and name == 'max_download_rate':
+            self.handle.set_download_limit(int(new_value * 1024))
+        elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
+            return False
         return True
 
 
