@@ -9,7 +9,7 @@ import codecs
 from random import gauss
 
 from Tribler.Lang.lang import Lang
-from Tribler.Core.__init__ import version_id
+from Tribler.Core.version import version_id
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
