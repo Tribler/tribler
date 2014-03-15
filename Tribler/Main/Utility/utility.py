@@ -1,7 +1,6 @@
 # Written by ABC authors and Arno Bakker
 # see LICENSE.txt for license information
 import os
-import ast
 import sys
 import socket
 import logging
