@@ -15,6 +15,7 @@
 import sys
 import logging
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.Core.version import version_id, commit_id, build_date
 from Tribler.Core.osutils import fix_filebasename
 
 logger = logging.getLogger(__name__)
@@ -194,7 +195,7 @@ class ABCApp():
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance(self.dispersy.callback)
 
-            self._logger.info('Tribler Version: %s Build: %s', self.utility.lang.get('version'), self.utility.lang.get('build'))
+            self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -331,9 +332,9 @@ class ABCApp():
 # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
-            status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
-            status.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
-            status.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
+            status.create_and_add_event("client-startup-version", [version_id])
+            status.create_and_add_event("client-startup-build", [commit_id])
+            status.create_and_add_event("client-startup-build-date", [build_date])
 
             self.ready = True
 

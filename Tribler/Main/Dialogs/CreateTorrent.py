@@ -4,15 +4,17 @@
 import wx
 import os
 import logging
-
-from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from threading import Event
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI import forceWxThread
 from traceback import print_exc
+
+from Tribler.Core.version import version_id
+from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
+from Tribler.Core.TorrentDef import TorrentDef
+
+from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 
 class CreateTorrent(wx.Dialog):
@@ -105,9 +107,9 @@ class CreateTorrent(wx.Dialog):
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 3)
 
-        abbrev_mb = " " + self.guiutility.utility.lang.get('MB')
-        abbrev_kb = " " + self.guiutility.utility.lang.get('KB')
-        piece_choices = [self.guiutility.utility.lang.get('automatic'),
+        abbrev_mb = " MB"
+        abbrev_kb = " KB"
+        piece_choices = ['Automatic',
                          '4' + abbrev_mb,
                          '2' + abbrev_mb,
                          '1' + abbrev_mb,
@@ -250,7 +252,7 @@ class CreateTorrent(wx.Dialog):
 
             params = {}
             params['comment'] = self.commentList.GetValue()
-            params['created by'] = '%s version: %s' % (self.guiutility.utility.lang.get('title'), self.guiutility.utility.lang.get('version'))
+            params['created by'] = '%s version: %s' % ('Tribler', version_id)
 
             trackers = self.trackerList.GetValue()
             trackers = [tracker for tracker in trackers.split('\n') if tracker]

@@ -19,6 +19,7 @@ import sys
 import traceback
 import logging
 
+from Tribler.Core.version import version_id
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
 from Tribler.Main.vwxGUI.home import Home, Stats
@@ -119,9 +120,8 @@ class FileDropTarget(wx.FileDropTarget):
                 self.frame.startDownload(filename, destdir=destdir, fixtorrent=True)
             except IOError:
                 dlg = wx.MessageDialog(None,
-                           self.frame.utility.lang.get("filenotfound"),
-                           self.frame.utility.lang.get("tribler_warning"),
-                           wx.OK | wx.ICON_ERROR)
+                    "File not found or cannot be accessed.",
+                    "Tribler Warning", wx.OK | wx.ICON_ERROR)
                 dlg.ShowModal()
                 dlg.Destroy()
         return True
@@ -147,9 +147,7 @@ class MainFrame(wx.Frame):
 
         self.guiserver = GUITaskQueue.getInstance()
 
-        title = self.utility.lang.get('title') + \
-            " " + \
-                self.utility.lang.get('version')
+        title = "Tribler %s" % version_id
 
         # Get window size and (sash) position from config file
         size, position, sashpos = self.getWindowSettings()
@@ -599,9 +597,8 @@ class MainFrame(wx.Frame):
             if wx.Thread_IsMain():
                 # show nice warning dialog
                 dlg = wx.MessageDialog(None,
-                                       self.utility.lang.get('duplicate_download_msg'),
-                                       self.utility.lang.get('duplicate_download_title'),
-                                       wx.OK | wx.ICON_ERROR)
+                    "You are already downloading this torrent, see the Downloads section.",
+                    "Duplicate download", wx.OK | wx.ICON_ERROR)
                 result = dlg.ShowModal()
                 dlg.Destroy()
 
@@ -1055,11 +1052,11 @@ class MainFrame(wx.Frame):
             try:
                 if isinstance(event, wx.CloseEvent) and event.CanVeto() and self.utility.read_config('confirmonclose') and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
                     if self.shutdown_and_upgrade_notes:
-                        confirmmsg = self.utility.lang.get('confirmupgrademsg') + "\n\n" + self.shutdown_and_upgrade_notes
-                        confirmtitle = self.utility.lang.get('confirmupgrade')
+                        confirmmsg = "Do you want to close Tribler and upgrade to the next version?  See release notes below" + "\n\n" + self.shutdown_and_upgrade_notes
+                        confirmtitle = "Upgrade Tribler?"
                     else:
-                        confirmmsg = self.utility.lang.get('confirmmsg')
-                        confirmtitle = self.utility.lang.get('confirm')
+                        confirmmsg = "Do you want to close Tribler?"
+                        confirmtitle = "Confirm"
 
                     dialog_name = 'closeconfirmation'
                     if not self.shutdown_and_upgrade_notes and not self.guiUtility.ReadGuiSetting('show_%s' % dialog_name, default=True):
@@ -1117,9 +1114,9 @@ class MainFrame(wx.Frame):
 
     @forceWxThread
     def onWarning(self, exc):
-        msg = self.utility.lang.get('tribler_startup_nonfatalerror')
+        msg = "A non-fatal error occured during Tribler startup, you may need to change the network Preferences:  \n\n"
         msg += str(exc.__class__) + ':' + str(exc)
-        dlg = wx.MessageDialog(None, msg, self.utility.lang.get('tribler_warning'), wx.OK | wx.ICON_WARNING)
+        dlg = wx.MessageDialog(None, msg, "Tribler Warning", wx.OK | wx.ICON_WARNING)
         result = dlg.ShowModal()
         dlg.Destroy()
 
@@ -1128,7 +1125,7 @@ class MainFrame(wx.Frame):
         backtrace = traceback.format_exception(type, value, stack)
 
         def do_gui():
-            win = FeedbackWindow(self.utility.lang.get('tribler_warning'))
+            win = FeedbackWindow("Tribler Warning")
             win.SetParent(self)
             win.CreateOutputWindow('')
             for line in backtrace:
@@ -1145,22 +1142,22 @@ class MainFrame(wx.Frame):
     def onUPnPError(self, upnp_type, listenport, error_type, exc=None, listenproto='TCP'):
 
         if error_type == 0:
-            errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + self.utility.lang.get('tribler_upnp_error1')
+            errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + "request to the firewall failed."
         elif error_type == 1:
-            errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + self.utility.lang.get('tribler_upnp_error2') + unicode(str(exc)) + self.utility.lang.get('tribler_upnp_error2_postfix')
+            errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + "request to firewall returned:  '" + unicode(str(exc)) + "'. "
         elif error_type == 2:
-            errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + self.utility.lang.get('tribler_upnp_error3')
+            errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + "was enabled, but initialization failed."
         else:
             errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' Unknown error')
 
-        msg = self.utility.lang.get('tribler_upnp_error_intro')
+        msg = "An error occured while trying to open the listen port "
         msg += listenproto + ' '
         msg += str(listenport)
-        msg += self.utility.lang.get('tribler_upnp_error_intro_postfix')
+        msg += " on the firewall."
         msg += errormsg
-        msg += self.utility.lang.get('tribler_upnp_error_extro')
+        msg += " This will hurt the performance of Tribler.\n\nTo fix this, configure your firewall/router/modem or try setting a different listen port or UPnP mode in (advanced) network Preferences."
 
-        dlg = wx.MessageDialog(None, msg, self.utility.lang.get('tribler_warning'), wx.OK | wx.ICON_WARNING)
+        dlg = wx.MessageDialog(None, msg, "Tribler Warning", wx.OK | wx.ICON_WARNING)
         result = dlg.ShowModal()
         dlg.Destroy()
 
@@ -1185,32 +1182,30 @@ class MainFrame(wx.Frame):
                     self.SetTitle(text)
                     self._logger.info("main: Activity %s", repr(text))
                 elif self.GetTitle().startswith("No network"):
-                    title = self.utility.lang.get('title') + \
-                        " " + \
-                        self.utility.lang.get('version')
+                    title = "Tribler %s" % version_id
                     self.SetTitle(title)
 
             elif type == NTFY_ACT_UPNP:
-                prefix = self.utility.lang.get('act_upnp')
+                prefix = "Opening firewall (if any) via UPnP"
             elif type == NTFY_ACT_REACHABLE:
-                prefix = self.utility.lang.get('act_reachable')
+                prefix = "Seeing if not firewalled"
             elif type == NTFY_ACT_GET_EXT_IP_FROM_PEERS:
-                prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
+                prefix = "Asking peers for my IP address"
             elif type == NTFY_ACT_MEET:
-                prefix = self.utility.lang.get('act_meet')
+                prefix = "Person connected: "
             elif type == NTFY_ACT_GOT_METADATA:
-                prefix = self.utility.lang.get('act_got_metadata')
+                prefix = "File discovered:"
 
                 if self.category.family_filter_enabled() and arg2 == 7:  # XXX category
                     self._logger.debug("MainFrame: setActivity: Hiding XXX torrent %s", msg)
                     return
 
             elif type == NTFY_ACT_RECOMMEND:
-                prefix = self.utility.lang.get('act_recommend')
+                prefix = "Discovered more persons and files from"
             elif type == NTFY_ACT_DISK_FULL:
-                prefix = self.utility.lang.get('act_disk_full')
+                prefix = "Disk is full to collect more torrents. Please change your preferences or free space on "
             elif type == NTFY_ACT_NEW_VERSION:
-                prefix = self.utility.lang.get('act_new_version')
+                prefix = "New version of Tribler available"
             if msg == u'':
                 text = prefix
             else:

@@ -49,13 +49,13 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
     def CreatePopupMenu(self):
         menu = wx.Menu()
 
-        mi = menu.Append(-1, self.utility.lang.get('stopall'))
+        mi = menu.Append(-1, 'Stop All')
         self.Bind(wx.EVT_MENU, self.OnStopAll, id=mi.GetId())
         menu.AppendSeparator()
-        mi = menu.Append(-1, self.utility.lang.get('restartall'))
+        mi = menu.Append(-1, 'Restart All')
         self.Bind(wx.EVT_MENU, self.OnRestartAll, id=mi.GetId())
         menu.AppendSeparator()
-        mi = menu.Append(-1, self.utility.lang.get('menuexit'))
+        mi = menu.Append(-1, '&Exit')
         self.Bind(wx.EVT_MENU, self.OnExitClient, id=mi.GetId())
         return menu
 
