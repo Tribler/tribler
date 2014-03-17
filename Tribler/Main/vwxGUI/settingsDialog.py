@@ -397,7 +397,7 @@ class SettingsDialog(wx.Dialog):
         try:
             im = wx.Image(self.iconpath)
             if im is None:
-                self.show_inputerror(self.utility.lang.get('cantopenfile'))
+                self.show_inputerror("Could not open thumbnail file")
             else:
                 if sys.platform != 'darwin':
                     bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM, ICON_MAX_DIM), -1)
@@ -416,10 +416,10 @@ class SettingsDialog(wx.Dialog):
                 os.remove(thumbfilename)
         except:
             self._logger.exception("Could not read thumbnail")
-            self.show_inputerror(self.utility.lang.get('iconbadformat'))
+            self.show_inputerror("The icon you selected is not in a supported format")
 
     def show_inputerror(self, txt):
-        dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
+        dlg = wx.MessageDialog(self, txt, "Invalid input", wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
 

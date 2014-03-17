@@ -1,15 +1,14 @@
 # Written by Niels Zeilemaker
 import wx
-import os
 
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+
+from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.vwxGUI import warnWxThread
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import TransparentText as StaticText, HorizontalGauge, ActionButton
-from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
-from Tribler import LIBRARYNAME
-from Tribler.Main.vwxGUI import warnWxThread
 
 
 class SRstatusbar(wx.StatusBar):

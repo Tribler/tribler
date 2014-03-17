@@ -6,27 +6,26 @@ import random
 import logging
 from time import strftime
 from collections import defaultdict
+from traceback import print_exc
 
+from Tribler.Category.Category import Category
+from Tribler.Core.Tag.Extraction import TermExtraction
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
+from Tribler.Core.Session import Session
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
+    NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+
+from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.list_header import DetailHeader
 from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.list import XRCPanel
-
-from Tribler.Main.vwxGUI import SEPARATOR_GREY
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, \
     FancyPanel, LinkStaticText, LinkText
-from Tribler.Category.Category import Category
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
-    NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
-from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
-from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-from traceback import print_exc
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
-from Tribler.Core.Tag.Extraction import TermExtraction
 
 class Home(XRCPanel):
 
@@ -38,7 +37,7 @@ class Home(XRCPanel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
 
-        text = StaticText(self, -1, self.guiutility.utility.lang.get('title'))
+        text = StaticText(self, -1, "Tribler")
         font = text.GetFont()
         font.SetPointSize(font.GetPointSize() * 3)
         font.SetWeight(wx.FONTWEIGHT_BOLD)

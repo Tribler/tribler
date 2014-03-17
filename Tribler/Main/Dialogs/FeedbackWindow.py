@@ -17,11 +17,13 @@
 import sys
 import os
 import wx
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 import platform
-from Tribler.Main.vwxGUI.widgets import AutoWidthListCtrl
 import httplib
 from urllib import urlencode
+
+from Tribler.Core.version import version_id
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.widgets import AutoWidthListCtrl
 
 
 class FeedbackWindow(wx.PyOnDemandOutputWindow):
@@ -90,7 +92,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
             guiUtility = GUIUtility.getInstance()
             utility = guiUtility.utility
 
-            self.text.AppendText('%s version: %s\n' % (utility.lang.get('title'), utility.lang.get('version')))
+            self.text.AppendText('%s version: %s\n' % ('Tribler', version_id))
         except:
             pass
 

@@ -15,6 +15,7 @@
 import sys
 import logging
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.Core.version import version_id, commit_id, build_date
 from Tribler.Core.osutils import fix_filebasename
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 
 from Tribler.Main.Utility.utility import Utility
@@ -94,13 +94,12 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT
     NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, \
     STATEDIR_SWIFTRESEED_DIR, \
     dlstatus_strings, \
-    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
+    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, \
     DLSTATUS_SEEDING, DLSTATUS_STOPPED
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
-from Tribler.Core.osutils import fix_filebasename
 
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
@@ -115,7 +114,6 @@ import Tribler.Core.DecentralizedTracking.pymdht.core.message
 import Tribler.Core.DecentralizedTracking.pymdht.core.node
 import Tribler.Core.DecentralizedTracking.pymdht.core.ptime
 import Tribler.Core.DecentralizedTracking.pymdht.core.routing_table
-import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
@@ -195,7 +193,7 @@ class ABCApp():
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance(self.dispersy.callback)
 
-            self._logger.info('Tribler Version: %s Build: %s', self.utility.lang.get('version'), self.utility.lang.get('build'))
+            self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -263,7 +261,6 @@ class ABCApp():
             self.videoplayer = VideoPlayer.getInstance(s, self.utility.read_config('videoplayerpath'), preferredplaybackmode=playbackmode, httpport=httpport)
 
             self.splash.tick('GUIUtility register')
-            notification_init(self.utility)
             self.guiUtility.register()
 
             channel_only = os.path.exists(os.path.join(self.installdir, 'joinchannel'))
@@ -333,9 +330,9 @@ class ABCApp():
 # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
-            status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
-            status.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
-            status.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
+            status.create_and_add_event("client-startup-version", [version_id])
+            status.create_and_add_event("client-startup-build", [commit_id])
+            status.create_and_add_event("client-startup-build-date", [build_date])
 
             self.ready = True
 

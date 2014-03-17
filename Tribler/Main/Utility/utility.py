@@ -5,10 +5,8 @@ import sys
 import socket
 import logging
 import codecs
-
 from random import gauss
 
-from Tribler.Lang.lang import Lang
 from Tribler.Core.version import version_id
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -39,15 +37,11 @@ class Utility:
 
         self.setupConfig()
 
-        # Setup language files
-        self.lang = Lang(self)
-
         # Is ABC in the process of shutting down?
         self.abcquitting = False
 
     def setupConfig(self):
-        tribler_defaults = {'language_file': 'english.lang',
-                            'confirmonclose': 1,
+        tribler_defaults = {'confirmonclose': 1,
                             # RateLimitPanel
                             'maxuploadrate': 0,
                             'maxdownloadrate': 0,
@@ -160,11 +154,11 @@ class Utility:
         if week > 1000:
             return '<unknown>'
 
-        weekstr = '%d' % (week) + self.lang.get('l_week')
-        daystr = '%d' % (day) + self.lang.get('l_day')
-        hourstr = '%d' % (hour) + self.lang.get('l_hour')
-        minutestr = '%d' % (minute) + self.lang.get('l_minute')
-        secstr = '%02d' % (sec) + self.lang.get('l_second')
+        weekstr = '%d' % (week) + 'w'
+        daystr = '%d' % (day) + 'd'
+        hourstr = '%d' % (hour) + 'h'
+        minutestr = '%d' % (minute) + 'm'
+        secstr = '%02d' % (sec) + 's'
 
         if week > 0:
             text = weekstr
@@ -237,7 +231,7 @@ class Utility:
         if textonly:
             return text
 
-        label = self.lang.get(text)
+        label = "B" if text == "Byte" else text
         if labelonly:
             return label
 
