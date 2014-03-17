@@ -13,8 +13,8 @@ from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, \
     DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, \
-    UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLMODE_VOD, NTFY_INSERT, NTFY_ACT_MEET, DLSTATUS_STOPPED_ON_ERROR, \
-    NTFY_ACTIVITIES, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
+    UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR, DLMODE_NORMAL, \
+    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
 from Tribler.Core.APIImplementation import maketorrent
@@ -23,6 +23,7 @@ from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilena
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
 
 if sys.platform == "win32":
     try:
@@ -364,6 +365,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return self.vod_index
         return -1
 
+    @checkHandleAndSynchronize(0)
     def get_vod_filesize(self):
         fileindex = self.get_vod_fileindex()
         if fileindex >= 0:
@@ -371,117 +373,104 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return file_entry.size
         return 0
 
+    @checkHandleAndSynchronize(0.0)
     def get_piece_progress(self, pieces, consecutive=False):
         if not pieces:
             return 1.0
         elif consecutive:
             pieces.sort()
 
-        with self.dllock:
-            if self.handle:
-                status = self.handle.status()
-                if status:
-                    pieces_have = 0
-                    pieces_all = len(pieces)
-                    bitfield = status.pieces
-                    for pieceindex in pieces:
-                        if pieceindex < len(bitfield) and bitfield[pieceindex]:
-                            pieces_have += 1
-                        elif consecutive:
-                            break
-                    return float(pieces_have) / pieces_all
-                return 0.0
+        status = self.handle.status()
+        if status:
+            pieces_have = 0
+            pieces_all = len(pieces)
+            bitfield = status.pieces
+            for pieceindex in pieces:
+                if pieceindex < len(bitfield) and bitfield[pieceindex]:
+                    pieces_have += 1
+                elif consecutive:
+                    break
+            return float(pieces_have) / pieces_all
+        return 0.0
 
+    @checkHandleAndSynchronize(0.0)
     def get_byte_progress(self, byteranges, consecutive=False):
-        with self.dllock:
-            if self.handle:
-                pieces = []
-                for fileindex, bytes_begin, bytes_end in byteranges:
-                    if fileindex >= 0:
-                        # Ensure the we remain within the file's boundaries
-                        file_entry = self.handle.get_torrent_info().file_at(fileindex)
-                        bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
-                        bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
+        pieces = []
+        for fileindex, bytes_begin, bytes_end in byteranges:
+            if fileindex >= 0:
+                # Ensure the we remain within the file's boundaries
+                file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
+                bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
 
-                        startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
-                        endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
-                        startpiece = max(startpiece, 0)
-                        endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+                startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
+                endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
+                startpiece = max(startpiece, 0)
+                endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
 
-                        pieces += range(startpiece, endpiece)
-                    else:
-                        self._logger.info("LibtorrentDownloadImpl: could not get progress for incorrect fileindex")
+                pieces += range(startpiece, endpiece)
+            else:
+                self._logger.info("LibtorrentDownloadImpl: could not get progress for incorrect fileindex")
 
-                pieces = list(set(pieces))
-                return self.get_piece_progress(pieces, consecutive)
+        pieces = list(set(pieces))
+        return self.get_piece_progress(pieces, consecutive)
 
+    @checkHandleAndSynchronize()
     def set_piece_priority(self, pieces, priority):
-        with self.dllock:
-            if self.handle:
-                piecepriorities = self.handle.piece_priorities()
-                for piece in pieces:
-                    if piece < len(piecepriorities):
-                        piecepriorities[piece] = priority
-                    else:
-                        self._logger.info("LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d", piece, len(piecepriorities))
-                self.handle.prioritize_pieces(piecepriorities)
+        piecepriorities = self.handle.piece_priorities()
+        for piece in pieces:
+            if piece < len(piecepriorities):
+                piecepriorities[piece] = priority
+            else:
+                self._logger.info("LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d", piece, len(piecepriorities))
+        self.handle.prioritize_pieces(piecepriorities)
 
+    @checkHandleAndSynchronize()
     def set_byte_priority(self, byteranges, priority):
-        with self.dllock:
-            if self.handle:
-                pieces = []
-                for fileindex, bytes_begin, bytes_end in byteranges:
-                    if fileindex >= 0:
-                        if bytes_begin == 0 and bytes_end == -1:
-                            # Set priority for entire file
-                            filepriorities = self.handle.file_priorities()
-                            filepriorities[fileindex] = priority
-                            self.handle.prioritize_files(filepriorities)
-                        else:
-                            # Ensure the we remain within the file's boundaries
-                            file_entry = self.handle.get_torrent_info().file_at(fileindex)
-                            bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
-                            bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
+        pieces = []
+        for fileindex, bytes_begin, bytes_end in byteranges:
+            if fileindex >= 0:
+                if bytes_begin == 0 and bytes_end == -1:
+                    # Set priority for entire file
+                    filepriorities = self.handle.file_priorities()
+                    filepriorities[fileindex] = priority
+                    self.handle.prioritize_files(filepriorities)
+                else:
+                    # Ensure the we remain within the file's boundaries
+                    file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                    bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
+                    bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
 
-                            startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
-                            endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
-                            startpiece = max(startpiece, 0)
-                            endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+                    startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
+                    endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
+                    startpiece = max(startpiece, 0)
+                    endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
 
-                            pieces += range(startpiece, endpiece)
-                    else:
-                        self._logger.info("LibtorrentDownloadImpl: could not set priority for incorrect fileindex")
+                    pieces += range(startpiece, endpiece)
+            else:
+                self._logger.info("LibtorrentDownloadImpl: could not set priority for incorrect fileindex")
 
-                if pieces:
-                    pieces = list(set(pieces))
-                    self.set_piece_priority(pieces, priority)
+        if pieces:
+            pieces = list(set(pieces))
+            self.set_piece_priority(pieces, priority)
 
+    @checkHandleAndSynchronize()
     def process_alert(self, alert, alert_type):
         if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
             self._logger.debug("LibtorrentDownloadImpl: alert %s with message %s", alert_type, alert)
 
-        if self.handle and self.handle.is_valid():
-
-            with self.dllock:
-
-                if alert.category() == lt.alert.category_t.debug_notification:
-                    if alert_type == 'peer_connect_alert':
-                        self.on_peer_connect_alert(alert)
-                elif alert_type == 'metadata_received_alert':
-                    self.on_metadata_received_alert(alert)
-                elif alert_type == 'file_renamed_alert':
-                    self.on_file_renamed_alert(alert)
-                elif alert_type == 'performance_alert':
-                    self.on_performance_alert(alert)
-                elif alert_type == 'torrent_checked_alert':
-                    self.on_torrent_checked_alert(alert)
-                elif alert_type == "torrent_finished_alert":
-                    self.on_torrent_finished_alert(alert)
-                else:
-                    self.update_lt_stats()
-
-    def on_peer_connect_alert(self, alert):
-        self.notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % (alert.ip[0], alert.ip[1]))
+        if alert_type == 'metadata_received_alert':
+            self.on_metadata_received_alert(alert)
+        elif alert_type == 'file_renamed_alert':
+            self.on_file_renamed_alert(alert)
+        elif alert_type == 'performance_alert':
+            self.on_performance_alert(alert)
+        elif alert_type == 'torrent_checked_alert':
+            self.on_torrent_checked_alert(alert)
+        elif alert_type == "torrent_finished_alert":
+            self.on_torrent_finished_alert(alert)
+        else:
+            self.update_lt_stats()
 
     def on_metadata_received_alert(self, alert):
         self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
@@ -577,72 +566,70 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         if self.get_corrected_filename() and self.get_corrected_filename() != '' and 'files' in self.tdef.get_metainfo()['info']:
             self.correctedinfoname = self.get_corrected_filename()
 
+    @checkHandleAndSynchronize()
     def set_selected_files(self, selected_files=None):
-        with self.dllock:
+        if not isinstance(self.tdef, TorrentDefNoMetainfo):
 
-            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+            if selected_files is None:
+                selected_files = self.get_selected_files()
+            else:
+                DownloadConfigInterface.set_selected_files(self, selected_files)
 
-                if selected_files is None:
-                    selected_files = self.get_selected_files()
+            is_multifile = len(self.tdef.get_files_as_unicode()) > 1
+            commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
+            swarmname = commonprefix.partition(os.path.sep)[0]
+            unwanteddir = os.path.join(swarmname, '.unwanted')
+            unwanteddir_abs = os.path.join(self.handle.save_path(), unwanteddir)
+
+            filepriorities = []
+            for index, orig_path in enumerate(self.orig_files):
+                filename = orig_path[len(swarmname) + 1:] if swarmname else orig_path
+
+                if filename in selected_files or not selected_files:
+                    filepriorities.append(1)
+                    new_path = orig_path
                 else:
-                    DownloadConfigInterface.set_selected_files(self, selected_files)
+                    filepriorities.append(0)
+                    new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
 
-                is_multifile = len(self.tdef.get_files_as_unicode()) > 1
-                commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
-                swarmname = commonprefix.partition(os.path.sep)[0]
-                unwanteddir = os.path.join(swarmname, '.unwanted')
-                unwanteddir_abs = os.path.join(self.handle.save_path(), unwanteddir)
+                cur_path = self.handle.get_torrent_info().files()[index].path
+                if cur_path != new_path:
+                    if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
+                        try:
+                            os.makedirs(unwanteddir_abs)
+                            if sys.platform == "win32":
+                                win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
+                        except:
+                            self._logger.error("LibtorrentDownloadImpl: could not create %s" % unwanteddir_abs)
+                            # Note: If the destination directory can't be accessed, libtorrent will not be able to store the files.
+                            # This will result in a DLSTATUS_STOPPED_ON_ERROR.
 
-                filepriorities = []
-                for index, orig_path in enumerate(self.orig_files):
-                    filename = orig_path[len(swarmname) + 1:] if swarmname else orig_path
+                    self.handle.rename_file(index, new_path)
 
-                    if filename in selected_files or not selected_files:
-                        filepriorities.append(1)
-                        new_path = orig_path
-                    else:
-                        filepriorities.append(0)
-                        new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
+            self.handle.prioritize_files(filepriorities)
 
-                    cur_path = self.handle.get_torrent_info().files()[index].path
-                    if cur_path != new_path:
-                        if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
-                            try:
-                                os.makedirs(unwanteddir_abs)
-                                if sys.platform == "win32":
-                                    win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
-                            except:
-                                self._logger.error("LibtorrentDownloadImpl: could not create %s" % unwanteddir_abs)
-                                # Note: If the destination directory can't be accessed, libtorrent will not be able to store the files.
-                                # This will result in a DLSTATUS_STOPPED_ON_ERROR.
+            self.unwanteddir_abs = unwanteddir_abs
 
-                        self.handle.rename_file(index, new_path)
-
-                self.handle.prioritize_files(filepriorities)
-
-                self.unwanteddir_abs = unwanteddir_abs
-
+    @checkHandleAndSynchronize(False)
     def move_storage(self, new_dir):
-        with self.dllock:
-            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
-                self.handle.move_storage(new_dir)
-                self.set_dest_dir(new_dir)
-                return True
-        return False
+        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+            self.handle.move_storage(new_dir)
+            self.set_dest_dir(new_dir)
+            return True
 
+    @checkHandleAndSynchronize()
     def get_save_path(self):
-        with self.dllock:
-            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
-                return self.handle.save_path()
+        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+            return self.handle.save_path()
 
+    @checkHandleAndSynchronize()
     def force_recheck(self):
-        with self.dllock:
-            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
-                if self.dlstate == DLSTATUS_STOPPED:
-                    self.pause_after_next_hashcheck = True
-                self.checkpoint_after_next_hashcheck = True
-                self.handle.resume()
-                self.handle.force_recheck()
+        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+            if self.dlstate == DLSTATUS_STOPPED:
+                self.pause_after_next_hashcheck = True
+            self.checkpoint_after_next_hashcheck = True
+            self.handle.resume()
+            self.handle.force_recheck()
 
     def get_status(self):
         """ Returns the status of the download.
@@ -709,17 +696,17 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
         return (self.dlstate, stats, seeding_stats, logmsgs)
 
+    @checkHandleAndSynchronize()
     def network_create_statistics_reponse(self):
-        if self.handle:
-            status = self.handle.status()
-            numTotSeeds = status.num_complete if status.num_complete >= 0 else status.list_seeds
-            numTotPeers = status.num_incomplete if status.num_incomplete >= 0 else status.list_peers
-            numleech = status.num_peers - status.num_seeds
-            numseeds = status.num_seeds
-            pieces = status.pieces
-            upTotal = status.all_time_upload
-            downTotal = status.all_time_download
-            return LibtorrentStatisticsResponse(numTotSeeds, numTotPeers, numseeds, numleech, pieces, upTotal, downTotal)
+        status = self.handle.status()
+        numTotSeeds = status.num_complete if status.num_complete >= 0 else status.list_seeds
+        numTotPeers = status.num_incomplete if status.num_incomplete >= 0 else status.list_peers
+        numleech = status.num_peers - status.num_seeds
+        numseeds = status.num_seeds
+        pieces = status.pieces
+        upTotal = status.all_time_upload
+        downTotal = status.all_time_download
+        return LibtorrentStatisticsResponse(numTotSeeds, numTotPeers, numseeds, numleech, pieces, upTotal, downTotal)
 
     def network_calc_eta(self):
         bytestogof = (1.0 - self.progress) * float(self.length)
@@ -1005,40 +992,34 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             self.tdef = tdef
 
+    @checkHandleAndSynchronize()
     def add_trackers(self, trackers):
-        with self.dllock:
-            if self.handle and hasattr(self.handle, 'add_tracker'):
-                for tracker in trackers:
-                    self.handle.add_tracker({'url': tracker, 'verified': False})
+        if hasattr(self.handle, 'add_tracker'):
+            for tracker in trackers:
+                self.handle.add_tracker({'url': tracker, 'verified': False})
 
+    @checkHandleAndSynchronize()
     def get_magnet_link(self):
-        with self.dllock:
-            if self.handle:
-                return lt.make_magnet_uri(self.handle)
+        return lt.make_magnet_uri(self.handle)
 
     #
     # External addresses
     #
+    @waitForHandleAndSynchronize()
     def add_peer(self, addr):
-        """ Add a peer address from 3rd source (not tracker, not DHT) to this
-        Download.
+        """ Add a peer address from 3rd source (not tracker, not DHT) to this download.
         @param (hostname_ip,port) tuple
         """
-        if self.handle is not None:
-            self.handle.connect_peer(addr, 0)
+        self.handle.connect_peer(addr, 0)
 
+    @waitForHandleAndSynchronize(True)
     def dlconfig_changed_callback(self, section, name, new_value, old_value):
-        if self.handle:
-            if section == 'downloadconfig' and name == 'max_upload_rate':
-                self.handle.set_upload_limit(int(new_value * 1024))
-            elif section == 'downloadconfig' and name == 'max_download_rate':
-                self.handle.set_download_limit(int(new_value * 1024))
-            elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
-                return False
-
-        else:
-            network_dlconfig_changed_callback = lambda: self.dlconfig_changed_callback(section, name, new_value, old_value)
-            self.session.lm.rawserver.add_task(network_dlconfig_changed_callback, 1.0)
+        if section == 'downloadconfig' and name == 'max_upload_rate':
+            self.handle.set_upload_limit(int(new_value * 1024))
+        elif section == 'downloadconfig' and name == 'max_download_rate':
+            self.handle.set_download_limit(int(new_value * 1024))
+        elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
+            return False
         return True
 
 
