@@ -14,7 +14,7 @@ class CircuitPool(object, TunnelObserver):
         super(CircuitPool, self).__init__()
 
         self._logger = logging.getLogger(__name__)
-        self._logger.warning("Creating a circuit pool of size %d with name '%s'", size, name)
+        self._logger.info("Creating a circuit pool of size %d with name '%s'", size, name)
 
         self.proxy = proxy
         self.lock = threading.RLock()
@@ -40,18 +40,18 @@ class CircuitPool(object, TunnelObserver):
                 if circuit not in self.allocated_circuits]
 
     def remove_circuit(self, circuit):
-        self._logger.warning("Removing circuit %d from pool '%s'", circuit.circuit_id, self.name)
+        self._logger.info("Removing circuit %d from pool '%s'", circuit.circuit_id, self.name)
         with self.lock:
             self.circuits.remove(circuit)
 
     def fill(self, circuit):
-        self._logger.warning("Adding circuit %d to pool '%s'", circuit.circuit_id, self.name)
+        self._logger.info("Adding circuit %d to pool '%s'", circuit.circuit_id, self.name)
 
         with self.lock:
             self.circuits.add(circuit)
 
     def deallocate(self, circuit):
-        self._logger.warning("Deallocate circuit %d from pool '%s'", circuit.circuit_id, self.name)
+        self._logger.info("Deallocate circuit %d from pool '%s'", circuit.circuit_id, self.name)
 
         with self.lock:
             self.allocated_circuits.remove(circuit)
@@ -62,7 +62,7 @@ class CircuitPool(object, TunnelObserver):
             try:
                 circuit = next((c for c in self.circuits if c not in self.allocated_circuits))
                 self.allocated_circuits.add(circuit)
-                self._logger.warning("Allocate circuit %d from pool %s", circuit.circuit_id, self.name)
+                self._logger.info("Allocate circuit %d from pool %s", circuit.circuit_id, self.name)
 
                 return circuit
 
