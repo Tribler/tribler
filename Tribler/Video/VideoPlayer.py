@@ -7,6 +7,7 @@ import logging
 
 from binascii import hexlify
 from traceback import print_exc
+from threading import Thread
 from collections import defaultdict
 from multiprocessing.synchronize import RLock
 
@@ -49,7 +50,7 @@ class VideoPlayer:
 
         # Start HTTP server for serving video
         self.videoserver = VideoServer.getInstance(httpport, self.session)
-        self.videoserver.start()
+        Thread(target=self.videoserver.start).start()
 
         self.notifier = Notifier.getInstance()
 

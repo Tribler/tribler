@@ -476,7 +476,7 @@ class SessionConfigInterface(object):
         swift C++ process.
         @param value  Boolean
         """
-        self.sessconfig.set(u'swift', u'swiftproc', value)
+        self.sessconfig.set(u'swift', u'enabled', value)
 
     def get_swift_proc(self):
         """ Return whether support for swift Downloads via an external
