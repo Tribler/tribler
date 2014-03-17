@@ -1172,7 +1172,6 @@ class AbstractListBody():
             if item == curitem:
                 return key
 
-    @warnWxThread
     def RemoveItem(self, remove):
         for key, item in self.items.iteritems():
             if item == remove:

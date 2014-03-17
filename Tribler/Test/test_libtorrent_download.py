@@ -87,7 +87,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
             self.frame.librarylist.list.Select(infohash)
             self.frame.top_bg.OnDelete(silent=True)
-            self.CallConditional(10, lambda: infohash not in self.frame.librarylist.list.items, do_final, 'download not deleted')
+            self.CallConditional(10, lambda: not self.frame.librarylist.list.HasItem(infohash), lambda: self.Call(1, do_final), 'download not deleted')
 
         def do_resume():
             self.screenshot('After stopping a libtorrent download')
