@@ -130,13 +130,14 @@ class LibtorrentMgr:
         proxy_settings.type = lt.proxy_type(proxy_type.socks5)
         proxy_settings.hostname = "127.0.0.1"
         proxy_settings.port = self.trsession.get_socks5_listen_port()
-        proxy_settings.proxy_hostnames = False
+        proxy_settings.proxy_hostnames = True
         proxy_settings.proxy_peer_connections = True
 
         self.ltsession_anon = ltsession
         self.ltsession_anon.set_proxy(proxy_settings)
 
         ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
+        self._logger.error("Started ANON LibTorrent session on port %d", ltsession.listen_port(ltsession))
 
     def shutdown(self):
         # Save DHT state
