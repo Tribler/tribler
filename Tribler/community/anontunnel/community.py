@@ -1127,8 +1127,19 @@ class ProxyCommunity(Community):
 
         root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
         hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
-        hosts = [("94.23.38.156", 51413)]
+        hosts = [("95.211.198.141", 51413), ("94.23.38.156", 51413)]
 
+        def _mark_test_completed():
+            filename = self.tribler_session.get_state_dir() + "/anon_test.txt"
+            handle = open(filename, "w")
+
+            try:
+                handle.write("Delete this file to redo the anonymous download test")
+            finally:
+                handle.close()
+
+        def _has_completed_before():
+            return os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
 
         @forceWxThread
         def thank_you(file_size, start_time, end_time):
@@ -1140,9 +1151,6 @@ class ProxyCommunity(Community):
 
             def _callback(ds):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
-                    # for peer in hosts:
-                    #     download.add_peer(peer)
-
                     if not _callback.download_started_at:
                         _callback.download_started_at = time.time()
                         stats_collector.start()
@@ -1152,9 +1160,8 @@ class ProxyCommunity(Community):
                         'download_time': time.time() - _callback.download_started_at
                     }
 
-                elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
+                elif not _callback.download_finished_at and ds.get_status() == DLSTATUS_SEEDING:
                     _callback.download_finished_at = time.time()
-                    _callback.download_completed = True
                     stats_collector.download_stats = {
                         'size': 50 * 1024 ** 2,
                         'download_time': _callback.download_finished_at - _callback.download_started_at
@@ -1162,21 +1169,30 @@ class ProxyCommunity(Community):
 
                     stats_collector.share_stats()
                     stats_collector.stop()
+
+                    self.tribler_session.lm.rawserver.add_task(lambda: self.tribler_session.remove_download(download, True, True), delay=1.0)
+
+                    _mark_test_completed()
+
                     thank_you(50 * 1024 ** 2, _callback.download_started_at, _callback.download_finished_at)
                 else:
                     _callback.peer_added = False
                 return 1.0, False
 
-            _callback.download_completed = False
+            _callback.download_finished_at = None
             _callback.download_started_at = None
             _callback.peer_added = False
 
             return _callback
 
-        dest_dir = os.path.abspath("./.TriblerAnonTunnel/")
-        self.tribler_session.set_swift_meta_dir(dest_dir + "/swift_meta/")
+        if _has_completed_before():
+            self._logger.warning("Skipping Anon Test since it has been run before")
+            return False
+
+        destination_dir = self.tribler_session.get_state_dir()
+        self.tribler_session.set_swift_meta_dir(destination_dir + "/swift_meta/")
         try:
-            download = dest_dir + "/" + root_hash
+            download = destination_dir + "/" + root_hash
             for file in glob.glob(download + "*"):
                 os.remove(file)
 
@@ -1193,7 +1209,7 @@ class ProxyCommunity(Community):
         ''' :type : DefaultDownloadStartupConfig '''
 
         dscfg.set_anon_mode(True)
-        dscfg.set_dest_dir(dest_dir)
+        dscfg.set_dest_dir(destination_dir)
 
         result = self.tribler_session.start_download(tdef, dscfg)
         result.set_state_callback(state_call(result), delay=1)
