@@ -1,9 +1,6 @@
-import sys
-import os
 import json
 import thread
 import logging
-import cPickle
 
 
 class UserDownloadChoice:

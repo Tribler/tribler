@@ -94,13 +94,12 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT
     NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, \
     STATEDIR_SWIFTRESEED_DIR, \
     dlstatus_strings, \
-    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
+    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, \
     DLSTATUS_SEEDING, DLSTATUS_STOPPED
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
-from Tribler.Core.osutils import fix_filebasename
 
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
@@ -115,7 +114,6 @@ import Tribler.Core.DecentralizedTracking.pymdht.core.message
 import Tribler.Core.DecentralizedTracking.pymdht.core.node
 import Tribler.Core.DecentralizedTracking.pymdht.core.ptime
 import Tribler.Core.DecentralizedTracking.pymdht.core.routing_table
-import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as

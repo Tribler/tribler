@@ -26,11 +26,9 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         self.parent = parent
         self.utility = parent.utility
 
-        self.TBMENU_RESTORE = wx.NewId()
-
         # setup a taskbar icon, and catch some events from it
         self.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, parent.onTaskBarActivate)
-        self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id=self.TBMENU_RESTORE)
+        self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id=wx.NewId())
 
         self.updateIcon(False)
 

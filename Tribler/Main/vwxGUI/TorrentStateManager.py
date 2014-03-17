@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 import shutil
 import hashlib
@@ -7,7 +6,6 @@ import binascii
 import logging
 import tempfile
 from threading import currentThread, Thread
-from traceback import print_exc
 
 try:
     prctlimported = True
@@ -19,7 +17,6 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
     limit_resolution, get_thumbnail
 
-from Tribler.community.channel.community import ChannelCommunity
 
 class TorrentStateManager:
     # Code to make this a singleton

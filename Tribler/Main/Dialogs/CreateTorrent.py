@@ -202,46 +202,6 @@ class CreateTorrent(wx.Dialog):
             self.specifiedName.SetValue(name)
 
     def OnOk(self, event):
-#            if self.specifyNames.GetValue():
-#                dlg = wx.Dialog(self, -1, 'Please correct the names for the torrents.', size=(750,450))
-#                sizer = wx.BoxSizer(wx.VERTICAL)
-#                header = wx.StaticText(dlg, -1, 'Please modify the names for the .torrents.')
-#
-#                _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
-#                sizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
-#
-#                flexSizer =  wx.FlexGridSizer(2,2,3,3)
-#                controls = []
-#                for name in names:
-#                    flexSizer.Add(wx.StaticText(dlg, -1, name), 0, wx.ALIGN_CENTER_VERTICAL)
-#                    control = wx.TextCtrl(dlg,-1, name)
-#                    control.SetMinSize((300,-1))
-#                    flexSizer.Add(control, 1, wx.EXPAND)
-#                    controls.append(control)
-#
-#                sizer.Add(flexSizer, 1, wx.EXPAND|wx.BOTTOM, 3)
-#
-#                cancel = wx.Button(dlg, wx.ID_CANCEL)
-#                ok = wx.Button(dlg, wx.ID_OK)
-#
-#                bSizer = wx.StdDialogButtonSizer()
-#                bSizer.AddButton(cancel)
-#                bSizer.AddButton(ok)
-#                bSizer.Realize()
-#                sizer.Add(bSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
-#
-#                bsizer = wx.BoxSizer()
-#                bsizer.Add(sizer, 1, wx.EXPAND|wx.ALL, 10)
-#                dlg.SetSizerAndFit(bsizer)
-#
-#                if dlg.ShowModal() == wx.ID_OK:
-#                    for i, control in enumerate(controls):
-#                        names[i] = control.GetValue()
-#                    dlg.Destroy()
-#                else:
-#                    dlg.Destroy()
-#                    return
-
         max = 1 if self.combineRadio.GetValue() else len(self.selectedPaths)
         if self.toChannel:
             dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?" % max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
@@ -263,10 +223,6 @@ class CreateTorrent(wx.Dialog):
             self.trackerHistory.Save(self.config)
             self.config.Flush()
 
-            if len(self.selectedPaths) > 1:
-                basedir = os.path.commonprefix(self.selectedPaths)
-            else:
-                basedir = os.path.dirname(self.selectedPaths[0])
             self.filehistory.Save(self.fileconfig)
             self.fileconfig.Flush()
 

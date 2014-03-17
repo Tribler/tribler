@@ -11,32 +11,8 @@
 
 import os
 import sys
-
-# Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
-# errors on Vista in "Regional and Language Settings Options" different from
-# "English[United Kingdom]"
-# import locale
 import traceback
 import logging
-
-from Tribler.Core.version import version_id
-from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
-    TopSearchPanelStub
-from Tribler.Main.vwxGUI.home import Home, Stats
-from Tribler.Main.vwxGUI.list import SearchList, ChannelList, \
-    LibraryList, ActivitiesList
-from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
-    ManageChannel
-
-
-from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
-from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
-from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, \
-    LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
-    TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
-
 import wx
 
 import subprocess
@@ -51,6 +27,7 @@ import urllib
 
 from Tribler.Category.Category import Category
 
+from Tribler.Core.version import version_id
 from Tribler.Core.simpledefs import dlstatus_strings, NTFY_MYPREFERENCES, \
     DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_SEEDING, \
     NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP, \
@@ -62,15 +39,33 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Main.Utility.GuiDBHandler import startWorker
+
+from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.Dialogs.ThreadSafeProgressDialog import ThreadSafeProgressDialog
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
+from Tribler.Main.vwxGUI.list import SearchList, ChannelList, \
+    LibraryList, ActivitiesList
+from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, \
+    LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
+    TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
+from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
+    TopSearchPanelStub
+from Tribler.Main.vwxGUI.home import Home, Stats
+from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
+    ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
+
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
+
 
 #
 #
