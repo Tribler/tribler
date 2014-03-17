@@ -10,7 +10,7 @@ import logging
 from copy import deepcopy
 from binascii import hexlify
 
-from Tribler.Core import version_id
+from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.Utilities.utilities import parse_magnetlink

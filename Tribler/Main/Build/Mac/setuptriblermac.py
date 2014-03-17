@@ -8,7 +8,7 @@ import sys
 import os
 import logging
 from setuptools import setup
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 
 logger = logging.getLogger(__name__)
 
