@@ -29,15 +29,8 @@ class VideoDummyFrame(VideoBaseFrame):
         else:
             self.videopanel.Hide()
 
-    def recreate_videopanel(self):
-        old_videopanel = self.videopanel
-        new_videopanel = EmbeddedPlayerPanel(self.parent, self.utility, self.vlcwrap, wx.BLACK)
-
-        self.parent.GetSizer().Replace(old_videopanel, new_videopanel)
-        self.parent.GetSizer().Layout()
-        old_videopanel.Destroy()
-        self.videopanel = new_videopanel
-        self.videopanel.TellLVCWrapWindow4Playback()
+    def recreate_vlc_window(self):
+        self.videopanel.RecreateVLCWindow()
 
     def show_videoframe(self):
         if self.videopanel:

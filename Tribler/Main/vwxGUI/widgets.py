@@ -427,17 +427,35 @@ class HorizontalGauge(wx.Control):
 
 class EditText(wx.TextCtrl):
 
-    def __init__(self, parent, text, multiLine=False):
+    def __init__(self, parent, text="", multiline=False, validator=wx.DefaultValidator):
         style = 0
-        if multiLine:
+        if multiline:
             style = style | wx.TE_MULTILINE
 
-        wx.TextCtrl.__init__(self, parent, -1, text, style=style)
+        wx.TextCtrl.__init__(self, parent, -1, text, style=style, validator=validator)
         self.original_text = text
+
+        self.multiline = multiline
+        self.maxlength = 0
 
     def SetValue(self, value):
         wx.TextCtrl.SetValue(self, value)
         self.original_text = value
+
+    def SetMaxLength(self, maxlength):
+        if self.multiline:
+            self.maxlength = maxlength
+            self.Bind(wx.EVT_TEXT, self.OnText)
+        else:
+            wx.TextCtrl.SetMaxLength(self, maxlength)
+
+    def OnText(self, event):
+        value = self.GetValue()
+        if len(value) > self.maxlength:
+            self.SetValue(value[:self.maxlength])
+
+    def RevertChange(self):
+        self.SetValue(self.original_text)
 
     def IsChanged(self):
         return self.original_text != self.GetValue()

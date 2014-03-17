@@ -156,11 +156,14 @@ class Torrent(Helper):
         'name', 'torrent_file_name', 'length', 'category_id', 'status_id',
         'num_seeders', 'num_leechers', '_channel',
         'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
+        'metadata_db',
         'dslist', '_progress', 'relevance_score', 'query_candidates',
         'magnetstatus')
 
     def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
         Helper.__init__(self)
+
+        assert isinstance(infohash, str), type(infohash)
 
         self.infohash = infohash
         self.swift_hash = swift_hash
@@ -181,6 +184,7 @@ class Torrent(Helper):
         self.misc_db = None
         self.torrent_db = None
         self.channelcast_db = None
+        self.metadata_db = None
 
         self.relevance_score = None
         self.query_candidates = None
@@ -224,6 +228,17 @@ class Torrent(Helper):
 
     def hasChannel(self):
         return self.channel
+
+    @cacheProperty
+    def metadata(self):
+        self._logger.debug("Torrent: fetching metadata from DB %s", self)
+
+        metadata_result = self.metadata_db.getMetdataDateByInfohash(self.infohash)
+        if metadata_result:
+            metadata_dict = {}
+            for key, value in metadata_result:
+                metadata_dict[key] = value
+            return metadata_dict
 
     @property
     def swarminfo(self):
@@ -358,6 +373,7 @@ class Torrent(Helper):
     @staticmethod
     def fromTorrentDef(tdef):
         return Torrent(-1, tdef.get_infohash(), None, None, tdef.get_name(), None, tdef.get_length(), None, None, 0, 0, False)
+
 
 class RemoteTorrent(Torrent):
     __slots__ = ()
@@ -696,8 +712,8 @@ class Comment(Helper):
         else:
             from Tribler.Core.simpledefs import NTFY_PEERS
             from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-            peer_db = GUIUtility.utility.session.open_dbhandler(NTFY_PEERS)
-            raw_data = self._peer_db.getPeerById(peerid, keys=u"thumbnail")
+            peer_db = GUIUtility.getInstance().utility.session.open_dbhandler(NTFY_PEERS)
+            raw_data = peer_db.getPeerById(self.peer_id, keys=u"thumbnail")
             data = gui_image_manager.getPeerThumbnail(raw_data, SMALL_ICON_MAX_DIM)
 
         if data is None:
@@ -760,6 +776,23 @@ class Playlist(Helper):
             if isinstance(other, int):
                 return self.id == other
         return False
+
+
+class MetadataModification(Helper):
+    __slots__ = ('torrent', 'message_id', 'key', 'value')
+
+
+    def __init__(self, torrent, message_id, key, value):
+        Helper.__init__(self)
+
+        self.torrent = torrent
+        self.message_id = message_id
+        self.key = key
+        self.value = value
+
+    @property
+    def name(self):
+        return self.key
 
 
 class Modification(Helper):

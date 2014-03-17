@@ -17,7 +17,7 @@ from types import LongType
 
 from Tribler.Core.Utilities.bencode import bencode
 from Tribler.Core.Merkle.merkle import MerkleTree
-from Tribler.Core.Utilities.unicode import str2unicode, bin2unicode
+from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs, offset2piece
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.defaults import tdefdictdefaults

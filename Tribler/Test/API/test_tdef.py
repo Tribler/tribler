@@ -4,12 +4,11 @@
 # TODO:
 #
 
-import sys
 import unittest
 import os
 import tempfile
 
-from Tribler.Core.API import TorrentDef
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Test.test_as_server import BASE_DIR

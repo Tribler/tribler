@@ -24,7 +24,7 @@ from M2Crypto import Rand  # TODO REMOVE FOR LICHT
 import logging
 from types import IntType
 
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import P2PURL_SCHEME
 from Tribler.Core.Utilities.Crypto import sha
 
 logger = logging.getLogger(__name__)

@@ -14,18 +14,18 @@
 # Move to API dir?
 #
 
-import unittest
 import sys
 import os
-import tempfile
-import shutil
-from logging import getLogger
-from Tribler.Test.test_as_server import AbstractServer
-logger = getLogger(__name__)
+import logging
 
-from Tribler.Core.API import *
+from Tribler.Core.TorrentDef import TorrentDef
+
+from Tribler.Test.test_as_server import AbstractServer
+
+logger = logging.getLogger(__name__)
 
 DEBUG = False
+
 
 class TestP2PURLs(AbstractServer):
     """

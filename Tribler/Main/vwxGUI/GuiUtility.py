@@ -2,7 +2,6 @@
 # Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
-import random
 import wx
 import os
 import sys
@@ -10,22 +9,24 @@ import json
 import logging
 from time import time
 
-from wx import xrc
-
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.Search.SearchManager import split_into_keywords, fts3_preprocess
-from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
-from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.Main.vwxGUI import forceWxThread
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
-from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.Search.SearchManager import split_into_keywords
+
+from Tribler.Video.VideoPlayer import VideoPlayer
+
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
+from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
+
+from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
+
 
 class GUIUtility:
     __single = None
@@ -114,11 +115,8 @@ class GUIUtility:
     @forceWxThread
     def ShowPage(self, page, *args):
         if page == 'settings':
-            xrcResource = os.path.join(self.vwxGUI_path, 'settingsDialog.xrc')
-            res = xrc.XmlResource(xrcResource)
-            dialog = res.LoadDialog(None, 'settingsDialog')
-            if not dialog:  # failed to load dialog
-                return
+            from Tribler.Main.vwxGUI.settingsDialog import SettingsDialog
+            dialog = SettingsDialog()
 
             dialog.Centre()
             dialog.ShowModal()
@@ -733,3 +731,16 @@ class GUIUtility:
 
             if self.guiPage == 'selectedchannel':
                 wx.CallAfter(list.GetManager().reload, channelid)
+
+    def SelectVideo(self, videofiles, selected_file=None):
+        if len(videofiles) > 1:
+            videofiles.sort()
+            dialog = wx.SingleChoiceDialog(None, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play.', 'Which file do you want to play?', videofiles)
+            if selected_file in videofiles:
+                dialog.SetSelection(videofiles.index(selected_file))
+
+            selected_file = dialog.GetStringSelection() if dialog.ShowModal() == wx.ID_OK else None
+            dialog.Destroy()
+            return selected_file
+        elif len(videofiles) == 1:
+            return videofiles[0]

@@ -1,14 +1,13 @@
-from Tribler.community.channel.community import ChannelCommunity
-
 import os
 import sys
 import json
 import shutil
-import thread
 import hashlib
 import binascii
 import logging
 import tempfile
+from threading import currentThread, Thread
+from traceback import print_exc
 
 try:
     prctlimported = True
@@ -17,10 +16,10 @@ except ImportError, e:
     prctlimported = False
 
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Video.VideoUtility import *
-from threading import currentThread, Thread
-from traceback import print_exc
+from Tribler.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
+    limit_resolution, get_thumbnail
 
+from Tribler.community.channel.community import ChannelCommunity
 
 class TorrentStateManager:
     # Code to make this a singleton
@@ -49,31 +48,84 @@ class TorrentStateManager:
         self.channelsearch_manager = channelsearch_manager
 
     def torrentFinished(self, infohash):
-        _, _, torrents = self.channelsearch_manager.getChannnelTorrents(infohash)
+        torrent = self.torrent_manager.getTorrentByInfohash(infohash)
 
-        openTorrents = []
-        for torrent in torrents:
-            state, iamModerator = torrent.channel.getState()
-            if state >= ChannelCommunity.CHANNEL_SEMI_OPEN or iamModerator:
-                openTorrents.append(torrent)
+        self.library_manager.addDownloadState(torrent)
+        torrent = self.torrent_manager.loadTorrent(torrent)
 
-        if len(openTorrents) > 0:
-            torrent = openTorrents[0]
-            self.library_manager.addDownloadState(torrent)
-            torrent = self.torrent_manager.loadTorrent(torrent)
+        ds = torrent.ds
+        dest_files = ds.get_download().get_dest_files()
+        largest_file = torrent.largestvideofile
 
-            ds = torrent.ds
-            dest_files = ds.get_download().get_dest_files()
-            largest_file = torrent.largestvideofile
-
-            for filename, destname in dest_files:
-                if filename == largest_file:
-                    self._logger.info('Can run post-download scripts for %s %s %s', torrent, filename, destname)
-                    self.create_and_seed_metadata(destname, torrent)
+        for filename, destname in dest_files:
+            if filename == largest_file:
+                self._logger.info('Can run post-download scripts for %s %s %s', torrent, filename, destname)
+                self.create_and_seed_metadata(destname, torrent)
 
     def create_and_seed_metadata(self, videofile, torrent):
         t = Thread(target=self._create_and_seed_metadata, args=(videofile, torrent), name="ThumbnailGenerator")
         t.start()
+
+    def _create_metadata_roothash_and_contenthash(self, tempdir, torrent):
+        assert isinstance(tempdir, str) or isinstance(tempdir, unicode), \
+            u"tempdir is of type %s" % type(tempdir)
+
+        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+        guiutility = GUIUtility.getInstance()
+        session = guiutility.utility.session
+
+        torcoldir = session.get_torrent_collecting_dir()
+        thumb_filenames = []
+        for filename in os.listdir(tempdir):
+            filepath = os.path.join(tempdir, filename)
+            if not os.path.isfile(filepath):
+                continue
+            if not (filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png")):
+                continue
+            thumb_filenames.append(filepath)
+
+        # Calculate sha1 of the thumbnails.
+        contenthash = hashlib.sha1()
+        for fn in thumb_filenames:
+            with open(fn, 'rb') as fp:
+                contenthash.update(fp.read())
+        contenthash_hex = contenthash.hexdigest()
+
+        # Move files to torcoldir/thumbs-infohash/contenthash.
+        finaldir = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash), contenthash_hex)
+        # ignore the folder that has already been downloaded
+        if os.path.exists(finaldir):
+            shutil.rmtree(tempdir)
+        else:
+            shutil.move(tempdir, finaldir)
+        thumb_filenames = [fn.replace(tempdir, finaldir) for fn in thumb_filenames]
+
+        if len(thumb_filenames) == 1:
+            mfplaceholder_path = os.path.join(finaldir, ".mfplaceholder")
+            open(mfplaceholder_path, "a").close()
+            thumb_filenames.append(mfplaceholder_path)
+
+        # Create SwiftDef.
+        sdef = SwiftDef()
+        sdef.set_tracker("127.0.0.1:%d" % session.get_swift_dht_listen_port())
+        for thumbfile in thumb_filenames:
+            if os.path.exists(thumbfile):
+                xi = os.path.relpath(thumbfile, torcoldir)
+                sdef.add_content(thumbfile, xi)
+
+        specpn = sdef.finalize(session.get_swift_path(), destdir=torcoldir)
+        hex_roothash = sdef.get_roothash_as_hex()
+
+        try:
+            swift_filename = os.path.join(torcoldir, hex_roothash)
+            shutil.move(specpn, swift_filename)
+            shutil.move(specpn + '.mhash', swift_filename + '.mhash')
+            shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
+        except:
+            self._logger.exception(u"Failed to move swift files: specpn=%s, swift_filename=%s", specpn, swift_filename)
+
+        return hex_roothash, contenthash_hex
+
 
     def _create_and_seed_metadata(self, videofile, torrent):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -117,44 +169,15 @@ class TorrentStateManager:
             path_exists = os.path.exists(filename)
             self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
 
-        # Calculate sha1 of the thumbnails.
-        contenthash = hashlib.sha1()
-        for fn in thumb_filenames:
-            with open(fn, 'rb') as fp:
-                contenthash.update(fp.read())
-        contenthash_hex = contenthash.hexdigest()
-
-        # Move files to torcoldir/thumbs-infohash/contenthash.
-        finaldir = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash), contenthash_hex)
-        shutil.move(tempdir, finaldir)
-        thumb_filenames = [fn.replace(tempdir, finaldir) for fn in thumb_filenames]
-
-        # Create SwiftDef.
-        sdef = SwiftDef()
-        sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
-        for thumbfile in thumb_filenames:
-            if os.path.exists(thumbfile):
-                xi = os.path.relpath(thumbfile, torcoldir)
-                if sys.platform == "win32":
-                    xi = xi.replace("\\", "/")
-                si = xi.encode("UTF-8")
-                sdef.add_content(thumbfile, si)
-
-        specpn = sdef.finalize(self.session.get_swift_path(), destdir=torcoldir)
-        hex_roothash = sdef.get_roothash_as_hex()
-
-        try:
-            swift_filename = os.path.join(torcoldir, hex_roothash)
-            shutil.move(specpn, swift_filename)
-            shutil.move(specpn + '.mhash', swift_filename + '.mhash')
-            shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
-        except:
-            print_exc()
+        roothash_hex, contenthash_hex = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
 
         # Create modification
-        modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())),
-                         'video-info': json.dumps(video_info)}
+        modifications = []
+        #modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, sdef.get_roothash_as_hex(), contenthash_hex))))
+        modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
+        modifications.append(('video-info', json.dumps(video_info)))
 
         self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
 
-        self.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, modifications)
+
+        self.torrent_manager.modifyTorrent(torrent, modifications)

@@ -4,7 +4,6 @@ import unittest
 import sys
 
 from Tribler.Test.test_as_server import TestGuiAsServer
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.list_item import ChannelListItem
 
 DEBUG = True

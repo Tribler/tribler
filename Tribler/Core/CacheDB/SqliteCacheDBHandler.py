@@ -5,7 +5,7 @@
 # for any function you add to database.
 # Please reuse the functions in sqlitecachedb as much as possible
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, SQLiteNoCacheDB
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from copy import deepcopy
 from traceback import print_exc
 from time import time
@@ -20,14 +20,16 @@ from struct import unpack_from
 
 import logging
 
-from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Notifier import Notifier
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, \
+    NTFY_INSERT, NTFY_DELETE, NTFY_CREATE, NTFY_MODIFIED, NTFY_TRACKERINFO, \
+    NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS, NTFY_CHANNELCAST, \
+    NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, \
+    NTFY_MARKINGS, NTFY_STATE
 from Tribler.Core.Search.SearchManager import split_into_keywords, \
     filter_keywords
-from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
+from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Category.Category import Category
-from Tribler.Core.defaults import DEFAULTPORT
 from threading import RLock, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 import binascii
@@ -51,8 +53,6 @@ MAX_KEYWORD_LENGTH = 50
 # Rahim:
 MAX_POPULARITY_REC_PER_TORRENT = 5  # maximum number of records in popularity table for each torrent
 MAX_POPULARITY_REC_PER_TORRENT_PEER = 3  # maximum number of records per each combination of torrent and peer
-
-from Tribler.Core.Search.SearchManager import split_into_keywords
 
 
 DEFAULT_ID_CACHE_SIZE = 1024 * 5
@@ -130,7 +130,7 @@ class MiscDBHandler(BasicDBHandler):
         st = self._db.fetchall(sql)
         self._torrent_status_name2id_dict.update(dict(st))
 
-        self._torrent_status_id2name_dict =\
+        self._torrent_status_id2name_dict = \
             dict([(x, y) for (y, x) in self._torrent_status_name2id_dict.iteritems()])
         self._torrent_status_id2name_dict[None] = 'unknown'
 
@@ -143,7 +143,7 @@ class MiscDBHandler(BasicDBHandler):
         self._category_name2id_dict.update(dict(ct))
         self._category_name2id_dict[u'unknown'] = 0
 
-        self._category_id2name_dict =\
+        self._category_id2name_dict = \
             dict([(x, y) for (y, x) in self._category_name2id_dict.iteritems()])
         self._category_id2name_dict[None] = u'unknown'
 
@@ -151,7 +151,7 @@ class MiscDBHandler(BasicDBHandler):
         sql = u'SELECT name, source_id FROM TorrentSource'
         st = self._db.fetchall(sql)
         self._torrent_source_name2id_dict = dict(st)
-        self._torrent_source_id2name_dict =\
+        self._torrent_source_id2name_dict = \
             dict([(x, y) for (y, x) in self._torrent_source_name2id_dict.iteritems()])
         self._torrent_source_id2name_dict[None] = u'unknown'
 
@@ -192,6 +192,117 @@ class MiscDBHandler(BasicDBHandler):
         return source_id
 
 
+class MetadataDBHandler(BasicDBHandler):
+
+    def __init__(self):
+        if MetadataDBHandler._single:
+            raise RuntimeError("MetadataDBHandler is singleton")
+        db = SQLiteCacheDB.getInstance()
+        BasicDBHandler.__init__(self, db, None)
+
+    def getMetadataMessageList(self, infohash, roothash, columns):
+        """
+        Gets a list of metadata messages with the given hash-type and
+        hash-value.
+        """
+        if infohash:
+            infohash_str = bin2str(infohash)
+        else:
+            infohash_str = None
+
+        if roothash:
+            roothash_str = bin2str(roothash)
+        else:
+            roothash_str = None
+
+        column_str = ",".join(columns)
+        sql = "SELECT %s FROM MetadataMessage WHERE infohash = ? OR roothash = ?" % column_str
+        raw_result_list = self._db.fetchall(sql, (infohash_str, roothash_str))
+
+        processed_result_list = []
+        if raw_result_list:
+            for raw_result in raw_result_list:
+                this_result = []
+                idx = 0
+                for column in columns:
+                    if column == "infohash":
+                        this_result.append(str2bin(raw_result[idx]))
+                    elif column == "roothash":
+                        this_result.append(str2bin(raw_result[idx]))
+                    elif column == "this_mid":
+                        this_result.append(str(raw_result[idx]))
+                    elif column == "previous_mid":
+                        this_result.append(str(raw_result[idx]))
+                    else:
+                        this_result.append(raw_result[idx])
+
+                    idx += 1
+
+                processed_result_list.append(tuple(this_result))
+
+        return processed_result_list
+
+    def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
+            infohash, roothash,
+            prev_metadata_mid=None, prev_metadata_global_time=None):
+        """
+        Adds a Metadata message and get its message ID.
+        """
+        if this_mid:
+            this_mid_str = buffer(this_mid)
+        else:
+            this_mid_str = None
+
+        if prev_metadata_mid:
+            prev_metadata_mid_str = buffer(prev_metadata_mid)
+        else:
+            prev_metadata_mid_str = None
+
+        if infohash:
+            infohash_str = bin2str(infohash)
+        else:
+            infohash_str = None
+
+        if roothash:
+            roothash_str = bin2str(roothash)
+        else:
+            roothash_str = None
+
+        sql = "INSERT INTO MetadataMessage(dispersy_id, this_global_time, this_mid, infohash, roothash, previous_mid, previous_global_time) VALUES(?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
+        values = (dispersy_id, this_global_time, this_mid_str,
+            infohash_str, roothash_str,
+            prev_metadata_mid_str, prev_metadata_global_time)
+
+        result = self._db.fetchone(sql, values)
+        return result
+
+    def addMetadataDataInBatch(self, value_tuple_list):
+        """
+        Adds metadata data in batch.
+        """
+        sql = "INSERT INTO MetadataData(message_id, data_key, data_value) VALUES(?, ?, ?)"
+        self._db.executemany(sql, value_tuple_list)
+
+    def deleteMetadataMessage(self, dispersy_id):
+        sql = "DELETE FROM MetadataMessage WHERE dispersy_id = ?"
+        self._db.execute_write(sql, (dispersy_id,))
+
+    def getMetdataDateByInfohash(self, infohash):
+        sql = """
+        SELECT data.data_key, data.data_value
+        FROM MetadataMessage as msg, MetadataData as data
+        WHERE msg.infohash = ? AND msg.message_id = data.message_id
+        """
+        result = self._db.fetchall(sql, (bin2str(infohash),))
+        return result
+
+    def getMetadataData(self, message_id):
+        sql = "SELECT data_key, data_value FROM MetadataData WHERE message_id = ?"
+        result = self._db.fetchall(sql, (message_id,))
+        return result
+
+
+
 class PeerDBHandler(BasicDBHandler):
 
     def __init__(self):
@@ -206,7 +317,7 @@ class PeerDBHandler(BasicDBHandler):
         return self.size()
 
     def getPeerID(self, permid):
-        return self.getPeerIDS([permid,])[0]
+        return self.getPeerIDS([permid, ])[0]
 
     def getPeerIDS(self, permids):
         to_select = []
@@ -379,7 +490,7 @@ class TorrentDBHandler(BasicDBHandler):
         self._nb = NetworkBuzzDBHandler.getInstance()
 
     def getTorrentID(self, infohash):
-        return self.getTorrentIDS([infohash,])[0]
+        return self.getTorrentIDS([infohash, ])[0]
 
     def getTorrentIDS(self, infohashes):
         to_select = []
@@ -540,7 +651,7 @@ class TorrentDBHandler(BasicDBHandler):
                 to_be_inserted.append(infohashes[i])
 
         status_id = self.misc_db.torrentStatusName2Id(u'good')
-        sql = "INSERT OR IGNORE INTO Torrent (infohash, status_id) VALUES (?, ?)"
+        sql = "INSERT INTO Torrent (infohash, status_id) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.getTorrentIDS(infohashes), to_be_inserted
 
@@ -917,6 +1028,8 @@ class TorrentDBHandler(BasicDBHandler):
         self._db.execute_write(sql,
             (seeders, leechers, last_check, next_check,
              status_id, retries, torrent_id))
+
+        self._logger.debug("cachedbhandler: update result %d/%d for %s/%d", seeders, leechers, bin2str(infohash), torrent_id)
 
         # notify
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)

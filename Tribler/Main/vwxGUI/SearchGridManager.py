@@ -6,12 +6,17 @@ import os
 import logging
 from traceback import print_exc
 from time import time
+from math import sqrt
+import threading
+import json
 
 from Tribler.Category.Category import Category
-from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
-from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
+from Tribler.Core.simpledefs import NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, \
+    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_METADATA
+from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
-from Tribler.Core.simpledefs import *
+
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -19,23 +24,24 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
-    forceDispersyThread, forcePrioDispersyThread, \
-    onDispersyThread, warnDispersyThread
+    forceDispersyThread, forcePrioDispersyThread, warnDispersyThread
+from Tribler.community.metadata.community import MetadataCommunity
 
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename, parse_magnetlink
-from Tribler.Core.Session import Session
+from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Video.VideoPlayer import VideoPlayer
 
-from math import sqrt
-from __init__ import *
+from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, \
+    TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS, CHANNEL_REQ_COLUMNS, \
+    PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS, MODERATION_REQ_COLUMNS, \
+    MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Search.Bundler import Bundler
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent, \
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
+    CollectedTorrent, RemoteTorrent, NotCollectedTorrent, LibraryTorrent, \
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation, \
-    RemoteChannelTorrent, Marking
-import threading
+    RemoteChannelTorrent, Marking, MetadataModification
+
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
@@ -72,6 +78,7 @@ class TorrentManager:
 
         # Requests for torrents
         self.requestedTorrents = set()
+        self.requestedTorrentsMessages = set()
 
         # For asking for a refresh when remote results came in
         self.gridmgr = None
@@ -198,13 +205,12 @@ class TorrentManager:
             # only add to requestedTorrents if we have peers
             self.requestedTorrents.add(torrent.infohash)
 
-            candidates = list(torrent.query_candidates)
-            for candidate in candidates:
+            for candidate in torrent.query_candidates:
                 self.session.download_torrentfile_from_peer(candidate, torrent.infohash, torrent.swift_torrent_hash, callback, prio)
 
         return True
 
-    def downloadTorrentmessagesFromPeer(self, candidate, torrents, callback=None, prio=0):
+    def downloadTorrentmessageFromPeer(self, torrent, callback=None, duplicate=True, prio=0):
         """
         TORRENT is a GuiDBTuple containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
@@ -212,9 +218,9 @@ class TorrentManager:
         CALLBACK is called when the torrent is downloaded. When no
         torrent can be downloaded the callback is ignored
 
-        DUPLICATE can be True: the file will be downloaded from peers
+        DUPLICATE can be True: the message will be downloaded from peers
         regardless of a previous/current download attempt (returns
-        True). Or DUPLICATE can be False: the file will only be
+        True). Or DUPLICATE can be False: the message will only be
         downloaded when it was not yet attempted to download (when
         False is returned no callback will be made)
 
@@ -223,8 +229,19 @@ class TorrentManager:
 
         Returns True or False
         """
-        infohashes = set([torrent.infohash for torrent in torrents])
-        self.session.download_torrentmessages_from_peer(candidate, infohashes, callback, prio)
+        # return False when duplicate
+        if not duplicate and torrent.infohash in self.requestedTorrentsMessages:
+            return False
+
+        if torrent.query_candidates == None or len(torrent.query_candidates) == 0:
+            return False
+
+        else:
+            # only add to requestedTorrents if we have peers
+            self.requestedTorrentsMessages.add(torrent.infohash)
+
+            for candidate in torrent.query_candidates:
+                self.session.download_torrentmessage_from_peer(candidate, torrent.infohash, callback, prio)
         return True
 
     def downloadTorrent(self, torrent, dest=None, secret=False, vodmode=False, selectedFiles=None):
@@ -276,9 +293,14 @@ class TorrentManager:
 
                 trackers.extend(self.torrent_db.getTrackerListByTorrentID(torrent_id))
 
+                if 'DHT' in trackers:
+                    trackers.remove('DHT')
+                if 'no-DHT' in trackers:
+                    trackers.remove('no-DHT')
+
                 if len(files) > 0:
                     # We still call getTorrent to fetch .torrent
-                    self.getTorrent(torrent, None, prio=1)
+                    self.getTorrent(torrent, None)
 
                     torrent = NotCollectedTorrent(torrent, files, trackers)
                 else:
@@ -319,6 +341,7 @@ class TorrentManager:
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
+            t.metadata_db = self.metadata_db
 
             _ = t.channel
             return t
@@ -333,6 +356,7 @@ class TorrentManager:
             self.col_torrent_dir = self.session.get_torrent_collecting_dir()
 
             self.misc_db = session.open_dbhandler(NTFY_MISC)
+            self.metadata_db = session.open_dbhandler(NTFY_METADATA)
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
             self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
@@ -440,36 +464,36 @@ class TorrentManager:
         """
         begin_time = time()
 
-        def sesscb_prefetch_done(infohash):
-            # find the original hit
-            for hit in self.hits:
-                if hit.infohash == infohash:
-                    self._logger.debug("Prefetch: in %.1fs %s", time() - begin_time, hit.name)
-                    return
-            self._logger.debug("Prefetch BUG. We got a hit from something we didn't ask for")
+        def sesscb_prefetch_done(torrent_fn):
+            try:
+                tdef = TorrentDef.load(torrent_fn)
+
+                # find the original hit
+                for hit in self.hits:
+                    if hit.infohash == tdef.get_infohash():
+                        self._logger.debug("Prefetch: in %.1fs %s", time() - begin_time, hit.name)
+                        return
+                self._logger.debug("Prefetch BUG. We got a hit from something we didn't ask for")
+            except:
+                pass
 
         # we will prefetch 2 types of torrents, full .torrent files and torrentmessages (only containing the info dict)
         hit_counter_limit = [25, 150]
         prefetch_counter = [0, 0]
-        prefetch_counter_limit = [3, 15]
-
-        to_be_prefetched = {}
+        prefetch_counter_limit = [5, 10]
 
         for i, hit in enumerate(self.hits):
             torrent_filename = self.getCollectedFilename(hit, retried=True)
             if not torrent_filename:
                 # this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
-                    if self.downloadTorrentfileFromPeers(hit, lambda infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
+                    if self.downloadTorrentfileFromPeers(hit, lambda _,infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
                         self._logger.debug("Prefetch: attempting to download actual torrent %s", hit.name)
                         prefetch_counter[0] += 1
 
                 elif prefetch_counter[1] < prefetch_counter_limit[1] and i < hit_counter_limit[1]:
-                    if hit.query_candidates and len(hit.query_candidates) > 0:
-                        for candidate in hit.query_candidates:
-                            if candidate not in to_be_prefetched:
-                                to_be_prefetched[candidate] = set()
-                            to_be_prefetched[candidate].add(hit)
+                    if self.downloadTorrentmessageFromPeer(hit, None, duplicate=False, prio=1):
+                        self._logger.debug("Prefetch: attempting to download torrent message %s", hit.name)
                         prefetch_counter[1] += 1
                 else:
                     break
@@ -477,9 +501,6 @@ class TorrentManager:
             else:
                 # schedule health check
                 TorrentChecking.getInstance().addGuiRequest(hit)
-
-        for candidate, torrents in to_be_prefetched.iteritems():
-            self.downloadTorrentmessagesFromPeer(candidate, torrents, sesscb_prefetch_done, prio=1)
 
     def getSearchKeywords(self):
         return self.searchkeywords, len(self.hits), self.filteredResults
@@ -553,6 +574,7 @@ class TorrentManager:
                 t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
+                t.metadata_db = self.metadata_db
                 t.assignRelevance(a[-11])
                 return t
 
@@ -764,6 +786,55 @@ class TorrentManager:
         return return_dict
 
 
+    @forceDispersyThread
+    def modifyTorrent(self, torrent, modifications):
+        for community in self.dispersy.get_communities():
+            if isinstance(community, MetadataCommunity):
+                community.create_metadata_message(torrent.infohash,
+                    torrent.swift_hash, modifications)
+                break
+
+
+    def getTorrentModifications(self, torrent):
+        message_list = self.metadata_db.getMetadataMessageList(
+            torrent.infohash, torrent.swift_hash,
+            columns=("message_id",))
+        if not message_list:
+            return []
+
+        metadata_mod_list = []
+        for message_id, in message_list:
+            data_list = self.metadata_db.getMetadataData(message_id)
+            for key, value in data_list:
+                metadata_mod_list.append(MetadataModification(torrent, message_id, key, value))
+
+        return metadata_mod_list
+
+    def createMetadataModificationFromDef(self, channel_id, tdef, extraInfo={}, forward=True):
+        torrent = Torrent.fromTorrentDef(tdef)
+
+        modifications = []
+        for key, value in extraInfo.iteritems():
+            if key == 'thumbnail':
+                continue
+            if key == 'thumbnail-tempdir':
+                continue
+            elif key == 'thumbnail-file-list':
+                continue
+            modifications.append((key, value))
+
+        # handle the downloaded thumbnails
+        if extraInfo['thumbnail-file-list']:
+            from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
+            roothash_hex, contenthash_hex = TorrentStateManager.getInstance()._create_metadata_roothash_and_contenthash(extraInfo['thumbnail-tempdir'], torrent)
+
+            modifications.append(('swift-thumbnails', json.dumps((None, roothash_hex, contenthash_hex))))
+
+            self.modifyTorrent(torrent, modifications)
+
+        return True
+
+
 class LibraryManager:
     # Code to make this a singleton
     __single = None
@@ -921,12 +992,9 @@ class LibraryManager:
         ds = torrent.get('ds')
 
         # videoplayer calls should be on gui thread, hence forceWxThread
-        self.guiUtility.ShowPlayer()
 
-        videoplayer = self._get_videoplayer()
-        videoplayer.recreate_videopanel()
-        videoplayer.stop_playback()
-        videoplayer.show_loading()
+        self.guiUtility.ShowPlayer()
+        self.stopPlayback()
 
         if ds is None:
             torrent_filename = self.torrentsearch_manager.getCollectedFilename(torrent)
@@ -937,14 +1005,26 @@ class LibraryManager:
                     sdef = None
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=[selectedinfilename or torrent.videofiles[0]])
+                self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=[selectedinfilename or torrent.videofiles[0]])
 
             else:
                 self._logger.info(".TORRENT MISSING REQUESTING FROM PEERS")
                 callback = lambda torrentfilename: self.playTorrent(torrent, selectedinfilename)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
         else:
-            videoplayer.play(ds, selectedinfilename or torrent.videofiles[0])
+            download = ds.get_download()
+            selectedinfilename = selectedinfilename or torrent.videofiles[0]
+            files = download.get_def().get_files() if download.get_def().get_def_type() == 'torrent' else []
+            fileindex = files.index(selectedinfilename) if selectedinfilename in files else None
+            videoplayer = self._get_videoplayer()
+            videoplayer.play(download, fileindex)
+
+    def stopPlayback(self):
+        if self.guiUtility.frame.videoframe:
+            self.guiUtility.frame.videoframe.recreate_vlc_window()
+            self.guiUtility.frame.videoframe.get_videopanel().Stop()
+        videoplayer = self._get_videoplayer()
+        videoplayer.set_vod_download(None)
 
     def startDownloadFromUrl(self, url, useDefault=False):
         if useDefault:
@@ -1043,7 +1123,7 @@ class LibraryManager:
         playd = videoplayer.get_vod_download()
 
         if playd == download:
-            videoplayer.stop_playback()
+            self.stopPlayback()
 
     def connect(self, session, torrentsearch_manager, channelsearch_manager):
         if not self.connected:

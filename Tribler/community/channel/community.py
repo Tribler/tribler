@@ -680,7 +680,7 @@ class ChannelCommunity(Community):
 
                         if not th_handler.has_thumbnail(infohash):
                             @forceDispersyThread
-                            def callback(message=message):
+                            def callback(_,message=message):
                                 self._dispersy.on_messages([message])
                             logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
                             th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)

@@ -1,7 +1,7 @@
 # Written by Bill Bumgarner and Bram Cohen
 # see LICENSE.txt for license information
 
-from types import *
+from types import IntType, LongType, NoneType, StringType, FloatType, BooleanType
 from cStringIO import StringIO
 import logging
 

@@ -415,15 +415,9 @@ class SearchCommunity(Community):
                     if DEBUG:
                         self._logger.debug("SearchCommunity: got search response identifier not found %s", message.payload.identifier)
 
-    def create_torrent_request(self, torrents, candidate):
+    def create_torrent_request(self, infohash, candidate):
         torrentdict = {}
-        for torrent in torrents:
-            if isinstance(torrent, list):
-                cid, infohash = torrent
-            else:
-                cid = self._master_member.mid
-                infohash = torrent
-            torrentdict.setdefault(cid, set()).add(infohash)
+        torrentdict[self._master_member.mid] = set([infohash, ])
 
         # create torrent-request message
         meta = self.get_meta_message(u"torrent-request")
@@ -523,13 +517,16 @@ class SearchCommunity(Community):
                 pong_request = True
 
             if pong_request and message.payload.hashtype == SWIFT_INFOHASHES:
-                for roothash, infohash, seeders, leechers, ago in message.payload.torrents:
-                    toInsert[infohash] = [infohash, roothash]
+                for swift_torrent_hash, infohash, seeders, leechers, ago in message.payload.torrents:
+                    toInsert[infohash] = [infohash, swift_torrent_hash]
                     toPopularity[infohash] = [seeders, leechers, time() - (ago * 60)]
                     toCollect.setdefault(infohash, []).append(message.candidate)
 
         if len(toInsert) > 0:
-            self._torrent_db.on_torrent_collect_response(toInsert.values())
+            toInsert = toInsert.values()
+            while toInsert:
+                self._torrent_db.on_torrent_collect_response(toInsert[:50])
+                toInsert = toInsert[50:]
 
         hashes = [hash_ for hash_ in toCollect.keys() if hash_]
         if hashes:

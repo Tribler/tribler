@@ -13,8 +13,9 @@ import sys
 import time
 import logging
 
-from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
 
 logger = logging.getLogger(__name__)
 
