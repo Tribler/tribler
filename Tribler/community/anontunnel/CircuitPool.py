@@ -1,6 +1,6 @@
 import logging
 import threading
-from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY
+from Tribler.community.anontunnel.events import TunnelObserver
 
 __author__ = 'chris'
 
@@ -9,19 +9,26 @@ class NotEnoughCircuitsException(Exception):
     pass
 
 
-class CircuitPool(object):
-    def __init__(self, size, name):
+class CircuitPool(object, TunnelObserver):
+    def __init__(self, proxy, size, name):
         super(CircuitPool, self).__init__()
 
         self._logger = logging.getLogger(__name__)
+        self._logger.warning("Creating a circuit pool of size %d with name '%s'", size, name)
+
+        self.proxy = proxy
         self.lock = threading.RLock()
         self.size = size
         self.circuits = set()
         self.allocated_circuits = set()
         self.name = name
 
-        self._logger.warning("Creating a circuit pool of size %d with name '%s'", size, name)
-    
+        self.proxy.observers.append(self)
+
+    def on_break_circuit(self, circuit):
+        if circuit in self.circuits:
+            self.remove_circuit(circuit)
+
     @property
     def lacking(self):
         return max(0, self.size - len(self.circuits))

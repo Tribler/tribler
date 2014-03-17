@@ -177,8 +177,6 @@ class ProxyCommunity(Community):
         self.destination_circuit = {}
         ''' @type: dict[(str, int), int] '''
 
-        self._circuit_promises = []
-        self._reservations = set()
         self.circuit_pools = []
         ''' :type : list[CircuitPool] '''
 

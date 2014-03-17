@@ -36,7 +36,7 @@ class Socks5Server(object, TunnelObserver):
         self.tcp2session = {}
         ''' @type : dict[Socks5Connection, Socks5Session] '''
 
-        self.circuit_pool = CircuitPool(num_circuits, "SOCKS5(master)")
+        self.circuit_pool = CircuitPool(self.tunnel, num_circuits, "SOCKS5(master)")
         self.tunnel.circuit_pools.append(self.circuit_pool)
 
         raw_server.add_task(self.__start_anon_session, 5.0)
@@ -73,7 +73,7 @@ class Socks5Server(object, TunnelObserver):
         s5con = Socks5Connection(single_socket, self)
 
         try:
-            session_pool = CircuitPool(4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
+            session_pool = CircuitPool(self.tunnel, 4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
             session = Socks5Session(self.raw_server, s5con, self, session_pool)
             self.tunnel.observers.append(session)
             self.tunnel.circuit_pools.append(session_pool)
