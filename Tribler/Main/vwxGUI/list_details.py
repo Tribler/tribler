@@ -1,9 +1,4 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-import os
-import re
-import shutil
-import binascii
-import logging
 import wx
 
 from Tribler.Core.API import *
@@ -13,16 +8,12 @@ from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, TRIBLER_RED, \
     GRADIENT_LGREY, GRADIENT_DGREY, DOWNLOADING_COLOUR, SEEDING_COLOUR, \
     LIST_LIGHTBLUE, DEFAULT_BACKGROUND, SEPARATOR_GREY, FILTER_GREY
 from Tribler.TrackerChecking.TorrentChecking import *
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist, NotCollectedTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
+from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
     MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 from Tribler.community.channel.community import ChannelCommunity
