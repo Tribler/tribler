@@ -136,7 +136,7 @@ class LibtorrentMgr:
         self.ltsession_anon.set_proxy(proxy_settings)
 
         ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
-        self._logger.error("Started ANON LibTorrent session on port %d", ltsession.listen_port(ltsession))
+        self._logger.error("Started ANON LibTorrent session on port %d", ltsession.listen_port())
 
     def shutdown(self):
         # Save DHT state

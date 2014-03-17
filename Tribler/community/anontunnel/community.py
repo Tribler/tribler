@@ -10,7 +10,6 @@ import time
 from collections import defaultdict
 
 # Tribler and Dispersy imports
-from twisted.internet import defer
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache
@@ -180,6 +179,8 @@ class ProxyCommunity(Community):
 
         self._circuit_promises = []
         self._reservations = set()
+        self.circuit_pools = []
+        ''' :type : list[CircuitPool] '''
 
         # Attach message handlers
         self._initiate_message_handlers()
@@ -221,7 +222,7 @@ class ProxyCommunity(Community):
 
     def __discover(self):
         circuits_needed = lambda: max(
-            len(self._circuit_promises),
+            sum(pool.lacking for pool in self.circuit_pools),
             self.settings.max_circuits - len(self.circuits)
         )
 
@@ -231,14 +232,15 @@ class ProxyCommunity(Community):
                 goal_hops = self.settings.length_strategy.circuit_length()
 
                 if goal_hops == 0:
-                    deferred = self._circuit_promises.pop(0) if \
-                        len(self._circuit_promises) else None
-
                     circuit_id = self._generate_circuit_id()
                     self.circuits[circuit_id] = Circuit(
                         circuit_id=circuit_id,
-                        proxy=self,
-                        deferred=deferred)
+                        proxy=self)
+
+                    first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
+                    if first_pool:
+                        first_pool.fill(self.circuits[circuit_id])
+
                 else:
                     circuit_candidates = {c.candidate for c in
                                           self.circuits.values()}
@@ -252,9 +254,7 @@ class ProxyCommunity(Community):
                     if c is None:
                         break
                     else:
-                        deferred = self._circuit_promises.pop(0) if \
-                            len(self._circuit_promises) else None
-                        self._create_circuit(c, goal_hops, deferred=deferred)
+                        self._create_circuit(c, goal_hops)
 
     def unload_community(self):
         """
@@ -719,6 +719,11 @@ class ProxyCommunity(Community):
         elif circuit.state == CIRCUIT_STATE_READY:
             request.on_success()
 
+            first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
+            if first_pool:
+                first_pool.fill(circuit)
+
+
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, \
                 NTFY_CREATED, NTFY_EXTENDED
@@ -1088,34 +1093,6 @@ class ProxyCommunity(Community):
 
             return result
 
-    def reserve_circuit(self):
-        """
-        Reserve a (future) circuit
-        @rtype: defer.Deferred
-        """
-
-        def __reserve(circuit):
-            self._logger.warning("Reserving circuit %d", circuit.circuit_id)
-            self._reservations.add(circuit)
-            return circuit
-
-        with self.lock:
-            free = next((c for c in self.circuits.itervalues()
-                         if c not in self._reservations), None)
-
-            if free:
-                __reserve(free)
-                return free.deferred
-
-            else:
-                deferred = defer.Deferred()
-
-                # remove from the list when circuit is ready
-                deferred.addCallback(__reserve)
-                self._circuit_promises.append(deferred)
-
-                return deferred
-
     def cancel_reservation(self, circuit):
         """
         Free a circuit from a reservation
@@ -1140,7 +1117,7 @@ class ProxyCommunity(Community):
 
         root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
         hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
-        hosts = [("95.211.198.141", 51413), ("94.23.38.156", 51413)]
+        hosts = [("94.23.38.156", 51413)]
 
         def _mark_test_completed():
             filename = self.tribler_session.get_state_dir() + "/anon_test.txt"

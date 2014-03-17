@@ -321,16 +321,6 @@ def main(argv):
             anon_tunnel.stop()
             os._exit(0)
             break
-
-        elif line == 'reserve\n':
-            print "We will try to reserve a circuit now!"
-
-            def on_ready(ready_circuit):
-                print "Got circuit {0}".format(ready_circuit.circuit_id)
-
-            deferred = anon_tunnel.community.reserve_circuit()
-            deferred.addCallback(on_ready)
-
         elif line == 'r\n':
             print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
 

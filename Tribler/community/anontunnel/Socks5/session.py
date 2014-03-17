@@ -1,5 +1,6 @@
 import logging
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.community.anontunnel.CircuitPool import NotEnoughCircuitsException
 from Tribler.community.anontunnel.Socks5 import conversion
 from Tribler.community.anontunnel.Socks5.connection import \
     Socks5ConnectionObserver
@@ -15,18 +16,17 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
     @param Socks5Connection connection: the Socks5Connection
     @param RawServer raw_server: The raw server, used to create and listen on
     UDP-sockets
-    @param Socks5Server server:  the socks5 server
+    @param CircuitPool circuit_pool:  the circuit pool
     """
-    def __init__(self, raw_server, connection, server):
+    def __init__(self, raw_server, connection, server, circuit_pool):
         TunnelObserver.__init__(self)
         self.raw_server = raw_server
         self._logger = logging.getLogger(__name__)
         self.connection = connection
         self.connection.observers.append(self)
-        self.server = server
+        self.circuit_pool = circuit_pool
 
-        self.circuits = []
-        ''' :type : list[Circuit] '''
+        self.server = server
 
         self.destinations = {}
         ''' :type: dict[(str, int), Circuit] '''
@@ -42,12 +42,14 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         @param request:
         @return:
         """
-        if not self.circuits:
-            from Tribler.community.anontunnel.Socks5.server import \
-                NotEnoughCircuitsException
+        if not self.circuit_pool.available_circuits:
             try:
-                self.circuits = self.server.allocate_circuits(2)
-            except NotEnoughCircuitsException as e:
+                circuit = self.server.circuit_pool.allocate()
+
+                # Move from main pool to session pool
+                self.server.circuit_pool.remove_circuit(circuit)
+                self.circuit_pool.fill(circuit)
+            except NotEnoughCircuitsException:
                 self.close_session("not enough circuits")
                 connection.deny_request(request)
                 return
@@ -65,7 +67,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         self.connection.close()
 
     def on_break_circuit(self, circuit):
-        if circuit in self.circuits:
+        if circuit in {circuit for dest, circuit in self.destinations.iteritems()}:
             self._logger.error(
                 "A circuit has died, to enforce 3-way swift handshake "
                 "we are signalling swift by closing TCP connection")
@@ -73,7 +75,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
 
     def _select(self, destination):
         if not destination in self.destinations:
-            selected_circuit = self.selection_strategy.select(self.circuits)
+            selected_circuit = self.selection_strategy.select(self.circuit_pool.available_circuits)
             self.destinations[destination] = selected_circuit
 
             self._logger.error("SELECT circuit {0} for {1}".format(
@@ -104,7 +106,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
             circuit.tunnel_data(request.destination, request.payload)
 
     def on_incoming_from_tunnel(self, community, circuit, origin, data):
-        if circuit not in self.circuits:
+        if circuit not in self.circuit_pool.circuits:
             return
 
         if not self.remote_udp_address:
