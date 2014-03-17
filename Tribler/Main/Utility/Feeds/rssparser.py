@@ -388,16 +388,12 @@ class RSSFeedParser(object):
         url_set = set()
 
         a_list = re.findall(r'<a.+href=[\'"]?([^\'" >]+)', content)
-        for a_item in a_list:
-            a_href = a_item.attrib.get('href', None)
-            if a_href:
-                url_set.add(a_href)
+        for a_href in a_list:
+            url_set.add(a_href)
 
         img_list = re.findall(r'<img.+src=[\'"]?([^\'" >]+)', content)
-        for img_item in img_list:
-            img_src = img_item.attrib.get('src', None)
-            if img_src:
-                url_set.add(img_src)
+        for img_src in img_list:
+            url_set.add(img_src)
 
         return url_set
 
