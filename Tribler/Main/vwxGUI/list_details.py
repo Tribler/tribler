@@ -30,6 +30,7 @@ from Tribler.Video.VideoUtility import limit_resolution
 from Tribler.Video.VideoPlayer import VideoPlayer
 import copy
 
+from time import time
 
 class AbstractDetails(FancyPanel):
 
