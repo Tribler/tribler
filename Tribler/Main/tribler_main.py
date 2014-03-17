@@ -176,7 +176,7 @@ class ABCApp():
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
-            self.splash.setTicks(10)
+            self.splash.setTicks(12)
             self.splash.Show()
 
             self._logger.info('Client Starting Up.')
@@ -253,6 +253,7 @@ class ABCApp():
                 self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
                 self.i2is.start()
 
+            self.splash.tick('Starting VOD')
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
             httpport = self.utility.read_config('videohttpport')
@@ -261,6 +262,7 @@ class ABCApp():
             playbackmode = self.utility.read_config('videoplaybackmode')
             self.videoplayer = VideoPlayer.getInstance(s, self.utility.read_config('videoplayerpath'), preferredplaybackmode=playbackmode, httpport=httpport)
 
+            self.splash.tick('GUIUtility register')
             notification_init(self.utility)
             self.guiUtility.register()
 
