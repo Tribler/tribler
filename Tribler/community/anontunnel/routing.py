@@ -26,19 +26,10 @@ class Circuit:
         self._hops = []
         self._logger = logging.getLogger(__name__)
 
-        def __create_deferred():
-            def __errback(error):
-                self._logger.error("Unhandled deferred error: %s", error)
-                return error
-
-            d = defer.Deferred()
-            d.addErrback(__errback)
-            return d
-
         self.circuit_id = circuit_id
         self.candidate = candidate
         self.goal_hops = goal_hops
-        self.deferred = deferred if deferred else __create_deferred()
+        self.deferred = deferred if deferred else defer.Deferred()
         self.extend_strategy = None
         self.last_incoming = time.time()
 

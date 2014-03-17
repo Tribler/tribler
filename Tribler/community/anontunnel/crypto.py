@@ -15,7 +15,6 @@ from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
     DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, \
     DIFFIE_HELLMAN_GENERATOR
 
-logger = logging.getLogger()
 
 
 class CryptoError(Exception):
@@ -29,6 +28,7 @@ class Crypto(TunnelObserver):
         self.relay_packet_crypto = []
         self.encrypt_outgoing_packet_content = defaultdict(list)
         self.decrypt_incoming_packet_content = defaultdict(list)
+        self._logger = logging.getLogger(__name__)
 
     def handle_incoming_packet(self, candidate, circuit_id, data):
         """
@@ -70,9 +70,13 @@ class Crypto(TunnelObserver):
         @param content: The packet data
         @return: The encrypted content
         """
-        for encrypt in self.outgoing_packet_crypto:
-            content = encrypt(destination, circuit_id, message_type, content)
-        return content
+        try:
+            for encrypt in self.outgoing_packet_crypto:
+                content = encrypt(destination, circuit_id, message_type, content)
+            return content
+        except:
+            self._logger.exception("Cannot encrypt outgoing packet content")
+            return None
 
     def handle_outgoing_packet_content(self, destination, circuit_id, message, message_type):
         """
@@ -84,9 +88,14 @@ class Crypto(TunnelObserver):
         @param message: The message
         @return: The message with encrypted content
         """
-        for encrypt in self.encrypt_outgoing_packet_content[message_type]:
-            message = encrypt(destination, circuit_id, message)
-        return message
+
+        try:
+            for encrypt in self.encrypt_outgoing_packet_content[message_type]:
+                message = encrypt(destination, circuit_id, message)
+            return message
+        except:
+            self._logger.exception("Cannot encrypt outgoing packet content")
+            return None
 
     def handle_relay_packet(self, direction, sock_addr, circuit_id, data):
         """
@@ -98,10 +107,13 @@ class Crypto(TunnelObserver):
         @param data: The message data
         @return: The message data, en- / decrypted according to the circuitdirection
         """
-        for crypt in self.relay_packet_crypto:
-            data = crypt(direction, sock_addr, circuit_id, data)
-        return data
-
+        try:
+            for crypt in self.relay_packet_crypto:
+                data = crypt(direction, sock_addr, circuit_id, data)
+            return data
+        except:
+            self._logger.exception("Cannot crypt relay packet")
+            return None
 
 class NoCrypto(Crypto):
     def __init__(self):
@@ -467,19 +479,19 @@ class DefaultCrypto(Crypto):
         """
 
         relay_key = (candidate.sock_addr, circuit_id)
-        logger.debug(
+        self._logger.debug(
             "Crypto_outgoing for circuit {0} and message type {1}".format(
                 circuit_id, ord(message_type)))
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-            logger.debug("public key encryption for circuit %s" % circuit_id)
+            self._logger.debug("public key encryption for circuit %s" % circuit_id)
             candidate_pub_key = iter(candidate.get_members()).next()._ec
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
         elif relay_key in self.session_keys:
             content = aes_encrypt_str(self.session_keys[relay_key], content)
-            logger.debug("Adding AES layer for circuit %s with key %s" % (
+            self._logger.debug("Adding AES layer for circuit %s with key %s" % (
                 circuit_id, self.session_keys[relay_key]))
         # If own circuit, AES layers have to be added
         elif circuit_id in self.proxy.circuits:
@@ -487,7 +499,7 @@ class DefaultCrypto(Crypto):
             circuit = self.proxy.circuits[circuit_id]
             hops = circuit.hops
             for hop in reversed(hops):
-                logger.debug(
+                self._logger.debug(
                     "Adding AES layer for hop %s:%s with key %s" %
                     (hop.host, hop.port, hop.session_key)
                 )
@@ -495,7 +507,7 @@ class DefaultCrypto(Crypto):
         else:
             raise CryptoError("Don't know how to encrypt outgoing message")
 
-        logger.debug("Length of outgoing message: {0}".format(len(content)))
+        self._logger.debug("Length of outgoing message: {0}".format(len(content)))
         return content
 
     def _crypto_relay_packet(self, direction, sock_addr, circuit_id, data):
@@ -523,7 +535,7 @@ class DefaultCrypto(Crypto):
 
         # Message is going downstream so I have to add my onion layer
         if direction == ORIGINATOR:
-            logger.debug(
+            self._logger.debug(
                 "AES encoding circuit {0} towards ORIGINATOR, key {1}".format(
                     next_relay.circuit_id,
                     self.session_keys[
@@ -533,7 +545,7 @@ class DefaultCrypto(Crypto):
 
         # Message is going upstream so I have to remove my onion layer
         elif direction == ENDPOINT:
-            logger.debug(
+            self._logger.debug(
                 "AES decoding circuit {0} towards ENDPOINT, key {1}".format(
                     next_relay.circuit_id,
                     self.session_keys[relay_key]))
@@ -563,38 +575,54 @@ class DefaultCrypto(Crypto):
         """
 
         relay_key = (candidate.sock_addr, circuit_id)
-        logger.debug("Crypto_incoming for circuit {0}".format(circuit_id))
-        logger.debug("Length of incoming message: {0}".format(len(data)))
+        self._logger.debug("Crypto_incoming for circuit {0}".format(circuit_id))
+        self._logger.debug("Length of incoming message: {0}".format(len(data)))
 
         # I'm the last node in the circuit, probably an EXTEND message,
         # decrypt with AES
         if relay_key in self.session_keys:
-            # last node in circuit, circuit already exists
-            logger.debug("I am the last node in the already existing circuit, "
-                         "decrypt with AES")
-            data = aes_decrypt_str(
-                self.session_keys[relay_key], data)
+
+            try:
+                # last node in circuit, circuit already exists
+                self._logger.debug("I am the last node in the already existing circuit, "
+                             "decrypt with AES")
+                return aes_decrypt_str(self.session_keys[relay_key], data)
+            except:
+                self._logger.warning("Cannot decrypt a message destined for us, the end of a circuit.")
+                return None
 
         # If I am the circuits originator I want to peel layers
         elif circuit_id in self.proxy.circuits and len(
                 self.proxy.circuits[circuit_id].hops) > 0:
-            # I am the originator so I'll peel the onion skins
-            logger.debug(
-                "I am the circuit originator, I am going to peel layers")
-            for hop in self.proxy.circuits[circuit_id].hops:
-                logger.debug(
-                    "Peeling layer with key {0}".format(hop.session_key))
-                data = aes_decrypt_str(hop.session_key, data)
+
+            try:
+                # I am the originator so I'll peel the onion skins
+                self._logger.debug(
+                    "I am the circuit originator, I am going to peel layers")
+                for hop in self.proxy.circuits[circuit_id].hops:
+                    self._logger.debug(
+                        "Peeling layer with key {0}".format(hop.session_key))
+                    data = aes_decrypt_str(hop.session_key, data)
+
+                return data
+            except:
+                self._logger.warning("Cannot decrypt packet. It should be a packet coming of our own circuit, but we cannot peel the onion.")
+                return None
+
         # I don't know the sender! Let's decrypt with my private Elgamal key
         else:
-            # last node in circuit, circuit does not exist yet,
-            # decrypt with Elgamal key
-            logger.debug(
-                "Circuit does not yet exist, decrypting with my Elgamal key")
-            my_key = self.proxy.my_member._ec
-            data = self.proxy.crypto.decrypt(my_key, data)
+            try:
+                # last node in circuit, circuit does not exist yet,
+                # decrypt with Elgamal key
+                self._logger.debug(
+                    "Circuit does not yet exist, decrypting with my Elgamal key")
+                my_key = self.proxy.my_member._ec
+                data = self.proxy.crypto.decrypt(my_key, data)
 
-        return data
+                return data
+            except:
+                self._logger.warning("Cannot decrypt packet, should be an initial packet encrypted with our public Elgamal key");
+                return None
 
     def _encrypt_candidate_list(self, key, cand_dict):
         """

@@ -282,8 +282,12 @@ class Socks5Connection(object):
         data = self.buffer
         is_version = ord(data[0]) == 0x05
         if is_version and data[1] == chr(0x01) and chr(0x00) == data[2]:
-            self._logger.error("State GUESSING here!")
-            return ConnectionState.BEFORE_METHOD_REQUEST
+            guessed_state = ConnectionState.BEFORE_METHOD_REQUEST
+
+            if self.state != guessed_state:
+                self._logger.error("GUESSING SOCKS5 state %s should be %s!", guessed_state, self.state)
+                
+            return guessed_state
 
         has_valid_command = ord(data[1]) in {0x01, 0x02, 0x03}
         has_valid_address = ord(data[2]) in {0x01, 0x03, 0x04}

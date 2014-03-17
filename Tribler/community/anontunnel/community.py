@@ -381,7 +381,7 @@ class ProxyCommunity(Community):
 
         if not data:
             self._logger.error("Circuit ID {0} doesn't talk crypto language, dropping packet".format(circuit_id))
-            return None
+            return False
 
         # Try to parse the packet
         _, payload = self.proxy_conversion.decode(data)
@@ -394,7 +394,7 @@ class ProxyCommunity(Community):
 
         # If un-decrypt-able, drop packet
         if not payload:
-            return None
+            return False
 
         self._logger.debug(
             "GOT %s from %s:%d over circuit %d",
@@ -408,7 +408,7 @@ class ProxyCommunity(Community):
             self._logger.warning("IGNORED %s from %s:%d over circuit %d",
                                  str_type, candidate.sock_addr[0],
                                  candidate.sock_addr[1], circuit_id)
-            return
+            return False
 
         if am_originator:
             self.circuits[circuit_id].beat_heart()
@@ -423,6 +423,8 @@ class ProxyCommunity(Community):
                             str_type + '-ignored')
             self._logger.debug("Prev message was IGNORED")
 
+        return True
+
     def __relay(self, circuit_id, data, relay_key, sock_addr):
         # First, relay packet if we know whom to forward message to for
         # this circuit. This happens only when the circuit is already
@@ -434,6 +436,9 @@ class ProxyCommunity(Community):
 
         # let packet_crypto handle en-/decrypting relay packet
         data = self.packet_crypto.handle_relay_packet(direction, sock_addr, circuit_id, data)
+
+        if not data:
+            return False
 
         this_relay_key = (next_relay.sock_addr, next_relay.circuit_id)
 
@@ -467,6 +472,8 @@ class ProxyCommunity(Community):
         self.__dict_inc(self.dispersy.statistics.success,
                         str_type + '-relayed')
 
+        return True
+
     def __handle_packet(self, sock_addr, orig_packet):
         """
         @param (str, int) sock_addr: socket address in tuple format
@@ -482,23 +489,26 @@ class ProxyCommunity(Community):
         is_originator = not is_relay and circuit_id in self.circuits
         is_initial = not is_relay and not is_originator
 
+        result = False
+
         try:
             if is_relay:
-                return self.__relay(circuit_id, data, relay_key, sock_addr)
-
-            candidate = self._get_cached_candidate(sock_addr)
-            if not candidate:
-                self._logger.error("Unknown candidate at %s, drop!", sock_addr)
-                return
-
-            self.__handle_incoming(circuit_id, is_originator, candidate, data)
+                result = self.__relay(circuit_id, data, relay_key, sock_addr)
+            else:
+                candidate = self._get_cached_candidate(sock_addr)
+                if not candidate:
+                    self._logger.error("Unknown candidate at %s, drop!", sock_addr)
+                else:
+                    result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
         except:
+            result = False
             self._logger.exception(
                 "Incoming from {3} on {4} message error."
                 "INITIAL={0}, ORIGINATOR={1}, RELAY={2}"
                 .format(is_initial, is_originator, is_relay, sock_addr,
                         circuit_id))
 
+        if not result:
             if relay_key in self.relay_from_to:
                 self.remove_relay(relay_key, "error on incoming packet!")
             elif circuit_id in self.circuits:
@@ -934,8 +944,16 @@ class ProxyCommunity(Community):
         @return:
         """
         message = self.packet_crypto.handle_outgoing_packet_content(destination, circuit_id, message, message_type)
+
+        if message is None:
+            return False
+
         content = self.proxy_conversion.encode(message_type, message)
         content = self.packet_crypto.handle_outgoing_packet(destination, circuit_id, message_type, content)
+
+        if content is None:
+            return False
+
         return self.send_packet(destination, circuit_id, message_type, content)
 
     def send_packet(self, destination, circuit_id, message_type, packet,
@@ -1081,10 +1099,6 @@ class ProxyCommunity(Community):
             self._reservations.add(circuit)
             return circuit
 
-        def __errback(error):
-            self._logger.error("We got an unhandled error: %s", error)
-            return error
-
         with self.lock:
             free = next((c for c in self.circuits.itervalues()
                          if c not in self._reservations), None)
@@ -1095,7 +1109,6 @@ class ProxyCommunity(Community):
 
             else:
                 deferred = defer.Deferred()
-                deferred.addErrback(__errback)
 
                 # remove from the list when circuit is ready
                 deferred.addCallback(__reserve)
