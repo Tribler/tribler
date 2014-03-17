@@ -32,12 +32,12 @@ class ConfirmationDialog(wx.Dialog):
         cancelButton = wx.Button(self, id=wx.ID_CANCEL)
         cancelButton.Bind(wx.EVT_BUTTON, self.OnCancel)
         buttonSizer.Add(confirmButton)
-        buttonSizer.Add(cancelButton, 0, wx.LEFT, 5)
+        buttonSizer.Add(cancelButton)
         buttonSizer.Realize()
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
-        mainSizer.Add(bodySizer, 1, wx.EXPAND | wx.ALL, 15)
-        mainSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT | wx.ALL, 15)
+        mainSizer.Add(bodySizer, 1, wx.EXPAND | wx.ALL, 10)
+        mainSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
         self.SetSizerAndFit(mainSizer)
         if center_on_frame:
             x, y, w, h = GUIUtility.getInstance().frame.GetScreenRect()
