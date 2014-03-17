@@ -1,4 +1,5 @@
 # Written by Niels Zeilemaker
+import threading
 import wx
 import sys
 import os
@@ -16,7 +17,7 @@ except:
     pass
 import random
 import logging
-from time import strftime
+from time import strftime, time
 from collections import defaultdict
 
 from Tribler.Main.vwxGUI.list_header import DetailHeader

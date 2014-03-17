@@ -1,5 +1,6 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
+from collections import defaultdict
 
 import sys
 import random

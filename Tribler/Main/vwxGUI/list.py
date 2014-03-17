@@ -14,6 +14,7 @@ from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from Tribler.Category.Category import Category
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 from Tribler.Core.simpledefs import NTFY_MISC, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
