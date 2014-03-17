@@ -16,6 +16,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
+logger = logging.getLogger(__name__)
 
 class CreateTorrent(wx.Dialog):
 
@@ -460,13 +461,13 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
     if params['makehash_md5']:
-        self._logger.info("TorrentMaker: make MD5")
+        logger.info("TorrentMaker: make MD5")
         tdef.set_add_md5hash(params['makehash_md5'])
     if params['makehash_crc32']:
-        self._logger.info("TorrentMaker: make CRC32")
+        logger.info("TorrentMaker: make CRC32")
         tdef.set_add_crc32(params['makehash_crc32'])
     if params['makehash_sha1']:
-        self._logger.info("TorrentMaker: make SHA1")
+        logger.info("TorrentMaker: make SHA1")
         tdef.set_add_sha1hash(params['makehash_sha1'])
     if params['createmerkletorrent']:
         tdef.set_create_merkle_torrent(params['createmerkletorrent'])
