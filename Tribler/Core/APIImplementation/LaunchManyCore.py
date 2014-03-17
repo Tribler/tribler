@@ -7,6 +7,7 @@ import errno
 import binascii
 import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
+from traceback import print_exc
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
