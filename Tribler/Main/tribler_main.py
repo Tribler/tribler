@@ -11,17 +11,13 @@
 #
 # see LICENSE.txt for license information
 #
-import glob
 
 import sys
 import logging
 from Tribler.community.anontunnel import exitstrategies
 from Tribler.community.anontunnel.Socks5.server import Socks5Server
 
-from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
-from Tribler.community.anontunnel.globals import ANON_DOWNLOAD_DELAY
-from Tribler.community.anontunnel.stats import StatsCollector
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +32,16 @@ logger = logging.getLogger(__name__)
 #
 import urllib
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
 original_open_https = urllib.URLopener.open_https
+import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
+# modify the sys.stderr and sys.stdout for safe output
+import Tribler.Debug.console
+
+import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
@@ -48,7 +50,7 @@ from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIG
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import current_thread, currentThread
+from threading import currentThread
 try:
     prctlimported = True
     import prctl
@@ -133,7 +135,6 @@ ALLOW_MULTIPLE = False
 class ABCApp():
 
     def __init__(self, params, single_instance_checker, installdir):
-        self.tunnel = None
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.params = params
@@ -341,20 +342,6 @@ class ABCApp():
 
             self.ready = True
 
-            # self.frame.actlist.DisableItem(3)
-            # self.frame.actlist.DisableItem(6)
-            # #self.frame.top_bg.searchField.Disable()
-            # #self.frame.top_bg.searchFieldPanel.Disable()
-            # #self.frame.top_bg.add_btn.Disable()
-            # self.frame.top_bg.GetSizer().ShowItems(False)
-            #
-            # self.frame.home.searchBox.Show(False)
-            # self.frame.home.channelLinkText.ShowItems(False)
-            # self.frame.home.buzzpanel.Show(False)
-            # self.frame.home.searchButton.Show(False)
-            #
-            # # Disable drag and drop
-            # self.frame.SetDropTarget(None)
         except Exception as e:
             self.onError(e)
 
@@ -400,20 +387,9 @@ class ABCApp():
     def startAPI(self, progress):
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
-        folder_name = "./.TriblerAnonTunnel";
-
-        try:
-            shutil.rmtree(folder_name)
-        except:
-            pass
-
-        try:
-            os.mkdir(folder_name)
-        except:
-            pass
-
-        state_dir = Session.get_default_state_dir(folder_name)
-
+        state_dir = defaultConfig.get_state_dir()
+        if not state_dir:
+            state_dir = Session.get_default_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         progress('Loading sessionconfig')
@@ -447,10 +423,6 @@ class ABCApp():
 
         progress('Loading downloadconfig')
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
-
-        if os.path.isfile(dlcfgfilename):
-            os.remove(dlcfgfilename)
-
         self._logger.debug("main: Download config %s", dlcfgfilename)
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
@@ -506,9 +478,9 @@ class ABCApp():
                                      (s.dispersy_member,),
                                      load=True)
             dispersy.define_auto_load(AllChannelCommunity,
-                                          (s.dispersy_member,),
-                                          {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
-                                          load=True)
+                                           (s.dispersy_member,),
+                                           {},
+                                           load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
@@ -534,6 +506,7 @@ class ABCApp():
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
+        swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
 
@@ -544,6 +517,7 @@ class ABCApp():
     def determine_install_dir():
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
+
         # apply trick to obtain the executable location
         # see http://www.py2exe.org/index.cgi/WhereAmI
         # Niels, 2012-01-31: py2exe should only apply to windows
@@ -751,8 +725,6 @@ class ABCApp():
         return (1.0, wantpeers)
 
     def loadSessionCheckpoint(self):
-        return
-
         # Niels: first remove all "swift" torrent collect checkpoints
         dir = self.utility.session.get_downloads_pstate_dir()
         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
