@@ -44,6 +44,13 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
 
 class AbstractDetails(FancyPanel):
 
+    def __init__(self, *args, **kwargs):
+        FancyPanel.__init__(self, *args, **kwargs)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ AbstractDetails OnDestroy() %s" % self.__class__.__name__
+
     @warnWxThread
     def _create_tab(self, notebook, tabname, header=None, spacer=0, border=0):
         panel = wx.lib.scrolledpanel.ScrolledPanel(notebook)

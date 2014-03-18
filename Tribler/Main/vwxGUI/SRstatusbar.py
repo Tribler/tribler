@@ -1,5 +1,6 @@
 # Written by Niels Zeilemaker
 import wx
+import sys
 
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
@@ -32,17 +33,27 @@ class SRstatusbar(wx.StatusBar):
         self.ff_checkbox = wx.CheckBox(self, -1, 'Family filter', style=wx.ALIGN_RIGHT)
         self.ff_checkbox.Bind(wx.EVT_CHECKBOX, self.OnCheckbox)
         self.ff_checkbox.SetValue(self.guiutility.getFamilyFilter())
+        self.ff_checkbox.Bind(wx.EVT_WINDOW_DESTROY, self.OnOtherDestroy, self.ff_checkbox)
 
         self.speed_down_icon = self._gui_image_manager.getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0)
-        self.speed_down_sbmp = wx.StaticBitmap(self, -1, self.speed_down_icon)
+        self.speed_down_sbmp = wx.StaticBitmap(self, -1, self.speed_down_icon, name="down_sbmp")
         self.speed_down_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
-        self.speed_down = wx.StaticText(self, -1, '')
+        self.speed_down_sbmp.Bind(wx.EVT_WINDOW_DESTROY, self.OnOtherDestroy, self.speed_down_sbmp)
+
+        self.speed_down = wx.StaticText(self, -1, '', style=wx.ST_NO_AUTORESIZE)
+        self.speed_down.SetName("speed-down")
         self.speed_down.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
+        self.speed_down.Bind(wx.EVT_WINDOW_DESTROY, self.OnOtherDestroy, self.speed_down)
+
         self.speed_up_icon = self.speed_down_icon.ConvertToImage().Rotate90().Rotate90().ConvertToBitmap()
-        self.speed_up_sbmp = wx.StaticBitmap(self, -1, self.speed_up_icon)
+        self.speed_up_sbmp = wx.StaticBitmap(self, -1, self.speed_up_icon, name="up_sbmp")
         self.speed_up_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
-        self.speed_up = wx.StaticText(self, -1, '')
+        self.speed_up_sbmp.Bind(wx.EVT_WINDOW_DESTROY, self.OnOtherDestroy, self.speed_up_sbmp)
+
+        self.speed_up = wx.StaticText(self, -1, '', style=wx.ST_NO_AUTORESIZE)
+        self.speed_up.SetName("speed-up")
         self.speed_up.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
+        self.speed_up.Bind(wx.EVT_WINDOW_DESTROY, self.OnOtherDestroy, self.speed_up)
 
         self.searchConnectionImages = [u"progressbarEmpty.png", u"progressbarFull.png"]
         self.searchConnectionImages = [self._gui_image_manager.getImage(image) for image in self.searchConnectionImages]
@@ -51,7 +62,8 @@ class SRstatusbar(wx.StatusBar):
         self.activityImages = [self._gui_image_manager.getImage(image) for image in self.activityImages]
 
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
-        self.activity = wx.StaticBitmap(self, -1, self.activityImages[1])
+        self.activity = wx.StaticBitmap(self, -1, self.activityImages[1], name="activity")
+        self.activity.Bind(wx.EVT_WINDOW_DESTROY, self.OnOtherDestroy, self.activity)
         self.activity_timer = None
         self.channelconnections = 0
 
@@ -66,8 +78,17 @@ class SRstatusbar(wx.StatusBar):
 
         self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
 
         self.library_manager.add_download_state_callback(self.RefreshTransferSpeed)
+
+    def OnOtherDestroy(self, event):
+        window = self.FindWindowById(event.GetEventObject().GetId())
+        print >> sys.stderr, "+++ OtherDestroy %s OnDestroy()", \
+            window.__class__.__name__, window.GetId(), window.GetName()
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ StatusBar OnDestroy()"
 
     def RefreshTransferSpeed(self, dslist, magnetlist):
         total_down, total_up = 0.0, 0.0
@@ -78,6 +99,7 @@ class SRstatusbar(wx.StatusBar):
 
     @warnWxThread
     def SetTransferSpeeds(self, down, up):
+        print >> sys.stderr, "``` StatusBar SetTransferSpeeds()"
         self.speed_down.SetLabel(self.utility.speed_format(down))
         self.speed_up.SetLabel(self.utility.speed_format(up))
         self.Reposition()
@@ -99,6 +121,7 @@ class SRstatusbar(wx.StatusBar):
         values.append(0)
         return [('unlimited' if value == 0 else ('0' if value == -1 else str(value)), value) for value in values]
 
+    @warnWxThread
     def OnDownloadPopup(self, event):
         menu = wx.Menu()
         current = self.utility.read_config('maxdownloadrate')
@@ -114,6 +137,7 @@ class SRstatusbar(wx.StatusBar):
         menu.Destroy()
         self.speed_down.Layout()
 
+    @warnWxThread
     def OnUploadPopup(self, event):
         menu = wx.Menu()
         current = self.utility.read_config('maxuploadrate')
@@ -125,6 +149,7 @@ class SRstatusbar(wx.StatusBar):
             menu.Bind(wx.EVT_MENU, lambda x, v=value: self.SetGlobalMaxSpeed(UPLOAD, v), id=itemid)
             menu.Check(itemid, current == value)
 
+        print >> sys.stderr, "``` StatusBar OnUploadPopup()"
         self.speed_up.PopupMenu(menu, event.GetPosition())
         menu.Destroy()
         self.speed_up.Layout()
@@ -158,6 +183,7 @@ class SRstatusbar(wx.StatusBar):
 
     @warnWxThread
     def onReachable(self, event=None):
+        print >> sys.stderr, "``` StatusBar onReachable()"
         if not self.guiutility.firewall_restart:
             self.firewallStatus.SetBitmapLabel(self.bmp_firewall_ok)
             self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_ok)
@@ -165,16 +191,19 @@ class SRstatusbar(wx.StatusBar):
 
     @warnWxThread
     def IsReachable(self):
+        print >> sys.stderr, "``` StatusBar IsReachable()"
         if not self.guiutility.firewall_restart:
             return self.firewallStatus.GetBitmapLabel() == self.bmp_firewall_ok
         return False
 
     @warnWxThread
     def onActivity(self, msg):
+        print >> sys.stderr, "``` StatusBar onActivity()"
         if self.activity_timer:
             self.activity_timer.Stop()
 
         def revert():
+            print >> sys.stderr, "``` StatusBar onActivity() revert()"
             self.activity.SetBitmap(self.activityImages[1])
             self.activity.Refresh()
 
@@ -198,9 +227,11 @@ class SRstatusbar(wx.StatusBar):
             return '%1.1f GB' % (bytes // 1073741824.0)
         return '%d GB' % (bytes // 1073741824)
 
+    @warnWxThread
     def OnSize(self, event):
         self.Reposition()
 
+    @warnWxThread
     def Reposition(self):
         self.Freeze()
 
@@ -210,6 +241,7 @@ class SRstatusbar(wx.StatusBar):
 
         rect = self.GetFieldRect(1)
         x = rect.x + rect.width - 15
+        print >> sys.stderr, "``` StatusBar Reposition()"
         for control in reversed([self.speed_down_sbmp, self.speed_down, self.speed_up_sbmp, self.speed_up]):
             spacer = 10 if not isinstance(control, wx.StaticBitmap) else 7
             x -= control.GetSize()[0] + spacer

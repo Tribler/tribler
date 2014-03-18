@@ -1,5 +1,6 @@
 # Written by Niels Zeilemaker
 import wx
+import sys
 
 from Tribler.Main.vwxGUI import LIST_RADIUS, LIST_HIGHTLIGHT
 from Tribler.Main.vwxGUI.list_details import AbstractDetails
@@ -31,8 +32,12 @@ class ListFooter(wx.Panel):
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnResize)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
 
         self.background = wx.Brush(self.GetBackgroundColour())
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ ListFooter OnDestroy() %s" % self.__class__.__name__
 
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()

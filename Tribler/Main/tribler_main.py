@@ -883,27 +883,34 @@ class ABCApp():
 
     def OnExit(self):
         self._logger.info("main: ONEXIT")
+        print >> sys.stderr, "!!! main: ONEXIT"
         self.ready = False
         self.done = True
 
         # write all persistent data to disk
         if self.i2is:
+            print >> sys.stderr, "!!! shutting down i2is"
             self.i2is.shutdown()
         if self.torrentfeed:
+            print >> sys.stderr, "!!! shutting down torrentfeed"
             self.torrentfeed.shutdown()
             self.torrentfeed.delInstance()
         if self.webUI:
+            print >> sys.stderr, "!!! shutting down webUI"
             self.webUI.stop()
             self.webUI.delInstance()
         if self.guiserver:
+            print >> sys.stderr, "!!! shutting down guiserver"
             self.guiserver.shutdown(True)
             self.guiserver.delInstance()
 
         delete_status_holders()
 
         if self.frame:
+            print >> sys.stderr, "!!! destroying main frame [Destroy()]"
             self.frame.Destroy()
             self.frame = None
+            del self.frame
 
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
@@ -911,12 +918,14 @@ class ABCApp():
             # Niels: lets add a max waiting time for this session shutdown.
             session_shutdown_start = time()
 
+            print >> sys.stderr, "!!! shutting down session"
             self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
             # Arno, 2012-07-12: Shutdown should be quick
             # Niels, 2013-03-21: However, setting it too low will prevent checkpoints from being written to disk
             waittime = 60
             while not self.utility.session.has_shutdown():
+                print >> sys.stderr, "!!! waitting for session to shutdown"
                 diff = time() - session_shutdown_start
                 if diff > waittime:
                     self._logger.info("main: ONEXIT NOT Waiting for Session to shutdown, took too long")
@@ -928,8 +937,10 @@ class ABCApp():
 
             try:
                 self._logger.info("main: ONEXIT cleaning database")
+                print >> sys.stderr, "!!! cleaning database"
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
                 peerdb._db.clean_db(randint(0, 24) == 0, exiting=True)
+                print >> sys.stderr, "!!! database cleaned"
             except:
                 print_exc()
 
