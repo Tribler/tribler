@@ -1,6 +1,5 @@
 import logging
 import json
-import sys
 import binascii
 
 from Tribler.dispersy.authentication import MemberAuthentication
@@ -38,18 +37,18 @@ class MetadataCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-#generated: Tue Feb 11 15:45:16 2014
-#curve: NID_sect571r1
-#len: 571 bits ~ 144 bytes signature
-#pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000403ff7018e81044cda2e07785d32fa6185d63bad66a6c5dd09286ae401923dc2f85d5c7163adb5cac030ca0841c560cd1ceb9e09a1d08033f8651a50cabd7c3ae7e11b19922caf3470274707dad47eb5eb5a03bc0b4e3bcfb63875afb99b93539d0d6f21f3b8ece9633b4aadce136ead39020d247fc5b235671d2aca6b7e5cfc624c8fdc23d722cac16d59cd78c6c5a99
-#pub-sha1 20ad48286697d4767652d51b9b66de6e595e9aa0
-#-----BEGIN PUBLIC KEY-----
-#MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQD/3AY6BBEzaLgd4XTL6YYXWO61mps
-#XdCShq5AGSPcL4XVxxY621ysAwyghBxWDNHOueCaHQgDP4ZRpQyr18OufhGxmSLK
-#80cCdHB9rUfrXrWgO8C047z7Y4da+5m5NTnQ1vIfO47OljO0qtzhNurTkCDSR/xb
-#I1Zx0qymt+XPxiTI/cI9ciysFtWc14xsWpk=
-#-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ff7018e81044cda2e07785d32fa6185d63bad66a6c5dd09286ae401923dc2f85d5c7163adb5cac030ca0841c560cd1ceb9e09a1d08033f8651a50cabd7c3ae7e11b19922caf3470274707dad47eb5eb5a03bc0b4e3bcfb63875afb99b93539d0d6f21f3b8ece9633b4aadce136ead39020d247fc5b235671d2aca6b7e5cfc624c8fdc23d722cac16d59cd78c6c5a99".decode("HEX")
+# generated: Tue Mar 18 13:15:06 2014
+# curve: NID_sect571r1
+# len: 571 bits ~ 144 bytes signature
+# pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040151e8244bdba89d7745139c34da401c5e53849812cff86d9bd6b93f84638e6aad44a03efb7b9a7a23b8dbf5059d5965b3ba485852df6e27c747101b7db1c1793d18efed4a90766d01ce2747dd0fe1cd2cd04d4d64a445b246189e12094685196a07d89571b179815aacd1e1bdb0b03be18b87d117f9cc5ce871be1263d995c1f5d206d99adc49e703e875c309a83704
+# pub-sha1 899a565ea8c134dc62f72eff80dcb71b164522db
+# -----BEGIN PUBLIC KEY-----
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQBUegkS9uonXdFE5w02kAcXlOEmBLP
+# +G2b1rk/hGOOaq1EoD77e5p6I7jb9QWdWWWzukhYUt9uJ8dHEBt9scF5PRjv7UqQ
+# dm0BzidH3Q/hzSzQTU1kpEWyRhieEglGhRlqB9iVcbF5gVqs0eG9sLA74YuH0Rf5
+# zFzocb4SY9mVwfXSBtma3EnnA+h1wwmoNwQ=
+# -----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040151e8244bdba89d7745139c34da401c5e53849812cff86d9bd6b93f84638e6aad44a03efb7b9a7a23b8dbf5059d5965b3ba485852df6e27c747101b7db1c1793d18efed4a90766d01ce2747dd0fe1cd2cd04d4d64a445b246189e12094685196a07d89571b179815aacd1e1bdb0b03be18b87d117f9cc5ce871be1263d995c1f5d206d99adc49e703e875c309a83704".decode("HEX")
         master = dispersy.get_member(master_key)
         return [master]
 
@@ -112,21 +111,24 @@ class MetadataCommunity(Community):
             if infohash:
                 do_continue = False
                 for key,value in message.payload.data_list:
-                    if key == "swift-thumbnails":
+                    if key.startswith("swift-"):
+                        data_type = key.split('-', 1)[1]
+
                         _, roothash, contenthash = json.loads(value)
                         roothash = binascii.unhexlify(roothash)
                         contenthash = binascii.unhexlify(contenthash)
 
                         from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                         th_handler = RemoteTorrentHandler.getInstance()
-                        if not th_handler.has_thumbnail(infohash, contenthash):
-                            self._logger.debug("Will try to download swift-thumbnails with roothash %s from %s", roothash.encode("HEX"), message.candidate.sock_addr[0])
+                        if not th_handler.has_metadata(data_type, infohash, contenthash):
+                            self._logger.debug("Will try to download %s with roothash %s from %s",
+                                key, roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                             @forceDispersyThread
                             def callback(_,message=message):
                                 self._dispersy.on_messages([message])
 
-                            th_handler.download_thumbnail(message.candidate, roothash, infohash, contenthash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            th_handler.download_metadata(data_type, message.candidate, roothash, infohash, contenthash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             do_continue = True
                             break
 

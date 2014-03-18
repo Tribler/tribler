@@ -815,8 +815,6 @@ class TorrentManager:
 
         modifications = []
         for key, value in extraInfo.iteritems():
-            if key == 'thumbnail':
-                continue
             if key == 'thumbnail-tempdir':
                 continue
             elif key == 'thumbnail-file-list':
@@ -828,7 +826,7 @@ class TorrentManager:
             from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
             roothash_hex, contenthash_hex = TorrentStateManager.getInstance()._create_metadata_roothash_and_contenthash(extraInfo['thumbnail-tempdir'], torrent)
 
-            modifications.append(('swift-thumbnails', json.dumps((None, roothash_hex, contenthash_hex))))
+            modifications.append(('swift-thumbs', json.dumps((None, roothash_hex, contenthash_hex))))
 
             self.modifyTorrent(torrent, modifications)
 

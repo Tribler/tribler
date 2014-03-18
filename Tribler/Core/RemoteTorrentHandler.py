@@ -49,7 +49,7 @@ class RemoteTorrentHandler:
         self.trequesters = {}
         self.mrequesters = {}
         self.drequesters = {}
-        self.tnrequester = None
+        self.metadata_requester = None
 
         self.num_torrents = 0
 
@@ -82,7 +82,7 @@ class RemoteTorrentHandler:
         if session.get_dht_torrent_collecting():
             self.drequesters[0] = MagnetRequester(self, 0)
             self.drequesters[1] = MagnetRequester(self, 1)
-        self.tnrequester = ThumbnailRequester(self, self.session)
+        self.metadata_requester = MetadataRequester(self, self.session)
         self.registered = True
 
     def is_registered(self):
@@ -141,24 +141,25 @@ class RemoteTorrentHandler:
 
             return self._searchcommunity
 
-    def has_thumbnail(self, infohash, contenthash=None):
-        thumb_dir = os.path.join(self.tor_col_dir, 'thumbs-' + binascii.hexlify(infohash))
+    def has_metadata(self, metadata_type, infohash, contenthash=None):
+        folder_prefix = '%s-' % metadata_type
+        metadata_dir = os.path.join(self.tor_col_dir, folder_prefix + binascii.hexlify(infohash))
         if contenthash:
-            thumb_dir = os.path.join(thumb_dir, binascii.hexlify(contenthash))
-        return os.path.isdir(thumb_dir) and os.listdir(thumb_dir)
+            metadata_dir = os.path.join(metadata_dir, binascii.hexlify(contenthash))
+        return os.path.isdir(metadata_dir) and os.listdir(metadata_dir)
 
-    def download_thumbnail(self, candidate, roothash, infohash, contenthash=None, usercallback=None, timeout=None):
-        if self.registered and not self.has_thumbnail(infohash, contenthash):
-            raw_lambda = lambda candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_thumbnail(candidate, roothash, infohash, contenthash, usercallback, timeout)
+    def download_metadata(self, metadata_type, candidate, roothash, infohash, contenthash=None, usercallback=None, timeout=None):
+        if self.registered and not self.has_metadata(metadata_type, infohash, contenthash):
+            raw_lambda = lambda metadata_type = metadata_type, candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_metadata(metadata_type, candidate, roothash, infohash, contenthash, usercallback, timeout)
             self.scheduletask(raw_lambda)
 
-    def _download_thumbnail(self, candidate, roothash, infohash, contenthash, usercallback, timeout):
+    def _download_metadata(self, metadata_type, candidate, roothash, infohash, contenthash, usercallback, timeout):
         if usercallback:
             self.callbacks.setdefault(roothash, set()).add(usercallback)
 
-        self.tnrequester.add_request((roothash, infohash, contenthash), candidate, timeout)
+        self.metadata_requester.add_request((metadata_type, roothash, infohash, contenthash), candidate, timeout)
 
-        self._logger.debug('rtorrent: adding thumbnail request: %s %s', roothash or '', candidate)
+        self._logger.debug('rtorrent: adding metadata request: %s %s %s', metadata_type, roothash or '', candidate)
 
     def download_torrent(self, candidate, infohash=None, roothash=None, usercallback=None, prio=1, timeout=None):
         if self.registered:
@@ -374,13 +375,13 @@ class RemoteTorrentHandler:
                 # ignore if tdef loading fails
                 pass
 
-    def notify_possible_thumbnail_roothash(self, roothash):
+    def notify_possible_metadata_roothash(self, roothash):
         keys = self.callbacks.keys()
         for key in keys:
             if key == roothash:
                 handle_lambda = lambda key = key: self._handleCallback(key, True)
                 self.scheduletask(handle_lambda)
-                self._logger.info('rtorrent: finished downloading thumbnail: %s', binascii.hexlify(roothash))
+                self._logger.info('rtorrent: finished downloading metadata: %s', binascii.hexlify(roothash))
 
     def notify_possible_torrent_infohash(self, infohash, actualTorrentFileName=None):
         keys = self.callbacks.keys()
@@ -776,7 +777,7 @@ class MagnetRequester(Requester):
 
             self.requests_fail += 1
 
-class ThumbnailRequester(Requester):
+class MetadataRequester(Requester):
     SWIFT_CANCEL = 30.0
 
     def __init__(self, remote_th, session):
@@ -785,17 +786,25 @@ class ThumbnailRequester(Requester):
         self.remote_th = remote_th
         self.session = session
 
+        self.blacklist_set = set()
+
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         self.dscfg = defaultDLConfig.copy()
         self.dscfg.set_dest_dir(session.get_torrent_collecting_dir())
         self.dscfg.set_swift_meta_dir(session.get_torrent_collecting_dir())
 
+    def check_blacklist(self, roothash):
+        return roothash in self.blacklist_set
+
     def doFetch(self, hashes, candidates):
-        roothash, infohash, contenthash = hashes
+        metadata_type, roothash, infohash, contenthash = hashes
         attempting_download = False
 
-        if self.remote_th.has_thumbnail(infohash, contenthash):
-            self.remote_th.notify_possible_thumbnail_roothash(roothash)
+        if self.remote_th.has_metadata(metadata_type, infohash, contenthash):
+            self.remote_th.notify_possible_metadata_roothash(roothash)
+
+        elif self.check_blacklist(roothash):
+            return False
 
         elif candidates:
             candidate = candidates[0]
@@ -805,7 +814,8 @@ class ThumbnailRequester(Requester):
             if not candidate.tunnel:
                 port = 7758
 
-            self._logger.debug("rtorrent: requesting thumbnail %s %s %s", binascii.hexlify(roothash), ip, port)
+            self._logger.debug("rtorrent: requesting metadata %s %s %s %s",
+                metadata_type, binascii.hexlify(roothash), ip, port)
 
             download = None
 
@@ -844,15 +854,21 @@ class ThumbnailRequester(Requester):
 
     def check_progress(self, ds, roothash):
         d = ds.get_download()
-        cdef = d.get_def()
+        # do not download metadata larger than 5MB
+        if d.get_dynasize() > 5 * 1024 * 1024:
+            remove_lambda = lambda d = d: self._remove_download(d, False)
+            self.scheduletask(remove_lambda)
+            self.blacklist_set.add(roothash)
+            return (0, False)
 
+        cdef = d.get_def()
         if ds.get_progress() == 1:
             remove_lambda = lambda d = d: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
 
             self._logger.debug("rtorrent: swift finished for %s", cdef.get_name())
 
-            self.remote_th.notify_possible_thumbnail_roothash(roothash)
+            self.remote_th.notify_possible_metadata_roothash(roothash)
             self.requests_success += 1
             return (0, False)
         else:
