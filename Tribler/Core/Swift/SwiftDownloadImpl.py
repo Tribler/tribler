@@ -619,6 +619,8 @@ class SwiftDownloadImpl(DownloadConfigInterface):
         """
         if self.sp is not None:
             self.sp.add_peer(self, addr)
+        else:
+            self.session.lm.rawserver.add_task(lambda addr=addr: self.add_peer(addr), 1)
 
     #
     # Internal methods
