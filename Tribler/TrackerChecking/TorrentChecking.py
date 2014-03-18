@@ -46,7 +46,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 DEFAULT_MAX_GUI_REQUESTS = 5000
 
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
-DEFAULT_TORRENT_CHECK_INTERVAL = 60  # a torrent will only be checked every 60 seconds
+DEFAULT_TORRENT_CHECK_INTERVAL = 900  # a torrent will only be checked every 15 mins
 
 DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8
 DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30
@@ -182,6 +182,17 @@ class TorrentChecking(Thread):
         for gui_request in gui_requests:
             infohash = gui_request['infohash']
             tracker_set = gui_request['trackers']
+
+            if 'last_check' in gui_requests:
+                last_check = gui_requests['last_check']
+            else:
+                last_check = self._torrentdb.getTorrent(infohash, ("torrent_id", "last_tracker_check"), False)
+                last_check = last_check["last_tracker_check"]
+            time_diff = time.time() - last_check
+            if time_diff < self._torrent_check_interval:
+                self._logger.debug("Ignoring a GUI request, time interval too short")
+                continue
+
             if 'torrent_id' in gui_request:
                 torrent_id = gui_request['torrent_id']
             else:
