@@ -21,7 +21,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.list_header import DetailHeader
 from Tribler.Main.vwxGUI.list_footer import ListFooter
-from Tribler.Main.vwxGUI.list import XRCPanel
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, \
     FancyPanel, LinkStaticText, LinkText
@@ -138,10 +137,10 @@ class Home(wx.Panel):
         self.searchBox.SelectAll()
 
 
-class Stats(XRCPanel):
+class Stats(wx.Panel):
 
-    def __init__(self, parent=None):
-        XRCPanel.__init__(self, parent)
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -299,7 +298,7 @@ class Stats(XRCPanel):
             if not self.isReady:
                 self._DoInit()
 
-        XRCPanel.Show(self, show)
+        wx.Panel.Show(self, show)
 
 
 class HomePanel(wx.Panel):
