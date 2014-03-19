@@ -12,19 +12,12 @@
 import os
 import sys
 
-# TODO: cleanup imports
-
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
 # errors on Vista in "Regional and Language Settings Options" different from
 # "English[United Kingdom]"
 # import locale
-import signal
-import commands
-import pickle
 import traceback
 import logging
-
-from wx.html import HtmlWindow
 
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
@@ -35,46 +28,48 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
     ManageChannel
 
 
+from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
-                                             TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
+from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, \
+    LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
+    TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 
 import wx
-from wx import xrc
-# import hotshot
 
 import subprocess
 import atexit
 import re
 import urlparse
 
-from threading import Thread, Event, currentThread, enumerate
+import threading
 import time
 from traceback import print_exc, print_stack
-from cStringIO import StringIO
 import urllib
 
-from Tribler.Main.Utility.constants import *  # IGNORE:W0611
+from Tribler.Category.Category import Category
+
+from Tribler.Core.simpledefs import dlstatus_strings, NTFY_MYPREFERENCES, \
+    DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_SEEDING, \
+    NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP, \
+    NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS, \
+    NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL
+from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Swift.SwiftDef import SwiftDef
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.Utilities.utilities import parse_magnetlink
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.Dialogs.ThreadSafeProgressDialog import ThreadSafeProgressDialog
-from Tribler.Main.notification import init as notification_init
-from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
-from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
-
-from Tribler.Category.Category import Category
-
-
-from Tribler.Core.simpledefs import *
-from Tribler.Core.API import *
-from Tribler.Core.Utilities.utilities import show_permid, parse_magnetlink
 
 #
 #
@@ -463,7 +458,9 @@ class MainFrame(wx.Frame):
             if torrentfilename and tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
 
-            cdef = sdef or tdef
+            # Prefer to download using libtorrent
+            #cdef = sdef or tdef
+            cdef = tdef or sdef
 
             d = self.utility.session.get_download(cdef.get_id())
             if d and cdef.get_def_type() == 'torrent':
@@ -507,7 +504,8 @@ class MainFrame(wx.Frame):
                     if dlg.ShowModal() == wx.ID_OK:
                         # If the dialog has collected a torrent, use the new tdef
                         tdef = dlg.GetCollected() or tdef
-                        cdef = sdef or tdef
+                        #cdef = sdef or tdef
+                        cdef = tdef or sdef
 
                         # for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
@@ -558,19 +556,22 @@ class MainFrame(wx.Frame):
                 selectedFile = None
                 if vodmode:
                     self._logger.info('MainFrame: startDownload: Starting in VOD mode')
+                    videoplayer = VideoPlayer.getInstance()
+
                     if len(videofiles) == 1:
                         selectedFile = videofiles[0]
-                    else:
-                        selectedFile = None
+                    elif cdef.get_def_type() == "torrent" and wx.Thread_IsMain():
+                        selectedFile = self.guiUtility.SelectVideo(videofiles)
 
-                    # Swift requires swarmname to be part of the selectedfile
-                    if cdef.get_def_type() == 'swift' and tdef and selectedFile:
-                        swift_selectedFile = tdef.get_name_as_unicode() + "/" + selectedFile
-                    else:
-                        swift_selectedFile = selectedFile
+                    if selectedFile:
+                        # Swift requires swarmname to be part of the selectedfile
+                        # selectedFile = tdef.get_name_as_unicode() + "/" + selectedFile if sdef and tdef else selectedFile
+                        dscfg.set_selected_files([selectedFile])
+                        result = self.utility.session.start_download(cdef, dscfg)
 
-                    videoplayer = VideoPlayer.getInstance()
-                    result = videoplayer.start_and_play(cdef, dscfg, swift_selectedFile)
+                        files = result.get_def().get_files() if result.get_def().get_def_type() == 'torrent' else []
+                        fileindex = files.index(selectedFile) if selectedFile in files else None
+                        videoplayer.play(result, fileindex)
 
                 else:
                     if selectedFiles:
@@ -678,12 +679,11 @@ class MainFrame(wx.Frame):
 
             self._logger.info("Switching to Bittorrent")
             cdef = TorrentDef.load(torrentfilename)
-            dscfg = dscfg.copy()
-            dscfg.set_selected_files(selectedFiles or [])
             if vodmode:
-                videoplayer = VideoPlayer.getInstance()
-                wx.CallAfter(videoplayer.start_and_play, cdef, dscfg, selectedFile)
+                wx.CallAfter(self.startDownload, tdef=cdef, destdir=dscfg.get_dest_dir(), vodmode=True, selectedFiles=[selectedFile] if selectedFile else [])
             else:
+                dscfg = dscfg.copy()
+                dscfg.set_selected_files(selectedFiles or [])
                 self.utility.session.start_download(cdef, dscfg)
         return (0, False)
 
@@ -1075,9 +1075,14 @@ class MainFrame(wx.Frame):
                         confirmmsg = self.utility.lang.get('confirmmsg')
                         confirmtitle = self.utility.lang.get('confirm')
 
-                    dialog = wx.MessageDialog(self, confirmmsg, confirmtitle, wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-                    result = dialog.ShowModal()
-                    dialog.Destroy()
+                    dialog_name = 'closeconfirmation'
+                    if not self.shutdown_and_upgrade_notes and not self.guiUtility.ReadGuiSetting('show_%s' % dialog_name, default=True):
+                        result = wx.ID_OK
+                    else:
+                        dialog = ConfirmationDialog(None, dialog_name, confirmmsg, title=confirmtitle)
+                        result = dialog.ShowModal()
+                        dialog.Destroy()
+
                     if result != wx.ID_OK:
                         event.Veto()
 
@@ -1090,11 +1095,10 @@ class MainFrame(wx.Frame):
         self.utility.abcquitting = True
         self.GUIupdate = False
 
-        if VideoPlayer.hasInstance():
-            self._logger.info("mainframe: Closing videoplayer")
+        if self.videoframe:
+            self._logger.info("mainframe: Stopping internal player")
 
-            videoplayer = VideoPlayer.getInstance()
-            videoplayer.stop_playback()
+            self.videoframe.get_videopanel().Stop()
 
         try:
             self._logger.info("mainframe: Restoring from taskbar")
@@ -1119,7 +1123,7 @@ class MainFrame(wx.Frame):
         self.quit(event != None or force)
 
         self._logger.debug("mainframe: OnCloseWindow END")
-        ts = enumerate()
+        ts = threading.enumerate()
         for t in ts:
             self._logger.info("mainframe: Thread still running %s daemon %s", t.getName(), t.isDaemon())
 
@@ -1182,7 +1186,7 @@ class MainFrame(wx.Frame):
                 return
 
             if not wx.Thread_IsMain():
-                self._logger.debug("main: setActivity thread %s is NOT MAIN THREAD", currentThread().getName())
+                self._logger.debug("main: setActivity thread %s is NOT MAIN THREAD", threading.currentThread().getName())
                 print_stack()
 
             if type == NTFY_ACT_NONE:

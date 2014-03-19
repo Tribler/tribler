@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import socket
+from binascii import b2a_hex
 from sha import sha
 from traceback import print_exc
 from types import DictType, StringType, IntType, ListType
@@ -19,12 +20,19 @@ from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.bencode import bencode, bdecode
-from Tribler.Core.Utilities.convert import tobinary, toint
 from Tribler.Core.Utilities.bitfield import Bitfield
-from Tribler.Core.MessageID import *
+from Tribler.Core.MessageID import REQUEST, UNCHOKE, HAVE, INTERESTED, \
+    NOT_INTERESTED, EXTEND, BITFIELD, HASHPIECE, getMessageName
 from Tribler.Core.Merkle.merkle import MerkleTree
 
 DEBUG = True
+
+def toint(s):
+    return long(b2a_hex(s), 16)
+
+def tobinary(i):
+    return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
+            chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 
 class TestMerkleMessage(TestAsServer):

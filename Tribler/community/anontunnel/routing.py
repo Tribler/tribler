@@ -1,7 +1,5 @@
 import logging
 import time
-from twisted.internet import defer
-from twisted.python.failure import Failure
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY, \
     CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, Candidate
@@ -26,19 +24,9 @@ class Circuit:
         self._hops = []
         self._logger = logging.getLogger(__name__)
 
-        def __create_deferred():
-            def __errback(error):
-                self._logger.error("Unhandled deferred error: %s", error)
-                return error
-
-            d = defer.Deferred()
-            d.addErrback(__errback)
-            return d
-
         self.circuit_id = circuit_id
         self.candidate = candidate
         self.goal_hops = goal_hops
-        self.deferred = deferred if deferred else __create_deferred()
         self.extend_strategy = None
         self.last_incoming = time.time()
 
@@ -46,9 +34,6 @@ class Circuit:
 
         self.unverified_hop = None
         ''' :type : Hop '''
-
-        if self.deferred and self.state == CIRCUIT_STATE_READY:
-            self.deferred.callback(self)
 
 
     @property
@@ -65,9 +50,6 @@ class Circuit:
         @param Hop hop: the hop to add
         """
         self._hops.append(hop)
-
-        if self.deferred and self.state == CIRCUIT_STATE_READY:
-            self.deferred.callback(self)
 
     @property
     def state(self):
@@ -125,10 +107,6 @@ class Circuit:
         @param str reason: the reason why the circuit is being destroyed
         """
         self._broken = True
-
-        if self.deferred and not self.deferred.called:
-            self.deferred.errback(
-                Failure(Exception("Circuit broken, reason=%s" % reason)))
 
 
 class Hop:

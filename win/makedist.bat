@@ -120,8 +120,8 @@ REM Arno, 2012-05-25: data files for pymdht
 mkdir dist\installdir\Tribler\Core\DecentralizedTracking
 mkdir dist\installdir\Tribler\Core\DecentralizedTracking\pymdht
 mkdir dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
-copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.main dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
-copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.backup dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
+copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_stable dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
+copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_unstable dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 
 copy logger.conf dist\installdir
 copy ffmpeg.exe dist\installdir
@@ -136,13 +136,14 @@ REM MainClient specific
 mkdir dist\installdir\Tribler\Main
 mkdir dist\installdir\Tribler\Main\vwxGUI
 mkdir dist\installdir\Tribler\Main\vwxGUI\images
+mkdir dist\installdir\Tribler\Main\vwxGUI\images\default
 mkdir dist\installdir\Tribler\Main\vwxGUI\images\flags
 mkdir dist\installdir\Tribler\Main\webUI
 mkdir dist\installdir\Tribler\Main\webUI\static
 mkdir dist\installdir\Tribler\Main\webUI\static\images
 mkdir dist\installdir\Tribler\Main\webUI\static\lang
-copy Tribler\Main\vwxGUI\*.xrc dist\installdir\Tribler\Main\vwxGUI
 copy Tribler\Main\vwxGUI\images\*.* dist\installdir\Tribler\Main\vwxGUI\images
+copy Tribler\Main\vwxGUI\images\default\*.* dist\installdir\Tribler\Main\vwxGUI\images\default
 copy Tribler\Main\vwxGUI\images\flags\*.* dist\installdir\Tribler\Main\vwxGUI\images\flags
 copy Tribler\Main\webUI\static\*.* dist\installdir\Tribler\Main\webUI\static
 copy Tribler\Main\webUI\static\images\*.* dist\installdir\Tribler\Main\webUI\static\images

@@ -1,25 +1,30 @@
 # Written by Niels Zeilemaker, Egbert Bouman
 import os
+import sys
 import re
-import shutil
 import binascii
+from time import time
 import logging
+import copy
 import wx
 
-from Tribler.Core.API import *
+from __init__ import *
 from Tribler.Core.osutils import startfile
-from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY
-from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, TRIBLER_RED, \
-    GRADIENT_LGREY, GRADIENT_DGREY, DOWNLOADING_COLOUR, SEEDING_COLOUR, \
-    LIST_LIGHTBLUE, DEFAULT_BACKGROUND, SEPARATOR_GREY, FILTER_GREY
-from Tribler.TrackerChecking.TorrentChecking import *
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
+    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
+    DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, \
+    DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS, \
+    NTFY_VIDEO_STARTED, NTFY_VIDEO_STOPPED, NTFY_VIDEO_ENDED
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist, NotCollectedTorrent
+
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
+    CollectedTorrent, Channel, Playlist, NotCollectedTorrent
+from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, startWorker, \
+    GRADIENT_LGREY, GRADIENT_DGREY, THUMBNAIL_FILETYPES, GUI_PRI_DISPERSY, \
+    DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY, DOWNLOADING_COLOUR, \
+    SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
@@ -28,7 +33,6 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Video.VideoUtility import limit_resolution
 from Tribler.Video.VideoPlayer import VideoPlayer
-import copy
 
 
 class AbstractDetails(FancyPanel):
@@ -437,9 +441,19 @@ class TorrentDetails(AbstractDetails):
     def updateDetailsTab(self):
         self.Freeze()
 
+        the_description = self.torrent.get('description', '')
+        if not the_description:
+            # try metadata
+            metadata = self.torrent.get('metadata', None)
+            if metadata:
+                the_description = metadata.get('description', '')
+
+        if not the_description:
+            the_description = 'No description yet, be the first to add a description.'
+
         todo = []
         todo.append((self.name, self.torrent.name))
-        todo.append((self.description, self.torrent.description if self.torrent.get('description', '') else 'No description yet, be the first to add a description.'))
+        todo.append((self.description, the_description))
         todo.append((self.type, ', '.join(self.torrent.categories).capitalize() if isinstance(self.torrent.categories, list) else 'Unknown'))
         todo.append((self.uploaded, self.torrent.formatCreationDate() if hasattr(self.torrent, 'formatCreationDate') else ''))
         todo.append((self.filesize, '%s in %d file(s)' % (self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files)) if hasattr(self.torrent, 'files') else '%s' % self.guiutility.utility.size_format(self.torrent.length)))
@@ -454,7 +468,7 @@ class TorrentDetails(AbstractDetails):
         self.downloaded.Show(bool(self.torrent.state))
 
         # Toggle description
-        show_description = self.canEdit or bool(self.torrent.get('description', ''))
+        show_description = self.canEdit or bool(the_description)
         self.description_title.Show(show_description)
         self.description.Show(show_description)
 
@@ -478,7 +492,7 @@ class TorrentDetails(AbstractDetails):
 
         # Toggle thumbnails
         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.torrent.infohash))
-        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] == '.jpg']
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
         show_thumbnails = bool(thumb_files)
         self.thumbnails.Show(show_thumbnails)
         if show_thumbnails:
@@ -1472,7 +1486,7 @@ class PlaylistDetails(AbstractDetails):
                     bmps = []
                     for torrent in self.playlist_torrents:
                         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(torrent.infohash))
-                        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] == '.jpg']
+                        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
                         if thumb_files:
                             bmps.append(wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY))
                         if len(bmps) > 3:
@@ -1855,10 +1869,10 @@ class MyChannelPlaylist(AbstractDetails):
         gridSizer.AddGrowableRow(1)
 
         if can_edit:
-            self.name = wx.TextCtrl(self, value=playlist.get('name', ''))
+            self.name = EditText(self, playlist.get('name', ''))
             self.name.SetMaxLength(40)
 
-            self.description = wx.TextCtrl(self, value=playlist.get('description', ''), style=wx.TE_MULTILINE)
+            self.description = EditText(self, playlist.get('description', ''), multiline=True)
             self.description.SetMaxLength(2000)
         else:
             self.name = StaticText(self, -1, playlist.get('name', ''))

@@ -4,17 +4,17 @@
 import os
 import binascii
 from threading import currentThread
-from traceback import print_exc
 import logging
 
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
 from Tribler.Core.APIImplementation.ThreadPool import ThreadNoPool
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 
-class UserCallbackHandler:
+class UserCallbackHandler(object):
 
     def __init__(self, session):
+        super(UserCallbackHandler, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
@@ -30,17 +30,6 @@ class UserCallbackHandler:
         Notifier.delInstance()
         self.threadpool.joinAll()
 
-    def perform_vod_usercallback(self, d, usercallback, event, params):
-        """ Called by network thread """
-        self._logger.debug("Session: perform_vod_usercallback() %s", repr(d.get_def().get_name()))
-
-        def session_vod_usercallback_target():
-            try:
-                usercallback(d, event, params)
-            except:
-                print_exc()
-        self.perform_usercallback(session_vod_usercallback_target)
-
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
         """ Called by network thread """
         self._logger.debug("Session: perform_getstate_usercallback()")
@@ -50,29 +39,29 @@ class UserCallbackHandler:
                 (when, getpeerlist) = usercallback(data)
                 returncallback(usercallback, when, getpeerlist)
             except:
-                print_exc()
+                self._logger.exception('Could not perform usercallback')
         self.perform_usercallback(session_getstate_usercallback_target)
 
-    def perform_removestate_callback(self, infohash, contentdests, removecontent):
+    def perform_removestate_callback(self, infohash, contentdests):
         """ Called by network thread """
         self._logger.debug("Session: perform_removestate_callback()")
 
         def session_removestate_callback_target():
             self._logger.debug("Session: session_removestate_callback_target called %s", currentThread().getName())
             try:
-                self.sesscb_removestate(infohash, contentdests, removecontent)
+                self.sesscb_removestate(infohash, contentdests)
             except:
-                print_exc()
+                self._logger.exception("Could not remove state")
         self.perform_usercallback(session_removestate_callback_target)
 
     def perform_usercallback(self, target):
         # TODO: thread pool, etc.
         self.threadpool.queueTask(target)
 
-    def sesscb_removestate(self, infohash, contentdests, removecontent):
+    def sesscb_removestate(self, infohash, contentdests):
         """  See DownloadImpl.setup().
         Called by SessionCallbackThread """
-        self._logger.debug("Session: sesscb_removestate called %s %s %s", repr(infohash), contentdests, removecontent)
+        self._logger.debug("Session: sesscb_removestate called %s %s", repr(infohash), contentdests)
         self.sesslock.acquire()
         try:
             if self.session.lm.download_exists(infohash):
@@ -93,39 +82,7 @@ class UserCallbackHandler:
                 os.remove(filename)
         except:
             # Show must go on
-            print_exc()
-
-        # Remove downloaded content from disk
-        if removecontent:
-            self._logger.debug("Session: sesscb_removestate: removing saved content %s", contentdests)
-
-            contentdirs = set()
-            for filename in contentdests:
-                if os.path.isfile(filename):
-                    os.remove(filename)
-                contentdirs.add(os.path.dirname(filename))
-
-            # multifile, see if we need to remove any empty dirs
-            if len(contentdests) > 1:
-                def remove_if_empty(basedir):
-                    # first try to remove sub-dirs
-                    if os.path.isdir(basedir):
-                        files = os.listdir(basedir)
-                        for filename in files:
-                            absfilename = os.path.join(basedir, filename)
-                            if os.path.isdir(absfilename) and absfilename in contentdirs:
-                                remove_if_empty(absfilename)
-
-                        # see if we are empty
-                        files = os.listdir(basedir)
-                        # ignore thumbs.db files
-                        files = [file for file in files if not file.lower().endswith('thumbs.db')]
-
-                        if len(files) == 0:
-                            os.rmdir(basedir)
-
-                basedir = os.path.commonprefix(contentdests)
-                remove_if_empty(basedir)
+            self._logger.exception("Could not remove state")
 
     def notify(self, subject, changeType, obj_id, *args):
         """

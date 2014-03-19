@@ -1,24 +1,34 @@
 # Written by Niels Zeilemaker, Egbert Bouman
 import wx
+import os
 import sys
 import json
 import shutil
 import urllib
 import logging
+import binascii
 from datetime import timedelta
 
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, DLSTATUS_METADATA, \
+    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK
+from Tribler.Core.osutils import startfile
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+
+from Tribler.Main.vwxGUI import warnWxThread, GRADIENT_DGREY, SEPARATOR_GREY, \
+    LIST_AT_HIGHLIST, LIST_SELECTED, LIST_EXPANDED, format_time, \
+    LIST_DARKBLUE, LIST_DESELECTED, THUMBNAIL_FILETYPES
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, _set_font, TagText
+from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, \
+    ProgressButton, MaxBetterText, FancyPanel
+from Tribler.Main.vwxGUI.list_body import ListItem
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
-from Tribler.Main.Utility.GuiDBTuples import MergedDs
-from Tribler import LIBRARYNAME
+from Tribler.Main.Utility.GuiDBTuples import MergedDs, Torrent, CollectedTorrent
 
-from Tribler.Main.vwxGUI.list_body import *
-from Tribler.Main.vwxGUI.list_details import *
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Video.VideoUtility import limit_resolution
 
 
 class ColumnsManager:
@@ -890,6 +900,107 @@ class LibraryListItem(TorrentListItem):
         return menu
 
     def OnDClick(self, event):
+        pass
+
+
+class ThumbnailListItem(TorrentListItem, FancyPanel):
+
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED, list_selected_and_expanded=LIST_DARKBLUE):
+        FancyPanel.__init__(self, parent, border=wx.RIGHT | wx.BOTTOM)
+        self.SetBorderColour(SEPARATOR_GREY)
+        self.guiutility = GUIUtility.getInstance()
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        self.parent_list = parent_list
+        self.columns = self.controls = []
+        self.data = data
+        self.original_data = original_data
+        self.bitmap_size = (175, 175)
+
+        self.showChange = showChange
+        self.list_deselected = LIST_DESELECTED
+        self.list_selected = list_selected
+        self.list_expanded = list_expanded
+        self.list_selected_and_expanded = list_selected_and_expanded
+
+        self.highlightTimer = self.expandedPanel = self.dlbutton = None
+        self.selected = self.expanded = False
+        self.SetBackgroundColour(self.list_deselected)
+
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.vSizer.Add(self.hSizer, 0, wx.EXPAND)
+
+        self.AddComponents(leftSpacer, rightSpacer)
+
+        self.SetSizer(self.vSizer)
+
+    def AddComponents(self, leftSpacer, rightSpacer):
+        ListItem.AddComponents(self, leftSpacer, rightSpacer)
+
+        self.thumbnail = wx.StaticBitmap(self, -1)
+        self.AddEvents(self.thumbnail)
+
+        self.hSizer.Add(self.thumbnail, 1, wx.EXPAND | wx.ALL, 15)
+
+        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.original_data.infohash))
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
+
+        if thumb_files:
+            bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
+            res = limit_resolution(bmp.GetSize(), self.bitmap_size)
+            bmp = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
+            if bmp:
+                self.thumbnail.SetBitmap(bmp)
+        else:
+            bmp = wx.EmptyBitmap(*self.bitmap_size)
+            dc = wx.MemoryDC(bmp)
+            dc.SetBackground(wx.Brush(wx.Colour(230, 230, 230)))
+            dc.Clear()
+
+            font = self.GetFont()
+            font.SetPointSize(font.GetPointSize() + 4)
+            dc.SetFont(font)
+            dc.SetTextForeground(wx.Colour(100, 100, 100))
+            dc.DrawLabel('No picture\navailable', (0, 0) + self.bitmap_size, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+            dc.SelectObject(wx.NullBitmap)
+            del dc
+
+            self.thumbnail.SetBitmap(bmp)
+
+        def ShortenText(statictext, text):
+            for i in xrange(len(text), 0, -1):
+                newText = text[0:i]
+                if i != len(text):
+                    newText += ".."
+                width, _ = statictext.GetTextExtent(newText)
+                if width <= self.GetBestSize().x:
+                    return newText
+            return ""
+
+        name = wx.StaticText(self, -1, '')
+        name.SetLabel(ShortenText(name, self.original_data.name))
+        self.vSizer.Add(name, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
+
+        self.hSizer.Layout()
+
+    def GetContextMenu(self):
+        menu = TorrentListItem.GetContextMenu(self)
+        menu.DestroyId(menu.FindItem('Show labels..'))
+        return menu
+
+    def CanShowHover(self, event):
+        event.Enable(False)
+        event.Check(False)
+
+    def ShowSelected(self):
+        DoubleLineListItem.ShowSelected(self)
+
+    def GetIcons(self):
+        return []
+
+    def SetThumbnailIcon(self):
         pass
 
 

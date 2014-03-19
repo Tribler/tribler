@@ -1,34 +1,51 @@
 # Written by Niels Zeilemaker
 import wx
+
+import os
+import sys
 import logging
 from time import time
 import pickle
+from shutil import copyfile
+from random import sample
+from traceback import print_exc
+import re
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
-from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
-from Tribler.Core.API import *
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, \
+    EditText, BetterText
 
-from list import *
-from list_footer import *
-from list_header import *
-from list_body import *
-from list_item import *
-from list_details import *
-from __init__ import *
+from Tribler.Category.Category import Category
+
+from Tribler.Core.simpledefs import NTFY_MISC
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+
+from Tribler.Main.vwxGUI import CHANNEL_MAX_NON_FAVORITE, warnWxThread, \
+    LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED, DEFAULT_BACKGROUND, \
+    format_time, showError
+from Tribler.Main.vwxGUI.list import BaseManager, GenericSearchList, SizeList, List, XRCPanel
+from Tribler.Main.vwxGUI.list_body import ListBody
+from Tribler.Main.vwxGUI.list_footer import CommentFooter, PlaylistFooter, \
+    ManageChannelFilesFooter, ManageChannelPlaylistFooter
+from Tribler.Main.vwxGUI.list_header import ChannelHeader, SelectedChannelFilter, \
+    SelectedPlaylistFilter, PlaylistHeader, ManageChannelHeader, TitleHeader
+from Tribler.Main.vwxGUI.list_item import PlaylistItem, ColumnsManager, DragItem, \
+    TorrentListItem, CommentItem, CommentActivityItem, NewTorrentActivityItem, \
+    TorrentActivityItem, ModificationActivityItem, ModerationActivityItem, \
+    MarkingActivityItem, ModificationItem, ModerationItem, ThumbnailListItem
+from Tribler.Main.vwxGUI.list_details import AbstractDetails, SelectedchannelInfoPanel, \
+    PlaylistDetails, PlaylistInfoPanel, TorrentDetails, MyChannelPlaylist
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.community.channel.community import ChannelCommunity
-from Tribler.Main.Utility.GuiDBTuples import Torrent
+from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, ChannelTorrent
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
-from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
-import wx.lib.agw.flatnotebook as fnb
-from wx._controls import StaticLine
-from shutil import copyfile
-from Tribler.Main.vwxGUI.list_details import PlaylistDetails
+
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
-from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
-from random import sample
 
 
 class ChannelManager(BaseManager):
@@ -227,6 +244,7 @@ class SelectedChannelList(GenericSearchList):
         self.session = self.guiutility.utility.session
         self.channelsearch_manager = self.guiutility.channelsearch_manager
 
+        self.display_grid = False
         self.title = None
         self.channel = None
         self.iamModerator = False
@@ -258,7 +276,7 @@ class SelectedChannelList(GenericSearchList):
         self.inFavoriteChannel = gui_image_manager.getImage(u"starEnabled.png")
         self.outFavoriteChannel = gui_image_manager.getImage(u"star.png")
 
-        GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, borders=False, showChange=True, parent=parent)
+        GenericSearchList.__init__(self, None, wx.WHITE, [0, 0], True, borders=False, showChange=True, parent=parent)
 
         self.list.OnBack = self.OnBack
         self.list.Bind(wx.EVT_SHOW, lambda evt: self.notebook.SetSelection(0))
@@ -321,8 +339,11 @@ class SelectedChannelList(GenericSearchList):
                 return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s" % self.channel.name
             else:
                 return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
-        else:
-            pass
+
+    def CreateList(self, parent=None, listRateLimit=1):
+        if not parent:
+            parent = self
+        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=listRateLimit, grid_columns=4 if self.display_grid else 0)
 
     @warnWxThread
     def CreateHeader(self, parent):
@@ -346,6 +367,18 @@ class SelectedChannelList(GenericSearchList):
 
             return True
         return False
+
+    def SetGrid(self, enable):
+        self.display_grid = enable
+
+        new_raw_data = []
+        for data in self.list.raw_data:
+            if enable and (len(data) < 4 or data[3] == TorrentListItem):
+                new_raw_data.append(list(data[:3]) + [ThumbnailListItem])
+            elif not enable and data[3] == ThumbnailListItem:
+                new_raw_data.append(list(data[:3]) + [TorrentListItem])
+        self.list.SetData(new_raw_data)
+        self.list.SetGrid(self.display_grid)
 
     @warnWxThread
     def SetChannel(self, channel):
@@ -420,6 +453,8 @@ class SelectedChannelList(GenericSearchList):
             shouldDrag = len(playlists) > 0 and (self.channel.iamModerator or self.channel.isOpen())
             if shouldDrag:
                 data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, DragItem) for torrent in torrents]
+            elif self.display_grid:
+                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, ThumbnailListItem) for torrent in torrents]
             else:
                 data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, TorrentListItem) for torrent in torrents]
             self.list.SetData(data)
@@ -473,7 +508,7 @@ class SelectedChannelList(GenericSearchList):
             detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistDetails)
             detailspanel.showPlaylist(item.original_data)
             item.expandedPanel = detailspanel
-        elif isinstance(item, TorrentListItem):
+        elif isinstance(item, TorrentListItem) or isinstance(item, ThumbnailListItem):
             detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
             detailspanel.setTorrent(item.original_data)
             item.expandedPanel = detailspanel
@@ -948,7 +983,7 @@ class ManageChannelFilesManager(BaseManager):
             tdef = TorrentDef.load(torrentfilename)
             if 'fixtorrent' not in kwargs:
                 download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
-                self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
+                #self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
             return self.AddTDef(tdef)
 
         except:
@@ -1161,7 +1196,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.name = EditText(self.overviewpage, '')
         self.name.SetMaxLength(40)
 
-        self.description = EditText(self.overviewpage, '', multiLine=True)
+        self.description = EditText(self.overviewpage, '', multiline=True)
         self.description.SetMaxLength(2000)
         self.description.SetMinSize((-1, 50))
 
@@ -1169,7 +1204,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.identifier = EditText(self.overviewpage, '')
         self.identifier.SetMaxLength(40)
         self.identifier.SetEditable(False)
-        self.identifierText = StaticText(self.overviewpage, -1, 'You can use this identifier to allow other to manually join this channel.\nCopy and paste it in an email and let others join by going to Favorites and "Add Favorite channel"')
+        self.identifierText = BetterText(self.overviewpage, -1, 'You can use this identifier to allow other to manually join this channel.\nCopy and paste it in an email and let others join by going to Favorites and "Add Favorite channel"')
 
         identSizer.Add(self.identifier, 0, wx.EXPAND)
         identSizer.Add(self.identifierText, 0, wx.EXPAND)
@@ -2356,7 +2391,7 @@ class ModificationList(List):
         dlg.OnExpand = lambda a: False
         dlg.OnChange = vSizer.Layout
 
-        why = StaticText(dlg, -1, 'Why do you want to revert this modification?')
+        why = BetterText(dlg, -1, 'Why do you want to revert this modification?')
         _set_font(why, fontweight=wx.FONTWEIGHT_BOLD)
         ori_why_colour = why.GetForegroundColour()
         vSizer.Add(why, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 7)

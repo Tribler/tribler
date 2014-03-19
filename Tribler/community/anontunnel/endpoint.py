@@ -91,11 +91,5 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         @type packets: list[str]
         @return:
         """
-        for c in candidates:
-            for p in packets:
-                try:
-                    self._socket.sendto(p, c.sock_addr)
-                except IOError:
-                    self._logger.exception("Error writing to socket!")
 
-        return True
+        return RawserverEndpoint.send(self, candidates, packets)

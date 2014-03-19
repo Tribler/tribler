@@ -61,16 +61,8 @@ class WebUI():
     def start(self):
         if not self.started:
             self.started = True
-            current_dir = os.path.dirname(os.path.abspath(__file__))
 
             current_dir = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'webUI')
-
-            cherrypy.server.socket_host = "0.0.0.0"
-            cherrypy.server.socket_port = self.port
-            cherrypy.server.thread_pool = 5
-            cherrypy.server.environment = "production"
-            cherrypy.log.screen = False
-
             config = {'/': {
                             'tools.staticdir.root': current_dir,
                             'tools.staticdir.on': True,
@@ -84,12 +76,20 @@ class WebUI():
                 checkpassword = checkpassword_dict(userpassdict)
                 config['/'] = {'tools.auth_basic.on': True, 'tools.auth_basic.realm': 'Tribler-WebUI', 'tools.auth_basic.checkpassword': checkpassword}
 
-            cherrypy.tree.mount(self, '/gui', config)
-            cherrypy.engine.start()
+            app = cherrypy.tree.mount(self, '/gui', config)
+            app.log.access_log.setLevel(logging.NOTSET)
+            app.log.error_log.setLevel(logging.NOTSET)
+
+            self.server = cherrypy._cpserver.Server()
+            self.server.socket_port = self.port
+            self.server._socket_host = '0.0.0.0'
+            self.server.thread_pool = 5
+            self.server.subscribe()
+            self.server.start()
 
     def stop(self):
         if self.started:
-            cherrypy.engine.stop()
+            self.server.stop()
 
     def clear_text(self, mypass):
         return mypass

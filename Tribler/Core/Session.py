@@ -6,16 +6,22 @@
 import os
 import sys
 import copy
+import socket
 import logging
 
-from Tribler.Core.simpledefs import *
-from Tribler.Core.Base import *
-from Tribler.Core.SessionConfig import *
+from Tribler.Core.simpledefs import STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, \
+    STATEDIR_DLPSTATE_DIR, STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, \
+    NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_SEEDINGSTATS, \
+    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_SEEDINGSTATSSETTINGS, \
+    NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_METADATA
+from Tribler.Core.exceptions import NotYetImplementedException, \
+    OperationNotEnabledByConfigurationException
+from Tribler.Core.SessionConfig import SessionConfigInterface, \
+    SessionStartupConfig
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core import NoDispersyRLock
-import socket
 
 GOTM2CRYPTO = False
 try:
@@ -266,7 +272,7 @@ class Session(SessionConfigInterface):
                 return
 
         self.lm.remove_id(id)
-        self.uch.perform_removestate_callback(id, [], False)
+        self.uch.perform_removestate_callback(id, [])
 
     def set_download_states_callback(self, usercallback, getpeerlist=None):
         """
@@ -390,7 +396,9 @@ class Session(SessionConfigInterface):
         try:
             if subject == NTFY_MISC:
                 return self.lm.misc_db
-            if subject == NTFY_PEERS:
+            elif subject == NTFY_METADATA:
+                return self.lm.metadata_db
+            elif subject == NTFY_PEERS:
                 return self.lm.peer_db
             elif subject == NTFY_TORRENTS:
                 return self.lm.torrent_db
@@ -511,9 +519,9 @@ class Session(SessionConfigInterface):
 
         self.lm.rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
 
-    def download_torrentmessages_from_peer(self, candidate, infohashes, usercallback, prio=0):
-        """ Ask the designated peer to send us the torrentfile for the torrent
-        identified by the passed infohash. If the torrent is succesfully
+    def download_torrentmessage_from_peer(self, candidate, infohash, usercallback, prio=0):
+        """ Ask the designated peer to send us the torrentmessage for the torrent
+        identified by the passed infohash. If the torrentmessage is succesfully
         received, the usercallback method is called with the infohash as first
         and the contents of the torrentfile (bencoded dict) as second parameter.
         If the torrent could not be obtained, the callback is not called.
@@ -527,7 +535,7 @@ class Session(SessionConfigInterface):
         if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrentmessages(candidate, infohashes, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrentmessage(candidate, infohash, usercallback, prio)
 
     def get_dispersy_instance(self):
         if not self.get_dispersy():

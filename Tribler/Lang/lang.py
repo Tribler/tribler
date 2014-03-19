@@ -8,7 +8,7 @@ import logging
 from traceback import print_exc
 from cStringIO import StringIO
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 from Tribler.Core.version import version_id, commit_id, build_date
 from ConfigParser import RawConfigParser
 

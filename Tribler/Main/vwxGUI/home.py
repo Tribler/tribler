@@ -1,4 +1,5 @@
 # Written by Niels Zeilemaker
+import threading
 import wx
 import sys
 import os
@@ -16,18 +17,18 @@ except:
     pass
 import random
 import logging
-import threading
 from time import strftime, time
 from collections import defaultdict
 
-from Tribler.Main.vwxGUI.list_header import *
-from Tribler.Main.vwxGUI.list_footer import *
+from Tribler.Main.vwxGUI.list_header import DetailHeader
+from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.list import XRCPanel
 
+from Tribler.Main.vwxGUI import SEPARATOR_GREY
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
-    TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, FancyPanel
+    TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, \
+    FancyPanel, LinkStaticText, LinkText
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 

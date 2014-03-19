@@ -2,9 +2,9 @@
 # see LICENSE.txt for license information
 
 import base64
-import textwrap
-import binascii
 from cStringIO import StringIO
+from M2Crypto import BIO
+from hashlib import sha1 as sha
 
 # Switch between using Python's builtin SHA1 function or M2Crypto/OpenSSL's
 # TODO: optimize such that less memory is allocated, e.g. reuse a single
@@ -22,51 +22,6 @@ from cStringIO import StringIO
 # We'll need to patch M2Crypto to work around this. In the meanwhile, I
 # disable the offloading to OpenSSL for all platforms.
 #
-USE_M2CRYPTO_SHA = False
-
-
-if USE_M2CRYPTO_SHA:
-    from M2Crypto import EVP
-
-    class sha:
-
-        def __init__(self, data=None):
-            self.hash = None
-            self.md = EVP.MessageDigest('sha1')
-            if data is not None:
-                self.md.update(data)
-
-        def update(self, data):
-            if self.hash:
-                raise ValueError("sha: Cannot update after calling digest (OpenSSL limitation)")
-            self.md.update(data)
-
-        def digest(self):
-            if not self.hash:
-                self.hash = self.md.final()
-            return self.hash
-
-        def hexdigest(self):
-            d = self.digest()
-            return binascii.hexlify(d)
-else:
-    from hashlib import sha1 as sha
-
-
-#
-# M2Crypto has no functions to read a pubkey in DER
-#
-def RSA_pub_key_from_der(der):
-    from M2Crypto import RSA, BIO
-
-    s = '-----BEGIN PUBLIC KEY-----\n'
-    b = base64.standard_b64encode(der)
-    s += textwrap.fill(b, 64)
-    s += '\n'
-    s += '-----END PUBLIC KEY-----\n'
-    bio = BIO.MemoryBuffer(s)
-    return RSA.load_pub_key_bio(bio)
-
 
 def RSA_keypair_to_pub_key_in_der(keypair):
     # Cannot use rsapubkey.save_key_der_bio(bio). It calls
@@ -104,14 +59,13 @@ def RSA_keypair_to_pub_key_in_der(keypair):
     # return pkey.as_der()
     #
     #
-    from M2Crypto import RSA, BIO
-
     bio = BIO.MemoryBuffer()
     keypair.save_pub_key_bio(bio)
     pem = bio.read_all()
     stream = StringIO(pem)
     lines = stream.readlines()
-    s = ''
+
+    str_content = ''
     for i in range(1, len(lines) - 1):
-        s += lines[i]
-    return base64.standard_b64decode(s)
+        str_content += lines[i]
+    return base64.standard_b64decode(str_content)

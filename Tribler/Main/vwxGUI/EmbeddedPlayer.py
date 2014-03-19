@@ -6,22 +6,20 @@
 #
 
 import wx
-import os
-import sys
 import time
 import logging
 
 from threading import currentThread
 from traceback import print_exc
 
-from Tribler.__init__ import LIBRARYNAME
-from Tribler.Video.defs import *
+from Tribler.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
+    MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
 from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 class EmbeddedPlayerPanel(wx.Panel):
@@ -41,14 +39,15 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         self.utility = utility
         self.guiutility = utility.guiUtility
+        self.videoplayer = VideoPlayer.getInstance()
         self.parent = parent
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
 
         self.volume = vlcwrap.sound_get_volume() if vlcwrap else 0.48
         self.oldvolume = vlcwrap.sound_get_volume() if vlcwrap else  0.48
-        self.estduration = None
         self.fullscreenwindow = None
         self.download = None
+        self.download_hash = None
         self.update = True
         self.timeoffset = None
 
@@ -134,6 +133,36 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ctrlsizer.ShowItems(True)
             self.guiutility.frame.Layout()
 
+            self.guiutility.library_manager.add_download_state_callback(self.OnStatesCallback)
+
+            self.guiutility.utility.session.add_observer(self.OnVideoBuffering, NTFY_TORRENTS, [NTFY_VIDEO_BUFFERING])
+
+    def OnVideoBuffering(self, subject, changeType, torrent_tuple):
+        download_hash, _, is_buffering = torrent_tuple
+        if self.download and self.download.get_def().get_id() == download_hash:
+            @forceWxThread
+            def do_gui():
+                if is_buffering:
+                    self.Pause(gui_vod_event=True)
+                else:
+                    self.Resume()
+            do_gui()
+
+    def OnStatesCallback(self, dslist, magnetlist):
+        if not self.download:
+            return
+
+        for ds in dslist:
+            if ds.get_download() == self.download:
+                if ds.get_status() == DLSTATUS_HASHCHECKING:
+                    progress = progress_consec = ds.get_progress()
+                else:
+                    progress = ds.get_vod_prebuffering_progress()
+                    progress_consec = ds.get_vod_prebuffering_progress_consec()
+
+                pieces_complete = ds.get_pieces_complete() if ds.get_progress() < 1.0 else [True]
+                self.UpdateStatus(progress, progress_consec, pieces_complete, ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
+
     def OnVolumeChanged(self, volume):
         if self.mute.GetBitmapLabel() == self.bmp_muted:  # unmute
             self.mute.SetBitmapLabel(self.bmp_unmuted, recreate=True)
@@ -152,22 +181,20 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.mute.SetBitmapLabel(self.bmp_unmuted if self.mute.GetBitmapLabel() == self.bmp_muted else self.bmp_muted, recreate=True)
 
     @warnWxThread
-    def Load(self, url, streaminfo=None):
-        self._logger.debug("embedplay: Load: %s %s %s", url, streaminfo, currentThread().getName())
+    def Load(self, url, download):
+        self._logger.debug("embedplay: Load: %s %s", url, currentThread().getName())
 
-        if streaminfo is not None:
-            self.estduration = streaminfo.get('estduration', None)
-            self.download = VideoPlayer.getInstance().get_vod_download()
+        self.download = download
+        self.download_hash = download.get_def().get_id()
 
         # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
         # 26/05/09 Boudewijn: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
-            self.slider.Enable(True)
+            self.slider.Enable(False)
 
             # Arno, 2009-02-17: If we don't do this VLC gets the wrong playlist somehow
             self.vlcwrap.stop()
-            self.vlcwrap.playlist_clear()
-            self.vlcwrap.load(url, streaminfo=streaminfo)
+            self.vlcwrap.load(url)
 
             # Enable update of progress slider
             wx.CallAfter(self.slider.SetValue, 0)
@@ -194,7 +221,6 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
-                self.HideLoading()
                 self.vlcwrap.start()
                 self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
                 self.ppbtn.Enable(True)
@@ -226,6 +252,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.ppbtn.Enable(True)
                 self.HideLoading()
                 self.vlcwrap.resume()
+                self.slider.Enable(True)
 
     @warnWxThread
     def PlayPause(self, evt=None):
@@ -254,13 +281,11 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             try:
                 if self.download:
-                    self.download.pause_vod()
                     self.download.vod_seekpos = None
-                    self.ShowLoading()
                 self.vlcwrap.set_media_position_relative(position, self.GetState() in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED])
 
                 length = self.vlcwrap.get_stream_information_length()
-                length = length / 1000 if length > 0 else (self.estduration or (self.download and self.download.get_vod_duration()))
+                length = length / 1000 if length > 0 else self.videoplayer.get_vod_duration(self.download_hash)
                 time_position = length * position
                 self.timeoffset = time_position - (self.vlcwrap.get_media_position() / 1000)
 
@@ -421,7 +446,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.GetState() not in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED]:
 
                 length = self.vlcwrap.get_stream_information_length()
-                length = length / 1000 if length > 0 else (self.estduration or (self.download and self.download.get_vod_duration()))
+                length = length / 1000 if length > 0 else self.videoplayer.get_vod_duration(self.download_hash)
                 cur = self.vlcwrap.get_media_position() / 1000
                 if length and self.timeoffset:
                     cur += self.timeoffset
@@ -434,12 +459,11 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.timeposition.SetLabel('%s / %s' % (cur_str, length_str))
                 self.ctrlsizer.Layout()
             elif self.GetState() == MEDIASTATE_ENDED:
-                dl = VideoPlayer.getInstance().get_vod_download()
+                vp = VideoPlayer.getInstance()
+                download, fileindex = (vp.get_vod_download(), vp.get_vod_fileindex())
                 self.OnStop(None)
-                if dl:
-                    if dl.get_def().get_def_type() == 'torrent':
-                        fileindex = dl.get_def().get_index_of_file_in_files(dl.get_selected_files()[0]) if dl.get_def().is_multifile_torrent() else 0
-                        self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (dl.get_def().get_id(), fileindex))
+                if download and download.get_def().get_def_type() == 'torrent':
+                    self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (download.get_def().get_id(), fileindex))
                 if self.fullscreenwindow:
                     self._ToggleFullScreen()
 
@@ -469,6 +493,16 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.logowin.Show(False)
             self.vlcwin.Show(True)
             self.Layout()
+
+    def RecreateVLCWindow(self):
+        if self.vlcwrap:
+            vlcwin = VLCWindow(self, self.vlcwrap)
+            vlcwin.SetMinSize(EmbeddedPlayerPanel.VIDEO_SIZE)
+            vlcwin.Show(self.vlcwin.IsShown())
+            self.GetSizer().Replace(self.vlcwin, vlcwin)
+            self.vlcwin.Destroy()
+            self.vlcwin = vlcwin
+            self.TellLVCWrapWindow4Playback()
 
 
 class VLCWindow(wx.Panel):

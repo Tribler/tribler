@@ -62,14 +62,16 @@ class NeighbourSubset(ExtendStrategy):
         assert self.circuit.goal_hops > len(self.circuit.hops), \
             "Circuits with correct length cannot be extended"
 
-        sock_addr, extend_hop_public_key = next(candidate_list.iteritems(),
-                                                (None, None))
+        sock_addr, extend_hop_public_key = next(
+            ((address, key) for address, key in candidate_list.iteritems() if key),
+            (None, None)
+        )
 
         if not sock_addr:
-            self._logger.warning("No candidates to extend, bailing out.")
+            self._logger.warning("No candidates (with key) to extend, bailing out.")
+            return False
 
-        extend_hop_public_key = self.proxy.dispersy.crypto.key_from_public_bin(
-            extend_hop_public_key)
+        extend_hop_public_key = self.proxy.dispersy.crypto.key_from_public_bin(extend_hop_public_key)
 
         self.circuit.candidate.pub_key = extend_hop_public_key
         self.circuit.unverified_hop = Hop(sock_addr)
@@ -86,3 +88,6 @@ class NeighbourSubset(ExtendStrategy):
                 ExtendMessage(sock_addr))
         except BaseException:
             self._logger.exception("Encryption error")
+            return False
+
+        return True

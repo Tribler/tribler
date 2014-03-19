@@ -4,14 +4,13 @@
 import os
 import re
 from Tribler.Category.init_category import getCategoryInfo
-from FamilyFilter import XXXFilter
+from Tribler.Category.FamilyFilter import XXXFilter
 
-import sys
 import logging
 
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 
-category_file = "category.conf"
+CATEGORY_CONFIG_FILE = "category.conf"
 
 class Category:
 
@@ -24,11 +23,11 @@ class Category:
 
         if Category.__single:
             raise RuntimeError("Category is singleton")
-        filename = os.path.join(install_dir, LIBRARYNAME, 'Category', category_file)
+        filename = os.path.join(install_dir, LIBRARYNAME, 'Category', CATEGORY_CONFIG_FILE)
         Category.__single = self
         try:
             self.category_info = getCategoryInfo(filename)
-            self.category_info.sort(rankcmp)
+            self.category_info.sort(cmp_rank)
         except:
             self.category_info = []
             self._logger.critical('', exc_info=True)
@@ -51,17 +50,6 @@ class Category:
         Category.__single = None
     delInstance = staticmethod(delInstance)
 
-    def getCategoryKeys(self):
-        if self.category_info is None:
-            return []
-        keys = []
-        keys.append("All")
-        keys.append("other")
-        for category in self.category_info:
-            keys.append(category['name'])
-        keys.sort()
-        return keys
-
     def getCategoryNames(self, filter=True):
         if self.category_info is None:
             return []
@@ -72,27 +60,6 @@ class Category:
                 break
             keys.append((category['name'], category['displayname']))
         return keys
-
-    def hasActiveCategory(self, torrent):
-        try:
-            name = torrent['category'][0]
-        except:
-            self._logger.error('Torrent: %s has no valid category', torrent['content_name'])
-            return False
-        for category in [{'name': 'other', 'rank': 1}] + self.category_info:
-            rank = category['rank']
-            if rank == -1:
-                break
-            if name.lower() == category['name'].lower():
-                return True
-        # print >> sys.stderr, 'Category: %s was not in %s' % (name.lower(), [a['name'].lower()  for a in self.category_info if a['rank'] != -1])
-        return False
-
-    def getCategoryRank(self, cat):
-        for category in self.category_info:
-            if category['name'] == cat:
-                return category['rank']
-        return None
 
     # calculate the category for a given torrent_dict of a torrent file
     # return list
@@ -186,7 +153,6 @@ class Category:
             fileKeywords = self._getWords(name.lower())
 
             for ikeywords in category['keywords'].keys():
-#                pass
                 try:
                     fileKeywords.index(ikeywords)
                     # print ikeywords
@@ -194,7 +160,6 @@ class Category:
                 except:
                     pass
             if factor < 0.5:
-                # print filename_list[index] + '#######################'
                 matchSize += length
 
         # match file
@@ -246,7 +211,7 @@ class Category:
         return ''
 
 
-def rankcmp(a, b):
+def cmp_rank(a, b):
     if not ('rank' in a):
         return 1
     elif not ('rank' in b):

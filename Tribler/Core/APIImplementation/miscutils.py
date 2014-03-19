@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 
 import re
-from threading import Timer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,10 +32,3 @@ def offset2piece(offset, piecesize, endpoint=True):
     if endpoint and offset % piecesize > 0:
         p += 1
     return p
-
-
-def NamedTimer(*args, **kwargs):
-    t = Timer(*args, **kwargs)
-    t.setDaemon(True)
-    t.setName("NamedTimer" + t.getName())
-    return t

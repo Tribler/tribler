@@ -10,7 +10,6 @@ import time
 from collections import defaultdict
 
 # Tribler and Dispersy imports
-from twisted.internet import defer
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache
@@ -178,8 +177,8 @@ class ProxyCommunity(Community):
         self.destination_circuit = {}
         ''' @type: dict[(str, int), int] '''
 
-        self._circuit_promises = []
-        self._reservations = set()
+        self.circuit_pools = []
+        ''' :type : list[CircuitPool] '''
 
         # Attach message handlers
         self._initiate_message_handlers()
@@ -221,7 +220,7 @@ class ProxyCommunity(Community):
 
     def __discover(self):
         circuits_needed = lambda: max(
-            len(self._circuit_promises),
+            sum(pool.lacking for pool in self.circuit_pools),
             self.settings.max_circuits - len(self.circuits)
         )
 
@@ -231,14 +230,15 @@ class ProxyCommunity(Community):
                 goal_hops = self.settings.length_strategy.circuit_length()
 
                 if goal_hops == 0:
-                    deferred = self._circuit_promises.pop(0) if \
-                        len(self._circuit_promises) else None
-
                     circuit_id = self._generate_circuit_id()
                     self.circuits[circuit_id] = Circuit(
                         circuit_id=circuit_id,
-                        proxy=self,
-                        deferred=deferred)
+                        proxy=self)
+
+                    first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
+                    if first_pool:
+                        first_pool.fill(self.circuits[circuit_id])
+
                 else:
                     circuit_candidates = {c.candidate for c in
                                           self.circuits.values()}
@@ -252,9 +252,7 @@ class ProxyCommunity(Community):
                     if c is None:
                         break
                     else:
-                        deferred = self._circuit_promises.pop(0) if \
-                            len(self._circuit_promises) else None
-                        self._create_circuit(c, goal_hops, deferred=deferred)
+                        self._create_circuit(c, goal_hops)
 
     def unload_community(self):
         """
@@ -381,7 +379,7 @@ class ProxyCommunity(Community):
 
         if not data:
             self._logger.error("Circuit ID {0} doesn't talk crypto language, dropping packet".format(circuit_id))
-            return None
+            return False
 
         # Try to parse the packet
         _, payload = self.proxy_conversion.decode(data)
@@ -394,7 +392,7 @@ class ProxyCommunity(Community):
 
         # If un-decrypt-able, drop packet
         if not payload:
-            return None
+            return False
 
         self._logger.debug(
             "GOT %s from %s:%d over circuit %d",
@@ -408,7 +406,7 @@ class ProxyCommunity(Community):
             self._logger.warning("IGNORED %s from %s:%d over circuit %d",
                                  str_type, candidate.sock_addr[0],
                                  candidate.sock_addr[1], circuit_id)
-            return
+            return False
 
         if am_originator:
             self.circuits[circuit_id].beat_heart()
@@ -423,6 +421,8 @@ class ProxyCommunity(Community):
                             str_type + '-ignored')
             self._logger.debug("Prev message was IGNORED")
 
+        return True
+
     def __relay(self, circuit_id, data, relay_key, sock_addr):
         # First, relay packet if we know whom to forward message to for
         # this circuit. This happens only when the circuit is already
@@ -434,6 +434,9 @@ class ProxyCommunity(Community):
 
         # let packet_crypto handle en-/decrypting relay packet
         data = self.packet_crypto.handle_relay_packet(direction, sock_addr, circuit_id, data)
+
+        if not data:
+            return False
 
         this_relay_key = (next_relay.sock_addr, next_relay.circuit_id)
 
@@ -467,6 +470,8 @@ class ProxyCommunity(Community):
         self.__dict_inc(self.dispersy.statistics.success,
                         str_type + '-relayed')
 
+        return True
+
     def __handle_packet(self, sock_addr, orig_packet):
         """
         @param (str, int) sock_addr: socket address in tuple format
@@ -482,23 +487,26 @@ class ProxyCommunity(Community):
         is_originator = not is_relay and circuit_id in self.circuits
         is_initial = not is_relay and not is_originator
 
+        result = False
+
         try:
             if is_relay:
-                return self.__relay(circuit_id, data, relay_key, sock_addr)
-
-            candidate = self._get_cached_candidate(sock_addr)
-            if not candidate:
-                self._logger.error("Unknown candidate at %s, drop!", sock_addr)
-                return
-
-            self.__handle_incoming(circuit_id, is_originator, candidate, data)
+                result = self.__relay(circuit_id, data, relay_key, sock_addr)
+            else:
+                candidate = self._get_cached_candidate(sock_addr)
+                if not candidate:
+                    self._logger.error("Unknown candidate at %s, drop!", sock_addr)
+                else:
+                    result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
         except:
+            result = False
             self._logger.exception(
                 "Incoming from {3} on {4} message error."
                 "INITIAL={0}, ORIGINATOR={1}, RELAY={2}"
                 .format(is_initial, is_originator, is_relay, sock_addr,
                         circuit_id))
 
+        if not result:
             if relay_key in self.relay_from_to:
                 self.remove_relay(relay_key, "error on incoming packet!")
             elif circuit_id in self.circuits:
@@ -708,6 +716,11 @@ class ProxyCommunity(Community):
 
         elif circuit.state == CIRCUIT_STATE_READY:
             request.on_success()
+
+            first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
+            if first_pool:
+                first_pool.fill(circuit)
+
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, \
@@ -934,8 +947,16 @@ class ProxyCommunity(Community):
         @return:
         """
         message = self.packet_crypto.handle_outgoing_packet_content(destination, circuit_id, message, message_type)
+
+        if message is None:
+            return False
+
         content = self.proxy_conversion.encode(message_type, message)
         content = self.packet_crypto.handle_outgoing_packet(destination, circuit_id, message_type, content)
+
+        if content is None:
+            return False
+
         return self.send_packet(destination, circuit_id, message_type, content)
 
     def send_packet(self, destination, circuit_id, message_type, packet,
@@ -1070,39 +1091,6 @@ class ProxyCommunity(Community):
 
             return result
 
-    def reserve_circuit(self):
-        """
-        Reserve a (future) circuit
-        @rtype: defer.Deferred
-        """
-
-        def __reserve(circuit):
-            self._logger.warning("Reserving circuit %d", circuit.circuit_id)
-            self._reservations.add(circuit)
-            return circuit
-
-        def __errback(error):
-            self._logger.error("We got an unhandled error: %s", error)
-            return error
-
-        with self.lock:
-            free = next((c for c in self.circuits.itervalues()
-                         if c not in self._reservations), None)
-
-            if free:
-                __reserve(free)
-                return free.deferred
-
-            else:
-                deferred = defer.Deferred()
-                deferred.addErrback(__errback)
-
-                # remove from the list when circuit is ready
-                deferred.addCallback(__reserve)
-                self._circuit_promises.append(deferred)
-
-                return deferred
-
     def cancel_reservation(self, circuit):
         """
         Free a circuit from a reservation
@@ -1129,6 +1117,17 @@ class ProxyCommunity(Community):
         hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
         hosts = [("94.23.38.156", 51413)]
 
+        def _mark_test_completed():
+            filename = self.tribler_session.get_state_dir() + "/anon_test.txt"
+            handle = open(filename, "w")
+
+            try:
+                handle.write("Delete this file to redo the anonymous download test")
+            finally:
+                handle.close()
+
+        def _has_completed_before():
+            return os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
 
         @forceWxThread
         def thank_you(file_size, start_time, end_time):
@@ -1140,9 +1139,6 @@ class ProxyCommunity(Community):
 
             def _callback(ds):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
-                    # for peer in hosts:
-                    #     download.add_peer(peer)
-
                     if not _callback.download_started_at:
                         _callback.download_started_at = time.time()
                         stats_collector.start()
@@ -1152,9 +1148,8 @@ class ProxyCommunity(Community):
                         'download_time': time.time() - _callback.download_started_at
                     }
 
-                elif not _callback.download_completed and ds.get_status() == DLSTATUS_SEEDING:
+                elif not _callback.download_finished_at and ds.get_status() == DLSTATUS_SEEDING:
                     _callback.download_finished_at = time.time()
-                    _callback.download_completed = True
                     stats_collector.download_stats = {
                         'size': 50 * 1024 ** 2,
                         'download_time': _callback.download_finished_at - _callback.download_started_at
@@ -1162,21 +1157,30 @@ class ProxyCommunity(Community):
 
                     stats_collector.share_stats()
                     stats_collector.stop()
+
+                    self.tribler_session.lm.rawserver.add_task(lambda: self.tribler_session.remove_download(download, True, True), delay=1.0)
+
+                    _mark_test_completed()
+
                     thank_you(50 * 1024 ** 2, _callback.download_started_at, _callback.download_finished_at)
                 else:
                     _callback.peer_added = False
                 return 1.0, False
 
-            _callback.download_completed = False
+            _callback.download_finished_at = None
             _callback.download_started_at = None
             _callback.peer_added = False
 
             return _callback
 
-        dest_dir = os.path.abspath("./.TriblerAnonTunnel/")
-        self.tribler_session.set_swift_meta_dir(dest_dir + "/swift_meta/")
+        if _has_completed_before():
+            self._logger.warning("Skipping Anon Test since it has been run before")
+            return False
+
+        destination_dir = self.tribler_session.get_state_dir()
+        self.tribler_session.set_swift_meta_dir(destination_dir + "/swift_meta/")
         try:
-            download = dest_dir + "/" + root_hash
+            download = destination_dir + "/" + root_hash
             for file in glob.glob(download + "*"):
                 os.remove(file)
 
@@ -1193,7 +1197,7 @@ class ProxyCommunity(Community):
         ''' :type : DefaultDownloadStartupConfig '''
 
         dscfg.set_anon_mode(True)
-        dscfg.set_dest_dir(dest_dir)
+        dscfg.set_dest_dir(destination_dir)
 
         result = self.tribler_session.start_download(tdef, dscfg)
         result.set_state_callback(state_call(result), delay=1)

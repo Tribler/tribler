@@ -1,7 +1,6 @@
 # Written by Niels Zeilemaker
 
-from aes import encrypt_str as aes_encrypt_str, decrypt_str as aes_decrypt_str
-from ogmpy import mpz, StrongRandom
+from optional_crypto import mpz, StrongRandom, aes_encrypt_str, aes_decrypt_str
 
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
@@ -157,6 +156,14 @@ if __name__ == "__main__":
     print "Encrypting took", t2 - t1
     print "Decrypting took", time() - t2
 
+    his_n = key.n
+    fake_phi = his_n / 2
+
+    t1 = time()
+    for i in range(1000):
+        rsa_compatible(his_n, fake_phi + i)
+
+    print "Compatible took", time() - t2
 
 
 

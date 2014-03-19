@@ -11,17 +11,14 @@
 #
 # see LICENSE.txt for license information
 #
-import glob
 
 import sys
 import logging
 from Tribler.community.anontunnel import exitstrategies
 from Tribler.community.anontunnel.Socks5.server import Socks5Server
 
-from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
-from Tribler.community.anontunnel.globals import ANON_DOWNLOAD_DELAY
-from Tribler.community.anontunnel.stats import StatsCollector
+from Tribler.Core.osutils import fix_filebasename
 
 logger = logging.getLogger(__name__)
 
@@ -38,17 +35,21 @@ import urllib
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 import shutil
 original_open_https = urllib.URLopener.open_https
+import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
+# modify the sys.stderr and sys.stdout for safe output
+import Tribler.Debug.console
+
+import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
-from Tribler.dispersy.community import HardKilledCommunity
 from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import current_thread, currentThread
+from threading import currentThread, Thread
 try:
     prctlimported = True
     import prctl
@@ -74,31 +75,41 @@ from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-# from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 
 from Tribler.Main.Utility.utility import Utility
-from Tribler.Main.Utility.constants import *
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
 from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
-from Tribler.Utilities.Instance2Instance import *
+from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, \
+    Instance2InstanceServer, InstanceConnectionHandler
 from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 
-from Tribler.Core.API import *
-from Tribler.Core.simpledefs import NTFY_MODIFIED
-from Tribler.Core.Utilities.utilities import show_permid_short
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT, \
+    NTFY_REACHABLE, NTFY_ACTIVITIES, NTFY_UPDATE, NTFY_CREATE, NTFY_CHANNELCAST, \
+    NTFY_STATE, NTFY_VOTECAST, NTFY_MYPREFERENCES, NTFY_TORRENTS, NTFY_COMMENTS, \
+    NTFY_PLAYLISTS, NTFY_DELETE, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_PEERS, \
+    NTFY_MARKINGS, NTFY_FINISHED, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, \
+    NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, \
+    STATEDIR_SWIFTRESEED_DIR, \
+    dlstatus_strings, \
+    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
+    DLSTATUS_SEEDING, DLSTATUS_STOPPED
+from Tribler.Core.Swift.SwiftDef import SwiftDef
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.DownloadConfig import get_default_dest_dir
+from Tribler.Core.osutils import fix_filebasename
+
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
-from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoServer import SimpleServer
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
 import Tribler.Core.DecentralizedTracking.pymdht.core
@@ -132,12 +143,10 @@ ALLOW_MULTIPLE = False
 
 class ABCApp():
 
-    def __init__(self, params, single_instance_checker, installdir):
-        self.tunnel = None
+    def __init__(self, params, installdir):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.params = params
-        self.single_instance_checker = single_instance_checker
         self.installdir = installdir
 
         self.state_dir = None
@@ -247,23 +256,13 @@ class ABCApp():
                 self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
                 self.i2is.start()
 
-            # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
-            # Range: GETs causes performance problems in our code. Disable for now.
-            # Arno, 2010-01-22: With the addition of a CachingStream the problem
-            # is less severe (see VideoPlayer), so keep GET Range enabled.
-            #
-            # SimpleServer.RANGE_REQUESTS_ENABLED = False
-
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
-
             httpport = self.utility.read_config('videohttpport')
             if ALLOW_MULTIPLE or httpport == -1:
                 httpport = self.utility.get_free_random_port('videohttpport')
-            self.videoplayer = VideoPlayer.getInstance(httpport=httpport)
-
             playbackmode = self.utility.read_config('videoplaybackmode')
-            self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
+            self.videoplayer = VideoPlayer.getInstance(s, self.utility.read_config('videoplayerpath'), preferredplaybackmode=playbackmode, httpport=httpport)
 
             notification_init(self.utility)
             self.guiUtility.register()
@@ -274,12 +273,12 @@ class ABCApp():
                 channel_only = f.readline()
                 f.close()
 
-            self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
+            self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(), self.splash.tick)
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
-            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
+            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
                 vlcwrap = self.videoplayer.get_vlcwrap()
 
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
@@ -341,20 +340,6 @@ class ABCApp():
 
             self.ready = True
 
-            # self.frame.actlist.DisableItem(3)
-            # self.frame.actlist.DisableItem(6)
-            # #self.frame.top_bg.searchField.Disable()
-            # #self.frame.top_bg.searchFieldPanel.Disable()
-            # #self.frame.top_bg.add_btn.Disable()
-            # self.frame.top_bg.GetSizer().ShowItems(False)
-            #
-            # self.frame.home.searchBox.Show(False)
-            # self.frame.home.channelLinkText.ShowItems(False)
-            # self.frame.home.buzzpanel.Show(False)
-            # self.frame.home.searchButton.Show(False)
-            #
-            # # Disable drag and drop
-            # self.frame.SetDropTarget(None)
         except Exception as e:
             self.onError(e)
 
@@ -394,26 +379,16 @@ class ABCApp():
             if my_channel:
                 self.torrentfeed.register(self.utility.session, my_channel)
                 self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                self.torrentfeed.addCallback(my_channel, self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
     def startAPI(self, progress):
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
-        folder_name = "./.TriblerAnonTunnel";
-
-        try:
-            shutil.rmtree(folder_name)
-        except:
-            pass
-
-        try:
-            os.mkdir(folder_name)
-        except:
-            pass
-
-        state_dir = Session.get_default_state_dir(folder_name)
-
+        state_dir = defaultConfig.get_state_dir()
+        if not state_dir:
+            state_dir = Session.get_default_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         progress('Loading sessionconfig')
@@ -447,10 +422,6 @@ class ABCApp():
 
         progress('Loading downloadconfig')
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
-
-        if os.path.isfile(dlcfgfilename):
-            os.remove(dlcfgfilename)
-
         self._logger.debug("main: Download config %s", dlcfgfilename)
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
@@ -496,6 +467,7 @@ class ABCApp():
             from Tribler.community.allchannel.community import AllChannelCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
+            from Tribler.community.metadata.community import MetadataCommunity
             from Tribler.community.anontunnel.community import ProxyCommunity
 
             self._logger.info("tribler: Preparing communities...")
@@ -506,9 +478,15 @@ class ABCApp():
                                      (s.dispersy_member,),
                                      load=True)
             dispersy.define_auto_load(AllChannelCommunity,
-                                          (s.dispersy_member,),
-                                          {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
-                                          load=True)
+                                           (s.dispersy_member,),
+                                           {},
+                                           load=True)
+
+            # load metadata community
+            dispersy.define_auto_load(MetadataCommunity,
+                               (s.dispersy_member,),
+                               {},
+                               load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
@@ -534,6 +512,7 @@ class ABCApp():
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
+        swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
 
@@ -544,6 +523,7 @@ class ABCApp():
     def determine_install_dir():
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
+
         # apply trick to obtain the executable location
         # see http://www.py2exe.org/index.cgi/WhereAmI
         # Niels, 2012-01-31: py2exe should only apply to windows
@@ -669,26 +649,6 @@ class ABCApp():
 #                    if self.ratestatecallbackcount % 120 == 0:
 #                        wantpeers.append(True)
 
-            # Find State of currently playing video
-            playds = None
-            d = self.videoplayer.get_vod_download()
-            for ds in dslist:
-                if ds.get_download() == d:
-                    playds = ds
-
-            # Apply status displaying from SwarmPlayer
-            if playds:
-                def do_video():
-                    if playds.get_status() == DLSTATUS_HASHCHECKING:
-                        progress = progress_consec = playds.get_progress()
-                    else:
-                        progress = playds.get_vod_prebuffering_progress()
-                        progress_consec = playds.get_vod_prebuffering_progress_consec()
-                    self.videoplayer.set_player_status_and_progress(progress, progress_consec, \
-                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True], \
-                                                                    playds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
-                wx.CallAfter(do_video)
-
             # Check to see if a download has finished
             newActiveDownloads = []
             doCheckpoint = False
@@ -713,8 +673,8 @@ class ABCApp():
                             notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
 
                             # Arno, 2012-05-04: Swift reseeding
-                            if self.utility.read_config('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
-                                self.sesscb_reseed_via_swift(download)
+                            # if self.utility.read_config('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
+                            #    self.sesscb_reseed_via_swift(download)
 
                             doCheckpoint = True
 
@@ -751,8 +711,6 @@ class ABCApp():
         return (1.0, wantpeers)
 
     def loadSessionCheckpoint(self):
-        return
-
         # Niels: first remove all "swift" torrent collect checkpoints
         dir = self.utility.session.get_downloads_pstate_dir()
         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
@@ -837,6 +795,7 @@ class ABCApp():
 
                     self.torrentfeed.register(self.utility.session, objectID)
                     self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                    self.torrentfeed.addCallback(objectID, self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
 
                 self.frame.managechannel.channelUpdated(objectID, created=changeType == NTFY_CREATE, modified=changeType == NTFY_MODIFIED)
 
@@ -1018,8 +977,6 @@ class ABCApp():
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
 
-        if not ALLOW_MULTIPLE:
-            del self.single_instance_checker
         return 0
 
     def db_exception_handler(self, e):
@@ -1118,10 +1075,7 @@ class ABCApp():
                     sdef.add_content(o)  # single file .torrent
                 else:
                     xi = os.path.join(tdef.get_name_as_unicode(), i)
-                    if sys.platform == "win32":
-                        xi = xi.replace("\\", "/")
-                    si = xi.encode("UTF-8")  # spec format
-                    sdef.add_content(o, si)  # multi-file .torrent
+                    sdef.add_content(o, xi)  # multi-file .torrent
 
             specpn = sdef.finalize(self.sconfig.get_swift_path(), destdir=destdir)
 
@@ -1203,7 +1157,7 @@ def run(params=None):
             app = wx.GetApp()
             if not app:
                 app = wx.PySimpleApp(redirect=False)
-            abc = ABCApp(params, single_instance_checker, installdir)
+            abc = ABCApp(params, installdir)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)

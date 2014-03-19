@@ -107,9 +107,10 @@ class GuiImageManager(object):
                 continue
 
             bitmap = wx.Bitmap(image_path)
-            image = bitmap.ConvertToImage()
-            big_image = image.Rescale(ICON_MAX_DIM, ICON_MAX_DIM)
-            small_image = image.Rescale(SMALL_ICON_MAX_DIM, SMALL_ICON_MAX_DIM)
+            big_image = bitmap.ConvertToImage()
+            small_image = big_image.Copy()
+            big_image = big_image.Rescale(ICON_MAX_DIM, ICON_MAX_DIM)
+            small_image = small_image.Rescale(SMALL_ICON_MAX_DIM, SMALL_ICON_MAX_DIM)
 
             self._default_dict[name][ICON_MAX_DIM] = wx.BitmapFromImage(big_image)
             self._default_dict[name][SMALL_ICON_MAX_DIM] = wx.BitmapFromImage(small_image)
@@ -176,10 +177,6 @@ class GuiImageManager(object):
                 else:
                     image = wx.Bitmap(image_path, wx.BITMAP_TYPE_ANY)
                     self._other_dict[name] = image
-
-            # image doesn't exist
-            else:
-                self._logger.warn("Image[%s] doesn't exist.", name)
 
         return image
 

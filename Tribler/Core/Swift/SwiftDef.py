@@ -1,6 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+import os
 import sys
 import urlparse
 import binascii
@@ -9,9 +10,10 @@ import random
 import time
 import logging
 
-from Tribler.Core.Base import *
-from Tribler.Core.simpledefs import *
-from Tribler.Core.Swift.util import *
+from Tribler.Core.Base import ContentDefinition
+from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
+from Tribler.Core.Swift.util import filelist2swiftspec
 
 
 class SwiftDef(ContentDefinition):
@@ -183,8 +185,15 @@ class SwiftDef(ContentDefinition):
         if self.readonly:
             raise OperationNotEnabledByConfigurationException()
 
+        encoded_outpath = None
+        if outpath:
+            encoded_outpath = outpath
+            if sys.platform == "win32":
+                encoded_outpath = encoded_outpath.replace("\\", "/")
+            encoded_outpath = encoded_outpath.encode("utf-8")
+
         s = os.stat(inpath)
-        d = {'inpath': inpath, 'outpath': outpath,'length':s.st_size}
+        d = {'inpath': inpath, 'outpath': encoded_outpath, 'length': s.st_size}
         self.files.append(d)
 
     def create_multifilespec(self):

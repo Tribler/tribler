@@ -6,7 +6,6 @@ from time import time
 
 import binascii
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 DEBUG = True
 
@@ -144,10 +143,9 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_monitor():
             from Tribler.Video.VideoPlayer import VideoPlayer
-            d = VideoPlayer.getInstance().get_vod_download()
 
             self.screenshot('After starting a VOD download')
-            self.CallConditional(60, lambda: d.network_get_vod_stats()['status'] == "started", check_playlist, "streaming did not start")
+            self.CallConditional(60, lambda: VideoPlayer.getInstance().vod_playing, check_playlist, "streaming did not start")
 
         def do_vod():
             from Tribler.Video.VideoPlayer import VideoPlayer

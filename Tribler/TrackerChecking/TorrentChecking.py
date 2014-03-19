@@ -6,7 +6,6 @@
 #
 # TODO: add comments
 # ============================================================
-import sys
 import os
 import binascii
 import time
@@ -16,16 +15,15 @@ import select
 import socket
 
 import threading
-from threading import Thread, RLock, Event
+from threading import Thread
 import Queue
 
-from traceback import print_exc, print_stack
+from traceback import print_exc
 
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core import NoDispersyRLock
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     prctlimported = True
@@ -36,18 +34,12 @@ except ImportError as e:
 from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 from Tribler.TrackerChecking.TrackerInfoCache import TrackerInfoCache
 from Tribler.TrackerChecking.TrackerSession import TrackerSession
-from Tribler.TrackerChecking.TrackerSession import\
-    TRACKER_ACTION_CONNECT, TRACKER_ACTION_ANNOUNCE, TRACKER_ACTION_SCRAPE
-from Tribler.TrackerChecking.TrackerSession import\
-    UDP_TRACKER_RECHECK_INTERVAL, UDP_TRACKER_MAX_RETRIES
-from Tribler.TrackerChecking.TrackerSession import\
-    MAX_TRACKER_MULTI_SCRAPE
+from Tribler.TrackerChecking.TrackerSession import TRACKER_ACTION_CONNECT
+from Tribler.TrackerChecking.TrackerSession import MAX_TRACKER_MULTI_SCRAPE
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, bin2str
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
-from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 
 
 # some settings
@@ -88,7 +80,6 @@ class TorrentChecking(Thread):
         self._logger.debug('Starting TorrentChecking from %s.', threading.currentThread().getName())
         self.setDaemon(True)
 
-        self._mldhtchecker = mainlineDHTChecker.getInstance()
         self._torrentdb = TorrentDBHandler.getInstance()
         self._interrupt_socket = InterruptSocket()
 
@@ -544,6 +535,8 @@ class TorrentChecking(Thread):
 
                 last_time_select_torrent = current_time
                 time_remaining = self._torrent_select_interval
+            else:
+                self._logger.debug('TorrentChecking: Will wait for an interrupt for %.1f', time_remaining)
 
             # create read and write socket check list
             # check non-blocking connection TCP sockets if they are writable
@@ -587,7 +580,7 @@ class TorrentChecking(Thread):
                         session.handleRequest()
 
                     # check readable sockets
-                    self._logger.debug('TorrentChecking: got %d readable sockets', len(read_socket_list) - 1)
+                    self._logger.debug('TorrentChecking: got %d readable sockets', len(read_socket_list))
                     for read_socket in read_socket_list:
                         session = session_dict.get(read_socket, self._interrupt_socket)
                         session.handleRequest()
@@ -612,6 +605,8 @@ class TorrentChecking(Thread):
                             session = self._session_list[i]
 
                             if session.hasFailed() or session.hasFinished():
+                                self._logger.debug('TorrentChecking: session[%s] is %s', session.getTracker(), 'failed' if session.hasFailed() else 'finished')
+
                                 self._tracker_info_cache.updateTrackerInfo(session.getTracker(), session.hasFailed())
 
                                 # set torrent remaining responses
@@ -666,7 +661,7 @@ class InterruptSocket:
         self.socket.bind((self.ip, 0))
         self.port = self.socket.getsockname()[1]
         self._logger.debug("Bound InterruptSocket on port %s", self.port)
-        
+
         self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def interrupt(self):

@@ -509,26 +509,6 @@ class TTLSearchCommunity(Community):
             else:
                 print >> sys.stderr, long(time()), "SearchCommunity: got search response for somehow the request is missing from the cache? Did we just pop?", sum(1 if message.payload.identifier == curmessage.payload.identifier else 0 for curmessage in messages)
 
-    def create_torrent_request(self, torrents, candidate):
-        torrentdict = {}
-        for torrent in torrents:
-            if isinstance(torrent, list):
-                cid, infohash = torrent
-            else:
-                cid = self._master_member.mid
-                infohash = torrent
-            torrentdict.setdefault(cid, set()).add(infohash)
-
-        # create torrent-request message
-        meta = self.get_meta_message(u"torrent-request")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), payload=(torrentdict,))
-        self._dispersy._send([candidate], [message])
-
-        if DEBUG:
-            nr_requests = sum([len(cid_torrents) for cid_torrents in torrentdict.values()])
-            print >> sys.stderr, long(time()), long(time()), "SearchCommunity: requesting", nr_requests, "TorrentMessages from", candidate
-
     def on_torrent_request(self, messages):
         for message in messages:
             requested_packets = []

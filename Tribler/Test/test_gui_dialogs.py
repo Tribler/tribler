@@ -2,22 +2,21 @@
 # see LICENSE.txt for license information
 
 import unittest
-import sys
 import wx
 import binascii
 import os
+from threading import Event
+from traceback import print_exc
 
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
-from Tribler.Main.vwxGUI.list_item import ChannelListItem
+
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from Tribler.Main.Dialogs.SaveAs import SaveAs
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
+from Tribler.Main.vwxGUI.list_item import ChannelListItem
 from Tribler.Main.vwxGUI.settingsDialog import SettingsDialog
-from threading import Event
-from traceback import print_exc
 
 
 class TestGuiDialogs(TestGuiAsServer):
@@ -50,7 +49,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.Call(5, do_assert)
             self.frame.top_bg.OnSettings(None)
 
-        self.startTest(do_settings, min_timeout=10)
+        self.startTest(do_settings, min_timeout=2)
 
     def test_remove_dialog(self):
         infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')

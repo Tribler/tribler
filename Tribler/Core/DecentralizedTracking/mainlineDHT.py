@@ -4,13 +4,12 @@
 
 import sys
 import logging
-from traceback import print_exc
-
-DEBUG = False
-dht_imported = False
 
 logger = logging.getLogger(__name__)
 
+DEBUG = False
+
+DHT_IMPORTED = False
 if sys.version.split()[0] >= '2.5':
     try:
         import Tribler.Core.DecentralizedTracking.pymdht.core.pymdht as pymdht
@@ -18,19 +17,18 @@ if sys.version.split()[0] >= '2.5':
         import Tribler.Core.DecentralizedTracking.pymdht.plugins.routing_nice_rtt as routing_mod
         import Tribler.Core.DecentralizedTracking.pymdht.plugins.lookup_a4 as lookup_mod
         import Tribler.Core.DecentralizedTracking.pymdht.core.exp_plugin_template as experimental_m_mod
-        dht_imported = True
-    except (ImportError) as e:
-        print_exc()
+        DHT_IMPORTED = True
+    except ImportError:
+        logger.exception(u"Could not import pymdht")
 
 def init(addr, conf_path, swift_port):
-    global dht_imported
     if DEBUG:
         log_level = logging.DEBUG
     else:
         log_level = logging.ERROR
-    logger.debug('dht: DHT initialization %s', dht_imported)
+    logger.debug('dht: DHT initialization %s', DHT_IMPORTED)
 
-    if dht_imported:
+    if DHT_IMPORTED:
         my_node = node.Node(addr, None, version=pymdht.VERSION_LABEL)
         private_dht_name = None
         dht = pymdht.Pymdht(my_node, conf_path,
@@ -40,17 +38,12 @@ def init(addr, conf_path, swift_port):
                             private_dht_name,
                             log_level,
                             swift_port=swift_port)
-        logger.debug('dht: DHT running')
+        logger.debug('Swift DHT running')
     return dht
-
-
-def control():
-    import pdb
-    pdb.set_trace()
 
 def deinit(dht):
     if dht is not None:
         try:
             dht.stop()
         except:
-            pass
+            logger.exception('could not stop Swift DHT')

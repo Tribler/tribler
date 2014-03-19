@@ -20,9 +20,8 @@ import socket
 import random
 import logging
 
-from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults
-from Tribler.Core.Base import *
+from Tribler.Core.Base import Copyable, Serializable
 from Tribler.Core.RawServer.RawServer import autodetect_socket_style
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -630,16 +629,13 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         """
         # Class method, no locking required
         if not os.path.exists(filename):
-            self._logger.warn(u"Config file doesn't exist [%s]", filename)
             raise IOError, u"Failed to open session config file"
         if not os.path.isfile(filename):
-            self._logger.warn(u"Config file isn't a file [%s]", filename)
             raise IOError, u"Failed to open session config file"
 
         try:
             f = codecs.open(filename, 'r', 'utf8')
         except:
-            self._logger.exception(u"Failed to decode config file [%s]", filename)
             raise IOError, u"Failed to open session config file"
 
         sessconfig = CallbackConfigParser()

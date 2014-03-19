@@ -1,5 +1,6 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
+from collections import defaultdict
 
 import sys
 import random
@@ -8,8 +9,7 @@ from traceback import print_exc
 import logging
 import itertools
 
-from Tribler.Core.Swift.SwiftProcess import *
-from Tribler.Utilities.Instance2Instance import *
+from Tribler.Core.Swift.SwiftProcess import SwiftProcess
 
 
 class SwiftProcessMgr:
