@@ -314,7 +314,7 @@ class StatsCrawler(TunnelObserver):
         except sqlite3.IntegrityError:
             self._logger.error("Stat already exists of %s:%d" % sock_address)
         except BaseException:
-            self._logger.exception()
+            self._logger.exception("Error storing stats")
 
         cursor.close()
 
