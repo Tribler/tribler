@@ -917,8 +917,8 @@ class ABCApp():
         delete_status_holders()
 
         if self.frame:
-            self.frame.Destroy()
-            del self.frame
+            self.frame.OnCloseWindow()
+            self.frame = None
 
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
