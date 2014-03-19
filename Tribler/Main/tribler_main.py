@@ -197,7 +197,7 @@ class ABCApp():
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-            UserDownloadChoice.get_singleton().set_utility(self.utility, s.get_state_dir())
+            UserDownloadChoice.get_singleton().set_utility(self.utility)
 
             self.splash.tick('Initializing Family Filter')
             cat = Category.getInstance()
