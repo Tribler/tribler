@@ -239,8 +239,8 @@ class ProxyCommunity(Community):
                         first_pool.fill(self.circuits[circuit_id])
 
                 else:
-                    circuit_candidates = {c.candidate for c in
-                                          self.circuits.values()}
+                    circuit_candidates = set([c.candidate for c in
+                                          self.circuits.values()])
 
                     candidates = (c for c
                                   in self.dispersy_yield_verified_candidates()
@@ -1002,9 +1002,9 @@ class ProxyCommunity(Community):
         CIRCUIT_STATE_READY
         @rtype: dict[int, Tribler.community.anontunnel.routing.Circuit]
         """
-        return {circuit_id: circuit
+        return dict((circuit_id, circuit)
                 for circuit_id, circuit in self.circuits.items()
-                if circuit.state == CIRCUIT_STATE_READY}
+                if circuit.state == CIRCUIT_STATE_READY)
 
     def __ping_circuits(self):
         while True:

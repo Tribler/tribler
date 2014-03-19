@@ -1,5 +1,5 @@
 import logging
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+# from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.community.anontunnel.CircuitPool import NotEnoughCircuitsException
 from Tribler.community.anontunnel.Socks5 import conversion
 from Tribler.community.anontunnel.Socks5.connection import \
@@ -67,7 +67,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         self.connection.close()
 
     def on_break_circuit(self, circuit):
-        if circuit in {circuit for dest, circuit in self.destinations.iteritems()}:
+        if circuit in self.destinations.values(): #{circuit for dest, circuit in self.destinations.iteritems()}:
             self._logger.error(
                 "A circuit has died, to enforce 3-way swift handshake "
                 "we are signalling swift by closing TCP connection")

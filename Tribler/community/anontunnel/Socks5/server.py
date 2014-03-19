@@ -47,7 +47,7 @@ class Socks5Server(object, TunnelObserver):
             try:
                 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
                 LibtorrentMgr.getInstance().create_anonymous_session()
-            except:
+            except ImportError:
                 self._logger.exception("Cannot create anonymous session!")
 
             return True

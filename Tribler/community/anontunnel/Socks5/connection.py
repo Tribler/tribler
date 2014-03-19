@@ -103,8 +103,7 @@ class Socks5Connection(object):
         assert isinstance(request, conversion.MethodRequest)
 
         # Only accept NO AUTH
-        if request.version != 0x05 or len(
-                {0x00, 0x01, 0x02}.difference(request.methods)) == 2:
+        if request.version != 0x05 or 0x00 not in request.methods:
             self._logger.info("Client has sent INVALID METHOD REQUEST")
             self.buffer = ''
             self.close()
@@ -289,8 +288,8 @@ class Socks5Connection(object):
                 
             return guessed_state
 
-        has_valid_command = ord(data[1]) in {0x01, 0x02, 0x03}
-        has_valid_address = ord(data[2]) in {0x01, 0x03, 0x04}
+        has_valid_command = ord(data[1]) in [0x01, 0x02, 0x03]
+        has_valid_address = ord(data[2]) in [0x01, 0x03, 0x04]
 
         if is_version and has_valid_command and has_valid_address:
             return ConnectionState.CONNECTED
