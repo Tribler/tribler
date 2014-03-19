@@ -358,7 +358,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 eventPanel.SetFocus()
                 self.vlcwrap.set_window(self.fullscreenwindow)
             else:
-                self.TellLVCWrapWindow4Playback()
+                self.TellVLCWrapWindow4Playback()
                 self.fullscreenwindow.Destroy()
                 self.fullscreenwindow = None
 
@@ -475,9 +475,9 @@ class EmbeddedPlayerPanel(wx.Panel):
             longformat = longformat[3:]
         return longformat
 
-    def TellLVCWrapWindow4Playback(self):
+    def TellVLCWrapWindow4Playback(self):
         if self.vlcwrap:
-            self.vlcwin.tell_vclwrap_window_for_playback()
+            self.vlcwin.tell_vlcwrap_window_for_playback()
 
     def ShowLoading(self):
         if self.vlcwrap:
@@ -502,7 +502,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.GetSizer().Replace(self.vlcwin, vlcwin)
             self.vlcwin.Destroy()
             self.vlcwin = vlcwin
-            self.TellLVCWrapWindow4Playback()
+            self.TellVLCWrapWindow4Playback()
 
 
 class VLCWindow(wx.Panel):
@@ -521,16 +521,20 @@ class VLCWindow(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
 
-        self.Bind(wx.EVT_WINDOW_CREATE, lambda evt: self.tell_vclwrap_window_for_playback())
+        self.Bind(wx.EVT_WINDOW_CREATE, lambda evt: self.tell_vlcwrap_window_for_playback())
+        self.Bind(wx.EVT_WINDOW_DESTROY, lambda evt: self.exit_vlcwrap())
 
         self.Refresh()
 
-    def tell_vclwrap_window_for_playback(self):
+    def tell_vlcwrap_window_for_playback(self):
         """ This method must be called after the VLCWindow has been
         realized, otherwise the self.GetHandle() call that vlcwrap.set_window()
         does, doesn't return a correct XID.
         """
         self.vlcwrap.set_window(self)
+
+    def exit_vlcwrap(self):
+        self.vlcwrap.exit()
 
     def get_vlcwrap(self):
         return self.vlcwrap

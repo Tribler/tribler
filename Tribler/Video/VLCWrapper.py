@@ -323,12 +323,9 @@ class VLCWrapper:
         return self.media.playlist_get_list()
 
     def exit(self):
-        if not self.initialized:
-            self._init_vlc()
-
         check_threading()
-        """ Use with care, Ivaylo's raw interface seems to have issues with
-        calling this. So we don't
-        """
-        self.media.exit()
-        self.media = None
+
+        self._logger.debug("VLCWrapper: exit")
+        if self.initialized:
+            self.vlc.libvlc_release(self.player)
+            self.player = None

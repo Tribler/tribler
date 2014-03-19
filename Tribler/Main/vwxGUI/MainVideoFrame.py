@@ -40,7 +40,7 @@ class VideoDummyFrame(VideoBaseFrame):
         # known when the window is shown. We give it the command
         # to show here, so shortly after it should be shown.
         #
-        wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
+        wx.CallAfter(self.videopanel.TellVLCWrapWindow4Playback)
 
     def hide_videoframe(self):
         if self.videopanel:
