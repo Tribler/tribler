@@ -329,3 +329,4 @@ class VLCWrapper:
         if self.initialized and self.player:
             self.vlc.libvlc_release(self.player)
             self.player = None
+            self.initialized = False
