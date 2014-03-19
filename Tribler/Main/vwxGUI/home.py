@@ -27,9 +27,10 @@ from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     FancyPanel, LinkStaticText, LinkText
 
 
-class Home(XRCPanel):
+class Home(wx.Panel):
 
-    def _PostInit(self):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
         self.guiutility = GUIUtility.getInstance()
 
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -48,7 +49,7 @@ class Home(XRCPanel):
         if sys.platform == 'darwin':  # mac
             self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         else:
-            self.searchBox = TextCtrlAutoComplete(self, entrycallback=self.parent.top_bg.complete, selectcallback=self.parent.top_bg.OnAutoComplete)
+            self.searchBox = TextCtrlAutoComplete(self, entrycallback=parent.top_bg.complete, selectcallback=parent.top_bg.OnAutoComplete)
 
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
@@ -133,9 +134,8 @@ class Home(XRCPanel):
         self.searchBox.Clear()
 
     def SearchFocus(self):
-        if self.isReady:
-            self.searchBox.SetFocus()
-            self.searchBox.SelectAll()
+        self.searchBox.SetFocus()
+        self.searchBox.SelectAll()
 
 
 class Stats(XRCPanel):
