@@ -324,6 +324,7 @@ class VLCWrapper:
 
     def exit(self):
         check_threading()
+        return
 
         self._logger.debug("VLCWrapper: exit")
         if self.initialized and self.player:
