@@ -720,7 +720,6 @@ class ProxyCommunity(Community):
             if first_pool:
                 first_pool.fill(circuit)
 
-
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, \
                 NTFY_CREATED, NTFY_EXTENDED

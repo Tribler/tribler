@@ -104,7 +104,7 @@ class Socks5Connection(object):
 
         # Only accept NO AUTH
         if request.version != 0x05 or 0x00 not in request.methods:
-            self._logger.info("Client has sent INVALID METHOD REQUEST")
+            self._logger.error("Client has sent INVALID METHOD REQUEST")
             self.buffer = ''
             self.close()
             return
