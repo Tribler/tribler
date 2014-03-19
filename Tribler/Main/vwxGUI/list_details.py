@@ -450,7 +450,10 @@ class TorrentDetails(AbstractDetails):
                 the_description = metadata.get('description', '')
 
         if not the_description:
-            the_description = 'No description yet, be the first to add a description.'
+            if self.canEdit:
+                the_description = 'No description yet, be the first to add a description.'
+            else:
+                the_description = ''
 
         todo = []
         todo.append((self.name, self.torrent.name))
