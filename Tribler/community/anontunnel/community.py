@@ -1090,19 +1090,6 @@ class ProxyCommunity(Community):
 
             return result
 
-    def cancel_reservation(self, circuit):
-        """
-        Free a circuit from a reservation
-        @param Circuit circuit: Circuit to free
-        @rtype: bool
-        """
-        if circuit.circuit_id in self._reservations:
-            with self.lock:
-                self._reservations.remove(circuit)
-
-                return True
-        return False
-
     def setup_anon_test(self):
         import os
         import glob
