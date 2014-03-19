@@ -71,9 +71,6 @@ class VideoPlayer:
     hasInstance = staticmethod(hasInstance)
 
     def shutdown(self):
-        if self.vlcwrap:
-            self.vlcwrap.exit()
-
         if self.videoserver:
             self.videoserver.stop()
         self.set_vod_download(None)
