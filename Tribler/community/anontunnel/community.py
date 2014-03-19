@@ -1102,7 +1102,7 @@ class ProxyCommunity(Community):
 
         root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
         hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
-        hosts = [("94.23.38.156", 51413)]
+        hosts = [("95.211.198.147", 51413), ("95.211.198.142", 51413), ("95.211.198.140", 51413), ("95.211.198.141", 51413)]
 
         def _mark_test_completed():
             filename = self.tribler_session.get_state_dir() + "/anon_test.txt"
@@ -1114,7 +1114,7 @@ class ProxyCommunity(Community):
                 handle.close()
 
         def _has_completed_before():
-            return os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
+            return False # os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
 
         @forceWxThread
         def thank_you(file_size, start_time, end_time):

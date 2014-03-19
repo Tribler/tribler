@@ -44,11 +44,11 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         """
         if not self.circuit_pool.available_circuits:
             try:
-                circuit = self.server.circuit_pool.allocate()
-
-                # Move from main pool to session pool
-                self.server.circuit_pool.remove_circuit(circuit)
-                self.circuit_pool.fill(circuit)
+                for _ in range(4):
+                    circuit = self.server.circuit_pool.allocate()
+                    # Move from main pool to session pool
+                    self.server.circuit_pool.remove_circuit(circuit)
+                    self.circuit_pool.fill(circuit)
             except NotEnoughCircuitsException:
                 self.close_session("not enough circuits")
                 connection.deny_request(request)

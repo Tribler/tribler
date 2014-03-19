@@ -41,7 +41,7 @@ class Socks5Server(object, TunnelObserver):
         raw_server.add_task(self.__start_anon_session, 5.0)
 
     def __start_anon_session(self):
-        if len(self.circuit_pool.available_circuits) >= 1:
+        if len(self.circuit_pool.available_circuits) >= 4:
             self._logger.warning("Creating ANON session")
 
             try:
