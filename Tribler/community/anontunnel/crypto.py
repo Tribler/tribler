@@ -9,7 +9,6 @@ from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.community.privatesemantic.crypto.optional_crypto import \
     aes_encrypt_str, aes_decrypt_str
 
-
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
     ENDPOINT, MESSAGE_CREATE, MESSAGE_EXTEND, MESSAGE_EXTENDED, \
     DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, \
@@ -20,6 +19,7 @@ logger = logging.getLogger()
 
 class CryptoError(Exception):
     pass
+
 
 class Crypto(TunnelObserver):
     def __init__(self):
@@ -118,22 +118,22 @@ class NoCrypto(Crypto):
          object is coupled
         """
         self.proxy = proxy
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] \
             .append(self._encrypt_created_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATED]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED] \
             .append(self._decrypt_created_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] \
             .append(self._decrypt_extended_content)
 
     def disable(self):
         """
         Disables the crypto settings
         """
-        self.proxy.before_send_transformers[MESSAGE_CREATED]\
+        self.proxy.before_send_transformers[MESSAGE_CREATED] \
             .remove(self._encrypt_created_content)
-        self.proxy.after_receive_transformers[MESSAGE_CREATED]\
+        self.proxy.after_receive_transformers[MESSAGE_CREATED] \
             .remove(self._decrypt_created_content)
-        self.proxy.after_receive_transformers[MESSAGE_EXTENDED]\
+        self.proxy.after_receive_transformers[MESSAGE_EXTENDED] \
             .remove(self._decrypt_extended_content)
 
     def _encrypt_created_content(self, candidate, circuit_id, message):
@@ -173,6 +173,7 @@ class NoCrypto(Crypto):
         _, message.candidate_list = decode(message.candidate_list)
         return message
 
+
 class DefaultCrypto(Crypto):
     def __init__(self):
         Crypto.__init__(self)
@@ -208,21 +209,21 @@ class DefaultCrypto(Crypto):
         self.relay_packet_crypto.append(self._crypto_relay_packet)
         self.incoming_packet_crypto.append(self._crypto_incoming_packet)
         self.outgoing_packet_crypto.append(self._crypto_outgoing_packet)
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATE]\
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATE] \
             .append(self._encrypt_create_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] \
             .append(self._encrypt_created_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND]\
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND] \
             .append(self._encrypt_extend_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED] \
             .append(self._encrypt_extended_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATE]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATE] \
             .append(self._decrypt_create_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATED]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED] \
             .append(self._decrypt_created_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTEND]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTEND] \
             .append(self._decrypt_extend_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] \
             .append(self._decrypt_extended_content)
 
     def disable(self):
@@ -232,21 +233,21 @@ class DefaultCrypto(Crypto):
         self.relay_packet_crypto.remove(self._crypto_relay_packet)
         self.incoming_packet_crypto.remove(self._crypto_incoming_packet)
         self.outgoing_packet_crypto.remove(self._crypto_outgoing_packet)
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATE]\
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATE] \
             .remove(self._encrypt_create_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] \
             .remove(self._encrypt_created_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND]\
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND] \
             .remove(self._encrypt_extend_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED]\
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED] \
             .remove(self._encrypt_extended_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATE]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATE] \
             .remove(self._decrypt_create_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATED]\
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED] \
             .remove(self._decrypt_created_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTEND]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTEND] \
             .remove(self._decrypt_extend_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED]\
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] \
             .remove(self._decrypt_extended_content)
 
     def _encrypt_create_content(self, candidate, circuit_id, message):
