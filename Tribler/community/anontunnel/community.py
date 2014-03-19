@@ -10,7 +10,6 @@ import time
 from collections import defaultdict
 
 # Tribler and Dispersy imports
-from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
@@ -1112,6 +1111,8 @@ class ProxyCommunity(Community):
         from Tribler.Core.TorrentDef import TorrentDef
         from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
         from Tribler.Main.globals import DefaultDownloadStartupConfig
+        from Tribler.Main.vwxGUI import forceWxThread
+
 
         root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
         hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
