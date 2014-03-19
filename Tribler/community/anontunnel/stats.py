@@ -226,6 +226,9 @@ class StatsCrawler(TunnelObserver):
         self.conn = None
 
         def init_sql():
+            sqlite3.register_converter('GUID', lambda b: uuid.UUID(bytes_le=b))
+            sqlite3.register_adapter(uuid.UUID, lambda u: buffer(u.bytes_le))
+
             self.conn = sqlite3.connect("results.db")
 
             self.conn.execute('''
