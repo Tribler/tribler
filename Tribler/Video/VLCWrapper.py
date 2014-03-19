@@ -326,7 +326,6 @@ class VLCWrapper:
         check_threading()
 
         self._logger.debug("VLCWrapper: exit")
-        if self.initialized and self.player:
+        if self.initialized:
             self.vlc.libvlc_release(self.player)
-            self.player = None
             self.initialized = False
