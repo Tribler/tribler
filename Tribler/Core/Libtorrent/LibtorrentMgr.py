@@ -1,3 +1,4 @@
+
 # Written by Egbert Bouman
 import os
 import time
@@ -119,7 +120,8 @@ class LibtorrentMgr:
         self.ltsession = None
 
         # Empty/remove metadata tmp-dir
-        rmtree(self.metadata_tmpdir)
+        if os.path.exists(self.metadata_tmpdir):
+            rmtree(self.metadata_tmpdir)
 
     def set_proxy_settings(self, ptype, server=None, auth=None):
         proxy_settings = lt.proxy_settings()
