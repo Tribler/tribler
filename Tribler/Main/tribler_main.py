@@ -917,7 +917,7 @@ class ABCApp():
         delete_status_holders()
 
         if self.frame:
-            self.frame.OnCloseWindow()
+            self.frame.Destroy()
             self.frame = None
 
         # Don't checkpoint, interferes with current way of saving Preferences,
