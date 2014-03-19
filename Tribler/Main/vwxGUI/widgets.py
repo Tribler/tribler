@@ -1,22 +1,19 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-import wx
-import os
 import sys
 import math
-
-from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
-
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY
+import wx
 from wx.lib.stattext import GenStaticText
 from wx.lib.colourutils import AdjustColour
 from wx.lib.wordwrap import wordwrap
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR, \
-    SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
+from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
+
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from wx.lib.embeddedimage import PyEmbeddedImage
+from Tribler.Main.vwxGUI import TRIBLER_RED, LIST_HIGHTLIGHT, \
+    GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY, \
+    DEFAULT_BACKGROUND, COMPLETED_COLOUR, SEEDING_COLOUR, DOWNLOADING_COLOUR, \
+    STOPPED_COLOUR
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 

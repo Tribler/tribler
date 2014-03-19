@@ -1,12 +1,9 @@
 # Written by Niels Zeilemaker
 import wx
 
-from wx.html import HtmlWindow
-from __init__ import LIST_RADIUS, LIST_HIGHTLIGHT
-from list_details import AbstractDetails
-
-from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, TextCtrl
-from Tribler.community.channel.community import ChannelCommunity
+from Tribler.Main.vwxGUI import LIST_RADIUS, LIST_HIGHTLIGHT
+from Tribler.Main.vwxGUI.list_details import AbstractDetails
+from Tribler.Main.vwxGUI.widgets import TextCtrl
 
 
 class ListFooter(wx.Panel):

@@ -2,9 +2,6 @@
 # see LICENSE.txt for license information
 
 import wx
-import sys
-import os
-import logging
 
 from Tribler.Video.VideoFrame import VideoBaseFrame
 from Tribler.Main.vwxGUI.EmbeddedPlayer import EmbeddedPlayerPanel
