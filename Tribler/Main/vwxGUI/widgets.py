@@ -366,7 +366,6 @@ class HorizontalGauge(wx.Control):
             self.SetMinSize((size.width * repeat, size.height))
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetMinSize(self, size):
         w, h = size
@@ -408,9 +407,6 @@ class HorizontalGauge(wx.Control):
         dc.SetClippingRegion(xpos, ypos, width * self.percentage, bitmapHeight)
         for i in range(self.repeat):
             dc.DrawBitmap(self.bitmap, xpos + (i * bitmapWidth), ypos, True)
-
-    def OnEraseBackground(self, event):
-        pass
 
 
 class EditText(wx.TextCtrl):
@@ -782,7 +778,6 @@ class SwarmHealth(wx.Panel):
         self.align = align
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetRatio(self, seeders, leechers):
         ratio = 0
@@ -874,9 +869,6 @@ class SwarmHealth(wx.Panel):
         dc.SetBrush(wx.TRANSPARENT_BRUSH)
         dc.DrawRectangle(xpos, 0, width, height)
 
-    def OnEraseBackground(self, event):
-        pass
-
 
 class ProgressBar(wx.Panel):
 
@@ -895,13 +887,9 @@ class ProgressBar(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
         self.completed = False
         self.prev_blocks = None
-
-    def OnEraseBackground(self, event):
-        pass  # Or None
 
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)
@@ -1005,7 +993,6 @@ class ActionButton(wx.Panel):
         self.handler = None
         self.SetBitmapLabel(bitmap, recreate=True)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnFocus)
 
@@ -1036,9 +1023,6 @@ class ActionButton(wx.Panel):
     def SetBitmapDisabled(self, bitmap):
         if bitmap:
             self.bitmaps[2] = bitmap
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, event):
         # Draw the background
@@ -1214,7 +1198,6 @@ class FancyPanel(wx.Panel):
         self.border_colour = self.border_highlight = None
         self.bitmap = None
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetBorderColour(self, colour, highlight=None):
         self.border_colour = colour
@@ -1245,9 +1228,6 @@ class FancyPanel(wx.Panel):
         if event.Entering() or event.Leaving():
             self.Refresh()
         event.Skip()
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, event):
         x, y, width, height = self.GetClientRect()
@@ -1315,7 +1295,6 @@ class MinMaxSlider(wx.Panel):
         self.SetSize((sum(self.text_spacers) + self.slider_size[0], -1))
         self.Reset()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
 
@@ -1409,9 +1388,6 @@ class MinMaxSlider(wx.Panel):
 
     def Format(self, i):
         return self.formatter(i)
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
@@ -1711,7 +1687,6 @@ class TagText(wx.Panel):
         w += 10
         self.SetMinSize((w, h))
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetValue(self, label):
         self.label = label
@@ -1723,9 +1698,6 @@ class TagText(wx.Panel):
     def SetBackgroundColour(self, colour):
         self.prnt_colour = colour
         self.Refresh()
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, event):
         # Draw the background
@@ -1764,7 +1736,6 @@ class TorrentStatus(wx.Panel):
         self.back_colour = back_colour
         self.prnt_colour = parent.GetBackgroundColour()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetMinSize(self, size):
         w, h = size
@@ -1835,9 +1806,6 @@ class TorrentStatus(wx.Panel):
         if self.value != None:
             return int(self.value * self.GetSize().width)
         return 0
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, event):
         # Draw the background
@@ -2000,16 +1968,12 @@ class StaticBitmaps(wx.Panel):
         self.Reset()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetPositions(self):
         width, height = self.GetSize()
         self.buttons = [wx.Rect(width - 27, height - 15, 14, 15),
                         wx.Rect(width - 14, height - 15, 14, 15)]
         self.pointer = wx.Rect(width - 26, 1, 25, 14)
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnMouse(self, event):
         if event.Entering() or event.Leaving():
@@ -2101,7 +2065,6 @@ class Graph(wx.Panel):
         self.SetMaxPoints(max_points)
         self.SetBackgroundColour(wx.WHITE)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
     def SetAxisLabels(self, x_label, y_label):
@@ -2137,9 +2100,6 @@ class Graph(wx.Panel):
         else:
             self.max_range = max(self.max_range, value)
         self.Refresh()
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, event):
         _, _, width, height = self.GetClientRect()
@@ -2235,7 +2195,6 @@ class VideoProgress(wx.Panel):
         self.error = ''
         self.SetValue(value)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetValue(self, value):
         self.value = value
@@ -2252,9 +2211,6 @@ class VideoProgress(wx.Panel):
     def SetBackgroundColour(self, colour):
         self.prnt_colour = colour
         self.Refresh()
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
@@ -2316,7 +2272,6 @@ class VideoSlider(wx.Panel):
         self.value = 0.0
         self.pieces = []
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
@@ -2366,9 +2321,6 @@ class VideoSlider(wx.Panel):
         if mx > self.slider_range[0] and mx < self.slider_range[1]:
             self.slider_position[0] = mx
             self.Refresh()
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, evt):
         # Draw the background
@@ -2451,7 +2403,6 @@ class VideoVolume(wx.Panel):
         self.dragging = False
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
@@ -2490,9 +2441,6 @@ class VideoVolume(wx.Panel):
     def SetValue(self, value):
         self.value = min(max(0.0, value), 1.0)
         self.Refresh()
-
-    def OnEraseBackground(self, event):
-        pass
 
     def OnPaint(self, event):
         # Draw the background
