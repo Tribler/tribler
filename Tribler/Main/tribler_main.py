@@ -918,7 +918,7 @@ class ABCApp():
 
         if self.frame:
             self.frame.Destroy()
-            del self.frame
+            self.frame = None
 
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py

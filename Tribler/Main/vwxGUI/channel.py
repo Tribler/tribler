@@ -27,7 +27,7 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Main.vwxGUI import CHANNEL_MAX_NON_FAVORITE, warnWxThread, \
     LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED, DEFAULT_BACKGROUND, \
     format_time, showError
-from Tribler.Main.vwxGUI.list import BaseManager, GenericSearchList, SizeList, List, XRCPanel
+from Tribler.Main.vwxGUI.list import BaseManager, GenericSearchList, SizeList, List
 from Tribler.Main.vwxGUI.list_body import ListBody
 from Tribler.Main.vwxGUI.list_footer import CommentFooter, PlaylistFooter, \
     ManageChannelFilesFooter, ManageChannelPlaylistFooter
@@ -983,7 +983,7 @@ class ManageChannelFilesManager(BaseManager):
             tdef = TorrentDef.load(torrentfilename)
             if 'fixtorrent' not in kwargs:
                 download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
-                #self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
+                # self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
             return self.AddTDef(tdef)
 
         except:
@@ -1142,11 +1142,13 @@ class ManageChannelPlaylistsManager(BaseManager):
                 self.do_or_schedule_refresh()
 
 
-class ManageChannel(XRCPanel, AbstractDetails):
+class ManageChannel(AbstractDetails):
 
-    def _PostInit(self):
+    def __init__(self, parent):
+        AbstractDetails.__init__(self, parent)
+        self.SetForegroundColour(parent.GetForegroundColour())
+
         self.channel = None
-
         self.rss_url = None
 
         self.guiutility = GUIUtility.getInstance()
@@ -1568,7 +1570,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 if dlg.ShowModal() == wx.ID_YES:
                     self.Save()
 
-        XRCPanel.Show(self, show)
+        AbstractDetails.Show(self, show)
 
     def Save(self, event=None):
         if self.name.GetValue():

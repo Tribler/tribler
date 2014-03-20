@@ -8,7 +8,7 @@ from Tribler.Main.vwxGUI.widgets import TextCtrl
 
 class ListFooter(wx.Panel):
 
-    def __init__(self, parent, radius=0, spacers = [0, 0]):
+    def __init__(self, parent, radius=0, spacers=[0, 0]):
         wx.Panel.__init__(self, parent)
         self.SetForegroundColour(parent.GetForegroundColour())
 
@@ -66,7 +66,7 @@ class ListFooter(wx.Panel):
         dc.SetPen(wx.TRANSPARENT_PEN)
         dc.SetBrush(self.background)
         if h < 2 * LIST_RADIUS:
-            dc.DrawRoundedRectangle(0, h - 2 *self.radius, w, 2*self.radius, self.radius)
+            dc.DrawRoundedRectangle(0, h - 2 * self.radius, w, 2 * self.radius, self.radius)
         else:
             dc.DrawRoundedRectangle(0, 0, w, h, self.radius)
         dc.DrawRectangle(0, 0, w, h - self.radius)
@@ -133,7 +133,7 @@ class ManageChannelPlaylistFooter(ListFooter):
         self.addnew.Show(canDelete)
 
 
-class CommentFooter(ListFooter, AbstractDetails):
+class CommentFooter(ListFooter):
 
     def __init__(self, parent, createnew, quickPost, horizontal):
         self.quickPost = quickPost

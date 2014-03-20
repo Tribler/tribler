@@ -21,15 +21,15 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.list_header import DetailHeader
 from Tribler.Main.vwxGUI.list_footer import ListFooter
-from Tribler.Main.vwxGUI.list import XRCPanel
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, \
     FancyPanel, LinkStaticText, LinkText
 
 
-class Home(XRCPanel):
+class Home(wx.Panel):
 
-    def _PostInit(self):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
         self.guiutility = GUIUtility.getInstance()
 
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -48,7 +48,7 @@ class Home(XRCPanel):
         if sys.platform == 'darwin':  # mac
             self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         else:
-            self.searchBox = TextCtrlAutoComplete(self, entrycallback=self.parent.top_bg.complete, selectcallback=self.parent.top_bg.OnAutoComplete)
+            self.searchBox = TextCtrlAutoComplete(self, entrycallback=parent.top_bg.complete, selectcallback=parent.top_bg.OnAutoComplete)
 
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
@@ -133,15 +133,14 @@ class Home(XRCPanel):
         self.searchBox.Clear()
 
     def SearchFocus(self):
-        if self.isReady:
-            self.searchBox.SetFocus()
-            self.searchBox.SelectAll()
+        self.searchBox.SetFocus()
+        self.searchBox.SelectAll()
 
 
-class Stats(XRCPanel):
+class Stats(wx.Panel):
 
-    def __init__(self, parent=None):
-        XRCPanel.__init__(self, parent)
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -299,7 +298,7 @@ class Stats(XRCPanel):
             if not self.isReady:
                 self._DoInit()
 
-        XRCPanel.Show(self, show)
+        wx.Panel.Show(self, show)
 
 
 class HomePanel(wx.Panel):

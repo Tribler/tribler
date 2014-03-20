@@ -438,43 +438,6 @@ class ChannelSearchManager(BaseManager):
         self.channelsearch_manager.do_vote_cid(cid, 2)
 
 
-class XRCPanel(wx.Panel):
-
-    def __init__(self, parent=None):
-        self.parent = parent
-        self.isReady = False
-
-        if parent:
-            wx.Panel.__init__(self, parent)
-            self.SetForegroundColour(parent.GetForegroundColour())
-            self._PostInit()
-            self.isReady = True
-        else:
-            pre = wx.PrePanel()
-            # the Create step is done by XRC.
-            self.PostCreate(pre)
-            if sys.platform == 'linux2':
-                self.Bind(wx.EVT_SIZE, self.OnCreate)
-            else:
-                self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-
-    def OnCreate(self, event):
-        if sys.platform == 'linux2':
-            self.Unbind(wx.EVT_SIZE)
-        else:
-            self.Unbind(wx.EVT_WINDOW_CREATE)
-
-        def doPost():
-            self._PostInit()
-            self.isReady = True
-
-        wx.CallAfter(doPost)
-        event.Skip()
-
-    def _PostInit(self):
-        pass
-
-
 class List(wx.BoxSizer):
 
     def __init__(self, columns, background, spacers=[0, 0], singleSelect=False, showChange=False, borders=True, parent=None):
