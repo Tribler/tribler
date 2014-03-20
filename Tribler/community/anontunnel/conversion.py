@@ -89,8 +89,7 @@ class CustomProxyConversion():
         return message_type, self.decode_functions[message_type](
             data, offset + 1)
 
-    @staticmethod
-    def get_circuit_and_data(message_buffer, offset=0):
+    def get_circuit_and_data(self, message_buffer, offset=0):
         """
         Get the circuit id and the payload byte string from a byte string
         @param str message_buffer: the byte string to parse
@@ -102,8 +101,7 @@ class CustomProxyConversion():
 
         return circuit_id, message_buffer[offset:]
 
-    @staticmethod
-    def get_type(data):
+    def get_type(self, data):
         """
         Gets the type from a raw byte string
 
@@ -112,8 +110,7 @@ class CustomProxyConversion():
         """
         return data[0]
 
-    @staticmethod
-    def add_circuit(data, new_id):
+    def add_circuit(self, data, new_id):
         """
         Prepends the circuit id to the raw byte string
         @param str data: the raw byte string to prepend the circuit id to
@@ -122,23 +119,21 @@ class CustomProxyConversion():
         """
         return struct.pack("!L", new_id) + data
 
-    @staticmethod
-    def __encode_extend(extend_message):
+    def __encode_extend(self, extend_message):
         host = extend_message.host if extend_message.host else ''
         port = extend_message.port if extend_message.port else 0
 
         key = extend_message.key
 
-        data = struct.pack("!LL", len(host), port) + host + key
+        data = struct.pack("!LH", len(host), port) + host + key
         return data
 
-    @staticmethod
-    def __decode_extend(message_buffer, offset=0):
-        if len(message_buffer) < offset + 8:
+    def __decode_extend(self, message_buffer, offset=0):
+        if len(message_buffer) < offset + 6:
             raise ValueError(
                 "Cannot unpack HostLength/Port, insufficient packet size")
-        host_length, port = struct.unpack_from("!LL", message_buffer, offset)
-        offset += 8
+        host_length, port = struct.unpack_from("!LH", message_buffer, offset)
+        offset += 6
 
         if len(message_buffer) < offset + host_length:
             raise ValueError("Cannot unpack Host, insufficient packet size")
@@ -152,8 +147,7 @@ class CustomProxyConversion():
         message.key = key
         return message
 
-    @staticmethod
-    def __encode_data(data_message):
+    def __encode_data(self, data_message):
         if data_message.destination is None:
             (host, port) = ("0.0.0.0", 0)
         else:
@@ -165,15 +159,14 @@ class CustomProxyConversion():
             origin = data_message.origin
 
         return struct.pack(
-            "!LLLLL", len(host), port, len(origin[0]),
+            "!LHLLL", len(host), port, len(origin[0]),
             origin[1], len(data_message.data)
         ) + host + origin[0] + data_message.data
 
-    @staticmethod
-    def __decode_data(message_buffer, offset=0):
+    def __decode_data(self, message_buffer, offset=0):
         host_length, port, origin_host_length, origin_port, payload_length = \
-            struct.unpack_from("!LLLLL", message_buffer, offset)
-        offset += 20
+            struct.unpack_from("!LHLLL", message_buffer, offset)
+        offset += 18
 
         if len(message_buffer) < offset + host_length:
             raise ValueError("Cannot unpack Host, insufficient packet size")
@@ -206,14 +199,12 @@ class CustomProxyConversion():
 
         return DataMessage(destination, payload, origin)
 
-    @staticmethod
-    def __encode_created(message):
+    def __encode_created(self, message):
         #key = long_to_bytes(messages.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
         return struct.pack("!L", len(message.key)) + message.key + \
                message.candidate_list
 
-    @staticmethod
-    def __decode_created(message_buffer, offset=0):
+    def __decode_created(self, message_buffer, offset=0):
         key_length, = struct.unpack_from("!L",
                                          message_buffer[offset:offset + 4])
         offset += 4
@@ -225,13 +216,11 @@ class CustomProxyConversion():
         message.key = key
         return message
 
-    @staticmethod
-    def __encode_extended(message):
+    def __encode_extended(self, message):
         return struct.pack("!L", len(message.key)) + message.key + \
                message.candidate_list
 
-    @staticmethod
-    def __decode_extended(message_buffer, offset=0):
+    def __decode_extended(self, message_buffer, offset=0):
         key_length, = struct.unpack_from("!L", message_buffer[offset:])
         offset += 4
         key = message_buffer[offset:offset+key_length]
@@ -241,14 +230,12 @@ class CustomProxyConversion():
 
         return ExtendedMessage(key, encrypted_candidate_list)
 
-    @staticmethod
-    def __encode_create(create_message):
+    def __encode_create(self, create_message):
         """
         :type create_message : CreateMessage
         """
         return create_message.key
 
-    @staticmethod
-    def __decode_create(message_buffer, offset=0):
+    def __decode_create(self, message_buffer, offset=0):
         key = message_buffer[offset:]
         return CreateMessage(key)
