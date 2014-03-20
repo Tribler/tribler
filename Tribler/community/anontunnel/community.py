@@ -13,6 +13,7 @@ from collections import defaultdict
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
+from Tribler.community.anontunnel.test import LibtorrentTest
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
@@ -199,8 +200,8 @@ class ProxyCommunity(Community):
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.tribler_session = tribler_session
             self.notifier = Notifier.getInstance()
-
-            tribler_session.lm.rawserver.add_task(self.setup_anon_test)
+            self.observers.append(LibtorrentTest(self, self.tribler_session))
+            
         else:
             self.notifier = None
 
@@ -1089,105 +1090,3 @@ class ProxyCommunity(Community):
 
             return result
 
-    def setup_anon_test(self):
-        import os
-        import glob
-        from stats import StatsCollector
-        import wx
-        from Tribler.Core.TorrentDef import TorrentDef
-        from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
-        from Tribler.Main.globals import DefaultDownloadStartupConfig
-        from Tribler.Main.vwxGUI import forceWxThread
-
-
-        root_hash = "798b2909c9d737db0107df6b343d7802f904d115"
-        hosts = [("devristo.com", 21000), ("devristo.com", 21001), ("devristo.com", 21002), ("devristo.com", 21003)]
-        hosts = [("95.211.198.147", 51413), ("95.211.198.142", 51413), ("95.211.198.140", 51413), ("95.211.198.141", 51413)]
-
-        def _mark_test_completed():
-            filename = self.tribler_session.get_state_dir() + "/anon_test.txt"
-            handle = open(filename, "w")
-
-            try:
-                handle.write("Delete this file to redo the anonymous download test")
-            finally:
-                handle.close()
-
-        def _has_completed_before():
-            return False # os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
-
-        @forceWxThread
-        def thank_you(file_size, start_time, end_time):
-            avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
-            wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
-
-        def state_call(download):
-            stats_collector = StatsCollector(self)
-
-            def _callback(ds):
-                if ds.get_status() == DLSTATUS_DOWNLOADING:
-                    if not _callback.download_started_at:
-                        _callback.download_started_at = time.time()
-                        stats_collector.start()
-
-                    stats_collector.download_stats = {
-                        'size': ds.get_progress() * ds.get_length(),
-                        'download_time': time.time() - _callback.download_started_at
-                    }
-
-                elif not _callback.download_finished_at and ds.get_status() == DLSTATUS_SEEDING:
-                    _callback.download_finished_at = time.time()
-                    stats_collector.download_stats = {
-                        'size': 50 * 1024 ** 2,
-                        'download_time': _callback.download_finished_at - _callback.download_started_at
-                    }
-
-                    stats_collector.share_stats()
-                    stats_collector.stop()
-
-                    self.tribler_session.lm.rawserver.add_task(lambda: self.tribler_session.remove_download(download, True, True), delay=1.0)
-
-                    _mark_test_completed()
-
-                    thank_you(50 * 1024 ** 2, _callback.download_started_at, _callback.download_finished_at)
-                else:
-                    _callback.peer_added = False
-                return 1.0, False
-
-            _callback.download_finished_at = None
-            _callback.download_started_at = None
-            _callback.peer_added = False
-
-            return _callback
-
-        if _has_completed_before():
-            self._logger.warning("Skipping Anon Test since it has been run before")
-            return False
-
-        destination_dir = self.tribler_session.get_state_dir()
-        self.tribler_session.set_swift_meta_dir(destination_dir + "/swift_meta/")
-        try:
-            download = destination_dir + "/" + root_hash
-            for file in glob.glob(download + "*"):
-                os.remove(file)
-
-            meta = self.tribler_session.get_swift_meta_dir() + "/" + root_hash
-
-            for file in glob.glob(meta + "*"):
-                os.remove(file)
-        except:
-            self._logger.exception("Exception while deleting previously downloaded test")
-
-        tdef = TorrentDef.load("public.torrent")
-        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-        dscfg = defaultDLConfig.copy()
-        ''' :type : DefaultDownloadStartupConfig '''
-
-        dscfg.set_anon_mode(True)
-        dscfg.set_dest_dir(destination_dir)
-
-        result = self.tribler_session.start_download(tdef, dscfg)
-        result.set_state_callback(state_call(result), delay=1)
-
-        for peer in hosts:
-            result.add_peer(peer)
