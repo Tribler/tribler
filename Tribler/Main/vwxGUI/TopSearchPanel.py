@@ -489,6 +489,6 @@ class TopSearchPanel(FancyPanel):
                 if dlg.newName.IsChanged():
                     dlg2 = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                     if dlg2.ShowModal() == wx.ID_YES:
-                        self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':self.newName.GetValue()})
+                        self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':dlg.newName.GetValue()})
                     dlg2.Destroy()
             dlg.Destroy()

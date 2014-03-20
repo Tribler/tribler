@@ -109,7 +109,6 @@ class VideoServer:
             download.set_mode(DLMODE_VOD)
             download.restart()
 
-        mimetype = mimetypes.guess_type(filename)[0]
         piecelen = 2 ** 16 if download.get_def().get_def_type() == "swift" else download.get_def().get_piece_length()
         blocksize = piecelen
 
@@ -125,7 +124,9 @@ class VideoServer:
 
         print >> sys.stderr, "VideoServer: requested range", firstbyte, "-", firstbyte + nbytes2send
 
-        cherrypy.response.headers['Content-Type'] = mimetype
+        mimetype = mimetypes.guess_type(filename)[0]
+        if mimetype:
+            cherrypy.response.headers['Content-Type'] = mimetype
         cherrypy.response.headers['Accept-Ranges'] = 'bytes'
 
         if length is not None:

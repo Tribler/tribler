@@ -1,23 +1,26 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, LinkText, BetterText as StaticText, _set_font
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+import wx
+import sys
+import logging
+
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler, UserEventLogDBHandler
 
-from __init__ import SEPARATOR_GREY, FILTER_GREY
-import sys
-import wx
-import os
-import logging
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
-from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
-from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.community.channel.community import ChannelCommunity
+
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.vwxGUI.list_item import ColumnsManager, TorrentListItem, ChannelListItem, LibraryListItem, ChannelListItemNoButton, PlaylistItemNoButton, PlaylistItem
+from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
+from Tribler.Main.vwxGUI import SEPARATOR_GREY, FILTER_GREY, warnWxThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Main.vwxGUI.list_item import ColumnsManager, TorrentListItem, \
+    ChannelListItem, LibraryListItem, ChannelListItemNoButton, \
+    PlaylistItemNoButton, PlaylistItem
+from Tribler.Main.vwxGUI.list_body import FixedListBody
+from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, LinkText, \
+    BetterText as StaticText, _set_font
 
 
 class ListHeaderIcon:

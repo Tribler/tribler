@@ -8,19 +8,24 @@
 import wx
 import time
 import logging
-
 from threading import currentThread
 from traceback import print_exc
+
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, \
+    DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING
+from Tribler.Core.CacheDB.Notifier import Notifier
+
+from Tribler.Main.vwxGUI import forceWxThread, warnWxThread, \
+    SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, \
+    ActionButton, TransparentText, VideoVolume, VideoSlider
 
 from Tribler.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
     MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
 from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING
-from Tribler.Core.CacheDB.Notifier import Notifier
+
 
 class EmbeddedPlayerPanel(wx.Panel):
     """
@@ -30,7 +35,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     VIDEO_SIZE = (320, 240)
 
-    def __init__(self, parent, utility, vlcwrap, bg):
+    def __init__(self, parent, utility, vlcwrap, bg_color):
         wx.Panel.__init__(self, parent, -1)
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -41,7 +46,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.guiutility = utility.guiUtility
         self.videoplayer = VideoPlayer.getInstance()
         self.parent = parent
-        self.SetBackgroundColour(DEFAULT_BACKGROUND)
+        self.SetBackgroundColour(bg_color)
 
         self.volume = vlcwrap.sound_get_volume() if vlcwrap else 0.48
         self.oldvolume = vlcwrap.sound_get_volume() if vlcwrap else  0.48
@@ -374,11 +379,6 @@ class EmbeddedPlayerPanel(wx.Panel):
                     self.vlcwrap.set_media_position(cur_time)
                 wx.CallLater(500, doPause, cur_time)
 
-    def Save(self, evt=None):
-        # save media content in different directory
-        if self.save_button.isToggled():
-            self.save_callback()
-
     def SetVolume(self, volume, evt=None):
         self._logger.debug("embedplay: SetVolume: %s", self.volume)
 
@@ -508,7 +508,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 class VLCWindow(wx.Panel):
     """ A wx.Window to be passed to the vlc.MediaControl to draw the video in (normally). """
 
-    def __init__(self, parent, vlcwrap, position=(300, 300)):
+    def __init__(self, parent, vlcwrap):
         wx.Panel.__init__(self, parent)
         self.parent = parent
         self.SetBackgroundColour(wx.BLACK)
@@ -539,7 +539,7 @@ class VLCWindow(wx.Panel):
 class LogoWindow(wx.Panel):
     """ A wx.Window that can display the buffering progress when VLC is not playing. """
 
-    def __init__(self, parent, position=(300, 300)):
+    def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.parent = parent
         self.SetBackgroundColour(wx.BLACK)
