@@ -23,7 +23,16 @@ class CircuitPool(object, TunnelObserver):
         self.allocated_circuits = set()
         self.name = name
 
+        self.observers = []
         self.proxy.observers.append(self)
+
+    def __notify(self, method, *args, **kwargs):
+        for observer in self.observers:
+            try:
+                func = getattr(observer, method)
+                func(*args, **kwargs)
+            except AttributeError:
+                pass
 
     def on_break_circuit(self, circuit):
         if circuit in self.circuits:
@@ -49,6 +58,7 @@ class CircuitPool(object, TunnelObserver):
 
         with self.lock:
             self.circuits.add(circuit)
+            self.__notify('on_circuit_added', self, circuit)
 
     def deallocate(self, circuit):
         self._logger.info("Deallocate circuit %d from pool '%s'", circuit.circuit_id, self.name)

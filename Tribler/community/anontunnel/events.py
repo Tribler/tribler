@@ -109,3 +109,7 @@ class TunnelObserver:
         Called when the ProxyCommunity is being unloaded
         """
         pass
+
+class CircuitPoolObserver():
+    def on_circuit_added(self, pool, circuit):
+        pass

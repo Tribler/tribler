@@ -1,10 +1,12 @@
 import logging
-# from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.community.anontunnel.CircuitPool import NotEnoughCircuitsException
 from Tribler.community.anontunnel.Socks5 import conversion
 from Tribler.community.anontunnel.Socks5.connection import \
     Socks5ConnectionObserver
-from Tribler.community.anontunnel.events import TunnelObserver
+from Tribler.community.anontunnel.events import TunnelObserver, \
+    CircuitPoolObserver
+from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY
 from Tribler.community.anontunnel.selectionstrategies import RoundRobin
 
 
@@ -66,19 +68,65 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         self._logger.error("Closing session, reason = {0}".format(reason))
         self.connection.close()
 
-    def on_break_circuit(self, circuit):
-        if circuit in self.destinations.values(): #{circuit for dest, circuit in self.destinations.iteritems()}:
-            self._logger.error(
-                "A circuit has died, to enforce 3-way swift handshake "
-                "we are signalling swift by closing TCP connection")
-            self.close_session()
+    def on_break_circuit(self, broken_circuit):
+        """
+        When a circuit breaks and it affects our operation we should re-add the
+        peers when a new circuit is available to reinitiate the 3-way handshake
+
+        @param Circuit broken_circuit: the circuit that has been broken
+        @return:
+        """
+        affected_destinations = set(destination
+                                    for destination, tunnel_circuit
+                                    in self.destinations.iteritems()
+                                    if tunnel_circuit == broken_circuit)
+
+        # We are not affected by the circuit that has been broken, continue
+        # without any changes
+        if not affected_destinations:
+            return
+
+        mgr = LibtorrentMgr.getInstance()
+        anon_session = mgr.ltsession_anon
+        ''' :type : libtorrent.session '''
+
+        torrents = (download
+                    for infohash, (download, session)
+                    in mgr.torrents.items()
+                    if session == anon_session)
+        ''' :type : list[LibtorrentDownloadImpl] '''
+
+        def _peer_add():
+            for destination in affected_destinations:
+                self._logger.error("Deleting peer {0} from destination list")
+                del self.destinations[destination]
+
+            for torrent in torrents:
+                for peer in affected_destinations:
+                    self._logger.error("Readding peer {0}, note that every peer is added to every torrent! (TODO FIX)", peer)
+                    torrent.add_peer(peer)
+
+        # Observer that waits for a new circuit before re-adding the peers
+        # is used only when there are no other circuits left
+        class _peer_adder(CircuitPoolObserver):
+            def on_circuit_added(self, pool, circuit):
+                _peer_add()
+                pool.observers.remove(self)
+
+        # If there are any other circuits we will just map them to any
+        # new circuit
+        if [circuit for circuit in self.circuit_pool.available_circuits if circuit != broken_circuit]:
+            _peer_add()
+        else:
+            self._logger.warning("Waiting for new circuits before re-adding peers")
+            self.circuit_pool.observers.append(_peer_adder())
 
     def _select(self, destination):
         if not destination in self.destinations:
             selected_circuit = self.selection_strategy.select(self.circuit_pool.available_circuits)
             self.destinations[destination] = selected_circuit
 
-            self._logger.error("SELECT circuit {0} for {1}".format(
+            self._logger.warning("SELECT circuit {0} for {1}".format(
                 self.destinations[destination].circuit_id,
                 destination
             ))
@@ -97,13 +145,17 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
             request = conversion.decode_udp_packet(packet)
 
             circuit = self._select(request.destination)
-            self._logger.info(
-                "Relaying UDP packets from {0} to {1}".format(
-                    self.remote_udp_address, request.destination
-                )
-            )
 
-            circuit.tunnel_data(request.destination, request.payload)
+            if circuit.state != CIRCUIT_STATE_READY:
+                self._logger.error("Circuit is not ready, dropping {0} bytes to {1}", len(request.payload), request.destination)
+            else:
+                self._logger.info(
+                    "Relaying UDP packets from {0} to {1}".format(
+                        self.remote_udp_address, request.destination
+                    )
+                )
+
+                circuit.tunnel_data(request.destination, request.payload)
 
     def on_incoming_from_tunnel(self, community, circuit, origin, data):
         if circuit not in self.circuit_pool.circuits:
