@@ -182,7 +182,7 @@ class VLCWrapper:
             self._set_xwindow(reset=True)
 
     def _set_xwindow(self, reset=False):
-        xid = None if reset else self.window.GetHandle()
+        xid = 0 if reset else self.window.GetHandle()
         self._logger.debug("VLCWrapper: set_window, XID=%s", xid)
 
         if self.windowpassedtovlc == xid:
