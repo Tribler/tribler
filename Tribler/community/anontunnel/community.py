@@ -12,6 +12,7 @@ from collections import defaultdict
 # Tribler and Dispersy imports
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache
+from Tribler.community.anontunnel.candidate import CandidateCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
@@ -73,6 +74,28 @@ class ProxyCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
+        # generated: Thu Mar 20 15:38:11 2014
+        # curve: NID_sect571r1
+        # len: 571 bits ~ 144 bytes signature
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000402c9eab609a747166a75848daf0b1545419caab428cfb9efa53412feb1f236e7e9df7b91f82a70df92b4afca83989f6c9a7d11f29c55b2b508f1cc2df69114c5e3d0b46739d73ebc01b4fbc35ff09e0c3ec4ec28e1da4df825814e120002c5182aa184b4314a2db1f3e31f994511ce19dfb6577d5c29a8d89c0011073ff144b53936d78a0d6d6680891c421ebec328c7
+        # prv: 241 3081ee02010104480264eed709e728f3f527f0bbcc6f112734fdf27c03637b46559b8bfcb1c2a8f3cd5b319a45d49f75020d153192433232b4b68667d3823aea09dd9ebf093b7409d937b77850953f1ba00706052b81040027a18195038192000402c9eab609a747166a75848daf0b1545419caab428cfb9efa53412feb1f236e7e9df7b91f82a70df92b4afca83989f6c9a7d11f29c55b2b508f1cc2df69114c5e3d0b46739d73ebc01b4fbc35ff09e0c3ec4ec28e1da4df825814e120002c5182aa184b4314a2db1f3e31f994511ce19dfb6577d5c29a8d89c0011073ff144b53936d78a0d6d6680891c421ebec328c7
+        # pub-sha1 1374beea66b7d80962caca2286b6e45777480bfb
+        # prv-sha1 7796a73d9f1f0011be8d84ad9ee7962e6ebce56b
+        # -----BEGIN PUBLIC KEY-----
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQCyeq2CadHFmp1hI2vCxVFQZyqtCjP
+        # ue+lNBL+sfI25+nfe5H4KnDfkrSvyoOYn2yafRHynFWytQjxzC32kRTF49C0ZznX
+        # PrwBtPvDX/CeDD7E7Cjh2k34JYFOEgACxRgqoYS0MUotsfPjH5lFEc4Z37ZXfVwp
+        # qNicABEHP/FEtTk214oNbWaAiRxCHr7DKMc=
+        # -----END PUBLIC KEY-----
+        # -----BEGIN EC PRIVATE KEY-----
+        # MIHuAgEBBEgCZO7XCeco8/Un8LvMbxEnNP3yfANje0ZVm4v8scKo881bMZpF1J91
+        # Ag0VMZJDMjK0toZn04I66gndnr8JO3QJ2Te3eFCVPxugBwYFK4EEACehgZUDgZIA
+        # BALJ6rYJp0cWanWEja8LFUVBnKq0KM+576U0Ev6x8jbn6d97kfgqcN+StK/Kg5if
+        # bJp9EfKcVbK1CPHMLfaRFMXj0LRnOdc+vAG0+8Nf8J4MPsTsKOHaTfglgU4SAALF
+        # GCqhhLQxSi2x8+MfmUURzhnftld9XCmo2JwAEQc/8US1OTbXig1tZoCJHEIevsMo
+        # xw==
+        # -----END EC PRIVATE KEY-----
+        #
         # generated: Wed Sep 18 22:47:22 2013
         # curve: high <<< NID_sect571r1 >>>
         # len: 571 bits ~ 144 bytes signature
@@ -89,13 +112,7 @@ class ProxyCommunity(Community):
         # jHMFkPhQq5McVzLVqdVzp/4fncipIBvDy2OrGCyeSF0I/0rClPCeFtOSWTCUb4fp
         # HvnEC7tBifnFr2aW9X7sO48vd+erVv2NbWM=
         #-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004" \
-                     "0460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7" \
-                     "b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de" \
-                     "57bb1ac5dec351d172fe692555898ac944b68c730590f850ab93" \
-                     "1c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff" \
-                     "4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696" \
-                     "f57eec3b8f2f77e7ab56fd8d6d63".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000402c9eab609a747166a75848daf0b1545419caab428cfb9efa53412feb1f236e7e9df7b91f82a70df92b4afca83989f6c9a7d11f29c55b2b508f1cc2df69114c5e3d0b46739d73ebc01b4fbc35ff09e0c3ec4ec28e1da4df825814e120002c5182aa184b4314a2db1f3e31f994511ce19dfb6577d5c29a8d89c0011073ff144b53936d78a0d6d6680891c421ebec328c7".decode("HEX")
 
         master = dispersy.get_member(master_key)
         return [master]
@@ -132,9 +149,7 @@ class ProxyCommunity(Community):
         @type master_member: Tribler.dispersy.member.Member
         @type tribler_session : Tribler.Core.Session.Session
         """
-        self._original_on_introduction_request = None
-        self._original_on_introduction_response = None
-        Community.__init__(self, dispersy, master_member)
+        super(ProxyCommunity, self).__init__(dispersy, master_member)
 
         self.lock = threading.RLock()
         self._logger = logging.getLogger(__name__)
@@ -166,8 +181,6 @@ class ProxyCommunity(Community):
         self.waiting_for = {}
         """ :type :  dict[((str, int),int), bool] """
 
-        self._heartbeat_candidates = {}
-
         self.key = self.my_member.private_key
 
         # Map destination address to the circuit to be used
@@ -182,6 +195,9 @@ class ProxyCommunity(Community):
 
         # Enable Crypto
         self.settings.crypto.enable(self)
+
+        # Our candidate cache
+        self.candidate_cache = CandidateCache(self)
 
         # Enable global counters
         from Tribler.community.anontunnel.stats import StatsCollector
@@ -294,64 +310,10 @@ class ProxyCommunity(Community):
             self._on_stats
         )]
 
-    def _initialize_meta_messages(self):
-        super(ProxyCommunity, self)._initialize_meta_messages()
-
-        self._original_on_introduction_request = None
-        self._original_on_introduction_response = None
-
-        # replace the callbacks for the dispersy-introduction-request and
-        # dispersy-introduction-response messages
-        meta = self._meta_messages[u"dispersy-introduction-request"]
-        self._original_on_introduction_request = meta.handle_callback
-        self._meta_messages[meta.name] = Message(
-            meta.community, meta.name, meta.authentication,
-            meta.resolution, meta.distribution, meta.destination,
-            meta.payload, meta.check_callback, self.__on_introduction_request,
-            meta.undo_callback,
-            meta.batch
-        )
-
-        meta = self._meta_messages[u"dispersy-introduction-response"]
-        self._original_on_introduction_response = meta.handle_callback
-        self._meta_messages[meta.name] = Message(
-            meta.community, meta.name, meta.authentication,
-            meta.resolution, meta.distribution, meta.destination,
-            meta.payload, meta.check_callback, self.__on_introduction_response,
-            meta.undo_callback, meta.batch
-        )
-
-        assert self._original_on_introduction_request
-        assert self._original_on_introduction_response
-
-    def __on_introduction_request(self, messages):
-        try:
-            return self._original_on_introduction_request(messages)
-        finally:
-            for message in messages:
-                self.__on_member_heartbeat(message, message.candidate)
-
-    def __on_introduction_response(self, messages):
-        try:
-            return self._original_on_introduction_response(messages)
-        finally:
-            for message in messages:
-                self.__on_member_heartbeat(message, message.candidate)
-
     def _on_stats(self, messages):
         for message in messages:
             self.__notify("on_tunnel_stats",
                           self, message.candidate, message.payload.stats)
-
-    def _get_cached_candidate(self, sock_addr):
-        if sock_addr in self._heartbeat_candidates:
-            return self._heartbeat_candidates[sock_addr]
-        else:
-            circuit_candidate = next(
-                (c.candidate for c in self.circuits.values() if
-                 c.goal_hops > 0 and c.candidate.sock_addr == sock_addr),
-                None)
-            return circuit_candidate
 
     def send_stats(self, stats):
         """
@@ -490,11 +452,17 @@ class ProxyCommunity(Community):
             if is_relay:
                 result = self.__relay(circuit_id, data, relay_key, sock_addr)
             else:
-                candidate = self._get_cached_candidate(sock_addr)
-                if not candidate:
-                    self._logger.error("Unknown candidate at %s, drop!", sock_addr)
+                if sock_addr in self.candidate_cache.ip_to_candidate:
+                    candidate = self.candidate_cache.ip_to_candidate[sock_addr]
                 else:
+                    candidate = self.get_candidate(sock_addr)
+                    if isinstance(candidate, WalkCandidate):
+                        self.candidate_cache.cache(candidate)
+
+                if candidate:
                     result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
+                else:
+                    self._logger.error("Unknown candidate at %s, drop!", sock_addr)
         except:
             result = False
             self._logger.exception(
@@ -523,6 +491,7 @@ class ProxyCommunity(Community):
         """
         try:
             circuit_id = self._generate_circuit_id(first_hop.sock_addr)
+            self.candidate_cache.cache(first_hop, times_out=False)
 
             cache = self._request_cache.add(
                 CircuitRequestCache(self, circuit_id))
@@ -574,6 +543,7 @@ class ProxyCommunity(Community):
 
             circuit.destroy()
             del self.circuits[circuit_id]
+            # self.candidate_cache.invalidate_candidate(circuit.candidate)
             self.__notify("on_break_circuit", circuit)
 
             return True
@@ -622,6 +592,10 @@ class ProxyCommunity(Community):
                                   None)
             if not candidate_temp:
                 break
+
+            # Cache this candidate so that we have its IP in the future
+            self.candidate_cache.cache(candidate_temp)
+
             # first member of candidate contains elgamal key
             ec_key = iter(candidate_temp.get_members()).next()._ec
 
@@ -636,6 +610,8 @@ class ProxyCommunity(Community):
 
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED,
                                  candidate.sock_addr, circuit_id)
+
+        self.candidate_cache.cache(candidate, times_out=False)
 
         return self.send_message(
             destination=candidate,
@@ -832,7 +808,7 @@ class ProxyCommunity(Community):
         self.directions[to_key] = ORIGINATOR
         self.directions[relay_key] = ENDPOINT
 
-        extend_candidate = self._get_cached_candidate(extend_with_addr)
+        extend_candidate = self.candidate_cache.ip_to_candidate[extend_with_addr]
         return self.send_message(extend_candidate, new_circuit_id,
                                  MESSAGE_CREATE, CreateMessage(key))
 
@@ -911,16 +887,6 @@ class ProxyCommunity(Community):
             return True
         return False
 
-    def __on_member_heartbeat(self, message, candidate):
-        # got introduction_request or introduction_response from candidate
-        # not necessarily a new candidate
-        if not isinstance(candidate, WalkCandidate) or \
-                isinstance(candidate, BootstrapCandidate):
-            return
-
-        candidate._associations.clear()
-        candidate.associate(message.authentication.member)
-        self._heartbeat_candidates[candidate.sock_addr] = candidate
 
     def _generate_circuit_id(self, neighbour=None):
         circuit_id = random.randint(1, 255000)
