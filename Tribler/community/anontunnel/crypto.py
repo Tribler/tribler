@@ -361,8 +361,9 @@ class DefaultCrypto(Crypto):
         return_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
                          DIFFIE_HELLMAN_MODULUS)
         message.key = long_to_bytes(return_key)
-        message.candidate_list = self._encrypt_candidate_list(
-            self.session_keys[relay_key], message.candidate_list)
+
+        encoded_dict = encoding.encode(message.candidate_list)
+        message.candidate_list = aes_encrypt_str(self.session_keys[relay_key], encoded_dict)
 
         return message
 
@@ -417,8 +418,9 @@ class DefaultCrypto(Crypto):
         key = m.digest()[0:16]
         unverified_hop.session_key = key
         try:
-            message.candidate_list = self._decrypt_candidate_list(
-            unverified_hop.session_key, message.candidate_list)
+            encoded_dict = aes_decrypt_str(unverified_hop.session_key, message.candidate_list)
+            _, cand_dict = encoding.decode(encoded_dict)
+            message.candidate_list = cand_dict
         except:
             reason = "Can't decrypt candidate list!"
             self._logger.exception(reason)
@@ -599,26 +601,4 @@ class DefaultCrypto(Crypto):
                 self._logger.warning("Cannot decrypt packet, should be an initial packet encrypted with our public Elgamal key");
                 return None
 
-    def _encrypt_candidate_list(self, key, cand_dict):
-        """
-        This method encrypts a candidate list with the given public elgamal key
 
-        @param EC_Pub key: Elliptic Curve Elgamal key
-        @param dict cand_dict: Dict with candidates
-        @return string: encoded version of the candidate dict
-        """
-        encoded_dict = encoding.encode(cand_dict)
-        return aes_encrypt_str(key, encoded_dict)
-
-    def _decrypt_candidate_list(self, key, encrypted_cand_dict):
-        """
-        This method decrypts a candidate list with the given private elgamal
-        key
-
-        @param key: Private Elliptic Curve Elgamal key
-        @param string cand_dict: Encoded dict
-        @return dict: Dict filled with candidates
-        """
-        encoded_dict = aes_decrypt_str(key, encrypted_cand_dict)
-        offset, cand_dict = encoding.decode(encoded_dict)
-        return cand_dict
