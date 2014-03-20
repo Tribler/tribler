@@ -74,28 +74,6 @@ class ProxyCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Thu Mar 20 15:38:11 2014
-        # curve: NID_sect571r1
-        # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000402c9eab609a747166a75848daf0b1545419caab428cfb9efa53412feb1f236e7e9df7b91f82a70df92b4afca83989f6c9a7d11f29c55b2b508f1cc2df69114c5e3d0b46739d73ebc01b4fbc35ff09e0c3ec4ec28e1da4df825814e120002c5182aa184b4314a2db1f3e31f994511ce19dfb6577d5c29a8d89c0011073ff144b53936d78a0d6d6680891c421ebec328c7
-        # prv: 241 3081ee02010104480264eed709e728f3f527f0bbcc6f112734fdf27c03637b46559b8bfcb1c2a8f3cd5b319a45d49f75020d153192433232b4b68667d3823aea09dd9ebf093b7409d937b77850953f1ba00706052b81040027a18195038192000402c9eab609a747166a75848daf0b1545419caab428cfb9efa53412feb1f236e7e9df7b91f82a70df92b4afca83989f6c9a7d11f29c55b2b508f1cc2df69114c5e3d0b46739d73ebc01b4fbc35ff09e0c3ec4ec28e1da4df825814e120002c5182aa184b4314a2db1f3e31f994511ce19dfb6577d5c29a8d89c0011073ff144b53936d78a0d6d6680891c421ebec328c7
-        # pub-sha1 1374beea66b7d80962caca2286b6e45777480bfb
-        # prv-sha1 7796a73d9f1f0011be8d84ad9ee7962e6ebce56b
-        # -----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQCyeq2CadHFmp1hI2vCxVFQZyqtCjP
-        # ue+lNBL+sfI25+nfe5H4KnDfkrSvyoOYn2yafRHynFWytQjxzC32kRTF49C0ZznX
-        # PrwBtPvDX/CeDD7E7Cjh2k34JYFOEgACxRgqoYS0MUotsfPjH5lFEc4Z37ZXfVwp
-        # qNicABEHP/FEtTk214oNbWaAiRxCHr7DKMc=
-        # -----END PUBLIC KEY-----
-        # -----BEGIN EC PRIVATE KEY-----
-        # MIHuAgEBBEgCZO7XCeco8/Un8LvMbxEnNP3yfANje0ZVm4v8scKo881bMZpF1J91
-        # Ag0VMZJDMjK0toZn04I66gndnr8JO3QJ2Te3eFCVPxugBwYFK4EEACehgZUDgZIA
-        # BALJ6rYJp0cWanWEja8LFUVBnKq0KM+576U0Ev6x8jbn6d97kfgqcN+StK/Kg5if
-        # bJp9EfKcVbK1CPHMLfaRFMXj0LRnOdc+vAG0+8Nf8J4MPsTsKOHaTfglgU4SAALF
-        # GCqhhLQxSi2x8+MfmUURzhnftld9XCmo2JwAEQc/8US1OTbXig1tZoCJHEIevsMo
-        # xw==
-        # -----END EC PRIVATE KEY-----
-        #
         # generated: Wed Sep 18 22:47:22 2013
         # curve: high <<< NID_sect571r1 >>>
         # len: 571 bits ~ 144 bytes signature
@@ -112,7 +90,13 @@ class ProxyCommunity(Community):
         # jHMFkPhQq5McVzLVqdVzp/4fncipIBvDy2OrGCyeSF0I/0rClPCeFtOSWTCUb4fp
         # HvnEC7tBifnFr2aW9X7sO48vd+erVv2NbWM=
         #-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000402c9eab609a747166a75848daf0b1545419caab428cfb9efa53412feb1f236e7e9df7b91f82a70df92b4afca83989f6c9a7d11f29c55b2b508f1cc2df69114c5e3d0b46739d73ebc01b4fbc35ff09e0c3ec4ec28e1da4df825814e120002c5182aa184b4314a2db1f3e31f994511ce19dfb6577d5c29a8d89c0011073ff144b53936d78a0d6d6680891c421ebec328c7".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004" \
+                     "0460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7" \
+                     "b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de" \
+                     "57bb1ac5dec351d172fe692555898ac944b68c730590f850ab93" \
+                     "1c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff" \
+                     "4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696" \
+                     "f57eec3b8f2f77e7ab56fd8d6d63".decode("HEX")
 
         master = dispersy.get_member(master_key)
         return [master]
