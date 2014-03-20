@@ -62,7 +62,7 @@ class TestTorrentCollecting(TestAsServer):
         return tdef.get_id() if tdef else None, sdef.get_id()
 
     def test_torrent_collecting(self):
-        infohash, roothash = self._create_and_save_torrent(self.session, 'file2.wmv')
+        infohash, roothash = self._create_and_save_torrent(self.session, 'video2.avi')
 
         from Tribler.dispersy.candidate import Candidate
         candidate = Candidate(("127.0.0.1", self.session.get_swift_tunnel_listen_port()), True)

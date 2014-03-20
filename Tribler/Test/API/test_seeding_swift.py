@@ -1,21 +1,19 @@
 # Written by Arno Bakker, heavy modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
-import unittest
 import os
 import sys
 import time
 import shutil
 import threading
+from traceback import print_exc
 
 from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 
-from Tribler.Core.DownloadConfig import *
-from Tribler.Core.Session import *
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Session import Session
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-
-from unittest.case import skip
 
 
 class TestSeeding(TestAsServer):
@@ -145,16 +143,16 @@ class TestSeeding(TestAsServer):
         return (1.0, False)
 
     def test_singlefile_swift(self):
-        filenames = ['file.wmv']
+        filenames = ['video.avi']
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)
 
     def test_multifile_swift(self):
-        filenames = ['file.wmv', 'file2.wmv']
+        filenames = ['video.avi', 'video2.avi']
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)
 
     def test_multifile_swift_with_subdirs(self):
-        filenames = ['file.wmv', os.path.join('contentdir', 'file.avi')]
+        filenames = ['video.avi', os.path.join('contentdir', 'video.avi')]
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)

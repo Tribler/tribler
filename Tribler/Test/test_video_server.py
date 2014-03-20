@@ -29,7 +29,7 @@ class TestVideoHTTPServer(TestAsServer):
         TestAsServer.setUp(self)
         self.port = random.randint(10000, 60000)
         self.videoplayer = VideoPlayer.getInstance(self.session, None, httpport=self.port)
-        self.sourcefn = os.path.join(BASE_DIR, "API", "file.wmv")  # 82KB or 82948 bytes
+        self.sourcefn = os.path.join(BASE_DIR, "data", "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
 
         # wait 5s to allow server to start
@@ -160,7 +160,7 @@ class TestVideoHTTPServer(TestAsServer):
                 self.assertEqual(expline, line)
 
             elif line.startswith("Content-Type:"):
-                self.assertEqual(line, "Content-Type: video/x-ms-wmv\r\n")
+                self.assertEqual(line, "Content-Type: video/x-msvideo\r\n")
 
             elif line.startswith("Content-Length:"):
                 self.assertEqual(line, "Content-Length: " + str(expsize) + "\r\n")

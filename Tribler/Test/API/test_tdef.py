@@ -16,8 +16,8 @@ from Tribler.Test.test_as_server import BASE_DIR
 DEBUG = False
 
 TRACKER = 'http://www.tribler.org/announce'
-PLAYTIME = "1:02"  # 1 min 2 secs. Coordinate with size of file.wmv to get > 1 bitrate
-PLAYTIME_SECS = 62  # PLAYTIME in seconds
+PLAYTIME = "0:06"
+PLAYTIME_SECS = 6  # PLAYTIME in seconds
 
 
 class TestTorrentDef(unittest.TestCase):
@@ -76,7 +76,7 @@ class TestTorrentDef(unittest.TestCase):
         dummydata = "HalloWereld"
         t = TorrentDef()
         t.set_metadata(dummydata)
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
@@ -102,7 +102,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
@@ -112,7 +112,7 @@ class TestTorrentDef(unittest.TestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
 
-        self.assert_(metainfo['info']['name'] == "file.wmv")
+        self.assert_(metainfo['info']['name'] == "video.avi")
         self.assert_(metainfo['info']['length'] == s)
 
         """
@@ -164,8 +164,8 @@ class TestTorrentDef(unittest.TestCase):
         dn = os.path.join(BASE_DIR, "API", "contentdir")
         t.add_content(dn, "dirintorrent")
 
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
-        t.add_content(fn, os.path.join("dirintorrent", "file.wmv"))
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
+        t.add_content(fn, os.path.join("dirintorrent", "video.avi"))
 
         t.set_tracker(TRACKER)
         t.finalize()
@@ -191,12 +191,12 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with playtime to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn, playtime=PLAYTIME)
         t.set_tracker(TRACKER)
         t.finalize()
 
-        s = os.path.getsize(os.path.join(BASE_DIR, "API", "file.wmv"))
+        s = os.path.getsize(os.path.join(BASE_DIR, "API", "video.avi"))
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
@@ -211,9 +211,9 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn1 = os.path.join(BASE_DIR, "API", "contentdir", "file.avi")
+        fn1 = os.path.join(BASE_DIR, "API", "contentdir", "video.avi")
         fn2 = os.path.join(BASE_DIR, "API", "contentdir", "file.txt")
-        t.add_content(fn1, os.path.join("dirintorrent", "file.avi"), playtime=PLAYTIME)
+        t.add_content(fn1, os.path.join("dirintorrent", "video.avi"), playtime=PLAYTIME)
         t.add_content(fn2, os.path.join("dirintorrent", "file.txt"))
         t.set_tracker(TRACKER)
         t.finalize()
@@ -226,7 +226,7 @@ class TestTorrentDef(unittest.TestCase):
 
         files = metainfo['info']['files']
         for file in files:
-            if file['path'][0] == "file.avi":
+            if file['path'][0] == "video.avi":
                 self.assert_(file['playtime'] == PLAYTIME)
 
         azprop = metainfo['azureus_properties']
@@ -239,7 +239,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with thumbnail to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
         thumbfn = os.path.join(BASE_DIR, "API", "thumb.jpg")
         t.add_content(fn)
         t.set_thumbnail(thumbfn)
@@ -261,7 +261,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with announce-list to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         exphier = [[TRACKER], ['http://tracker1.tribler.org:6969/announce', 'http://tracker2.tribler.org:7070/ann'], ['http://www.cs.vu.nl', 'http://www.st.ewi.tudelft.nl', 'http://www.vuze.com']]
@@ -277,7 +277,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with BitTornado httpseeds to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         expseeds = ['http://www.cs.vu.nl/index.html', 'http://www.st.ewi.tudelft.nl/index.html']
@@ -293,7 +293,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with piece length to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_piece_length(2 ** 16)
         t.set_tracker(TRACKER)
@@ -307,7 +307,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file to a TorrentDef and save the latter"""
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(BASE_DIR, "API", "file.wmv")
+        fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
