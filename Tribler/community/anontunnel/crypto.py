@@ -1,9 +1,8 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
-import M2Crypto
 from collections import defaultdict
 import hashlib
 import logging
-import random
+import os
 from Tribler.Core.Utilities import encoding
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.events import TunnelObserver
@@ -24,11 +23,11 @@ class Crypto(TunnelObserver):
 
     def __init__(self):
         TunnelObserver.__init__(self)
-        self.outgoing_packet_crypto = []
-        self.incoming_packet_crypto = []
-        self.relay_packet_crypto = []
-        self.encrypt_outgoing_packet_content = defaultdict(list)
-        self.decrypt_incoming_packet_content = defaultdict(list)
+        self.outgoing_packet_crypto = lambda candidate, circuit, message, payload: payload
+        self.incoming_packet_crypto = lambda candidate, circuit, payload: payload
+        self.relay_packet_crypto = lambda destination, circuit, message_type, content: content
+        self.encrypt_outgoing_packet_content = defaultdict()
+        self.decrypt_incoming_packet_content = defaultdict()
         self._logger = logging.getLogger(__name__)
 
     def handle_incoming_packet(self, candidate, circuit_id, data):
@@ -39,10 +38,10 @@ class Crypto(TunnelObserver):
         @param data: The packet data
         @return: The unencrypted data
         """
-        for decrypt in self.incoming_packet_crypto:
-            data = decrypt(candidate, circuit_id, data)
-            if not data:
-                return None
+
+        data = self.incoming_packet_crypto(candidate, circuit_id, data)
+        if not data:
+            return None
         return data
 
     def handle_incoming_packet_content(self, candidate, circuit_id, payload, packet_type):
@@ -55,10 +54,11 @@ class Crypto(TunnelObserver):
         @param packet_type: The type of the packet
         @return: The payload with unencrypted content
         """
-        for decrypt in self.decrypt_incoming_packet_content[packet_type]:
-            payload = decrypt(candidate, circuit_id, payload)
-            if not payload:
-                return None
+
+        if packet_type in self.decrypt_incoming_packet_content:
+            payload = self.decrypt_incoming_packet_content[packet_type](candidate, circuit_id, payload)
+        if not payload:
+            return None
         return payload
 
     def handle_outgoing_packet(self, destination, circuit_id, message_type, content):
@@ -72,8 +72,7 @@ class Crypto(TunnelObserver):
         @return: The encrypted content
         """
         try:
-            for encrypt in self.outgoing_packet_crypto:
-                content = encrypt(destination, circuit_id, message_type, content)
+            content = self.outgoing_packet_crypto(destination, circuit_id, message_type, content)
             return content
         except:
             self._logger.exception("Cannot encrypt outgoing packet content")
@@ -91,8 +90,8 @@ class Crypto(TunnelObserver):
         """
 
         try:
-            for encrypt in self.encrypt_outgoing_packet_content[message_type]:
-                message = encrypt(destination, circuit_id, message)
+            if message_type in self.encrypt_outgoing_packet_content:
+                message = self.encrypt_outgoing_packet_content[message_type](destination, circuit_id, message)
             return message
         except:
             self._logger.exception("Cannot encrypt outgoing packet content")
@@ -109,8 +108,7 @@ class Crypto(TunnelObserver):
         @return: The message data, en- / decrypted according to the circuitdirection
         """
         try:
-            for crypt in self.relay_packet_crypto:
-                data = crypt(direction, sock_addr, circuit_id, data)
+            data = self.relay_packet_crypto(direction, sock_addr, circuit_id, data)
             return data
         except:
             self._logger.exception("Cannot crypt relay packet")
@@ -133,23 +131,19 @@ class NoCrypto(Crypto):
          object is coupled
         """
         self.proxy = proxy
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] \
-            .append(self._encrypt_created_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATED] \
-            .append(self._decrypt_created_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] \
-            .append(self._decrypt_extended_content)
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] = self._encrypt_created_content
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED] = self._decrypt_created_content
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
 
     def disable(self):
         """
         Disables the crypto settings
         """
-        self.proxy.before_send_transformers[MESSAGE_CREATED] \
-            .remove(self._encrypt_created_content)
-        self.proxy.after_receive_transformers[MESSAGE_CREATED] \
-            .remove(self._decrypt_created_content)
-        self.proxy.after_receive_transformers[MESSAGE_EXTENDED] \
-            .remove(self._decrypt_extended_content)
+        self.relay_packet_crypto = lambda x: x
+        self.incoming_packet_crypto = lambda x: x
+        self.outgoing_packet_crypto = lambda x: x
+        self.encrypt_outgoing_packet_content = []
+        self.decrypt_incoming_packet_content = []
 
     def _encrypt_created_content(self, candidate, circuit_id, message):
         """
@@ -193,10 +187,12 @@ class DefaultCrypto(Crypto):
 
     @staticmethod
     def __generate_diffie_secret():
-        dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        dh_secret = bytes_to_long(os.urandom(DIFFIE_HELLMAN_MODULUS_SIZE / 8))
         while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-        return dh_secret
+            dh_secret = os.urandom(DIFFIE_HELLMAN_MODULUS_SIZE / 8)
+        dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
+                            DIFFIE_HELLMAN_MODULUS)
+        return dh_secret, dh_first_part
 
     def __init__(self):
         Crypto.__init__(self)
@@ -229,49 +225,27 @@ class DefaultCrypto(Crypto):
         self.proxy = proxy
         proxy.observers.append(self)
 
-        self.relay_packet_crypto.append(self._crypto_relay_packet)
-        self.incoming_packet_crypto.append(self._crypto_incoming_packet)
-        self.outgoing_packet_crypto.append(self._crypto_outgoing_packet)
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATE] \
-            .append(self._encrypt_create_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] \
-            .append(self._encrypt_created_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND] \
-            .append(self._encrypt_extend_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED] \
-            .append(self._encrypt_extended_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATE] \
-            .append(self._decrypt_create_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATED] \
-            .append(self._decrypt_created_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTEND] \
-            .append(self._decrypt_extend_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] \
-            .append(self._decrypt_extended_content)
+        self.relay_packet_crypto = self._crypto_relay_packet
+        self.incoming_packet_crypto = self._crypto_incoming_packet
+        self.outgoing_packet_crypto = self._crypto_outgoing_packet
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATE] = self._encrypt_create_content
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] = self._encrypt_created_content
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND] = self._encrypt_extend_content
+        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED] = self._encrypt_extended_content
+        self.decrypt_incoming_packet_content[MESSAGE_CREATE] = self._decrypt_create_content
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED] = self._decrypt_created_content
+        self.decrypt_incoming_packet_content[MESSAGE_EXTEND] = self._decrypt_extend_content
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
 
     def disable(self):
         """
         Disables the crypto settings
         """
-        self.relay_packet_crypto.remove(self._crypto_relay_packet)
-        self.incoming_packet_crypto.remove(self._crypto_incoming_packet)
-        self.outgoing_packet_crypto.remove(self._crypto_outgoing_packet)
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATE] \
-            .remove(self._encrypt_create_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] \
-            .remove(self._encrypt_created_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND] \
-            .remove(self._encrypt_extend_content)
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED] \
-            .remove(self._encrypt_extended_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATE] \
-            .remove(self._decrypt_create_content)
-        self.decrypt_incoming_packet_content[MESSAGE_CREATED] \
-            .remove(self._decrypt_created_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTEND] \
-            .remove(self._decrypt_extend_content)
-        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] \
-            .remove(self._decrypt_extended_content)
+        self.relay_packet_crypto = lambda x: x
+        self.incoming_packet_crypto = lambda x: x
+        self.outgoing_packet_crypto = lambda x: x
+        self.encrypt_outgoing_packet_content = []
+        self.decrypt_incoming_packet_content = []
 
     def _encrypt_create_content(self, candidate, circuit_id, message):
         """
@@ -287,10 +261,8 @@ class DefaultCrypto(Crypto):
         """
 
         if circuit_id in self.proxy.circuits:
-            dh_secret = self.__generate_diffie_secret()
+            dh_secret, dh_first_part = self.__generate_diffie_secret()
 
-            dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
-                                DIFFIE_HELLMAN_MODULUS)
             pub_key = iter(candidate.get_members()).next()._ec
 
             encrypted_dh_first_part = self.proxy.crypto.encrypt(
@@ -336,10 +308,7 @@ class DefaultCrypto(Crypto):
         @param ExtendMessage message: Message as passed from the community
         @return ExtendMessage: Version of the message with encrypted contents
         """
-        dh_secret = self.__generate_diffie_secret()
-
-        dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
-                            DIFFIE_HELLMAN_MODULUS)
+        dh_secret, dh_first_part = self.__generate_diffie_secret()
 
         pub_key = self.proxy.circuits[circuit_id].unverified_hop.pub_key
 
@@ -379,7 +348,7 @@ class DefaultCrypto(Crypto):
         @return CreatedMessage: Version of the message with encrypted contents
         """
         relay_key = (candidate.sock_addr, circuit_id)
-        dh_secret = self.__generate_diffie_secret()
+        dh_secret, _ = self.__generate_diffie_secret()
 
         key = pow(self._received_secrets[relay_key],
                   dh_secret, DIFFIE_HELLMAN_MODULUS)
