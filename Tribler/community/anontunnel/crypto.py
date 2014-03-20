@@ -290,10 +290,13 @@ class DefaultCrypto(Crypto):
         """
         relay_key = (candidate.sock_addr, circuit_id)
         my_key = self.proxy.my_member._ec
-        decrypted_dh_first_part = self.proxy.crypto.decrypt(
-            my_key, message.key)
-        message.key = decrypted_dh_first_part
-        self._received_secrets[relay_key] = bytes_to_long(message.key)
+        dh_second_part = bytes_to_long(self.proxy.crypto.decrypt(my_key, message.key))
+
+        if dh_second_part < 2 or dh_second_part > DIFFIE_HELLMAN_MODULUS - 1:
+            self._logger.warning("Invalid DH data received over circuit {}.".format(circuit_id))
+            return None
+
+        self._received_secrets[relay_key] = dh_second_part
         return message
 
     def _encrypt_extend_content(self, candidate, circuit_id, message):
@@ -353,7 +356,7 @@ class DefaultCrypto(Crypto):
         key = pow(self._received_secrets[relay_key],
                   dh_secret, DIFFIE_HELLMAN_MODULUS)
 
-        m = hashlib.sha1()
+        m = hashlib.sha256()
         m.update(str(key))
         key = m.digest()[0:16]
 
@@ -410,10 +413,16 @@ class DefaultCrypto(Crypto):
         """
         unverified_hop = self.proxy.circuits[circuit_id].unverified_hop
 
-        session_key = pow(bytes_to_long(message.key),
+        dh_second_part = bytes_to_long(message.key)
+
+        if dh_second_part < 2 or dh_second_part > DIFFIE_HELLMAN_MODULUS - 1:
+            self._logger.warning("Invalid DH data received over circuit {}.".format(circuit_id))
+            return None
+
+        session_key = pow(dh_second_part,
                           unverified_hop.dh_secret,
                           DIFFIE_HELLMAN_MODULUS)
-        m = hashlib.sha1()
+        m = hashlib.sha256()
         m.update(str(session_key))
         key = m.digest()[0:16]
         unverified_hop.session_key = key
