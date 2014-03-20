@@ -1,4 +1,5 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
+import M2Crypto
 from collections import defaultdict
 import hashlib
 import logging
@@ -15,12 +16,12 @@ from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
     DIFFIE_HELLMAN_GENERATOR
 
 
-
 class CryptoError(Exception):
     pass
 
 
 class Crypto(TunnelObserver):
+
     def __init__(self):
         TunnelObserver.__init__(self)
         self.outgoing_packet_crypto = []
@@ -115,10 +116,12 @@ class Crypto(TunnelObserver):
             self._logger.exception("Cannot crypt relay packet")
             return None
 
+
 class NoCrypto(Crypto):
     def __init__(self):
         Crypto.__init__(self)
         self.proxy = None
+        self.key_to_forward = None
 
     def enable(self, proxy):
         """
@@ -187,6 +190,14 @@ class NoCrypto(Crypto):
 
 
 class DefaultCrypto(Crypto):
+
+    @staticmethod
+    def __generate_diffie_secret():
+        dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
+            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        return dh_secret
+
     def __init__(self):
         Crypto.__init__(self)
         self.proxy = None
@@ -274,25 +285,24 @@ class DefaultCrypto(Crypto):
         @param CreateMessage message: Message as passed from the community
         @return CreateMessage: Version of the message with encrypted contents
         """
-        dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-
-        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-        dh_secret = 0
-        dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
-                            DIFFIE_HELLMAN_MODULUS)
-        pub_key = iter(candidate.get_members()).next()._ec
-
-        encrypted_dh_first_part = self.proxy.crypto.encrypt(
-            pub_key, long_to_bytes(dh_first_part,
-                                   DIFFIE_HELLMAN_MODULUS_SIZE / 8))
-        message.key = encrypted_dh_first_part
 
         if circuit_id in self.proxy.circuits:
+            dh_secret = self.__generate_diffie_secret()
+
+            dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
+                                DIFFIE_HELLMAN_MODULUS)
+            pub_key = iter(candidate.get_members()).next()._ec
+
+            encrypted_dh_first_part = self.proxy.crypto.encrypt(
+                pub_key, long_to_bytes(dh_first_part))
+            message.key = encrypted_dh_first_part
             hop = self.proxy.circuits[circuit_id].unverified_hop
             hop.dh_secret = dh_secret
             hop.dh_first_part = dh_first_part
             hop.pub_key = pub_key
+        else:
+            message.key = self.key_to_forward
+            self.key_to_forward = None
 
         return message
 
@@ -326,19 +336,15 @@ class DefaultCrypto(Crypto):
         @param ExtendMessage message: Message as passed from the community
         @return ExtendMessage: Version of the message with encrypted contents
         """
-        dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        dh_secret = self.__generate_diffie_secret()
 
-        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-        dh_secret = 0
         dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
                             DIFFIE_HELLMAN_MODULUS)
 
         pub_key = self.proxy.circuits[circuit_id].unverified_hop.pub_key
 
         encrypted_dh_first_part = self.proxy.crypto.encrypt(
-            pub_key, long_to_bytes(dh_first_part,
-                                   DIFFIE_HELLMAN_MODULUS_SIZE / 8))
+            pub_key, long_to_bytes(dh_first_part))
         message.key = encrypted_dh_first_part
 
         hop = self.proxy.circuits[circuit_id].unverified_hop
@@ -356,6 +362,7 @@ class DefaultCrypto(Crypto):
         @param ExtendMessage message: Message as passed from the community
         @return ExtendMessage: Message with decrypted contents
         """
+        self.key_to_forward = message.key
         return message
 
     def _encrypt_created_content(self, candidate, circuit_id, message):
@@ -372,11 +379,8 @@ class DefaultCrypto(Crypto):
         @return CreatedMessage: Version of the message with encrypted contents
         """
         relay_key = (candidate.sock_addr, circuit_id)
-        dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
-        while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = random.getrandbits(DIFFIE_HELLMAN_MODULUS_SIZE)
+        dh_secret = self.__generate_diffie_secret()
 
-        dh_secret = 0
         key = pow(self._received_secrets[relay_key],
                   dh_secret, DIFFIE_HELLMAN_MODULUS)
 
@@ -435,6 +439,7 @@ class DefaultCrypto(Crypto):
         unencrypted contents
         """
         unverified_hop = self.proxy.circuits[circuit_id].unverified_hop
+
         session_key = pow(bytes_to_long(message.key),
                           unverified_hop.dh_secret,
                           DIFFIE_HELLMAN_MODULUS)
@@ -444,7 +449,7 @@ class DefaultCrypto(Crypto):
         unverified_hop.session_key = key
         try:
             message.candidate_list = self._decrypt_candidate_list(
-                unverified_hop.session_key, message.candidate_list)
+            unverified_hop.session_key, message.candidate_list)
         except:
             reason = "Can't decrypt candidate list!"
             self._logger.exception(reason)
