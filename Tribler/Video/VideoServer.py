@@ -24,7 +24,6 @@ class VideoServer:
         VideoServer.__single = self
 
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._logger.setLevel(logging.DEBUG)
 
         self.port = port
         self.session = session
@@ -75,13 +74,13 @@ class VideoServer:
 
     @cherrypy.expose
     def default(self, downloadhash, fileindex):
-        print >> sys.stderr, "VideoServer: VOD request", cherrypy.url()
+        self._logger.debug("VideoServer: VOD request %s", cherrypy.url())
         downloadhash = unhexlify(downloadhash)
         download = self.session.get_download(downloadhash)
 
         if download and download.get_def().get_def_type() == 'swift':
             # raise cherrypy.HTTPRedirect(download.vod_url)
-            print >> sys.stderr, "VideoServer: ignoring VOD request for swift"
+            self._logger.error("VideoServer: ignoring VOD request for swift")
             raise cherrypy.HTTPError(404, "Not Found")
             return
 
@@ -123,7 +122,7 @@ class VideoServer:
             nbytes2send = length
             cherrypy.response.status = 200
 
-        print >> sys.stderr, "VideoServer: requested range", firstbyte, "-", firstbyte + nbytes2send
+        self._logger.debug("VideoServer: requested range %d - %d", firstbyte, firstbyte + nbytes2send)
 
         cherrypy.response.headers['Content-Type'] = mimetype
         cherrypy.response.headers['Accept-Ranges'] = 'bytes'
