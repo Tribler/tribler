@@ -139,11 +139,11 @@ class NoCrypto(Crypto):
         """
         Disables the crypto settings
         """
-        self.relay_packet_crypto = lambda x: x
-        self.incoming_packet_crypto = lambda x: x
-        self.outgoing_packet_crypto = lambda x: x
-        self.encrypt_outgoing_packet_content = []
-        self.decrypt_incoming_packet_content = []
+        self.outgoing_packet_crypto = lambda candidate, circuit, message, payload: payload
+        self.incoming_packet_crypto = lambda candidate, circuit, payload: payload
+        self.relay_packet_crypto = lambda destination, circuit, message_type, content: content
+        self.encrypt_outgoing_packet_content = defaultdict()
+        self.decrypt_incoming_packet_content = defaultdict()
 
     def _encrypt_created_content(self, candidate, circuit_id, message):
         """
@@ -241,11 +241,11 @@ class DefaultCrypto(Crypto):
         """
         Disables the crypto settings
         """
-        self.relay_packet_crypto = lambda x: x
-        self.incoming_packet_crypto = lambda x: x
-        self.outgoing_packet_crypto = lambda x: x
-        self.encrypt_outgoing_packet_content = []
-        self.decrypt_incoming_packet_content = []
+        self.outgoing_packet_crypto = lambda candidate, circuit, message, payload: payload
+        self.incoming_packet_crypto = lambda candidate, circuit, payload: payload
+        self.relay_packet_crypto = lambda destination, circuit, message_type, content: content
+        self.encrypt_outgoing_packet_content = defaultdict()
+        self.decrypt_incoming_packet_content = defaultdict()
 
     def _encrypt_create_content(self, candidate, circuit_id, message):
         """
