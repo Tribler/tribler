@@ -73,7 +73,7 @@ class TestMyChannel(TestGuiAsServer):
                 videoinfo_valid = False
                 swiftthumbnails_valid = False
                 for modification in modifications:
-                    if modification.name == 'swift-thumbnails' and modification.value:
+                    if modification.name == 'swift-thumbs' and modification.value:
                         swiftthumbnails_valid = True
                     if modification.name == 'video-info' and modification.value:
                         videoinfo_dict = json.loads(modification.value)
