@@ -241,7 +241,7 @@ class ProxyCommunity(Community):
 
                     candidates = (c for c
                                   in self.dispersy_yield_verified_candidates()
-                                  if c not in circuit_candidates)
+                                  if c not in circuit_candidates and next(iter(c.get_members()), None))
 
                     c = next(candidates, None)
 
@@ -296,7 +296,8 @@ class ProxyCommunity(Community):
 
     def _on_stats(self, messages):
         for observer in self.observers:
-            observer.on_tunnel_stats(messages)
+            for message in messages:
+                observer.on_tunnel_stats(self, message.candidate, message.payload.stats)
 
     def send_stats(self, stats):
         """
@@ -967,7 +968,6 @@ class ProxyCommunity(Community):
 
         @return: Whether the request has been handled successfully
         """
-
 
         if circuit.goal_hops == 0:
             for observer in self.observers:
