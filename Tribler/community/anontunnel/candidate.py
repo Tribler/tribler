@@ -47,7 +47,7 @@ class CandidateCache:
                 finally:
                     yield 30.0
 
-        community.dispersy.callback.register(__cache_task)
+        # community.dispersy.callback.register(__cache_task)
         community.dispersy.callback.register(__clean_up_task)
 
     def __fill_cache(self):
