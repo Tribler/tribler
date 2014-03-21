@@ -404,10 +404,6 @@ class Session(SessionConfigInterface):
                 return self.lm.torrent_db
             elif subject == NTFY_MYPREFERENCES:
                 return self.lm.mypref_db
-            elif subject == NTFY_SEEDINGSTATS:
-                return self.lm.seedingstats_db
-            elif subject == NTFY_SEEDINGSTATSSETTINGS:
-                return self.lm.seedingstatssettings_db
             elif subject == NTFY_VOTECAST:
                 return self.lm.votecast_db
             elif subject == NTFY_CHANNELCAST:
