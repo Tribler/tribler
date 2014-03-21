@@ -2,7 +2,6 @@
 # Based on SimpleServer written by Jan David Mol, Arno Bakker
 # see LICENSE.txt for license information
 #
-import sys
 import logging
 import cherrypy
 import threading

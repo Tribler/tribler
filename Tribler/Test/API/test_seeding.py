@@ -1,22 +1,20 @@
 # Written by Arno Bakker, heavy modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
-import unittest
 import os
 import sys
 import time
 import socket
-import tempfile
 import threading
 
 from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 from Tribler.Test.btconn import BTConnection
-from Tribler.Core.MessageID import *
 
-from Tribler.Core.TorrentDef import *
-from Tribler.Core.DownloadConfig import *
-from Tribler.Core.Session import *
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
+from Tribler.Core.MessageID import CHOKE, EXTEND
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Session import Session
 
 
 class TestSeeding(TestAsServer):
@@ -53,7 +51,7 @@ class TestSeeding(TestAsServer):
 
         TestAsServer.tearDown(self)
 
-    def setup_seeder(self, filename='file.wmv'):
+    def setup_seeder(self, filename='video.avi'):
         self.tdef = TorrentDef()
         self.sourcefn = os.path.join(BASE_DIR, "API", filename)
         self.tdef.add_content(self.sourcefn)
@@ -126,7 +124,7 @@ class TestSeeding(TestAsServer):
 
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
-            destfn = os.path.join(self.getDestDir(2), "file.wmv")
+            destfn = os.path.join(self.getDestDir(2), "video.avi")
             f = open(destfn, "rb")
             realdata = f.read()
             f.close()
