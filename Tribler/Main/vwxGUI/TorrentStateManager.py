@@ -170,8 +170,7 @@ class TorrentStateManager:
 
         # Create modification
         modifications = []
-        #modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, sdef.get_roothash_as_hex(), contenthash_hex))))
-        modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
+        modifications.append(('swift-thumbs', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
         modifications.append(('video-info', json.dumps(video_info)))
 
         self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
