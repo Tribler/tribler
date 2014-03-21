@@ -1392,12 +1392,6 @@ class SearchList(GenericSearchList):
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 
-        gui_image_manager = GuiImageManager.getInstance()
-
-        self.inFavoriteChannel = gui_image_manager.getImage(u"starEnabled.png")
-        self.outFavoriteChannel = gui_image_manager.getImage(u"star.png")
-        self.hasSwift = gui_image_manager.getImage(u"swift.png")
-        self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, parent=parent)
 
     def _PostInit(self):
@@ -1436,9 +1430,9 @@ class SearchList(GenericSearchList):
     def _special_icon(self, item):
         torrent = item.original_data
         if torrent.hasChannel() and torrent.channel.isFavorite():
-            return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s" % torrent.channel.name
+            return self.favorite, self.normal, "This torrent is part of one of your favorite channels, %s" % torrent.channel.name
         else:
-            return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
+            return self.normal, self.favorite, "This torrent is not part of one of your favorite channels"
 
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1656,7 +1650,6 @@ class LibraryList(SizeList):
 
         self.hasSwift = gui_image_manager.getImage(u"swift.png")
         self.hasTorrent = gui_image_manager.getImage(u"bittorrent.png")
-        self.hasNothing = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         SizeList.__init__(self, None, LIST_GREY, [0, 0], False, parent=parent)
 
         self.library_manager.add_download_state_callback(self.RefreshBandwidthHistory)
