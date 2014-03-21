@@ -465,35 +465,24 @@ class DefaultCrypto(Crypto):
         """
 
         relay_key = (candidate.sock_addr, circuit_id)
-        self._logger.debug(
-            "Crypto_outgoing for circuit {0} and message type {1}".format(
-                circuit_id, ord(message_type)))
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-            self._logger.debug("public key encryption for circuit %s" % circuit_id)
             candidate_pub_key = iter(candidate.get_members()).next()._ec
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
         elif relay_key in self.session_keys:
             content = aes_encrypt_str(self.session_keys[relay_key], content)
-            self._logger.debug("Adding AES layer for circuit %s with key %s" % (
-                circuit_id, self.session_keys[relay_key]))
         # If own circuit, AES layers have to be added
         elif circuit_id in self.proxy.circuits:
             # I am the originator so I have to create the full onion
             circuit = self.proxy.circuits[circuit_id]
             hops = circuit.hops
             for hop in reversed(hops):
-                self._logger.debug(
-                    "Adding AES layer for hop %s:%s with key %s" %
-                    (hop.host, hop.port, hop.session_key)
-                )
                 content = aes_encrypt_str(hop.session_key, content)
         else:
             raise CryptoError("Don't know how to encrypt outgoing message")
 
-        self._logger.debug("Length of outgoing message: {0}".format(len(content)))
         return content
 
     def _crypto_relay_packet(self, direction, sock_addr, circuit_id, data):
@@ -521,20 +510,11 @@ class DefaultCrypto(Crypto):
 
         # Message is going downstream so I have to add my onion layer
         if direction == ORIGINATOR:
-            self._logger.debug(
-                "AES encoding circuit {0} towards ORIGINATOR, key {1}".format(
-                    next_relay.circuit_id,
-                    self.session_keys[
-                        next_relay_key]))
             data = aes_encrypt_str(
                 self.session_keys[next_relay_key], data)
 
         # Message is going upstream so I have to remove my onion layer
         elif direction == ENDPOINT:
-            self._logger.debug(
-                "AES decoding circuit {0} towards ENDPOINT, key {1}".format(
-                    next_relay.circuit_id,
-                    self.session_keys[relay_key]))
             data = aes_decrypt_str(
                 self.session_keys[relay_key], data)
         else:
@@ -561,17 +541,12 @@ class DefaultCrypto(Crypto):
         """
 
         relay_key = (candidate.sock_addr, circuit_id)
-        self._logger.debug("Crypto_incoming for circuit {0}".format(circuit_id))
-        self._logger.debug("Length of incoming message: {0}".format(len(data)))
-
         # I'm the last node in the circuit, probably an EXTEND message,
         # decrypt with AES
         if relay_key in self.session_keys:
 
             try:
                 # last node in circuit, circuit already exists
-                self._logger.debug("I am the last node in the already existing circuit, "
-                             "decrypt with AES")
                 return aes_decrypt_str(self.session_keys[relay_key], data)
             except:
                 self._logger.warning("Cannot decrypt a message destined for us, the end of a circuit.")
@@ -583,11 +558,7 @@ class DefaultCrypto(Crypto):
 
             try:
                 # I am the originator so I'll peel the onion skins
-                self._logger.debug(
-                    "I am the circuit originator, I am going to peel layers")
                 for hop in self.proxy.circuits[circuit_id].hops:
-                    self._logger.debug(
-                        "Peeling layer with key {0}".format(hop.session_key))
                     data = aes_decrypt_str(hop.session_key, data)
 
                 return data

@@ -51,9 +51,9 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(1,1)
+        length = random.randint(3, 3)
 
-        self.max_circuits = 1
+        self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
         self.length_strategy = lengthstrategies.ConstantCircuitLength(length)
@@ -336,14 +336,6 @@ class ProxyCommunity(Community):
         if not payload:
             return False
 
-        self._logger.debug(
-            "GOT %s from %s:%d over circuit %d",
-            str_type if str_type else 'unknown-type-%d' % ord(packet_type),
-            candidate.sock_addr[0],
-            candidate.sock_addr[1],
-            circuit_id
-        )
-
         if not payload:
             self._logger.warning("IGNORED %s from %s:%d over circuit %d",
                                  str_type, candidate.sock_addr[0],
@@ -394,11 +386,6 @@ class ProxyCommunity(Community):
 
         str_type = MESSAGE_TYPE_STRING.get(
             packet_type, 'unknown-type-%d' % ord(packet_type)
-        )
-
-        self._logger.debug(
-            "GOT %s from %s:%d over circuit %d", str_type,
-            sock_addr[0], sock_addr[1], circuit_id
         )
 
         self.send_packet(
@@ -588,8 +575,6 @@ class ProxyCommunity(Community):
             key_string = self.crypto.key_to_bin(ec_key)
 
             candidate_dict[candidate_temp.sock_addr] = key_string
-            self._logger.debug("Found candidate {0} with key".format(
-                candidate_temp.sock_addr))
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -717,15 +702,12 @@ class ProxyCommunity(Community):
         # the packet is from the outside world and addressed to us from
         if circuit_id in self.circuits and message.origin \
                 and candidate == self.circuits[circuit_id].candidate:
-            self._logger.debug("Exit socket at {0}"
-                               .format(message.destination))
 
             self.circuits[circuit_id].beat_heart()
             for observer in self.observers:
                 observer.on_incoming_from_tunnel(self, self.circuits[circuit_id], message.origin, message.data)
 
             return True
-
         # It is not our circuit so we got it from a relay, we need to EXIT it!
         if message.destination != ('0.0.0.0', 0):
 
@@ -832,7 +814,7 @@ class ProxyCommunity(Community):
 
         self._dispersy.callback.register(__do_add)
 
-        self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
+        #self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
@@ -845,7 +827,7 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-        self._logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
+        #self._logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
         return self.send_message(
             destination=candidate,
             circuit_id=circuit_id,
@@ -863,7 +845,7 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-        self._logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
+        #self._logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
         request = self.dispersy.callback.call(
             self._request_cache.get,
             args=(PingRequestCache.create_identifier(circuit_id),))
@@ -926,12 +908,6 @@ class ProxyCommunity(Community):
         str_type = MESSAGE_TYPE_STRING.get(
             message_type, "unknown-type-" + str(ord(message_type)))
 
-        self._logger.debug(
-            "SEND %s to %s:%d over circuit %d",
-            str_type,
-            destination.sock_addr[0], destination.sock_addr[1],
-            circuit_id)
-
         self.__dict_inc(self.dispersy.statistics.outgoing,
                         str_type + ('-relayed' if relayed else ''), 1)
 
@@ -971,7 +947,7 @@ class ProxyCommunity(Community):
                     if circuit.ping_time_remaining < PING_INTERVAL
                     and circuit.candidate]
 
-                self._logger.info("pinging %d circuits", len(to_be_pinged))
+                #self._logger.info("pinging %d circuits", len(to_be_pinged))
                 for circuit in to_be_pinged:
                     self.create_ping(circuit.candidate, circuit.circuit_id)
             except Exception:

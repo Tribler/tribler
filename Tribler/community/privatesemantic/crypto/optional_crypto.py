@@ -52,6 +52,7 @@ except ImportError:
     from random import Random as StrongRandom
 
     from Tribler.community.privatesemantic.conversion import long_to_bytes
+    from Tribler.dispersy.decorator import attach_runtime_statistics
     from M2Crypto import EVP
 
     def aes_encrypt_str(aes_key, plain_str):

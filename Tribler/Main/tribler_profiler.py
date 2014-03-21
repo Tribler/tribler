@@ -17,4 +17,5 @@ if __name__ == '__main__':
     for func_stats in stats.func_stats[:50]:
         logger.info("YAPPI: %10dx  %10.3fs %s", func_stats.ncall, func_stats.tsub, func_stats.name)
 
-    # yappi.print_stats(yappi.SORTTYPE_TTOTAL)
+    yappi.print_stats(yappi.SORTTYPE_TTOTAL)
+
