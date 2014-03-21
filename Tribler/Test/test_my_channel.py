@@ -3,7 +3,6 @@
 
 import os
 import sys
-import json
 import time
 
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
@@ -62,40 +61,6 @@ class TestMyChannel(TestGuiAsServer):
             self.screenshot('Resulting channel')
             self.quit()
 
-        def do_modifications(torrentfilename):
-            infohash = TorrentDef.load(torrentfilename).get_infohash()
-
-            self.frame.librarylist.Select(infohash)
-            torrent = self.guiUtility.channelsearch_manager.getTorrentFromChannel(self.frame.managechannel.channel, infohash)
-
-            def check_for_modifications():
-                modifications = self.guiUtility.torrentsearch_manager.getTorrentModifications(torrent)
-                videoinfo_valid = False
-                swiftthumbnails_valid = False
-                for modification in modifications:
-                    if modification.name == 'swift-thumbs' and modification.value:
-                        swiftthumbnails_valid = True
-                    if modification.name == 'video-info' and modification.value:
-                        videoinfo_dict = json.loads(modification.value)
-                        if videoinfo_dict['duration'] and videoinfo_dict['resolution']:
-                            videoinfo_valid = (videoinfo_dict['resolution'] == [640, 480]) and (videoinfo_dict['duration'] == 6)
-
-                return videoinfo_valid and swiftthumbnails_valid
-            self.CallConditional(10, check_for_modifications, lambda: self.Call(5, do_overview), 'No valid channel modifications received')
-
-        def do_thumbnails(torrentfilename):
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-8bb88a02da691636a7ed929b87d467f24700e490')
-            self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0, lambda: do_modifications(torrentfilename), 'No thumbnails were created')
-
-        def do_download_torrent(torrentfilename):
-            self.screenshot('Playlist has been created')
-
-            download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())
-
-            self.guiUtility.ShowPage('my_files')
-            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.CallConditional(10, lambda: download.get_progress() == 1.0, lambda: do_thumbnails(torrentfilename), 'Failed to download torrent in time')
-
         def do_create_playlist(torrentfilename):
             self.screenshot('Files have been added created')
 
@@ -109,7 +74,7 @@ class TestMyChannel(TestGuiAsServer):
             mp_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage playlists")
             self.managechannel.notebook.SetSelection(mp_index)
 
-            self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, lambda: do_download_torrent(torrentfilename), 'Channel did not have a playlist')
+            self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, do_overview, 'Channel did not have a playlist')
 
         def do_switch_tab(torrentfilename):
             # switch to files tab
@@ -130,7 +95,7 @@ class TestMyChannel(TestGuiAsServer):
             self.CallConditional(10, lambda: self.managechannel.notebook.GetPageCount() > 1, lambda: do_switch_tab(torrentfilename))
 
         def do_create_local_torrent():
-            torrentfilename = self.setupSeeder()
+            torrentfilename = self.createTorrent()
             do_add_torrent(torrentfilename)
 
         def do_create():
@@ -166,18 +131,7 @@ class TestMyChannel(TestGuiAsServer):
 
         TestGuiAsServer.startTest(self, get_and_modify_dispersy)
 
-    def setupSeeder(self):
-        from Tribler.Core.Session import Session
-        from Tribler.Core.TorrentDef import TorrentDef
-        from Tribler.Core.DownloadConfig import DownloadStartupConfig
-
-        self.setUpPreSession()
-        self.config.set_libtorrent(True)
-
-        self.config2 = self.config.copy()
-        self.session2 = Session(self.config2, ignore_singleton=True)
-        self.session2.start()
-
+    def createTorrent(self):
         tdef = TorrentDef()
         tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
         tdef.set_tracker("http://fake.net/announce")
@@ -185,25 +139,10 @@ class TestMyChannel(TestGuiAsServer):
         torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
 
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
-        d = self.session2.start_download(tdef, dscfg)
-        d.set_state_callback(self.seeder_state_callback)
-
         return torrentfn
-
-    def seeder_state_callback(self, ds):
-        d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
-        return (5.0, False)
 
     def setUp(self):
         TestGuiAsServer.setUp(self)
-        self.session2 = None
 
     def tearDown(self):
-        if self.session2:
-            self._shutdown_session(self.session2)
-            time.sleep(10)
-
         TestGuiAsServer.tearDown(self)
