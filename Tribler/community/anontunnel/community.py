@@ -589,8 +589,6 @@ class ProxyCommunity(Community):
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED,
                                  candidate.sock_addr, circuit_id)
 
-        self.candidate_cache.cache(candidate)
-
         return self.send_message(
             destination=candidate,
             circuit_id=circuit_id,
