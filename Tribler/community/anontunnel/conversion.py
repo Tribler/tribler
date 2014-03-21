@@ -158,10 +158,15 @@ class CustomProxyConversion():
         else:
             origin = data_message.origin
 
-        return struct.pack(
-            "!LHLLL", len(host), port, len(origin[0]),
-            origin[1], len(data_message.data)
-        ) + host + origin[0] + data_message.data
+        return ''.join([
+            struct.pack(
+                "!LHLLL", len(host), port, len(origin[0]),
+                origin[1], len(data_message.data)
+            ),
+            host,
+            origin[0],
+            data_message.data
+        ])
 
     def __decode_data(self, message_buffer, offset=0):
         host_length, port, origin_host_length, origin_port, payload_length = \

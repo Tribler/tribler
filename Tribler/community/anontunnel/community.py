@@ -236,12 +236,10 @@ class ProxyCommunity(Community):
                         first_pool.fill(self.circuits[circuit_id])
 
                 else:
-                    circuit_candidates = set([c.candidate for c in
-                                          self.circuits.values()])
-
+                    circuit_candidates = set([c.candidate for c in self.circuits.values()])
                     candidates = (c for c
-                                  in self.dispersy_yield_verified_candidates()
-                                  if c not in circuit_candidates and next(iter(c.get_members()), None))
+                                  in self.candidate_cache.candidates
+                                  if c not in circuit_candidates)
 
                     c = next(candidates, None)
 
@@ -425,9 +423,10 @@ class ProxyCommunity(Community):
             else:
                 if sock_addr in self.candidate_cache.ip_to_candidate:
                     candidate = self.candidate_cache.ip_to_candidate[sock_addr]
+                    self.candidate_cache.candidate_to_time[candidate] = time.time()
                 else:
                     candidate = self.get_candidate(sock_addr)
-                    if isinstance(candidate, WalkCandidate):
+                    if isinstance(candidate, WalkCandidate) and candidate.get_members():
                         self.candidate_cache.cache(candidate)
 
                 if candidate:
@@ -462,7 +461,7 @@ class ProxyCommunity(Community):
         """
         try:
             circuit_id = self._generate_circuit_id(first_hop.sock_addr)
-            self.candidate_cache.cache(first_hop, times_out=False)
+            self.candidate_cache.cache(first_hop)
 
             cache = self._request_cache.add(
                 CircuitRequestCache(self, circuit_id))
@@ -583,7 +582,7 @@ class ProxyCommunity(Community):
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED,
                                  candidate.sock_addr, circuit_id)
 
-        self.candidate_cache.cache(candidate, times_out=False)
+        self.candidate_cache.cache(candidate)
 
         return self.send_message(
             destination=candidate,
@@ -913,9 +912,7 @@ class ProxyCommunity(Community):
                         str_type + ('-relayed' if relayed else ''), 1)
 
         # we need to make sure that this endpoint is thread safe
-        return self.dispersy.endpoint.send(
-            candidates=[destination],
-            packets=[self.__packet_prefix + packet])
+        return self.dispersy.endpoint.send_simple(destination, self.__packet_prefix + packet)
 
     def __dict_inc(self, statistics_dict, key, inc=1):
         key = u"anontunnel-" + key

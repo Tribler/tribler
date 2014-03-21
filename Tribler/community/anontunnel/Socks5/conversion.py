@@ -123,8 +123,7 @@ def __encode_address(address_type, address):
     elif address_type == ADDRESS_TYP_IPV6:
         raise ValueError("IPv6 not implemented")
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
-        data = struct.pack("B", len(address))
-        data += address
+        data = struct.pack("B", len(address)) + address
     else:
         raise ValueError(
             "address_type must be either IPv4, IPv6 or a domain name")
@@ -239,9 +238,11 @@ def encode_udp_packet(rsv, frag, address_type, address, port, payload):
     @return: serialised byte string
     @rtype: str
     """
-    data = struct.pack("!HBB", rsv, frag, address_type)
-    data += __encode_address(address_type, address)
-    data += struct.pack("!H", port)
-    data += payload
+    strings = [
+        struct.pack("!HBB", rsv, frag, address_type),
+        __encode_address(address_type, address),
+        struct.pack("!H", port),
+        payload
+    ]
 
-    return data
+    return ''.join(strings)

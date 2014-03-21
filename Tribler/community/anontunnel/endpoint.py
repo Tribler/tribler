@@ -25,8 +25,8 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         self.packet_handlers = {}
         self.queue = Queue()
 
-        self.consumer_thread = Thread(target=self.__consumer)
-        self.consumer_thread.start()
+        # self.consumer_thread = Thread(target=self.__consumer)
+        # self.consumer_thread.start()
         self._logger = logging.getLogger(__name__)
 
     def listen_to(self, prefix, handler):
@@ -72,10 +72,11 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         try:
             for packet in packets:
 
-                prefix = next((p for p in self.packet_handlers.keys() if
+                prefix = next((p for p in self.packet_handlers if
                                packet[1].startswith(p)), None)
                 if prefix:
-                    self.queue.put_nowait((prefix, packet))
+                    self.packet_handlers[prefix](packet[0], packet[1])
+                    # self.queue.put_nowait((prefix, packet))
                 else:
                     normal_packets.append(packet)
         except Full:
@@ -84,19 +85,6 @@ class DispersyBypassEndpoint(RawserverEndpoint):
 
         RawserverEndpoint.data_came_in(self, normal_packets)
 
-    def send(self, candidates, packets):
-        """
-        Send packets to the specified candidates
-        @type candidates: tuple[Candidate] or list[Candidate]
-        @type packets: list[str]
-        @return:
-        """
-
-        for c in candidates:
-            for p in packets:
-                try:
-                    self._socket.sendto(p, c.sock_addr)
-                except IOError:
-                    self._logger.exception("Error writing to socket!")
-
+    def send_simple(self, candidate, packet):
+        self._socket.sendto(packet, candidate.sock_addr)
         return True

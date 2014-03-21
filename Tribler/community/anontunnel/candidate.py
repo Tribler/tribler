@@ -34,16 +34,18 @@ class CandidateCache:
         self.community = community
 
         def __cache_task():
-            try:
-                self.__fill_cache()
-            finally:
-                yield 1.0
+            while True:
+                try:
+                    self.__fill_cache()
+                finally:
+                    yield 1.0
 
         def __clean_up_task():
-            try:
-                self.invalidate()
-            finally:
-                yield 30.0
+            while True:
+                try:
+                    self.invalidate()
+                finally:
+                    yield 30.0
 
         community.dispersy.callback.register(__cache_task)
         community.dispersy.callback.register(__clean_up_task)
@@ -108,6 +110,14 @@ class CandidateCache:
         """
         return self.candidate_to_time.items()
 
+    @property
+    def candidates(self):
+        """
+        Returns (candidate, insert_time) from the cache
+        @return:
+        """
+        return self.candidate_to_time.keys()
+
     def invalidate(self):
         """
         Clean up the cache by invalidating old entries
@@ -124,9 +134,9 @@ class CandidateCache:
                 self.invalidate_by_candidate(candidate)
 
             # Shrink back to capacity if needed
-            amount_to_remove = max(0, len(self.items) - self.capacity)
+            amount_to_remove = max(0, len(self.candidate_to_time) - self.capacity)
             if amount_to_remove:
-                sorted_list = sorted(self.items, key=itemgetter(1))
+                sorted_list = sorted(self.candidate_to_time, key=itemgetter(1))
                 to_remove = sorted_list[0:amount_to_remove]
 
                 for candidate in to_remove:
