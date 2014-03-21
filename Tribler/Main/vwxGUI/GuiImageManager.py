@@ -17,6 +17,7 @@ from Tribler.Main.vwxGUI import warnWxThread
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
 
+logger = logging.getLogger(__name__)
 
 class GuiImageManager(object):
 
@@ -194,10 +195,10 @@ class GuiImageManager(object):
         """
         Gets the peer thumbnail.
         """
-        if data is None:
+        if raw_data is None:
             return None
 
-        return data2wxBitmap("image/jpeg", cStringIO.StringIO(data), dim)
+        return data2wxBitmap("image/jpeg", cStringIO.StringIO(raw_data), dim)
 
 
     @warnWxThread
