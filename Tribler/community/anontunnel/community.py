@@ -3,7 +3,6 @@ AnonTunnel community module
 """
 
 # Python imports
-import sys
 import threading
 import random
 import time
@@ -52,9 +51,9 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(3, 3)
+        length = random.randint(1,1)
 
-        self.max_circuits = 4
+        self.max_circuits = 1
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
         self.length_strategy = lengthstrategies.ConstantCircuitLength(length)
