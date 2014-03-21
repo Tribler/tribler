@@ -256,7 +256,8 @@ class ProxyCommunity(Community):
         Called by dispersy when the ProxyCommunity is being unloaded
         @return:
         """
-        self.__notify('on_unload')
+        for observer in self.observers:
+            observer.on_unload()
         Community.unload_community(self)
 
     def _initiate_message_handlers(self):
@@ -295,9 +296,8 @@ class ProxyCommunity(Community):
         )]
 
     def _on_stats(self, messages):
-        for message in messages:
-            self.__notify("on_tunnel_stats",
-                          self, message.candidate, message.payload.stats)
+        for observer in self.observers:
+            observer.on_tunnel_stats(messages)
 
     def send_stats(self, stats):
         """
@@ -388,8 +388,8 @@ class ProxyCommunity(Community):
             this_relay.last_incoming = time.time()
 
             # TODO: check whether direction is set correctly here!
-            self.__notify("on_relay",
-                          this_relay_key, relay_key, direction, data)
+            for observer in self.observers:
+                observer.on_relay(this_relay_key, relay_key, direction, data)
 
         packet_type = self.proxy_conversion.get_type(data)
 
@@ -528,7 +528,8 @@ class ProxyCommunity(Community):
             circuit.destroy()
             del self.circuits[circuit_id]
             # self.candidate_cache.invalidate_candidate(circuit.candidate)
-            self.__notify("on_break_circuit", circuit)
+            for observer in self.observers:
+                observer.on_break_circuit(circuit)
 
             return True
         return False
@@ -552,7 +553,9 @@ class ProxyCommunity(Community):
             # after removing one side the other will follow.
             del self.relay_from_to[relay_key]
 
-            self.__notify("on_break_relay", relay_key)
+            for observer in self.observers:
+                observer.on_break_relay(relay_key)
+
             return True
         return False
 
@@ -719,16 +722,16 @@ class ProxyCommunity(Community):
                                .format(message.destination))
 
             self.circuits[circuit_id].beat_heart()
-            self.__notify(
-                "on_incoming_from_tunnel", self, self.circuits[circuit_id],
-                message.origin, message.data)
+            for observer in self.observers:
+                observer.on_incoming_from_tunnel(self, self.circuits[circuit_id], message.origin, message.data)
 
             return True
 
         # It is not our circuit so we got it from a relay, we need to EXIT it!
         if message.destination != ('0.0.0.0', 0):
-            self.__notify("on_exiting_from_tunnel", circuit_id, candidate,
-                          message.destination, message.data)
+
+            for observer in self.observers:
+                observer.on_exiting_from_tunnel(circuit_id, candidate, message.destination, message.data)
 
             return True
         return False
@@ -977,14 +980,6 @@ class ProxyCommunity(Community):
 
             yield PING_INTERVAL
 
-    def __notify(self, method, *args, **kwargs):
-        for observer in self.observers:
-            try:
-                func = getattr(observer, method)
-                func(*args, **kwargs)
-            except AttributeError:
-                pass
-
     def tunnel_data_to_end(self, ultimate_destination, payload, circuit):
         """
         Tunnel data to the end and request an EXIT to the outside world
@@ -1000,18 +995,15 @@ class ProxyCommunity(Community):
 
         with self.lock:
             if circuit.goal_hops == 0:
-                self.__notify(
-                    "on_exiting_from_tunnel",
-                    circuit.circuit_id, None, ultimate_destination, payload)
+                for observer in self.observers:
+                    observer.on_exiting_from_tunnel(circuit.circuit_id, None, ultimate_destination, payload)
             else:
                 self.send_message(
                     circuit.candidate, circuit.circuit_id, MESSAGE_DATA,
                     DataMessage(ultimate_destination, payload, None))
 
-                self.__notify(
-                    "on_send_data",
-                    circuit.circuit_id, circuit.candidate,
-                    ultimate_destination, payload)
+                for observer in self.observers:
+                    observer.on_send_data(circuit.circuit_id, circuit.candidate, ultimate_destination, payload)
 
     def tunnel_data_to_origin(self, circuit_id, candidate, source_address,
                               payload):
@@ -1032,8 +1024,8 @@ class ProxyCommunity(Community):
                 DataMessage(None, payload, source_address))
 
             if result:
-                self.__notify("on_enter_tunnel", circuit_id, candidate,
-                              source_address, payload)
+                for observer in self.observers:
+                    observer.on_enter_tunnel(circuit_id, candidate, source_address, payload)
 
             return result
 
