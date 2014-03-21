@@ -149,12 +149,6 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
             if circuit.state != CIRCUIT_STATE_READY:
                 self._logger.error("Circuit is not ready, dropping {0} bytes to {1}", len(request.payload), request.destination)
             else:
-                self._logger.info(
-                    "Relaying UDP packets from {0} to {1}".format(
-                        self.remote_udp_address, request.destination
-                    )
-                )
-
                 circuit.tunnel_data(request.destination, request.payload)
 
     def on_incoming_from_tunnel(self, community, circuit, origin, data):
@@ -174,8 +168,3 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
                                                 self.remote_udp_address)
         if bytes_written < len(socks5_udp):
             self._logger.error("Packet drop on return!")
-
-        self._logger.info(
-            "Returning UDP packets from %s to %s using proxy port %d",
-            origin, self.remote_udp_address,
-            self._udp_socket.getsockname()[1])

@@ -22,8 +22,6 @@ class DefaultExitStrategy(TunnelObserver):
 
     def on_exiting_from_tunnel(self, circuit_id, return_candidate, destination,
                                data):
-        self._logger.debug("EXIT DATA packet to %s", destination)
-
         try:
             exit_socket = self.get_exit_socket(circuit_id, return_candidate)
             exit_socket.sendto(data, destination)
