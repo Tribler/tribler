@@ -50,7 +50,8 @@ class CandidateCache:
 
     def __fill_cache(self):
         for candidate in self.community.dispersy_yield_verified_candidates():
-            self.cache(candidate)
+            if list(candidate.get_members()):
+                self.cache(candidate)
 
     def cache(self, candidate, times_out=True):
         """
