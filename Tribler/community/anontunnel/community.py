@@ -968,17 +968,17 @@ class ProxyCommunity(Community):
         @return: Whether the request has been handled successfully
         """
 
-        with self.lock:
-            if circuit.goal_hops == 0:
-                for observer in self.observers:
-                    observer.on_exiting_from_tunnel(circuit.circuit_id, None, ultimate_destination, payload)
-            else:
-                self.send_message(
-                    circuit.candidate, circuit.circuit_id, MESSAGE_DATA,
-                    DataMessage(ultimate_destination, payload, None))
 
-                for observer in self.observers:
-                    observer.on_send_data(circuit.circuit_id, circuit.candidate, ultimate_destination, payload)
+        if circuit.goal_hops == 0:
+            for observer in self.observers:
+                observer.on_exiting_from_tunnel(circuit.circuit_id, None, ultimate_destination, payload)
+        else:
+            self.send_message(
+                circuit.candidate, circuit.circuit_id, MESSAGE_DATA,
+                DataMessage(ultimate_destination, payload, None))
+
+            for observer in self.observers:
+                observer.on_send_data(circuit.circuit_id, circuit.candidate, ultimate_destination, payload)
 
     def tunnel_data_to_origin(self, circuit_id, candidate, source_address,
                               payload):
