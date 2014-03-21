@@ -240,7 +240,7 @@ class ProxyCommunity(Community):
                     circuit_candidates = set([c.candidate for c in self.circuits.values()])
                     candidates = (c for c
                                   in self.dispersy_yield_verified_candidates()
-                                  if c not in circuit_candidates)
+                                  if c not in circuit_candidates and isinstance(c, WalkCandidate) and c.get_members())
 
                     c = next(candidates, None)
 
@@ -562,7 +562,13 @@ class ProxyCommunity(Community):
 
         candidate_dict = {}
         for _ in range(1, 5):
-            candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
+            candidate_temp = next(
+                (
+                    c for c in self.dispersy_yield_verified_candidates()
+                    if isinstance(c, WalkCandidate) and next(iter(c.get_members()), None)
+                ),
+                None
+            )
 
             if not candidate_temp:
                 break
