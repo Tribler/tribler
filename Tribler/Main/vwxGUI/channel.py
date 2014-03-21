@@ -265,17 +265,6 @@ class SelectedChannelList(GenericSearchList):
         self.category_names[8] = 'Other'
         self.category_names[None] = self.category_names[0] = 'Unknown'
 
-        gui_image_manager = GuiImageManager.getInstance()
-
-        self.statusDHT = gui_image_manager.getImage(u"status_dht.png")
-        self.statusInactive = gui_image_manager.getImage(u"status_inact.png")
-        self.statusDownloading = gui_image_manager.getImage(u"status_dl.png")
-        self.statusFinished = gui_image_manager.getImage(u"status_fin.png")
-        self.statusSeeding = gui_image_manager.getImage(u"status_sd.png")
-        self.statusStopped = gui_image_manager.getImage(u"status_stop.png")
-        self.inFavoriteChannel = gui_image_manager.getImage(u"starEnabled.png")
-        self.outFavoriteChannel = gui_image_manager.getImage(u"star.png")
-
         GenericSearchList.__init__(self, None, wx.WHITE, [0, 0], True, borders=False, showChange=True, parent=parent)
 
         self.list.OnBack = self.OnBack
@@ -336,9 +325,9 @@ class SelectedChannelList(GenericSearchList):
     def _special_icon(self, item):
         if not isinstance(item, PlaylistItem) and self.channel:
             if self.channel.isFavorite():
-                return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s" % self.channel.name
+                return self.favorite, self.normal, "This torrent is part of one of your favorite channels, %s" % self.channel.name
             else:
-                return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
+                return self.normal, self.favorite, "This torrent is not part of one of your favorite channels"
 
     def CreateList(self, parent=None, listRateLimit=1):
         if not parent:
@@ -853,9 +842,9 @@ class Playlist(SelectedChannelList):
     def _special_icon(self, item):
         if not isinstance(item, PlaylistItem) and self.playlist and self.playlist.channel:
             if self.playlist.channel.isFavorite():
-                return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s" % self.playlist.channel.name
+                return self.favorite, self.normal, "This torrent is part of one of your favorite channels, %s" % self.playlist.channel.name
             else:
-                return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
+                return self.normal, self.favorite, "This torrent is not part of one of your favorite channels"
         else:
             pass
 
