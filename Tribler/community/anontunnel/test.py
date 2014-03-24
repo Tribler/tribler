@@ -1,7 +1,7 @@
 import logging
 import time
 from Tribler.community.anontunnel.events import TunnelObserver
-
+import shutil
 
 class LibtorrentTest(object, TunnelObserver):
     """
@@ -54,7 +54,7 @@ class LibtorrentTest(object, TunnelObserver):
         from Tribler.Main.globals import DefaultDownloadStartupConfig
         from Tribler.Main.vwxGUI import forceWxThread
 
-        hosts = [("95.211.198.147", 51413), ("95.211.198.142", 51413), ("95.211.198.140", 51413), ("95.211.198.141", 51413)]
+        hosts = [("94.23.38.156", 51413), ("95.211.198.147", 51413), ("95.211.198.142", 51413), ("95.211.198.140", 51413), ("95.211.198.141", 51413)]
 
         @forceWxThread
         def thank_you(file_size, start_time, end_time):
@@ -100,7 +100,13 @@ class LibtorrentTest(object, TunnelObserver):
             self._logger.warning("Skipping Anon Test since it has been run before")
             return False
 
-        destination_dir = self.tribler_session.get_state_dir()
+        destination_dir = self.tribler_session.get_state_dir() + "/anon_test/"
+
+        try:
+            shutil.rmtree(destination_dir)
+        except:
+            pass
+
         tdef = TorrentDef.load("public.torrent")
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
