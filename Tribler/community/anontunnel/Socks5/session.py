@@ -20,13 +20,15 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
     UDP-sockets
     @param CircuitPool circuit_pool:  the circuit pool
     """
-    def __init__(self, raw_server, connection, server, circuit_pool):
+    def __init__(self, raw_server, connection, server, circuit_pool, min_circuits=4):
         TunnelObserver.__init__(self)
         self.raw_server = raw_server
         self._logger = logging.getLogger(__name__)
         self.connection = connection
         self.connection.observers.append(self)
         self.circuit_pool = circuit_pool
+
+        self.min_circuits = min_circuits
 
         self.server = server
 
@@ -46,7 +48,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         """
         if not self.circuit_pool.available_circuits:
             try:
-                for _ in range(4):
+                for _ in range(self.min_circuits):
                     circuit = self.server.circuit_pool.allocate()
                     # Move from main pool to session pool
                     self.server.circuit_pool.remove_circuit(circuit)

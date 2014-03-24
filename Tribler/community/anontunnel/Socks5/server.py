@@ -20,7 +20,7 @@ class Socks5Server(object, TunnelObserver):
     @param RawServer raw_server: the RawServer instance to bind on
     @param int socks5_port: the port to listen on
     """
-    def __init__(self, tunnel, raw_server, socks5_port=1080, num_circuits=4):
+    def __init__(self, tunnel, raw_server, socks5_port=1080, num_circuits=4, min_circuits=4, min_session_circuits=4):
         super(Socks5Server, self).__init__()
         self._logger = logging.getLogger(__name__)
 
@@ -38,10 +38,13 @@ class Socks5Server(object, TunnelObserver):
         self.circuit_pool = CircuitPool(self.tunnel, num_circuits, "SOCKS5(master)")
         self.tunnel.circuit_pools.append(self.circuit_pool)
 
+        self.min_circuits = min_circuits
+        self.min_session_circuits = min_session_circuits
+
         raw_server.add_task(self.__start_anon_session, 5.0)
 
     def __start_anon_session(self):
-        if len(self.circuit_pool.available_circuits) >= 4:
+        if len(self.circuit_pool.available_circuits) >= self.min_circuits:
             self._logger.warning("Creating ANON session")
 
             try:
@@ -79,7 +82,7 @@ class Socks5Server(object, TunnelObserver):
 
         try:
             session_pool = CircuitPool(self.tunnel, 4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
-            session = Socks5Session(self.raw_server, s5con, self, session_pool)
+            session = Socks5Session(self.raw_server, s5con, self, session_pool, min_circuits=self.min_session_circuits)
             self.tunnel.observers.append(session)
             self.tunnel.circuit_pools.append(session_pool)
 
