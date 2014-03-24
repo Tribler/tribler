@@ -12,12 +12,12 @@ class CandidateCache:
 
     @param ProxyCommunity community: the proxy community instance
     """
-    def __init__(self, community, timeout=300):
+    def __init__(self, community, timeout=60):
         self.lock = threading.RLock()
 
         self.timeout = timeout
 
-        self.capacity = 100
+        self.capacity = 1000
 
         self.keys_to_candidate = {}
         ''' :type : dict[object, WalkCandidate] '''
@@ -33,13 +33,6 @@ class CandidateCache:
 
         self.community = community
 
-        def __cache_task():
-            while True:
-                try:
-                    self.__fill_cache()
-                finally:
-                    yield 1.0
-
         def __clean_up_task():
             while True:
                 try:
@@ -47,13 +40,7 @@ class CandidateCache:
                 finally:
                     yield 30.0
 
-        # community.dispersy.callback.register(__cache_task)
         community.dispersy.callback.register(__clean_up_task)
-
-    def __fill_cache(self):
-        for candidate in self.community.dispersy_yield_verified_candidates():
-            if list(candidate.get_members()):
-                self.cache(candidate)
 
     def cache(self, candidate, times_out=True):
         """
@@ -98,9 +85,10 @@ class CandidateCache:
         Invalidate a single candidate in the cache by its IP address
         @param (str, int) ip: the ip of the candidate to invalidate
         """
-        if ip in self.ip_to_candidate:
-            candidate = self.ip_to_candidate[ip]
-            return self.invalidate_by_candidate(candidate)
+        with self.lock:
+            if ip in self.ip_to_candidate:
+                candidate = self.ip_to_candidate[ip]
+                return self.invalidate_by_candidate(candidate)
 
     @property
     def items(self):

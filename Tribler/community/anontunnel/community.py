@@ -334,9 +334,6 @@ class ProxyCommunity(Community):
 
         # If un-decrypt-able, drop packet
         if not payload:
-            return False
-
-        if not payload:
             self._logger.warning("IGNORED %s from %s:%d over circuit %d",
                                  str_type, candidate.sock_addr[0],
                                  candidate.sock_addr[1], circuit_id)
@@ -422,7 +419,7 @@ class ProxyCommunity(Community):
             if is_relay:
                 result = self.__relay(circuit_id, data, relay_key, sock_addr)
             else:
-                candidate = self.get_candidate(sock_addr)
+                candidate = self._candidates.get(sock_addr)
                 if isinstance(candidate, WalkCandidate) and candidate.get_members():
                     self.candidate_cache.cache(candidate)
                 elif sock_addr in self.candidate_cache.ip_to_candidate:
@@ -434,19 +431,17 @@ class ProxyCommunity(Community):
 
                 if candidate:
                     result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
-
         except:
             result = False
             self._logger.exception(
-                "Incoming from {3} on {4} message error."
-                "INITIAL={0}, ORIGINATOR={1}, RELAY={2}"
-                .format(is_initial, is_originator, is_relay, sock_addr,
-                        circuit_id))
+                "Incoming from %s on %d message error."
+                "INITIAL=%s, ORIGINATOR=%s, RELAY=%s",
+                sock_addr, circuit_id, is_initial, is_originator, is_relay)
 
         if not result:
-            if relay_key in self.relay_from_to:
+            if is_relay:
                 self.remove_relay(relay_key, "error on incoming packet!")
-            elif circuit_id in self.circuits:
+            elif is_originator:
                 self.remove_circuit(circuit_id, "error on incoming packet!")
 
     def _create_circuit(self, first_hop, goal_hops, extend_strategy=None,
@@ -746,6 +741,7 @@ class ProxyCommunity(Community):
                 message.host,
                 message.port)
         else:
+            self._logger.error("We are extending at random should not happen!")
             extend_with_addr = next(
                 (x.sock_addr for x in self.dispersy_yield_verified_candidates()
                  if x and x != candidate),
@@ -753,6 +749,7 @@ class ProxyCommunity(Community):
             )
 
         if not extend_with_addr:
+            self._logger.error("Cancelling EXTEND, no candidate!")
             return
 
         relay_key = (candidate.sock_addr, circuit_id)
@@ -782,7 +779,7 @@ class ProxyCommunity(Community):
         self.directions[to_key] = ORIGINATOR
         self.directions[relay_key] = ENDPOINT
 
-        extend_candidate = self.candidate_cache.ip_to_candidate[extend_with_addr]
+        extend_candidate = self._candidates.get(extend_with_addr) or self.candidate_cache.ip_to_candidate[extend_with_addr]
         self._logger.info("Extending circuit, got candidate with IP %s:%d from cache", *extend_with_addr)
         return self.send_message(extend_candidate, new_circuit_id,
                                  MESSAGE_CREATE, CreateMessage(key))
@@ -821,7 +818,7 @@ class ProxyCommunity(Community):
 
         self._dispersy.callback.register(__do_add)
 
-        #self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
+        self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
@@ -834,7 +831,7 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-        #self._logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
+        self._logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
         return self.send_message(
             destination=candidate,
             circuit_id=circuit_id,
