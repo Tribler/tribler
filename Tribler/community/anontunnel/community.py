@@ -422,18 +422,19 @@ class ProxyCommunity(Community):
             if is_relay:
                 result = self.__relay(circuit_id, data, relay_key, sock_addr)
             else:
-                if sock_addr in self.candidate_cache.ip_to_candidate:
+                candidate = self.get_candidate(sock_addr)
+                if isinstance(candidate, WalkCandidate) and candidate.get_members():
+                    self.candidate_cache.cache(candidate)
+                elif sock_addr in self.candidate_cache.ip_to_candidate:
                     candidate = self.candidate_cache.ip_to_candidate[sock_addr]
                     self.candidate_cache.candidate_to_time[candidate] = time.time()
                 else:
-                    candidate = self.get_candidate(sock_addr)
-                    if isinstance(candidate, WalkCandidate) and candidate.get_members():
-                        self.candidate_cache.cache(candidate)
+                    self._logger.error("Unknown candidate at %s, drop!", sock_addr)
+                    result = False
 
                 if candidate:
                     result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
-                else:
-                    self._logger.error("Unknown candidate at %s, drop!", sock_addr)
+
         except:
             result = False
             self._logger.exception(
@@ -782,6 +783,7 @@ class ProxyCommunity(Community):
         self.directions[relay_key] = ENDPOINT
 
         extend_candidate = self.candidate_cache.ip_to_candidate[extend_with_addr]
+        self._logger.info("Extending circuit, got candidate with IP %s:%d from cache", *extend_with_addr)
         return self.send_message(extend_candidate, new_circuit_id,
                                  MESSAGE_CREATE, CreateMessage(key))
 
@@ -850,7 +852,6 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-        #self._logger.debug("GOT PONG FROM CIRCUIT {0}".format(circuit_id))
         request = self.dispersy.callback.call(
             self._request_cache.get,
             args=(PingRequestCache.create_identifier(circuit_id),))
@@ -859,7 +860,6 @@ class ProxyCommunity(Community):
             request.on_pong(message)
             return True
         return False
-
 
     def _generate_circuit_id(self, neighbour=None):
         circuit_id = random.randint(1, 255000)
