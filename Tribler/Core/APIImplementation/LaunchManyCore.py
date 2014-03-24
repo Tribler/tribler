@@ -11,7 +11,8 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
-from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto, \
+    NoElgamalCrypto
 
 import logging
 from traceback import print_exc
@@ -129,7 +130,7 @@ class TriblerLaunchMany(Thread):
                 callback = Callback("Dispersy")  # WARNING NAME SIGNIFICANT
                 working_directory = unicode(self.session.get_state_dir())
 
-                self.dispersy = Dispersy(callback, endpoint, working_directory, crypto=ElgamalCrypto())
+                self.dispersy = Dispersy(callback, endpoint, working_directory, crypto=NoElgamalCrypto())
 
                 # TODO: see if we can postpone dispersy.start to improve GUI responsiveness.
                 # However, for now we must start self.dispersy.callback before running
