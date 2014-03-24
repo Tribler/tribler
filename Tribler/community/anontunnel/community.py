@@ -426,6 +426,7 @@ class ProxyCommunity(Community):
                     candidate = self.candidate_cache.ip_to_candidate[sock_addr]
                     self.candidate_cache.candidate_to_time[candidate] = time.time()
                 else:
+                    candidate = None
                     self._logger.error("Unknown candidate at %s, drop!", sock_addr)
                     result = False
 

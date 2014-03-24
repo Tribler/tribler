@@ -130,7 +130,7 @@ class TriblerLaunchMany(Thread):
                 callback = Callback("Dispersy")  # WARNING NAME SIGNIFICANT
                 working_directory = unicode(self.session.get_state_dir())
 
-                self.dispersy = Dispersy(callback, endpoint, working_directory, crypto=NoElgamalCrypto())
+                self.dispersy = Dispersy(callback, endpoint, working_directory, crypto=ElgamalCrypto())
 
                 # TODO: see if we can postpone dispersy.start to improve GUI responsiveness.
                 # However, for now we must start self.dispersy.callback before running
