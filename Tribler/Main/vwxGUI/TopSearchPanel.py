@@ -420,8 +420,8 @@ class TopSearchPanel(FancyPanel):
 
             if torrent.isPlayable():
                 self.guiutility.ShowPlayer()
-                self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
-                self.guiutility.library_manager.playTorrent(torrent)
+                self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent, torrent.largestvideofile)
+                self.guiutility.library_manager.playTorrent(torrent, torrent.largestvideofile)
                 play_executed = True
 
         else:
@@ -429,8 +429,7 @@ class TopSearchPanel(FancyPanel):
             playable_files = torrent.videofiles
 
             if len(playable_files) > 1:  # Create a popup
-                (_, largest_file) = max([(size, filename) for filename, size in torrent.files if filename in playable_files])
-                selected_file = self.guiutility.SelectVideo(playable_files, largest_file)
+                selected_file = self.guiutility.SelectVideo(playable_files, torrent.largestvideofile)
 
                 if selected_file:
                     self.guiutility.library_manager.playTorrent(torrent, selected_file)

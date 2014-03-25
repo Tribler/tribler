@@ -2089,7 +2089,6 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
 
         self.torrent = None
-        self.fileindex = 0
 
         self.close_icon = GuiImageManager.getInstance().getImage(u"close.png")
         self.fg_colour = self.GetForegroundColour()
@@ -2125,7 +2124,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             if file_tuple[0] in self.torrent.videofiles:
                 fileindex = self.torrent.files.index(file_tuple)
                 filename = file_tuple[0]
-                link = LinkStaticText(self, filename, icon=None, font_colour=TRIBLER_RED if fileindex == self.fileindex else self.fg_colour)
+                link = LinkStaticText(self, filename, icon=None, font_colour=TRIBLER_RED if fileindex == self.initial_fileindex else self.fg_colour)
                 link.SetBackgroundColour(self.bg_colour)
                 link.SetLabel(DetermineText(link.text, filename))
                 link.Bind(wx.EVT_MOUSE_EVENTS, self.OnLinkStaticTextMouseEvent)
@@ -2161,12 +2160,15 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Thaw()
 
     @forceWxThread
-    def SetTorrent(self, torrent):
+    def SetTorrent(self, torrent, videofile=None):
         if self.torrent:
             self.library_manager.stopTorrent(self.torrent)
 
+        files = [ft[0] for ft in torrent.files]
+
         self.torrent = torrent
-        self.fileindex = 0
+        self.initial_fileindex = files.index(videofile) if videofile in files else -1
+
         self.UpdateComponents()
 
         if isinstance(self.torrent, NotCollectedTorrent):
@@ -2276,5 +2278,4 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 if index + 1 < len(self.links):
                     control_next = self.links[index + 1]
                     control_next.SetForegroundColour(TRIBLER_RED)
-                    self.fileindex = control_next.fileindex
-                    self.library_manager.playTorrent(self.torrent, self.torrent.files[self.fileindex][0])
+                    self.library_manager.playTorrent(self.torrent, self.torrent.files[control_next.fileindex][0])
