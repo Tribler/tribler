@@ -2,7 +2,8 @@ from Crypto.Util.number import bytes_to_long, long_to_bytes
 from collections import defaultdict
 import hashlib
 import logging
-import os
+from M2Crypto.BN import rand
+import gmpy
 from Tribler.Core.Utilities import encoding
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.events import TunnelObserver
@@ -187,11 +188,15 @@ class DefaultCrypto(Crypto):
 
     @staticmethod
     def __generate_diffie_secret():
-        dh_secret = bytes_to_long(os.urandom(DIFFIE_HELLMAN_MODULUS_SIZE / 8))
+        dh_secret = rand(DIFFIE_HELLMAN_MODULUS_SIZE)
         while dh_secret >= DIFFIE_HELLMAN_MODULUS:
-            dh_secret = os.urandom(DIFFIE_HELLMAN_MODULUS_SIZE / 8)
-        dh_first_part = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
-                            DIFFIE_HELLMAN_MODULUS)
+              dh_secret = rand(DIFFIE_HELLMAN_MODULUS_SIZE)
+
+        a = gmpy.mpz(DIFFIE_HELLMAN_GENERATOR)
+        b = gmpy.mpz(dh_secret)
+        c = gmpy.mpz(DIFFIE_HELLMAN_MODULUS)
+
+        dh_first_part = pow(a, b, c)
         return dh_secret, dh_first_part
 
     def __init__(self):
