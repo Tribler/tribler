@@ -88,25 +88,6 @@ def win32_retrieve_video_play_command(ext, videourl):
     return [contenttype, suo.replace(replace, videourl)]
 
 
-def win32_retrieve_playcmd_from_mimetype(mimetype, videourl):
-    """ Use the specified MIME type to find the player in the Windows registry to play the url (or file)"""
-    registry = Win32RegChecker()
-
-    logger.debug("videoplay: Looking for player for %s", unicode2str(videourl))
-    if mimetype == '' or mimetype is None:
-        return [None, None]
-
-    keyname = '\\SOFTWARE\\Classes\\MIME\\Database\\Content Type\\' + mimetype
-    valuename = 'Extension'
-    ext = registry.readKeyRecursively(HKLM, keyname, value_name=valuename)
-    logger.debug("videoplay: ext winfiletype is %s", ext)
-    if ext is None or ext == '':
-        return [None, None]
-    logger.debug("videoplay: Looking for player for mime %s which is ext %s", mimetype, ext)
-
-    return win32_retrieve_video_play_command(ext, videourl)
-
-
 def quote_program_path(progpath):
     idx = progpath.find(' ')
     if idx != -1:
