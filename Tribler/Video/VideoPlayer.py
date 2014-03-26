@@ -103,7 +103,7 @@ class VideoPlayer:
         if bufferprogress >= 1:
             if not self.vod_playing:
                 self.vod_playing = True
-            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
+                self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
         elif bufferprogress <= 0.1 and self.vod_playing:
             self.vod_playing = False
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, True))
