@@ -96,6 +96,10 @@ class CandidateCache:
                 del self.candidate_to_key[candidate]
                 del self.keys_to_candidate[key]
                 del self.candidate_to_time[candidate]
+                del self.candidate_to_key_string[candidate]
+                hashed_key = self.candidate_to_hashed_key[candidate]
+                del self.candidate_to_hashed_key[candidate]
+                del self.hashed_key_to_candidate[hashed_key]
 
     def invalidate_ip(self, ip):
         """
