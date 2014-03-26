@@ -3,11 +3,10 @@
 
 import wx
 
-from Tribler.Video.VideoFrame import VideoBaseFrame
 from Tribler.Main.vwxGUI.EmbeddedPlayer import EmbeddedPlayerPanel
 
 
-class VideoDummyFrame(VideoBaseFrame):
+class VideoDummyFrame(object):
 
     """ Provides a fake Frame around an EmbeddedPlayerPanel so the embedded player
     can be shown inside another window.
@@ -29,14 +28,5 @@ class VideoDummyFrame(VideoBaseFrame):
     def recreate_vlc_window(self):
         self.videopanel.RecreateVLCWindow()
 
-    def show_videoframe(self):
-        pass
-
-    def hide_videoframe(self):
-        pass
-
     def get_videopanel(self):
         return self.videopanel
-
-    def get_window(self):
-        return self.parent

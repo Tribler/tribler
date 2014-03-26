@@ -164,7 +164,6 @@ class VideoPlayer:
     def launch_video_player(self, cmd, download=None):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             self.videoframe.get_videopanel().Load(cmd, download)
-            self.videoframe.show_videoframe()
             self.videoframe.get_videopanel().StartPlay()
             self.videoframe.get_videopanel().ShowLoading()
         else:
@@ -198,4 +197,4 @@ class VideoPlayer:
 
         self._logger.debug("Videoplayer: using external user-defined player by executing %s", cmd)
 
-        return cmd
+        return cmd

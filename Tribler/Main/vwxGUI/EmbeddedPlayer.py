@@ -23,8 +23,28 @@ from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, \
 
 from Tribler.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
     MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
-from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
+
+
+class DelayTimer(wx.Timer):
+
+    """ vlc.MediaCtrl needs some time to stop after we give it a stop command.
+        Wait until it is and then tell it to play the new item
+    """
+    def __init__(self, embedplay):
+        wx.Timer.__init__(self)
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        self.embedplay = embedplay
+        self.Start(100)
+
+    def Notify(self):
+        if self.embedplay.GetState() != MEDIASTATE_PLAYING:
+            self._logger.debug("embedplay: VLC has stopped playing previous video, starting it on new")
+            self.Stop()
+            self.embedplay.Play()
+        else:
+            self._logger.debug("embedplay: VLC is still playing old video")
 
 
 class EmbeddedPlayerPanel(wx.Panel):
