@@ -23,8 +23,28 @@ from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, \
 
 from Tribler.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
     MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
-from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
+
+
+class DelayTimer(wx.Timer):
+
+    """ vlc.MediaCtrl needs some time to stop after we give it a stop command.
+        Wait until it is and then tell it to play the new item
+    """
+    def __init__(self, embedplay):
+        wx.Timer.__init__(self)
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        self.embedplay = embedplay
+        self.Start(100)
+
+    def Notify(self):
+        if self.embedplay.GetState() != MEDIASTATE_PLAYING:
+            self._logger.debug("embedplay: VLC has stopped playing previous video, starting it on new")
+            self.Stop()
+            self.embedplay.Play()
+        else:
+            self._logger.debug("embedplay: VLC is still playing old video")
 
 
 class EmbeddedPlayerPanel(wx.Panel):
@@ -322,65 +342,40 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     @warnWxThread
     def _ToggleFullScreen(self):
-        if isinstance(self.parent, wx.Frame):  # are we shown in popup frame
-            if self.ctrlsizer.IsShown(0):  # we are not in fullscreen -> ctrlsizer is showing
-                self.parent.ShowFullScreen(True)
-                self.ctrlsizer.ShowItems(False)
-                self.Layout()
+        # saving media player state
+        cur_time = self.vlcwrap.get_media_position()
+        cur_state = self.vlcwrap.get_our_state()
 
-                # Niels: 07-03-2012, only evt_close seems to work :(
-                quitId = wx.NewId()
-                pauseId = wx.NewId()
-                self.parent.Bind(wx.EVT_MENU, lambda event: self._ToggleFullScreen(), id=quitId)
-                self.parent.Bind(wx.EVT_MENU, lambda event: self._TogglePause(), id=pauseId)
+        self.vlcwrap.stop()
+        if not self.fullscreenwindow:
+            # create a new top level frame where to attach the vlc widget and
+            # render the fullscreen video
+            self.fullscreenwindow = wx.Frame(None, title="FullscreenVLC")
+            self.fullscreenwindow.SetBackgroundColour("BLACK")
 
-                self.parent.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
-                self.parent.Bind(wx.EVT_LEFT_DCLICK, lambda event: self._ToggleFullScreen())
-
-                accelerators = [(wx.ACCEL_NORMAL, wx.WXK_ESCAPE, quitId), (wx.ACCEL_CTRL, wx.WXK_SPACE, pauseId)]
-                self.parent.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
-            else:
-                self.parent.ShowFullScreen(False)
-                self.ctrlsizer.ShowItems(True)
-                self.Layout()
-
-                self.parent.SetAcceleratorTable(wx.NullAcceleratorTable)
-                self.parent.Unbind(wx.EVT_CLOSE)
+            eventPanel = wx.Panel(self.fullscreenwindow)
+            eventPanel.SetBackgroundColour(wx.BLACK)
+            eventPanel.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
+            self.fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
+            self.fullscreenwindow.ShowFullScreen(True)
+            eventPanel.SetFocus()
+            self.vlcwrap.set_window(self.fullscreenwindow)
         else:
-            # saving media player state
-            cur_time = self.vlcwrap.get_media_position()
-            cur_state = self.vlcwrap.get_our_state()
+            self.vlcwrap.set_window(self.vlcwin)
+            self.fullscreenwindow.Destroy()
+            self.fullscreenwindow = None
 
-            self.vlcwrap.stop()
-            if not self.fullscreenwindow:
-                # create a new top level frame where to attach the vlc widget and
-                # render the fullscreen video
-                self.fullscreenwindow = wx.Frame(None, title="FullscreenVLC")
-                self.fullscreenwindow.SetBackgroundColour("BLACK")
+        # restoring state
+        if cur_state == MEDIASTATE_PLAYING:
+            self.vlcwrap.start(cur_time)
 
-                eventPanel = wx.Panel(self.fullscreenwindow)
-                eventPanel.SetBackgroundColour(wx.BLACK)
-                eventPanel.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
-                self.fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
-                self.fullscreenwindow.ShowFullScreen(True)
-                eventPanel.SetFocus()
-                self.vlcwrap.set_window(self.fullscreenwindow)
-            else:
-                self.vlcwrap.set_window(self.vlcwin)
-                self.fullscreenwindow.Destroy()
-                self.fullscreenwindow = None
+        elif cur_state == MEDIASTATE_PAUSED:
+            self.vlcwrap.start(cur_time)
 
-            # restoring state
-            if cur_state == MEDIASTATE_PLAYING:
-                self.vlcwrap.start(cur_time)
-
-            elif cur_state == MEDIASTATE_PAUSED:
-                self.vlcwrap.start(cur_time)
-
-                def doPause(cur_time):
-                    self.vlcwrap.pause()
-                    self.vlcwrap.set_media_position(cur_time)
-                wx.CallLater(500, doPause, cur_time)
+            def doPause(cur_time):
+                self.vlcwrap.pause()
+                self.vlcwrap.set_media_position(cur_time)
+            wx.CallLater(500, doPause, cur_time)
 
     def SetVolume(self, volume, evt=None):
         self._logger.debug("embedplay: SetVolume: %s", self.volume)
