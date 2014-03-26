@@ -113,10 +113,10 @@ class CandidateCache:
         sample_time = time.time()
 
         with self.lock:
-            timed_out = (candidate
+            timed_out = [candidate
                          for candidate, insert_time
                          in self.candidate_to_time.iteritems()
-                         if insert_time + self.timeout < sample_time)
+                         if insert_time + self.timeout < sample_time]
 
             for candidate in timed_out:
                 self.invalidate_by_candidate(candidate)
