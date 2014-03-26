@@ -283,7 +283,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
-            self.ppbtn.Enable(not bool(self.download))
+            self.ppbtn.Enable(self.download.get_progress() == 1.0)
             position = self.slider.GetValue()
             self.update = False
 
@@ -405,6 +405,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwrap.stop()
             self.timeposition.SetLabel('--:-- / --:--')
             self.slider.SetValue(0)
+            self.timeoffset = None
             self.fsbtn.Enable(False)
             self.sbtn.Enable(False)
             self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
