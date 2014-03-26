@@ -405,6 +405,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwrap.stop()
             self.timeposition.SetLabel('--:-- / --:--')
             self.slider.SetValue(0)
+            self.timeoffset = None
             self.fsbtn.Enable(False)
             self.sbtn.Enable(False)
             self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
