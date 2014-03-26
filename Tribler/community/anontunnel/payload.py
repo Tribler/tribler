@@ -34,14 +34,6 @@ class ExtendMessage(BaseMessage):
         self.extend_with = extend_with
         self.key = ""
 
-    @property
-    def host(self):
-        return self.extend_with[0] if self.extend_with else None
-
-    @property
-    def port(self):
-        return self.extend_with[1] if self.extend_with else None
-
 
 class ExtendedMessage(BaseMessage):
     def __init__(self, key, candidate_list):

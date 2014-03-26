@@ -120,29 +120,21 @@ class CustomProxyConversion():
         return struct.pack("!L", new_id) + data
 
     def __encode_extend(self, extend_message):
-        host = extend_message.host if extend_message.host else ''
-        port = extend_message.port if extend_message.port else 0
-
+        extend_with = extend_message.extend_with
         key = extend_message.key
 
-        data = struct.pack("!LH", len(host), port) + host + key
+        data = extend_with + key
         return data
 
     def __decode_extend(self, message_buffer, offset=0):
         if len(message_buffer) < offset + 6:
             raise ValueError(
-                "Cannot unpack HostLength/Port, insufficient packet size")
-        host_length, port = struct.unpack_from("!LH", message_buffer, offset)
+                "Cannot unpack extend_with, insufficient packet size")
+        extend_with = message_buffer[offset : offset + 6]
         offset += 6
-
-        if len(message_buffer) < offset + host_length:
-            raise ValueError("Cannot unpack Host, insufficient packet size")
-        host = message_buffer[offset:offset + host_length]
-        offset += host_length
 
         key = message_buffer[offset:]
 
-        extend_with = (host, port) if host and port else None
         message = ExtendMessage(extend_with)
         message.key = key
         return message

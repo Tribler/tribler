@@ -3,6 +3,7 @@ AnonTunnel community module
 """
 
 # Python imports
+import hashlib
 import threading
 import random
 import time
@@ -165,8 +166,6 @@ class ProxyCommunity(Community):
         self.waiting_for = {}
         """ :type :  dict[((str, int),int), bool] """
 
-        self.key = self.my_member.private_key
-
         # Map destination address to the circuit to be used
         self.destination_circuit = {}
         ''' @type: dict[(str, int), int] '''
@@ -201,6 +200,11 @@ class ProxyCommunity(Community):
             tribler_session.lm.rawserver.add_task(lambda: LibtorrentTest(self, self.tribler_session))
         else:
             self.notifier = None
+
+        key_string = self.crypto.key_to_bin(self.my_member._ec)
+        m = hashlib.sha256()
+        m.update(str(key_string))
+        self.hashed_public_key = m.digest()[0:6]
 
         def __loop_discover():
             while True:
@@ -477,7 +481,9 @@ class ProxyCommunity(Community):
                 circuit.extend_strategy = self.settings.extend_strategy(
                     self, circuit)
 
-            circuit.unverified_hop = Hop(first_hop.sock_addr)
+            circuit.unverified_hop = Hop(self.candidate_cache.candidate_to_hashed_key[first_hop])
+            circuit.unverified_hop.pub_key = self.candidate_cache.candidate_to_key[first_hop]
+            circuit.unverified_hop.address = first_hop.sock_addr
 
             self._logger.info(
                 'Circuit %d is to be created, wants %d hops sending to %s:%d',
@@ -573,12 +579,8 @@ class ProxyCommunity(Community):
             # Cache this candidate so that we have its IP in the future
             self.candidate_cache.cache(candidate_temp)
 
-            # first member of candidate contains elgamal key
-            ec_key = iter(candidate_temp.get_members()).next()._ec
-
-            key_string = self.crypto.key_to_bin(ec_key)
-
-            candidate_dict[candidate_temp.sock_addr] = key_string
+            candidate_dict[self.candidate_cache.candidate_to_hashed_key[candidate_temp]] = \
+                self.candidate_cache.candidate_to_key_string[candidate_temp]
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -641,16 +643,12 @@ class ProxyCommunity(Community):
         circuit.add_hop(circuit.unverified_hop)
         circuit.unverified_hop = None
 
-        dispersy = self.dispersy
-        if dispersy.lan_address in candidate_list:
-            del candidate_list[dispersy.lan_address]
-
-        if dispersy.wan_address in candidate_list:
-            del candidate_list[dispersy.wan_address]
+        if self.hashed_public_key in candidate_list:
+            del candidate_list[self.hashed_public_key]
 
         for hop in circuit.hops:
-            if hop.address in candidate_list:
-                del candidate_list[hop.address]
+            if hop.hashed_public_key in candidate_list:
+                del candidate_list[hop.hashed_public_key]
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             try:
@@ -734,13 +732,13 @@ class ProxyCommunity(Community):
         """
 
         if message.extend_with:
-            extend_with_addr = message.extend_with
+            extend_with_addr = self.candidate_cache.hashed_key_to_candidate[message.extend_with].sock_addr
             self._logger.warning(
                 "ON_EXTEND send CREATE for circuit (%s, %d) to %s:%d!",
                 candidate,
                 circuit_id,
-                message.host,
-                message.port)
+                extend_with_addr[0],
+                extend_with_addr[1])
         else:
             self._logger.error("We are extending at random should not happen!")
             extend_with_addr = next(

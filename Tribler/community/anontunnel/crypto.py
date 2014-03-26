@@ -276,7 +276,7 @@ class DefaultCrypto(Crypto):
             hop = self.proxy.circuits[circuit_id].unverified_hop
             hop.dh_secret = dh_secret
             hop.dh_first_part = dh_first_part
-            hop.pub_key = pub_key
+            hop.set_public_key(pub_key)
         else:
             message.key = self.key_to_forward
             self.key_to_forward = None

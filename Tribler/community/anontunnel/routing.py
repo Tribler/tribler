@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import time
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY, \
@@ -115,31 +116,41 @@ class Hop:
     the Diffie-Hellman handshake
     """
 
-    def __init__(self, address):
+    def __init__(self, hashed_public_key):
         """
         @param (str, int) address: the socket address of the hop
-        @param M2Crypto.EC.EC_pub pub_key: the EC public key of the hop
         @param long dh_first_part: first part of the DH-handshake
         """
-        self.address = address
         self.pub_key = None
         self.session_key = None
         self.dh_first_part = None
         self.dh_secret = None
+        self.address = None
+        self.hashed_public_key = hashed_public_key
+
+    def set_public_key(self, public_key):
+        """
+        @param M2Crypto.EC.EC_pub public_key: the EC public key of the hop
+        """
+        self.pub_key = public_key
 
     @property
     def host(self):
         """
         The hop's hostname
         """
-        return self.address[0]
+        if self.address:
+            return self.address[0]
+        return " UNKNOWN HOST "
 
     @property
     def port(self):
         """
         The hop's port
         """
-        return self.address[1]
+        if self.address:
+            return self.address[1]
+        return " UNKNOWN PORT "
 
 
 class RelayRoute(object):

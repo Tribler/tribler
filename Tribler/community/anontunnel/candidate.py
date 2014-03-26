@@ -1,3 +1,4 @@
+import hashlib
 from operator import itemgetter
 import time
 import threading
@@ -23,6 +24,15 @@ class CandidateCache:
         ''' :type : dict[object, WalkCandidate] '''
 
         self.candidate_to_key = {}
+        ''' :type : dict[WalkCandidate, object]'''
+        
+        self.candidate_to_key_string = {}
+        ''' :type : dict[WalkCandidate, object]'''
+
+        self.hashed_key_to_candidate = {}
+        ''' :type : dict[object, WalkCandidate]'''
+
+        self.candidate_to_hashed_key = {}
         ''' :type : dict[WalkCandidate, object]'''
 
         self.ip_to_candidate = {}
@@ -57,6 +67,13 @@ class CandidateCache:
             self.keys_to_candidate[key] = candidate
             self.candidate_to_key[candidate] = key
             self.ip_to_candidate[candidate.sock_addr] = candidate
+            key_string = self.community.crypto.key_to_bin(key)
+            self.candidate_to_key_string[candidate] = key_string
+            m = hashlib.sha256()
+            m.update(str(key_string))
+            hashed_key = m.digest()[0:6]
+            self.hashed_key_to_candidate[hashed_key] = candidate
+            self.candidate_to_hashed_key[candidate] = hashed_key
 
             # set the insert time infinitely far in the future to make sure
             # it remains in the cache for candidates that should not timeout
