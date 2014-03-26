@@ -35,7 +35,7 @@ class CircuitRequestCache(NumberCache):
 
     @property
     def timeout_delay(self):
-        return 5.0
+        return 10.0
 
     def on_success(self):
         """
