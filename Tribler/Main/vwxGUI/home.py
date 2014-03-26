@@ -1252,7 +1252,8 @@ class Anonymity(wx.Panel):
 
         self.AddComponents()
 
-        self.my_address = Hop(('127.0.0.1', 0))
+        self.my_address = Hop(self.proxy_community.hashed_public_key)
+        self.my_address.address = ('127.0.0.1', "SELF")
 
         self.vertices = {}
         self.edges = []
@@ -1408,9 +1409,9 @@ class Anonymity(wx.Panel):
     @forceWxThread
     def OnExtended(self, subject, changeType, circuit):
         if changeType == NTFY_CREATED:
-            self.AppendToLog("Created circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1].host, circuit.hops[-1].port))
+            self.AppendToLog("Created circuit %s\n" % (circuit.circuit_id))
         if changeType == NTFY_EXTENDED:
-            self.AppendToLog("Extended circuit %s with %s:%d\n" % (circuit.circuit_id, circuit.hops[-1].host, circuit.hops[-1].port))
+            self.AppendToLog("Extended circuit %s\n" % (circuit.circuit_id))
         if changeType == NTFY_BROKEN:
             self.AppendToLog("Circuit %d has been broken\n" % circuit)
 
