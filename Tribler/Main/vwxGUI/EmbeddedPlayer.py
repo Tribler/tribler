@@ -276,11 +276,11 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
-                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
-                self.ppbtn.Enable(True)
-                self.HideLoading()
                 self.vlcwrap.resume()
-                self.slider.Enable(True)
+            self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
+            self.ppbtn.Enable(True)
+            self.slider.Enable(True)
+            self.HideLoading()
 
     @warnWxThread
     def PlayPause(self, evt=None):
