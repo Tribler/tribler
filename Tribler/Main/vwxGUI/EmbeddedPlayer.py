@@ -160,6 +160,8 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             self.guiutility.utility.session.add_observer(self.OnVideoBuffering, NTFY_TORRENTS, [NTFY_VIDEO_BUFFERING])
 
+            self.videoplayer.set_internalplayer_callback(self.LoadAndStartPlay)
+
     def OnVideoBuffering(self, subject, changeType, torrent_tuple):
         download_hash, _, is_buffering = torrent_tuple
         if self.download and self.download.get_def().get_id() == download_hash:
@@ -202,6 +204,11 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.volctrl.SetValue(self.volume)
         self.SetVolume(self.volume)
         self.mute.SetBitmapLabel(self.bmp_unmuted if self.mute.GetBitmapLabel() == self.bmp_muted else self.bmp_muted, recreate=True)
+
+    @forceWxThread
+    def LoadAndStartPlay(self, url, download):
+        self.Load(url, download)
+        self.StartPlay()
 
     @warnWxThread
     def Load(self, url, download):

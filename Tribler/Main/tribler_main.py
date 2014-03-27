@@ -276,9 +276,7 @@ class ABCApp():
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
                 vlcwrap = self.videoplayer.get_vlcwrap()
-
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
-                self.videoplayer.set_videoframe(self.frame.videoframe)
 
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)

@@ -38,7 +38,7 @@ class VideoPlayer:
 
         self.session = session
         self.videoplayerpath = videoplayerpath
-        self.videoframe = None
+        self.internalplayer_callback = None
         self.vod_download = None
         self.vod_fileindex = None
         self.vod_playing = None
@@ -78,8 +78,8 @@ class VideoPlayer:
     def get_vlcwrap(self):
         return self.vlcwrap
 
-    def set_videoframe(self, videoframe):
-        self.videoframe = videoframe
+    def set_internalplayer_callback(self, callback):
+        self.internalplayer_callback = callback
 
     def play(self, download, fileindex):
         url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/' + hexlify(download.get_def().get_id()) + '/' + str(fileindex)
@@ -163,8 +163,8 @@ class VideoPlayer:
 
     def launch_video_player(self, cmd, download=None):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.videoframe.get_videopanel().Load(cmd, download)
-            self.videoframe.get_videopanel().StartPlay()
+            if self.internalplayer_callback:
+                self.internalplayer_callback(cmd, download)
         else:
             # Launch an external player. Play URL from network or disk.
             try:
