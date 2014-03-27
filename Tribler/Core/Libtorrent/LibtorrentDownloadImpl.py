@@ -72,6 +72,9 @@ class VODFile(object):
         return result
 
     def seek(self, *args):
+        if self._file.tell() == args[0]:
+            return
+
         self._file.seek(*args)
         newpos = self._file.tell()
 

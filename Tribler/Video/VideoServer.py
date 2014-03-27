@@ -145,30 +145,32 @@ class VideoServer:
                 if download != self.videoplayer.get_vod_download():
                     return
 
-            with lock:
-                if stream.closed:
-                    return
-
-                stream.seek(firstbyte)
-                nbyteswritten = 0
-                while True:
+            nbyteswritten = 0
+            while True:
+                # Release the lock before calling yield.
+                with lock:
+                    if stream.closed:
+                        return
+                    stream.seek(firstbyte + nbyteswritten)
                     data = stream.read(blocksize)
-                    if len(data) == 0:
-                        break
-                    elif length is not None and nbyteswritten + len(data) > nbytes2send:
-                        endlen = nbytes2send - nbyteswritten
-                        if endlen != 0:
-                            yield data[:endlen]
-                            nbyteswritten += endlen
-                        break
-                    else:
-                        yield data
-                        nbyteswritten += len(data)
 
-                if nbyteswritten != nbytes2send:
-                    self._logger.error("VideoServer: sent wrong amount, wanted %s got %s", nbytes2send, nbyteswritten)
+                if len(data) == 0:
+                    break
+                elif length is not None and nbyteswritten + len(data) > nbytes2send:
+                    endlen = nbytes2send - nbyteswritten
+                    if endlen != 0:
+                        yield data[:endlen]
+                        nbyteswritten += endlen
+                    break
+                else:
+                    yield data
+                    nbyteswritten += len(data)
 
-                if not requested_range:
+            if nbyteswritten != nbytes2send:
+                self._logger.error("VideoServer: sent wrong amount, wanted %s got %s", nbytes2send, nbyteswritten)
+
+            if not requested_range:
+                with lock:
                     stream.close()
 
         return write_data()
