@@ -259,16 +259,13 @@ class EmbeddedPlayerPanel(wx.Panel):
     def Pause(self, evt=None, gui_vod_event=False):
         self._logger.debug("embedplay: Pause pressed")
 
-        # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             if self.GetState() == MEDIASTATE_PLAYING:
                 self.vlcwrap.pause()
-                self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
-                if gui_vod_event:
-                    self.ppbtn.Enable(False)
-                    self.ShowLoading()
-            else:
-                self._logger.debug("embedplay: Pause pressed, not playing")
+            self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
+            if gui_vod_event:
+                self.ppbtn.Enable(False)
+                self.ShowLoading()
 
     @warnWxThread
     def Resume(self, evt=None):

@@ -104,7 +104,7 @@ class VideoPlayer:
             if not self.vod_playing:
                 self.vod_playing = True
                 self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
-        elif bufferprogress <= 0.1 and self.vod_playing:
+        elif (bufferprogress <= 0.1 and self.vod_playing) or (bufferprogress < 1.0 and self.vod_playing == None):
             self.vod_playing = False
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, True))
 
@@ -165,7 +165,6 @@ class VideoPlayer:
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             self.videoframe.get_videopanel().Load(cmd, download)
             self.videoframe.get_videopanel().StartPlay()
-            self.videoframe.get_videopanel().ShowLoading()
         else:
             # Launch an external player. Play URL from network or disk.
             try:
