@@ -2179,7 +2179,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
             filename = self.torrentsearch_manager.getCollectedFilename(torrent, retried=True)
             if filename:
-                load_torrent()
+                load_torrent(filename)
             else:
                 self.torrentsearch_manager.getTorrent(torrent, load_torrent)
 
