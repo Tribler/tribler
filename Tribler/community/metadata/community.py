@@ -20,11 +20,10 @@ from Tribler.community.channel.community import register_callback, \
 
 class MetadataCommunity(Community):
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, ignore_incoming=False):
+    def __init__(self, dispersy, master, integrate_with_tribler=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._integrate_with_tribler = integrate_with_tribler
-        self._ignore_incoming = ignore_incoming
 
         super(MetadataCommunity, self).__init__(dispersy, master)
 
@@ -57,17 +56,15 @@ class MetadataCommunity(Community):
 
     @classmethod
     def load_community(cls, dispersy, master, my_member,
-            integrate_with_tribler=True, ignore_incoming=False):
+            integrate_with_tribler=True):
         try:
             dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
             return cls.join_community(dispersy, master, my_member, my_member,
-                integrate_with_tribler=integrate_with_tribler,
-                ignore_incoming=ignore_incoming)
+                integrate_with_tribler=integrate_with_tribler)
         else:
             return super(MetadataCommunity, cls).load_community(dispersy,
-                master, integrate_with_tribler=integrate_with_tribler,
-                ignore_incoming=ignore_incoming)
+                master, integrate_with_tribler=integrate_with_tribler)
 
     @property
     def dispersy_sync_skip_enable(self):
@@ -108,9 +105,6 @@ class MetadataCommunity(Community):
 
 
     def check_metadata(self, messages):
-        if self._ignore_incoming:
-            return
-
         for message in messages:
             # do not test downloading thumbnails in dispersy tests
             if not self._integrate_with_tribler:
@@ -198,10 +192,6 @@ class MetadataCommunity(Community):
         assert isinstance(times, dict)
         assert isinstance(message, Message.Implementation)
 
-        if self._ignore_incoming:
-            self.__log(-2, message)
-            return DropMessage(message, u"ignored by metadata injector")
-
         # check UNIQUE
         key = (message.authentication.member.database_id, message.distribution.global_time)
         if key in unique:
@@ -235,16 +225,22 @@ class MetadataCommunity(Community):
                     message.distribution.global_time,
                     message.authentication.member.mid, None)
             else:
-                this_message = (None, None, message.distribution.global_time, message.authentication.member.mid, None)
+                this_message = (None, None, message.distribution.global_time,
+                    message.authentication.member.mid, None)
 
             # compare previous pointers
             if message_list:
                 message_list.append(this_message)
                 message_list.sort()
 
-                if message_list[0] == this_message:
-                    # send the latest message to the sender
+                # This message be in the top X in order to be stored, otherwise
+                # it is an old message and we send back our latest one.
+                history_size = message.distribution.history_size
+                history_size = 1 if history_size < 1 else history_size
+                if this_message not in message_list[-history_size:]:
+                    # dirty way
                     if message.distribution.history_size == 1:
+                        # send the latest message to the sender
                         try:
                             packet, = self._dispersy._database.execute(
                                 u"SELECT packet FROM sync WHERE id = ?",
@@ -303,7 +299,7 @@ class MetadataCommunity(Community):
                 message_list.sort()
 
                 for message in message_list[:-1]:
-                    dispersy_id = message[4]
+                    dispersy_id = message[-1]
                     self._metadata_db.deleteMetadataMessage(dispersy_id)
 
                     sync_id_list.append((dispersy_id, dispersy_id))
