@@ -2231,6 +2231,7 @@ class VideoProgress(wx.Panel):
         self.edge_colour = edge_colour
         self.text_colour = text_colour
         self.prnt_colour = parent.GetBackgroundColour()
+        self.label = label
         self.value = 0.0
         self.error = ''
         self.SetValue(value)
