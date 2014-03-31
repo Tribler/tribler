@@ -2239,7 +2239,6 @@ class VideoProgress(wx.Panel):
 
     def SetValue(self, value):
         self.value = value
-        self.label = 'Loading\n %d%%' % (value * 100)
         self.Refresh()
 
     def SetError(self, error):

@@ -180,13 +180,17 @@ class EmbeddedPlayerPanel(wx.Panel):
         for ds in dslist:
             if ds.get_download() == self.download:
                 if ds.get_status() == DLSTATUS_HASHCHECKING:
-                    progress = progress_consec = ds.get_progress()
+                    progress = ds.get_progress()
+                    label = 'Checking\n%d%%' % (progress * 100)
+                elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                    progress = 0
+                    label = 'Loading\nfailed'
                 else:
                     progress = ds.get_vod_prebuffering_progress()
-                    progress_consec = ds.get_vod_prebuffering_progress_consec()
+                    label = 'Loading\n%d%%' % (progress * 100)
 
                 pieces_complete = ds.get_pieces_complete() if ds.get_progress() < 1.0 else [True]
-                self.UpdateStatus(progress, progress_consec, pieces_complete, ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
+                self.UpdateStatus(label, progress, pieces_complete)
 
     def OnVolumeChanged(self, volume):
         if self.mute.GetBitmapLabel() == self.bmp_muted:  # unmute
@@ -433,11 +437,9 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.slider.SetPieces([])
 
     @forceWxThread
-    def UpdateStatus(self, progress, progress_consec, pieces_complete, error=False):
-        if error:
-            self.logowin.loading.SetLabel("Loading\nfailed")
-        else:
-            self.logowin.loading.SetValue(progress)
+    def UpdateStatus(self, label, progress, pieces_complete):
+        self.logowin.loading.SetValue(progress)
+        self.logowin.loading.SetLabel(label)
 
         if self.vlcwrap:
             self.slider.SetPieces(pieces_complete)
