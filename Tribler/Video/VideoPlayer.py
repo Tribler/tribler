@@ -3,11 +3,11 @@
 # see LICENSE.txt for license information
 import os
 import sys
+import time
 import logging
 
 from binascii import hexlify
 from traceback import print_exc
-from threading import Thread
 from collections import defaultdict
 from multiprocessing.synchronize import RLock
 
@@ -50,7 +50,7 @@ class VideoPlayer:
 
         # Start HTTP server for serving video
         self.videoserver = VideoServer.getInstance(httpport, self.session)
-        Thread(target=self.videoserver.start).start()
+        self.videoserver.start()
 
         self.notifier = Notifier.getInstance()
 
@@ -89,6 +89,11 @@ class VideoPlayer:
             self.launch_video_player(self.get_video_player(None, url))
         self.vod_playing = None
 
+    def seek(self, pos):
+        if self.vod_download:
+            self.vod_download.vod_seekpos = None
+            self.vod_playing = None
+
     def monitor_vod(self, ds):
         dl = ds.get_download() if ds else None
 
@@ -100,10 +105,9 @@ class VideoPlayer:
         dl_def = dl.get_def()
         dl_hash = dl_def.get_id()
 
-        if bufferprogress >= 1:
-            if not self.vod_playing:
-                self.vod_playing = True
-                self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
+        if (bufferprogress >= 1.0 and not self.vod_playing) or (bufferprogress >= 1.0 and self.vod_playing == None):
+            self.vod_playing = True
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
         elif (bufferprogress <= 0.1 and self.vod_playing) or (bufferprogress < 1.0 and self.vod_playing == None):
             self.vod_playing = False
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, True))
@@ -120,12 +124,13 @@ class VideoPlayer:
 
         return (1, False)
 
-    def get_vod_stream(self, dl_hash):
+    def get_vod_stream(self, dl_hash, wait=False):
         if not self.vod_info[dl_hash].has_key('stream') and self.session.get_download(dl_hash):
             download = self.session.get_download(dl_hash)
             vod_filename = self.get_vod_filename(download)
-            if os.path.exists(vod_filename):
-                self.vod_info[dl_hash]['stream'] = (VODFile(open(vod_filename, 'rb'), download), RLock())
+            while wait and not os.path.exists(vod_filename):
+                time.sleep(1)
+            self.vod_info[dl_hash]['stream'] = (VODFile(open(vod_filename, 'rb'), download), RLock())
 
         if self.vod_info[dl_hash].has_key('stream'):
             return self.vod_info[dl_hash]['stream']

@@ -312,8 +312,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.update = False
 
             try:
-                if self.download:
-                    self.download.vod_seekpos = None
+                self.Pause(gui_vod_event=True)
+                self.videoplayer.seek(position)
                 self.vlcwrap.set_media_position_relative(position, self.GetState() in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED])
 
                 length = self.vlcwrap.get_stream_information_length()
