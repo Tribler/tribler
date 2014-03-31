@@ -84,7 +84,7 @@ class Socks5Server(object, TunnelObserver):
             session_pool = CircuitPool(self.tunnel, 4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
             session = Socks5Session(self.raw_server, s5con, self, session_pool, min_circuits=self.min_session_circuits)
             self.tunnel.observers.append(session)
-            self.tunnel.circuit_pools.append(session_pool)
+            self.tunnel.circuit_pools.insert(0, session_pool)
 
             self.tcp2session[single_socket] = session
         except:

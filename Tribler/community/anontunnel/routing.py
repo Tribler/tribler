@@ -2,7 +2,7 @@ import hashlib
 import logging
 import time
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY, \
-    CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
+    CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, PING_INTERVAL
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, Candidate
 
 __author__ = 'chris'
@@ -74,7 +74,7 @@ class Circuit:
         0 a PING must be sent to keep the circuit, including relays at its hop,
         alive.
         """
-        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
+        too_old = time.time() - 2 * PING_INTERVAL
         diff = self.last_incoming - too_old
         return diff if diff > 0 else 0
 

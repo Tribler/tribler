@@ -92,20 +92,22 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         anon_session = mgr.ltsession_anon
         ''' :type : libtorrent.session '''
 
-        torrents = (download
-                    for infohash, (download, session)
-                    in mgr.torrents.items()
-                    if session == anon_session)
-        ''' :type : list[LibtorrentDownloadImpl] '''
+        affected_torrents = dict((download, affected_destinations.intersection(peer.ip for peer in download.handle.get_peer_info()))
+                             for infohash, (download, session)
+                             in mgr.torrents.items()
+                             if session == anon_session
+                             )
+        ''' :type : dict[LibtorrentDownloadImpl, set[(str, int)] '''
 
         def _peer_add():
             for destination in affected_destinations:
-                self._logger.error("Deleting peer {0} from destination list")
-                del self.destinations[destination]
+                if destination in self.destinations:
+                    del self.destinations[destination]
+                    self._logger.error("Deleting peer %s from destination list", destination)
 
-            for torrent in torrents:
-                for peer in affected_destinations:
-                    self._logger.error("Readding peer {0}, note that every peer is added to every torrent! (TODO FIX)", peer)
+            for torrent, peers in affected_torrents.items():
+                for peer in peers:
+                    self._logger.error("Readding peer %s to torrent %s", peer, torrent.tdef.get_infohash().encode("HEX"))
                     torrent.add_peer(peer)
 
         # Observer that waits for a new circuit before re-adding the peers
@@ -149,7 +151,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
             circuit = self._select(request.destination)
 
             if circuit.state != CIRCUIT_STATE_READY:
-                self._logger.error("Circuit is not ready, dropping {0} bytes to {1}", len(request.payload), request.destination)
+                self._logger.error("Circuit is not ready, dropping %d bytes to %s", len(request.payload), request.destination)
             else:
                 circuit.tunnel_data(request.destination, request.payload)
 

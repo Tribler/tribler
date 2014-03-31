@@ -78,6 +78,8 @@ class CircuitPool(object, TunnelObserver):
 
             except StopIteration:
                 if not self.lacking:
+                    self._logger.warning("Growing size of pool %s from %d to %d", self.name, self.size, self.size*2)
                     self.size *= 2
+
 
                 raise NotEnoughCircuitsException()
