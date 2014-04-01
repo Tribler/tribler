@@ -25,8 +25,6 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         self.packet_handlers = {}
         self.queue = Queue()
 
-        # self.consumer_thread = Thread(target=self.__consumer)
-        # self.consumer_thread.start()
         self._logger = logging.getLogger(__name__)
 
     def listen_to(self, prefix, handler):
@@ -38,29 +36,6 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         called for packets starting with the set prefix
         """
         self.packet_handlers[prefix] = handler
-
-    def close(self, timeout=0.0):
-        """
-        Close the endpoint and stops the consumer thread after it processed the
-        message queue
-
-        @type timeout: float
-        """
-        self.queue.put_nowait(None)
-        return RawserverEndpoint.close(self, timeout)
-
-    def __consumer(self):
-        while True:
-            item = self.queue.get()
-
-            if item is None:
-                break
-
-            prefix, packet = item
-            if prefix in self.packet_handlers:
-                self.packet_handlers[prefix](*packet)
-
-            self.queue.task_done()
 
     def data_came_in(self, packets):
         """
