@@ -21,9 +21,9 @@ from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, \
     ActionButton, TransparentText, VideoVolume, VideoSlider
 
-from Tribler.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
+from Tribler.Core.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
     MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 
 class DelayTimer(wx.Timer):

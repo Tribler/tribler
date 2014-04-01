@@ -9,7 +9,7 @@ import binascii
 from traceback import print_exc
 
 from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
@@ -28,7 +28,7 @@ class TestVideoHTTPServer(TestAsServer):
         """ unittest test setup code """
         TestAsServer.setUp(self)
         self.port = random.randint(10000, 60000)
-        self.videoplayer = VideoPlayer.getInstance(self.session, None, httpport=self.port)
+        self.videoplayer = VideoPlayer.getInstance(self.session, httpport=self.port)
         self.sourcefn = os.path.join(BASE_DIR, "data", "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
 

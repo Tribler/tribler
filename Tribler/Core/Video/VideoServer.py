@@ -30,7 +30,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         self.port = port
         self.session = session
 
-        from Tribler.Video.VideoPlayer import VideoPlayer
+        from Tribler.Core.Video.VideoPlayer import VideoPlayer
         self.videoplayer = VideoPlayer.getInstance()
 
         HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)

@@ -63,8 +63,8 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
     ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
 
-from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.Video.utils import videoextdefaults
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.utils import videoextdefaults
 
 
 #

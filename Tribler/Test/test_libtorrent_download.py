@@ -124,8 +124,8 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def check_playlist():
-            from Tribler.Video.VideoPlayer import VideoPlayer
-            from Tribler.Video.utils import videoextdefaults
+            from Tribler.Core.Video.VideoPlayer import VideoPlayer
+            from Tribler.Core.Video.utils import videoextdefaults
 
             buffer_complete = time()
 
@@ -142,13 +142,13 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(10, lambda: len(playlist.links) == len(videofiles), lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "lists did not match length")
 
         def do_monitor():
-            from Tribler.Video.VideoPlayer import VideoPlayer
+            from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
             self.screenshot('After starting a VOD download')
             self.CallConditional(60, lambda: VideoPlayer.getInstance().vod_playing, check_playlist, "streaming did not start")
 
         def do_vod():
-            from Tribler.Video.VideoPlayer import VideoPlayer
+            from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
             self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir(), selectedFiles=[os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')], vodmode=True)
             self.guiUtility.ShowPlayer()

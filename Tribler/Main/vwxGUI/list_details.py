@@ -32,8 +32,8 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
     FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 from Tribler.community.channel.community import ChannelCommunity
-from Tribler.Video.VideoUtility import limit_resolution
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoUtility import limit_resolution
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 
 class AbstractDetails(FancyPanel):

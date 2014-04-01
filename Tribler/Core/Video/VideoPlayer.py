@@ -15,11 +15,11 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_STARTED, DLMODE_NORMAL, NTFY_VIDEO_BUFFERING
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 
-from Tribler.Video.utils import win32_retrieve_video_play_command, quote_program_path, escape_path, return_feasible_playback_modes
-from Tribler.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME
-from Tribler.Video.VideoUtility import get_videoinfo
-from Tribler.Video.VideoServer import VideoServer
-from Tribler.Video.VLCWrapper import VLCWrapper
+from Tribler.Core.Video.utils import win32_retrieve_video_play_command, quote_program_path, escape_path, return_feasible_playback_modes
+from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME
+from Tribler.Core.Video.VideoUtility import get_videoinfo
+from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.Video.VLCWrapper import VLCWrapper
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class VideoPlayer:
 
     __single = None
 
-    def __init__(self, session, videoplayerpath, preferredplaybackmode=None, httpport=6880):
+    def __init__(self, session, httpport=None):
         if VideoPlayer.__single:
             raise RuntimeError("VideoPlayer is singleton")
         VideoPlayer.__single = self
@@ -37,7 +37,7 @@ class VideoPlayer:
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
-        self.videoplayerpath = videoplayerpath
+        self.videoplayerpath = self.session.get_videoplayer_path()
         self.internalplayer_callback = None
         self.vod_download = None
         self.vod_fileindex = None
@@ -45,11 +45,12 @@ class VideoPlayer:
         self.vod_info = defaultdict(dict)
 
         feasible = return_feasible_playback_modes()
+        preferredplaybackmode = self.session.get_preferred_playback_mode()
         self.playbackmode = preferredplaybackmode if preferredplaybackmode in feasible else feasible[0]
         self.vlcwrap = VLCWrapper() if self.playbackmode == PLAYBACKMODE_INTERNAL else None
 
         # Start HTTP server for serving video
-        self.videoserver = VideoServer.getInstance(httpport, self.session)
+        self.videoserver = VideoServer.getInstance(httpport or self.session.get_videoplayer_port(), self.session)
         self.videoserver.start()
 
         self.notifier = Notifier.getInstance()

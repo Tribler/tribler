@@ -7,7 +7,7 @@ import logging
 from traceback import print_exc, print_stack
 from threading import currentThread
 
-from Tribler.Video.defs import MEDIASTATE_ENDED, MEDIASTATE_STOPPED, \
+from Tribler.Core.Video.defs import MEDIASTATE_ENDED, MEDIASTATE_STOPPED, \
     MEDIASTATE_PLAYING, MEDIASTATE_PAUSED
 
 VLC_MAXVOLUME = 200  # Also for 0.3

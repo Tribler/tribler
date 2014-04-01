@@ -105,7 +105,7 @@ from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
-from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
+from Tribler.Core.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
 import Tribler.Core.DecentralizedTracking.pymdht.core
@@ -167,7 +167,6 @@ class ABCApp():
         self.torrentfeed = None
         self.webUI = None
         self.utility = None
-        self.videoplayer = None
 
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
 
@@ -251,15 +250,6 @@ class ABCApp():
                 self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
                 self.i2is.start()
 
-            self.splash.tick('Starting VOD')
-            # Fire up the VideoPlayer, it abstracts away whether we're using
-            # an internal or external video player.
-            httpport = self.utility.read_config('videohttpport')
-            if ALLOW_MULTIPLE or httpport == -1:
-                httpport = self.utility.get_free_random_port('videohttpport')
-            playbackmode = self.utility.read_config('videoplaybackmode')
-            self.videoplayer = VideoPlayer.getInstance(s, self.utility.read_config('videoplayerpath'), preferredplaybackmode=playbackmode, httpport=httpport)
-
             self.splash.tick('GUIUtility register')
             self.guiUtility.register()
 
@@ -275,7 +265,7 @@ class ABCApp():
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
-                vlcwrap = self.videoplayer.get_vlcwrap()
+                vlcwrap = s.lm.videoplayer.get_vlcwrap()
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
 
             if sys.platform == 'win32':
@@ -908,9 +898,6 @@ class ABCApp():
         if self.guiserver:
             self.guiserver.shutdown(True)
             self.guiserver.delInstance()
-        if self.videoplayer:
-            self.videoplayer.shutdown()
-            self.videoplayer.delInstance()
 
         delete_status_holders()
 
