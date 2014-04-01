@@ -93,9 +93,8 @@ class TestCandidateCache(TestCase):
 
         self.assertEqual(2, len(self.cache.candidates))
 
-        # valsspelen
+        # Force the cache entry of the first added candidate to time out and to be removed
         self.cache.candidate_to_time[candidate] = 0
-
         self.cache.invalidate()
 
         self.assertIn(candidate2, self.cache.candidates)
