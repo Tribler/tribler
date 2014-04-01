@@ -121,8 +121,12 @@ class NoCrypto(Crypto):
         Crypto.__init__(self)
         self.proxy = None
         self.key_to_forward = None
+        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] = self._encrypt_created_content
+        self.decrypt_incoming_packet_content[MESSAGE_CREATED] = self._decrypt_created_content
+        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
 
-    def enable(self, proxy):
+
+    def set_proxy(self, proxy):
         """
         Method which enables the "nocrypto" cryptography settings for the given
         community. NoCrypto encodes and decodes candidate lists, everything is
@@ -132,9 +136,6 @@ class NoCrypto(Crypto):
          object is coupled
         """
         self.proxy = proxy
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] = self._encrypt_created_content
-        self.decrypt_incoming_packet_content[MESSAGE_CREATED] = self._decrypt_created_content
-        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
 
     def disable(self):
         """
@@ -206,30 +207,6 @@ class DefaultCrypto(Crypto):
         self._logger = logging.getLogger(__name__)
         self._received_secrets = {}
         self.session_keys = {}
-
-    def on_break_relay(self, relay_key):
-        """
-        Method called whenever a relay is broken after for example a timeout
-        or an invalid packet. Callback from the community to remove the session
-        key
-        @param relay_key:
-        """
-        if relay_key in self.session_keys:
-            del self.session_keys[relay_key]
-
-    def enable(self, proxy):
-        """
-        Method which enables the "defaultcrypto" cryptography settings for
-        the given community. Default crypto uses cryptography for all message
-        types, based on exchanged secrets established with DIFFIE HELLMAN and
-        Elliptic Curve Elgamal. See documentation for extra info.
-
-        @param ProxyCommunity proxy: Proxy community to which this crypto
-         object is coupled
-        """
-        self.proxy = proxy
-        proxy.observers.append(self)
-
         self.relay_packet_crypto = self._crypto_relay_packet
         self.incoming_packet_crypto = self._crypto_incoming_packet
         self.outgoing_packet_crypto = self._crypto_outgoing_packet
@@ -242,15 +219,30 @@ class DefaultCrypto(Crypto):
         self.decrypt_incoming_packet_content[MESSAGE_EXTEND] = self._decrypt_extend_content
         self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
 
-    def disable(self):
+
+    def on_break_relay(self, relay_key):
         """
-        Disables the crypto settings
+        Method called whenever a relay is broken after for example a timeout
+        or an invalid packet. Callback from the community to remove the session
+        key
+        @param relay_key:
         """
-        self.outgoing_packet_crypto = lambda candidate, circuit, message, payload: payload
-        self.incoming_packet_crypto = lambda candidate, circuit, payload: payload
-        self.relay_packet_crypto = lambda destination, circuit, message_type, content: content
-        self.encrypt_outgoing_packet_content = defaultdict()
-        self.decrypt_incoming_packet_content = defaultdict()
+        if relay_key in self.session_keys:
+            del self.session_keys[relay_key]
+
+    def set_proxy(self, proxy):
+        """
+        Method which enables the "defaultcrypto" cryptography settings for
+        the given community. Default crypto uses cryptography for all message
+        types, based on exchanged secrets established with DIFFIE HELLMAN and
+        Elliptic Curve Elgamal. See documentation for extra info.
+
+        @param ProxyCommunity proxy: Proxy community to which this crypto
+         object is coupled
+        """
+        self.proxy = proxy
+        proxy.observers.append(self)
+
 
     def _encrypt_create_content(self, candidate, circuit_id, message):
         """

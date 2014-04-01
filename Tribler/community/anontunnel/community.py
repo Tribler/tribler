@@ -175,8 +175,8 @@ class ProxyCommunity(Community):
         # Attach message handlers
         self._initiate_message_handlers()
 
-        # Enable Crypto
-        self.settings.crypto.enable(self)
+        # add self to crypto
+        self.settings.crypto.set_proxy(self)
 
         # Our candidate cache
         self.candidate_cache = CandidateCache(self)
