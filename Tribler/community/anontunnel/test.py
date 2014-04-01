@@ -1,5 +1,6 @@
 import logging
 import time
+import uuid
 from Tribler.community.anontunnel.events import TunnelObserver
 import shutil
 
@@ -81,6 +82,7 @@ class LibtorrentTest(object, TunnelObserver):
                 elif not self.download_finished_at and ds.get_status() == DLSTATUS_SEEDING:
                     self.download_finished_at = time.time()
                     stats_collector.download_stats = {
+                        'uuid': uuid.uuid4(),
                         'size': 50 * 1024 ** 2,
                         'download_time': self.download_finished_at - self.download_started_at
                     }

@@ -1,10 +1,10 @@
-from Tribler.community.anontunnel.CircuitPool import CircuitPool
 from Tribler.community.anontunnel.events import TunnelObserver
 
 import logging
 import socket
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY
+from Tribler.community.anontunnel.routing import CircuitPool
 from .session import Socks5Session
 from .connection import Socks5Connection
 
@@ -35,7 +35,8 @@ class Socks5Server(object, TunnelObserver):
         self.tcp2session = {}
         ''' @type : dict[Socks5Connection, Socks5Session] '''
 
-        self.circuit_pool = CircuitPool(self.tunnel, num_circuits, "SOCKS5(master)")
+        self.circuit_pool = CircuitPool(num_circuits, "SOCKS5(master)")
+        self.tunnel.observers.append(self.circuit_pool)
         self.tunnel.circuit_pools.append(self.circuit_pool)
 
         self.min_circuits = min_circuits
@@ -84,6 +85,7 @@ class Socks5Server(object, TunnelObserver):
             session_pool = CircuitPool(self.tunnel, 4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
             session = Socks5Session(self.raw_server, s5con, self, session_pool, min_circuits=self.min_session_circuits)
             self.tunnel.observers.append(session)
+            self.tunnel.observers.append(session_pool)
             self.tunnel.circuit_pools.insert(0, session_pool)
 
             self.tcp2session[single_socket] = session

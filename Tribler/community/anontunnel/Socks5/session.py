@@ -1,12 +1,12 @@
 import logging
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-from Tribler.community.anontunnel.CircuitPool import NotEnoughCircuitsException
 from Tribler.community.anontunnel.Socks5 import conversion
 from Tribler.community.anontunnel.Socks5.connection import \
     Socks5ConnectionObserver
 from Tribler.community.anontunnel.events import TunnelObserver, \
     CircuitPoolObserver
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY
+from Tribler.community.anontunnel.routing import NotEnoughCircuitsException
 from Tribler.community.anontunnel.selectionstrategies import RoundRobin
 
 

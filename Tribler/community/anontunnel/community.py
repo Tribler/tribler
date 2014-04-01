@@ -11,8 +11,7 @@ from collections import defaultdict
 
 # Tribler and Dispersy imports
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
-    PingRequestCache
-from Tribler.community.anontunnel.candidate import CandidateCache
+    PingRequestCache, CandidateCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.anontunnel.test import LibtorrentTest
 from Tribler.dispersy.authentication import MemberAuthentication

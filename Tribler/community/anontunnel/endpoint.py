@@ -34,7 +34,7 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         Register a prefix to a handler
 
         @param str prefix: the prefix of a packet to register to the handler
-        @param ((str, int), str) -> unknown handler: the handler that will be
+        @param ((str, int), str) -> None handler: the handler that will be
         called for packets starting with the set prefix
         """
         self.packet_handlers[prefix] = handler
@@ -83,7 +83,8 @@ class DispersyBypassEndpoint(RawserverEndpoint):
             self._logger.warning(
                 "DispersyBypassEndpoint cant keep up with incoming packets!")
 
-        RawserverEndpoint.data_came_in(self, normal_packets)
+        if normal_packets:
+            RawserverEndpoint.data_came_in(self, normal_packets)
 
     def send_simple(self, candidate, packet):
         self._socket.sendto(packet, candidate.sock_addr)

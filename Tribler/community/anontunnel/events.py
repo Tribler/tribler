@@ -110,6 +110,7 @@ class TunnelObserver:
         """
         pass
 
+
 class CircuitPoolObserver():
     def on_circuit_added(self, pool, circuit):
         pass

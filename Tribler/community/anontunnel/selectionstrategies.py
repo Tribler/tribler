@@ -39,6 +39,9 @@ class RandomSelectionStrategy(SelectionStrategy):
     """
 
     def select(self, circuits_to_select_from):
+        if not circuits_to_select_from:
+            raise ValueError("Variable circuits_to_select must be a list of circuits")
+
         circuit = random.choice(circuits_to_select_from)
         return circuit
 
@@ -56,6 +59,9 @@ class LengthSelectionStrategy(SelectionStrategy):
     def select(self, circuits_to_select_from):
         candidates = [c for c in circuits_to_select_from if
                       self.min <= len(c.hops) <= self.max]
+
+        if not candidates:
+            raise ValueError("No circuit matching the criteria")
 
         if self.random:
             return random.choice(candidates)

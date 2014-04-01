@@ -5,7 +5,6 @@ __author__ = 'Chris'
 import logging
 
 
-
 class TunnelExitSocket(object):
     """
     Sends incoming UDP packets back over the DispersyTunnelProxy.

@@ -1,6 +1,6 @@
 from random import randint
 from unittest import TestCase
-from Tribler.community.anontunnel.routing import Circuit
+from Tribler.community.anontunnel.routing import Circuit, Hop
 
 from Tribler.community.anontunnel.selectionstrategies import \
     LengthSelectionStrategy, RandomSelectionStrategy
@@ -22,7 +22,7 @@ class TestLengthSelectionStrategy(TestCase):
 
         circuit = Circuit(randint(0, 1000), hops, candidate)
         for c in [candidate] * hops:
-            circuit.add_hop = c
+            circuit.add_hop(Hop(hashed_public_key=None))
 
         return circuit
 

@@ -3,7 +3,7 @@ from Tribler.community.anontunnel.extendstrategies import TrustThyNeighbour
 from Tribler.community.anontunnel.globals import MESSAGE_EXTEND, \
     CIRCUIT_STATE_BROKEN
 from Tribler.community.anontunnel.payload import ExtendMessage
-from Tribler.community.anontunnel.routing import Circuit
+from Tribler.community.anontunnel.routing import Circuit, Hop
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'chris'
@@ -25,6 +25,8 @@ class TestTrustThyNeighbour(TestCase):
     def test_extend_ready_circuit(self):
         circuit_candidate = Candidate(("127.0.0.1", 1000), False)
         circuit = Circuit(1, 1, circuit_candidate)
+        circuit.add_hop(Hop(hashed_public_key=None))
+
         es = TrustThyNeighbour(self.proxy, circuit)
         self.assertRaises(AssertionError, es.extend)
 

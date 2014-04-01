@@ -8,6 +8,11 @@ __author__ = 'chris'
 
 class TestDispersyBypassEndpoint(TestCase):
     def on_bypass_message(self, sock_addr, payload):
+        """
+
+        @param (str, int) sock_addr: ip address
+        @param str payload: the payload
+        """
         self.bypass_message = (sock_addr, payload)
 
     def setUp(self):

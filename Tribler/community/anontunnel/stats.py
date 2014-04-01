@@ -3,11 +3,14 @@ import logging
 import sqlite3
 import uuid
 import time
+import sys
 
 from Tribler.community.anontunnel.events import TunnelObserver
 
 __author__ = 'chris'
 
+sqlite3.register_converter('GUID', lambda b: uuid.UUID(bytes_le=b))
+sqlite3.register_adapter(uuid.UUID, lambda u: buffer(u.bytes_le))
 
 class CircuitStats:
     def __init__(self):
@@ -174,7 +177,7 @@ class StatsCollector(TunnelObserver):
 
     def _create_stats(self):
         stats = {
-            'uuid': str(self.session_id),
+            'uuid': self.session_id.get_bytes_le(),
             'swift': self.download_stats,
             'bytes_enter': self.stats['bytes_enter'],
             'bytes_exit': self.stats['bytes_exit'],
@@ -224,26 +227,26 @@ class StatsCrawler(TunnelObserver):
         self._logger.warning("Running StatsCrawler")
         self.raw_server = raw_server
         self.conn = None
+        ''' :type : sqlite3.Connection '''
 
         def init_sql():
-            sqlite3.register_converter('GUID', lambda b: uuid.UUID(bytes_le=b))
-            sqlite3.register_adapter(uuid.UUID, lambda u: buffer(u.bytes_le))
-
             self.conn = sqlite3.connect("results.db")
 
             self.conn.execute('''
-                CREATE TABLE IF NOT EXISTS result(
-                    result_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    session_id GUID UNIQUE,
-                    time DATETIME,
-                    host,
-                    port,
-                    swift_size,
-                    swift_time,
-                    bytes_enter,
-                    bytes_exit,
-                    bytes_returned
-                )
+                CREATE TABLE result (
+                    "result_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                    "session_id" GUID,
+                    "time" DATETIME,
+                    "host" NULL,
+                    "port" NULL,
+                    "swift_size" NULL,
+                    "swift_time" NULL,
+                    "bytes_enter" NULL,
+                    "bytes_exit" NULL,
+                    "bytes_returned" NULL,
+                    "encryption" INTEGER NOT NULL DEFAULT ('0')
+                , "broken_circuits" INTEGER)
+
              ''')
 
             self.conn.execute('''
@@ -272,6 +275,17 @@ class StatsCrawler(TunnelObserver):
         self.raw_server.add_task(
             lambda: self.on_stats(community, candidate, stats))
 
+    def get_num_stats(self):
+        '''
+        @rtype: int
+        @return: number of stats
+        '''
+
+        return self.conn.execute('''
+            SELECT COUNT(*)
+            FROM result
+        ''').fetchone()[0]
+
     def on_stats(self, community, candidate, stats):
         sock_address = candidate.sock_addr
         cursor = self.conn.cursor()
@@ -285,10 +299,11 @@ class StatsCrawler(TunnelObserver):
                         bytes_enter, bytes_exit, bytes_returned
                     )
                     VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?)''',
-                [uuid.UUID(stats['uuid']), sock_address[0], sock_address[1],
+                [uuid.UUID(bytes_le=stats['uuid']), sock_address[0], sock_address[1],
                  stats['swift']['size'], stats['swift']['download_time'],
                  stats['bytes_enter'], stats['bytes_exit'],
-                 stats['bytes_return']]
+                 (stats['bytes_return'] or 0)
+                ]
             )
 
             result_id = cursor.lastrowid
@@ -315,7 +330,7 @@ class StatsCrawler(TunnelObserver):
 
             self._logger.warning("Storing stats data of %s:%d" % sock_address)
         except sqlite3.IntegrityError:
-            self._logger.error("Stat already exists of %s:%d" % sock_address)
+            self._logger.exception("Stat already exists of %s:%d" % sock_address)
         except BaseException:
             self._logger.exception("Error storing stats")
 
