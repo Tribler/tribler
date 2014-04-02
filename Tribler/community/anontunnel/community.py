@@ -189,7 +189,11 @@ class ProxyCommunity(Community):
         self.global_stats.start()
 
         # Listen to prefix endpoint
-        dispersy.endpoint.listen_to(self.__packet_prefix, self.__handle_packet)
+        try:
+            dispersy.endpoint.listen_to(self.__packet_prefix, self.__handle_packet)
+        except AttributeError:
+            self._logger.error("Cannot listen to our prefix, are you sure that you are using the DispersyBypassEndpoint?")
+
         dispersy.callback.register(self.__ping_circuits)
 
         if tribler_session:

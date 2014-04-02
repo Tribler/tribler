@@ -95,6 +95,7 @@ class PingRequestCache(NumberCache):
         return 0.0
 
     def on_pong(self, message):
+        self.community.circuits[self.number].beat_heart()
         self.community.dispersy.callback.register(
             self.community.request_cache.pop, args=(self.identifier,))
 

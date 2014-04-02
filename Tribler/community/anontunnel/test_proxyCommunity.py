@@ -11,11 +11,13 @@ from Tribler.community.anontunnel.cache import CandidateCache
 from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, MESSAGE_CREATE, \
-    CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_BROKEN, MESSAGE_EXTEND
+    CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_BROKEN, MESSAGE_EXTEND, \
+    MESSAGE_PONG
 from Tribler.community.anontunnel.payload import CreateMessage, CreatedMessage, ExtendedMessage, ExtendMessage, \
-    DataMessage
+    DataMessage, PingMessage, PongMessage
 from Tribler.community.anontunnel.routing import Circuit
 from Tribler.dispersy.candidate import WalkCandidate
+from Tribler.dispersy.endpoint import NullEndpoint
 from Tribler.dispersy.member import Member
 
 __author__ = 'Chris'
@@ -44,6 +46,7 @@ class TestProxyCommunity(TestCase):
         while not cls.session.lm.initComplete:
             time.sleep(1)
         cls.dispersy = cls.session.lm.dispersy
+        cls.dispersy._endpoint = NullEndpoint()
         ''' :type : Tribler.dispersy.Dispersy '''
 
         cls.__candidate_counter = 0
@@ -59,8 +62,6 @@ class TestProxyCommunity(TestCase):
         def load_community():
             proxy_community = dispersy.define_auto_load(ProxyCommunity, (dispersy_member, None, None), load=True)[0]
             ''' :type : ProxyCommunity '''
-            socks_server = Socks5Server(proxy_community, self.session.lm.rawserver)
-            socks_server.start()
             exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
 
             self.community = proxy_community
@@ -85,7 +86,6 @@ class TestProxyCommunity(TestCase):
 
     def tearDown(self):
         del self.dispersy._auto_load_communities[self.community.get_classification()]
-
         self.community.unload_community()
 
     def test_on_create(self):
@@ -249,3 +249,38 @@ class TestProxyCommunity(TestCase):
 
         self.assertIn(relay_from_originator, self.community.relay_from_to)
         self.assertIn(relay_from_endpoint, self.community.relay_from_to)
+
+    def test_on_pong(self):
+        first_hop = self.__create_walk_candidate()
+        circuit = self.community.create_circuit(first_hop, 1)
+        self.community.on_created(circuit.circuit_id, first_hop, CreatedMessage({}))
+
+        result = self.community.on_pong(circuit.circuit_id, first_hop, PongMessage())
+        self.assertFalse(result, "Cannot handle a pong when we never sent a PING")
+
+        self.community.create_ping(first_hop, circuit.circuit_id)
+
+        # Check whether the circuit last incoming time is correct after the pong
+        circuit.last_incoming = 0
+        result = self.community.on_pong(circuit.circuit_id, first_hop, PongMessage())
+        self.assertTrue(result)
+
+        self.assertAlmostEqual(circuit.last_incoming, time.time(), delta=0.5)
+
+    def test_on_ping(self):
+        circuit_id = 1337
+        first_hop = self.__create_walk_candidate()
+        self.community.add_candidate(first_hop)
+
+        self.community.on_create(circuit_id, first_hop, CreateMessage())
+
+        self.community.send_message = send_message = Mock()
+        self.community.on_ping(circuit_id, first_hop, PingMessage())
+
+        # Check whether we responded with a pong
+        args, kwargs = send_message.call_args
+
+        self.assertEqual(first_hop, kwargs['destination'])
+        self.assertEqual(circuit_id, kwargs['circuit_id'])
+        self.assertEqual(MESSAGE_PONG, kwargs['message_type'])
+        self.assertIsInstance(kwargs['message'], PongMessage)
