@@ -14,7 +14,8 @@ from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
 from conversion import MetadataConversion
 from payload import MetadataPayload
 
-from Tribler.community.channel.community import forceDispersyThread
+from Tribler.community.channel.community import register_callback, \
+    forceDispersyThread
 
 
 class MetadataCommunity(Community):
@@ -34,32 +35,36 @@ class MetadataCommunity(Community):
         else:
             self._metadata_db = MetadataDBStub(self._dispersy)
 
+        register_callback(dispersy.callback)
 
     @classmethod
     def get_master_members(cls, dispersy):
-# generated: Thu Mar 20 14:44:41 2014
+# generated: Thu Mar 27 18:30:30 2014
 # curve: NID_sect571r1
 # len: 571 bits ~ 144 bytes signature
-# pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000402bf25bf86363971bcbb40d4074d04ba0ae42597323eef4517a953d0859327d9942103d5fdf182d7aa7f57527ad6b525d32afe9c3136e798c2145befb4e7f41ddec62651364eb03703e79ca8c8aef42cbd42ab034657b8a69d750b2da9ca05a275cee83f6496b3642401c02753e8cc03fcd4bcf3ba7200eff7d845544acd8398b1c22558a770f3f872ec9617b92cb06a
-# pub-sha1 c462e4c933c2a8ac276cc282e09fc0ff65ec7e61
+# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004049204710db83d04c2445952a23093cd467190f47394151da79372a7840770e4bf24223a9e64f4b00ee657804bc011ddf47543da88d6bee2ee8d0ac5a270aea6f0bf35651f5c3daa037dfb4f0b3267eb3174985c154849e35cd79fb80d2b8c9ec7efc30fadbc4753e8aaf38bf86f062e3836a807cf66487deedd1d4799af8dbb830906718232387146ac483458c1ca1e
+# pub-sha1 5970fb6b4f9053cc3e31ff42f6ce4957de0e7c05
 # -----BEGIN PUBLIC KEY-----
-# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQCvyW/hjY5cby7QNQHTQS6CuQllzI+
-# 70UXqVPQhZMn2ZQhA9X98YLXqn9XUnrWtSXTKv6cMTbnmMIUW++05/Qd3sYmUTZO
-# sDcD55yoyK70LL1CqwNGV7imnXULLanKBaJ1zug/ZJazZCQBwCdT6MwD/NS887py
-# AO/32EVUSs2DmLHCJVincPP4cuyWF7kssGo=
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQEkgRxDbg9BMJEWVKiMJPNRnGQ9HOU
+# FR2nk3KnhAdw5L8kIjqeZPSwDuZXgEvAEd30dUPaiNa+4u6NCsWicK6m8L81ZR9c
+# PaoDfftPCzJn6zF0mFwVSEnjXNefuA0rjJ7H78MPrbxHU+iq84v4bwYuODaoB89m
+# SH3u3R1Hma+Nu4MJBnGCMjhxRqxINFjByh4=
 # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000402bf25bf86363971bcbb40d4074d04ba0ae42597323eef4517a953d0859327d9942103d5fdf182d7aa7f57527ad6b525d32afe9c3136e798c2145befb4e7f41ddec62651364eb03703e79ca8c8aef42cbd42ab034657b8a69d750b2da9ca05a275cee83f6496b3642401c02753e8cc03fcd4bcf3ba7200eff7d845544acd8398b1c22558a770f3f872ec9617b92cb06a".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004049204710db83d04c2445952a23093cd467190f47394151da79372a7840770e4bf24223a9e64f4b00ee657804bc011ddf47543da88d6bee2ee8d0ac5a270aea6f0bf35651f5c3daa037dfb4f0b3267eb3174985c154849e35cd79fb80d2b8c9ec7efc30fadbc4753e8aaf38bf86f062e3836a807cf66487deedd1d4799af8dbb830906718232387146ac483458c1ca1e".decode("HEX")
         master = dispersy.get_member(master_key)
         return [master]
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True):
+    def load_community(cls, dispersy, master, my_member,
+            integrate_with_tribler=True):
         try:
             dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler)
+            return cls.join_community(dispersy, master, my_member, my_member,
+                integrate_with_tribler=integrate_with_tribler)
         else:
-            return super(MetadataCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler)
+            return super(MetadataCommunity, cls).load_community(dispersy,
+                master, integrate_with_tribler=integrate_with_tribler)
 
     @property
     def dispersy_sync_skip_enable(self):
@@ -95,6 +100,7 @@ class MetadataCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
                             payload=(infohash, roothash, data_list, prev_metadata_mid, prev_metadata_global_time))
+        self.__log(-1, message)
         self._dispersy.store_update_forward([message], True, True, True)
 
 
@@ -110,7 +116,7 @@ class MetadataCommunity(Community):
 
             if infohash:
                 do_continue = False
-                for key,value in message.payload.data_list:
+                for key, value in message.payload.data_list:
                     if key.startswith("swift-"):
                         data_type = key.split('-', 1)[1]
 
@@ -133,7 +139,7 @@ class MetadataCommunity(Community):
                             break
 
                         else:
-                            self._logger.debug("Don't need to download swift-thumbnails with roothash %s from %s, already on disk", roothash.encode("HEX"), message.candidate.sock_addr[0])
+                            self._logger.debug("Don't need to download swift-thumbs with roothash %s from %s, already on disk", roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                 if do_continue:
                     continue
@@ -145,6 +151,33 @@ class MetadataCommunity(Community):
         # DO NOTHING
         pass
 
+    def __log(self, count, message):
+        global_time = message.distribution.global_time
+        mid = binascii.hexlify(message.authentication.member.mid)[:7]
+        if message.payload.infohash:
+            infohash = binascii.hexlify(message.payload.infohash)[:7]
+        else:
+            infohash = None
+        if message.payload.roothash:
+            roothash = binascii.hexlify(message.payload.roothash)[:7]
+        else:
+            roothash = None
+
+        if count == 0:
+            self._logger.debug("ACCEPT ip[%s:%s] member[%s %s] msg[%s %s]",
+                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                global_time, mid, infohash, roothash)
+        elif count == -1:
+            self._logger.debug("CREATE member[%s %s] msg[%s %s]",
+                global_time, mid, infohash, roothash)
+        elif count == -2:
+            self._logger.debug("IGNORE ip[%s:%s] member[%s %s] msg[%s %s]",
+                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                global_time, mid, infohash, roothash)
+        else:
+            self._logger.debug("DROP[%d] ip[%s:%s] member[%s %s] msg[%s %s]",
+                count, message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                global_time, mid, infohash, roothash)
 
     def custom_callback_check(self, unique, times, message):
         """
@@ -162,6 +195,7 @@ class MetadataCommunity(Community):
         # check UNIQUE
         key = (message.authentication.member.database_id, message.distribution.global_time)
         if key in unique:
+            self.__log(1, message)
             return DropMessage(message, u"already processed message by member^global_time")
 
         else:
@@ -173,29 +207,40 @@ class MetadataCommunity(Community):
 
             tim = times[message.authentication.member.database_id]
 
-            if message.distribution.global_time in tim and self._dispersy._is_duplicate_sync_message(message):
+            if message.distribution.global_time in tim and \
+                    self._dispersy._is_duplicate_sync_message(message):
+                self.__log(2, message)
                 return DropMessage(message, "duplicate message by member^global_time (3)")
 
             # select the metadata messages from DB
             message_list = self._metadata_db.getMetadataMessageList(
                 message.payload.infohash, message.payload.roothash,
-                ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "dispersy_id"))
+                ("previous_global_time", "previous_mid",
+                 "this_global_time", "this_mid", "dispersy_id"))
 
             if message.payload.prev_metadata_mid:
                 prev_metadata_mid = message.payload.prev_metadata_mid
                 prev_metadata_global_time = message.payload.prev_metadata_global_time
-                this_message = (prev_metadata_global_time, prev_metadata_mid, message.distribution.global_time, message.authentication.member.mid, None)
+                this_message = (prev_metadata_global_time, prev_metadata_mid,
+                    message.distribution.global_time,
+                    message.authentication.member.mid, None)
             else:
-                this_message = (None, None, message.distribution.global_time, message.authentication.member.mid, None)
+                this_message = (None, None, message.distribution.global_time,
+                    message.authentication.member.mid, None)
 
             # compare previous pointers
             if message_list:
                 message_list.append(this_message)
                 message_list.sort()
 
-                if message_list[0] == this_message:
-                    # send the latest message to the sender
+                # This message be in the top X in order to be stored, otherwise
+                # it is an old message and we send back our latest one.
+                history_size = message.distribution.history_size
+                history_size = 1 if history_size < 1 else history_size
+                if this_message not in message_list[-history_size:]:
+                    # dirty way
                     if message.distribution.history_size == 1:
+                        # send the latest message to the sender
                         try:
                             packet, = self._dispersy._database.execute(
                                 u"SELECT packet FROM sync WHERE id = ?",
@@ -206,8 +251,10 @@ class MetadataCommunity(Community):
                             self._dispersy._statistics.dict_inc(self._dispersy._statistics.outgoing, u"-lastdist-")
                             self._dispersy._endpoint.send([message.candidate], [str(packet)])
 
+                    self.__log(3, message)
                     return DropMessage(message, u"This metadata message is old.")
 
+            self.__log(0, message)
             return message
 
 
@@ -252,7 +299,7 @@ class MetadataCommunity(Community):
                 message_list.sort()
 
                 for message in message_list[:-1]:
-                    dispersy_id = message[4]
+                    dispersy_id = message[-1]
                     self._metadata_db.deleteMetadataMessage(dispersy_id)
 
                     sync_id_list.append((dispersy_id, dispersy_id))

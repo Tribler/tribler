@@ -256,7 +256,6 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc()
 
-
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)

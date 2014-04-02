@@ -18,73 +18,77 @@ import time
 import json
 from hashlib import sha1
 import logging
+import logging.config
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, \
+    ChannelManager
+from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 
 logger = logging.getLogger(__name__)
 
 def define_communities(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
     from Tribler.community.channel.community import ChannelCommunity
+    from Tribler.community.metadata.community import MetadataCommunity
 
     dispersy = session.get_dispersy_instance()
     dispersy.define_auto_load(AllChannelCommunity,
-                                   (session.dispersy_member,),
-                                   {},
-                                   load=True)
+                                (session.dispersy_member,),
+                                {},
+                                load=True)
     dispersy.define_auto_load(ChannelCommunity, load=True)
-    logger.info("tribler: Dispersy communities are ready")
+    dispersy.define_auto_load(MetadataCommunity,
+                               (session.dispersy_member,),
+                               {},
+                               load=True)
+    logger.info(u"Dispersy communities are ready")
 
-def dispersy_started(session, opt):
-    from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, ChannelManager
-    torrentManager = TorrentManager(None)
-    libraryManager = LibraryManager(None)
-    channelManager = ChannelManager()
+def dispersy_started(session, opt, torrentManager, channelManager,
+        torrentStateManager):
+    channelname = opt.channelname if hasattr(opt, 'chanelname') else ''
+    nickname = opt.nickname if hasattr(opt, 'nickname') else ''
+    my_channel_name = channelname or nickname or 'MetadataInjector-Channel'
+    my_channel_name = unicode(my_channel_name)
 
-    torrentManager.connect(session, libraryManager, channelManager)
-    channelManager.connect(session, libraryManager, torrentManager)
-    libraryManager.connect(session, torrentManager, channelManager)
-
-    myChannelName = opt.channelname or opt.nickname or 'MetadataInjector-Channel'
-    myChannelName = unicode(myChannelName)
-
-    createdNewChannel = False
-    myChannelId = channelManager.channelcast_db.getMyChannelId()
-    if not myChannelId:
-        logger.info("creating a new channel")
-        channelManager.createChannel(myChannelName, u'')
-        createdNewChannel = True
-
+    new_channel_created = False
+    my_channel_id = channelManager.channelcast_db.getMyChannelId()
+    if not my_channel_id:
+        logger.info(u"Create a new channel")
+        channelManager.createChannel(my_channel_name, u'')
+        new_channel_created = True
     else:
-        logger.info("reusing previously created channel")
-        myChannel = channelManager.getChannel(myChannelId)
-        if myChannel.name != myChannelName:
-            logger.info("renaming channel to %s", myChannelName)
-            channelManager.modifyChannel(myChannelId, {'name': myChannelName})
+        logger.info(u"Use existing channel", my_channel_id)
+        my_channel = channelManager.getChannel(my_channel_id)
+        if my_channel.name != my_channel_name:
+            logger.info(u"Rename channel to %s", my_channel_name)
+            channelManager.modifyChannel(my_channel_id, {'name': my_channel_name})
+    my_channel_id = channelManager.channelcast_db.getMyChannelId()
+    logger.info(u"Channel ID [%s]", my_channel_id)
 
     def createTorrentFeed():
-        myChannelId = channelManager.channelcast_db.getMyChannelId()
+        logger.info(u"Creating RSS Feed...")
 
         torrentfeed = RssParser.getInstance()
-        torrentfeed.register(session, myChannelId)
-        torrentfeed.addCallback(myChannelId, channelManager.createTorrentFromDef)
+        torrentfeed.register(session, my_channel_id)
+        torrentfeed.addCallback(my_channel_id, torrentManager.createMetadataModificationFromDef)
 
         for rss in opt.rss.split(";"):
-            torrentfeed.addURL(rss, myChannelId)
+            torrentfeed.addURL(rss, my_channel_id)
 
-    if opt.rss:
+    if hasattr(opt, 'rss') and opt.rss:
         createTorrentFeed()
 
     def createDirFeed():
-        myChannelId = channelManager.channelcast_db.getMyChannelId()
+        logger.info(u"Creating Dir Feed...")
 
         def on_torrent_callback(dirpath, infohash, torrent_data):
             torrentdef = TorrentDef.load_from_dict(torrent_data)
-            channelManager.createTorrentFromDef(myChannelId, torrentdef)
+            channelManager.createTorrentFromDef(my_channel_id, torrentdef)
 
             # save torrent to collectedtorrents
             filename = torrentManager.getCollectedFilenameFromDef(torrentdef)
@@ -95,12 +99,12 @@ def dispersy_started(session, opt):
         for dirpath in opt.dir.split(";"):
             dirfeed.addDir(dirpath, callback=on_torrent_callback)
 
-    if opt.dir:
+    if hasattr(opt, 'dir') and opt.dir:
         createDirFeed()
 
     def createFileFeed():
-        myChannelId = channelManager.channelcast_db.getMyChannelId()
-        community = channelManager._disp_get_community_from_channel_id(myChannelId)
+        logger.info(u"Creating File Feed...")
+        community = channelManager._disp_get_community_from_channel_id(my_channel_id)
 
         logger.info("Using community: %s", community._cid.encode('HEX'))
 
@@ -127,7 +131,7 @@ def dispersy_started(session, opt):
                 else:
                     latest_review = reviewmessage
 
-    if opt.file and createdNewChannel:
+    if hasattr(opt, 'file') and opt.file and new_channel_created:
         createFileFeed()
 
 def main():
@@ -164,9 +168,20 @@ def main():
     session = Session(sscfg)
     session.start()
 
+    torrentManager = TorrentManager(None)
+    libraryManager = LibraryManager(None)
+    channelManager = ChannelManager()
+    torrentManager.connect(session, libraryManager, channelManager)
+    libraryManager.connect(session, torrentManager, channelManager)
+    channelManager.connect(session, libraryManager, torrentManager)
+
+    torrentStateManager = TorrentStateManager(None)
+    torrentStateManager.connect(torrentManager, libraryManager, channelManager)
+
     dispersy = session.get_dispersy_instance()
     dispersy.callback.call(define_communities, args=(session,))
-    dispersy.callback.register(dispersy_started, args=(session, opt))
+    dispersy.callback.register(dispersy_started, args=(session, opt,
+        torrentManager, channelManager, torrentStateManager))
 
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
@@ -185,9 +200,15 @@ def main():
     dirfeed = DirectoryFeedThread.getInstance()
     dirfeed.shutdown()
 
+    torrentStateManager.delInstance()
+    channelManager.delInstance()
+    libraryManager.delInstance()
+    torrentManager.delInstance()
+
     session.shutdown()
     logger.info("Shutting down...")
     time.sleep(5)
 
 if __name__ == "__main__":
+    logging.config.fileConfig("logger.conf")
     main()
