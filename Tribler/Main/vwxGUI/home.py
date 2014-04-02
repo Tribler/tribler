@@ -204,6 +204,11 @@ class Stats(wx.Panel):
 
         self.isReady = True
 
+    def OnOpenDispersyDebugButtonClicked(self, event):
+        if not wx.FindWindowByName("DispersyDebugFrame"):
+            frame = self.guiutility.frame.OnOpenDebugFrame(None)
+            frame.Show()
+
     def onActivity(self, msg):
         if self.isReady:
             self.activity.onActivity(msg)
