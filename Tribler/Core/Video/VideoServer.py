@@ -96,7 +96,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
 
         requested_range = http.get_ranges(self.headers.getheader('range'), length)
         if requested_range != None and len(requested_range) != 1:
-            self.send_error(404, "Requested Range Not Satisfiable")
+            self.send_error(416, "Requested Range Not Satisfiable")
             return
 
         has_changed = self.videoplayer.get_vod_fileindex() != fileindex or self.videoplayer.get_vod_download() != download
