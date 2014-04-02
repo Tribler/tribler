@@ -14,6 +14,7 @@ from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache, CandidateCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.anontunnel.test import LibtorrentTest
+from Tribler.community.channel.community import forceAndReturnDispersyThread, register_callback
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
@@ -250,7 +251,10 @@ class ProxyCommunity(Community):
                     if c is None:
                         break
                     else:
-                        self._create_circuit(c, goal_hops)
+                        try:
+                            self.create_circuit(c, goal_hops)
+                        except:
+                            self._logger.exception("Error creating circuit while running __discover")
 
     def unload_community(self):
         """
@@ -448,7 +452,7 @@ class ProxyCommunity(Community):
             elif is_originator:
                 self.remove_circuit(circuit_id, "error on incoming packet!")
 
-    def _create_circuit(self, first_hop, goal_hops, extend_strategy=None,
+    def create_circuit(self, first_hop, goal_hops, extend_strategy=None,
                         deferred=None):
         """ Create a new circuit, with one initial hop
 
@@ -460,19 +464,26 @@ class ProxyCommunity(Community):
 
         @rtype: Tribler.community.anontunnel.routing.Circuit
         """
-        try:
+
+        if not (goal_hops > 0):
+            raise ValueError("We can only create circuits with more than 0 hops using create_circuit()!")
+
+        with self.lock:
             circuit_id = self._generate_circuit_id(first_hop.sock_addr)
             self.candidate_cache.cache(first_hop)
 
-            cache = self._request_cache.add(
-                CircuitRequestCache(self, circuit_id))
+            def create_circuit_cache(circuit):
+                cache = self._request_cache.add(CircuitRequestCache(self, circuit_id))
+                cache.circuit = circuit
 
-            circuit = cache.circuit = Circuit(
+            circuit = Circuit(
                 circuit_id=circuit_id,
                 goal_hops=goal_hops,
                 candidate=first_hop,
                 deferred=deferred,
                 proxy=self)
+
+            self.dispersy.callback.call(create_circuit_cache, (circuit,))
 
             if extend_strategy:
                 circuit.extend_strategy = extend_strategy
@@ -497,8 +508,7 @@ class ProxyCommunity(Community):
                               CreateMessage())
 
             return circuit
-        except Exception:
-            self._logger.exception("create_circuit")
+
 
     def remove_circuit(self, circuit_id, additional_info=''):
         """
@@ -623,8 +633,8 @@ class ProxyCommunity(Community):
         # This is ours!
         if circuit_id in self.circuits:
             circuit = self.circuits[circuit_id]
-            self._ours_on_created_extended(circuit, message)
-            return True
+            return self._ours_on_created_extended(circuit, message)
+
         return False
 
     def _ours_on_created_extended(self, circuit, message):
@@ -651,11 +661,15 @@ class ProxyCommunity(Community):
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             try:
-                circuit.extend_strategy.extend(candidate_list)
+                if not circuit.extend_strategy.extend(candidate_list):
+                    raise ValueError("Unknown extend error")
+
             except ValueError:
                 self._logger.exception("Cannot extend due to exception:")
                 reason = 'Extend error, state = %s' % circuit.state
                 self.remove_circuit(circuit.circuit_id, reason)
+
+                return False
 
         elif circuit.state == CIRCUIT_STATE_READY:
             request.on_success()
@@ -674,6 +688,8 @@ class ProxyCommunity(Community):
             else:
                 self.notifier.notify(
                     NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit)
+
+        return True
 
     def on_data(self, circuit_id, candidate, message):
         """
@@ -795,8 +811,7 @@ class ProxyCommunity(Community):
         """
 
         circuit = self.circuits[circuit_id]
-        self._ours_on_created_extended(circuit, message)
-        return True
+        return self._ours_on_created_extended(circuit, message)
 
     def create_ping(self, candidate, circuit_id):
         """

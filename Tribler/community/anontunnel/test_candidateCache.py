@@ -26,7 +26,7 @@ class TestCandidateCache(TestCase):
 
     def __create_walk_candidate(self):
         candidate = WalkCandidate(("127.0.0.1", self.__candidate_counter), False, ("127.0.0.1", self.__candidate_counter), ("127.0.0.1", self.__candidate_counter), u'unknown')
-        key = self.dispersy.crypto.generate_key(u"high")
+        key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
         ''' :type : EC '''
 
         member = []

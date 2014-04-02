@@ -18,8 +18,8 @@ class Circuit:
         """
         Instantiate a new Circuit data structure
         :type proxy: ProxyCommunity
-        :param circuit_id: the id of the candidate circuit
-        :param candidate: the first hop of the circuit
+        :param int circuit_id: the id of the candidate circuit
+        :param WalkCandidate candidate: the first hop of the circuit
         :return: Circuit
         """
 
