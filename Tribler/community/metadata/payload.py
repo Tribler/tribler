@@ -1,6 +1,4 @@
-from Tribler.dispersy.message import Packet
 from Tribler.dispersy.payload import Payload
-from struct import pack
 
 
 class MetadataPayload(Payload):

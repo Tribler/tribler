@@ -151,7 +151,12 @@ class MetadataCommunity(Community):
         # DO NOTHING
         pass
 
-    def __log(self, count, message):
+    def __log(self, count, message, info_str=None):
+        prev_global_time = None
+        prev_mid = None
+        if message.payload.prev_metadata_mid:
+            prev_global_time = message.payload.prev_metadata_global_time
+            prev_mid = binascii.hexlify(message.payload.prev_metadata_mid)[:7]
         global_time = message.distribution.global_time
         mid = binascii.hexlify(message.authentication.member.mid)[:7]
         if message.payload.infohash:
@@ -164,20 +169,24 @@ class MetadataCommunity(Community):
             roothash = None
 
         if count == 0:
-            self._logger.debug("ACCEPT ip[%s:%s] member[%s %s] msg[%s %s]",
+            self._logger.debug("ACCEPT ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
                 message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, infohash, roothash)
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
         elif count == -1:
-            self._logger.debug("CREATE member[%s %s] msg[%s %s]",
-                global_time, mid, infohash, roothash)
+            self._logger.debug("CREATE member[%s %s] msg[(%s %s)->(%s %s)]",
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
         elif count == -2:
-            self._logger.debug("IGNORE ip[%s:%s] member[%s %s] msg[%s %s]",
+            self._logger.debug("IGNORE ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
                 message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, infohash, roothash)
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+        elif count >= 100:
+            self._logger.debug("CUSTOM ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s] | %s",
+                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash, info_str)
         else:
-            self._logger.debug("DROP[%d] ip[%s:%s] member[%s %s] msg[%s %s]",
+            self._logger.debug("DROP[%d] ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
                 count, message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, infohash, roothash)
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
 
     def custom_callback_check(self, unique, times, message):
         """
