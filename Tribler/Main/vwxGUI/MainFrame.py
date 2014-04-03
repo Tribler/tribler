@@ -32,7 +32,8 @@ from Tribler.Core.simpledefs import dlstatus_strings, NTFY_MYPREFERENCES, \
     DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_SEEDING, \
     NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP, \
     NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS, \
-    NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL
+    NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL, NTFY_TORRENTS, \
+    NTFY_VIDEO_STARTED
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -449,7 +450,7 @@ class MainFrame(wx.Frame):
                 tdef = TorrentDef.load(torrentfilename)
 
             # Prefer to download using libtorrent
-            #cdef = sdef or tdef
+            # cdef = sdef or tdef
             cdef = tdef or sdef
 
             d = self.utility.session.get_download(cdef.get_id())
@@ -494,7 +495,7 @@ class MainFrame(wx.Frame):
                     if dlg.ShowModal() == wx.ID_OK:
                         # If the dialog has collected a torrent, use the new tdef
                         tdef = dlg.GetCollected() or tdef
-                        #cdef = sdef or tdef
+                        # cdef = sdef or tdef
                         cdef = tdef or sdef
 
                         # for multifile we enabled correctedFilenames, use split to remove the filename from the path
@@ -548,9 +549,12 @@ class MainFrame(wx.Frame):
                         dscfg.set_selected_files([selectedFile])
                         result = self.utility.session.start_download(cdef, dscfg)
 
-                        files = result.get_def().get_files() if result.get_def().get_def_type() == 'torrent' else []
+                        files = cdef.get_files() if cdef.get_def_type() == 'torrent' else []
                         fileindex = files.index(selectedFile) if selectedFile in files else None
                         videoplayer.play(result, fileindex)
+
+                        if self.videoparentpanel:
+                            self.actlist.expandedPanel_videoplayer.OnVideoStarted(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (cdef.get_id(), fileindex))
 
                 else:
                     if selectedFiles:

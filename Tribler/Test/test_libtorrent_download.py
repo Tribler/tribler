@@ -139,7 +139,12 @@ class TestLibtorrentDownload(TestGuiAsServer):
                     videofiles.append(filename)
 
             playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
-            self.CallConditional(10, lambda: len(playlist.links) == len(videofiles), lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "lists did not match length")
+
+            do_check = lambda: len(playlist.links) == len(videofiles) and \
+                               playlist.torrent.infohash == VideoPlayer.getInstance().get_vod_download().get_def().get_id() and \
+                               playlist.fileindex == VideoPlayer.getInstance().get_vod_fileindex()
+
+            self.CallConditional(10, do_check, lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "playlist set incorrectly")
 
         def do_monitor():
             from Tribler.Core.Video.VideoPlayer import VideoPlayer
