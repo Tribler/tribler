@@ -74,6 +74,9 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        if self.request_version == 'HTTP/1.1':
+            self.protocol_version = 'HTTP/1.1'
+
         self._logger.debug("VideoServer: VOD request %s %s", self.client_address, self.path)
         downloadhash, fileindex = self.path.strip('/').split('/')
         downloadhash = unhexlify(downloadhash)
@@ -133,7 +136,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         else:
             self.send_header('Transfer-Encoding', 'chunked')
 
-        if self.request_version == 'HTTP/1.1':
+        if self.request_version == 'HTTP/1.1' and self.headers.get('Connection', '').lower() != 'close':
             self.send_header('Connection', 'Keep-Alive')
             self.send_header('Keep-Alive', 'timeout=300, max=1')
 
