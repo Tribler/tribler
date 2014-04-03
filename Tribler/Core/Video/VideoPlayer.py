@@ -73,7 +73,8 @@ class VideoPlayer:
 
     def shutdown(self):
         if self.videoserver:
-            self.videoserver.stop()
+            self.videoserver.shutdown()
+            self.videoserver.server_close()
         self.set_vod_download(None)
 
     def get_vlcwrap(self):

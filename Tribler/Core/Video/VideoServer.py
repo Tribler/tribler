@@ -53,9 +53,6 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         self.server_thread.setDaemon(True)
         self.server_thread.start()
 
-    def stop(self):
-        pass
-
     def process_request_thread(self, request, client_address):
         try:
             self.finish_request(request, client_address)
