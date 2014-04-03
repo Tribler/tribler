@@ -3,11 +3,11 @@
 # see LICENSE.txt for license information
 import os
 import sys
+import time
 import logging
 
 from binascii import hexlify
 from traceback import print_exc
-from threading import Thread
 from collections import defaultdict
 from multiprocessing.synchronize import RLock
 
@@ -15,11 +15,11 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_STARTED, DLMODE_NORMAL, NTFY_VIDEO_BUFFERING
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 
-from Tribler.Video.utils import win32_retrieve_video_play_command, quote_program_path, escape_path, return_feasible_playback_modes
-from Tribler.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME
-from Tribler.Video.VideoUtility import get_videoinfo
-from Tribler.Video.VideoServer import VideoServer
-from Tribler.Video.VLCWrapper import VLCWrapper
+from Tribler.Core.Video.utils import win32_retrieve_video_play_command, quote_program_path, escape_path, return_feasible_playback_modes
+from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME
+from Tribler.Core.Video.VideoUtility import get_videoinfo
+from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.Video.VLCWrapper import VLCWrapper
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class VideoPlayer:
 
     __single = None
 
-    def __init__(self, session, videoplayerpath, preferredplaybackmode=None, httpport=6880):
+    def __init__(self, session, httpport=None):
         if VideoPlayer.__single:
             raise RuntimeError("VideoPlayer is singleton")
         VideoPlayer.__single = self
@@ -37,20 +37,21 @@ class VideoPlayer:
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
-        self.videoplayerpath = videoplayerpath
-        self.videoframe = None
+        self.videoplayerpath = self.session.get_videoplayer_path()
+        self.internalplayer_callback = None
         self.vod_download = None
         self.vod_fileindex = None
         self.vod_playing = None
         self.vod_info = defaultdict(dict)
 
         feasible = return_feasible_playback_modes()
+        preferredplaybackmode = self.session.get_preferred_playback_mode()
         self.playbackmode = preferredplaybackmode if preferredplaybackmode in feasible else feasible[0]
         self.vlcwrap = VLCWrapper() if self.playbackmode == PLAYBACKMODE_INTERNAL else None
 
         # Start HTTP server for serving video
-        self.videoserver = VideoServer.getInstance(httpport, self.session)
-        Thread(target=self.videoserver.start).start()
+        self.videoserver = VideoServer.getInstance(httpport or self.session.get_videoplayer_port(), self.session)
+        self.videoserver.start()
 
         self.notifier = Notifier.getInstance()
 
@@ -72,14 +73,15 @@ class VideoPlayer:
 
     def shutdown(self):
         if self.videoserver:
-            self.videoserver.stop()
+            self.videoserver.shutdown()
+            self.videoserver.server_close()
         self.set_vod_download(None)
 
     def get_vlcwrap(self):
         return self.vlcwrap
 
-    def set_videoframe(self, videoframe):
-        self.videoframe = videoframe
+    def set_internalplayer_callback(self, callback):
+        self.internalplayer_callback = callback
 
     def play(self, download, fileindex):
         url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/' + hexlify(download.get_def().get_id()) + '/' + str(fileindex)
@@ -88,6 +90,11 @@ class VideoPlayer:
         else:
             self.launch_video_player(self.get_video_player(None, url))
         self.vod_playing = None
+
+    def seek(self, pos):
+        if self.vod_download:
+            self.vod_download.vod_seekpos = None
+            self.vod_playing = None
 
     def monitor_vod(self, ds):
         dl = ds.get_download() if ds else None
@@ -100,11 +107,10 @@ class VideoPlayer:
         dl_def = dl.get_def()
         dl_hash = dl_def.get_id()
 
-        if bufferprogress >= 1:
-            if not self.vod_playing:
-                self.vod_playing = True
-                self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
-        elif bufferprogress <= 0.1 and self.vod_playing:
+        if (bufferprogress >= 1.0 and not self.vod_playing) or (bufferprogress >= 1.0 and self.vod_playing == None):
+            self.vod_playing = True
+            self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
+        elif (bufferprogress <= 0.1 and self.vod_playing) or (bufferprogress < 1.0 and self.vod_playing == None):
             self.vod_playing = False
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, True))
 
@@ -120,12 +126,13 @@ class VideoPlayer:
 
         return (1, False)
 
-    def get_vod_stream(self, dl_hash):
+    def get_vod_stream(self, dl_hash, wait=False):
         if not self.vod_info[dl_hash].has_key('stream') and self.session.get_download(dl_hash):
             download = self.session.get_download(dl_hash)
             vod_filename = self.get_vod_filename(download)
-            if os.path.exists(vod_filename):
-                self.vod_info[dl_hash]['stream'] = (VODFile(open(vod_filename, 'rb'), download), RLock())
+            while wait and not os.path.exists(vod_filename):
+                time.sleep(1)
+            self.vod_info[dl_hash]['stream'] = (VODFile(open(vod_filename, 'rb'), download), RLock())
 
         if self.vod_info[dl_hash].has_key('stream'):
             return self.vod_info[dl_hash]['stream']
@@ -163,9 +170,8 @@ class VideoPlayer:
 
     def launch_video_player(self, cmd, download=None):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.videoframe.get_videopanel().Load(cmd, download)
-            self.videoframe.get_videopanel().StartPlay()
-            self.videoframe.get_videopanel().ShowLoading()
+            if self.internalplayer_callback:
+                self.internalplayer_callback(cmd, download)
         else:
             # Launch an external player. Play URL from network or disk.
             try:

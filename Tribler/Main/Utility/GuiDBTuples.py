@@ -5,7 +5,7 @@ import logging
 from datetime import date
 from time import time
 from inspect import getargspec
-from Tribler.Video.utils import videoextdefaults
+from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS, \
     CHANNEL_REQ_COLUMNS
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, \

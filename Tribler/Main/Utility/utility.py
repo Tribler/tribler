@@ -45,8 +45,6 @@ class Utility:
                             # RateLimitPanel
                             'maxuploadrate': 0,
                             'maxdownloadrate': 0,
-                            # VideoPanel
-                            'videoplaybackmode': 0,
                             # Misc
                             'torrentassociationwarned': 0,
                             # GUI
@@ -70,22 +68,9 @@ class Utility:
                             'webui_port': 8080,
                             # Swift reseed
                             'swiftreseed': 1,
-                            'videohttpport':-1,
                             'showsaveas': 1,
-                            'i2ilistenport': 57891}
-
-        if sys.platform == 'win32':
-            tribler_defaults['mintray'] = '2'
-            tribler_defaults['videoplayerpath'] = os.path.expandvars('${PROGRAMFILES}') + '\\Windows Media Player\\wmplayer.exe'
-            tribler_defaults['videoanalyserpath'] = self.getPath() + '\\ffmpeg.exe'
-        elif sys.platform == 'darwin':
-            tribler_defaults['mintray'] = '0'  # tray doesn't make sense on Mac
-            tribler_defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or ("/Applications/VLC.app" if os.path.exists("/Applications/VLC.app") else None) or "/Applications/QuickTime Player.app"
-            tribler_defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "vlc/ffmpeg"
-        else:
-            tribler_defaults['mintray'] = '0'  # Still crashes on Linux sometimes
-            tribler_defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or "vlc"
-            tribler_defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "ffmpeg"
+                            'i2ilistenport': 57891,
+                            'mintray': 2 if sys.platform == 'win32' else 0}
 
         self.defaults = {'Tribler': tribler_defaults}
         self.configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")

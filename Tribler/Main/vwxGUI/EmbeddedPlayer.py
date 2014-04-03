@@ -21,9 +21,9 @@ from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, \
     ActionButton, TransparentText, VideoVolume, VideoSlider
 
-from Tribler.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
+from Tribler.Core.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
     MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 
 class DelayTimer(wx.Timer):
@@ -160,6 +160,8 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             self.guiutility.utility.session.add_observer(self.OnVideoBuffering, NTFY_TORRENTS, [NTFY_VIDEO_BUFFERING])
 
+            self.videoplayer.set_internalplayer_callback(self.LoadAndStartPlay)
+
     def OnVideoBuffering(self, subject, changeType, torrent_tuple):
         download_hash, _, is_buffering = torrent_tuple
         if self.download and self.download.get_def().get_id() == download_hash:
@@ -178,13 +180,17 @@ class EmbeddedPlayerPanel(wx.Panel):
         for ds in dslist:
             if ds.get_download() == self.download:
                 if ds.get_status() == DLSTATUS_HASHCHECKING:
-                    progress = progress_consec = ds.get_progress()
+                    progress = ds.get_progress()
+                    label = 'Checking\n%d%%' % (progress * 100)
+                elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                    progress = 0
+                    label = 'Loading\nfailed'
                 else:
                     progress = ds.get_vod_prebuffering_progress()
-                    progress_consec = ds.get_vod_prebuffering_progress_consec()
+                    label = 'Loading\n%d%%' % (progress * 100)
 
                 pieces_complete = ds.get_pieces_complete() if ds.get_progress() < 1.0 else [True]
-                self.UpdateStatus(progress, progress_consec, pieces_complete, ds.get_status() == DLSTATUS_STOPPED_ON_ERROR)
+                self.UpdateStatus(label, progress, pieces_complete)
 
     def OnVolumeChanged(self, volume):
         if self.mute.GetBitmapLabel() == self.bmp_muted:  # unmute
@@ -202,6 +208,11 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.volctrl.SetValue(self.volume)
         self.SetVolume(self.volume)
         self.mute.SetBitmapLabel(self.bmp_unmuted if self.mute.GetBitmapLabel() == self.bmp_muted else self.bmp_muted, recreate=True)
+
+    @forceWxThread
+    def LoadAndStartPlay(self, url, download):
+        self.Load(url, download)
+        self.StartPlay()
 
     @warnWxThread
     def Load(self, url, download):
@@ -259,16 +270,13 @@ class EmbeddedPlayerPanel(wx.Panel):
     def Pause(self, evt=None, gui_vod_event=False):
         self._logger.debug("embedplay: Pause pressed")
 
-        # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             if self.GetState() == MEDIASTATE_PLAYING:
                 self.vlcwrap.pause()
-                self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
-                if gui_vod_event:
-                    self.ppbtn.Enable(False)
-                    self.ShowLoading()
-            else:
-                self._logger.debug("embedplay: Pause pressed, not playing")
+            self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
+            if gui_vod_event:
+                self.ppbtn.Enable(False)
+                self.ShowLoading()
 
     @warnWxThread
     def Resume(self, evt=None):
@@ -276,11 +284,11 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
-                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
-                self.ppbtn.Enable(True)
-                self.HideLoading()
                 self.vlcwrap.resume()
-                self.slider.Enable(True)
+            self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
+            self.ppbtn.Enable(True)
+            self.slider.Enable(True)
+            self.HideLoading()
 
     @warnWxThread
     def PlayPause(self, evt=None):
@@ -308,8 +316,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.update = False
 
             try:
-                if self.download:
-                    self.download.vod_seekpos = None
+                self.Pause(gui_vod_event=True)
+                self.videoplayer.seek(position)
                 self.vlcwrap.set_media_position_relative(position, self.GetState() in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED])
 
                 length = self.vlcwrap.get_stream_information_length()
@@ -429,11 +437,9 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.slider.SetPieces([])
 
     @forceWxThread
-    def UpdateStatus(self, progress, progress_consec, pieces_complete, error=False):
-        if error:
-            self.logowin.loading.SetLabel("Loading\nfailed")
-        else:
-            self.logowin.loading.SetValue(progress)
+    def UpdateStatus(self, label, progress, pieces_complete):
+        self.logowin.loading.SetValue(progress)
+        self.logowin.loading.SetLabel(label)
 
         if self.vlcwrap:
             self.slider.SetPieces(pieces_complete)

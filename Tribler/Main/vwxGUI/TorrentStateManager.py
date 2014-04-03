@@ -14,7 +14,7 @@ except ImportError, e:
     prctlimported = False
 
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
+from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
     limit_resolution, get_thumbnail
 
 

@@ -21,6 +21,8 @@
 
 from collections import OrderedDict
 
+from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL
+
 DEFAULTPORT = 7760
 
 #
@@ -100,6 +102,13 @@ sessdefaults['dispersy'] = OrderedDict()
 sessdefaults['dispersy']['enabled'] = True
 sessdefaults['dispersy']['dispersy-tunnel-over-swift'] = False
 sessdefaults['dispersy']['dispersy_port'] = DEFAULTPORT - 1
+
+# Video config
+sessdefaults['video'] = OrderedDict()
+sessdefaults['video']['enabled'] = True
+sessdefaults['video']['path'] = None
+sessdefaults['video']['port'] = -1
+sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 
 #
 # BT per download opts

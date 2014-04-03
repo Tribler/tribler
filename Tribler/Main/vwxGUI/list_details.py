@@ -32,8 +32,8 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
     FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 from Tribler.community.channel.community import ChannelCommunity
-from Tribler.Video.VideoUtility import limit_resolution
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoUtility import limit_resolution
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 
 class AbstractDetails(FancyPanel):
@@ -2179,7 +2179,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
             filename = self.torrentsearch_manager.getCollectedFilename(torrent, retried=True)
             if filename:
-                load_torrent()
+                load_torrent(filename)
             else:
                 self.torrentsearch_manager.getTorrent(torrent, load_torrent)
 
