@@ -25,6 +25,10 @@ __author__ = 'Chris'
 logging.config.fileConfig(
     os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 
+class DummyEndpoint(NullEndpoint):
+    def send_simple(self, *args):
+        pass
+
 
 class TestProxyCommunity(TestCase):
 
@@ -46,7 +50,7 @@ class TestProxyCommunity(TestCase):
         while not cls.session.lm.initComplete:
             time.sleep(1)
         cls.dispersy = cls.session.lm.dispersy
-        cls.dispersy._endpoint = NullEndpoint()
+        cls.dispersy._endpoint = DummyEndpoint()
         ''' :type : Tribler.dispersy.Dispersy '''
 
         cls.__candidate_counter = 0
