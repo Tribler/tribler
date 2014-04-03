@@ -39,18 +39,18 @@ class MetadataCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-# generated: Thu Mar 27 18:30:30 2014
+# generated: Thu Apr  3 15:16:20 2014
 # curve: NID_sect571r1
 # len: 571 bits ~ 144 bytes signature
-# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004049204710db83d04c2445952a23093cd467190f47394151da79372a7840770e4bf24223a9e64f4b00ee657804bc011ddf47543da88d6bee2ee8d0ac5a270aea6f0bf35651f5c3daa037dfb4f0b3267eb3174985c154849e35cd79fb80d2b8c9ec7efc30fadbc4753e8aaf38bf86f062e3836a807cf66487deedd1d4799af8dbb830906718232387146ac483458c1ca1e
-# pub-sha1 5970fb6b4f9053cc3e31ff42f6ce4957de0e7c05
+# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004006b8411ae64e9412f5be396ff83693fd05eceaaf4ea7b94849720067e2c2d0f32142a6622d486a63c0ad27a4fbce33b669d4be5dee8d7e2c56fea7908549df392631e10a0d673820173e2485374196db8f7e795a08e9fba32995b7f3ed4a8a8bdca1be2bfb103dbaf9a8f74a0684bdf25cfd96189bde92c3db59e382cfba4d7d9c8241e4256d5273c43c238cb2d90f3
+# pub-sha1 ab3453b2734a15c2e1685f3ddc734be506329244
 # -----BEGIN PUBLIC KEY-----
-# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQEkgRxDbg9BMJEWVKiMJPNRnGQ9HOU
-# FR2nk3KnhAdw5L8kIjqeZPSwDuZXgEvAEd30dUPaiNa+4u6NCsWicK6m8L81ZR9c
-# PaoDfftPCzJn6zF0mFwVSEnjXNefuA0rjJ7H78MPrbxHU+iq84v4bwYuODaoB89m
-# SH3u3R1Hma+Nu4MJBnGCMjhxRqxINFjByh4=
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQAa4QRrmTpQS9b45b/g2k/0F7OqvTq
+# e5SElyAGfiwtDzIUKmYi1IamPArSek+84ztmnUvl3ujX4sVv6nkIVJ3zkmMeEKDW
+# c4IBc+JIU3QZbbj355Wgjp+6Mplbfz7UqKi9yhviv7ED26+aj3SgaEvfJc/ZYYm9
+# 6Sw9tZ44LPuk19nIJB5CVtUnPEPCOMstkPM=
 # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004049204710db83d04c2445952a23093cd467190f47394151da79372a7840770e4bf24223a9e64f4b00ee657804bc011ddf47543da88d6bee2ee8d0ac5a270aea6f0bf35651f5c3daa037dfb4f0b3267eb3174985c154849e35cd79fb80d2b8c9ec7efc30fadbc4753e8aaf38bf86f062e3836a807cf66487deedd1d4799af8dbb830906718232387146ac483458c1ca1e".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004006b8411ae64e9412f5be396ff83693fd05eceaaf4ea7b94849720067e2c2d0f32142a6622d486a63c0ad27a4fbce33b669d4be5dee8d7e2c56fea7908549df392631e10a0d673820173e2485374196db8f7e795a08e9fba32995b7f3ed4a8a8bdca1be2bfb103dbaf9a8f74a0684bdf25cfd96189bde92c3db59e382cfba4d7d9c8241e4256d5273c43c238cb2d90f3".decode("HEX")
         master = dispersy.get_member(master_key)
         return [master]
 
@@ -151,7 +151,12 @@ class MetadataCommunity(Community):
         # DO NOTHING
         pass
 
-    def __log(self, count, message):
+    def __log(self, count, message, info_str=None):
+        prev_global_time = None
+        prev_mid = None
+        if message.payload.prev_metadata_mid:
+            prev_global_time = message.payload.prev_metadata_global_time
+            prev_mid = binascii.hexlify(message.payload.prev_metadata_mid)[:7]
         global_time = message.distribution.global_time
         mid = binascii.hexlify(message.authentication.member.mid)[:7]
         if message.payload.infohash:
@@ -164,20 +169,24 @@ class MetadataCommunity(Community):
             roothash = None
 
         if count == 0:
-            self._logger.debug("ACCEPT ip[%s:%s] member[%s %s] msg[%s %s]",
+            self._logger.debug("ACCEPT ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
                 message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, infohash, roothash)
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
         elif count == -1:
-            self._logger.debug("CREATE member[%s %s] msg[%s %s]",
-                global_time, mid, infohash, roothash)
+            self._logger.debug("CREATE member[%s %s] msg[(%s %s)->(%s %s)]",
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
         elif count == -2:
-            self._logger.debug("IGNORE ip[%s:%s] member[%s %s] msg[%s %s]",
+            self._logger.debug("IGNORE ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
                 message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, infohash, roothash)
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+        elif count >= 100:
+            self._logger.debug("CUSTOM ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s] | %s",
+                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash, info_str)
         else:
-            self._logger.debug("DROP[%d] ip[%s:%s] member[%s %s] msg[%s %s]",
+            self._logger.debug("DROP[%d] ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
                 count, message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, infohash, roothash)
+                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
 
     def custom_callback_check(self, unique, times, message):
         """

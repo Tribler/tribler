@@ -174,7 +174,7 @@ class SettingsDialog(wx.Dialog):
         valport = self._firewall_value.GetValue()
         if valport != str(self.utility.session.get_listen_port()):
             scfg.set_listen_port(int(valport))
-
+            scfg.set_swift_tunnel_listen_port(int(valport) - 2)
             scfg.set_dispersy_port(int(valport) - 1)
             self.saveDefaultDownloadConfig(scfg)
 
