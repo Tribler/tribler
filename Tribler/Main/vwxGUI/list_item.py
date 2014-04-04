@@ -1003,6 +1003,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         name = wx.StaticText(self, -1, '')
         name.SetLabel(ShortenText(name, self.original_data.name))
+        self.AddEvents(name)
         self.vSizer.Add(name, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
 
         self.hSizer.Layout()
