@@ -79,10 +79,9 @@ class LibtorrentTest(object, TunnelObserver):
                         'download_time': time.time() - self.download_started_at
                     }
 
-                elif not self.download_finished_at and ds.get_status() == DLSTATUS_SEEDING:
+                elif ds.get_status() == DLSTATUS_SEEDING and self.download_started_at and not self.download_finished_at:
                     self.download_finished_at = time.time()
                     stats_collector.download_stats = {
-                        'uuid': uuid.uuid4(),
                         'size': 50 * 1024 ** 2,
                         'download_time': self.download_finished_at - self.download_started_at
                     }

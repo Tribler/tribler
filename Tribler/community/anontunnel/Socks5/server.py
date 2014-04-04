@@ -82,7 +82,7 @@ class Socks5Server(object, TunnelObserver):
         s5con = Socks5Connection(single_socket, self)
 
         try:
-            session_pool = CircuitPool(self.tunnel, 4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
+            session_pool = CircuitPool(4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
             session = Socks5Session(self.raw_server, s5con, self, session_pool, min_circuits=self.min_session_circuits)
             self.tunnel.observers.append(session)
             self.tunnel.observers.append(session_pool)
@@ -90,6 +90,7 @@ class Socks5Server(object, TunnelObserver):
 
             self.tcp2session[single_socket] = session
         except:
+            self._logger.exception("Error while accepting SOCKS5 connection")
             s5con.close()
 
     def connection_flushed(self, single_socket):
