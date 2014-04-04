@@ -85,21 +85,36 @@ class MetadataCommunity(Community):
 
 
     def create_metadata_message(self, infohash, roothash, data_list):
-        columns = ("previous_global_time", "previous_mid", "this_global_time", "this_mid")
+        columns = ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "message_id")
         result_list = self._metadata_db.getMetadataMessageList(
             infohash, roothash, columns)
 
         prev_metadata_mid = None
         prev_metadata_global_time = None
+        merged_data_list = data_list
         if result_list:
             result_list.sort()
             prev_metadata_global_time = result_list[-1][2]
             prev_metadata_mid = result_list[-1][3]
 
+            # merge data-list
+            message_id = result_list[-1][-1]
+            prev_data_list = self._metadata_db.getMetadataData(message_id)
+
+            merged_data_set = set(data_list)
+            # check duplicates
+            for data in prev_data_list:
+                if data in merged_data_set:
+                    self._logger.warn("Duplicate key in new and old data-list: %s", data[0])
+            # merge
+            merged_data_set.update(prev_data_list)
+            merged_data_list = list(merged_data_set)
+
         meta = self.get_meta_message(u"metadata")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
-                            payload=(infohash, roothash, data_list, prev_metadata_mid, prev_metadata_global_time))
+                            payload=(infohash, roothash, merged_data_list,
+                                prev_metadata_mid, prev_metadata_global_time))
         self.__log(-1, message)
         self._dispersy.store_update_forward([message], True, True, True)
 
@@ -382,3 +397,12 @@ class MetadataDBStub(object):
             if data["dispersy_id"] != dispersy_id:
                 new_metadata_message_db_list.append(data)
         self._metadata_message_db_list = new_metadata_message_db_list
+
+
+    def getMetadataData(self, message_id):
+        data_list = []
+        for msg_id, key, value in self._metadata_data_db_list:
+            if msg_id != message_id:
+                continue
+            data_list.append((key, value))
+        return data_list
