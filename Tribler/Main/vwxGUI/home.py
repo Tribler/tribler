@@ -1246,7 +1246,7 @@ class ArtworkPanel(wx.Panel):
 
         self.SetData(data)
 
-        startWorker(None, self.SetData, delay=self.update_interval, workerType="guiTaskQueue")
+        startWorker(None, self.GetData, delay=self.update_interval, workerType="guiTaskQueue")
 
     @forceWxThread
     def SetData(self, data):
