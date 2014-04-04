@@ -28,7 +28,7 @@ from Tribler.community.channel.community import ChannelCommunity, \
 from Tribler.community.metadata.community import MetadataCommunity
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, \
     TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS, CHANNEL_REQ_COLUMNS, \

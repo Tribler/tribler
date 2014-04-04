@@ -226,9 +226,12 @@ class MetadataDBHandler(BasicDBHandler):
         if raw_result_list:
             for raw_result in raw_result_list:
                 this_result = []
-                idx = 0
-                for column in columns:
-                    if column == "infohash":
+
+                for idx, column in enumerate(columns):
+                    if raw_result[idx] == None:
+                        this_result.append(None)
+
+                    elif column == "infohash":
                         this_result.append(str2bin(raw_result[idx]))
                     elif column == "roothash":
                         this_result.append(str2bin(raw_result[idx]))
@@ -238,8 +241,6 @@ class MetadataDBHandler(BasicDBHandler):
                         this_result.append(str(raw_result[idx]))
                     else:
                         this_result.append(raw_result[idx])
-
-                    idx += 1
 
                 processed_result_list.append(tuple(this_result))
 

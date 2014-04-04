@@ -1,6 +1,5 @@
 from Tribler.dispersy.conversion import BinaryConversion
-from Tribler.dispersy.message import DropPacket, Packet,\
-    DelayPacketByMissingMessage, DelayPacketByMissingMember
+from Tribler.dispersy.message import DropPacket
 
 from Tribler.Core.Utilities.encoding import encode, decode
 
@@ -81,5 +80,10 @@ class MetadataConversion(BinaryConversion):
         prev_metadata_global_time = dic.get(u"prev-metadata-global-time", None)
         if prev_metadata_global_time and not isinstance(prev_metadata_global_time, (int, long)):
             raise DropPacket(u"Invalid 'prev-metadata-global-time' type")
+
+        if (prev_metadata_mid and not prev_metadata_global_time):
+            raise DropPacket(u"Incomplete previous pointer (mid and NO global-time)")
+        if (not prev_metadata_mid and prev_metadata_global_time):
+            raise DropPacket(u"Incomplete previous pointer (global-time and NO mid)")
 
         return offset, placeholder.meta.payload.implement(infohash, roothash, data_list, prev_metadata_mid, prev_metadata_global_time)

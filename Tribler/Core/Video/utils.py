@@ -12,7 +12,7 @@ from Tribler.Core.Utilities.unicode import unicode2str
 if sys.platform == 'win32':
     from Tribler.Core.Utilities.win32regchecker import Win32RegChecker, HKLM
 
-from Tribler.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME, PLAYBACKMODE_EXTERNAL_DEFAULT
+from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME, PLAYBACKMODE_EXTERNAL_DEFAULT
 
 videoextdefaults = ['aac', 'asf', 'avi', 'dv', 'divx', 'flac', 'flc', 'flv', 'mkv', 'mpeg', 'mpeg4', 'mpegts', 'mpg4', 'mp3', 'mp4', 'mpg', 'mkv', 'mov', 'm4v', 'ogg', 'ogm', 'ogv', 'oga', 'ogx', 'qt', 'rm', 'swf', 'ts', 'vob', 'wmv', 'wav', 'webm']
 

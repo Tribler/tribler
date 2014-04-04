@@ -14,7 +14,7 @@ except ImportError, e:
     prctlimported = False
 
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
+from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
     limit_resolution, get_thumbnail
 
 
@@ -67,9 +67,8 @@ class TorrentStateManager:
         assert isinstance(tempdir, str) or isinstance(tempdir, unicode), \
             u"tempdir is of type %s" % type(tempdir)
 
-        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        guiutility = GUIUtility.getInstance()
-        session = guiutility.utility.session
+        from Tribler.Core.Session import Session
+        session = Session.get_instance()
 
         torcoldir = session.get_torrent_collecting_dir()
         thumb_filenames = []
@@ -125,13 +124,11 @@ class TorrentStateManager:
 
 
     def _create_and_seed_metadata(self, videofile, torrent):
-        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
 
-        self.guiutility = GUIUtility.getInstance()
-        self.session = self.guiutility.utility.session
+        from Tribler.Core.Session import Session
+        self.session = Session.get_instance()
         videoanalyser = self.session.get_video_analyser_path()
 
         torcoldir = self.session.get_torrent_collecting_dir()

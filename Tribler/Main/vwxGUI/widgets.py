@@ -2231,6 +2231,7 @@ class VideoProgress(wx.Panel):
         self.edge_colour = edge_colour
         self.text_colour = text_colour
         self.prnt_colour = parent.GetBackgroundColour()
+        self.label = label
         self.value = 0.0
         self.error = ''
         self.SetValue(value)
@@ -2239,7 +2240,6 @@ class VideoProgress(wx.Panel):
 
     def SetValue(self, value):
         self.value = value
-        self.label = 'Loading\n %d%%' % (value * 100)
         self.Refresh()
 
     def SetError(self, error):

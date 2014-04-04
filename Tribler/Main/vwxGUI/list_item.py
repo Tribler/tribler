@@ -28,7 +28,7 @@ from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_
 from Tribler.Main.Utility.GuiDBTuples import MergedDs, Torrent, CollectedTorrent
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Video.VideoUtility import limit_resolution
+from Tribler.Core.Video.VideoUtility import limit_resolution
 
 
 class ColumnsManager:

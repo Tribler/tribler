@@ -159,7 +159,8 @@ class RemoteTorrentHandler:
 
         self.metadata_requester.add_request((metadata_type, roothash, infohash, contenthash), candidate, timeout)
 
-        self._logger.debug('rtorrent: adding metadata request: %s %s %s', metadata_type, roothash or '', candidate)
+        str_roothash = '' if not roothash else binascii.hexlify(roothash)
+        self._logger.debug('rtorrent: adding metadata request: %s %s %s', metadata_type, str_roothash, candidate)
 
     def download_torrent(self, candidate, infohash=None, roothash=None, usercallback=None, prio=1, timeout=None):
         if self.registered:

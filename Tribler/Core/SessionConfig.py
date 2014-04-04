@@ -67,14 +67,22 @@ class SessionConfigInterface(object):
 
         ffmpegpath = find_prog_in_PATH(ffmpegname)
         if ffmpegpath is None:
-            if sys.platform == 'win32':
-                self.sessconfig.set(u'general', u'videoanalyserpath', ffmpegname)
-            elif sys.platform == 'darwin':
+            if sys.platform == 'darwin':
                 self.sessconfig.set(u'general', u'videoanalyserpath', u"vlc/ffmpeg")
             else:
                 self.sessconfig.set(u'general', u'videoanalyserpath', ffmpegname)
         else:
             self.sessconfig.set(u'general', u'videoanalyserpath', ffmpegpath)
+
+        # Set videoplayer path
+        if sys.platform == 'win32':
+            videoplayerpath = os.path.expandvars('${PROGRAMFILES}') + '\\Windows Media Player\\wmplayer.exe'
+        elif sys.platform == 'darwin':
+            videoplayerpath = find_prog_in_PATH("vlc") or ("/Applications/VLC.app" if os.path.exists("/Applications/VLC.app") else None) or "/Applications/QuickTime Player.app"
+        else:
+            videoplayerpath = find_prog_in_PATH("vlc") or "vlc"
+
+        self.sessconfig.set(u'video', u'path', videoplayerpath)
 
         self.sessconfig.set(u'general', u'ipv6_binds_v4', autodetect_socket_style())
 
@@ -600,6 +608,54 @@ class SessionConfigInterface(object):
 
         @return Port number. """
         return self._obtain_port(u'swift', u'swifttunnelhttpgwlistenport')
+
+    def get_videoplayer(self):
+        """ Enable or disable VOD functionality (default = True).
+        @param value Boolean.
+        """
+        return self.sessconfig.get(u'video', u'enabled')
+
+    def set_videoplayer(self, value):
+        """ Returns whether VOD functionality is enabled.
+        @return Boolean.
+        """
+        self.sessconfig.set(u'video', u'enabled', value)
+
+    def get_videoplayer_path(self):
+        """ Get the path of the player that the videoplayer should execute after calling VideoPlayer.play.
+        @return path.
+        """
+        return self.sessconfig.get(u'video', u'path')
+
+    def set_videoplayer_path(self, path):
+        """ Set the path of the player that the videoplayer should execute after calling VideoPlayer.play.
+        @param path.
+        """
+        self.sessconfig.set(u'video', u'path', path)
+
+    def get_videoplayer_port(self):
+        """ Get the port number that the video http server should use.
+        @return integer.
+        """
+        return self._obtain_port(u'video', u'port')
+
+    def set_videoplayer_port(self, port):
+        """ Set the port number that the video http server should use.
+        @param port integer (-1 indicates a random port).
+        """
+        self.sessconfig.set(u'video', u'port', port)
+
+    def get_preferred_playback_mode(self):
+        """ Get the preferred playback mode for videos.
+        @return integer.
+        """
+        return self.sessconfig.get(u'video', u'preferredmode')
+
+    def set_preferred_playback_mode(self, mode):
+        """ Set the preferred playback mode for videos.
+        @param mode integer (0..2, see Tribler.Core.Video.def).
+        """
+        self.sessconfig.set(u'video', u'preferredmode', mode)
 
 
 class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
