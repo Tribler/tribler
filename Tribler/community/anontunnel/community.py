@@ -55,7 +55,7 @@ class ProxySettings:
     def __init__(self):
         length = random.randint(3, 3)
 
-        self.max_circuits = 1
+        self.max_circuits = 4
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
         self.length_strategy = lengthstrategies.ConstantCircuitLength(length)
@@ -212,7 +212,7 @@ class ProxyCommunity(Community):
                 try:
                     self.__discover()
                 finally:
-                    yield 5.0
+                    yield 2.0
 
         self.dispersy.callback.register(__loop_discover)
 
@@ -227,7 +227,7 @@ class ProxyCommunity(Community):
         )
 
         with self.lock:
-            while circuits_needed():
+            if circuits_needed():
                 self._logger.debug("Need %d new circuits!", circuits_needed())
                 goal_hops = self.settings.length_strategy.circuit_length()
 
@@ -250,7 +250,7 @@ class ProxyCommunity(Community):
                     c = next(candidates, None)
 
                     if c is None:
-                        break
+                        return
                     else:
                         try:
                             self.create_circuit(c, goal_hops)
