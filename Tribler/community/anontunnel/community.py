@@ -227,7 +227,7 @@ class ProxyCommunity(Community):
         )
 
         with self.lock:
-            if circuits_needed():
+            for i in range(0, circuits_needed()):
                 self._logger.debug("Need %d new circuits!", circuits_needed())
                 goal_hops = self.settings.length_strategy.circuit_length()
 
@@ -255,7 +255,7 @@ class ProxyCommunity(Community):
                         try:
                             self.create_circuit(c, goal_hops)
                         except:
-                            self._logger.exception("Error creating circuit while running __discover")
+                            self._logger.error("Error creating circuit while running __discover")
 
     def unload_community(self):
         """
@@ -442,7 +442,7 @@ class ProxyCommunity(Community):
                     result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
         except:
             result = False
-            self._logger.exception(
+            self._logger.error(
                 "Incoming from %s on %d message error."
                 "INITIAL=%s, ORIGINATOR=%s, RELAY=%s",
                 sock_addr, circuit_id, is_initial, is_originator, is_relay)
@@ -666,7 +666,7 @@ class ProxyCommunity(Community):
                     self._logger.warning("Couldn't extend")
 
             except ValueError:
-                self._logger.exception("Cannot extend due to exception:")
+                self._logger.error("Cannot extend due to exception:")
                 reason = 'Extend error, state = %s' % circuit.state
                 self.remove_circuit(circuit.circuit_id, reason)
 
@@ -965,7 +965,7 @@ class ProxyCommunity(Community):
                 for circuit in to_be_pinged:
                     self.create_ping(circuit.candidate, circuit.circuit_id)
             except Exception:
-                self._logger.exception("Ping error")
+                self._logger.error("Ping error")
 
             yield PING_INTERVAL
 
