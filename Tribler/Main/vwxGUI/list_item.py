@@ -915,7 +915,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
         self.columns = self.controls = []
         self.data = data
         self.original_data = original_data
-        self.bitmap_size = (175, 175)
+        self.max_bitmap_size = (175, 175)
 
         self.showChange = showChange
         self.list_deselected = LIST_DESELECTED
@@ -938,52 +938,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         ListItem.AddComponents(self, leftSpacer, rightSpacer)
 
-        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.original_data.infohash))
-        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
-
-        self.bitmap = None
-        self.bitmap_hover = None
-
-        if thumb_files:
-            bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
-            res = limit_resolution(bmp.GetSize(), self.bitmap_size)
-            self.bitmap = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
-
-            if self.bitmap:
-                self.bitmap_hover = wx.EmptyBitmap(*res)
-                dc = wx.MemoryDC(self.bitmap_hover)
-                gc = wx.GraphicsContext.Create(dc)
-                gc.DrawBitmap(self.bitmap, 0, 0, *res)
-                gc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 150)))
-                gc.DrawRectangle(0, 0, *res)
-
-                size = min(res)
-                path = gc.CreatePath()
-                path.MoveToPoint(0.15 * size, 0.15 * size)
-                path.AddLineToPoint(0.15 * size, 0.85 * size)
-                path.AddLineToPoint(0.85 * size, 0.5 * size)
-                gc.PushState()
-                gc.Translate((res[0] - size) / 2, (res[1] - size) / 2)
-                gc.SetBrush(wx.Brush(wx.Colour(255, 255, 255, 150)))
-                gc.SetPen(wx.TRANSPARENT_PEN)
-                gc.DrawPath(path)
-
-                dc.SelectObject(wx.NullBitmap)
-                del dc
-
-        if not self.bitmap:
-            self.bitmap = wx.EmptyBitmap(*self.bitmap_size)
-            dc = wx.MemoryDC(self.bitmap)
-            dc.SetBackground(wx.Brush(wx.Colour(230, 230, 230)))
-            dc.Clear()
-
-            font = self.GetFont()
-            font.SetPointSize(font.GetPointSize() + 4)
-            dc.SetFont(font)
-            dc.SetTextForeground(wx.Colour(100, 100, 100))
-            dc.DrawLabel('No picture\navailable', (0, 0) + self.bitmap_size, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
-            dc.SelectObject(wx.NullBitmap)
-            del dc
+        self.bitmap, self.bitmap_hover = self.CreateBitmaps()
 
         self.thumbnail = wx.BitmapButton(self, -1, self.bitmap, style=wx.NO_BORDER)
         self.thumbnail.SetBitmapHover(self.bitmap_hover)
@@ -1007,6 +962,55 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
         self.vSizer.Add(name, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
 
         self.hSizer.Layout()
+
+    def CreateBitmaps(self):
+        bitmap = None
+
+        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.original_data.infohash))
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
+
+        if thumb_files:
+            bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
+            res = limit_resolution(bmp.GetSize(), self.max_bitmap_size)
+            bitmap = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
+
+        if not bitmap:
+            bitmap = wx.EmptyBitmap(*self.max_bitmap_size)
+            dc = wx.MemoryDC(bitmap)
+            dc.SetBackground(wx.Brush(wx.Colour(230, 230, 230)))
+            dc.Clear()
+
+            font = self.GetFont()
+            font.SetPointSize(font.GetPointSize() + 4)
+            dc.SetFont(font)
+            dc.SetTextForeground(wx.Colour(100, 100, 100))
+            dc.DrawLabel('No picture\navailable', (0, 0) + self.max_bitmap_size, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+            dc.SelectObject(wx.NullBitmap)
+            del dc
+
+        res = bitmap.GetSize()
+        bitmap_hover = wx.EmptyBitmap(*res)
+        dc = wx.MemoryDC(bitmap_hover)
+        gc = wx.GraphicsContext.Create(dc)
+        gc.DrawBitmap(bitmap, 0, 0, *res)
+        gc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 150)))
+        gc.DrawRectangle(0, 0, *res)
+
+        size = min(res)
+        path = gc.CreatePath()
+        path.MoveToPoint(0.2 * size, 0.2 * size)
+        path.AddLineToPoint(0.2 * size, 0.8 * size)
+        path.AddLineToPoint(0.8 * size, 0.5 * size)
+        gc.PushState()
+        gc.Translate((res[0] - size) / 2, (res[1] - size) / 2)
+        gc.SetBrush(wx.Brush(wx.Colour(255, 255, 255, 150)))
+        gc.SetPen(wx.TRANSPARENT_PEN)
+        gc.DrawPath(path)
+
+        dc.SelectObject(wx.NullBitmap)
+        del dc
+
+        return (bitmap, bitmap_hover)
 
     def OnThumbnailClick(self, event):
         self.guiutility.library_manager.playTorrent(self.original_data)
