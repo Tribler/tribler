@@ -3,14 +3,12 @@ from struct import pack, unpack_from
 from random import choice, sample
 from math import ceil
 import logging
+import zlib
 
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.Core.Swift.SwiftDef import SwiftDef
-import zlib
-from Tribler.community.search.payload import TasteIntroPayload
 
 
 class SearchConversion(BinaryConversion):

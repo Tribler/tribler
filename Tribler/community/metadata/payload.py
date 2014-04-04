@@ -5,7 +5,7 @@ class MetadataPayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, infohash, roothash, data_list, prev_metadata_mid=None, prev_metadata_global_time=None):
+        def __init__(self, meta, infohash, roothash, data_list, prev_mid=None, prev_global_time=None):
             assert isinstance(infohash, str), u"infohash is a %s" % type(infohash)
             assert len(infohash) == 20, u"infohash has length %d" % len(infohash)
             if roothash:
@@ -17,9 +17,10 @@ class MetadataPayload(Payload):
                 assert isinstance(data, tuple), u"data is a %s" % type(data)
                 assert len(data) == 2, u"data has length %d" % len(data)
 
-            assert not prev_metadata_mid or isinstance(prev_metadata_mid, str), u"prev_metadata_mid is a %s" % type(prev_metadata_mid)
-            assert not prev_metadata_mid or len(prev_metadata_mid) == 20, u"prev_metadata_mid has length %d" % len(prev_metadata_mid)
-            assert not prev_metadata_global_time or isinstance(prev_metadata_global_time, (int, long)), u"prev_metadata_global_time is a %s" % type(prev_metadata_global_time)
+            assert not prev_mid or isinstance(prev_mid, str), u"prev_mid is a %s" % type(prev_mid)
+            assert not prev_mid or len(prev_mid) == 20, u"prev_mid has length %d" % len(prev_mid)
+            assert not prev_global_time or isinstance(prev_global_time, (int, long)), \
+                u"prev_global_time is a %s" % type(prev_global_time)
 
             super(MetadataPayload.Implementation, self).__init__(meta)
 
@@ -27,8 +28,8 @@ class MetadataPayload(Payload):
             self._roothash = roothash
             self._data_list = data_list
 
-            self._prev_metadata_mid = prev_metadata_mid
-            self._prev_metadata_global_time = prev_metadata_global_time
+            self._prev_mid = prev_mid
+            self._prev_global_time = prev_global_time
 
         @property
         def infohash(self):
@@ -43,9 +44,9 @@ class MetadataPayload(Payload):
             return self._data_list
 
         @property
-        def prev_metadata_mid(self):
-            return self._prev_metadata_mid
+        def prev_mid(self):
+            return self._prev_mid
 
         @property
-        def prev_metadata_global_time(self):
-            return self._prev_metadata_global_time
+        def prev_global_time(self):
+            return self._prev_global_time

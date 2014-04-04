@@ -39,18 +39,18 @@ class MetadataCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-# generated: Thu Apr  3 15:16:20 2014
+# generated: Fri Apr  4 21:27:04 2014
 # curve: NID_sect571r1
 # len: 571 bits ~ 144 bytes signature
-# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004006b8411ae64e9412f5be396ff83693fd05eceaaf4ea7b94849720067e2c2d0f32142a6622d486a63c0ad27a4fbce33b669d4be5dee8d7e2c56fea7908549df392631e10a0d673820173e2485374196db8f7e795a08e9fba32995b7f3ed4a8a8bdca1be2bfb103dbaf9a8f74a0684bdf25cfd96189bde92c3db59e382cfba4d7d9c8241e4256d5273c43c238cb2d90f3
-# pub-sha1 ab3453b2734a15c2e1685f3ddc734be506329244
+# pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040569d8061423ca91a3f35b16e34ff5d83af8ab595a5144b7f0e7888e6199b4959a120613122bb5248b22ae769dc8729c1e69f8170f2d05c035dd036ce07ab4c678f488cbeaceb0c506efb4e04a4be16968dfe520248328734204fc346b0c9c091089736aa4e531674fe595bba0b384d0887f9d38a019d57dc4818dce70492bc629e4a61f9cb39ee2711a874e30f06aba
+# pub-sha1 42b40842737abc5e9b006972753877d78d9aedb5
 # -----BEGIN PUBLIC KEY-----
-# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQAa4QRrmTpQS9b45b/g2k/0F7OqvTq
-# e5SElyAGfiwtDzIUKmYi1IamPArSek+84ztmnUvl3ujX4sVv6nkIVJ3zkmMeEKDW
-# c4IBc+JIU3QZbbj355Wgjp+6Mplbfz7UqKi9yhviv7ED26+aj3SgaEvfJc/ZYYm9
-# 6Sw9tZ44LPuk19nIJB5CVtUnPEPCOMstkPM=
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQFadgGFCPKkaPzWxbjT/XYOvirWVpR
+# RLfw54iOYZm0lZoSBhMSK7UkiyKudp3IcpweafgXDy0FwDXdA2zgerTGePSIy+rO
+# sMUG77TgSkvhaWjf5SAkgyhzQgT8NGsMnAkQiXNqpOUxZ0/llbugs4TQiH+dOKAZ
+# 1X3EgY3OcEkrxinkph+cs57icRqHTjDwaro=
 # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004006b8411ae64e9412f5be396ff83693fd05eceaaf4ea7b94849720067e2c2d0f32142a6622d486a63c0ad27a4fbce33b669d4be5dee8d7e2c56fea7908549df392631e10a0d673820173e2485374196db8f7e795a08e9fba32995b7f3ed4a8a8bdca1be2bfb103dbaf9a8f74a0684bdf25cfd96189bde92c3db59e382cfba4d7d9c8241e4256d5273c43c238cb2d90f3".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040569d8061423ca91a3f35b16e34ff5d83af8ab595a5144b7f0e7888e6199b4959a120613122bb5248b22ae769dc8729c1e69f8170f2d05c035dd036ce07ab4c678f488cbeaceb0c506efb4e04a4be16968dfe520248328734204fc346b0c9c091089736aa4e531674fe595bba0b384d0887f9d38a019d57dc4818dce70492bc629e4a61f9cb39ee2711a874e30f06aba".decode("HEX")
         master = dispersy.get_member(master_key)
         return [master]
 
@@ -85,21 +85,36 @@ class MetadataCommunity(Community):
 
 
     def create_metadata_message(self, infohash, roothash, data_list):
-        columns = ("previous_global_time", "previous_mid", "this_global_time", "this_mid")
+        columns = ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "message_id")
         result_list = self._metadata_db.getMetadataMessageList(
             infohash, roothash, columns)
 
-        prev_metadata_mid = None
-        prev_metadata_global_time = None
+        prev_mid = None
+        prev_global_time = None
+        merged_data_list = data_list
         if result_list:
             result_list.sort()
-            prev_metadata_global_time = result_list[-1][2]
-            prev_metadata_mid = result_list[-1][3]
+            prev_global_time = result_list[-1][2]
+            prev_mid = result_list[-1][3]
+
+            # merge data-list
+            message_id = result_list[-1][-1]
+            prev_data_list = self._metadata_db.getMetadataData(message_id)
+
+            merged_data_set = set(data_list)
+            # check duplicates
+            for data in prev_data_list:
+                if data in merged_data_set:
+                    self._logger.warn("Duplicate key in new and old data-list: %s", data[0])
+            # merge
+            merged_data_set.update(prev_data_list)
+            merged_data_list = list(merged_data_set)
 
         meta = self.get_meta_message(u"metadata")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
-                            payload=(infohash, roothash, data_list, prev_metadata_mid, prev_metadata_global_time))
+                            payload=(infohash, roothash, merged_data_list,
+                                prev_mid, prev_global_time))
         self.__log(-1, message)
         self._dispersy.store_update_forward([message], True, True, True)
 
@@ -131,10 +146,12 @@ class MetadataCommunity(Community):
                                 key, roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                             @forceDispersyThread
-                            def callback(_,message=message):
+                            def callback(_, message=message):
                                 self._dispersy.on_messages([message])
 
-                            th_handler.download_metadata(data_type, message.candidate, roothash, infohash, contenthash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            th_handler.download_metadata(data_type, message.candidate,
+                                roothash, infohash, contenthash,
+                                timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             do_continue = True
                             break
 
@@ -154,9 +171,9 @@ class MetadataCommunity(Community):
     def __log(self, count, message, info_str=None):
         prev_global_time = None
         prev_mid = None
-        if message.payload.prev_metadata_mid:
-            prev_global_time = message.payload.prev_metadata_global_time
-            prev_mid = binascii.hexlify(message.payload.prev_metadata_mid)[:7]
+        if message.payload.prev_mid:
+            prev_global_time = message.payload.prev_global_time
+            prev_mid = binascii.hexlify(message.payload.prev_mid)[:7]
         global_time = message.distribution.global_time
         mid = binascii.hexlify(message.authentication.member.mid)[:7]
         if message.payload.infohash:
@@ -227,10 +244,10 @@ class MetadataCommunity(Community):
                 ("previous_global_time", "previous_mid",
                  "this_global_time", "this_mid", "dispersy_id"))
 
-            if message.payload.prev_metadata_mid:
-                prev_metadata_mid = message.payload.prev_metadata_mid
-                prev_metadata_global_time = message.payload.prev_metadata_global_time
-                this_message = (prev_metadata_global_time, prev_metadata_mid,
+            if message.payload.prev_mid:
+                prev_mid = message.payload.prev_mid
+                prev_global_time = message.payload.prev_global_time
+                this_message = (prev_global_time, prev_mid,
                     message.distribution.global_time,
                     message.authentication.member.mid, None)
             else:
@@ -288,7 +305,7 @@ class MetadataCommunity(Community):
             message_id = self._metadata_db.addAndGetIDMetadataMessage(
                 dispersy_id, this_global_time, this_mid,
                 message.payload.infohash, message.payload.roothash,
-                message.payload.prev_metadata_mid, message.payload.prev_metadata_global_time)
+                message.payload.prev_mid, message.payload.prev_global_time)
 
             # new metadata data to insert
             for key, value in message.payload.data_list:
@@ -349,16 +366,15 @@ class MetadataDBStub(object):
 
 
     def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
-            infohash, roothash,
-            prev_metadata_mid=None, prev_metadata_global_time=None):
+            infohash, roothash, prev_mid=None, prev_global_time=None):
         data = {"message_id": self._auto_message_id,
                 "dispersy_id": dispersy_id,
                 "this_global_time": this_global_time,
                 "this_mid": this_mid,
                 "infohash": infohash,
                 "roothash": roothash,
-                "previous_mid": prev_metadata_mid,
-                "previous_global_time": prev_metadata_global_time}
+                "previous_mid": prev_mid,
+                "previous_global_time": prev_global_time}
         self._metadata_message_db_list.append(data)
 
         this_message_id = self._auto_message_id
@@ -382,3 +398,12 @@ class MetadataDBStub(object):
             if data["dispersy_id"] != dispersy_id:
                 new_metadata_message_db_list.append(data)
         self._metadata_message_db_list = new_metadata_message_db_list
+
+
+    def getMetadataData(self, message_id):
+        data_list = []
+        for msg_id, key, value in self._metadata_data_db_list:
+            if msg_id != message_id:
+                continue
+            data_list.append((key, value))
+        return data_list
