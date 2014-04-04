@@ -76,7 +76,7 @@ class Crypto(TunnelObserver):
             content = self.outgoing_packet_crypto(destination, circuit_id, message_type, content)
             return content
         except:
-            self._logger.exception("Cannot encrypt outgoing packet content")
+            self._logger.error("Cannot encrypt outgoing packet content")
             return None
 
     def handle_outgoing_packet_content(self, destination, circuit_id, message, message_type):
@@ -95,7 +95,7 @@ class Crypto(TunnelObserver):
                 message = self.encrypt_outgoing_packet_content[message_type](destination, circuit_id, message)
             return message
         except:
-            self._logger.exception("Cannot encrypt outgoing packet content")
+            self._logger.error("Cannot encrypt outgoing packet content")
             return None
 
     def handle_relay_packet(self, direction, sock_addr, circuit_id, data):
@@ -112,7 +112,7 @@ class Crypto(TunnelObserver):
             data = self.relay_packet_crypto(direction, sock_addr, circuit_id, data)
             return data
         except:
-            self._logger.exception("Cannot crypt relay packet")
+            self._logger.error("Cannot crypt relay packet")
             return None
 
 
@@ -429,7 +429,7 @@ class DefaultCrypto(Crypto):
             message.candidate_list = cand_dict
         except:
             reason = "Can't decrypt candidate list!"
-            self._logger.exception(reason)
+            self._logger.error(reason)
             self.proxy.remove_circuit(circuit_id, reason)
             return None
 
