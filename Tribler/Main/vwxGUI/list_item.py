@@ -959,9 +959,9 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
                 size = min(res)
                 path = gc.CreatePath()
-                path.MoveToPoint(0.1 * size, 0.1 * size)
-                path.AddLineToPoint(0.1 * size, 0.9 * size)
-                path.AddLineToPoint(0.9 * size, 0.5 * size)
+                path.MoveToPoint(0.15 * size, 0.15 * size)
+                path.AddLineToPoint(0.15 * size, 0.85 * size)
+                path.AddLineToPoint(0.85 * size, 0.5 * size)
                 gc.PushState()
                 gc.Translate((res[0] - size) / 2, (res[1] - size) / 2)
                 gc.SetBrush(wx.Brush(wx.Colour(255, 255, 255, 150)))

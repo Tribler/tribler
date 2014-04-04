@@ -94,7 +94,7 @@ class Home(wx.Panel):
 
         self.aw_panel = ArtworkPanel(self)
         self.aw_panel.SetMinSize((-1, 275))
-        self.aw_panel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
+        self.aw_panel.Show(self.guiutility.ReadGuiSetting('show_artwork', True))
         vSizer.Add(self.aw_panel, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
