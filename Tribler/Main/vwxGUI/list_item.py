@@ -938,23 +938,42 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         ListItem.AddComponents(self, leftSpacer, rightSpacer)
 
-        self.thumbnail = wx.StaticBitmap(self, -1)
-        self.AddEvents(self.thumbnail)
-
-        self.hSizer.Add(self.thumbnail, 1, wx.EXPAND | wx.ALL, 15)
-
         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.original_data.infohash))
         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
+
+        self.bitmap = None
+        self.bitmap_hover = None
 
         if thumb_files:
             bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
             res = limit_resolution(bmp.GetSize(), self.bitmap_size)
-            bmp = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
-            if bmp:
-                self.thumbnail.SetBitmap(bmp)
-        else:
-            bmp = wx.EmptyBitmap(*self.bitmap_size)
-            dc = wx.MemoryDC(bmp)
+            self.bitmap = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
+
+            if self.bitmap:
+                self.bitmap_hover = wx.EmptyBitmap(*res)
+                dc = wx.MemoryDC(self.bitmap_hover)
+                gc = wx.GraphicsContext.Create(dc)
+                gc.DrawBitmap(self.bitmap, 0, 0, *res)
+                gc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 150)))
+                gc.DrawRectangle(0, 0, *res)
+
+                size = min(res)
+                path = gc.CreatePath()
+                path.MoveToPoint(0.1 * size, 0.1 * size)
+                path.AddLineToPoint(0.1 * size, 0.9 * size)
+                path.AddLineToPoint(0.9 * size, 0.5 * size)
+                gc.PushState()
+                gc.Translate((res[0] - size) / 2, (res[1] - size) / 2)
+                gc.SetBrush(wx.Brush(wx.Colour(255, 255, 255, 150)))
+                gc.SetPen(wx.TRANSPARENT_PEN)
+                gc.DrawPath(path)
+
+                dc.SelectObject(wx.NullBitmap)
+                del dc
+
+        if not self.bitmap:
+            self.bitmap = wx.EmptyBitmap(*self.bitmap_size)
+            dc = wx.MemoryDC(self.bitmap)
             dc.SetBackground(wx.Brush(wx.Colour(230, 230, 230)))
             dc.Clear()
 
@@ -966,7 +985,10 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
             dc.SelectObject(wx.NullBitmap)
             del dc
 
-            self.thumbnail.SetBitmap(bmp)
+        self.thumbnail = wx.BitmapButton(self, -1, self.bitmap, style=wx.NO_BORDER)
+        self.thumbnail.SetBitmapHover(self.bitmap_hover)
+        self.hSizer.Add(self.thumbnail, 1, wx.EXPAND | wx.ALL, 15)
+        self.AddEvents(self.thumbnail)
 
         def ShortenText(statictext, text):
             for i in xrange(len(text), 0, -1):

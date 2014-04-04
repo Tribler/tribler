@@ -832,7 +832,7 @@ class TorrentManager:
 
         return True
 
-    def getThumbnailTorrents(self, limit=5):
+    def getThumbnailTorrents(self, limit=20):
         result = []
         for t in self.metadata_db.getThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
             t = Torrent(*(list(t) + [None]))

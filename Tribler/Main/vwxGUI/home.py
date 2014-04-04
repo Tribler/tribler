@@ -92,10 +92,10 @@ class Home(wx.Panel):
         vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
 
-        self.buzzpanel = ArtworkPanel(self)
-        self.buzzpanel.SetMinSize((-1, 260))
-        self.buzzpanel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
-        vSizer.Add(self.buzzpanel, 0, wx.EXPAND)
+        self.aw_panel = ArtworkPanel(self)
+        self.aw_panel.SetMinSize((-1, 275))
+        self.aw_panel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
+        vSizer.Add(self.aw_panel, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
         self.Layout()
@@ -107,13 +107,13 @@ class Home(wx.Panel):
     def OnRightClick(self, event):
         menu = wx.Menu()
         itemid = wx.NewId()
-        menu.AppendCheckItem(itemid, 'Show "what\'s hot"')
-        menu.Check(itemid, self.buzzpanel.IsShown())
+        menu.AppendCheckItem(itemid, 'Show recent videos')
+        menu.Check(itemid, self.aw_panel.IsShown())
 
         def toggleBuzz(event):
-            show = not self.buzzpanel.IsShown()
-            self.buzzpanel.Show(show)
-            self.guiutility.WriteGuiSetting("show_buzz", show)
+            show = not self.aw_panel.IsShown()
+            self.aw_panel.Show(show)
+            self.guiutility.WriteGuiSetting("show_artwork", show)
             self.Layout()
 
         menu.Bind(wx.EVT_MENU, toggleBuzz, id=itemid)
@@ -1221,8 +1221,9 @@ class ArtworkPanel(wx.Panel):
         self.OnExpand = lambda *args: None
         self.OnCollapse = lambda *args: None
         self.update_interval = 300
+        self.max_torrents = 20
 
-        self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=5)
+        self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=self.max_torrents, vertical_scroll=True)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(DetailHeader(self, "Start streaming immediately by clicking on one of items below"), 0, wx.EXPAND)
@@ -1231,17 +1232,23 @@ class ArtworkPanel(wx.Panel):
         self.SetSizer(vSizer)
         self.Layout()
 
-        startWorker(None, self.SetData, delay=3, workerType="guiTaskQueue")
+        startWorker(None, self.GetData, delay=3, workerType="guiTaskQueue")
 
-    def SetData(self):
+    def GetData(self):
         data = []
 
-        torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents()
+        torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(limit=self.max_torrents)
 
         for torrent in torrents:
             thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
             if os.path.isdir(thumb_path):
                 data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
 
-        wx.CallAfter(self.list.SetData, data)
+        self.SetData(data)
+
         startWorker(None, self.SetData, delay=self.update_interval, workerType="guiTaskQueue")
+
+    @forceWxThread
+    def SetData(self, data):
+        self.list.SetData(data)
+        self.list.SetupScrolling()

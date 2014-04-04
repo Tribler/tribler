@@ -304,7 +304,7 @@ class MetadataDBHandler(BasicDBHandler):
         result = self._db.fetchall(sql, (message_id,))
         return result
 
-    def getThumbnailTorrents(self, keys, limit=5):
+    def getThumbnailTorrents(self, keys, limit=20):
         sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs'" + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " ORDER BY this_global_time DESC LIMIT ?"
         results = self._db.fetchall(sql, (limit,))
         for key_index, key in enumerate(keys):
@@ -1815,8 +1815,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1],  # click position
+                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1], # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 
