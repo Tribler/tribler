@@ -987,6 +987,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         self.thumbnail = wx.BitmapButton(self, -1, self.bitmap, style=wx.NO_BORDER)
         self.thumbnail.SetBitmapHover(self.bitmap_hover)
+        self.thumbnail.Bind(wx.EVT_BUTTON, self.OnThumbnailClick)
         self.hSizer.Add(self.thumbnail, 1, wx.EXPAND | wx.ALL, 15)
         self.AddEvents(self.thumbnail)
 
@@ -1005,6 +1006,9 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
         self.vSizer.Add(name, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
 
         self.hSizer.Layout()
+
+    def OnThumbnailClick(self, event):
+        self.guiutility.library_manager.playTorrent(self.original_data)
 
 
 class ThumbnailListItem(ThumbnailListItemNoTorrent, TorrentListItem):

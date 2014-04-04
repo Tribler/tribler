@@ -1011,7 +1011,8 @@ class LibraryManager:
                     sdef = None
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=[selectedinfilename or torrent.videofiles[0]])
+                selectedFiles = [selectedinfilename] if selectedinfilename else None
+                self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles=selectedFiles)
 
             else:
                 self._logger.info(".TORRENT MISSING REQUESTING FROM PEERS")
