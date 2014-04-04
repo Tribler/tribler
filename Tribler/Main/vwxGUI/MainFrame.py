@@ -541,7 +541,10 @@ class MainFrame(wx.Frame):
                     if len(videofiles) == 1:
                         selectedFile = videofiles[0]
                     elif cdef.get_def_type() == "torrent" and wx.Thread_IsMain():
-                        selectedFile = self.guiUtility.SelectVideo(videofiles)
+                        if self.videoparentpanel:
+                            selectedFile = sorted(videofiles, key=lambda x: tdef.get_length(self, selectedfiles=[x]))[0]
+                        else:
+                            selectedFile = self.guiUtility.SelectVideo(videofiles)
 
                     if selectedFile:
                         # Swift requires swarmname to be part of the selectedfile

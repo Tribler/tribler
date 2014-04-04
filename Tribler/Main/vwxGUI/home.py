@@ -4,6 +4,7 @@ import sys
 import os
 import random
 import logging
+import binascii
 from time import strftime
 from collections import defaultdict
 from traceback import print_exc
@@ -24,6 +25,8 @@ from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, \
     FancyPanel, LinkStaticText, LinkText
+from Tribler.Main.vwxGUI.list_body import ListBody
+from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 
 
 class Home(wx.Panel):
@@ -89,10 +92,10 @@ class Home(wx.Panel):
         vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
 
-        self.buzzpanel = BuzzPanel(self)
-        self.buzzpanel.SetMinSize((-1, 180))
-        self.buzzpanel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
-        vSizer.Add(self.buzzpanel, 0, wx.EXPAND)
+        self.aw_panel = ArtworkPanel(self)
+        self.aw_panel.SetMinSize((-1, 275))
+        self.aw_panel.Show(self.guiutility.ReadGuiSetting('show_artwork', True))
+        vSizer.Add(self.aw_panel, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
         self.Layout()
@@ -104,13 +107,13 @@ class Home(wx.Panel):
     def OnRightClick(self, event):
         menu = wx.Menu()
         itemid = wx.NewId()
-        menu.AppendCheckItem(itemid, 'Show "what\'s hot"')
-        menu.Check(itemid, self.buzzpanel.IsShown())
+        menu.AppendCheckItem(itemid, 'Show recent videos')
+        menu.Check(itemid, self.aw_panel.IsShown())
 
         def toggleBuzz(event):
-            show = not self.buzzpanel.IsShown()
-            self.buzzpanel.Show(show)
-            self.guiutility.WriteGuiSetting("show_buzz", show)
+            show = not self.aw_panel.IsShown()
+            self.aw_panel.Show(show)
+            self.guiutility.WriteGuiSetting("show_artwork", show)
             self.Layout()
 
         menu.Bind(wx.EVT_MENU, toggleBuzz, id=itemid)
@@ -1204,3 +1207,48 @@ class BuzzPanel(wx.Panel):
 #                uelog.addEvent(message=repr((term, last_shown_buzz)))
 #            last_shown_buzz = self.last_shown_buzz
 #            self.guiserver.add_task(db_callback)
+
+
+class ArtworkPanel(wx.Panel):
+
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(wx.WHITE)
+        self.SetForegroundColour(parent.GetForegroundColour())
+
+        self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
+        self.OnExpand = lambda *args: None
+        self.OnCollapse = lambda *args: None
+        self.update_interval = 300
+        self.max_torrents = 20
+
+        self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=self.max_torrents, vertical_scroll=True)
+
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(DetailHeader(self, "Start streaming immediately by clicking on one of items below"), 0, wx.EXPAND)
+        vSizer.Add(self.list, 1, wx.EXPAND)
+
+        self.SetSizer(vSizer)
+        self.Layout()
+
+        startWorker(None, self.GetData, delay=3, workerType="guiTaskQueue")
+
+    def GetData(self):
+        data = []
+
+        torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(limit=self.max_torrents)
+
+        for torrent in torrents:
+            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
+            if os.path.isdir(thumb_path):
+                data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
+
+        self.SetData(data)
+
+        startWorker(None, self.SetData, delay=self.update_interval, workerType="guiTaskQueue")
+
+    @forceWxThread
+    def SetData(self, data):
+        self.list.SetData(data)
+        self.list.SetupScrolling()

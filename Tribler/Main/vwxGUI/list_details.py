@@ -2161,14 +2161,14 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Thaw()
 
     @forceWxThread
-    def SetTorrent(self, torrent, videofile=None):
+    def SetTorrent(self, torrent, filename=None, fileindex= -1):
         if self.torrent:
             self.library_manager.stopTorrent(self.torrent)
 
         files = [ft[0] for ft in torrent.files]
 
         self.torrent = torrent
-        self.fileindex = files.index(videofile) if videofile in files else -1
+        self.fileindex = files.index(filename) if filename in files else fileindex
 
         self.UpdateComponents()
 
@@ -2261,9 +2261,10 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     @forceWxThread
     def OnVideoStarted(self, subject, changeType, torrent_tuple):
         infohash, fileindex = torrent_tuple
+
         if not self.torrent or self.torrent.infohash != infohash:
             torrent = Torrent(0, infohash, 0, 0, '', '', 0, 0, 0, 0, 0, None)
-            self.torrentsearch_manager.loadTorrent(torrent, callback=self.SetTorrent)
+            self.torrentsearch_manager.loadTorrent(torrent, callback=lambda t, i=fileindex: self.SetTorrent(t, fileindex=i))
             return
 
         self.fileindex = fileindex
