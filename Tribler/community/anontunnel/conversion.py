@@ -127,11 +127,11 @@ class CustomProxyConversion():
         return data
 
     def __decode_extend(self, message_buffer, offset=0):
-        if len(message_buffer) < offset + 6:
+        if len(message_buffer) < offset + 20:
             raise ValueError(
                 "Cannot unpack extend_with, insufficient packet size")
-        extend_with = message_buffer[offset : offset + 6]
-        offset += 6
+        extend_with = message_buffer[offset : offset + 20]
+        offset += 20
 
         key = message_buffer[offset:]
 

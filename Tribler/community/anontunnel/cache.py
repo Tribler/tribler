@@ -166,9 +166,7 @@ class CandidateCache:
             self.ip_to_candidate[candidate.sock_addr] = candidate
             key_string = self.community.crypto.key_to_bin(key)
             self.candidate_to_key_string[candidate] = key_string
-            m = hashlib.sha256()
-            m.update(str(key_string))
-            hashed_key = m.digest()[0:6]
+            hashed_key = self.community.dispersy.crypto.key_to_hash(key)
             self.hashed_key_to_candidate[hashed_key] = candidate
             self.candidate_to_hashed_key[candidate] = hashed_key
 

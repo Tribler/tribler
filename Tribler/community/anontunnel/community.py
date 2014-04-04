@@ -205,10 +205,7 @@ class ProxyCommunity(Community):
         else:
             self.notifier = None
 
-        key_string = self.crypto.key_to_bin(self.my_member._ec)
-        m = hashlib.sha256()
-        m.update(str(key_string))
-        self.hashed_public_key = m.digest()[0:6]
+        self.hashed_public_key = self.dispersy.crypto.key_to_hash(self.my_member._ec)
 
         def __loop_discover():
             while True:
@@ -666,7 +663,7 @@ class ProxyCommunity(Community):
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             try:
                 if not circuit.extend_strategy.extend(candidate_list):
-                    raise ValueError("Unknown extend error")
+                    self._logger.warning("Couldn't extend")
 
             except ValueError:
                 self._logger.exception("Cannot extend due to exception:")
