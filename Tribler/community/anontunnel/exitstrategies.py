@@ -26,7 +26,7 @@ class DefaultExitStrategy(TunnelObserver):
             exit_socket = self.get_exit_socket(circuit_id, return_candidate)
             exit_socket.sendto(data, destination)
         except socket.error:
-            self._logger.exception("Dropping packets while EXITing data")
+            self._logger.error("Dropping packets while EXITing data")
 
     @staticmethod
     def create(proxy, raw_server, circuit_id, address):
