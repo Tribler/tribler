@@ -496,8 +496,7 @@ class ProxyCommunity(Community):
             circuit.unverified_hop.pub_key = self.candidate_cache.candidate_to_key[first_hop]
             circuit.unverified_hop.address = first_hop.sock_addr
 
-            self._logger.info(
-                'Circuit %d is to be created, wants %d hops sending to %s:%d',
+            self._logger.warning("Creating circuit %d of %d hops. Fist hop: %s:%d",
                 circuit_id, circuit.goal_hops,
                 first_hop.sock_addr[0],
                 first_hop.sock_addr[1]
