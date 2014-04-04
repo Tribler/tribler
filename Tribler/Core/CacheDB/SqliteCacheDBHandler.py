@@ -199,6 +199,9 @@ class MetadataDBHandler(BasicDBHandler):
             raise RuntimeError("MetadataDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, None)
+        self.category = Category.getInstance()
+        self.misc_db = MiscDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
 
     def getMetadataMessageList(self, infohash, roothash, columns):
         """
@@ -301,7 +304,17 @@ class MetadataDBHandler(BasicDBHandler):
         result = self._db.fetchall(sql, (message_id,))
         return result
 
-
+    def getThumbnailTorrents(self, keys, limit=5):
+        sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs'" + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " ORDER BY this_global_time DESC LIMIT ?"
+        results = self._db.fetchall(sql, (limit,))
+        for key_index, key in enumerate(keys):
+            if key.endswith('hash'):
+                for i in range(len(results)):
+                    result = list(results[i])
+                    if result[key_index]:
+                        result[key_index] = str2bin(result[key_index])
+                        results[i] = result
+        return results
 
 class PeerDBHandler(BasicDBHandler):
 

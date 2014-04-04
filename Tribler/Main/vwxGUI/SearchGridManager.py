@@ -33,7 +33,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, \
     TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS, CHANNEL_REQ_COLUMNS, \
     PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS, MODERATION_REQ_COLUMNS, \
-    MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS
+    MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS, TUMBNAILTORRENT_REQ_COLUMNS
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
@@ -487,7 +487,7 @@ class TorrentManager:
             if not torrent_filename:
                 # this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
-                    if self.downloadTorrentfileFromPeers(hit, lambda _,infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
+                    if self.downloadTorrentfileFromPeers(hit, lambda _, infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
                         self._logger.debug("Prefetch: attempting to download actual torrent %s", hit.name)
                         prefetch_counter[0] += 1
 
@@ -832,6 +832,14 @@ class TorrentManager:
 
         return True
 
+    def getThumbnailTorrents(self, limit=5):
+        result = []
+        for t in self.metadata_db.getThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
+            t = Torrent(*(list(t) + [None]))
+            t.misc_db = self.misc_db
+            t.torrent_db = self.torrent_db
+            result.append(t)
+        return result
 
 class LibraryManager:
     # Code to make this a singleton

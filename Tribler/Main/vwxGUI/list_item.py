@@ -902,8 +902,7 @@ class LibraryListItem(TorrentListItem):
     def OnDClick(self, event):
         pass
 
-
-class ThumbnailListItem(TorrentListItem, FancyPanel):
+class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED, list_selected_and_expanded=LIST_DARKBLUE):
         FancyPanel.__init__(self, parent, border=wx.RIGHT | wx.BOTTOM)
@@ -984,6 +983,15 @@ class ThumbnailListItem(TorrentListItem, FancyPanel):
         self.vSizer.Add(name, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
 
         self.hSizer.Layout()
+
+
+class ThumbnailListItem(ThumbnailListItemNoTorrent, TorrentListItem):
+
+    def __init__(self, *args, **kwargs):
+        ThumbnailListItemNoTorrent.__init__(self, *args, **kwargs)
+
+    def AddComponents(self, *args, **kwargs):
+        ThumbnailListItemNoTorrent.AddComponents(self, *args, **kwargs)
 
     def GetContextMenu(self):
         menu = TorrentListItem.GetContextMenu(self)
