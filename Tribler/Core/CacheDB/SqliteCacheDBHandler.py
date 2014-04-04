@@ -205,15 +205,8 @@ class MetadataDBHandler(BasicDBHandler):
         Gets a list of metadata messages with the given hash-type and
         hash-value.
         """
-        if infohash:
-            infohash_str = bin2str(infohash)
-        else:
-            infohash_str = None
-
-        if roothash:
-            roothash_str = bin2str(roothash)
-        else:
-            roothash_str = None
+        infohash_str = bin2str(infohash) if infohash else None
+        roothash_str = bin2str(roothash) if roothash else None
 
         column_str = ",".join(columns)
         sql = "SELECT %s FROM MetadataMessage WHERE infohash = ? OR roothash = ?" % column_str
@@ -244,35 +237,24 @@ class MetadataDBHandler(BasicDBHandler):
         return processed_result_list
 
     def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
-            infohash, roothash,
-            prev_metadata_mid=None, prev_metadata_global_time=None):
+            infohash, roothash, prev_mid=None, prev_global_time=None):
         """
         Adds a Metadata message and get its message ID.
         """
-        if this_mid:
-            this_mid_str = buffer(this_mid)
-        else:
-            this_mid_str = None
+        this_mid_str = buffer(this_mid) if this_mid else None
+        prev_mid_str = buffer(prev_mid) if prev_mid else None
 
-        if prev_metadata_mid:
-            prev_metadata_mid_str = buffer(prev_metadata_mid)
-        else:
-            prev_metadata_mid_str = None
+        infohash_str = bin2str(infohash) if infohash else None
+        roothash_str = bin2str(roothash) if roothash else None
 
-        if infohash:
-            infohash_str = bin2str(infohash)
-        else:
-            infohash_str = None
-
-        if roothash:
-            roothash_str = bin2str(roothash)
-        else:
-            roothash_str = None
-
-        sql = "INSERT INTO MetadataMessage(dispersy_id, this_global_time, this_mid, infohash, roothash, previous_mid, previous_global_time) VALUES(?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
+        sql = """INSERT INTO MetadataMessage(dispersy_id, this_global_time,
+                this_mid, infohash, roothash, previous_mid, previous_global_time)
+            VALUES(?, ?, ?, ?, ?, ?, ?);
+            SELECT last_insert_rowid();
+        """
         values = (dispersy_id, this_global_time, this_mid_str,
             infohash_str, roothash_str,
-            prev_metadata_mid_str, prev_metadata_global_time)
+            prev_mid_str, prev_global_time)
 
         result = self._db.fetchone(sql, values)
         return result

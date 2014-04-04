@@ -108,4 +108,4 @@ class MetadataConversion(BinaryConversion):
         if (not prev_mid and prev_global_time):
             raise DropPacket("Incomplete previous pointer (global-time and NO mid)")
 
-        return offset, placeholder.meta.payload.implement(infohash, roothash, data_list, prev_metadata_mid, prev_metadata_global_time)
+        return offset, placeholder.meta.payload.implement(infohash, roothash, data_list, prev_mid, prev_global_time)

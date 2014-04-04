@@ -89,13 +89,13 @@ class MetadataCommunity(Community):
         result_list = self._metadata_db.getMetadataMessageList(
             infohash, roothash, columns)
 
-        prev_metadata_mid = None
-        prev_metadata_global_time = None
+        prev_mid = None
+        prev_global_time = None
         merged_data_list = data_list
         if result_list:
             result_list.sort()
-            prev_metadata_global_time = result_list[-1][2]
-            prev_metadata_mid = result_list[-1][3]
+            prev_global_time = result_list[-1][2]
+            prev_mid = result_list[-1][3]
 
             # merge data-list
             message_id = result_list[-1][-1]
@@ -114,7 +114,7 @@ class MetadataCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
                             payload=(infohash, roothash, merged_data_list,
-                                prev_metadata_mid, prev_metadata_global_time))
+                                prev_mid, prev_global_time))
         self.__log(-1, message)
         self._dispersy.store_update_forward([message], True, True, True)
 
@@ -146,10 +146,12 @@ class MetadataCommunity(Community):
                                 key, roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                             @forceDispersyThread
-                            def callback(_,message=message):
+                            def callback(_, message=message):
                                 self._dispersy.on_messages([message])
 
-                            th_handler.download_metadata(data_type, message.candidate, roothash, infohash, contenthash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            th_handler.download_metadata(data_type, message.candidate,
+                                roothash, infohash, contenthash,
+                                timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             do_continue = True
                             break
 
@@ -169,9 +171,9 @@ class MetadataCommunity(Community):
     def __log(self, count, message, info_str=None):
         prev_global_time = None
         prev_mid = None
-        if message.payload.prev_metadata_mid:
-            prev_global_time = message.payload.prev_metadata_global_time
-            prev_mid = binascii.hexlify(message.payload.prev_metadata_mid)[:7]
+        if message.payload.prev_mid:
+            prev_global_time = message.payload.prev_global_time
+            prev_mid = binascii.hexlify(message.payload.prev_mid)[:7]
         global_time = message.distribution.global_time
         mid = binascii.hexlify(message.authentication.member.mid)[:7]
         if message.payload.infohash:
@@ -242,10 +244,10 @@ class MetadataCommunity(Community):
                 ("previous_global_time", "previous_mid",
                  "this_global_time", "this_mid", "dispersy_id"))
 
-            if message.payload.prev_metadata_mid:
-                prev_metadata_mid = message.payload.prev_metadata_mid
-                prev_metadata_global_time = message.payload.prev_metadata_global_time
-                this_message = (prev_metadata_global_time, prev_metadata_mid,
+            if message.payload.prev_mid:
+                prev_mid = message.payload.prev_mid
+                prev_global_time = message.payload.prev_global_time
+                this_message = (prev_global_time, prev_mid,
                     message.distribution.global_time,
                     message.authentication.member.mid, None)
             else:
@@ -303,7 +305,7 @@ class MetadataCommunity(Community):
             message_id = self._metadata_db.addAndGetIDMetadataMessage(
                 dispersy_id, this_global_time, this_mid,
                 message.payload.infohash, message.payload.roothash,
-                message.payload.prev_metadata_mid, message.payload.prev_metadata_global_time)
+                message.payload.prev_mid, message.payload.prev_global_time)
 
             # new metadata data to insert
             for key, value in message.payload.data_list:
@@ -364,16 +366,15 @@ class MetadataDBStub(object):
 
 
     def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
-            infohash, roothash,
-            prev_metadata_mid=None, prev_metadata_global_time=None):
+            infohash, roothash, prev_mid=None, prev_global_time=None):
         data = {"message_id": self._auto_message_id,
                 "dispersy_id": dispersy_id,
                 "this_global_time": this_global_time,
                 "this_mid": this_mid,
                 "infohash": infohash,
                 "roothash": roothash,
-                "previous_mid": prev_metadata_mid,
-                "previous_global_time": prev_metadata_global_time}
+                "previous_mid": prev_mid,
+                "previous_global_time": prev_global_time}
         self._metadata_message_db_list.append(data)
 
         this_message_id = self._auto_message_id
