@@ -205,7 +205,7 @@ class ProxyCommunity(Community):
         else:
             self.notifier = None
 
-        self.hashed_public_key = self.dispersy.crypto.key_to_hash(self.my_member._ec)
+        self.hashed_public_key = self.my_member.mid
 
         def __loop_discover():
             while True:
