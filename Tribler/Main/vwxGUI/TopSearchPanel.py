@@ -417,27 +417,13 @@ class TopSearchPanel(FancyPanel):
         play_executed = False
 
         if self.guiutility.frame.videoparentpanel:
-
             if torrent.isPlayable():
-                self.guiutility.ShowPlayer()
-                self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent, torrent.largestvideofile)
-                self.guiutility.library_manager.playTorrent(torrent, torrent.largestvideofile)
+                self.guiutility.library_manager.playTorrent(torrent.infohash)
                 play_executed = True
 
         else:
-            # If we are using an external videoplayer, ask which file the users wants to play.
-            playable_files = torrent.videofiles
-
-            if len(playable_files) > 1:  # Create a popup
-                selected_file = self.guiutility.SelectVideo(playable_files, torrent.largestvideofile)
-
-                if selected_file:
-                    self.guiutility.library_manager.playTorrent(torrent, selected_file)
-                    play_executed = True
-
-            elif len(playable_files) == 1:
-                self.guiutility.library_manager.playTorrent(torrent)
-                play_executed = True
+            self.guiutility.library_manager.playTorrent(torrent.infohash)
+            play_executed = True
 
         if play_executed:
             if not self.guiutility.frame.searchlist.IsShownOnScreen():
