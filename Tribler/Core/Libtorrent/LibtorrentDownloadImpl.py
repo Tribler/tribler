@@ -3,14 +3,13 @@
 import os
 import sys
 import time
+import logging
 import libtorrent as lt
 
 from binascii import hexlify
 from traceback import print_exc
-import logging
 
 from Tribler.Core import NoDispersyRLock
-
 from Tribler.Core.simpledefs import DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, \
     DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, \
     UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR, DLMODE_NORMAL, \
@@ -319,9 +318,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 # If we only needed to perform checking, pause download after it is complete
                 self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
-
-            if self.get_mode() == DLMODE_VOD:
-                self.set_vod_mode(True)
 
             self.handle.resolve_countries(True)
 
