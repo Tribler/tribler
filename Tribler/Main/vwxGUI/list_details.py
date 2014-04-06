@@ -695,7 +695,7 @@ class TorrentDetails(AbstractDetails):
         if selected != -1:
             selected_file = self.filesList.GetItemText(selected)
             if selected_file in playable_files:
-                self.guiutility.library_manager.playTorrent(self.torrent, selected_file)
+                self.guiutility.library_manager.playTorrent(self.torrent.infohash, selected_file)
 
             elif self.torrent.progress == 1:  # not playable, but are we complete?
                 file = self._GetPath(selected_file)
