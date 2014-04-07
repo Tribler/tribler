@@ -2094,6 +2094,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.tdef = None
         self.fileindex = -1
+        self.collecting = False
 
         self.close_icon = GuiImageManager.getInstance().getImage(u"close.png")
         self.fg_colour = self.GetForegroundColour()
@@ -2148,7 +2149,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Freeze()
         self.vSizer.Clear(deleteWindows=True)
         self.links = []
-        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+        if not self.collecting:
             self.AddLinks()
         else:
             text = wx.StaticText(self, -1, "Fetching torrent...")
@@ -2165,12 +2166,19 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
     @forceWxThread
     def SetTorrentDef(self, tdef, fileindex= -1):
-        if self.tdef:
-            self.library_manager.stopTorrent(self.tdef.get_id())
+        if self.tdef != tdef and self.fileindex != fileindex:
+            self.tdef = tdef
+            self.fileindex = fileindex
+            self.collecting = False
+            self.UpdateComponents()
 
-        self.tdef = tdef
-        self.fileindex = fileindex
-        self.UpdateComponents()
+    @forceWxThread
+    def SetCollecting(self):
+        if not self.collecting:
+            self.tdef = None
+            self.fileindex = -1
+            self.collecting = True
+            self.UpdateComponents()
 
     def RemoveFileindex(self, fileindex):
         for index, link in reversed(list(enumerate(self.links))):
