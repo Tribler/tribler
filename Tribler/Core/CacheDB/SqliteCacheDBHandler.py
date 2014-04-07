@@ -288,7 +288,7 @@ class MetadataDBHandler(BasicDBHandler):
         return result
 
     def getThumbnailTorrents(self, keys, limit=20):
-        sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs'" + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " ORDER BY this_global_time DESC LIMIT ?"
+        sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs' AND Torrent.name <> '' AND Torrent.name IS NOT NULL " + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " ORDER BY this_global_time DESC LIMIT ?"
         results = self._db.fetchall(sql, (limit,))
         for key_index, key in enumerate(keys):
             if key.endswith('hash'):
