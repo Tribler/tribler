@@ -354,7 +354,7 @@ class MainFrame(wx.Frame):
         nextId = wx.NewId()
         prevId = wx.NewId()
         dispId = wx.NewId()
-        NEW_DEBUG_FRAME_ID = wx.NewId()
+        DISPERSY_DEBUG_FRAME_ID = wx.NewId()
         self.Bind(wx.EVT_MENU, self.OnFind, id=findId)
         self.Bind(wx.EVT_MENU, lambda event: self.Close(), id=quitId)
         self.Bind(wx.EVT_MENU, self.OnNext, id=nextId)
@@ -366,7 +366,7 @@ class MainFrame(wx.Frame):
         accelerators.append((wx.ACCEL_CTRL, ord('d'), dispId))
         accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
         accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
-        accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_ALT, ord('d'), NEW_DEBUG_FRAME_ID))
+        accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_ALT, ord('d'), DISPERSY_DEBUG_FRAME_ID))
 
         if sys.platform == 'linux2':
             accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
@@ -393,8 +393,10 @@ class MainFrame(wx.Frame):
 
     def OnOpenDebugFrame(self, event=None):
         from Tribler.Main.vwxGUI.DispersyDebugFrame import DispersyDebugFrame
-        frame = DispersyDebugFrame(self, -1, self.utility.session.get_dispersy_instance())
-        frame.Show()
+        if not wx.FindWindowByName("Dispersy Debug Frame"):
+            frame = DispersyDebugFrame(self, -1, self.utility.session.get_dispersy_instance())
+            frame.Show()
+        event.Skip()
 
     def startCMDLineTorrent(self):
         if self.params[0] != "" and not self.params[0].startswith("--"):
