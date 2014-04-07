@@ -318,6 +318,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 # If we only needed to perform checking, pause download after it is complete
                 self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
 
+            if self.get_mode() == DLMODE_VOD:
+                self.set_vod_mode(True)
+
             self.handle.resolve_countries(True)
 
         else:
