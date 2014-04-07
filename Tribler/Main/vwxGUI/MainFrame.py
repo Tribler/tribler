@@ -393,10 +393,11 @@ class MainFrame(wx.Frame):
 
     def OnOpenDebugFrame(self, event=None):
         from Tribler.Main.vwxGUI.DispersyDebugFrame import DispersyDebugFrame
-        if not wx.FindWindowByName("Dispersy Debug Frame"):
+        if not wx.FindWindowByName("DispersyDebugFrame"):
             frame = DispersyDebugFrame(self, -1, self.utility.session.get_dispersy_instance())
             frame.Show()
-        event.Skip()
+        if event:
+            event.Skip()
 
     def startCMDLineTorrent(self):
         if self.params[0] != "" and not self.params[0].startswith("--"):

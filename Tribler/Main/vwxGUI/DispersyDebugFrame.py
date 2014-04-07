@@ -663,7 +663,7 @@ class DispersyDebugFrame(wx.Frame):
 
     def __init__(self, parent, id, dispersy):
         super(DispersyDebugFrame, self).__init__(parent, id,
-            "Dispersy Debug Frame", size=(1280, 720), name="Dispersy Debug Frame")
+            "Dispersy Debug Frame", size=(1280, 720), name="DispersyDebugFrame")
         self.__dispersy = dispersy
 
         self.__dispersy_detail_part = DispersyDetailPart(self, -1, dispersy)
