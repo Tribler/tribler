@@ -326,9 +326,16 @@ class TorrentDetails(AbstractDetails):
         self.detailsSizer.Add(tSizer, 1, wx.EXPAND)
         self.thumbnails.Show(False)
 
-        self.upload_thumbs_btn = wx.Button(self.detailsTab, -1, label=u"Upload thumbnails")
+        self.no_thumb_bitmap = wx.StaticBitmap(self.detailsTab, -1)
+        bitmap = GuiImageManager.getInstance().drawBitmap("no-thumbnail",
+            (125, 100), self.no_thumb_bitmap.GetFont())
+        self.no_thumb_bitmap.SetBitmap(bitmap)
+        self.upload_thumbs_btn = wx.Button(self.detailsTab, -1, label=u"Upload thumbnail")
         self.upload_thumbs_btn.SetMaxSize((-1, 30))
-        tSizer.Add(self.upload_thumbs_btn, 0, wx.EXPAND)
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.Add(self.no_thumb_bitmap, 1, wx.EXPAND)
+        vsizer.Add(self.upload_thumbs_btn, 0, wx.EXPAND)
+        tSizer.Add(vsizer, 0, wx.EXPAND)
         self.upload_thumbs_btn.Bind(wx.EVT_BUTTON, self.OnUploadThumbsButtonClick)
         self.upload_thumbs_btn.Show(False)
 
@@ -530,6 +537,7 @@ class TorrentDetails(AbstractDetails):
         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
         show_thumbnails = bool(thumb_files)
         self.thumbnails.Show(show_thumbnails)
+        self.no_thumb_bitmap.Show(not show_thumbnails)
         self.upload_thumbs_btn.Show(not show_thumbnails)
         if show_thumbnails:
             bmps = [wx.Bitmap(thumb, wx.BITMAP_TYPE_ANY) for thumb in thumb_files[:4]]
