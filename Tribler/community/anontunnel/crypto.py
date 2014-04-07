@@ -211,9 +211,6 @@ class DefaultCrypto(Crypto):
         self._logger = logging.getLogger(__name__)
         self._received_secrets = {}
         self.session_keys = {}
-        self.relay_packet_crypto = self._crypto_relay_packet
-        self.incoming_packet_crypto = self._crypto_incoming_packet
-        self.outgoing_packet_crypto = self._crypto_outgoing_packet
         self.encrypt_outgoing_packet_content[MESSAGE_CREATE] = self._encrypt_create_content
         self.encrypt_outgoing_packet_content[MESSAGE_CREATED] = self._encrypt_created_content
         self.encrypt_outgoing_packet_content[MESSAGE_EXTEND] = self._encrypt_extend_content
@@ -439,7 +436,7 @@ class DefaultCrypto(Crypto):
 
         return message
 
-    def _crypto_outgoing_packet(self, candidate, circuit_id,
+    def outgoing_packet_crypto(self, candidate, circuit_id,
                                 message_type, content):
         """
         Apply crypto to outgoing messages. The current protocol handles 3
@@ -486,7 +483,7 @@ class DefaultCrypto(Crypto):
 
         return content
 
-    def _crypto_relay_packet(self, direction, sock_addr, circuit_id, data):
+    def relay_packet_crypto(self, direction, sock_addr, circuit_id, data):
         """
         Crypto RELAY messages. Two distinct cases are considered: relaying to
         the ENDPOINT and relaying back to the ORIGINATOR.
@@ -524,7 +521,7 @@ class DefaultCrypto(Crypto):
 
         return data
 
-    def _crypto_incoming_packet(self, candidate, circuit_id, data):
+    def incoming_packet_crypto(self, candidate, circuit_id, data):
         """
         Decrypt incoming packets. Three cases are considered. The case that
         we are the ENDPOINT of the circuit, the case that we are the ORIGINATOR
