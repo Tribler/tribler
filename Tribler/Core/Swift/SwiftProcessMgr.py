@@ -28,7 +28,7 @@ class SwiftProcessMgr:
         self.done = False
 
         self.sps = defaultdict(list)
-        """ :type : dict[bool, list[SwiftProcess]] """
+        """ :type : dict[(String, int), list[SwiftProcess]] """
 
     def get_or_create_sp(self, workdir, zerostatedir, listenport, httpgwport, cmdgwport, socks5):
         """ Download needs a process """
