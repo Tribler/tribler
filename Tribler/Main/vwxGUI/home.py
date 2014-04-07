@@ -1224,6 +1224,7 @@ class ArtworkPanel(wx.Panel):
         self.max_torrents = 20
 
         self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=self.max_torrents, vertical_scroll=True)
+        self.list.SetBackgroundColour(self.GetBackgroundColour())
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(DetailHeader(self, "Start streaming immediately by clicking on one of items below"), 0, wx.EXPAND)

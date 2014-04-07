@@ -527,8 +527,8 @@ class MainFrame(wx.Frame):
                 else:
                     videofiles = []
 
-                # disable vodmode if no videofiles
-                if vodmode and len(videofiles) == 0:
+                # disable vodmode if no videofiles, unless we still need to collect the torrent
+                if vodmode and len(videofiles) == 0 and (not tdef or not isinstance(tdef, TorrentDefNoMetainfo)):
                     vodmode = False
 
                 vodmode = vodmode or cdef.get_live()
@@ -536,28 +536,8 @@ class MainFrame(wx.Frame):
                 selectedFile = None
                 if vodmode:
                     self._logger.info('MainFrame: startDownload: Starting in VOD mode')
-                    videoplayer = VideoPlayer.getInstance()
-
-                    if len(videofiles) == 1:
-                        selectedFile = videofiles[0]
-                    elif cdef.get_def_type() == "torrent" and wx.Thread_IsMain():
-                        if self.videoparentpanel:
-                            selectedFile = sorted(videofiles, key=lambda x: tdef.get_length(self, selectedfiles=[x]))[0]
-                        else:
-                            selectedFile = self.guiUtility.SelectVideo(videofiles)
-
-                    if selectedFile:
-                        # Swift requires swarmname to be part of the selectedfile
-                        # selectedFile = tdef.get_name_as_unicode() + "/" + selectedFile if sdef and tdef else selectedFile
-                        dscfg.set_selected_files([selectedFile])
-                        result = self.utility.session.start_download(cdef, dscfg)
-
-                        files = cdef.get_files() if cdef.get_def_type() == 'torrent' else []
-                        fileindex = files.index(selectedFile) if selectedFile in files else None
-                        videoplayer.play(result, fileindex)
-
-                        if self.videoparentpanel:
-                            self.actlist.expandedPanel_videoplayer.OnVideoStarted(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (cdef.get_id(), fileindex))
+                    result = self.utility.session.start_download(cdef, dscfg)
+                    self.guiUtility.library_manager.playTorrent(cdef.get_id(), videofiles[0] if len(videofiles) == 1 else None)
 
                 else:
                     if selectedFiles:

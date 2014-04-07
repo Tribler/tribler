@@ -3,14 +3,13 @@
 import os
 import sys
 import time
+import logging
 import libtorrent as lt
 
 from binascii import hexlify
 from traceback import print_exc
-import logging
 
 from Tribler.Core import NoDispersyRLock
-
 from Tribler.Core.simpledefs import DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, \
     DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, \
     UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR, DLMODE_NORMAL, \
@@ -19,7 +18,6 @@ from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
 from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.Notifier import Notifier
@@ -902,46 +900,21 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             else:
                 return self.dlruntimeconfig['max_desired_download_rate']
 
+    @checkHandleAndSynchronize()
     def get_dest_files(self, exts=None):
         """
         You can give a list of extensions to return. If None: return all dest_files
         @return list of (torrent,disk) filename tuples.
         """
 
-        def get_ext(filename):
-            _, ext = os.path.splitext(filename)
-            if ext != '' and ext[0] == '.':
-                ext = ext[1:]
-            return ext
-
-        with self.dllock:
-            f2dlist = []
-            metainfo = self.tdef.get_metainfo()
-            if metainfo:
-                if 'files' not in metainfo['info']:
-                    # single-file torrent
-                    diskfn = self.get_content_dest()
-                    _, filename = os.path.split(diskfn)
-                    f2dtuple = (filename, diskfn)
-                    ext = get_ext(diskfn)
-                    if exts is None or ext in exts:
-                        f2dlist.append(f2dtuple)
-                else:
-                    # multi-file torrent
-                    if len(self.get_selected_files()) > 0:
-                        fnlist = self.get_selected_files()
-                    else:
-                        fnlist = self.tdef.get_files(exts=exts)
-
-                    for filename in fnlist:
-                        filerec = maketorrent.get_torrentfilerec_from_metainfo(filename, metainfo)
-                        savepath = maketorrent.torrentfilerec2savefilename(filerec)
-                        diskfn = maketorrent.savefilenames2finaldest(self.get_content_dest(), savepath)
-                        ext = get_ext(diskfn)
-                        if exts is None or ext in exts:
-                            f2dtuple = (filename, diskfn)
-                            f2dlist.append(f2dtuple)
-            return f2dlist
+        dest_files = []
+        for index, file_entry in enumerate(self.handle.get_torrent_info().files()):
+            if self.handle.file_priority(index) > 0:
+                filename = file_entry.path
+                ext = os.path.splitext(filename)[1].lstrip('.')
+                if exts is None or ext in exts:
+                    dest_files.append((filename, os.path.join(self.get_dest_dir(), filename)))
+        return dest_files
 
     def checkpoint(self):
         """ Called by any thread """

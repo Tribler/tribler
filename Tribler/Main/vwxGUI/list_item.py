@@ -1003,7 +1003,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
         return (bitmap, bitmap_hover)
 
     def OnThumbnailClick(self, event):
-        self.guiutility.library_manager.playTorrent(self.original_data)
+        self.guiutility.library_manager.playTorrent(self.original_data.infohash)
 
 
 class ThumbnailListItem(ThumbnailListItemNoTorrent, TorrentListItem):
