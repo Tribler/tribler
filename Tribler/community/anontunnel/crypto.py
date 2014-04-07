@@ -192,9 +192,9 @@ class DefaultCrypto(Crypto):
         Generates a new Diffie Hellman g^x. Note the mpz lib used for Windows
         @return: tuple of x and g^x
         """
-        dh_secret = rand(DIFFIE_HELLMAN_MODULUS_SIZE)
+        dh_secret = rand("next", DIFFIE_HELLMAN_MODULUS_SIZE)
         while dh_secret >= DIFFIE_HELLMAN_MODULUS or dh_secret < 2:
-              dh_secret = rand(DIFFIE_HELLMAN_MODULUS_SIZE)
+              dh_secret = rand("next", DIFFIE_HELLMAN_MODULUS_SIZE)
 
 
         a = mpz(DIFFIE_HELLMAN_GENERATOR)
