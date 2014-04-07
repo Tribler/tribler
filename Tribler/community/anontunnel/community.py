@@ -3,7 +3,6 @@ AnonTunnel community module
 """
 
 # Python imports
-import hashlib
 import threading
 import random
 import time
@@ -13,16 +12,14 @@ from collections import defaultdict
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache, CandidateCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
-from Tribler.community.anontunnel.test import LibtorrentTest
-from Tribler.community.channel.community import forceAndReturnDispersyThread, register_callback
+from Tribler.community.anontunnel.tests.test import LibtorrentTest
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.candidate import Candidate, WalkCandidate, \
-    BootstrapCandidate
+from Tribler.dispersy.candidate import Candidate, WalkCandidate
 from Tribler.dispersy.community import Community
 
 # AnonTunnel imports
