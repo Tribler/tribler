@@ -1006,9 +1006,15 @@ class LibraryManager:
             wait_state = [DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK]
             if download.get_status() in wait_state:
                 def wait_until_collected(ds):
-                    if ds.get_status() in wait_state:
-                        self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetCollecting()
+                    # Try to kill callbacks from previous calls
+                    if [infohash, selectedinfilename] != self.last_vod_torrent:
+                        return (0, False)
+                    # Wait until we know for sure that the download has metadata
+                    elif ds.get_status() in wait_state:
+                        if ds.get_status() == DLSTATUS_METADATA:
+                            self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetCollecting()
                         return (1.0, False)
+                    # Play the download
                     self._playDownload(infohash, selectedinfilename)
                     return (0, False)
                 download.set_state_callback(wait_until_collected)
@@ -1042,8 +1048,8 @@ class LibraryManager:
 
             if not self.guiUtility.frame.videoparentpanel:
                 selectedinfilename = self.guiUtility.SelectVideo(videofiles, selectedinfilename)
-                if not selectedinfilename:
-                    return
+            if not selectedinfilename:
+                return
 
         fileindex = tdef.get_files().index(selectedinfilename)
         videoplayer = self._get_videoplayer()
@@ -1057,6 +1063,7 @@ class LibraryManager:
         if self.guiUtility.frame.videoframe:
             self.guiUtility.frame.videoframe.recreate_vlc_window()
             self.guiUtility.frame.videoframe.get_videopanel().Stop()
+            self.guiUtility.frame.actlist.expandedPanel_videoplayer.Reset()
         videoplayer = self._get_videoplayer()
         videoplayer.set_vod_download(None)
 

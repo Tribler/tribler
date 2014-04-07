@@ -527,8 +527,8 @@ class MainFrame(wx.Frame):
                 else:
                     videofiles = []
 
-                # disable vodmode if no videofiles
-                if vodmode and len(videofiles) == 0:
+                # disable vodmode if no videofiles, unless we still need to collect the torrent
+                if vodmode and len(videofiles) == 0 and (not tdef or not isinstance(tdef, TorrentDefNoMetainfo)):
                     vodmode = False
 
                 vodmode = vodmode or cdef.get_live()

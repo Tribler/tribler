@@ -2220,6 +2220,16 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             self.collecting = True
             self.UpdateComponents()
 
+    @forceWxThread
+    def Reset(self):
+        self.tdef = None
+        self.fileindex = -1
+        self.collecting = False
+        self.links = []
+        self.vSizer.Clear(deleteWindows=True)
+        self.Layout()
+        self.OnChange()
+
     def RemoveFileindex(self, fileindex):
         for index, link in reversed(list(enumerate(self.links))):
             if link.fileindex == fileindex:
@@ -2253,7 +2263,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Freeze()
 
         max_height = self.guiutility.frame.actlist.GetSize().y - self.GetParent().GetPosition()[1] * 1.25 - 4
-        virtual_height = sum([link.text.GetSize()[1] for link in self.links]) if self.links else (30 if self.tdef and isinstance(self.tdef, TorrentDefNoMetainfo) else 0)
+        virtual_height = sum([link.text.GetSize()[1] for link in self.links]) if self.links else (30 if self.collecting else 0)
         best_height = min(max_height, virtual_height)
         self.SetMinSize((-1, best_height))
         self.GetParent().parent_list.Layout()
