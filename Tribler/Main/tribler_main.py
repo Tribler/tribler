@@ -491,13 +491,13 @@ class ABCApp():
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
             # their version before enabling it again.
-             if swift_process:
+            if swift_process:
                  dispersy.define_auto_load(BarterCommunity,
                                            (swift_process,),
                                            load=True)
 
-            dispersy.define_auto_load(ChannelCommunity, load=True)
-            dispersy.define_auto_load(PreviewChannelCommunity)
+            #dispersy.define_auto_load(ChannelCommunity, load=True)
+            #dispersy.define_auto_load(PreviewChannelCommunity)
 
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))
