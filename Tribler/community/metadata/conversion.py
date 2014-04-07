@@ -94,6 +94,8 @@ class MetadataConversion(BinaryConversion):
                 raise DropPacket("Invalid 'data' type")
             elif len(data) != 2:
                 raise DropPacket("Invalid 'data' value")
+            elif len(data[1]) > 1024:
+                raise DropPacket("'data' value too big (> 1024 bytes)")
 
         prev_mid = dic.get("prev-mid", None)
         if prev_mid and not (isinstance(prev_mid, str) and len(prev_mid) == 20):
