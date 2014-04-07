@@ -202,8 +202,6 @@ class ProxyCommunity(Community):
         else:
             self.notifier = None
 
-        self.hashed_public_key = self.my_member.mid
-
         def __loop_discover():
             while True:
                 try:
@@ -649,8 +647,8 @@ class ProxyCommunity(Community):
         circuit.add_hop(circuit.unverified_hop)
         circuit.unverified_hop = None
 
-        if self.hashed_public_key in candidate_list:
-            del candidate_list[self.hashed_public_key]
+        if self.my_member.mid in candidate_list:
+            del candidate_list[self.my_member.mid]
 
         for hop in circuit.hops:
             if hop.hashed_public_key in candidate_list:
