@@ -836,7 +836,7 @@ class TriblerLaunchMany(Thread):
 
         self._logger.debug("tlm: network_vod_event_callback: event %s, params %s", event, params)
 
-        # Call Session threadpool to call user's callback
+        # Call Sessioman threadpool to call user's callback
         try:
             videoinfo['usercallback'](event, params)
         except:
