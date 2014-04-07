@@ -78,7 +78,11 @@ class TorrentStateManager:
                 continue
             if not (filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png")):
                 continue
+            if os.path.getsize(filepath) < 1024:
+                continue
             thumb_filenames.append(filepath)
+        if not thumb_filenames:
+            return
 
         # Calculate sha1 of the thumbnails.
         contenthash = hashlib.sha1()
@@ -127,6 +131,15 @@ class TorrentStateManager:
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
 
+        # skip if we already have a video-info
+        from Tribler.Core.CacheDB.SqliteCacheDBHandler import MetadataDBHandler
+        metadata_db_handler = MetadataDBHandler.getInstance()
+        result_list = metadata_db_handler.getMetdataDateByInfohash(torrent.infohash)
+        if result_list:
+            for key, _ in result_list:
+                if key == 'video-info':
+                    return
+
         from Tribler.Core.Session import Session
         self.session = Session.get_instance()
         videoanalyser = self.session.get_video_analyser_path()
@@ -163,14 +176,15 @@ class TorrentStateManager:
             path_exists = os.path.exists(filename)
             self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
 
-        roothash_hex, contenthash_hex = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
-
         # Create modification
         modifications = []
-        modifications.append(('swift-thumbs', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
         modifications.append(('video-info', json.dumps(video_info)))
 
-        self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
+        result = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
+        if result:
+            roothash_hex, contenthash_hex = result
+            modifications.append(('swift-thumbs', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
 
+        self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
 
         self.torrent_manager.modifyTorrent(torrent, modifications)
