@@ -110,6 +110,11 @@ class MetadataCommunity(Community):
             merged_data_set.update(prev_data_list)
             merged_data_list = list(merged_data_set)
 
+            # shrink the values to <= 1KB
+            for idx in xrange(len(merged_data_list)):
+                if len(merged_data_list[idx][1]) > 1024:
+                    merged_data_list[idx] = (merged_data_list[idx][0], merged_data_list[idx][1][:1024])
+
         meta = self.get_meta_message(u"metadata")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
