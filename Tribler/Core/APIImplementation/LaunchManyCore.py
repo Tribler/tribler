@@ -97,9 +97,18 @@ class TriblerLaunchMany(Thread):
             if swift_exists:
                 from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
 
-                self.spm = SwiftProcessMgr(self.session.get_swift_path(), self.session.get_swift_tunnel_cmdgw_listen_port(), self.session.get_swift_downloads_per_process(), self.session.get_swift_tunnel_listen_port(), self.sesslock)
+                self.spm = SwiftProcessMgr(self.session.get_swift_path(),
+                                           self.session.get_swift_tunnel_cmdgw_listen_port(),
+                                           self.session.get_swift_downloads_per_process(),
+                                           self.session.get_swift_tunnel_listen_port(),
+                                           self.sesslock)
                 try:
-                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
+                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),
+                                                                   self.session.get_torrent_collecting_dir(),
+                                                                   self.session.get_swift_tunnel_listen_port(),
+                                                                   self.session.get_swift_tunnel_httpgw_listen_port(),
+                                                                   self.session.get_swift_tunnel_cmdgw_listen_port(),
+                                                                   ("127.0.0.1", self.session.get_socks5_listen_port()))
                     self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
 
                 except OSError:
