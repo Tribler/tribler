@@ -460,9 +460,11 @@ class TorrentDetails(AbstractDetails):
         type_str = "Pictures|*.png;*.jpeg;*.jpg | PNG files (*.png)|*.png | JPEG files (*.jpeg, *jpg)|*.jpeg;*.jpg"
         dialog = wx.FileDialog(self, "Upload Thumbnails", wildcard=type_str,
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+        extra_info = {'thumbnail-tempdir': None, 'thumbnail-file-list': []}
         if dialog.ShowModal() == wx.ID_OK:
             path_list = dialog.GetPaths()
             tempdir = tempfile.mkdtemp(suffix="thumbs", prefix="tribler")
+            extra_info['thumbnail-tempdir'] = tempdir
             thumb_idx = 0
             for thumb_path in path_list:
                 if not os.path.exists(thumb_path) or not os.path.isfile(thumb_path):
@@ -470,11 +472,15 @@ class TorrentDetails(AbstractDetails):
                 type_check = imghdr.what(thumb_path)
                 if type_check not in ('png', 'jpeg'):
                     continue
-                dst = os.path.join(tempdir, "thumbnail-%d.%s" % (thumb_idx, type_check))
+                thumb_file_name = "thumbnail-%d.%s" % (thumb_idx, type_check)
+                dst = os.path.join(tempdir, thumb_file_name)
                 shutil.copy(thumb_path, dst)
                 thumb_idx += 1
+                extra_info['thumbnail-file-list'].append(thumb_file_name)
             if thumb_idx > 0:
-                self.guiutility.torrentstate_manager._create_metadata_roothash_and_contenthash(tempdir, self.torrent)
+                self.guiutility.torrentsearch_manager.createMetadataModificationFromDef(
+                    None, None, extraInfo=extra_info, guitorrent=self.torrent)
+
         dialog.Destroy()
 
     def updateDetailsTab(self):
