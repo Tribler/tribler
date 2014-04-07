@@ -1240,9 +1240,10 @@ class ArtworkPanel(wx.Panel):
         torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(limit=self.max_torrents)
 
         for torrent in torrents:
-            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
-            if os.path.isdir(thumb_path):
-                data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
+            if torrent.name:
+                thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
+                if os.path.isdir(thumb_path):
+                    data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
 
         self.SetData(data)
 
