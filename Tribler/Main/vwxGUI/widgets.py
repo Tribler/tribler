@@ -15,6 +15,7 @@ from Tribler.Main.vwxGUI import TRIBLER_RED, LIST_HIGHTLIGHT, \
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+from Tribler.Core.simpledefs import DLMODE_VOD
 
 
 class BetterText(wx.StaticText):
@@ -1807,6 +1808,7 @@ class TorrentStatus(wx.Panel):
         progress = torrent.progress
         torrent_state = torrent.state
         finished = progress == 1.0
+        is_vod = torrent.ds.get_download().get_mode() == DLMODE_VOD if torrent.ds else False
 
         if torrent.ds.status == 2 or 'checking' in torrent_state:
             status = 'Checking'
@@ -1821,7 +1823,7 @@ class TorrentStatus(wx.Panel):
         elif 'allocating' in torrent_state:
             status = 'Waiting'
         elif 'downloading' in torrent_state:
-            status = 'Downloading'
+            status = 'Streaming' if is_vod else 'Downloading'
         elif 'error' in torrent_state:
             status = 'Stopped on error'
         elif 'stopped' in torrent_state:

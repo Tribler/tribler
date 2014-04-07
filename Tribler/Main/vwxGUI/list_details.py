@@ -13,7 +13,7 @@ from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
     DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, \
     DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS, \
-    NTFY_VIDEO_STARTED, NTFY_VIDEO_STOPPED, NTFY_VIDEO_ENDED
+    NTFY_VIDEO_STARTED, NTFY_VIDEO_STOPPED, NTFY_VIDEO_ENDED, DLMODE_VOD
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
@@ -895,6 +895,7 @@ class TorrentDetails(AbstractDetails):
         progress = ds.get_progress() if ds else 0
         statusflag = ds.get_status() if ds else DLSTATUS_STOPPED
         finished = progress == 1.0
+        is_vod = ds.get_download().get_mode() == DLMODE_VOD if ds else False
         status = None
 
         if self.torrent.magnetstatus or statusflag == DLSTATUS_METADATA:
@@ -910,7 +911,8 @@ class TorrentDetails(AbstractDetails):
             status = 'Checking'
         elif statusflag == DLSTATUS_DOWNLOADING:
             dls = ds.get_current_speed('down') * 1024
-            status = 'Downloading @ %s' % self.utility.speed_format(dls)
+            status = 'Streaming' if is_vod else 'Downloading'
+            status += ' @ %s' % self.utility.speed_format(dls)
         elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
 
