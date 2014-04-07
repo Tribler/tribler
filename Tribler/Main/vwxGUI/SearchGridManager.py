@@ -12,8 +12,8 @@ import json
 
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, \
-    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_METADATA, NTFY_VIDEO_STARTED, \
-    DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING
+    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_METADATA, \
+    DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
@@ -1001,26 +1001,17 @@ class LibraryManager:
 
         download = self.session.get_download(infohash)
         if download:
-            tdef = download.get_def()
-
-            # Default: pick largest videofile
-            if not selectedinfilename:
-                videofiles = tdef.get_files(exts=videoextdefaults)
-                selectedinfilename = sorted(videofiles, key=lambda x: tdef.get_length(selectedfiles=[x]))[-1] if videofiles else None
-
-                if not self.guiUtility.frame.videoparentpanel:
-                    selectedinfilename = self.guiUtility.SelectVideo(videofiles, selectedinfilename)
-
-            files = tdef.get_files()
-            fileindex = files.index(selectedinfilename) if selectedinfilename in files else None
-
-            if fileindex != None:
-                videoplayer = self._get_videoplayer()
-                videoplayer.play(download, fileindex)
-
-                # Notify playlist panel
-                if self.guiUtility.frame.videoparentpanel:
-                    self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetTorrentDef(tdef, fileindex)
+            # Call _playDownload when download is ready
+            wait_state = [DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK]
+            if download.get_status() in wait_state:
+                def wait_until_collected(ds):
+                    if ds.get_status() in wait_state:
+                        return (1.0, False)
+                    self._playDownload(infohash, selectedinfilename)
+                    return (0, False)
+                download.set_state_callback(wait_until_collected)
+            else:
+                self._playDownload(infohash, selectedinfilename)
         else:
             def do_db():
                 torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
@@ -1033,17 +1024,34 @@ class LibraryManager:
 
             def do_gui(delayedResult):
                 tdef = delayedResult.get()
-                download = self.guiUtility.frame.startDownload(tdef=tdef, destdir=DefaultDownloadStartupConfig.getInstance().get_dest_dir())
-                download.set_state_callback(wait_until_collected)
+                download = self.guiUtility.frame.startDownload(tdef=tdef, destdir=DefaultDownloadStartupConfig.getInstance().get_dest_dir(), vodmode=True)
                 self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetTorrentDef(tdef)
 
-            def wait_until_collected(ds):
-                if ds.get_status() in [DLSTATUS_HASHCHECKING, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING]:
-                    self.playTorrent(infohash)
-                    return (0, False)
-                return (1.0, False)
-
             startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+
+    @forceWxThread
+    def _playDownload(self, infohash, selectedinfilename):
+        download = self.session.get_download(infohash)
+        tdef = download.get_def()
+
+        # Default: pick largest videofile
+        if not selectedinfilename:
+            videofiles = tdef.get_files(exts=videoextdefaults)
+            selectedinfilename = sorted(videofiles, key=lambda x: tdef.get_length(selectedfiles=[x]))[-1] if videofiles else None
+
+            if not self.guiUtility.frame.videoparentpanel:
+                selectedinfilename = self.guiUtility.SelectVideo(videofiles, selectedinfilename)
+
+        files = tdef.get_files()
+        fileindex = files.index(selectedinfilename) if selectedinfilename in files else None
+
+        if fileindex != None:
+            videoplayer = self._get_videoplayer()
+            videoplayer.play(download, fileindex)
+
+            # Notify playlist panel
+            if self.guiUtility.frame.videoparentpanel:
+                self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetTorrentDef(tdef, fileindex)
 
     def stopPlayback(self):
         if self.guiUtility.frame.videoframe:
