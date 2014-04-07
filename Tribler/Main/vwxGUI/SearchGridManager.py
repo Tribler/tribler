@@ -810,8 +810,8 @@ class TorrentManager:
 
         return metadata_mod_list
 
-    def createMetadataModificationFromDef(self, channel_id, tdef, extraInfo={}, forward=True):
-        torrent = Torrent.fromTorrentDef(tdef)
+    def createMetadataModificationFromDef(self, channel_id, tdef, extraInfo={}, forward=True, guitorrent=None):
+        torrent = guitorrent if guitorrent else Torrent.fromTorrentDef(tdef)
 
         modifications = []
         for key, value in extraInfo.iteritems():
