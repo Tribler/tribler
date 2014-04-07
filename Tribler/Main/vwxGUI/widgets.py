@@ -2040,7 +2040,7 @@ class StaticBitmaps(wx.Panel):
 
     def SetBitmaps(self, bitmaps):
         if isinstance(bitmaps, list) and bitmaps:
-            if self.bitmaps_index > len(self.bitmaps):
+            if self.bitmaps_index >= len(bitmaps):
                 self.bitmaps_index = 0
             self.bitmaps = bitmaps
             self.bitmap = bitmaps[self.bitmaps_index]

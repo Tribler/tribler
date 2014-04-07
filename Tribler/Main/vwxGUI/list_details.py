@@ -7,16 +7,25 @@ from time import time
 import logging
 import copy
 import wx
+import imghdr
+import tempfile
+import shutil
 
 from Tribler.Core.osutils import startfile
 from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
     DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, \
     DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS, \
-    NTFY_VIDEO_STARTED, NTFY_VIDEO_STOPPED, NTFY_VIDEO_ENDED, DLMODE_VOD
+    NTFY_VIDEO_ENDED, DLMODE_VOD
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
+from Tribler.Core.Video.utils import videoextdefaults
+from Tribler.Core.Video.VideoUtility import limit_resolution
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+
+from Tribler.community.channel.community import ChannelCommunity
 
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
     CollectedTorrent, Channel, Playlist
@@ -31,11 +40,6 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
     MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, \
     FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
-from Tribler.community.channel.community import ChannelCommunity
-from Tribler.Core.Video.VideoUtility import limit_resolution
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
-from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
-from Tribler.Core.Video.utils import videoextdefaults
 
 
 class AbstractDetails(FancyPanel):
@@ -324,6 +328,19 @@ class TorrentDetails(AbstractDetails):
         self.detailsSizer.Add(tSizer, 1, wx.EXPAND)
         self.thumbnails.Show(False)
 
+        self.no_thumb_bitmap = wx.StaticBitmap(self.detailsTab, -1)
+        bitmap = GuiImageManager.getInstance().drawBitmap("no-thumbnail",
+            (125, 100), self.no_thumb_bitmap.GetFont())
+        self.no_thumb_bitmap.SetBitmap(bitmap)
+        self.upload_thumbs_btn = wx.Button(self.detailsTab, -1, label=u"Upload thumbnail")
+        self.upload_thumbs_btn.SetMaxSize((-1, 30))
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer.Add(self.no_thumb_bitmap, 1, wx.EXPAND)
+        vsizer.Add(self.upload_thumbs_btn, 0, wx.EXPAND)
+        tSizer.Add(vsizer, 0, wx.EXPAND)
+        self.upload_thumbs_btn.Bind(wx.EVT_BUTTON, self.OnUploadThumbsButtonClick)
+        self.upload_thumbs_btn.Show(False)
+
         # Add 'Mark this torrent' option
         self.marking_hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.marking_vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -441,6 +458,27 @@ class TorrentDetails(AbstractDetails):
         self.updateModificationsTab()
         self.updateTrackersTab()
 
+    def OnUploadThumbsButtonClick(self, event):
+        type_str = "Pictures|*.png;*.jpeg;*.jpg | PNG files (*.png)|*.png | JPEG files (*.jpeg, *jpg)|*.jpeg;*.jpg"
+        dialog = wx.FileDialog(self, "Upload Thumbnails", wildcard=type_str,
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+        if dialog.ShowModal() == wx.ID_OK:
+            path_list = dialog.GetPaths()
+            tempdir = tempfile.mkdtemp(suffix="thumbs", prefix="tribler")
+            thumb_idx = 0
+            for thumb_path in path_list:
+                if not os.path.exists(thumb_path) or not os.path.isfile(thumb_path):
+                    continue
+                type_check = imghdr.what(thumb_path)
+                if type_check not in ('png', 'jpeg'):
+                    continue
+                dst = os.path.join(tempdir, "thumbnail-%d.%s" % (thumb_idx, type_check))
+                shutil.copy(thumb_path, dst)
+                thumb_idx += 1
+            if thumb_idx > 0:
+                self.guiutility.torrentstate_manager._create_metadata_roothash_and_contenthash(tempdir, self.torrent)
+        dialog.Destroy()
+
     def updateDetailsTab(self):
         self.Freeze()
 
@@ -501,6 +539,8 @@ class TorrentDetails(AbstractDetails):
         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
         show_thumbnails = bool(thumb_files)
         self.thumbnails.Show(show_thumbnails)
+        self.no_thumb_bitmap.Show(not show_thumbnails)
+        self.upload_thumbs_btn.Show(not show_thumbnails)
         if show_thumbnails:
             bmps = [wx.Bitmap(thumb, wx.BITMAP_TYPE_ANY) for thumb in thumb_files[:4]]
             res = limit_resolution(bmps[0].GetSize(), (175, 175)) if bmps else None

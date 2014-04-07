@@ -826,9 +826,10 @@ class TorrentManager:
         # handle the downloaded thumbnails
         if extraInfo['thumbnail-file-list']:
             from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
-            roothash_hex, contenthash_hex = TorrentStateManager.getInstance()._create_metadata_roothash_and_contenthash(extraInfo['thumbnail-tempdir'], torrent)
-
-            modifications.append(('swift-thumbs', json.dumps((None, roothash_hex, contenthash_hex))))
+            result = TorrentStateManager.getInstance()._create_metadata_roothash_and_contenthash(extraInfo['thumbnail-tempdir'], torrent)
+            if result:
+                roothash_hex, contenthash_hex = result
+                modifications.append(('swift-thumbs', json.dumps((None, roothash_hex, contenthash_hex))))
 
             self.modifyTorrent(torrent, modifications)
 

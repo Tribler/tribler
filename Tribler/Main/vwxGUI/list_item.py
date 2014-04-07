@@ -975,18 +975,8 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
             bitmap = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
 
         if not bitmap:
-            bitmap = wx.EmptyBitmap(*self.max_bitmap_size)
-            dc = wx.MemoryDC(bitmap)
-            dc.SetBackground(wx.Brush(wx.Colour(230, 230, 230)))
-            dc.Clear()
-
-            font = self.GetFont()
-            font.SetPointSize(font.GetPointSize() + 4)
-            dc.SetFont(font)
-            dc.SetTextForeground(wx.Colour(100, 100, 100))
-            dc.DrawLabel('No picture\navailable', (0, 0) + self.max_bitmap_size, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
-            dc.SelectObject(wx.NullBitmap)
-            del dc
+            bitmap = GuiImageManager.getInstance().drawBitmap("no-thumbnail",
+                self.max_bitmap_size, self.GetFont())
 
         res = bitmap.GetSize()
         bitmap_hover = wx.EmptyBitmap(*res)
