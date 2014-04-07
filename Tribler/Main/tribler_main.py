@@ -45,7 +45,8 @@ import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
-from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
+from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST, \
+    BarterCommunity
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
@@ -496,8 +497,8 @@ class ABCApp():
                                            (swift_process,),
                                            load=True)
 
-            #dispersy.define_auto_load(ChannelCommunity, load=True)
-            #dispersy.define_auto_load(PreviewChannelCommunity)
+            dispersy.define_auto_load(ChannelCommunity, load=True)
+            dispersy.define_auto_load(PreviewChannelCommunity)
 
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))

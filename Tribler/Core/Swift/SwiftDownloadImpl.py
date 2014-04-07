@@ -182,7 +182,12 @@ class SwiftDownloadImpl(DownloadConfigInterface):
                 print_exc()
 
         # Synchronous: starts process if needed
-        self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port())
+        self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(),
+                                                       self.session.get_torrent_collecting_dir(),
+                                                       self.get_swift_listen_port(),
+                                                       self.get_swift_httpgw_listen_port(),
+                                                       self.get_swift_cmdgw_listen_port(),
+                                                       ("127.0.0.1", self.session.get_socks5_listen_port()))
         if self.sp:
             self.sp.start_download(self)
 

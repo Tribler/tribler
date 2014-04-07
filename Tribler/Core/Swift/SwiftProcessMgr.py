@@ -30,7 +30,7 @@ class SwiftProcessMgr:
         self.sps = defaultdict(list)
         """ :type : dict[bool, list[SwiftProcess]] """
 
-    def get_or_create_sp(self, workdir, zerostatedir, listenport, httpgwport, cmdgwport, socks5=True):
+    def get_or_create_sp(self, workdir, zerostatedir, listenport, httpgwport, cmdgwport, socks5):
         """ Download needs a process """
         self.sesslock.acquire()
 

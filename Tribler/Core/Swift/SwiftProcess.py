@@ -30,7 +30,7 @@ class SwiftProcess:
     """ Representation of an operating-system process running the C++ swift engine.
     A swift engine can participate in one or more swarms."""
 
-    def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr, socks5=True):
+    def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr, socks5):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         # Called by any thread, assume sessionlock is held
@@ -73,10 +73,6 @@ class SwiftProcess:
         args.append("127.0.0.1:" + str(self.cmdport))
         args.append("-g")  # HTTP gateway port
         args.append("127.0.0.1:" + str(self.httpport))
-
-        if False and socks5:
-            args.append("--proxy")
-            args.append("127.0.0.1:1080")
 
         args.append("-w")
         if zerostatedir is not None:
