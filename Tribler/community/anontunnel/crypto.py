@@ -1,9 +1,9 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
+from Tribler.community.privatesemantic.crypto.optional_crypto import mpz
 from collections import defaultdict
 import hashlib
 import logging
 from M2Crypto.BN import rand
-import gmpy
 from Tribler.Core.Utilities import encoding
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.events import TunnelObserver
@@ -190,16 +190,17 @@ class DefaultCrypto(Crypto):
     @staticmethod
     def __generate_diffie_secret():
         """
-        Generates a new Diffie Hellman g^x. Note the gmpy lib used for Windows
+        Generates a new Diffie Hellman g^x. Note the mpz lib used for Windows
         @return: tuple of x and g^x
         """
         dh_secret = rand(DIFFIE_HELLMAN_MODULUS_SIZE)
         while dh_secret >= DIFFIE_HELLMAN_MODULUS or dh_secret < 2:
               dh_secret = rand(DIFFIE_HELLMAN_MODULUS_SIZE)
 
-        a = gmpy.mpz(DIFFIE_HELLMAN_GENERATOR)
-        b = gmpy.mpz(dh_secret)
-        c = gmpy.mpz(DIFFIE_HELLMAN_MODULUS)
+
+        a = mpz(DIFFIE_HELLMAN_GENERATOR)
+        b = mpz(dh_secret)
+        c = mpz(DIFFIE_HELLMAN_MODULUS)
 
         dh_first_part = pow(a, b, c)
         return dh_secret, dh_first_part
