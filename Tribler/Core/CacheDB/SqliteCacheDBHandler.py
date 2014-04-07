@@ -260,6 +260,7 @@ class MetadataDBHandler(BasicDBHandler):
             prev_mid_str, prev_global_time)
 
         result = self._db.fetchone(sql, values)
+        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         return result
 
     def addMetadataDataInBatch(self, value_tuple_list):
