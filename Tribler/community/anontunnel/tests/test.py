@@ -48,7 +48,7 @@ class LibtorrentTest(object, TunnelObserver):
         return False # os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
 
     def start(self):
-        from stats import StatsCollector
+        from Tribler.community.anontunnel.stats import StatsCollector
         import wx
         from Tribler.Core.TorrentDef import TorrentDef
         from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
