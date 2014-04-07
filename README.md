@@ -18,7 +18,7 @@ TODO
 First clone the repository:
 
 ```bash
-git clone --recursive  git@github.com:Devristo/tribler.git
+git clone --recursive  git@github.com:Tribler/tribler.git
 ```
 
 or, if you don't have added your ssh key to your github account:
