@@ -1,9 +1,8 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
-from Tribler.community.privatesemantic.crypto.optional_crypto import mpz
+from Tribler.community.privatesemantic.crypto.optional_crypto import mpz, rand
 from collections import defaultdict
 import hashlib
 import logging
-from M2Crypto.BN import rand
 from Tribler.Core.Utilities import encoding
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.events import TunnelObserver
