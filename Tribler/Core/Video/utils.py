@@ -128,7 +128,6 @@ def return_feasible_playback_modes():
         l.append(PLAYBACKMODE_INTERNAL)
     except NameError:
         logger.error("libvlc_get_version couldn't be called, no playback possible")
-        return l
     except Exception:
         print_exc()
 
