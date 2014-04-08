@@ -13,9 +13,6 @@ from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED
 from wx.lib.stattext import GenStaticText
 from wx.lib.colourutils import AdjustColour
 from wx.lib.wordwrap import wordwrap
-from wx.lib.embeddedimage import PyEmbeddedImage
-
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR, \
     SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
@@ -23,8 +20,6 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from wx.lib.embeddedimage import PyEmbeddedImage
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
-
-DEBUG = False
 
 class NativeIcon:
     __single = None
