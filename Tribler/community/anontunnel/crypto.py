@@ -219,7 +219,6 @@ class DefaultCrypto(Crypto):
         self.decrypt_incoming_packet_content[MESSAGE_EXTEND] = self._decrypt_extend_content
         self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
 
-
     def on_break_relay(self, relay_key):
         """
         Method called whenever a relay is broken after for example a timeout
@@ -242,7 +241,6 @@ class DefaultCrypto(Crypto):
         """
         self.proxy = proxy
         proxy.observers.append(self)
-
 
     def _encrypt_create_content(self, candidate, circuit_id, message):
         """
