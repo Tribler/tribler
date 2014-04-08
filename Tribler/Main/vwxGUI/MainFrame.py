@@ -16,7 +16,7 @@ import logging
 
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
-from Tribler.Main.vwxGUI.home import Home, Stats
+from Tribler.Main.vwxGUI.home import Home, Stats, Anonymity
 from Tribler.Main.vwxGUI.list import SearchList, ChannelList, \
     LibraryList, ActivitiesList
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \

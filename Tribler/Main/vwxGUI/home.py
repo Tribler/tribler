@@ -7,6 +7,7 @@ import copy
 
 import wx
 import igraph
+from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.community.anontunnel.community import ProxyCommunity
 import datetime
 from Tribler.community.anontunnel.routing import Hop
@@ -18,19 +19,21 @@ except:
 import random
 import logging
 import binascii
-from time import strftime
+from time import strftime, time
 from collections import defaultdict
 from traceback import print_exc
 
 from Tribler.Category.Category import Category
 from Tribler.Core.Tag.Extraction import TermExtraction
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, \
+    NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, \
+    NTFY_EXTENDED_FOR
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
     NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
-from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.list_header import DetailHeader
@@ -70,33 +73,30 @@ class Home(wx.Panel):
 
         textSizer = wx.FlexGridSizer(2, 2, 3, 7)
         if sys.platform == 'darwin':  # mac
-            searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+            self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         else:
-            searchBox = TextCtrlAutoComplete(self, entrycallback=self.parent.top_bg.complete, selectcallback=self.parent.top_bg.OnAutoComplete)
+            self.searchBox = TextCtrlAutoComplete(self, entrycallback=parent.top_bg.complete, selectcallback=parent.top_bg.OnAutoComplete)
 
-        font = searchBox.GetFont()
+        font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
-        searchBox.SetFont(font)
-        searchBox.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
+        self.searchBox.SetFont(font)
+        self.searchBox.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
 
         if sys.platform == 'darwin':  # mac
-            searchBox.SetMinSize((450, searchBox.GetTextExtent('T')[1] + 5))
+            self.searchBox.SetMinSize((450, self.searchBox.GetTextExtent('T')[1] + 5))
         else:
-            searchBox.SetMinSize((450, -1))
-        searchBox.SetFocus()
+            self.searchBox.SetMinSize((450, -1))
+        self.searchBox.SetFocus()
 
         textSizer.Add(text, 0, wx.EXPAND | wx.RIGHT, 7)
         scalingSizer = wx.BoxSizer(wx.HORIZONTAL)
-        scalingSizer.Add(searchBox)
+        scalingSizer.Add(self.searchBox)
 
         if sys.platform == 'darwin':  # mac
             searchButton = wx.Button(self, -1, '\n')
             searchButton.SetLabel('Search')
         else:
             searchButton = wx.Button(self, -1, 'Search')
-
-        searchButton = searchButton
-
         searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
 
         scalingSizer.Add(searchButton, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
@@ -105,8 +105,6 @@ class Home(wx.Panel):
         textSizer.AddSpacer((1, 1))
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.channelLinkText = hSizer
-
         hSizer.Add(StaticText(self, -1, "Take me to "))
         channelLink = LinkStaticText(self, "channels", icon=None)
 
