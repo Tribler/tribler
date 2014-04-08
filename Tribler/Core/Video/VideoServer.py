@@ -11,7 +11,6 @@ from SocketServer import ThreadingMixIn
 from threading import Event, Thread
 from traceback import print_exc
 from binascii import unhexlify
-from cherrypy.lib import http
 
 from Tribler.Core.simpledefs import DLMODE_VOD
 
@@ -94,6 +93,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         fileindex = int(fileindex)
         filename, length = download.get_def().get_files_with_length()[fileindex]
 
+        from cherrypy.lib import http
         requested_range = http.get_ranges(self.headers.getheader('range'), length)
         if requested_range != None and len(requested_range) != 1:
             self.send_error(416, "Requested Range Not Satisfiable")
