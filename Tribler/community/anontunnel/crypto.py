@@ -194,7 +194,8 @@ class DefaultCrypto(Crypto):
         """
         dh_secret = 0
         while dh_secret >= DIFFIE_HELLMAN_MODULUS or dh_secret < 2:
-              dh_secret = mpz(rand("next", DIFFIE_HELLMAN_MODULUS))
+              dh_secret = rand("next", DIFFIE_HELLMAN_MODULUS)
+        dh_secret = mpz(dh_secret)
 
         dh_first_part = mpz(pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS))
         return dh_secret, dh_first_part
