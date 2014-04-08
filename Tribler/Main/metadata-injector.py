@@ -19,6 +19,7 @@ import json
 from hashlib import sha1
 import logging
 import logging.config
+import binascii
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Session import Session
@@ -62,7 +63,7 @@ def dispersy_started(session, opt, torrentManager, channelManager,
         channelManager.createChannel(my_channel_name, u'')
         new_channel_created = True
     else:
-        logger.info(u"Use existing channel", my_channel_id)
+        logger.info(u"Use existing channel %s", binascii.hexlify(my_channel_id))
         my_channel = channelManager.getChannel(my_channel_id)
         if my_channel.name != my_channel_name:
             logger.info(u"Rename channel to %s", my_channel_name)
