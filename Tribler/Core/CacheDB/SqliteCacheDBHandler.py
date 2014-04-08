@@ -1612,9 +1612,9 @@ class TorrentDBHandler(BasicDBHandler):
         # print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(results),len(results),len(dont_sort_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return results
 
-    def getAutoCompleteTerms(self, keyword):
-        sql = "SELECT swarmname FROM FullTextIndex WHERE FullTextIndex MATCH 'swarmname: %s*'" % keyword
-        result = self._db.fetchall(sql)
+    def getAutoCompleteTerms(self, keyword, limit=100):
+        sql = "SELECT swarmname FROM FullTextIndex WHERE FullTextIndex MATCH 'swarmname: %s*' LIMIT ?" % keyword
+        result = self._db.fetchall(sql, (limit,))
 
         all_terms = []
         for line, in result:
