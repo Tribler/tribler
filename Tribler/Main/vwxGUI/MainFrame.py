@@ -375,16 +375,19 @@ class MainFrame(wx.Frame):
         nextId = wx.NewId()
         prevId = wx.NewId()
         dispId = wx.NewId()
+        DISPERSY_DEBUG_FRAME_ID = wx.NewId()
         self.Bind(wx.EVT_MENU, self.OnFind, id=findId)
         self.Bind(wx.EVT_MENU, lambda event: self.Close(), id=quitId)
         self.Bind(wx.EVT_MENU, self.OnNext, id=nextId)
         self.Bind(wx.EVT_MENU, self.OnPrev, id=prevId)
         self.Bind(wx.EVT_MENU, lambda evt: self.guiUtility.ShowPage('stats'), id=dispId)
+        self.Bind(wx.EVT_MENU, self.OnOpenDebugFrame, id=DISPERSY_DEBUG_FRAME_ID)
 
         accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
         accelerators.append((wx.ACCEL_CTRL, ord('d'), dispId))
         accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
         accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
+        accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_ALT, ord('d'), DISPERSY_DEBUG_FRAME_ID))
 
         if sys.platform == 'linux2':
             accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
@@ -408,6 +411,14 @@ class MainFrame(wx.Frame):
 #        session = Session.get_instance()
 #        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
         # _ProxyService 90s Test
+
+    def OnOpenDebugFrame(self, event=None):
+        from Tribler.Main.vwxGUI.DispersyDebugFrame import DispersyDebugFrame
+        if not wx.FindWindowByName("DispersyDebugFrame"):
+            frame = DispersyDebugFrame(self, -1, self.utility.session.get_dispersy_instance())
+            frame.Show()
+        if event:
+            event.Skip()
 
     def startCMDLineTorrent(self):
         if self.params[0] != "" and not self.params[0].startswith("--"):
