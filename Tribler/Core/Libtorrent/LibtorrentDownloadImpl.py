@@ -1015,12 +1015,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         """ Add a peer address from 3rd source (not tracker, not DHT) to this download.
         @param (hostname_ip,port) tuple
         """
-        if self.handle is not None:
-            self.handle.connect_peer(addr, 0)
-            return True
-        else:
-            self.session.lm.rawserver.add_task(lambda: self.add_peer(addr), delay=1.0)
-            return False
+        self.handle.connect_peer(addr, 0)
 
     @waitForHandleAndSynchronize(True)
     def dlconfig_changed_callback(self, section, name, new_value, old_value):
