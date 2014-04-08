@@ -60,7 +60,3 @@ class DispersyBypassEndpoint(RawserverEndpoint):
 
         if normal_packets:
             RawserverEndpoint.data_came_in(self, normal_packets)
-
-    def send_simple(self, candidate, packet):
-        self._socket.sendto(packet, candidate.sock_addr)
-        return True
