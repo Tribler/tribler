@@ -8,7 +8,7 @@ from Tribler.Main.vwxGUI.widgets import _set_font, SimpleNotebook
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
-DATA_NONE = u""
+DATA_NONE = ""
 
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
@@ -49,7 +49,7 @@ def set_small_modern_font(control):
     control.SetFont(font)
 
 def compute_ratio(i, j):
-    return u"%d / %d ~%.1f%%" % (i, j, (100.0 * i / j) if j else 0.0)
+    return "%d / %d ~%.1f%%" % (i, j, (100.0 * i / j) if j else 0.0)
 
 def str2unicode(string):
     if isinstance(string, unicode):
@@ -62,38 +62,36 @@ def str2unicode(string):
     return converted_str
 
 # ==================================================
-# Dispersy Detail Part
+# Frame
 # ==================================================
 
-class DispersyDetailPart(wx.Panel):
+class DispersyDebugFrame(wx.Frame):
 
     def __init__(self, parent, id, dispersy):
-        super(DispersyDetailPart, self).__init__(parent, id)
-        self.SetBackgroundColour(LIST_GREY)
+        super(DispersyDebugFrame, self).__init__(parent, id,
+            "Dispersy Debug Frame", size=(1280, 720), name="DispersyDebugFrame")
         self.__dispersy = dispersy
+        self.SetBackgroundColour(LIST_GREY)
 
         self.__notebook = SimpleNotebook(self, show_single_tab=True, style=wx.NB_NOPAGETHEME)
 
-        self.__summary_panel = DispersySummaryPanel(self.__notebook, -1, dispersy)
-        self.__community_panel = CommunityPanel(self.__notebook, -1, dispersy)
-        self.__rawinfo_panel = RawInfoPanel(self.__notebook, -1, dispersy)
-        self.__runtime_panel = RuntimeProfilingPanel(self.__notebook, -1, dispersy)
+        self.__summary_panel = DispersySummaryPanel(self.__notebook, -1)
+        self.__community_panel = CommunityPanel(self.__notebook, -1)
+        self.__rawinfo_panel = RawInfoPanel(self.__notebook, -1)
+        self.__runtime_panel = RuntimeProfilingPanel(self.__notebook, -1)
 
-        self.__notebook.AddPage(self.__summary_panel, u"Summary")
-        self.__notebook.AddPage(self.__community_panel, u"Community")
-        self.__notebook.AddPage(self.__rawinfo_panel, u"Raw Info")
-        self.__notebook.AddPage(self.__runtime_panel, u"Runtime Profiling")
+        self.__notebook.AddPage(self.__summary_panel, "Summary")
+        self.__notebook.AddPage(self.__community_panel, "Community")
+        self.__notebook.AddPage(self.__rawinfo_panel, "Raw Info")
+        self.__notebook.AddPage(self.__runtime_panel, "Runtime Profiling")
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.__incstuff_checkbox = wx.CheckBox(self, -1, u"include stuff")
-        self.__incdebug_checkbox = wx.CheckBox(self, -1, u"include debug")
+        self.__incstuff_checkbox = wx.CheckBox(self, -1, "include stuff")
+        self.__incdebug_checkbox = wx.CheckBox(self, -1, "include debug")
         self.__incdebug_checkbox.SetValue(True)
 
         self.__incstuff = False
         self.__incdebug = True
-
-        startWorker(None, self.__change_debug, uId=u"DispersyPanel_ChangeDebug",
-            priority=GUI_PRI_DISPERSY)
 
         hsizer.Add(self.__incstuff_checkbox, 0, wx.EXPAND)
         hsizer.Add(self.__incdebug_checkbox, 0, wx.EXPAND)
@@ -103,49 +101,50 @@ class DispersyDetailPart(wx.Panel):
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
         vsizer.Add(self.__notebook, 1, wx.EXPAND)
-        vsizer.Add(hsizer, 0, wx.EXPAND)
+        vsizer.Add(hsizer, 0, wx.EXPAND | wx.ALL, 3)
         self.SetSizer(vsizer)
 
-    def __change_debug(self):
-        self.__dispersy.statistics.update(database=self.__incstuff)
-        self.__dispersy.statistics.enable_debug_statistics(self.__incdebug)
+        self.__dispersy_update_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.UpdateInfo, self.__dispersy_update_timer)
+        self.__dispersy_update_timer.Start(5000, False)
 
-    def __ChangeDebugOption(self):
-        self.__incstuff = self.__incstuff_checkbox.GetValue()
-        self.__incdebug = self.__incdebug_checkbox.GetValue()
-
-        startWorker(None, self.__change_debug, uId=u"DispersyPanel_ChangeDebug",
-            priority=GUI_PRI_DISPERSY)
+        self.UpdateInfo()
 
     def SwitchTab(self, num):
         self.__notebook.SetSelection(num)
 
     def OnIncludeStuffClicked(self, event):
-        self.__ChangeDebugOption()
-        enabled = bool(self.__incstuff_checkbox.GetValue())
-        self.__community_panel.ShowDatabaseInfo(enabled)
-        self.Layout()
+        self.UpdateInfo()
 
     def OnIncludeDebugClicked(self, event):
-        self.__ChangeDebugOption()
+        self.__dispersy.statistics.enable_debug_statistics(self.__incdebug_checkbox.GetValue())
+        self.UpdateInfo()
 
-    def UpdateInfo(self):
-        self.__summary_panel.UpdateInfo()
-        self.__community_panel.UpdateInfo()
-        self.__rawinfo_panel.UpdateInfo()
-        self.__runtime_panel.UpdateInfo()
-        self.Layout()
+    def UpdateInfo(self, event=None):
+        def do_db():
+            self.__dispersy.statistics.update(database=self.__incstuff_checkbox.GetValue())
+            return self.__dispersy.statistics
 
+        def do_gui(delayedResult):
+            stats = delayedResult.get()  # can contain an exception
+            enabled = bool(self.__incstuff_checkbox.GetValue())
+            self.__community_panel.ShowDatabaseInfo(enabled)
+
+            self.__summary_panel.UpdateInfo(stats)
+            self.__community_panel.UpdateInfo(stats)
+            self.__rawinfo_panel.UpdateInfo(stats)
+            self.__runtime_panel.UpdateInfo(stats)
+            self.Layout()
+
+        startWorker(do_gui, do_db, uId=u"DispersyDebugFrame_UpdateInfo", priority=GUI_PRI_DISPERSY)
 
 # --------------------------------------------------
 # Summary Panel
 # --------------------------------------------------
-
 class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
-    def __init__(self, parent, id, dispersy):
+    def __init__(self, parent, id):
         super(DispersySummaryPanel, self).__init__(parent, id)
-        self.__dispersy = dispersy
         self.__utility = GUIUtility.getInstance().utility
 
         self.SetBackgroundColour(wx.WHITE)
@@ -153,46 +152,49 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
         gridsizer = wx.FlexGridSizer(0, 2, 3, 10)
         gridsizer.AddGrowableCol(1)
 
-        self.SetSizer(gridsizer)
+        spacer = wx.BoxSizer()
+        spacer.Add(gridsizer, 1, wx.EXPAND | wx.ALL, 3)
+
+        self.SetSizer(spacer)
         self.__info_list = None
         self.__text_dict = {}
 
         # key, value, tip (optional)
         self.__info_list = [
-            [u"WAN Address", DATA_NONE, None],
-            [u"LAN Address", DATA_NONE, None],
-            [u"Connection", DATA_NONE, None],
-            [u"Runtime", DATA_NONE, None],
-            [u"Download", DATA_NONE, None],
-            [u"Upload", DATA_NONE, None],
-            [u"Packets Sent", DATA_NONE,
-                u"Packets sent vs Packets handled"],
-            [u"Packets Received", DATA_NONE,
-                u"Packets received vs Packets handled"],
-            [u"Packets Dropped", DATA_NONE,
-                u"Packets dropped vs Packets received"],
-            [u"Packets Success", DATA_NONE,
-                u"Messages successfully handled vs Packets received"],
-            [u"Packets Delayed", DATA_NONE,
-                u"Packets being delayed vs Packets reveived"],
-            [u"Sync-Messages Created", DATA_NONE,
-                u"Total number of messages created by us in this session which should be synced"],
-            [u"Packets Delayed send", DATA_NONE,
-                u"Total number of delaymessages or delaypacket messages being sent"],
-            [u"Packets Delayed success", DATA_NONE,
-                u"Total number of packets which were delayed, and did not timeout"],
-            [u"Packets Delayed timeout", DATA_NONE,
-                u"Total number of packets which were delayed, but got a timeout"],
-            [u"Walker Success", DATA_NONE, None],
-            [u"Walker Success (from trackers)", DATA_NONE,
-                u"Comparing the successes to tracker to overall successes"],
-            [u"Bloom New", DATA_NONE,
-                u"Total number of bloomfilters created vs IntroductionRequest sent in this session"],
-            [u"Bloom Reused", DATA_NONE,
-                u"Total number of bloomfilters reused vs IntroductionRequest sent in this session"],
-            [u"Bloom Skipped", DATA_NONE,
-                u"Total number of bloomfilters skipped vs IntroductionRequest sent in this session"],
-            [u"Debug Mode", DATA_NONE, None],
+            ["WAN Address", DATA_NONE, None],
+            ["LAN Address", DATA_NONE, None],
+            ["Connection", DATA_NONE, None],
+            ["Runtime", DATA_NONE, None],
+            ["Download", DATA_NONE, None],
+            ["Upload", DATA_NONE, None],
+            ["Packets Sent", DATA_NONE,
+                "Packets sent vs Packets handled"],
+            ["Packets Received", DATA_NONE,
+                "Packets received vs Packets handled"],
+            ["Packets Dropped", DATA_NONE,
+                "Packets dropped vs Packets received"],
+            ["Packets Success", DATA_NONE,
+                "Messages successfully handled vs Packets received"],
+            ["Packets Delayed", DATA_NONE,
+                "Packets being delayed vs Packets reveived"],
+            ["Sync-Messages Created", DATA_NONE,
+                "Total number of messages created by us in this session which should be synced"],
+            ["Packets Delayed send", DATA_NONE,
+                "Total number of delaymessages or delaypacket messages being sent"],
+            ["Packets Delayed success", DATA_NONE,
+                "Total number of packets which were delayed, and did not timeout"],
+            ["Packets Delayed timeout", DATA_NONE,
+                "Total number of packets which were delayed, but got a timeout"],
+            ["Walker Success", DATA_NONE, None],
+            ["Walker Success (from trackers)", DATA_NONE,
+                "Comparing the successes to tracker to overall successes"],
+            ["Bloom New", DATA_NONE,
+                "Total number of bloomfilters created vs IntroductionRequest sent in this session"],
+            ["Bloom Reused", DATA_NONE,
+                "Total number of bloomfilters reused vs IntroductionRequest sent in this session"],
+            ["Bloom Skipped", DATA_NONE,
+                "Total number of bloomfilters skipped vs IntroductionRequest sent in this session"],
+            ["Debug Mode", DATA_NONE, None],
         ]
 
         for key, value, tooltip in self.__info_list:
@@ -208,22 +210,21 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.SetupScrolling()
 
-    def UpdateInfo(self, to_cleanup=False):
+    def UpdateInfo(self, stats, to_cleanup=False):
         if to_cleanup:
             for info in self.__info_list:
                 info[1] = DATA_NONE
         else:
-            stats = self.__dispersy.statistics
-            self.__info_list[0][1] = u"%s:%d" % stats.wan_address
-            self.__info_list[1][1] = u"%s:%d" % stats.lan_address
+            self.__info_list[0][1] = "%s:%d" % stats.wan_address
+            self.__info_list[1][1] = "%s:%d" % stats.lan_address
             self.__info_list[2][1] = unicode(stats.connection_type)
 
-            self.__info_list[3][1] = u"%s" % self.__utility.eta_value(stats.timestamp - stats.start)
-            self.__info_list[4][1] = u"%s or %s/s" % (
+            self.__info_list[3][1] = "%s" % self.__utility.eta_value(stats.timestamp - stats.start)
+            self.__info_list[4][1] = "%s or %s/s" % (
                 self.__utility.size_format(stats.total_down),
                 self.__utility.size_format(int(stats.total_down / (stats.timestamp - stats.start)))
             )
-            self.__info_list[5][1] = u"%s or %s/s" % (
+            self.__info_list[5][1] = "%s or %s/s" % (
                 self.__utility.size_format(stats.total_up),
                 self.__utility.size_format(int(stats.total_up / (stats.timestamp - stats.start)))
             )
@@ -234,7 +235,7 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
             self.__info_list[8][1] = compute_ratio(stats.drop_count, stats.received_count)
             self.__info_list[9][1] = compute_ratio(stats.success_count, stats.received_count)
             self.__info_list[10][1] = compute_ratio(stats.delay_count, stats.received_count)
-            self.__info_list[11][1] = u"%s" % stats.created_count
+            self.__info_list[11][1] = "%s" % stats.created_count
             self.__info_list[12][1] = compute_ratio(stats.delay_send, stats.delay_count)
             self.__info_list[13][1] = compute_ratio(stats.delay_success, stats.delay_count)
             self.__info_list[14][1] = compute_ratio(stats.delay_timeout, stats.delay_count)
@@ -247,7 +248,7 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
             self.__info_list[19][1] = compute_ratio(sum(c.sync_bloom_skip for c in stats.communities),
                 sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
-            self.__info_list[20][1] = u"yes" if __debug__ else u"no"
+            self.__info_list[20][1] = "yes" if __debug__ else "no"
 
         for key, value, _ in self.__info_list:
             self.__text_dict[key].SetLabel(value)
@@ -260,9 +261,9 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
 class CommunityPanel(wx.Panel):
 
-    def __init__(self, parent, id, dispersy):
+    def __init__(self, parent, id):
         super(CommunityPanel, self).__init__(parent, id)
-        self.__dispersy = dispersy
+        self.SetBackgroundColour(wx.WHITE)
 
         splitter = wx.SplitterWindow(self, -1, style=wx.SP_BORDER)
         splitter.SetSashGravity(0.5)
@@ -270,11 +271,11 @@ class CommunityPanel(wx.Panel):
         self.__listctrl = AutoWidthListCtrl(splitter, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL)
         self.__listctrl.SetMinSize((600, 200))
-        self.__listctrl.InsertColumn(0, u"Classification")
-        self.__listctrl.InsertColumn(1, u"Identifier")
-        self.__listctrl.InsertColumn(2, u"Database ID")
-        self.__listctrl.InsertColumn(3, u"Member")
-        self.__listctrl.InsertColumn(4, u"Candidates")
+        self.__listctrl.InsertColumn(0, "Classification")
+        self.__listctrl.InsertColumn(1, "Identifier")
+        self.__listctrl.InsertColumn(2, "Database ID")
+        self.__listctrl.InsertColumn(3, "Member")
+        self.__listctrl.InsertColumn(4, "Candidates")
 
         self.__listctrl.SetColumnWidth(0, 200)
         for i in xrange(1, 4):
@@ -297,14 +298,14 @@ class CommunityPanel(wx.Panel):
 
     def OnListCtrlSelected(self, event):
         community_data = self.__community_data_list[event.GetIndex()]
-        if self.__selected_community_identifier == community_data[u"identifier"]:
+        if self.__selected_community_identifier == community_data["Identifier"]:
             return
 
-        self.__selected_community_identifier = community_data[u"identifier"]
+        self.__selected_community_identifier = community_data["Identifier"]
         self.__detail_panel.UpdateInfo(community_data)
 
-    def UpdateInfo(self):
-        community_list = sorted(self.__dispersy.statistics.communities,
+    def UpdateInfo(self, stats):
+        community_list = sorted(stats.communities,
             key=lambda community:
                 (not community.dispersy_enable_candidate_walker,
                 community.classification, community.cid)
@@ -317,53 +318,54 @@ class CommunityPanel(wx.Panel):
             candidate_list = None
             if community.dispersy_enable_candidate_walker or \
                     community.dispersy_enable_candidate_walker_responses:
-                candidate_count = u"%d " % len(community.candidates)
-                candidate_list = [(u"%s" % global_time, u"%s:%s" % lan, u"%s:%s" % wan)
+                candidate_count = "%d " % len(community.candidates)
+                candidate_list = [("%s" % global_time, "%s:%s" % lan, "%s:%s" % wan)
                     for lan, wan, global_time in community.candidates]
                 candidate_list.sort()
             elif community.candidates:
-                candidate_count = u"%d*" % len(community.candidates)
+                candidate_count = "%d*" % len(community.candidates)
             else:
-                candidate_count = u"-"
+                candidate_count = "-"
 
-            median_global_time = u"%d (%d difference)" % \
+            median_global_time = "%d (%d difference)" % \
                 (community.acceptable_global_time - community.dispersy_acceptable_global_time_range,
                  community.acceptable_global_time - community.global_time -
                     community.dispersy_acceptable_global_time_range)
 
-            database_str = DATA_NONE
             database_list = []
             if community.database:
-                database_str = u"%d packets" % \
+                database_str = "%d packets" % \
                     sum(count for count in community.database.itervalues())
                 for name, count in sorted(community.database.iteritems(), key=lambda tup: tup[1]):
-                    database_list.append((u"%s" % count, u"%s" % name))
+                    database_list.append(("%s" % count, "%s" % name))
+            else:
+                database_str = "? packets"
 
             community_data = {
-                u"identifier": u"%s" % community.hex_cid,
-                u"member": u"%s" % community.hex_mid,
-                u"classification": u"%s" % community.classification,
-                u"database id": u"%s" % community.database_id,
-                u"global time": u"%s" % community.global_time,
-                u"median global time": u"%s" % median_global_time,
-                u"acceptable range": u"%s" % community.dispersy_acceptable_global_time_range,
-                u"sync bloom created": u"%s" %  community.sync_bloom_new,
-                u"sync bloom reused": u"%s" %  community.sync_bloom_reuse,
-                u"sync bloom skipped": u"%s" %  community.sync_bloom_skip,
-                u"candidates": u"%s" % candidate_count,
-                u"candidate_list": candidate_list,
-                u"database": database_str,
-                u"database_list": database_list,
+                "Identifier": "%s" % community.hex_cid,
+                "Member": "%s" % community.hex_mid,
+                "Classification": "%s" % community.classification,
+                "Database id": "%s" % community.database_id,
+                "Global time": "%s" % community.global_time,
+                "Median global time": "%s" % median_global_time,
+                "Acceptable range": "%s" % community.dispersy_acceptable_global_time_range,
+                "Sync bloom created": "%s" % community.sync_bloom_new,
+                "Sync bloom reused": "%s" % community.sync_bloom_reuse,
+                "Sync bloom skipped": "%s" % community.sync_bloom_skip,
+                "Candidates": "%s" % candidate_count,
+                "Candidate_list": candidate_list,
+                "Database": database_str,
+                "Database_list": database_list,
             }
             # update community data list
             self.__community_data_list.append(community_data)
 
-            community_list_for_update.append((community_data[u"classification"],
-                community_data[u"identifier"][:7], community_data[u"database id"],
-                community_data[u"member"][:7], community_data[u"candidates"])
+            community_list_for_update.append((community_data["Classification"],
+                community_data["Identifier"][:7], community_data["Database id"],
+                community_data["Member"][:7], community_data["Candidates"])
             )
 
-            if self.__selected_community_identifier == community_data[u"identifier"]:
+            if self.__selected_community_identifier == community_data["Identifier"]:
                 reselect_community_idx = idx
             idx += 1
 
@@ -382,10 +384,10 @@ class CommunityDetailPanel(wx.Panel):
         super(CommunityDetailPanel, self).__init__(parent, id, style=wx.RAISED_BORDER)
         self.SetBackgroundColour(LIST_GREY)
 
-        self.__FIELDS = (u"identifier", u"member", u"classification", u"global time", \
-            u"median global time", u"acceptable range", u"sync bloom created", \
-            u"sync bloom reused", u"sync bloom skipped", u"candidates", \
-            u"database")
+        self.__FIELDS = ("Identifier", "Member", "Classification", "Global time", \
+            "Median global time", "Acceptable range", "Sync bloom created", \
+            "Sync bloom reused", "Sync bloom skipped", "Candidates", \
+            "Database")
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -401,48 +403,39 @@ class CommunityDetailPanel(wx.Panel):
             _set_font(key_text, fontweight=wx.FONTWEIGHT_BOLD)
 
             value_text = wx.StaticText(info_panel, -1)
-            set_small_modern_font(value_text)
             gridsizer.AddMany([
                 (key_text, 0, wx.EXPAND),
                 (value_text, 0, wx.EXPAND)])
 
             self.__text[title] = (key_text, value_text)
-            if title == u"database":
-                key_text.Hide()
-                value_text.Hide()
         info_panel.SetSizer(gridsizer)
 
         self.__candidate_list = AutoWidthListCtrl(self, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT)
-        self.__candidate_list.InsertColumn(0, u"global time")
-        self.__candidate_list.InsertColumn(1, u"LAN")
-        self.__candidate_list.InsertColumn(2, u"WAN")
-
-        set_small_modern_font(self.__candidate_list)
+        self.__candidate_list.InsertColumn(0, "Global time")
+        self.__candidate_list.InsertColumn(1, "LAN")
+        self.__candidate_list.InsertColumn(2, "WAN")
 
         self.__candidate_list.SetColumnWidth(0, 70)
         self.__candidate_list.SetColumnWidth(1, 130)
 
         self.__database_list = AutoWidthListCtrl(self, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT)
-        self.__database_list.InsertColumn(0, u"Count")
-        self.__database_list.InsertColumn(1, u"Info")
-        set_small_modern_font(self.__database_list)
-
-        hsizer.Add(self.__info_panel, 0, wx.EXPAND | wx.ALL, 2)
-        hsizer.Add(self.__candidate_list, 1, wx.EXPAND | wx.ALL, 2)
-        hsizer.Add(self.__database_list, 1, wx.EXPAND | wx.ALL, 2)
-        self.SetSizer(hsizer)
+        self.__database_list.InsertColumn(0, "Count")
+        self.__database_list.InsertColumn(1, "Info")
 
         self.__to_show_database = False
+        self.__database_list.Show(self.__to_show_database)
 
-        self.UpdateInfo(None)
+        hsizer.Add(self.__info_panel, 0, wx.EXPAND | wx.RIGHT, 5)
+        hsizer.Add(self.__candidate_list, 1, wx.EXPAND)
+        hsizer.Add(self.__database_list, 1, wx.EXPAND | wx.LEFT, 5)
+        self.SetSizer(hsizer)
 
     def ShowDatabaseInfo(self, enabled):
-        self.__to_show_database = enabled
-        self.__text[u"database"][0].Show(self.__to_show_database)
-        self.__text[u"database"][1].Show(self.__to_show_database)
-        self.__database_list.Show(self.__to_show_database)
+        if enabled != self.__to_show_database:
+            self.__to_show_database = enabled
+            self.__database_list.Show(self.__to_show_database)
 
     def UpdateInfo(self, community_data):
         if community_data == None:
@@ -453,8 +446,8 @@ class CommunityDetailPanel(wx.Panel):
         else:
             for field_name in self.__FIELDS:
                 self.__text[field_name][1].SetLabel(community_data[field_name])
-            self.__database_list.UpdateData(community_data[u"database_list"])
-            self.__candidate_list.UpdateData(community_data[u"candidate_list"])
+            self.__database_list.UpdateData(community_data["Database_list"])
+            self.__candidate_list.UpdateData(community_data["Candidate_list"])
 
 # --------------------------------------------------
 # RawInfo Panel
@@ -462,34 +455,33 @@ class CommunityDetailPanel(wx.Panel):
 
 class RawInfoPanel(wx.Panel):
 
-    def __init__(self, parent, id, dispersy):
+    def __init__(self, parent, id):
         super(RawInfoPanel, self).__init__(parent, id)
-        self.__dispersy = dispersy
+        self.SetBackgroundColour(wx.WHITE)
 
         self.__info = None
         self.__selected_category = None
 
-        self.__CATEGORIES = (u"drop", u"delay", u"success", u"outgoing",
-            u"created", u"walk_fail", u"attachment", u"database",
-            u"endpoint_recv", u"endpoint_send", u"bootstrap_candidates")
-        self.__IP_CATEGORIES = (u"bootstrap_candidates", u"walk_fail")
+        self.__CATEGORIES = ("drop", "delay", "success", "outgoing",
+            "created", "walk_fail", "attachment", "database",
+            "endpoint_recv", "endpoint_send", "bootstrap_candidates")
+        self.__IP_CATEGORIES = ("bootstrap_candidates", "walk_fail")
 
         self.__category_list = AutoWidthListCtrl(self, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL)
-        self.__category_list.InsertColumn(0, u"Category")
-        self.__category_list.InsertColumn(1, u"Total Count")
+        self.__category_list.InsertColumn(0, "Category")
+        self.__category_list.InsertColumn(1, "Total Count")
         self.__category_list.SetColumnWidth(0, 150)
         self.__category_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnCategorySelected)
 
         self.__detail_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT)
-        set_small_modern_font(self.__detail_list)
-        self.__detail_list.InsertColumn(0, u"Count")
-        self.__detail_list.InsertColumn(1, u"Info")
+        self.__detail_list.InsertColumn(0, "Count")
+        self.__detail_list.InsertColumn(1, "Info")
         self.__detail_list.SetColumnWidth(0, 50)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add(self.__category_list, 1, wx.EXPAND | wx.ALL, 5)
-        hsizer.Add(self.__detail_list, 2, wx.EXPAND | wx.ALL, 5)
+        hsizer.Add(self.__category_list, 1, wx.EXPAND | wx.RIGHT, 5)
+        hsizer.Add(self.__detail_list, 2, wx.EXPAND)
         self.SetSizer(hsizer)
 
     def OnCategorySelected(self, event):
@@ -500,8 +492,7 @@ class RawInfoPanel(wx.Panel):
         self.__selected_category = category
         self.__detail_list.UpdateData(self.__info[event.GetIndex()][1])
 
-    def UpdateInfo(self):
-        stats = self.__dispersy.statistics
+    def UpdateInfo(self, stats):
         raw_info = {}
         self.__info = []
         category_list = []
@@ -518,22 +509,22 @@ class RawInfoPanel(wx.Panel):
             data_list.sort(key=lambda kv: kv[1], reverse=True)
             total_count = 0
             for key, value in data_list:
-                count_str = u"%sx" % value
+                count_str = "%s" % value
                 total_count += value
 
                 if category in self.__IP_CATEGORIES:
                     if isinstance(key, tuple):
-                        info_str = u"%s:%s" % key
+                        info_str = "%s:%s" % key
                     else:
                         info_str = str2unicode(key)
-                elif category == u"attachment":
-                    info_str = u"%s" % binascii.hexlify(key)
+                elif category == "attachment":
+                    info_str = "%s" % binascii.hexlify(key)
                 else:
                     info_str = str2unicode(key)
                 self.__info[idx][1].append((count_str, info_str))
 
             # update category list
-            total_count = u"%s" % total_count
+            total_count = "%s" % total_count
             if idx < self.__category_list.GetItemCount():
                 self.__category_list.SetStringItem(idx, 0, category_list[idx])
                 self.__category_list.SetStringItem(idx, 1, total_count)
@@ -558,9 +549,9 @@ class RawInfoPanel(wx.Panel):
 
 class RuntimeProfilingPanel(wx.Panel):
 
-    def __init__(self, parent, id, dispersy):
+    def __init__(self, parent, id):
         super(RuntimeProfilingPanel, self).__init__(parent, id)
-        self.__dispersy = dispersy
+        self.SetBackgroundColour(wx.WHITE)
 
         sizer = wx.BoxSizer()
 
@@ -572,25 +563,24 @@ class RuntimeProfilingPanel(wx.Panel):
         sizer.Add(self.__treectrl, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
-    def UpdateInfo(self):
+    def UpdateInfo(self, stats):
         self.__treectrl.DeleteAllItems()
-        parent_node = self.__treectrl.AddRoot(u"runtime stats")
+        parent_node = self.__treectrl.AddRoot("runtime stats")
         runtime = {}
         combined_runtime = defaultdict(list)
-        stats = self.__dispersy.statistics
-        if getattr(stats, u"runtime", None):
+        if getattr(stats, "runtime", None):
             for stat_dict in stats.runtime:
                 stat_list = []
                 for k, v in stat_dict.iteritems():
                     if isinstance(v, basestring):
-                        v = v.replace(u"\n", u"\n          ")
-                    stat_list.append(u"%-10s%s" % (k, v))
+                        v = v.replace("\n", "\n          ")
+                    stat_list.append("%-10s%s" % (k, v))
 
-                name = stat_dict[u"entry"].split(u"\n")[0]
+                name = stat_dict["entry"].split("\n")[0]
                 combined_name = name.split()[0]
 
-                label = u"duration = %7.2f ; entry = %s" % (stat_dict[u"duration"], name)
-                combined_runtime[combined_name].append((stat_dict[u"duration"], label, tuple(stat_list)))
+                label = "duration = %7.2f ; entry = %s" % (stat_dict["duration"], name)
+                combined_runtime[combined_name].append((stat_dict["duration"], label, tuple(stat_list)))
 
             for key, runtimes in combined_runtime.iteritems():
                 if len(runtimes) > 1:
@@ -608,7 +598,7 @@ class RuntimeProfilingPanel(wx.Panel):
                         else:
                             _subcalls[label] = subcall_list[0]
 
-                    runtime[u"duration = %7.2f ; entry = %s" % (total_duration, key)] = _subcalls
+                    runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = _subcalls
 
                 else:
                     duration, label, stat_list = runtimes[0]
@@ -657,29 +647,3 @@ class RuntimeProfilingPanel(wx.Panel):
                 addValue(keyNode, value)
 
         addValue(parent, data)
-
-
-class DispersyDebugFrame(wx.Frame):
-
-    def __init__(self, parent, id, dispersy):
-        super(DispersyDebugFrame, self).__init__(parent, id,
-            "Dispersy Debug Frame", size=(1280, 720), name="DispersyDebugFrame")
-        self.__dispersy = dispersy
-
-        self.__dispersy_detail_part = DispersyDetailPart(self, -1, dispersy)
-        sizer = wx.BoxSizer()
-        sizer.Add(self.__dispersy_detail_part, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-
-        self.__dispersy_update_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.OnDispersyUpdateTimer, self.__dispersy_update_timer)
-        self.__dispersy_update_timer.Start(5000, False)
-
-    @warnWxThread
-    def SwitchTab(self, num):
-        self.__dispersy_detail_part.SwitchTab(num)
-
-    @warnWxThread
-    def OnDispersyUpdateTimer(self, event):
-        self.__dispersy_detail_part.UpdateInfo()
-        self.__dispersy_detail_part.Update()
