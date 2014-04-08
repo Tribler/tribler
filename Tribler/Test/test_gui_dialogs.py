@@ -214,10 +214,32 @@ class TestGuiDialogs(TestGuiAsServer):
                 self.frame.channellist.GetManager().refresh()
                 return False
 
-            self.guiUtility.ShowPage('stats')
+
             self.CallConditional(300, has_connections_or_channel, do_search, 'did not connect to more than 5 peers within 300s')
 
         self.startTest(wait_for_channel)
+
+    def test_debugframe(self):
+        def do_screenshot(dialog):
+            self.screenshot('Screenshot of DispersyDebugFrame', window=dialog)
+
+            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+            self.Call(2, self.quit)
+
+        def do_screenshot_tab():
+            dialog = wx.FindWindowByName('DispersyDebugFrame')
+            self.assert_(isinstance(dialog, wx.Frame), 'could not find DispersyDebugFrame')
+
+            self.screenshot('Screenshot of DispersyDebugFrame', window=dialog)
+
+            dialog.SwitchTab(1)
+            self.Call(1, lambda: do_screenshot(dialog))
+
+        def do_error():
+            self.frame.OnOpenDebugFrame()
+            self.Call(20, do_screenshot_tab)
+
+        self.startTest(do_error, min_timeout=5)
 
 if __name__ == "__main__":
     unittest.main()
