@@ -840,17 +840,6 @@ class TriblerLaunchMany(Thread):
         # print >>sys.stderr,"tlm: set_activity",type,str,arg2
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
 
-    def network_vod_event_callback(self, videoinfo, event, params):
-        """ Called by network thread """
-
-        self._logger.debug("tlm: network_vod_event_callback: event %s, params %s", event, params)
-
-        # Call Sessioman threadpool to call user's callback
-        try:
-            videoinfo['usercallback'](event, params)
-        except:
-            print_exc()
-
     def update_torrent_checking_period(self):
         # dynamically change the interval: update at least every 2h
         if self.rtorrent_handler:
