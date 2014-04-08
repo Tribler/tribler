@@ -1612,6 +1612,21 @@ class TorrentDBHandler(BasicDBHandler):
         # print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(results),len(results),len(dont_sort_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return results
 
+    def getAutoCompleteTerms(self, keyword):
+        sql = "SELECT swarmname FROM FullTextIndex WHERE FullTextIndex MATCH 'swarmname: %s*'" % keyword
+        result = self._db.fetchall(sql)
+
+        all_terms = []
+        for line, in result:
+            i1 = line.find(keyword)
+            i2 = line.find(' ', i1 + len(keyword))
+            all_terms.append(line[i1:i2] if i2 >= 0 else line[i1:])
+
+        if keyword in all_terms:
+            all_terms.remove(keyword)
+
+        return list(set(all_terms))
+
     def getSearchSuggestion(self, keywords, limit=1):
         match = [keyword.lower() for keyword in keywords]
 
@@ -1799,8 +1814,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1], # click position
+                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1],  # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 
