@@ -196,7 +196,6 @@ class DefaultCrypto(Crypto):
         while dh_secret >= DIFFIE_HELLMAN_MODULUS or dh_secret < 2:
               dh_secret = rand("next", DIFFIE_HELLMAN_MODULUS)
 
-
         a = mpz(DIFFIE_HELLMAN_GENERATOR)
         b = mpz(dh_secret)
         c = mpz(DIFFIE_HELLMAN_MODULUS)
@@ -351,15 +350,15 @@ class DefaultCrypto(Crypto):
         relay_key = (candidate.sock_addr, circuit_id)
         dh_secret, _ = self.__generate_diffie_secret()
 
-        key = pow(self._received_secrets[relay_key],
-                  dh_secret, DIFFIE_HELLMAN_MODULUS)
+        key = pow(mpz(self._received_secrets[relay_key]),
+                  mpz(dh_secret), DIFFIE_HELLMAN_MODULUS)
 
         m = hashlib.sha256()
         m.update(str(key))
         key = m.digest()[0:16]
 
         self.session_keys[relay_key] = key
-        return_key = pow(DIFFIE_HELLMAN_GENERATOR, dh_secret,
+        return_key = pow(mpz(DIFFIE_HELLMAN_GENERATOR), mpz(dh_secret),
                          DIFFIE_HELLMAN_MODULUS)
         message.key = long_to_bytes(return_key)
 
@@ -417,8 +416,8 @@ class DefaultCrypto(Crypto):
             self._logger.warning("Invalid DH data received over circuit {}.".format(circuit_id))
             return None
 
-        session_key = pow(dh_second_part,
-                          unverified_hop.dh_secret,
+        session_key = pow(mpz(dh_second_part),
+                          mpz(unverified_hop.dh_secret),
                           DIFFIE_HELLMAN_MODULUS)
         m = hashlib.sha256()
         m.update(str(session_key))
