@@ -112,7 +112,7 @@ class SwiftProcessMgr:
     def clean_sps(self):
         # lock held
         deads = []
-        for sp in itertools.chain.from_iterable(self.sps.itervalues()):
+        for sp in self.sps.values():
             if not sp.is_alive():
                 self._logger.info("spm: clean_sps: Garbage collecting dead %s", sp.get_pid())
                 deads.append(sp)
