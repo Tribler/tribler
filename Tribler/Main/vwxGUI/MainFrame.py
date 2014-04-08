@@ -385,17 +385,12 @@ class MainFrame(wx.Frame):
         # If the user passed a torrentfile on the cmdline, load it.
         wx.CallAfter(post)
 
-        # ProxyService 90s Test_
-#        from Tribler.Core.Session import Session
-#        session = Session.get_instance()
-#        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
-        # _ProxyService 90s Test
-
     def OnOpenDebugFrame(self, event=None):
         from Tribler.Main.vwxGUI.DispersyDebugFrame import DispersyDebugFrame
         if not wx.FindWindowByName("DispersyDebugFrame"):
             frame = DispersyDebugFrame(self, -1, self.utility.session.get_dispersy_instance())
             frame.Show()
+
         if event:
             event.Skip()
 
