@@ -10,7 +10,7 @@ import logging
 import itertools
 
 from Tribler.Core.Swift.SwiftProcess import SwiftProcess
-
+from itertools import chain
 
 class SwiftProcessMgr:
 
@@ -112,7 +112,7 @@ class SwiftProcessMgr:
     def clean_sps(self):
         # lock held
         deads = []
-        for sp in self.sps.values():
+        for sp in chain.from_iterable(self.sps.itervalues()):
             if not sp.is_alive():
                 self._logger.info("spm: clean_sps: Garbage collecting dead %s", sp.get_pid())
                 deads.append(sp)
@@ -129,7 +129,7 @@ class SwiftProcessMgr:
             self.sesslock.acquire()
             self.done = True
 
-            for sp in itertools.chain.from_iterable(self.sps.values()):
+            for sp in chain.from_iterable(self.sps.itervalues()):
                 try:
                     sp.early_shutdown()
                 except:
@@ -141,7 +141,7 @@ class SwiftProcessMgr:
         """ Gracetime expired, kill procs """
         # Called by network thread
         self._logger.info("spm: network_shutdown")
-        for sp in itertools.chain.from_iterable(self.sps.values()):
+        for sp in chain.from_iterable(self.sps.itervalues()):
             try:
                 sp.network_shutdown()
             except:
@@ -153,7 +153,7 @@ class SwiftProcessMgr:
 
         self.sesslock.acquire()
         try:
-            for sp in itertools.chain.from_iterable(self.sps.values()):
+            for sp in chain.from_iterable(self.sps.itervalues()):
                 if sp.get_cmdport() == port:
                     self._logger.info("spm: connection_lost: Restart %s", sp.get_pid())
                     sp.start_cmd_connection()
