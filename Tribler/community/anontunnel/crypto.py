@@ -349,7 +349,7 @@ class DefaultCrypto(Crypto):
         dh_secret, _ = self.__generate_diffie_secret()
 
         key = pow(mpz(self._received_secrets[relay_key]),
-                  mpz(dh_secret), DIFFIE_HELLMAN_MODULUS)
+                  mpz(dh_secret), mpz(DIFFIE_HELLMAN_MODULUS))
 
         m = hashlib.sha256()
         m.update(str(key))
@@ -357,7 +357,7 @@ class DefaultCrypto(Crypto):
 
         self.session_keys[relay_key] = key
         return_key = pow(mpz(DIFFIE_HELLMAN_GENERATOR), mpz(dh_secret),
-                         DIFFIE_HELLMAN_MODULUS)
+                         mpz(DIFFIE_HELLMAN_MODULUS))
         message.key = long_to_bytes(return_key)
 
         encoded_dict = encoding.encode(message.candidate_list)
