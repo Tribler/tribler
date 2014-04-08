@@ -379,7 +379,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
 
             # Add icon right after the torrent title, indicating that the torrent has thumbnails
-            snapshot_bmp = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "snapshot.png"), wx.BITMAP_TYPE_ANY)
+            snapshot_bmp = GuiImageManager.getInstance().getImage(u"snapshot.png")
             self.snapshot = wx.StaticBitmap(self, -1, snapshot_bmp)
             self.snapshot.SetToolTipString("This torrent has thumbnails.")
             self.AddEvents(self.snapshot)
