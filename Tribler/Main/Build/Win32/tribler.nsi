@@ -123,12 +123,7 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler\Core\Tag"
  SetOutPath "$INSTDIR\Tribler\Core\Tag"
  File Tribler\Core\Tag\*.filter
- CreateDirectory "$INSTDIR\Tribler\Lang"
- SetOutPath "$INSTDIR\Tribler\Lang"
- IfFileExists user.lang userlang
- File Tribler\Lang\*.*
- userlang:
- File /x user.lang Tribler\Lang\*.*
+
   ; Main client specific
  CreateDirectory "$INSTDIR\Tribler"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"

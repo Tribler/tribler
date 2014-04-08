@@ -41,6 +41,8 @@ OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
 
 class AbstractServer(unittest.TestCase):
 
+    _annotate_counter = 0
+
     def setUp(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -88,8 +90,9 @@ class AbstractServer(unittest.TestCase):
                 f = open(filename, 'w')
                 print >> f, "annotation start end"
 
+            AbstractServer._annotate_counter += 1
             _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
-            _annotation = '%d_' % len(self.annotate_dict) + _annotation
+            _annotation = '%d_' % AbstractServer._annotate_counter + _annotation
 
             print >> f, _annotation, self.annotate_dict[annotation], time.time()
             f.close()
@@ -130,6 +133,7 @@ class TestAsServer(AbstractServer):
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
         self.config.set_dht_torrent_collecting(False)
+        self.config.set_videoplayer(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)

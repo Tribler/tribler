@@ -1,4 +1,11 @@
-import hashlib
+"""
+Cache module for the ProxyCommunity.
+
+Keeps track of outstanding PING and EXTEND requests and of candidates used in
+CREATE and CREATED requests.
+
+"""
+
 import logging
 from operator import itemgetter
 import threading
@@ -103,7 +110,7 @@ class PingRequestCache(NumberCache):
         self.community.remove_circuit(self.number, 'RequestCache')
 
 
-class CandidateCache:
+class CandidateCache(object):
     """
     The candidate cache caches public keys, IPs of known candidates in the
     community
@@ -111,12 +118,12 @@ class CandidateCache:
     @param ProxyCommunity community: the proxy community instance
     """
     def __init__(self, community, timeout=60):
-        self.lock = threading.RLock()
+        self._lock = threading.RLock()
+        self._timeout = timeout
+        self._capacity = 1000
+        self._community = community
 
-        self.timeout = timeout
-
-        self.capacity = 1000
-
+        # Public attributes
         self.keys_to_candidate = {}
         ''' :type : dict[object, WalkCandidate] '''
 
@@ -138,8 +145,6 @@ class CandidateCache:
         self.candidate_to_time = {}
         ''' :type : dict[WalkCandidate, float] '''
 
-        self.community = community
-
         def __clean_up_task():
             while True:
                 try:
@@ -158,15 +163,15 @@ class CandidateCache:
         """
         key = next(iter(candidate.get_members()))._ec
 
-        with self.lock:
+        with self._lock:
             self.invalidate_by_candidate(candidate)
 
             self.keys_to_candidate[key] = candidate
             self.candidate_to_key[candidate] = key
             self.ip_to_candidate[candidate.sock_addr] = candidate
-            key_string = self.community.crypto.key_to_bin(key)
+            key_string = self._community.crypto.key_to_bin(key)
             self.candidate_to_key_string[candidate] = key_string
-            hashed_key = self.community.dispersy.crypto.key_to_hash(key)
+            hashed_key = self._community.dispersy.crypto.key_to_hash(key)
             self.hashed_key_to_candidate[hashed_key] = candidate
             self.candidate_to_hashed_key[candidate] = hashed_key
 
@@ -180,7 +185,7 @@ class CandidateCache:
         Invalidate a single candidate in the cache
         @param WalkCandidate candidate: the candidate to invalidate
         """
-        with self.lock:
+        with self._lock:
             if candidate.sock_addr in self.ip_to_candidate:
                 # This line is not useless!
                 candidate = self.ip_to_candidate[candidate.sock_addr]
@@ -201,7 +206,7 @@ class CandidateCache:
         Invalidate a single candidate in the cache by its IP address
         @param (str, int) ip: the ip of the candidate to invalidate
         """
-        with self.lock:
+        with self._lock:
             if ip in self.ip_to_candidate:
                 candidate = self.ip_to_candidate[ip]
                 return self.invalidate_by_candidate(candidate)
@@ -228,17 +233,17 @@ class CandidateCache:
         """
         sample_time = time.time()
 
-        with self.lock:
+        with self._lock:
             timed_out = [candidate
                          for candidate, insert_time
                          in self.candidate_to_time.iteritems()
-                         if insert_time + self.timeout < sample_time]
+                         if insert_time + self._timeout < sample_time]
 
             for candidate in timed_out:
                 self.invalidate_by_candidate(candidate)
 
             # Shrink back to capacity if needed
-            amount_to_remove = max(0, len(self.candidate_to_time) - self.capacity)
+            amount_to_remove = max(0, len(self.candidate_to_time) - self._capacity)
             if amount_to_remove:
                 sorted_list = sorted(self.candidate_to_time, key=itemgetter(1))
                 to_remove = sorted_list[0:amount_to_remove]

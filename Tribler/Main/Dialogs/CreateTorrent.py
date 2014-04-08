@@ -4,16 +4,19 @@
 import wx
 import os
 import logging
-
-from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from threading import Event
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI import forceWxThread
 from traceback import print_exc
 
+from Tribler.Core.version import version_id
+from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
+from Tribler.Core.TorrentDef import TorrentDef
+
+from Tribler.Main.vwxGUI import forceWxThread
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+
+logger = logging.getLogger(__name__)
 
 class CreateTorrent(wx.Dialog):
 
@@ -105,9 +108,9 @@ class CreateTorrent(wx.Dialog):
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 3)
 
-        abbrev_mb = " " + self.guiutility.utility.lang.get('MB')
-        abbrev_kb = " " + self.guiutility.utility.lang.get('KB')
-        piece_choices = [self.guiutility.utility.lang.get('automatic'),
+        abbrev_mb = " MB"
+        abbrev_kb = " KB"
+        piece_choices = ['Automatic',
                          '4' + abbrev_mb,
                          '2' + abbrev_mb,
                          '1' + abbrev_mb,
@@ -199,46 +202,6 @@ class CreateTorrent(wx.Dialog):
             self.specifiedName.SetValue(name)
 
     def OnOk(self, event):
-#            if self.specifyNames.GetValue():
-#                dlg = wx.Dialog(self, -1, 'Please correct the names for the torrents.', size=(750,450))
-#                sizer = wx.BoxSizer(wx.VERTICAL)
-#                header = wx.StaticText(dlg, -1, 'Please modify the names for the .torrents.')
-#
-#                _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
-#                sizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
-#
-#                flexSizer =  wx.FlexGridSizer(2,2,3,3)
-#                controls = []
-#                for name in names:
-#                    flexSizer.Add(wx.StaticText(dlg, -1, name), 0, wx.ALIGN_CENTER_VERTICAL)
-#                    control = wx.TextCtrl(dlg,-1, name)
-#                    control.SetMinSize((300,-1))
-#                    flexSizer.Add(control, 1, wx.EXPAND)
-#                    controls.append(control)
-#
-#                sizer.Add(flexSizer, 1, wx.EXPAND|wx.BOTTOM, 3)
-#
-#                cancel = wx.Button(dlg, wx.ID_CANCEL)
-#                ok = wx.Button(dlg, wx.ID_OK)
-#
-#                bSizer = wx.StdDialogButtonSizer()
-#                bSizer.AddButton(cancel)
-#                bSizer.AddButton(ok)
-#                bSizer.Realize()
-#                sizer.Add(bSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
-#
-#                bsizer = wx.BoxSizer()
-#                bsizer.Add(sizer, 1, wx.EXPAND|wx.ALL, 10)
-#                dlg.SetSizerAndFit(bsizer)
-#
-#                if dlg.ShowModal() == wx.ID_OK:
-#                    for i, control in enumerate(controls):
-#                        names[i] = control.GetValue()
-#                    dlg.Destroy()
-#                else:
-#                    dlg.Destroy()
-#                    return
-
         max = 1 if self.combineRadio.GetValue() else len(self.selectedPaths)
         if self.toChannel:
             dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?" % max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
@@ -250,7 +213,7 @@ class CreateTorrent(wx.Dialog):
 
             params = {}
             params['comment'] = self.commentList.GetValue()
-            params['created by'] = '%s version: %s' % (self.guiutility.utility.lang.get('title'), self.guiutility.utility.lang.get('version'))
+            params['created by'] = '%s version: %s' % ('Tribler', version_id)
 
             trackers = self.trackerList.GetValue()
             trackers = [tracker for tracker in trackers.split('\n') if tracker]
@@ -260,10 +223,6 @@ class CreateTorrent(wx.Dialog):
             self.trackerHistory.Save(self.config)
             self.config.Flush()
 
-            if len(self.selectedPaths) > 1:
-                basedir = os.path.commonprefix(self.selectedPaths)
-            else:
-                basedir = os.path.dirname(self.selectedPaths[0])
             self.filehistory.Save(self.fileconfig)
             self.fileconfig.Flush()
 
@@ -458,13 +417,13 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
     if params['makehash_md5']:
-        self._logger.info("TorrentMaker: make MD5")
+        logger.info("TorrentMaker: make MD5")
         tdef.set_add_md5hash(params['makehash_md5'])
     if params['makehash_crc32']:
-        self._logger.info("TorrentMaker: make CRC32")
+        logger.info("TorrentMaker: make CRC32")
         tdef.set_add_crc32(params['makehash_crc32'])
     if params['makehash_sha1']:
-        self._logger.info("TorrentMaker: make SHA1")
+        logger.info("TorrentMaker: make SHA1")
         tdef.set_add_sha1hash(params['makehash_sha1'])
     if params['createmerkletorrent']:
         tdef.set_create_merkle_torrent(params['createmerkletorrent'])

@@ -199,21 +199,17 @@ class MetadataDBHandler(BasicDBHandler):
             raise RuntimeError("MetadataDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, None)
+        self.category = Category.getInstance()
+        self.misc_db = MiscDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
 
     def getMetadataMessageList(self, infohash, roothash, columns):
         """
         Gets a list of metadata messages with the given hash-type and
         hash-value.
         """
-        if infohash:
-            infohash_str = bin2str(infohash)
-        else:
-            infohash_str = None
-
-        if roothash:
-            roothash_str = bin2str(roothash)
-        else:
-            roothash_str = None
+        infohash_str = bin2str(infohash) if infohash else None
+        roothash_str = bin2str(roothash) if roothash else None
 
         column_str = ",".join(columns)
         sql = "SELECT %s FROM MetadataMessage WHERE infohash = ? OR roothash = ?" % column_str
@@ -223,9 +219,12 @@ class MetadataDBHandler(BasicDBHandler):
         if raw_result_list:
             for raw_result in raw_result_list:
                 this_result = []
-                idx = 0
-                for column in columns:
-                    if column == "infohash":
+
+                for idx, column in enumerate(columns):
+                    if raw_result[idx] == None:
+                        this_result.append(None)
+
+                    elif column == "infohash":
                         this_result.append(str2bin(raw_result[idx]))
                     elif column == "roothash":
                         this_result.append(str2bin(raw_result[idx]))
@@ -236,44 +235,32 @@ class MetadataDBHandler(BasicDBHandler):
                     else:
                         this_result.append(raw_result[idx])
 
-                    idx += 1
-
                 processed_result_list.append(tuple(this_result))
 
         return processed_result_list
 
     def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
-            infohash, roothash,
-            prev_metadata_mid=None, prev_metadata_global_time=None):
+            infohash, roothash, prev_mid=None, prev_global_time=None):
         """
         Adds a Metadata message and get its message ID.
         """
-        if this_mid:
-            this_mid_str = buffer(this_mid)
-        else:
-            this_mid_str = None
+        this_mid_str = buffer(this_mid) if this_mid else None
+        prev_mid_str = buffer(prev_mid) if prev_mid else None
 
-        if prev_metadata_mid:
-            prev_metadata_mid_str = buffer(prev_metadata_mid)
-        else:
-            prev_metadata_mid_str = None
+        infohash_str = bin2str(infohash) if infohash else None
+        roothash_str = bin2str(roothash) if roothash else None
 
-        if infohash:
-            infohash_str = bin2str(infohash)
-        else:
-            infohash_str = None
-
-        if roothash:
-            roothash_str = bin2str(roothash)
-        else:
-            roothash_str = None
-
-        sql = "INSERT INTO MetadataMessage(dispersy_id, this_global_time, this_mid, infohash, roothash, previous_mid, previous_global_time) VALUES(?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
+        sql = """INSERT INTO MetadataMessage(dispersy_id, this_global_time,
+                this_mid, infohash, roothash, previous_mid, previous_global_time)
+            VALUES(?, ?, ?, ?, ?, ?, ?);
+            SELECT last_insert_rowid();
+        """
         values = (dispersy_id, this_global_time, this_mid_str,
             infohash_str, roothash_str,
-            prev_metadata_mid_str, prev_metadata_global_time)
+            prev_mid_str, prev_global_time)
 
         result = self._db.fetchone(sql, values)
+        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         return result
 
     def addMetadataDataInBatch(self, value_tuple_list):
@@ -301,7 +288,17 @@ class MetadataDBHandler(BasicDBHandler):
         result = self._db.fetchall(sql, (message_id,))
         return result
 
-
+    def getThumbnailTorrents(self, keys, limit=20):
+        sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs' AND Torrent.name <> '' AND Torrent.name IS NOT NULL " + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " ORDER BY this_global_time DESC LIMIT ?"
+        results = self._db.fetchall(sql, (limit,))
+        for key_index, key in enumerate(keys):
+            if key.endswith('hash'):
+                for i in range(len(results)):
+                    result = list(results[i])
+                    if result[key_index]:
+                        result[key_index] = str2bin(result[key_index])
+                        results[i] = result
+        return results
 
 class PeerDBHandler(BasicDBHandler):
 
@@ -1802,8 +1799,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1],  # click position
+                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1], # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 

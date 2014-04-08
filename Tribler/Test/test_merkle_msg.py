@@ -64,7 +64,7 @@ class TestMerkleMessage(TestAsServer):
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
         self.tdef = TorrentDef()
-        self.sourcefn = os.path.join(os.getcwd(), "API", "file2.wmv")
+        self.sourcefn = os.path.join(os.getcwd(), "API", "video2.wmv")
         self.tdef.add_content(self.sourcefn)
         self.tdef.set_create_merkle_torrent(True)
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
@@ -219,7 +219,7 @@ class TestMerkleMessage(TestAsServer):
             print >> sys.stderr, "test: Timeout, bad, peer didn't reply in time"
             self.assert_(False)
 
-        destfn = os.path.join(self.config_path, "file2.wmv")
+        destfn = os.path.join(self.config_path, "video2.wmv")
         sf = open(self.sourcefn, "rb")
         df = open(destfn, "rb")
         n = self.tdef.get_piece_length()

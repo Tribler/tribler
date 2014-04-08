@@ -28,7 +28,7 @@ from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_
 from Tribler.Main.Utility.GuiDBTuples import MergedDs, Torrent, CollectedTorrent
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Video.VideoUtility import limit_resolution
+from Tribler.Core.Video.VideoUtility import limit_resolution
 
 
 class ColumnsManager:
@@ -379,7 +379,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
 
             # Add icon right after the torrent title, indicating that the torrent has thumbnails
-            snapshot_bmp = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "snapshot.png"), wx.BITMAP_TYPE_ANY)
+            snapshot_bmp = GuiImageManager.getInstance().getImage(u"snapshot.png")
             self.snapshot = wx.StaticBitmap(self, -1, snapshot_bmp)
             self.snapshot.SetToolTipString("This torrent has thumbnails.")
             self.AddEvents(self.snapshot)
@@ -902,8 +902,7 @@ class LibraryListItem(TorrentListItem):
     def OnDClick(self, event):
         pass
 
-
-class ThumbnailListItem(TorrentListItem, FancyPanel):
+class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED, list_selected_and_expanded=LIST_DARKBLUE):
         FancyPanel.__init__(self, parent, border=wx.RIGHT | wx.BOTTOM)
@@ -916,7 +915,7 @@ class ThumbnailListItem(TorrentListItem, FancyPanel):
         self.columns = self.controls = []
         self.data = data
         self.original_data = original_data
-        self.bitmap_size = (175, 175)
+        self.max_bitmap_size = (175, 175)
 
         self.showChange = showChange
         self.list_deselected = LIST_DESELECTED
@@ -939,35 +938,13 @@ class ThumbnailListItem(TorrentListItem, FancyPanel):
     def AddComponents(self, leftSpacer, rightSpacer):
         ListItem.AddComponents(self, leftSpacer, rightSpacer)
 
-        self.thumbnail = wx.StaticBitmap(self, -1)
-        self.AddEvents(self.thumbnail)
+        self.bitmap, self.bitmap_hover = self.CreateBitmaps()
 
+        self.thumbnail = wx.BitmapButton(self, -1, self.bitmap, style=wx.NO_BORDER)
+        self.thumbnail.SetBitmapHover(self.bitmap_hover)
+        self.thumbnail.Bind(wx.EVT_BUTTON, self.OnThumbnailClick)
         self.hSizer.Add(self.thumbnail, 1, wx.EXPAND | wx.ALL, 15)
-
-        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.original_data.infohash))
-        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
-
-        if thumb_files:
-            bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
-            res = limit_resolution(bmp.GetSize(), self.bitmap_size)
-            bmp = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
-            if bmp:
-                self.thumbnail.SetBitmap(bmp)
-        else:
-            bmp = wx.EmptyBitmap(*self.bitmap_size)
-            dc = wx.MemoryDC(bmp)
-            dc.SetBackground(wx.Brush(wx.Colour(230, 230, 230)))
-            dc.Clear()
-
-            font = self.GetFont()
-            font.SetPointSize(font.GetPointSize() + 4)
-            dc.SetFont(font)
-            dc.SetTextForeground(wx.Colour(100, 100, 100))
-            dc.DrawLabel('No picture\navailable', (0, 0) + self.bitmap_size, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
-            dc.SelectObject(wx.NullBitmap)
-            del dc
-
-            self.thumbnail.SetBitmap(bmp)
+        self.AddEvents(self.thumbnail)
 
         def ShortenText(statictext, text):
             for i in xrange(len(text), 0, -1):
@@ -981,9 +958,61 @@ class ThumbnailListItem(TorrentListItem, FancyPanel):
 
         name = wx.StaticText(self, -1, '')
         name.SetLabel(ShortenText(name, self.original_data.name))
+        self.AddEvents(name)
         self.vSizer.Add(name, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
 
         self.hSizer.Layout()
+
+    def CreateBitmaps(self):
+        bitmap = None
+
+        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.original_data.infohash))
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
+
+        if thumb_files:
+            bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
+            res = limit_resolution(bmp.GetSize(), self.max_bitmap_size)
+            bitmap = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
+
+        if not bitmap:
+            bitmap = GuiImageManager.getInstance().drawBitmap("no-thumbnail",
+                self.max_bitmap_size, self.GetFont())
+
+        res = bitmap.GetSize()
+        bitmap_hover = wx.EmptyBitmap(*res)
+        dc = wx.MemoryDC(bitmap_hover)
+        gc = wx.GraphicsContext.Create(dc)
+        gc.DrawBitmap(bitmap, 0, 0, *res)
+        gc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 150)))
+        gc.DrawRectangle(0, 0, *res)
+
+        size = min(res)
+        path = gc.CreatePath()
+        path.MoveToPoint(0.2 * size, 0.2 * size)
+        path.AddLineToPoint(0.2 * size, 0.8 * size)
+        path.AddLineToPoint(0.8 * size, 0.5 * size)
+        gc.PushState()
+        gc.Translate((res[0] - size) / 2, (res[1] - size) / 2)
+        gc.SetBrush(wx.Brush(wx.Colour(255, 255, 255, 150)))
+        gc.SetPen(wx.TRANSPARENT_PEN)
+        gc.DrawPath(path)
+
+        dc.SelectObject(wx.NullBitmap)
+        del dc
+
+        return (bitmap, bitmap_hover)
+
+    def OnThumbnailClick(self, event):
+        self.guiutility.library_manager.playTorrent(self.original_data.infohash)
+
+
+class ThumbnailListItem(ThumbnailListItemNoTorrent, TorrentListItem):
+
+    def __init__(self, *args, **kwargs):
+        ThumbnailListItemNoTorrent.__init__(self, *args, **kwargs)
+
+    def AddComponents(self, *args, **kwargs):
+        ThumbnailListItemNoTorrent.AddComponents(self, *args, **kwargs)
 
     def GetContextMenu(self):
         menu = TorrentListItem.GetContextMenu(self)

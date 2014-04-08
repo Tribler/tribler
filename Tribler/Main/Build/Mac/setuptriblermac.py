@@ -8,7 +8,7 @@ import sys
 import os
 import logging
 from setuptools import setup
-from Tribler.__init__ import LIBRARYNAME
+from Tribler import LIBRARYNAME
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +115,7 @@ setup(
         'plist': Plist.fromFile(LIBRARYNAME + '/Main/Build/Mac/Info.plist'),
         'optimize': 0 if __debug__ else 2,
         'resources':
-            [(LIBRARYNAME + "/Lang", [LIBRARYNAME + "/Lang/english.lang"]),
-             (LIBRARYNAME + "/Category", [LIBRARYNAME + "/Category/category.conf"]),
+            [(LIBRARYNAME + "/Category", [LIBRARYNAME + "/Category/category.conf"]),
              (LIBRARYNAME + "/Core/Tag", [LIBRARYNAME + "/Core/Tag/stop_snowball.filter"]),
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_stable"]),
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_unstable"]),

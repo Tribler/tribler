@@ -1,10 +1,10 @@
 import logging
 import time
-import uuid
 from Tribler.community.anontunnel.events import TunnelObserver
 import shutil
 
-class LibtorrentTest(object, TunnelObserver):
+
+class LibtorrentTest(TunnelObserver):
     """
     @param ProxyCommunity proxy : The proxy community instance
     @param Tribler.Core.Session.Session tribler_session: The Tribler Session

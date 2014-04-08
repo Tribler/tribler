@@ -2,22 +2,20 @@
 # see LICENSE.txt for license information
 #
 
-import unittest
-import os
 import sys
 import time
 import socket
-import tempfile
 from unittest import skip
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.btconn import BTConnection
-from Tribler.Core.MessageID import *
 
-from Tribler.Core.TorrentDef import *
-from Tribler.Core.DownloadConfig import *
-from Tribler.Core.Session import *
-from Tribler.Core.simpledefs import *
+from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.Core.MessageID import getMessageName, EXTEND, BITFIELD
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Session import Session
+
 from Tribler.Core.Utilities.bitfield import Bitfield
 
 DEBUG = True

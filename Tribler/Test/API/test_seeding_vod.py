@@ -16,7 +16,7 @@ class TestVODSeeding(TestSeeding):
         TestSeeding.setUp(self)
         self.vod_event = threading.Event()
 
-    def setup_seeder(self, filename='file2.wmv'):
+    def setup_seeder(self, filename='video.avi'):
         TestSeeding.setup_seeder(self, filename)
 
     def subtest_download(self):

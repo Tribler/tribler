@@ -113,8 +113,6 @@ mkdir dist\installdir\Tribler\Core\Tag
 copy Tribler\Core\Tag\*.filter dist\installdir\Tribler\Core\Tag
 
 copy Tribler\Main\Build\Win32\heading.bmp dist\installdir
-mkdir dist\installdir\Tribler\Lang
-copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
 
 REM Arno, 2012-05-25: data files for pymdht
 mkdir dist\installdir\Tribler\Core\DecentralizedTracking

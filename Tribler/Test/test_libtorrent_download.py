@@ -87,7 +87,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
             self.frame.librarylist.list.Select(infohash)
             self.frame.top_bg.OnDelete(silent=True)
-            self.CallConditional(10, lambda: infohash not in self.frame.librarylist.list.items, do_final, 'download not deleted')
+            self.CallConditional(10, lambda: not self.frame.librarylist.list.HasItem(infohash), lambda: self.Call(1, do_final), 'download not deleted')
 
         def do_resume():
             self.screenshot('After stopping a libtorrent download')
@@ -124,8 +124,8 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def check_playlist():
-            from Tribler.Video.VideoPlayer import VideoPlayer
-            from Tribler.Video.utils import videoextdefaults
+            from Tribler.Core.Video.VideoPlayer import VideoPlayer
+            from Tribler.Core.Video.utils import videoextdefaults
 
             buffer_complete = time()
 
@@ -139,16 +139,21 @@ class TestLibtorrentDownload(TestGuiAsServer):
                     videofiles.append(filename)
 
             playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
-            self.CallConditional(10, lambda: len(playlist.links) == len(videofiles), lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "lists did not match length")
+
+            do_check = lambda: len(playlist.links) == len(videofiles) and \
+                               playlist.tdef.get_id() == VideoPlayer.getInstance().get_vod_download().get_def().get_id() and \
+                               playlist.fileindex == VideoPlayer.getInstance().get_vod_fileindex()
+
+            self.CallConditional(10, do_check, lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "playlist set incorrectly")
 
         def do_monitor():
-            from Tribler.Video.VideoPlayer import VideoPlayer
+            from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
             self.screenshot('After starting a VOD download')
             self.CallConditional(60, lambda: VideoPlayer.getInstance().vod_playing, check_playlist, "streaming did not start")
 
         def do_vod():
-            from Tribler.Video.VideoPlayer import VideoPlayer
+            from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
             self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir(), selectedFiles=[os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')], vodmode=True)
             self.guiUtility.ShowPlayer()

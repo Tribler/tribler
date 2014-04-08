@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 import shutil
 import hashlib
@@ -7,7 +6,6 @@ import binascii
 import logging
 import tempfile
 from threading import currentThread, Thread
-from traceback import print_exc
 
 try:
     prctlimported = True
@@ -16,10 +14,9 @@ except ImportError, e:
     prctlimported = False
 
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
+from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
     limit_resolution, get_thumbnail
 
-from Tribler.community.channel.community import ChannelCommunity
 
 class TorrentStateManager:
     # Code to make this a singleton
@@ -70,9 +67,8 @@ class TorrentStateManager:
         assert isinstance(tempdir, str) or isinstance(tempdir, unicode), \
             u"tempdir is of type %s" % type(tempdir)
 
-        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        guiutility = GUIUtility.getInstance()
-        session = guiutility.utility.session
+        from Tribler.Core.Session import Session
+        session = Session.get_instance()
 
         torcoldir = session.get_torrent_collecting_dir()
         thumb_filenames = []
@@ -82,7 +78,11 @@ class TorrentStateManager:
                 continue
             if not (filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png")):
                 continue
+            if os.path.getsize(filepath) < 1024:
+                continue
             thumb_filenames.append(filepath)
+        if not thumb_filenames:
+            return
 
         # Calculate sha1 of the thumbnails.
         contenthash = hashlib.sha1()
@@ -128,13 +128,20 @@ class TorrentStateManager:
 
 
     def _create_and_seed_metadata(self, videofile, torrent):
-        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
 
-        self.guiutility = GUIUtility.getInstance()
-        self.session = self.guiutility.utility.session
+        # skip if we already have a video-info
+        from Tribler.Core.CacheDB.SqliteCacheDBHandler import MetadataDBHandler
+        metadata_db_handler = MetadataDBHandler.getInstance()
+        result_list = metadata_db_handler.getMetdataDateByInfohash(torrent.infohash)
+        if result_list:
+            for key, _ in result_list:
+                if key == 'video-info':
+                    return
+
+        from Tribler.Core.Session import Session
+        self.session = Session.get_instance()
         videoanalyser = self.session.get_video_analyser_path()
 
         torcoldir = self.session.get_torrent_collecting_dir()
@@ -169,15 +176,15 @@ class TorrentStateManager:
             path_exists = os.path.exists(filename)
             self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
 
-        roothash_hex, contenthash_hex = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
-
         # Create modification
         modifications = []
-        #modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, sdef.get_roothash_as_hex(), contenthash_hex))))
-        modifications.append(('swift-thumbnails', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
         modifications.append(('video-info', json.dumps(video_info)))
 
-        self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
+        result = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
+        if result:
+            roothash_hex, contenthash_hex = result
+            modifications.append(('swift-thumbs', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
 
+        self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
 
         self.torrent_manager.modifyTorrent(torrent, modifications)

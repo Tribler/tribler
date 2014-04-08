@@ -12,7 +12,7 @@ from collections import defaultdict
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache, CandidateCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
-from Tribler.community.anontunnel.tests.test import LibtorrentTest
+from Tribler.community.anontunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
@@ -922,7 +922,7 @@ class ProxyCommunity(Community):
                         str_type + ('-relayed' if relayed else ''), 1)
 
         # we need to make sure that this endpoint is thread safe
-        return self.dispersy.endpoint.send_simple(destination, self.__packet_prefix + packet)
+        return self.dispersy.endpoint.send_packet(destination, self.__packet_prefix + packet)
 
     def __dict_inc(self, statistics_dict, key, inc=1):
         key = u"anontunnel-" + key

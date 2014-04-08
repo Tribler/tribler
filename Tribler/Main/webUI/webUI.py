@@ -1,16 +1,16 @@
-import cherrypy
-import random
 import sys
 import os
 import logging
+import random
 from binascii import hexlify, unhexlify
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
-
 import json
 from functools import wraps
-from cherrypy import response, expose
-from cherrypy.lib.auth_basic import checkpassword_dict
 from traceback import print_exc
+import cherrypy
+from cherrypy import response
+from cherrypy.lib.auth_basic import checkpassword_dict
+
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
 
 def jsonify(func):

@@ -4,17 +4,18 @@
 import socket
 import errno
 import logging
+import sys
+from time import sleep
+from random import shuffle, randrange
+from traceback import print_exc
 try:
     from select import poll, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1000
 except ImportError:
     from selectpoll import poll, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1
-from time import sleep
+
 from Tribler.Core.Utilities.clock import clock
-import sys
-from random import shuffle, randrange
-from traceback import print_exc
 
 try:
     True

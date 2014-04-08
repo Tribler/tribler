@@ -17,7 +17,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel

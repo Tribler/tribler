@@ -9,7 +9,7 @@ import binascii
 from traceback import print_exc
 
 from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
@@ -27,9 +27,8 @@ class TestVideoHTTPServer(TestAsServer):
     def setUp(self):
         """ unittest test setup code """
         TestAsServer.setUp(self)
-        self.port = random.randint(10000, 60000)
-        self.videoplayer = VideoPlayer.getInstance(self.session, None, httpport=self.port)
-        self.sourcefn = os.path.join(BASE_DIR, "API", "file.wmv")  # 82KB or 82948 bytes
+        self.port = self.session.get_videoplayer_port()
+        self.sourcefn = os.path.join(BASE_DIR, "data", "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
 
         # wait 5s to allow server to start
@@ -38,12 +37,11 @@ class TestVideoHTTPServer(TestAsServer):
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent(True)
+        self.config.set_videoplayer(True)
 
     def tearDown(self):
         """ unittest test tear down code """
         TestAsServer.tearDown(self)
-        VideoPlayer.getInstance().shutdown()
-        VideoPlayer.delInstance()
         time.sleep(2)
 
     #
@@ -160,7 +158,7 @@ class TestVideoHTTPServer(TestAsServer):
                 self.assertEqual(expline, line)
 
             elif line.startswith("Content-Type:"):
-                self.assertEqual(line, "Content-Type: video/x-ms-wmv\r\n")
+                self.assertEqual(line, "Content-Type: video/x-msvideo\r\n")
 
             elif line.startswith("Content-Length:"):
                 self.assertEqual(line, "Content-Length: " + str(expsize) + "\r\n")

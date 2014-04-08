@@ -3,12 +3,11 @@
 
 import os
 import re
-from Tribler.Category.init_category import getCategoryInfo
-from Tribler.Category.FamilyFilter import XXXFilter
-
 import logging
 
 from Tribler import LIBRARYNAME
+from Tribler.Category.init_category import getCategoryInfo
+from Tribler.Category.FamilyFilter import XXXFilter
 
 CATEGORY_CONFIG_FILE = "category.conf"
 

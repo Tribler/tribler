@@ -183,7 +183,7 @@ class RelayRoute(object):
         return diff if diff > 0 else 0
 
 
-class CircuitPool(object, TunnelObserver):
+class CircuitPool(TunnelObserver):
     def __init__(self, size, name):
         super(CircuitPool, self).__init__()
 

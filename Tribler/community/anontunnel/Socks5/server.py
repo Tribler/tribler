@@ -11,7 +11,7 @@ from .connection import Socks5Connection
 __author__ = 'chris'
 
 
-class Socks5Server(object, TunnelObserver):
+class Socks5Server(TunnelObserver):
     """
     The SOCKS5 server which allows clients to proxy UDP over Circuits in the
     ProxyCommunity

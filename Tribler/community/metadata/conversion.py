@@ -1,6 +1,9 @@
+import zlib
+import logging
+from random import sample
+
 from Tribler.dispersy.conversion import BinaryConversion
-from Tribler.dispersy.message import DropPacket, Packet,\
-    DelayPacketByMissingMessage, DelayPacketByMissingMember
+from Tribler.dispersy.message import DropPacket
 
 from Tribler.Core.Utilities.encoding import encode, decode
 
@@ -9,6 +12,7 @@ class MetadataConversion(BinaryConversion):
 
     def __init__(self, community):
         super(MetadataConversion, self).__init__(community, "\x01")
+        self.__logger = logging.getLogger(self.__class__.__name__)
         self.define_meta_message(chr(1), community.get_meta_message(u"metadata"), lambda message: self._encode_decode(self._encode_metadata, self._decode_metadata, message), self._decode_metadata)
 
 
@@ -28,58 +32,82 @@ class MetadataConversion(BinaryConversion):
         """
         Encodes the metadata message payload.
         """
-        dict = {u"infohash" : message.payload.infohash,
-                u"roothash": message.payload.roothash,
-                u"data-list" : message.payload.data_list,
-                u"this-metadata-mid": message.authentication.member.mid,
-                u"this-metadata-global-time": message.distribution.global_time
-        }
+        max_len = 8 * 1024
 
-        if message.payload.prev_metadata_mid:
-            dict[u"prev-metadata-mid"] = message.payload.prev_metadata_mid
-            dict[u"prev-metadata-global-time"] = message.payload.prev_metadata_global_time
+        data_list = message.payload.data_list
 
-        return encode(dict),
+        def create_msg():
+            msg_dict = {
+                "infohash": message.payload.infohash,
+                "roothash": message.payload.roothash,
+                "data-list": message.payload.data_list
+            }
+            if message.payload.prev_mid:
+                msg_dict["prev-mid"] = message.payload.prev_mid
+                msg_dict["prev-global-time"] = message.payload.prev_global_time
+
+            normal_msg = encode(msg_dict)
+            return zlib.compress(normal_msg)
+
+        compressed_msg = create_msg()
+        while len(compressed_msg) > max_len:
+            # reduce files by the amount we are currently to big
+            reduce_by = max_len / (len(compressed_msg) * 1.0)
+            nr_data_to_include = int(len(data_list) * reduce_by)
+            data_list = sample(data_list, nr_data_to_include)
+
+            compressed_msg = create_msg()
+        return compressed_msg,
 
 
     def _decode_metadata(self, placeholder, offset, data):
         """
         Decodes the metadata message payload.
         """
+        uncompressed_data = zlib.decompress(data[offset:])
+        offset = len(data)
+
         try:
-            offset, dic = decode(data, offset)
+            _, dic = decode(uncompressed_data)
         except ValueError:
-            raise DropPacket(u"Unable to decode metadata message payload")
+            raise DropPacket("Unable to decode metadata message payload")
 
-        if not u"infohash" in dic:
-            raise DropPacket(u"Missing 'infohash'")
-        infohash = dic[u"infohash"]
+        if not "infohash" in dic:
+            raise DropPacket("Missing 'infohash'")
+        infohash = dic["infohash"]
         if not (isinstance(infohash, str) and len(infohash) == 20):
-            raise DropPacket(u"Invalid 'infohash' type or value")
+            raise DropPacket("Invalid 'infohash' type or value")
 
-        if not u"roothash" in dic:
-            raise DropPacket(u"Missing 'roothash'")
-        roothash = dic[u"roothash"]
+        if not "roothash" in dic:
+            raise DropPacket("Missing 'roothash'")
+        roothash = dic["roothash"]
         if roothash and not (isinstance(roothash, str) and len(roothash) == 20):
-            raise DropPacket(u"Invalid 'roothash' type or value")
+            raise DropPacket("Invalid 'roothash' type or value")
 
-        if not u"data-list" in dic:
-            raise DropPacket(u"Missing 'data-list'")
-        data_list = dic[u"data-list"]
+        if not "data-list" in dic:
+            raise DropPacket("Missing 'data-list'")
+        data_list = dic["data-list"]
         if not isinstance(data_list, list):
-            raise DropPacket(u"Invalid 'data-list' type or value")
+            raise DropPacket("Invalid 'data-list' type or value")
         for data in data_list:
             if not isinstance(data, tuple):
-                raise DropPacket(u"Invalid 'data' type")
+                raise DropPacket("Invalid 'data' type")
             elif len(data) != 2:
-                raise DropPacket(u"Invalid 'data' value")
+                raise DropPacket("Invalid 'data' value")
+            elif len(data[1]) > 1024:
+                raise DropPacket("'data' value too big (> 1024 bytes)")
 
-        prev_metadata_mid = dic.get(u"prev-metadata-mid", None)
-        if prev_metadata_mid and not (isinstance(prev_metadata_mid, str) and len(prev_metadata_mid) == 20):
-            raise DropPacket(u"Invalid 'prev-metadata-mid' type or value")
+        prev_mid = dic.get("prev-mid", None)
+        if prev_mid and not (isinstance(prev_mid, str) and len(prev_mid) == 20):
+            raise DropPacket("Invalid 'prev-mid' type or value")
 
-        prev_metadata_global_time = dic.get(u"prev-metadata-global-time", None)
-        if prev_metadata_global_time and not isinstance(prev_metadata_global_time, (int, long)):
-            raise DropPacket(u"Invalid 'prev-metadata-global-time' type")
+        prev_global_time = dic.get("prev-global-time", None)
+        if prev_global_time and not isinstance(prev_global_time, (int, long)):
+            raise DropPacket("Invalid 'prev-global-time' type")
 
-        return offset, placeholder.meta.payload.implement(infohash, roothash, data_list, prev_metadata_mid, prev_metadata_global_time)
+        if (prev_mid and not prev_global_time):
+            raise DropPacket("Incomplete previous pointer (mid and NO global-time)")
+        if (not prev_mid and prev_global_time):
+            raise DropPacket("Incomplete previous pointer (global-time and NO mid)")
+
+        return offset, placeholder.meta.payload.implement(infohash, roothash, data_list, prev_mid, prev_global_time)

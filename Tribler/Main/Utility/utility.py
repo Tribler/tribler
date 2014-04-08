@@ -1,16 +1,13 @@
 # Written by ABC authors and Arno Bakker
 # see LICENSE.txt for license information
 import os
-import ast
 import sys
 import socket
 import logging
 import codecs
-
 from random import gauss
 
-from Tribler.Lang.lang import Lang
-from Tribler.Core.__init__ import version_id
+from Tribler.Core.version import version_id
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
@@ -40,20 +37,14 @@ class Utility:
 
         self.setupConfig()
 
-        # Setup language files
-        self.lang = Lang(self)
-
         # Is ABC in the process of shutting down?
         self.abcquitting = False
 
     def setupConfig(self):
-        tribler_defaults = {'language_file': 'english.lang',
-                            'confirmonclose': 1,
+        tribler_defaults = {'confirmonclose': 1,
                             # RateLimitPanel
                             'maxuploadrate': 0,
                             'maxdownloadrate': 0,
-                            # VideoPanel
-                            'videoplaybackmode': 0,
                             # Misc
                             'torrentassociationwarned': 0,
                             # GUI
@@ -77,22 +68,9 @@ class Utility:
                             'webui_port': 8080,
                             # Swift reseed
                             'swiftreseed': 1,
-                            'videohttpport':-1,
                             'showsaveas': 1,
-                            'i2ilistenport': 57891}
-
-        if sys.platform == 'win32':
-            tribler_defaults['mintray'] = '2'
-            tribler_defaults['videoplayerpath'] = os.path.expandvars('${PROGRAMFILES}') + '\\Windows Media Player\\wmplayer.exe'
-            tribler_defaults['videoanalyserpath'] = self.getPath() + '\\ffmpeg.exe'
-        elif sys.platform == 'darwin':
-            tribler_defaults['mintray'] = '0'  # tray doesn't make sense on Mac
-            tribler_defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or ("/Applications/VLC.app" if os.path.exists("/Applications/VLC.app") else None) or "/Applications/QuickTime Player.app"
-            tribler_defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "vlc/ffmpeg"
-        else:
-            tribler_defaults['mintray'] = '0'  # Still crashes on Linux sometimes
-            tribler_defaults['videoplayerpath'] = find_prog_in_PATH("vlc") or "vlc"
-            tribler_defaults['videoanalyserpath'] = find_prog_in_PATH("ffmpeg") or "ffmpeg"
+                            'i2ilistenport': 57891,
+                            'mintray': 2 if sys.platform == 'win32' else 0}
 
         self.defaults = {'Tribler': tribler_defaults}
         self.configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")
@@ -161,11 +139,11 @@ class Utility:
         if week > 1000:
             return '<unknown>'
 
-        weekstr = '%d' % (week) + self.lang.get('l_week')
-        daystr = '%d' % (day) + self.lang.get('l_day')
-        hourstr = '%d' % (hour) + self.lang.get('l_hour')
-        minutestr = '%d' % (minute) + self.lang.get('l_minute')
-        secstr = '%02d' % (sec) + self.lang.get('l_second')
+        weekstr = '%d' % (week) + 'w'
+        daystr = '%d' % (day) + 'd'
+        hourstr = '%d' % (hour) + 'h'
+        minutestr = '%d' % (minute) + 'm'
+        secstr = '%02d' % (sec) + 's'
 
         if week > 0:
             text = weekstr
@@ -238,7 +216,7 @@ class Utility:
         if textonly:
             return text
 
-        label = self.lang.get(text)
+        label = "B" if text == "Byte" else text
         if labelonly:
             return label
 

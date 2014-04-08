@@ -123,8 +123,12 @@ def convertDownloadCheckpoints(checkpoint_dir):
 
     if os.path.exists(checkpoint_dir):
         for old_filename in glob.glob(os.path.join(checkpoint_dir, '*.pickle')):
-            with open(old_filename, "rb") as old_file:
-                old_checkpoint = pickle.load(old_file)
+            old_checkpoint = None
+            try:
+                with open(old_filename, "rb") as old_file:
+                    old_checkpoint = pickle.load(old_file)
+            except:
+                pass
 
             if old_checkpoint:
                 new_checkpoint = RawConfigParser()

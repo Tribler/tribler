@@ -11,7 +11,6 @@ from thread import get_ident
 from Tribler.Core.Utilities.clock import clock
 import sys
 import logging
-from Tribler.Core import NoDispersyRLock
 
 from Tribler.dispersy.decorator import attach_profiler
 
