@@ -1,15 +1,14 @@
 # Written by Niels Zeilemaker
 import wx
-import os
 
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+
+from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.vwxGUI import warnWxThread
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import TransparentText as StaticText, HorizontalGauge, ActionButton
-from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
-from Tribler import LIBRARYNAME
-from Tribler.Main.vwxGUI import warnWxThread
+from Tribler.Main.vwxGUI.widgets import HorizontalGauge, ActionButton
 
 
 class SRstatusbar(wx.StatusBar):
@@ -37,12 +36,12 @@ class SRstatusbar(wx.StatusBar):
         self.speed_down_icon = self._gui_image_manager.getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0)
         self.speed_down_sbmp = wx.StaticBitmap(self, -1, self.speed_down_icon)
         self.speed_down_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
-        self.speed_down = StaticText(self, -1, '', style=wx.ST_NO_AUTORESIZE)
+        self.speed_down = wx.StaticText(self, -1, '')
         self.speed_down.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
         self.speed_up_icon = self.speed_down_icon.ConvertToImage().Rotate90().Rotate90().ConvertToBitmap()
         self.speed_up_sbmp = wx.StaticBitmap(self, -1, self.speed_up_icon)
         self.speed_up_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
-        self.speed_up = StaticText(self, -1, '', style=wx.ST_NO_AUTORESIZE)
+        self.speed_up = wx.StaticText(self, -1, '')
         self.speed_up.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
 
         self.searchConnectionImages = [u"progressbarEmpty.png", u"progressbarFull.png"]

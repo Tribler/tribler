@@ -18,6 +18,7 @@ from Tribler.community.anontunnel import exitstrategies
 from Tribler.community.anontunnel.Socks5.server import Socks5Server
 
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.Core.version import version_id, commit_id, build_date
 from Tribler.Core.osutils import fix_filebasename
 
 logger = logging.getLogger(__name__)
@@ -77,7 +78,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 
 from Tribler.Main.Utility.utility import Utility
@@ -98,19 +98,18 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT
     NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, \
     STATEDIR_SWIFTRESEED_DIR, \
     dlstatus_strings, \
-    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
+    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, \
     DLSTATUS_SEEDING, DLSTATUS_STOPPED
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
-from Tribler.Core.osutils import fix_filebasename
 
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
-from Tribler.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
+from Tribler.Core.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
 import Tribler.Core.DecentralizedTracking.pymdht.core
@@ -119,7 +118,6 @@ import Tribler.Core.DecentralizedTracking.pymdht.core.message
 import Tribler.Core.DecentralizedTracking.pymdht.core.node
 import Tribler.Core.DecentralizedTracking.pymdht.core.ptime
 import Tribler.Core.DecentralizedTracking.pymdht.core.routing_table
-import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
@@ -173,14 +171,13 @@ class ABCApp():
         self.torrentfeed = None
         self.webUI = None
         self.utility = None
-        self.videoplayer = None
 
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
 
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
-            self.splash.setTicks(10)
+            self.splash.setTicks(12)
             self.splash.Show()
 
             self._logger.info('Client Starting Up.')
@@ -199,11 +196,11 @@ class ABCApp():
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance(self.dispersy.callback)
 
-            self._logger.info('Tribler Version: %s Build: %s', self.utility.lang.get('version'), self.utility.lang.get('build'))
+            self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-            UserDownloadChoice.get_singleton().set_utility(self.utility, s.get_state_dir())
+            UserDownloadChoice.get_singleton().set_utility(self.utility)
 
             self.splash.tick('Initializing Family Filter')
             cat = Category.getInstance()
@@ -257,15 +254,7 @@ class ABCApp():
                 self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
                 self.i2is.start()
 
-            # Fire up the VideoPlayer, it abstracts away whether we're using
-            # an internal or external video player.
-            httpport = self.utility.read_config('videohttpport')
-            if ALLOW_MULTIPLE or httpport == -1:
-                httpport = self.utility.get_free_random_port('videohttpport')
-            playbackmode = self.utility.read_config('videoplaybackmode')
-            self.videoplayer = VideoPlayer.getInstance(s, self.utility.read_config('videoplayerpath'), preferredplaybackmode=playbackmode, httpport=httpport)
-
-            notification_init(self.utility)
+            self.splash.tick('GUIUtility register')
             self.guiUtility.register()
 
             channel_only = os.path.exists(os.path.join(self.installdir, 'joinchannel'))
@@ -280,10 +269,8 @@ class ABCApp():
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
-                vlcwrap = self.videoplayer.get_vlcwrap()
-
+                vlcwrap = s.lm.videoplayer.get_vlcwrap()
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
-                self.videoplayer.set_videoframe(self.frame.videoframe)
 
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
@@ -335,9 +322,9 @@ class ABCApp():
 # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
-            status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
-            status.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
-            status.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
+            status.create_and_add_event("client-startup-version", [version_id])
+            status.create_and_add_event("client-startup-build", [commit_id])
+            status.create_and_add_event("client-startup-build-date", [build_date])
 
             self.ready = True
 
@@ -928,15 +915,12 @@ class ABCApp():
         if self.guiserver:
             self.guiserver.shutdown(True)
             self.guiserver.delInstance()
-        if self.videoplayer:
-            self.videoplayer.shutdown()
-            self.videoplayer.delInstance()
 
         delete_status_holders()
 
         if self.frame:
             self.frame.Destroy()
-            del self.frame
+            self.frame = None
 
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py

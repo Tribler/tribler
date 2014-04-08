@@ -34,7 +34,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.osutils import get_readable_torrent_name
 
 
@@ -256,6 +256,10 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                 self.rtorrent_handler = RemoteTorrentHandler()
 
+            self.videoplayer = None
+            if self.session.get_videoplayer():
+                self.videoplayer = VideoPlayer(self.session)
+
             self.mainline_dht = None
             self.ltmgr = None
             self.torrent_checking = None
@@ -268,7 +272,6 @@ class TriblerLaunchMany(Thread):
                 self.upnp_ports.append((self.session.get_mainline_dht_listen_port(), 'UDP'))
             except:
                 print_exc()
-
 
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
@@ -716,6 +719,9 @@ class TriblerLaunchMany(Thread):
         if self.torrent_checking:
             self.torrent_checking.shutdown()
             self.torrent_checking.delInstance()
+        if self.videoplayer:
+            self.videoplayer.shutdown()
+            self.videoplayer.delInstance()
 
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")

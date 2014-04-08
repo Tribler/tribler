@@ -515,7 +515,7 @@ class ListItem(wx.Panel):
 class AbstractListBody():
 
     @warnWxThread
-    def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT, grid_columns=0):
+    def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT, grid_columns=0, vertical_scroll=False):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.columns = columns
@@ -531,6 +531,7 @@ class AbstractListBody():
             list_item_max = LIST_ITEM_MAX_SIZE
         self.list_item_max = list_item_max
         self.list_cur_max = self.list_item_max
+        self.vertical_scroll = vertical_scroll
 
         self.hasFilter = hasFilter
 
@@ -755,21 +756,22 @@ class AbstractListBody():
         self.Layout()
 
         # Determine scrollrate
-        nritems = len(self.vSizer.GetChildren())
-        if self.rate is None or nritems <= LIST_ITEM_BATCH_SIZE * 3:
-            if nritems > 0:
-                height = self.vSizer.GetSize()[1]
-                self.rate = height / nritems
-                self._logger.debug("ListBody: setting scrollrate to %s", self.rate)
+        if not self.vertical_scroll:
+            nritems = len(self.vSizer.GetChildren())
+            if self.rate is None or nritems <= LIST_ITEM_BATCH_SIZE * 3:
+                if nritems > 0:
+                    height = self.vSizer.GetSize()[1]
+                    self.rate = height / nritems
+                    self._logger.debug("ListBody: setting scrollrate to %s", self.rate)
 
-                self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
+                    self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
+                else:
+                    self._logger.debug("ListBody: setting scrollrate to default")
+
+                    self.SetupScrolling(scrollToTop=scrollToTop)
             else:
-                self._logger.debug("ListBody: setting scrollrate to default")
-
-                self.SetupScrolling(scrollToTop=scrollToTop)
-        else:
-            self._logger.debug("ListBody: using scrollrate %s", self.rate)
-            self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
+                self._logger.debug("ListBody: using scrollrate %s", self.rate)
+                self.SetupScrolling(scrollToTop=scrollToTop, rate_y=self.rate)
 
         self.Thaw()
 
@@ -1172,7 +1174,6 @@ class AbstractListBody():
             if item == curitem:
                 return key
 
-    @warnWxThread
     def RemoveItem(self, remove):
         for key, item in self.items.iteritems():
             if item == remove:
@@ -1301,7 +1302,7 @@ class AbstractListBody():
 
             self.Thaw()
 
-        if self.grid_columns > 0 and self.items:
+        if not self.vertical_scroll and self.grid_columns > 0 and self.items:
             column_width = self.items.values()[0].GetSize().x
             viewable_width = self.listpanel.GetParent().GetSize().x
 
@@ -1330,9 +1331,9 @@ class AbstractListBody():
 
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
 
-    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=LIST_ITEM_MAX_SIZE, listRateLimit=LIST_RATE_LIMIT, grid_columns=0):
+    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=LIST_ITEM_MAX_SIZE, listRateLimit=LIST_RATE_LIMIT, grid_columns=0, vertical_scroll=False):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max=list_item_max, grid_columns=grid_columns)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max=list_item_max, grid_columns=grid_columns, vertical_scroll=vertical_scroll)
 
         homeId = wx.NewId()
         endId = wx.NewId()

@@ -17,30 +17,29 @@ except:
     pass
 import random
 import logging
-from time import strftime, time
+import binascii
+from time import strftime
 from collections import defaultdict
+from traceback import print_exc
 
+from Tribler.Category.Category import Category
+from Tribler.Core.Tag.Extraction import TermExtraction
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
+from Tribler.Core.Session import Session
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
+    NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+
+from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.list_header import DetailHeader
 from Tribler.Main.vwxGUI.list_footer import ListFooter
-from Tribler.Main.vwxGUI.list import XRCPanel
-
-from Tribler.Main.vwxGUI import SEPARATOR_GREY
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, _set_font, SimpleNotebook, \
     FancyPanel, LinkStaticText, LinkText
-from Tribler.Category.Category import Category
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
-    NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
-from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
-from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-from traceback import print_exc
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, LIST_BLUE
-from Tribler.Core.Tag.Extraction import TermExtraction
-from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+from Tribler.Main.vwxGUI.list_body import ListBody
+from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 
 try:
     # C(ython) module
@@ -50,9 +49,11 @@ except ImportError, e:
     import arflayout_fb as arflayout
 import wx.lib.agw.customtreectrl as CT
 
-class Home(XRCPanel):
 
-    def _PostInit(self):
+class Home(wx.Panel):
+
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
         self.guiutility = GUIUtility.getInstance()
 
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -60,7 +61,7 @@ class Home(XRCPanel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
 
-        text = StaticText(self, -1, self.guiutility.utility.lang.get('title'))
+        text = StaticText(self, -1, "Tribler")
         font = text.GetFont()
         font.SetPointSize(font.GetPointSize() * 3)
         font.SetWeight(wx.FONTWEIGHT_BOLD)
@@ -117,10 +118,10 @@ class Home(XRCPanel):
         vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
 
-        self.buzzpanel = BuzzPanel(self)
-        self.buzzpanel.SetMinSize((-1, 180))
-        self.buzzpanel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
-        vSizer.Add(self.buzzpanel, 0, wx.EXPAND)
+        self.aw_panel = ArtworkPanel(self)
+        self.aw_panel.SetMinSize((-1, 275))
+        self.aw_panel.Show(self.guiutility.ReadGuiSetting('show_artwork', True))
+        vSizer.Add(self.aw_panel, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
         self.Layout()
@@ -132,13 +133,13 @@ class Home(XRCPanel):
     def OnRightClick(self, event):
         menu = wx.Menu()
         itemid = wx.NewId()
-        menu.AppendCheckItem(itemid, 'Show "what\'s hot"')
-        menu.Check(itemid, self.buzzpanel.IsShown())
+        menu.AppendCheckItem(itemid, 'Show recent videos')
+        menu.Check(itemid, self.aw_panel.IsShown())
 
         def toggleBuzz(event):
-            show = not self.buzzpanel.IsShown()
-            self.buzzpanel.Show(show)
-            self.guiutility.WriteGuiSetting("show_buzz", show)
+            show = not self.aw_panel.IsShown()
+            self.aw_panel.Show(show)
+            self.guiutility.WriteGuiSetting("show_artwork", show)
             self.Layout()
 
         menu.Bind(wx.EVT_MENU, toggleBuzz, id=itemid)
@@ -161,15 +162,14 @@ class Home(XRCPanel):
         self.searchBox.Clear()
 
     def SearchFocus(self):
-        if self.isReady:
-            self.searchBox.SetFocus()
-            self.searchBox.SelectAll()
+        self.searchBox.SetFocus()
+        self.searchBox.SelectAll()
 
 
-class Stats(XRCPanel):
+class Stats(wx.Panel):
 
-    def __init__(self, parent=None):
-        XRCPanel.__init__(self, parent)
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -327,7 +327,7 @@ class Stats(XRCPanel):
             if not self.isReady:
                 self._DoInit()
 
-        XRCPanel.Show(self, show)
+        wx.Panel.Show(self, show)
 
 
 class HomePanel(wx.Panel):
@@ -1673,3 +1673,49 @@ class Anonymity(wx.Panel):
 
     def ResetSearchBox(self):
         pass
+
+
+class ArtworkPanel(wx.Panel):
+
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(wx.WHITE)
+        self.SetForegroundColour(parent.GetForegroundColour())
+
+        self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
+        self.OnExpand = lambda *args: None
+        self.OnCollapse = lambda *args: None
+        self.update_interval = 300
+        self.max_torrents = 20
+
+        self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=self.max_torrents, vertical_scroll=True)
+        self.list.SetBackgroundColour(self.GetBackgroundColour())
+
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(DetailHeader(self, "Start streaming immediately by clicking on one of items below"), 0, wx.EXPAND)
+        vSizer.Add(self.list, 1, wx.EXPAND)
+
+        self.SetSizer(vSizer)
+        self.Layout()
+
+        startWorker(None, self.GetData, delay=3, workerType="guiTaskQueue")
+
+    def GetData(self):
+        data = []
+
+        torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(limit=self.max_torrents)
+
+        for torrent in torrents:
+            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
+            if os.path.isdir(thumb_path):
+                data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
+
+        self.SetData(data)
+
+        startWorker(None, self.GetData, delay=self.update_interval, workerType="guiTaskQueue")
+
+    @forceWxThread
+    def SetData(self, data):
+        self.list.SetData(data)
+        self.list.SetupScrolling()

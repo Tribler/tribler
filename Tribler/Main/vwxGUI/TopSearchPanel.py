@@ -5,18 +5,20 @@ import logging
 import wx.animate
 
 from Tribler import LIBRARYNAME
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, \
+    NetworkBuzzDBHandler
+
+from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
+from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
+from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, \
+    GRADIENT_LGREY, GRADIENT_DGREY
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Main.vwxGUI.widgets import ActionButton, FancyPanel, \
+    TextCtrlAutoComplete, ProgressButton
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
-from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, NetworkBuzzDBHandler
-
-from widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButton
-from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY
-from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
-from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Video.VideoPlayer import VideoPlayer
 
 
 class TopSearchPanelStub():
@@ -415,28 +417,13 @@ class TopSearchPanel(FancyPanel):
         play_executed = False
 
         if self.guiutility.frame.videoparentpanel:
-
             if torrent.isPlayable():
-                self.guiutility.ShowPlayer()
-                self.guiutility.frame.actlist.expandedPanel_videoplayer.SetTorrent(torrent)
-                self.guiutility.library_manager.playTorrent(torrent)
+                self.guiutility.library_manager.playTorrent(torrent.infohash)
                 play_executed = True
 
         else:
-            # If we are using an external videoplayer, ask which file the users wants to play.
-            playable_files = torrent.videofiles
-
-            if len(playable_files) > 1:  # Create a popup
-                (_, largest_file) = max([(size, filename) for filename, size in torrent.files if filename in playable_files])
-                selected_file = self.guiutility.SelectVideo(playable_files, largest_file)
-
-                if selected_file:
-                    self.guiutility.library_manager.playTorrent(torrent, selected_file)
-                    play_executed = True
-
-            elif len(playable_files) == 1:
-                self.guiutility.library_manager.playTorrent(torrent)
-                play_executed = True
+            self.guiutility.library_manager.playTorrent(torrent.infohash)
+            play_executed = True
 
         if play_executed:
             if not self.guiutility.frame.searchlist.IsShownOnScreen():
@@ -487,6 +474,6 @@ class TopSearchPanel(FancyPanel):
                 if dlg.newName.IsChanged():
                     dlg2 = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                     if dlg2.ShowModal() == wx.ID_YES:
-                        self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':self.newName.GetValue()})
+                        self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':dlg.newName.GetValue()})
                     dlg2.Destroy()
             dlg.Destroy()

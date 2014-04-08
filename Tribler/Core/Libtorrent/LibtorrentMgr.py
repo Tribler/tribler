@@ -1,3 +1,4 @@
+
 # Written by Egbert Bouman
 from libtorrent import proxy_type
 import os
@@ -10,8 +11,9 @@ import libtorrent as lt
 import logging
 from copy import deepcopy
 from binascii import hexlify
+from shutil import rmtree
 
-from Tribler.Core import version_id
+from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.Utilities.utilities import parse_magnetlink
@@ -21,6 +23,7 @@ from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAG
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
+METAINFO_TMPDIR = 'metadata_tmpdir'
 
 class LibtorrentMgr:
     # Code to make this a singleton
@@ -88,6 +91,11 @@ class LibtorrentMgr:
 
         self.upnp_mappings = {}
 
+        # make tmp-dir to be used for dht collection
+        self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
+        if not os.path.exists(self.metadata_tmpdir):
+            os.mkdir(self.metadata_tmpdir)
+
         self.ltsession_anon = None
 
     def getInstance(*args, **kw):
@@ -146,6 +154,10 @@ class LibtorrentMgr:
 
         del self.ltsession
         self.ltsession = None
+
+        # Empty/remove metadata tmp-dir
+        if os.path.exists(self.metadata_tmpdir):
+            rmtree(self.metadata_tmpdir)
 
     def set_proxy_settings(self, ptype, server=None, auth=None):
         proxy_settings = lt.proxy_settings()
@@ -336,7 +348,7 @@ class LibtorrentMgr:
 
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
-                atp = {'save_path': tempfile.gettempdir(), 'duplicate_is_error': True, 'paused': False, 'auto_managed': False, 'flags': 4}
+                atp = {'save_path': self.metadata_tmpdir, 'duplicate_is_error': True, 'paused': False, 'auto_managed': False, 'flags': 4}
                 if magnet:
                     atp['url'] = magnet
                 else:

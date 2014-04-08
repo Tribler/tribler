@@ -12,7 +12,7 @@ from Tribler.Core.Utilities.unicode import unicode2str
 if sys.platform == 'win32':
     from Tribler.Core.Utilities.win32regchecker import Win32RegChecker, HKLM
 
-from Tribler.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME, PLAYBACKMODE_EXTERNAL_DEFAULT
+from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME, PLAYBACKMODE_EXTERNAL_DEFAULT
 
 videoextdefaults = ['aac', 'asf', 'avi', 'dv', 'divx', 'flac', 'flc', 'flv', 'mkv', 'mpeg', 'mpeg4', 'mpegts', 'mpg4', 'mp3', 'mp4', 'mpg', 'mkv', 'mov', 'm4v', 'ogg', 'ogm', 'ogv', 'oga', 'ogx', 'qt', 'rm', 'swf', 'ts', 'vob', 'wmv', 'wav', 'webm']
 
@@ -86,25 +86,6 @@ def win32_retrieve_video_play_command(ext, videourl):
         suo = qprogpath + suo[end:]
         logger.debug("videoplay: new urlopen is %s", suo)
     return [contenttype, suo.replace(replace, videourl)]
-
-
-def win32_retrieve_playcmd_from_mimetype(mimetype, videourl):
-    """ Use the specified MIME type to find the player in the Windows registry to play the url (or file)"""
-    registry = Win32RegChecker()
-
-    logger.debug("videoplay: Looking for player for %s", unicode2str(videourl))
-    if mimetype == '' or mimetype is None:
-        return [None, None]
-
-    keyname = '\\SOFTWARE\\Classes\\MIME\\Database\\Content Type\\' + mimetype
-    valuename = 'Extension'
-    ext = registry.readKeyRecursively(HKLM, keyname, value_name=valuename)
-    logger.debug("videoplay: ext winfiletype is %s", ext)
-    if ext is None or ext == '':
-        return [None, None]
-    logger.debug("videoplay: Looking for player for mime %s which is ext %s", mimetype, ext)
-
-    return win32_retrieve_video_play_command(ext, videourl)
 
 
 def quote_program_path(progpath):

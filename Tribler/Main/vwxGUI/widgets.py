@@ -1,24 +1,21 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-import wx
-import os
 import sys
 import math
-
-from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
-
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY
+import wx
 from wx.lib.stattext import GenStaticText
 from wx.lib.colourutils import AdjustColour
 from wx.lib.wordwrap import wordwrap
-from __init__ import LIST_LIGHTBLUE, TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR, \
-    SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
+from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
+
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from wx.lib.embeddedimage import PyEmbeddedImage
+from Tribler.Main.vwxGUI import TRIBLER_RED, LIST_HIGHTLIGHT, \
+    GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY, FILTER_GREY, \
+    DEFAULT_BACKGROUND, COMPLETED_COLOUR, SEEDING_COLOUR, DOWNLOADING_COLOUR, \
+    STOPPED_COLOUR
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+from Tribler.Core.simpledefs import DLMODE_VOD
 
 
 class NativeIcon:
@@ -1797,7 +1794,7 @@ class TorrentStatus(wx.Panel):
             self.fill_colour = self.back_colour
         if status == 'Checking':
             self.fill_colour = self.back_colour
-        if status == 'Downloading':
+        if status in ['Downloading', 'Streaming']:
             self.fill_colour = DOWNLOADING_COLOUR
         if status == 'Stopped':
             self.fill_colour = STOPPED_COLOUR
@@ -1814,6 +1811,7 @@ class TorrentStatus(wx.Panel):
         progress = torrent.progress
         torrent_state = torrent.state
         finished = progress == 1.0
+        is_vod = torrent.ds.get_download().get_mode() == DLMODE_VOD if torrent.ds else False
 
         if torrent.ds.status == 2 or 'checking' in torrent_state:
             status = 'Checking'
@@ -1828,7 +1826,7 @@ class TorrentStatus(wx.Panel):
         elif 'allocating' in torrent_state:
             status = 'Waiting'
         elif 'downloading' in torrent_state:
-            status = 'Downloading'
+            status = 'Streaming' if is_vod else 'Downloading'
         elif 'error' in torrent_state:
             status = 'Stopped on error'
         elif 'stopped' in torrent_state:
@@ -2047,7 +2045,7 @@ class StaticBitmaps(wx.Panel):
 
     def SetBitmaps(self, bitmaps):
         if isinstance(bitmaps, list) and bitmaps:
-            if self.bitmaps_index > len(self.bitmaps):
+            if self.bitmaps_index >= len(bitmaps):
                 self.bitmaps_index = 0
             self.bitmaps = bitmaps
             self.bitmap = bitmaps[self.bitmaps_index]
@@ -2240,6 +2238,7 @@ class VideoProgress(wx.Panel):
         self.edge_colour = edge_colour
         self.text_colour = text_colour
         self.prnt_colour = parent.GetBackgroundColour()
+        self.label = label
         self.value = 0.0
         self.error = ''
         self.SetValue(value)
@@ -2248,7 +2247,6 @@ class VideoProgress(wx.Panel):
 
     def SetValue(self, value):
         self.value = value
-        self.label = 'Loading\n %d%%' % (value * 100)
         self.Refresh()
 
     def SetError(self, error):

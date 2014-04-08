@@ -14,8 +14,6 @@ protocol_name = 'BitTorrent protocol'
 # Left+43 bit = Tribler Overlay swarm extension
 #               AND uTorrent extended protocol, conflicting. See EXTEND message
 # Right-most bit = BitTorrent DHT extension
-# option_pattern = chr(0)*8
-option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
 
 
 CHOKE = chr(0)
@@ -144,27 +142,6 @@ CRAWLER_REPEX_QUERY = chr(8)  # RePEX: query a peer's SwarmCache history
 CRAWLER_PUNCTURE_QUERY = chr(9)
 CRAWLER_CHANNEL_QUERY = chr(10)
 CRAWLER_USEREVENTLOG_QUERY = chr(11)
-
-
-#
-# Summaries
-#
-
-PermIDMessages = [CHALLENGE, RESPONSE1, RESPONSE2]
-BuddyCastMessages = [CHANNELCAST, VOTECAST, BARTERCAST, BUDDYCAST, KEEP_ALIVE]
-MetadataMessages = [GET_METADATA, METADATA]
-DialbackMessages = [DIALBACK_REQUEST, DIALBACK_REPLY]
-DoeMessages = [RELAY_REQUEST, STOP_RELAYING, DOWNLOAD_PIECE, CANCEL_DOWNLOADING_PIECE, UPLOAD_PIECE, CANCEL_UPLOADING_PIECE]
-ProxyMessages = [RELAY_ACCEPTED, RELAY_DROPPED, DROPPED_PIECE, PROXY_HAVE, PROXY_UNHAVE, PIECE_DATA]
-SocialNetworkMessages = [SOCIAL_OVERLAP]
-RemoteQueryMessages = [QUERY, QUERY_REPLY]
-VoDMessages = [G2G_PIECE_XFER]
-FriendshipMessages = [FRIENDSHIP]
-CrawlerMessages = [CRAWLER_REQUEST, CRAWLER_REPLY]
-SubtitleMessages = [GET_SUBS, SUBS]
-
-# All overlay-swarm messages
-OverlaySwarmMessages = PermIDMessages + BuddyCastMessages + MetadataMessages + DoeMessages + ProxyMessages + SocialNetworkMessages + RemoteQueryMessages + CrawlerMessages
 
 
 #

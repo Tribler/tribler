@@ -1,9 +1,6 @@
-import sys
-import os
 import json
 import thread
 import logging
-import cPickle
 
 
 class UserDownloadChoice:
@@ -31,7 +28,7 @@ class UserDownloadChoice:
         if utility:
             self.set_utility(utility)
 
-    def set_utility(self, utility, state_dir):
+    def set_utility(self, utility):
         self._utility = utility
 
         try:

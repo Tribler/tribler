@@ -26,11 +26,9 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         self.parent = parent
         self.utility = parent.utility
 
-        self.TBMENU_RESTORE = wx.NewId()
-
         # setup a taskbar icon, and catch some events from it
         self.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, parent.onTaskBarActivate)
-        self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id=self.TBMENU_RESTORE)
+        self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id=wx.NewId())
 
         self.updateIcon(False)
 
@@ -49,13 +47,13 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
     def CreatePopupMenu(self):
         menu = wx.Menu()
 
-        mi = menu.Append(-1, self.utility.lang.get('stopall'))
+        mi = menu.Append(-1, 'Stop All')
         self.Bind(wx.EVT_MENU, self.OnStopAll, id=mi.GetId())
         menu.AppendSeparator()
-        mi = menu.Append(-1, self.utility.lang.get('restartall'))
+        mi = menu.Append(-1, 'Restart All')
         self.Bind(wx.EVT_MENU, self.OnRestartAll, id=mi.GetId())
         menu.AppendSeparator()
-        mi = menu.Append(-1, self.utility.lang.get('menuexit'))
+        mi = menu.Append(-1, '&Exit')
         self.Bind(wx.EVT_MENU, self.OnExitClient, id=mi.GetId())
         return menu
 

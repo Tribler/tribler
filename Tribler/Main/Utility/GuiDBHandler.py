@@ -5,7 +5,7 @@
 import wx
 from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, \
     AbortedException, SenderNoWx
-
+import os
 import threading
 import logging
 from collections import namedtuple
@@ -13,10 +13,10 @@ from threading import Event, Lock, RLock
 from thread import get_ident
 from time import time
 from traceback import extract_stack, format_exc, print_exc, print_stack
-import os
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from inspect import isgeneratorfunction
 from random import randint
+
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
 GUI_PRI_DISPERSY = 99
