@@ -25,7 +25,6 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         VideoServer.__single = self
 
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._logger.setLevel(logging.DEBUG)
 
         self.port = port
         self.session = session
