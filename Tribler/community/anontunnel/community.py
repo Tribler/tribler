@@ -12,7 +12,7 @@ from collections import defaultdict
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache, CandidateCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
-from Tribler.community.anontunnel.tests.test import LibtorrentTest
+from Tribler.community.anontunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
