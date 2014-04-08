@@ -1,14 +1,13 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
-from Tribler.community.privatesemantic.crypto import optional_crypto
-from Tribler.community.privatesemantic.crypto.optional_crypto import mpz, rand
+from Tribler.community.privatesemantic.crypto.optional_crypto import mpz, rand, aes_encrypt_str, \
+    aes_decrypt_str
 from collections import defaultdict
 import hashlib
 import logging
 from Tribler.Core.Utilities import encoding
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.events import TunnelObserver
-from Tribler.community.privatesemantic.crypto.optional_crypto import \
-    aes_encrypt_str, aes_decrypt_str
+
 
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
     ENDPOINT, MESSAGE_CREATE, MESSAGE_EXTEND, MESSAGE_EXTENDED, \
@@ -195,7 +194,7 @@ class DefaultCrypto(Crypto):
         """
         dh_secret = 0
         while dh_secret >= DIFFIE_HELLMAN_MODULUS or dh_secret < 2:
-              dh_secret = optional_crypto.rand("next", DIFFIE_HELLMAN_MODULUS)
+              dh_secret = rand("next", DIFFIE_HELLMAN_MODULUS)
         dh_secret = mpz(dh_secret)
 
         dh_first_part = mpz(pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS))
