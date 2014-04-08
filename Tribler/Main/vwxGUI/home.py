@@ -69,24 +69,24 @@ class Home(XRCPanel):
 
         textSizer = wx.FlexGridSizer(2, 2, 3, 7)
         if sys.platform == 'darwin':  # mac
-            self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+            searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         else:
-            self.searchBox = TextCtrlAutoComplete(self, entrycallback=self.parent.top_bg.complete, selectcallback=self.parent.top_bg.OnAutoComplete)
+            searchBox = TextCtrlAutoComplete(self, entrycallback=self.parent.top_bg.complete, selectcallback=self.parent.top_bg.OnAutoComplete)
 
-        font = self.searchBox.GetFont()
+        font = searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
-        self.searchBox.SetFont(font)
-        self.searchBox.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
+        searchBox.SetFont(font)
+        searchBox.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
 
         if sys.platform == 'darwin':  # mac
-            self.searchBox.SetMinSize((450, self.searchBox.GetTextExtent('T')[1] + 5))
+            searchBox.SetMinSize((450, searchBox.GetTextExtent('T')[1] + 5))
         else:
-            self.searchBox.SetMinSize((450, -1))
-        self.searchBox.SetFocus()
+            searchBox.SetMinSize((450, -1))
+        searchBox.SetFocus()
 
         textSizer.Add(text, 0, wx.EXPAND | wx.RIGHT, 7)
         scalingSizer = wx.BoxSizer(wx.HORIZONTAL)
-        scalingSizer.Add(self.searchBox)
+        scalingSizer.Add(searchBox)
 
         if sys.platform == 'darwin':  # mac
             searchButton = wx.Button(self, -1, '\n')
@@ -94,7 +94,7 @@ class Home(XRCPanel):
         else:
             searchButton = wx.Button(self, -1, 'Search')
 
-        self.searchButton = searchButton
+        searchButton = searchButton
 
         searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
 
