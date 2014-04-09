@@ -124,20 +124,8 @@ class CandidateCache(object):
         self._community = community
 
         # Public attributes
-        self.keys_to_candidate = {}
-        ''' :type : dict[object, WalkCandidate] '''
-
-        self.candidate_to_key = {}
-        ''' :type : dict[WalkCandidate, object]'''
-
-        self.candidate_to_key_string = {}
-        ''' :type : dict[WalkCandidate, object]'''
-
         self.hashed_key_to_candidate = {}
         ''' :type : dict[object, WalkCandidate]'''
-
-        self.candidate_to_hashed_key = {}
-        ''' :type : dict[WalkCandidate, object]'''
 
         self.ip_to_candidate = {}
         ''' :type : dict[(str, int), WalkCandidate] '''
@@ -166,14 +154,8 @@ class CandidateCache(object):
         with self._lock:
             self.invalidate_by_candidate(candidate)
 
-            self.keys_to_candidate[key] = candidate
-            self.candidate_to_key[candidate] = key
             self.ip_to_candidate[candidate.sock_addr] = candidate
-            key_string = self._community.crypto.key_to_bin(key)
-            self.candidate_to_key_string[candidate] = key_string
-            hashed_key = self._community.dispersy.crypto.key_to_hash(key)
-            self.hashed_key_to_candidate[hashed_key] = candidate
-            self.candidate_to_hashed_key[candidate] = hashed_key
+            self.hashed_key_to_candidate[iter(candidate.get_members()).next().mid] = candidate
 
             # set the insert time infinitely far in the future to make sure
             # it remains in the cache for candidates that should not timeout
@@ -186,28 +168,12 @@ class CandidateCache(object):
         @param WalkCandidate candidate: the candidate to invalidate
         """
         with self._lock:
-            if candidate in self.candidate_to_key:
-                key = self.candidate_to_key[candidate]
+            # check if already exists
+            if candidate in self.candidate_to_time:
                 if candidate.sock_addr in self.ip_to_candidate:
                     del self.ip_to_candidate[candidate.sock_addr]
-                if key in self.keys_to_candidate:
-                    del self.keys_to_candidate[key]
-                del self.candidate_to_key[candidate]
                 del self.candidate_to_time[candidate]
-                del self.candidate_to_key_string[candidate]
-                hashed_key = self.candidate_to_hashed_key[candidate]
-                del self.candidate_to_hashed_key[candidate]
-                del self.hashed_key_to_candidate[hashed_key]
-
-    def invalidate_ip(self, ip):
-        """
-        Invalidate a single candidate in the cache by its IP address
-        @param (str, int) ip: the ip of the candidate to invalidate
-        """
-        with self._lock:
-            if ip in self.ip_to_candidate:
-                candidate = self.ip_to_candidate[ip]
-                return self.invalidate_by_candidate(candidate)
+                del self.hashed_key_to_candidate[iter(candidate.get_members()).next().mid]
 
     @property
     def items(self):
@@ -239,6 +205,23 @@ class CandidateCache(object):
 
             for candidate in timed_out:
                 self.invalidate_by_candidate(candidate)
+
+            invalid = [(ip, candidate)
+                       for ip, candidate
+                       in self.ip_to_candidate.iteritems() if candidate.sock_addr != ip]
+
+            for ip, candidate in invalid:
+                del self.ip_to_candidate[ip]
+                self.ip_to_candidate[candidate.sock_addr] = candidate
+
+            invalid = [(mid, candidate)
+                       for mid, candidate
+                       in self.hashed_key_to_candidate.iteritems()
+                       if mid != next(iter(candidate.get_members())).mid]
+
+            for mid, candidate in invalid:
+                del self.hashed_key_to_candidate[mid]
+                self.hashed_key_to_candidate[iter(candidate.get_members()).next().mid] = candidate
 
             # Shrink back to capacity if needed
             amount_to_remove = max(0, len(self.candidate_to_time) - self._capacity)

@@ -250,7 +250,7 @@ class ProxyCommunity(Community):
                         try:
                             self.create_circuit(c, goal_hops)
                         except:
-                            self._logger.error("Error creating circuit while running __discover")
+                            self._logger.exception("Error creating circuit while running __discover")
 
     def unload_community(self):
         """
@@ -487,8 +487,8 @@ class ProxyCommunity(Community):
                 circuit.extend_strategy = self.settings.extend_strategy(
                     self, circuit)
 
-            circuit.unverified_hop = Hop(self.candidate_cache.candidate_to_hashed_key[first_hop])
-            circuit.unverified_hop.pub_key = self.candidate_cache.candidate_to_key[first_hop]
+            circuit.unverified_hop = Hop(iter(first_hop.get_members()).next().mid)
+            circuit.unverified_hop.pub_key = iter(first_hop.get_members()).next()._ec
             circuit.unverified_hop.address = first_hop.sock_addr
 
             self._logger.warning("Creating circuit %d of %d hops. Fist hop: %s:%d",
@@ -576,6 +576,7 @@ class ProxyCommunity(Community):
                 ),
                 None
             )
+            " :type: WalkCandidate"
 
             if not candidate_temp:
                 break
@@ -583,8 +584,8 @@ class ProxyCommunity(Community):
             # Cache this candidate so that we have its IP in the future
             self.candidate_cache.cache(candidate_temp)
 
-            candidate_dict[self.candidate_cache.candidate_to_hashed_key[candidate_temp]] = \
-                self.candidate_cache.candidate_to_key_string[candidate_temp]
+            candidate_dict[iter(candidate_temp.get_members()).next().mid] = \
+               self.dispersy.crypto.key_to_bin(iter(candidate_temp.get_members()).next()._ec)
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
