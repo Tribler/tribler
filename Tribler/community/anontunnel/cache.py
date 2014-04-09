@@ -138,7 +138,7 @@ class CandidateCache(object):
                 try:
                     self.clean()
                 finally:
-                    yield 10.0
+                    yield 300.0
 
         community.dispersy.callback.register(__clean_up_task)
 
