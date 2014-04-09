@@ -18,9 +18,6 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLMODE_VOD
 
 
-class NativeIcon:
-    __single = None
-
 class BetterText(wx.StaticText):
 
     def __init__(self, *args, **kwargs):
