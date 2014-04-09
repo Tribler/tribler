@@ -186,13 +186,10 @@ class CandidateCache(object):
         @param WalkCandidate candidate: the candidate to invalidate
         """
         with self._lock:
-            if candidate.sock_addr in self.ip_to_candidate:
-                # This line is not useless!
-                candidate = self.ip_to_candidate[candidate.sock_addr]
-                del self.ip_to_candidate[candidate.sock_addr]
-
             if candidate in self.candidate_to_key:
                 key = self.candidate_to_key[candidate]
+                if candidate.sock_addr in self.ip_to_candidate:
+                    del self.ip_to_candidate[candidate.sock_addr]
                 if key in self.keys_to_candidate:
                     del self.keys_to_candidate[key]
                 del self.candidate_to_key[candidate]
