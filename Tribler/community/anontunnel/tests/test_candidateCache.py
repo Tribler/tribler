@@ -44,29 +44,18 @@ class TestCandidateCache(TestCase):
         cache = self.cache
         cache.cache(candidate)
 
-        self.assertIn(candidate, cache.candidate_to_hashed_key, "Hashed key must be retrievable from candidate cache")
-        hashed_key = cache.candidate_to_hashed_key[candidate]
+        hashed_key = iter(candidate.get_members()).next().mid
 
         self.assertIn(hashed_key, cache.hashed_key_to_candidate, "Candidate must be found using hashed key")
+        self.assertIn(candidate.sock_addr, cache.ip_to_candidate, "Candidate must be found using its IP address")
         self.assertEqual(cache.hashed_key_to_candidate[hashed_key], candidate, "Candidate must be the same one we stored")
         self.assertIn(candidate, cache.candidate_to_time, "There must be a cache-time entry for the candidate")
-        self.assertIn(candidate, cache.candidate_to_key, "Key must be found using candidate")
-
-        self.assertIn(next(iter(candidate.get_members()))._ec, cache.keys_to_candidate, "Candidate must be found using its key")
 
     def test_invalidate_by_candidate(self):
         candidate = self.__create_walk_candidate()
         cache = self.cache
         cache.cache(candidate)
         cache.invalidate_by_candidate(candidate)
-
-        self.assertNotIn(candidate, cache.candidates)
-
-    def test_invalidate_ip(self):
-        candidate = self.__create_walk_candidate()
-        cache = self.cache
-        cache.cache(candidate)
-        cache.invalidate_ip(candidate.sock_addr)
 
         self.assertNotIn(candidate, cache.candidates)
 
@@ -95,7 +84,7 @@ class TestCandidateCache(TestCase):
 
         # Force the cache entry of the first added candidate to time out and to be removed
         self.cache.candidate_to_time[candidate] = 0
-        self.cache.invalidate()
+        self.cache.clean()
 
         self.assertIn(candidate2, self.cache.candidates)
         self.assertNotIn(candidate, self.cache.candidates)
