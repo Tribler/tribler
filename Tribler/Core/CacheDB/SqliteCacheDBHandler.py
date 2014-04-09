@@ -484,7 +484,6 @@ class TorrentDBHandler(BasicDBHandler):
         self.votecast_db = VoteCastDBHandler.getInstance()
         self.channelcast_db = ChannelCastDBHandler.getInstance()
         self._rtorrent_handler = RemoteTorrentHandler.getInstance()
-        self._nb = NetworkBuzzDBHandler.getInstance()
 
     def getTorrentID(self, infohash):
         return self.getTorrentIDS([infohash, ])[0]
@@ -746,9 +745,6 @@ class TorrentDBHandler(BasicDBHandler):
             # this will fail if the fts3 module cannot be found
             print_exc()
 
-        # vliegendhart: extract terms and bi-term phrase from Torrent and store it
-        self._nb.addTorrent(torrent_id, swarmname, collected=collected)
-
     # ------------------------------------------------------------
     # Adds the trackers of a given torrent into the database.
     # ------------------------------------------------------------
@@ -984,8 +980,6 @@ class TorrentDBHandler(BasicDBHandler):
                 self._db.update(self.table_name, where="torrent_id=%d" % torrent_id, torrent_file_name=None)
             else:
                 self._db.delete(self.table_name, torrent_id=torrent_id)
-                # vliegendhart: synch bi-term phrase table
-                self._nb.deleteTorrent(torrent_id)
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
 
@@ -1814,8 +1808,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1],  # click position
+                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1], # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 
@@ -3099,321 +3093,6 @@ class SearchDBHandler(BasicDBHandler):
         for torrent_id, term in self._db.fetchall(sql, parameters):
             return_dict[torrent_id].add(term)
         return return_dict
-
-
-class NetworkBuzzDBHandler(BasicDBHandler):
-
-    """
-    The Network Buzz database handler singleton for sampling the TermFrequency table
-    and maintaining the TorrentBiTermPhrase table.
-    """
-
-    def __init__(self):
-        if NetworkBuzzDBHandler._single is not None:
-            raise RuntimeError("NetworkBuzzDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'TermFrequency')
-
-        from Tribler.Core.Tag.Extraction import TermExtraction
-        self.extractor = TermExtraction.getInstance()
-
-        self.updateBiPhraseCount()
-
-        self.new_terms = {}
-        self.update_terms = {}
-        self.new_phrases = []
-
-        self.termLock = Lock()
-        db.schedule_task(self.__flush_to_database, delay=5.0 if self.nr_bi_phrases < 100 else 20.0)
-
-    def __flush_to_database(self):
-        while True:
-            with self.termLock:
-                try:
-                    add_new_terms_sql = "INSERT INTO TermFrequency (term, freq) VALUES (?, ?);"
-                    update_exist_terms_sql = "UPDATE OR REPLACE TermFrequency SET freq = ? WHERE term_id = ?;"
-                    ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
-                                        SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
-                                        FROM TermFrequency TF1, TermFrequency TF2
-                                        WHERE TF1.term = ? AND TF2.term = ?"""
-
-                    self._db.executemany(add_new_terms_sql, self.new_terms.values())
-                    self._db.executemany(update_exist_terms_sql, self.update_terms.values())
-                    self._db.executemany(ins_phrase_sql, self.new_phrases)
-                except:
-                    print_exc()
-                    self._logger.error("could not insert terms %s", self.new_terms.values())
-
-                self.new_terms.clear()
-                self.update_terms.clear()
-                self.new_phrases = []
-
-            if self.nr_bi_phrases < self.MAX_UNCOLLECTED:
-                self.updateBiPhraseCount()
-
-            if self.nr_bi_phrases < 100:
-                yield 5.0
-            else:
-                yield 20.0
-
-    def updateBiPhraseCount(self):
-        count_sql = "SELECT COUNT(*) FROM TorrentBiTermPhrase"
-        self.nr_bi_phrases = self._db.fetchone(count_sql)
-
-    # Default sampling size (per freq category)
-    # With an update period of 5s, there will be at most 12 updates per minute.
-    # Each update consumes, say, 5 terms or phrases for a freq category, so about
-    # 60 terms or phrases per minute. If we set the sample size to 50, each getBuzz()
-    # call will give about 50 terms and 50 phrases, so 100 displayable items in total.
-    # This means getBuzz() will get called about every 1.6 minute.
-    DEFAULT_SAMPLE_SIZE = 50
-
-    # Only consider terms that appear more than once
-    MIN_FREQ = 2
-
-    # "Stopword"-threshold for single terms. Multiplied by #torrents to get max_freq upperbound.
-    STOPWORD_THRESHOLD = 0.20
-    # ...but only apply this threshold when we have at least this many torrents:
-    NUM_TORRENTS_THRESHOLD = 150
-
-    # Partition parameters
-    PARTITION_AT = (0.33, 0.67)
-
-    # Only start adding collected torrents at
-    MAX_UNCOLLECTED = 5000
-
-    # Tables from which can be sampled:
-    TABLES = dict(
-        TermFrequency=dict(
-            table='TermFrequency',
-            selected_fields='term',
-            min_freq=2
-        ),
-        TorrentBiTermPhrase=dict(
-            table='''
-            (
-                SELECT TF1.term || " " || TF2.term AS phrase,
-                       COUNT(*) AS freq
-                FROM TorrentBiTermPhrase P, TermFrequency TF1, TermFrequency TF2
-                WHERE P.term1_id = TF1.term_id AND P.term2_id = TF2.term_id
-                GROUP BY term1_id, term2_id
-            )
-            ''',
-            selected_fields='phrase',
-            min_freq=1
-        )
-    )
-
-    def addTorrent(self, torrent_id, torrent_name, collected=False):
-        """
-        Extracts terms and the bi-term phrase from the added Torrent and stores it in
-        the TermFrequency and TorrentBiTermPhrase tables, respectively.
-
-        @param torrent_id Identifier of the added Torrent.
-        @param torrent_name Name of the added Torrent.
-        """
-        if collected or self.nr_bi_phrases < self.MAX_UNCOLLECTED:
-            keywords = split_into_keywords(torrent_name)
-            terms = set(self.extractor.extractTerms(keywords))
-            phrase = self.extractor.extractBiTermPhrase(keywords)
-
-            parameters = '?,' * len(terms)
-            sql = "SELECT * FROM TermFrequency WHERE term IN (" + parameters[:-1] + ")"
-            results = self._db.fetchall(sql, terms)
-
-            newterms = terms.copy()
-            for term_id, term, freq in results:
-                newterms.remove(term)
-
-            with self.termLock:
-                for term in newterms:
-                    if term in self.new_terms:
-                        self.new_terms[term][1] += 1
-                    else:
-                        self.new_terms[term] = [term, 1]
-
-                for term_id, term, freq in results:
-                    if term_id in self.update_terms:
-                        self.update_terms[term_id][0] += 1
-                    else:
-                        self.update_terms[term_id] = [freq + 1, term_id]
-
-                if phrase is not None:
-                    self.new_phrases.append((torrent_id,) + phrase)
-
-    def deleteTorrent(self, torrent_id):
-        """
-        Updates the TorrentBiTermPhrase table to reflect the change that a Torrent
-        has been deleted.
-
-        Currently, the TermFrequency table remains unaffected.
-
-        @param torrent_id Identifier of the deleted Torrent.
-        """
-        self._db.delete('TorrentBiTermPhrase', torrent_id=torrent_id)
-
-    def getBuzz(self, size=DEFAULT_SAMPLE_SIZE, with_freq=True, flat=False):
-        """
-        Samples both the TermFrequency and the TorrentBiTermPhrase table for high,
-        medium, and low frequent terms and phrases.
-
-        @param size Number of terms/phrases to be sampled for each category (high frequent,
-        mid frequent, low frequent).
-        @param with_freq Flag indicating whether the frequency for each term and phrase needs
-        to be returned as well. True by default.
-        @param flat If True, this method returns a single triple with the two samples merged,
-        instead of two separate triples for terms and phrases. Default: False.
-        @return When flat=False, two triples containing a sample of high, medium and low frequent
-        terms (in that order) for the first triple, and a sample of high, medium and low frequent
-        prases for the second triple. When flat=True, these two triples are merged into a single
-        triple. If with_freq=True, each sample is a list of (term,freq) tuples,
-        otherwise it is a list of terms.
-        """
-        num_torrents = self._db.size('CollectedTorrent')
-        if num_torrents is None or num_torrents < self.NUM_TORRENTS_THRESHOLD:
-            max_freq = None
-        else:
-            max_freq = int(round(num_torrents * self.STOPWORD_THRESHOLD))
-
-        terms_triple = self.getBuzzForTable('TermFrequency', size, with_freq, max_freq=max_freq)
-        # Niels: 29-02-2012 at startup we only request 10 terms
-        if not flat or size > 10:
-            phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
-        else:
-            phrases_triple = []
-
-        if not flat:
-            return terms_triple, phrases_triple
-        else:
-            return map(lambda t1, t2: (t1 or []) + (t2 or []), terms_triple, phrases_triple)
-
-    def getBuzzForTable(self, table, size, with_freq=True, max_freq=None):
-        """
-        Retrieves a sample of high, medium and low frequent terms or phrases, paired
-        with their frequencies, depending on the table to be sampled from.
-
-        @table Table to retrieve the highest frequency from. Must be a key in
-        NetworkBuzzDBHandler.TABLES.
-        @param size Number of terms/phrases to be sampled for each category (high frequent,
-        mid frequent, low frequent).
-        @param with_freq Flag indicating whether the frequency for each term/phrase needs
-        to be returned as well. True by default.
-        @param max_freq Optional. When set, high frequent terms or phrases occurring more than
-        max_freq times are not included. Default: None (i.e., include all).
-        @return Triple containing a sample of high, medium and low frequent
-        terms/phrases (in that order). If with_freq=True, each sample is a list of (term,freq)
-        tuples, otherwise it is a list of terms.
-        """
-        # Partition using a ln-scale
-        M = self._max(table, max_freq=max_freq)
-        if M is None:
-            return ()
-        lnM = math.log(M)
-
-        min_freq = self.TABLES[table]['min_freq']
-        a, b = [int(round(math.exp(boundary * lnM))) for boundary in self.PARTITION_AT]
-        a = max(min_freq, a)
-
-        ranges = (
-            (b, max_freq),
-            (a, b),
-            (min_freq, a)
-        )
-        # ...and sample each range
-        return tuple(self._sample(table, range, size, with_freq=with_freq) for range in ranges)
-
-    def _max(self, table, max_freq=None):
-        """
-        Internal method to select the highest occurring term or phrase frequency,
-        depending on the table parameter.
-
-        @param table Table to retrieve the highest frequency from. Must be a key in
-        NetworkBuzzDBHandler.TABLES.
-        @param max_freq Optional. When set, high frequent terms or phrases occurring more than
-        max_freq times are not considered in determining the highest frequency.
-        Default: None (i.e., consider all).
-        @return Highest occurring frequency.
-        """
-        sql = 'SELECT MAX(freq) FROM %s WHERE freq >= %s' % (self.TABLES[table]['table'], self.MIN_FREQ)
-        if max_freq is not None:
-            sql += ' AND freq < %s' % max_freq
-        sql += ' LIMIT 1'
-
-        return self._db.fetchone(sql)
-
-    def _sample(self, table, range, samplesize, with_freq=True):
-        """
-        Internal method to randomly select terms or phrases within a certain frequency
-        range, depending on the table parameter
-
-        @table Table to sample from. Must be a key in NetworkBuzzDBHandler.TABLES.
-        @param range Pair (N,M) to select random terms or phrases that occur at least N
-        times, but less than M times. If M is None, no upperbound is used.
-        @param samplesize Number of terms or phrases to select.
-        @param with_freq Flag indicating whether the frequency for each term needs
-        to be returned as well. True by default.
-        @return A list of (term_or_phrase,freq) pairs if with_freq=True,
-        otherwise a list of terms or phrases.
-        """
-        if not samplesize or samplesize < 0:
-            return []
-
-        minfreq, maxfreq = range
-        if maxfreq is not None:
-            whereclause = 'freq BETWEEN %s AND %s' % (minfreq, maxfreq - 1)
-        else:
-            whereclause = 'freq >= %s' % minfreq
-
-        selected_fields = self.TABLES[table]['selected_fields']
-        if with_freq:
-            selected_fields += ', freq'
-
-        sql = '''SELECT %s
-                 FROM %s
-                 WHERE %s
-                 ORDER BY random()
-                 LIMIT %s''' % (selected_fields, self.TABLES[table]['table'], whereclause, samplesize)
-        res = self._db.fetchall(sql)
-        if not with_freq:
-            res = map(lambda x: x[0], res)
-        return res
-
-    def getTermsStartingWith(self, beginning, num=10):
-        terms = None
-
-        words = beginning.split()
-        if len(words) < 3:
-            if beginning[-1] == ' ' or len(words) > 1:
-                termid = self.getOne('term_id', term=("=", words[0]))
-                if termid:
-                    sql = '''SELECT "%s " || TF.term AS phrase
-                             FROM TorrentBiTermPhrase P, TermFrequency TF
-                             WHERE P.term1_id = ?
-                             AND P.term2_id = TF.term_id ''' % words[0]
-                    if len(words) > 1:
-                        sql += 'AND TF.term like "%s%%" ' % words[1]
-                    sql += '''GROUP BY term1_id, term2_id
-                             ORDER BY freq DESC
-                             LIMIT ?'''
-                    terms = self._db.fetchall(sql, (termid, num))
-            else:
-                terms = self.getAll('term',
-                                    term=("like", u"%s%%" % beginning),
-                                    order_by="freq DESC",
-                                    limit=num * 2)
-
-        if terms:
-            # terms is a list containing lists. We only want the first
-            # item of the inner lists.
-            terms = [term for (term,) in terms]
-
-            catobj = Category.getInstance()
-            if catobj.family_filter_enabled():
-                return filter(lambda term: not catobj.xxx_filter.isXXXTerm(term), terms)[:num]
-            else:
-                return terms[:num]
-        else:
-            return []
 
 
 class UserEventLogDBHandler(BasicDBHandler):
