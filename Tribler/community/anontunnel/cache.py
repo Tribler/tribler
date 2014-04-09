@@ -148,9 +148,9 @@ class CandidateCache(object):
         def __clean_up_task():
             while True:
                 try:
-                    self.invalidate()
+                    self.clean()
                 finally:
-                    yield 30.0
+                    yield 10.0
 
         community.dispersy.callback.register(__clean_up_task)
 
@@ -225,7 +225,7 @@ class CandidateCache(object):
         """
         return self.candidate_to_time.keys()
 
-    def invalidate(self):
+    def clean(self):
         """
         Clean up the cache by invalidating old entries
         """
