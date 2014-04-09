@@ -414,14 +414,21 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         return self.get_piece_progress(pieces, consecutive)
 
     @checkHandleAndSynchronize()
-    def set_piece_priority(self, pieces, priority):
+    def set_piece_priority(self, pieces_need, priority):
+        do_prio = False
+        pieces_have = self.handle.status().pieces
         piecepriorities = self.handle.piece_priorities()
-        for piece in pieces:
+        for piece in pieces_need:
             if piece < len(piecepriorities):
-                piecepriorities[piece] = priority
+                if piecepriorities[piece] != priority and not pieces_have[piece]:
+                    piecepriorities[piece] = priority
+                    do_prio = True
             else:
                 self._logger.info("LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d", piece, len(piecepriorities))
-        self.handle.prioritize_pieces(piecepriorities)
+        if do_prio:
+            self.handle.prioritize_pieces(piecepriorities)
+        else:
+            self._logger.info("LibtorrentDownloadImpl: skipping set_piece_priority")
 
     @checkHandleAndSynchronize()
     def set_byte_priority(self, byteranges, priority):
