@@ -193,8 +193,9 @@ class CandidateCache(object):
 
             if candidate in self.candidate_to_key:
                 key = self.candidate_to_key[candidate]
+                if key in self.keys_to_candidate:
+                    del self.keys_to_candidate[key]
                 del self.candidate_to_key[candidate]
-                del self.keys_to_candidate[key]
                 del self.candidate_to_time[candidate]
                 del self.candidate_to_key_string[candidate]
                 hashed_key = self.candidate_to_hashed_key[candidate]
