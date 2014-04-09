@@ -149,7 +149,6 @@ class CandidateCache(object):
         @param bool times_out: whether the cache entry should timeout
         @param WalkCandidate candidate: the candidate we should cache
         """
-        key = next(iter(candidate.get_members()))._ec
 
         with self._lock:
             self.invalidate_by_candidate(candidate)
