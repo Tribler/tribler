@@ -435,23 +435,17 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         pieces = []
         for fileindex, bytes_begin, bytes_end in byteranges:
             if fileindex >= 0:
-                if bytes_begin == 0 and bytes_end == -1:
-                    # Set priority for entire file
-                    filepriorities = self.handle.file_priorities()
-                    filepriorities[fileindex] = priority
-                    self.handle.prioritize_files(filepriorities)
-                else:
-                    # Ensure the we remain within the file's boundaries
-                    file_entry = self.handle.get_torrent_info().file_at(fileindex)
-                    bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
-                    bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
+                # Ensure the we remain within the file's boundaries
+                file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
+                bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
 
-                    startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
-                    endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
-                    startpiece = max(startpiece, 0)
-                    endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+                startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
+                endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
+                startpiece = max(startpiece, 0)
+                endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
 
-                    pieces += range(startpiece, endpiece)
+                pieces += range(startpiece, endpiece)
             else:
                 self._logger.info("LibtorrentDownloadImpl: could not set priority for incorrect fileindex")
 
