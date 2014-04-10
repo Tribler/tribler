@@ -956,6 +956,8 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
                     return newText
             return ""
 
+        self.vSizer.AddStretchSpacer()
+
         name = wx.StaticText(self, -1, '')
         name.SetLabel(ShortenText(name, self.original_data.name))
         self.AddEvents(name)

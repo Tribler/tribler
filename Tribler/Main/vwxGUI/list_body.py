@@ -515,7 +515,7 @@ class ListItem(wx.Panel):
 class AbstractListBody():
 
     @warnWxThread
-    def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT, grid_columns=0, vertical_scroll=False):
+    def __init__(self, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=None, hasFilter=True, listRateLimit=LIST_RATE_LIMIT, grid_columns=0, horizontal_scroll=False):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.columns = columns
@@ -531,7 +531,7 @@ class AbstractListBody():
             list_item_max = LIST_ITEM_MAX_SIZE
         self.list_item_max = list_item_max
         self.list_cur_max = self.list_item_max
-        self.vertical_scroll = vertical_scroll
+        self.horizontal_scroll = horizontal_scroll
 
         self.hasFilter = hasFilter
 
@@ -540,7 +540,9 @@ class AbstractListBody():
 
         # vertical sizer containing all items
         self.grid_columns = grid_columns
-        if self.grid_columns > 0:
+        if self.horizontal_scroll:
+            self.vSizer = wx.BoxSizer(wx.HORIZONTAL)
+        elif self.grid_columns > 0:
             self.vSizer = wx.FlexGridSizer(0, self.grid_columns, 0, 0)
         else:
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -551,7 +553,7 @@ class AbstractListBody():
         self.listpanel.SetSizer(sizer)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.listpanel, 1)
+        hSizer.Add(self.listpanel, 1, wx.EXPAND if self.horizontal_scroll else 0, 0)
         self.SetSizer(hSizer)
 
         # messagePanel text
@@ -756,7 +758,7 @@ class AbstractListBody():
         self.Layout()
 
         # Determine scrollrate
-        if not self.vertical_scroll:
+        if not self.horizontal_scroll:
             nritems = len(self.vSizer.GetChildren())
             if self.rate is None or nritems <= LIST_ITEM_BATCH_SIZE * 3:
                 if nritems > 0:
@@ -1044,19 +1046,25 @@ class AbstractListBody():
     def CreateItem(self, key):
         if not key in self.items and self.data:
             for curdata in self.data:
-                if len(curdata) > 3:
-                    thiskey, item_data, original_data, create_method = curdata[:4]
-                else:
-                    thiskey, item_data, original_data = curdata
-                    create_method = ListItem
+                if key == curdata[0]:
+                    if len(curdata) > 3:
+                        _, item_data, original_data, create_method = curdata[:4]
+                    else:
+                        _, item_data, original_data = curdata
+                        create_method = ListItem
 
-                if key == thiskey:
                     self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange=self.showChange, list_selected=self.list_selected, list_expanded=self.list_expanded)
+                    break
 
-                    self.vSizer.Add(self.items[key], 0, wx.EXPAND | wx.BOTTOM, 1)
+        if key in self.items:
+            item = self.items[key]
+            sizer = self.vSizer.GetItem(item) if item else True
+            if not sizer:
+                self.vSizer.Add(item, 0, wx.EXPAND | wx.BOTTOM, 1)
+                item.Show()
 
-                    self.OnChange()
-                    return True
+                self.OnChange()
+            return True
         return False
 
     @warnWxThread
@@ -1226,10 +1234,7 @@ class AbstractListBody():
     @warnWxThread
     def Select(self, key, raise_event=True):
         # check if we need to create this item on the spot
-        if not key in self.items:
-            self.CreateItem(key)
-
-        if key in self.items:
+        if self.CreateItem(key):
             if not self.items[key].expanded:
                 if self.singleExpanded:
                     self.DeselectAll()
@@ -1302,7 +1307,7 @@ class AbstractListBody():
 
             self.Thaw()
 
-        if not self.vertical_scroll and self.grid_columns > 0 and self.items:
+        if not self.horizontal_scroll and self.grid_columns > 0 and self.items:
             column_width = self.items.values()[0].GetSize().x
             viewable_width = self.listpanel.GetParent().GetSize().x
 
@@ -1331,9 +1336,9 @@ class AbstractListBody():
 
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
 
-    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=LIST_ITEM_MAX_SIZE, listRateLimit=LIST_RATE_LIMIT, grid_columns=0, vertical_scroll=False):
+    def __init__(self, parent, parent_list, columns, leftSpacer=0, rightSpacer=0, singleExpanded=False, showChange=False, list_item_max=LIST_ITEM_MAX_SIZE, listRateLimit=LIST_RATE_LIMIT, grid_columns=0, horizontal_scroll=False):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max=list_item_max, grid_columns=grid_columns, vertical_scroll=vertical_scroll)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max=list_item_max, grid_columns=grid_columns, horizontal_scroll=horizontal_scroll)
 
         homeId = wx.NewId()
         endId = wx.NewId()
