@@ -821,10 +821,10 @@ class ArtworkPanel(wx.Panel):
         self.utility = self.guiutility.utility
         self.OnExpand = lambda *args: None
         self.OnCollapse = lambda *args: None
-        self.update_interval = 300
+        self.update_interval = 120
         self.max_torrents = 20
 
-        self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=self.max_torrents, vertical_scroll=True)
+        self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=self.max_torrents, horizontal_scroll=True)
         self.list.SetBackgroundColour(self.GetBackgroundColour())
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -848,7 +848,11 @@ class ArtworkPanel(wx.Panel):
 
         self.SetData(data)
 
-        startWorker(None, self.GetData, delay=self.update_interval, workerType="guiTaskQueue")
+        if len(torrents) < self.max_torrents:
+            interval = self.update_interval / 2
+        else:
+            interval = self.update_interval
+        startWorker(None, self.GetData, delay=interval, workerType="guiTaskQueue")
 
     @forceWxThread
     def SetData(self, data):
