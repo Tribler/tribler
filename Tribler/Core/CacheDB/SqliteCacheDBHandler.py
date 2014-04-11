@@ -1606,7 +1606,7 @@ class TorrentDBHandler(BasicDBHandler):
         # print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(results),len(results),len(dont_sort_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return results
 
-    def getAutoCompleteTerms(self, keyword, limit=100):
+    def getAutoCompleteTerms(self, keyword, max_terms, limit=100):
         sql = "SELECT swarmname FROM FullTextIndex WHERE FullTextIndex MATCH 'swarmname: %s*' LIMIT ?" % keyword
         result = self._db.fetchall(sql, (limit,))
 
@@ -1619,7 +1619,7 @@ class TorrentDBHandler(BasicDBHandler):
         if keyword in all_terms:
             all_terms.remove(keyword)
 
-        return list(set(all_terms))
+        return list(set(all_terms))[:max_terms]
 
     def getSearchSuggestion(self, keywords, limit=1):
         match = [keyword.lower() for keyword in keywords]

@@ -240,7 +240,7 @@ class TopSearchPanel(FancyPanel):
         if len(term) > 1:
             if self.tdb == None:
                 self.tdb = TorrentDBHandler.getInstance()
-            return self.tdb.getAutoCompleteTerms(term, limit=7)
+            return self.tdb.getAutoCompleteTerms(term, max_terms=7)
         return []
 
     def SearchFocus(self):
