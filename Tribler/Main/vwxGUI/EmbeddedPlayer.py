@@ -12,7 +12,8 @@ from threading import currentThread
 from traceback import print_exc
 
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, \
-    DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING
+    DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING, \
+    DLMODE_VOD
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 from Tribler.Main.vwxGUI import forceWxThread, warnWxThread, \
@@ -178,7 +179,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             return
 
         for ds in dslist:
-            if ds.get_download() == self.download:
+            if ds.get_download() == self.download and self.download.get_mode() == DLMODE_VOD:
                 if ds.get_status() == DLSTATUS_HASHCHECKING:
                     progress = ds.get_progress()
                     label = 'Checking\n%d%%' % (progress * 100)
