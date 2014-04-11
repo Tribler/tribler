@@ -207,7 +207,7 @@ class TriblerLaunchMany(Thread):
 
             if self.session.get_megacache():
                 import Tribler.Core.CacheDB.sqlitecachedb as cachedb
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler, MiscDBHandler, MetadataDBHandler
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, UserEventLogDBHandler, MiscDBHandler, MetadataDBHandler
                 from Tribler.Category.Category import Category
                 from Tribler.Core.Tag.Extraction import TermExtraction
                 from Tribler.Core.CacheDB.sqlitecachedb import try_register
@@ -232,7 +232,6 @@ class TriblerLaunchMany(Thread):
                 self.votecast_db.registerSession(self.session)
                 self.channelcast_db = ChannelCastDBHandler.getInstance()
                 self.channelcast_db.registerSession(self.session)
-                self.nb_db = NetworkBuzzDBHandler.getInstance()
                 self.ue_db = UserEventLogDBHandler.getInstance()
 
                 if self.dispersy:
@@ -730,7 +729,6 @@ class TriblerLaunchMany(Thread):
             self.mypref_db.delInstance()
             self.votecast_db.delInstance()
             self.channelcast_db.delInstance()
-            self.nb_db.delInstance()
             self.ue_db.delInstance()
             self.cat.delInstance()
             self.term.delInstance()

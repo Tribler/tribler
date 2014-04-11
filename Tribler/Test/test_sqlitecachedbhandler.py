@@ -14,7 +14,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, \
     MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler, \
-    NetworkBuzzDBHandler, MiscDBHandler
+    MiscDBHandler
 
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
@@ -141,13 +141,11 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.torrent_dir = FILES_DIR
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
-        self.tdb._nb = NetworkBuzzDBHandler.getInstance()
 
     def tearDown(self):
         MiscDBHandler.delInstance()
         TorrentDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
-        NetworkBuzzDBHandler.delInstance()
 
         AbstractDB.tearDown(self)
 
