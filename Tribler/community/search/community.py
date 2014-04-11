@@ -57,7 +57,7 @@ class SearchCommunity(Community):
 # OACmKXT1V0kQ11Fm1lKduvAW54CQr7+vg3M=
 #-----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405c09348b2243e53fa190f17fc8c9843d61fc67e8ea22d7b031913ffc912897b57be780c06213dbf937d87e3ef1d48bf8f76e03d5ec40b1cdb877d9fa1ec1f133a412601c262d9ef01840ffc49d6131b1df9e1eac41a8ff6a1730d4541a64e733ed7cee415b220e4a0d2e8ace5099520bf8896e09cac3800a62974f5574910d75166d6529dbaf016e78090afbfaf8373".decode("HEX")
-        master = dispersy.get_member(master_key)
+        master = dispersy.get_member(public_key=master_key)
         return [master]
 
     @classmethod
@@ -286,7 +286,7 @@ class SearchCommunity(Community):
             cache = self._request_cache.add(IntroductionRequestCache(self, destination))
             payload = (destination.sock_addr, self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, 0, None)
 
-        destination.walk(time(), cache.timeout_delay)
+        destination.walk(time())
         self.add_candidate(destination)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")

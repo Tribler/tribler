@@ -51,7 +51,7 @@ class MetadataCommunity(Community):
 # 1X3EgY3OcEkrxinkph+cs57icRqHTjDwaro=
 # -----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040569d8061423ca91a3f35b16e34ff5d83af8ab595a5144b7f0e7888e6199b4959a120613122bb5248b22ae769dc8729c1e69f8170f2d05c035dd036ce07ab4c678f488cbeaceb0c506efb4e04a4be16968dfe520248328734204fc346b0c9c091089736aa4e531674fe595bba0b384d0887f9d38a019d57dc4818dce70492bc629e4a61f9cb39ee2711a874e30f06aba".decode("HEX")
-        master = dispersy.get_member(master_key)
+        master = dispersy.get_member(public_key=master_key)
         return [master]
 
     @classmethod
@@ -234,7 +234,7 @@ class MetadataCommunity(Community):
 
             if not message.authentication.member.database_id in times:
                 times[message.authentication.member.database_id] = [global_time for global_time, in self._dispersy._database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (message.community.database_id, message.authentication.member.database_id, message.database_id))]
-                #assert len(times[message.authentication.member.database_id]) <= message.distribution.history_size, [message.packet_id, message.distribution.history_size, times[message.authentication.member.database_id]]
+                # assert len(times[message.authentication.member.database_id]) <= message.distribution.history_size, [message.packet_id, message.distribution.history_size, times[message.authentication.member.database_id]]
 
             tim = times[message.authentication.member.database_id]
 
