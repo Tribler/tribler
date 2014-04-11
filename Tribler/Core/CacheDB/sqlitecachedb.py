@@ -1221,14 +1221,6 @@ CREATE TABLE MetadataData (
 """
             self.execute_write(sql)
 
-        if fromver < 21:
-            self.database_update.acquire()
-            self.execute_write("DROP INDEX IF EXISTS torrent_biterm_phrase_idx")
-            self.execute_write("DROP TABLE IF EXISTS TorrentBiTermPhrase")
-            self.execute_write("DROP INDEX IF EXISTS termfrequency_freq_idx")
-            self.execute_write("DROP TABLE IF EXISTS TermFrequency")
-            self.database_update.release()
-
         # updating version stepwise so if this works, we store it
         # regardless of later, potentially failing updates
         self.writeDBVersion(CURRENT_MAIN_DB_VERSION)
@@ -2189,6 +2181,14 @@ CREATE TABLE MetadataData (
                 tqueue = TimedTaskQueue('UpgradeDB')
                 tqueue.add_task(kill_threadqueue_if_empty, INITIAL_UPGRADE_PAUSE + 1, 'kill_if_empty')
             tqueue.add_task(upgradeDBV19, INITIAL_UPGRADE_PAUSE)
+
+        if fromver < 21:
+            self.database_update.acquire()
+            self.execute_write("DROP INDEX IF EXISTS torrent_biterm_phrase_idx")
+            self.execute_write("DROP TABLE IF EXISTS TorrentBiTermPhrase")
+            self.execute_write("DROP INDEX IF EXISTS termfrequency_freq_idx")
+            self.execute_write("DROP TABLE IF EXISTS TermFrequency")
+            self.database_update.release()
 
     def clean_db(self, vacuum=False):
         self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0")
