@@ -135,9 +135,9 @@ class TriblerLaunchMany(Thread):
                 success = self.dispersy.start()
 
                 # for debugging purpose
-                #from Tribler.dispersy.endpoint import NullEndpoint
-                #self.dispersy._endpoint = NullEndpoint()
-                #self.dispersy._endpoint.open(self.dispersy)
+                # from Tribler.dispersy.endpoint import NullEndpoint
+                # self.dispersy._endpoint = NullEndpoint()
+                # self.dispersy._endpoint.open(self.dispersy)
 
                 diff = timemod.time() - now
                 if success:
@@ -155,8 +155,7 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Core.permid import read_keypair
                 keypair = read_keypair(self.session.get_permid_keypair_filename())
                 self.session.dispersy_member = callback.call(self.dispersy.get_member,
-                                                             (self.dispersy.crypto.key_to_bin(keypair.pub()),
-                                                              self.dispersy.crypto.key_to_bin(keypair)))
+                                             kargs={'private_key': self.dispersy.crypto.key_to_bin(keypair)})
 
                 self.database_thread = callback
             else:

@@ -66,7 +66,7 @@ class AllChannelCommunity(Community):
 # 9f+uxEEpaIo46jX4eSBf2+EXMj5zB2Vh8RI=
 # -----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405548a13626683d4788ab19393fa15c9e9d6f5ce0ff47737747fa511af6c4e956f523dc3d1ae8d7b83b850f21ab157dd4320331e2f136aa01e70d8c96df665acd653725e767da9b5079f25cebea808832cd16015815797906e90753d135ed2d796b9dfbafaf1eae2ebea3b8846716c15814e96b93ae0f5ffaec44129688a38ea35f879205fdbe117323e73076561f112".decode("HEX")
-        master = dispersy.get_member(master_key)
+        master = dispersy.get_member(public_key=master_key)
         return [master]
 
     @classmethod
