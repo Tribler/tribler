@@ -459,7 +459,7 @@ class TorrentDetails(AbstractDetails):
         self.updateTrackersTab()
 
     def OnUploadThumbsButtonClick(self, event):
-        type_str = "Pictures|*.png;*.jpeg;*.jpg | PNG files (*.png)|*.png | JPEG files (*.jpeg, *jpg)|*.jpeg;*.jpg"
+        type_str = "Pictures (*.png, *.jpeg, *jpg)|*.png;*.jpeg;*.jpg"
         dialog = wx.FileDialog(self, "Upload Thumbnails", wildcard=type_str,
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
         extra_info = {'thumbnail-tempdir': None, 'thumbnail-file-list': []}
