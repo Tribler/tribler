@@ -50,7 +50,6 @@ try:
 except ImportError, e:
     # Python fallback module
     import arflayout_fb as arflayout
-import wx.lib.agw.customtreectrl as CT
 
 
 class Home(wx.Panel):
