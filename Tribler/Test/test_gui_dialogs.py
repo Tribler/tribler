@@ -223,7 +223,7 @@ class TestGuiDialogs(TestGuiAsServer):
         def do_screenshot(dialog):
             self.screenshot('Screenshot of DispersyDebugFrame', window=dialog)
 
-            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+            self.Call(1, dialog.Destroy)
             self.Call(2, self.quit)
 
         def do_screenshot_tab():
