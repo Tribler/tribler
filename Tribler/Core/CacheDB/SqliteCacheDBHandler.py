@@ -1610,16 +1610,18 @@ class TorrentDBHandler(BasicDBHandler):
         sql = "SELECT swarmname FROM FullTextIndex WHERE FullTextIndex MATCH 'swarmname: %s*' LIMIT ?" % keyword
         result = self._db.fetchall(sql, (limit,))
 
-        all_terms = []
+        all_terms = set()
         for line, in result:
+            if len(all_terms) >= max_terms:
+                break
             i1 = line.find(keyword)
             i2 = line.find(' ', i1 + len(keyword))
-            all_terms.append(line[i1:i2] if i2 >= 0 else line[i1:])
+            all_terms.add(line[i1:i2] if i2 >= 0 else line[i1:])
 
         if keyword in all_terms:
             all_terms.remove(keyword)
 
-        return list(set(all_terms))[:max_terms]
+        return list(all_terms)
 
     def getSearchSuggestion(self, keywords, limit=1):
         match = [keyword.lower() for keyword in keywords]
