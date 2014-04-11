@@ -488,7 +488,7 @@ class ABCApp():
             dispersy.define_auto_load(PreviewChannelCommunity)
 
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
-            dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))
+            dispersy_member = dispersy.get_member(dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair))
 
             proxy_community = dispersy.define_auto_load(
                 ProxyCommunity, (dispersy_member, None, s), load=True)
