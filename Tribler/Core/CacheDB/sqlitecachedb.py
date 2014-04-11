@@ -1223,7 +1223,10 @@ CREATE TABLE MetadataData (
 
         if fromver < 21:
             self.database_update.acquire()
+            self.execute_write("DROP INDEX IF EXISTS torrent_biterm_phrase_idx")
             self.execute_write("DROP TABLE IF EXISTS TorrentBiTermPhrase")
+            self.execute_write("DROP INDEX IF EXISTS termfrequency_freq_idx")
+            self.execute_write("DROP TABLE IF EXISTS TermFrequency")
             self.database_update.release()
 
         # updating version stepwise so if this works, we store it
