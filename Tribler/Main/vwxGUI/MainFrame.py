@@ -13,24 +13,6 @@ import os
 import sys
 import traceback
 import logging
-
-from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
-    TopSearchPanelStub
-from Tribler.Main.vwxGUI.home import Home, Stats, Anonymity
-from Tribler.Main.vwxGUI.list import SearchList, ChannelList, \
-    LibraryList, ActivitiesList
-from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
-    ManageChannel
-
-
-from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
-from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
-from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, \
-    LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
-    TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
-
 import wx
 
 import subprocess
@@ -77,7 +59,7 @@ from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, 
     TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
-from Tribler.Main.vwxGUI.home import Home, Stats
+from Tribler.Main.vwxGUI.home import Home, Stats, Anonymity
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
     ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
