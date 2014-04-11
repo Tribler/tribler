@@ -859,7 +859,6 @@ class Anonymity(wx.Panel):
 
         self.selected_edges = []
 
-        self.vertex_max = 100
         self.vertex_active = -1
         self.vertex_hover = -1
         self.vertex_hover_evt = None
@@ -1074,8 +1073,6 @@ class Anonymity(wx.Panel):
 
     def RemoveVertex(self, toremove_id):
         with self.lock:
-
-            # Remove the vertex with the fewest neighbors.
             if toremove_id in self.vertices:
                 self.vertices.pop(toremove_id)
             if toremove_id in self.vertex_to_colour:
@@ -1149,10 +1146,6 @@ class Anonymity(wx.Panel):
             self.taskqueue.add_task(task)
             self.new_data = False
             self.layout_busy = True
-
-        elif len(self.vertices) > self.vertex_max:
-            task = lambda: self.RemoveVertex()
-            self.taskqueue.add_task(task)
 
         if len(self.vertices) > 0:
 
