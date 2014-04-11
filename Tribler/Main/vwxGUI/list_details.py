@@ -11,7 +11,6 @@ import imghdr
 import tempfile
 import shutil
 
-from __init__ import *
 from Tribler.Core.osutils import startfile
 from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \

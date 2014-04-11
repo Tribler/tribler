@@ -1,16 +1,14 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-from collections import defaultdict
 
 import sys
 import random
 import time
-from traceback import print_exc
 import logging
-import itertools
 
+from traceback import print_exc
 from Tribler.Core.Swift.SwiftProcess import SwiftProcess
-from itertools import chain
+
 
 class SwiftProcessMgr:
 
@@ -27,13 +25,11 @@ class SwiftProcessMgr:
         self.sesslock = sesslock
         self.done = False
 
-        self.sps = defaultdict(list)
-        """ :type : dict[(String, int), list[SwiftProcess]] """
+        self.sps = []
 
-    def get_or_create_sp(self, workdir, zerostatedir, listenport, httpgwport, cmdgwport, socks5):
+    def get_or_create_sp(self, workdir, zerostatedir, listenport, httpgwport, cmdgwport):
         """ Download needs a process """
         self.sesslock.acquire()
-
         if not self.done:
             # print >>sys.stderr,"spm: get_or_create_sp"
             try:
@@ -42,15 +38,15 @@ class SwiftProcessMgr:
                 sp = None
                 if listenport is not None:
                     # Reuse the one with the same requested listen port
-                    for sp2 in self.sps[socks5]:
+                    for sp2 in self.sps:
                         if sp2.listenport == listenport:
                             sp = sp2
                             # print >>sys.stderr,"spm: get_or_create_sp: Reusing",sp2.get_pid()
 
                 elif self.dlsperproc > 1:
                     # Find one with room, distribute equally
-                    random.shuffle(self.sps[socks5])
-                    for sp2 in self.sps[socks5]:
+                    random.shuffle(self.sps)
+                    for sp2 in self.sps:
                         if len(sp2.get_downloads()) < self.dlsperproc:
                             sp = sp2
                             self._logger.debug("spm: get_or_create_sp: Reusing %s", sp.get_pid())
@@ -58,9 +54,9 @@ class SwiftProcessMgr:
 
                 if sp is None:
                     # Create new process
-                    sp = SwiftProcess(self.binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, self, socks5)
+                    sp = SwiftProcess(self.binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, self)
                     self._logger.debug("spm: get_or_create_sp: Creating new %s", sp.get_pid())
-                    self.sps[socks5].append(sp)
+                    self.sps.append(sp)
 
                     # Arno, 2011-10-13: On Linux swift is slow to start and
                     # allocate the cmd listen socket?!
@@ -93,16 +89,10 @@ class SwiftProcessMgr:
             self.sesslock.release()
 
     def destroy_sp(self, sp):
-        """ 
-        @type sp : Tribler.Core.Swift.SwiftProcess.SwiftProcess
-        @param sp: SwiftProcess which needs to be destroyed
-        @return:
-        """
-        
         self._logger.info("spm: destroy_sp: %s", sp.get_pid())
         self.sesslock.acquire()
         try:
-            self.sps[sp.socks5].remove(sp)
+            self.sps.remove(sp)
             sp.early_shutdown()
             # Don't need gracetime, no downloads left.
             sp.network_shutdown()
@@ -112,12 +102,12 @@ class SwiftProcessMgr:
     def clean_sps(self):
         # lock held
         deads = []
-        for sp in chain.from_iterable(self.sps.itervalues()):
+        for sp in self.sps:
             if not sp.is_alive():
                 self._logger.info("spm: clean_sps: Garbage collecting dead %s", sp.get_pid())
                 deads.append(sp)
         for sp in deads:
-            self.sps[sp.socks5].remove(sp)
+            self.sps.remove(sp)
 
     def early_shutdown(self):
         """ First phase of two phase shutdown. network_shutdown is called after
@@ -129,7 +119,7 @@ class SwiftProcessMgr:
             self.sesslock.acquire()
             self.done = True
 
-            for sp in chain.from_iterable(self.sps.itervalues()):
+            for sp in self.sps:
                 try:
                     sp.early_shutdown()
                 except:
@@ -141,7 +131,7 @@ class SwiftProcessMgr:
         """ Gracetime expired, kill procs """
         # Called by network thread
         self._logger.info("spm: network_shutdown")
-        for sp in chain.from_iterable(self.sps.itervalues()):
+        for sp in self.sps:
             try:
                 sp.network_shutdown()
             except:
@@ -153,7 +143,7 @@ class SwiftProcessMgr:
 
         self.sesslock.acquire()
         try:
-            for sp in chain.from_iterable(self.sps.itervalues()):
+            for sp in self.sps:
                 if sp.get_cmdport() == port:
                     self._logger.info("spm: connection_lost: Restart %s", sp.get_pid())
                     sp.start_cmd_connection()

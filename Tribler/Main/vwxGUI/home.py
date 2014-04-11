@@ -7,6 +7,7 @@ import copy
 
 import wx
 import igraph
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.community.anontunnel.community import ProxyCommunity
 import datetime
@@ -888,7 +889,7 @@ class Anonymity(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.OnUpdateCircuits, self.circuit_timer)
         self.circuit_timer.Start(5000)
 
-        self.taskqueue = TimedTaskQueue(nameprefix="GraphLayoutCalculator")
+        self.taskqueue = GUITaskQueue.getInstance()
 
         self.lock = threading.RLock()
 
