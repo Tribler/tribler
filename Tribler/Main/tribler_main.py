@@ -222,7 +222,6 @@ class ABCApp():
 
             maxup = self.utility.read_config('maxuploadrate')
             self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
-            self.ratelimiter.set_global_max_seedupload_speed(maxup)
 
             maxdown = self.utility.read_config('maxdownloadrate')
             self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
