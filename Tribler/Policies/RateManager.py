@@ -143,7 +143,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
 
             if len(todoset) > 0:
                 # Rest divides globalmaxspeed equally
-                localmaxspeed = globalmaxspeed / float(len(todoset))
+                localmaxspeed = globalmaxspeed / float(len(todoset))  if globalmaxspeed > 0 else 0.00001
                 # if too small than user's problem
 
                 self._logger.debug("RateManager: calc_and_set_speed_limits: localmaxspeed is %s %s", localmaxspeed, dir)
@@ -235,7 +235,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
 
             if len(todoset) > 0:
                 # Rest divides globalmaxspeed based on their demand
-                localmaxspeed = globalmaxspeed / float(len(todoset))
+                localmaxspeed = globalmaxspeed / float(len(todoset)) if globalmaxspeed > 0 else 0.00001
                 # if too small than user's problem
 
                 self._logger.debug("RateManager: calc_and_set_speed_limits: localmaxspeed is %s %s", localmaxspeed, dir)
@@ -377,7 +377,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
 
             if len(todoset) > 0:
                 # Rest divides globalmaxspeed based on their demand
-                localmaxspeed = globalmaxspeed / float(len(todoset))
+                localmaxspeed = globalmaxspeed / float(len(todoset)) if globalmaxspeed > 0 else 0.00001
                 # if too small than user's problem
 
                 self._logger.debug("RateManager: set_lim: localmaxspeed is %s %s", localmaxspeed, dir)
