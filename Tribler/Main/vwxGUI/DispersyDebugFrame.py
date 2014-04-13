@@ -3,7 +3,7 @@ from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 import binascii
 from collections import defaultdict
 
-from Tribler.Main.vwxGUI import warnWxThread, LIST_GREY
+from Tribler.Main.vwxGUI import forceWxThread, LIST_GREY
 from Tribler.Main.vwxGUI.widgets import _set_font, SimpleNotebook
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
@@ -125,6 +125,7 @@ class DispersyDebugFrame(wx.Frame):
             self.__dispersy.statistics.update(database=self.__incstuff_checkbox.GetValue())
             return self.__dispersy.statistics
 
+        @forceWxThread
         def do_gui(delayedResult):
             stats = delayedResult.get()  # can contain an exception
             enabled = bool(self.__incstuff_checkbox.GetValue())
