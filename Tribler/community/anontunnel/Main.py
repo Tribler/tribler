@@ -314,9 +314,6 @@ def main(argv):
                     stats[circuit_id].bytes_downloaded / 1024.0 / 1024.0,
                     stats[circuit_id].bytes_uploaded / 1024.0 / 1024.0
                 )
-
-                for hop in circuit.hops[1:]:
-                    print "\t%s:%d" % (hop.host, hop.port)
         elif line == 'q\n':
             anon_tunnel.stop()
             os._exit(0)

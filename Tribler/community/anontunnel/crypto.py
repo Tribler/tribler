@@ -23,12 +23,18 @@ class Crypto(TunnelObserver):
 
     def __init__(self):
         TunnelObserver.__init__(self)
-        self.outgoing_packet_crypto = lambda candidate, circuit, message, payload: payload
-        self.incoming_packet_crypto = lambda candidate, circuit, payload: payload
-        self.relay_packet_crypto = lambda destination, circuit, message_type, content: content
         self.encrypt_outgoing_packet_content = defaultdict()
         self.decrypt_incoming_packet_content = defaultdict()
         self._logger = logging.getLogger(__name__)
+
+    def outgoing_packet_crypto(self, candidate, circuit, message_type, message, payload):
+        return payload
+
+    def incoming_packet_crypto(self, candidate, circuit, payload):
+        return payload
+
+    def relay_packet_crypto(self, destination, circuit, message_type, content):
+        return content
 
     def handle_incoming_packet(self, candidate, circuit_id, data):
         """
@@ -61,7 +67,7 @@ class Crypto(TunnelObserver):
             return None
         return payload
 
-    def handle_outgoing_packet(self, destination, circuit_id, message_type, content):
+    def handle_outgoing_packet(self, destination, circuit_id, message_type, message, content):
         """
         Outgoing packets have to be encrypted according to the destination, packet type and
         circuit identifier
@@ -72,10 +78,10 @@ class Crypto(TunnelObserver):
         @return: The encrypted content
         """
         try:
-            content = self.outgoing_packet_crypto(destination, circuit_id, message_type, content)
+            content = self.outgoing_packet_crypto(destination, circuit_id, message_type, message, content)
             return content
         except:
-            self._logger.error("Cannot encrypt outgoing packet content")
+            self._logger.exception("Cannot encrypt outgoing packet content")
             return None
 
     def handle_outgoing_packet_content(self, destination, circuit_id, message, message_type):
@@ -431,7 +437,7 @@ class DefaultCrypto(Crypto):
         return message
 
     def outgoing_packet_crypto(self, candidate, circuit_id,
-                                message_type, content):
+                                message_type, message, content):
         """
         Apply crypto to outgoing messages. The current protocol handles 3
         distinct cases: CREATE/CREATED, ORIGINATOR, ENDPOINT / RELAY.
@@ -460,7 +466,9 @@ class DefaultCrypto(Crypto):
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-            candidate_pub_key = iter(candidate.get_members()).next()._ec
+            candidate_pub_key = message.public_key if message_type == MESSAGE_CREATE else message.reply_to.public_key
+            candidate_pub_key = self.proxy.crypto.key_from_public_bin(candidate_pub_key)
+
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
         elif relay_key in self.session_keys:

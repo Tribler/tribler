@@ -489,11 +489,11 @@ class ProxyCommunity(Community):
 
             self.circuits[circuit_id] = circuit
             self.waiting_for[(first_hop.sock_addr, circuit_id)] = True
+
             self.send_message(first_hop, circuit_id, MESSAGE_CREATE,
-                              CreateMessage())
+                              CreateMessage("", self.my_member.public_key))
 
             return circuit
-
 
     def remove_circuit(self, circuit_id, additional_info=''):
         """
@@ -590,7 +590,7 @@ class ProxyCommunity(Community):
             destination=candidate,
             circuit_id=circuit_id,
             message_type=MESSAGE_CREATED,
-            message=CreatedMessage(candidate_dict)
+            message=CreatedMessage(candidate_dict, reply_to=message)
         )
 
     def on_created(self, circuit_id, candidate, message):
@@ -879,7 +879,7 @@ class ProxyCommunity(Community):
             return False
 
         content = self.proxy_conversion.encode(message_type, message)
-        content = self.packet_crypto.handle_outgoing_packet(destination, circuit_id, message_type, content)
+        content = self.packet_crypto.handle_outgoing_packet(destination, circuit_id, message_type, message, content)
 
         if content is None:
             return False

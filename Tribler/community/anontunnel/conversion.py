@@ -1,4 +1,5 @@
 import logging
+import sys
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.anontunnel.globals import MESSAGE_CREATE, \
     MESSAGE_CREATED, MESSAGE_EXTEND, MESSAGE_EXTENDED, MESSAGE_DATA, \
@@ -228,11 +229,16 @@ class CustomProxyConversion():
         return ExtendedMessage(key, encrypted_candidate_list)
 
     def __encode_create(self, create_message):
+        assert len(create_message.key) == 336, "Key should be 336 bytes long?"
+
         """
         :type create_message : CreateMessage
         """
-        return create_message.key
+        return create_message.key + create_message.public_key
 
     def __decode_create(self, message_buffer, offset=0):
-        key = message_buffer[offset:]
-        return CreateMessage(key)
+        key = message_buffer[offset:offset+336]
+        offset += 336
+
+        public_key = message_buffer[offset:]
+        return CreateMessage(key, public_key)

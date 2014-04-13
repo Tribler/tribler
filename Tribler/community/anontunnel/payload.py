@@ -19,14 +19,16 @@ class PongMessage(BaseMessage):
 
 
 class CreateMessage(BaseMessage):
-    def __init__(self, key=""):
+    def __init__(self, key="\0"*336, public_key=""):
         self.key = key
+        self.public_key = public_key
 
 
 class CreatedMessage(BaseMessage):
-    def __init__(self, candidate_list):
+    def __init__(self, candidate_list, reply_to=None):
         self.key = ""
         self.candidate_list = candidate_list
+        self.reply_to = reply_to
 
 
 class ExtendMessage(BaseMessage):
