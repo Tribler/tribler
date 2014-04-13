@@ -10,7 +10,7 @@ from collections import defaultdict
 
 # Tribler and Dispersy imports
 from Tribler.community.anontunnel.cache import CircuitRequestCache, \
-    PingRequestCache, CandidateCache
+    PingRequestCache, CreatedRequestCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.anontunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.dispersy.authentication import MemberAuthentication
@@ -175,9 +175,6 @@ class ProxyCommunity(Community):
 
         # add self to crypto
         self.settings.crypto.set_proxy(self)
-
-        # Our candidate cache
-        self.candidate_cache = CandidateCache(self)
 
         # Enable global counters
         from Tribler.community.anontunnel.stats import StatsCollector
@@ -424,20 +421,14 @@ class ProxyCommunity(Community):
             else:
                 candidate = self._candidates.get(sock_addr)
                 if isinstance(candidate, WalkCandidate) and candidate.get_members():
-                    self.candidate_cache.cache(candidate)
-                elif sock_addr in self.candidate_cache.ip_to_candidate:
-                    candidate = self.candidate_cache.ip_to_candidate[sock_addr]
-                    self.candidate_cache.candidate_to_time[candidate] = time.time()
+                   result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
                 else:
                     candidate = None
                     self._logger.error("Unknown candidate at %s, drop!", sock_addr)
                     result = False
-
-                if candidate:
-                    result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
         except:
             result = False
-            self._logger.error(
+            self._logger.exception(
                 "Incoming from %s on %d message error."
                 "INITIAL=%s, ORIGINATOR=%s, RELAY=%s",
                 sock_addr, circuit_id, is_initial, is_originator, is_relay)
@@ -466,7 +457,6 @@ class ProxyCommunity(Community):
 
         with self.lock:
             circuit_id = self._generate_circuit_id(first_hop.sock_addr)
-            self.candidate_cache.cache(first_hop)
 
             def create_circuit_cache(circuit):
                 cache = self._request_cache.add(CircuitRequestCache(self, circuit_id))
@@ -521,7 +511,6 @@ class ProxyCommunity(Community):
 
             circuit.destroy()
             del self.circuits[circuit_id]
-            # self.candidate_cache.invalidate_candidate(circuit.candidate)
             for observer in self.observers:
                 observer.on_break_circuit(circuit)
 
@@ -567,7 +556,9 @@ class ProxyCommunity(Community):
         self._logger.info('We joined circuit %d with neighbour %s'
                           , circuit_id, candidate)
 
-        candidate_dict = {}
+        candidates = {}
+        ''' :type : dict[str, WalkCandidate] '''
+
         for _ in range(1, 5):
             candidate_temp = next(
                 (
@@ -581,12 +572,14 @@ class ProxyCommunity(Community):
             if not candidate_temp:
                 break
 
-            # Cache this candidate so that we have its IP in the future
-            self.candidate_cache.cache(candidate_temp)
+            candidates[iter(candidate_temp.get_members()).next().mid] = candidate_temp
 
-            candidate_dict[iter(candidate_temp.get_members()).next().mid] = \
-               self.dispersy.crypto.key_to_bin(iter(candidate_temp.get_members()).next()._ec)
-
+        candidate_dict = dict(
+            (mid, self.dispersy.crypto.key_to_bin(next(iter(c.get_members()))._ec))
+            for mid, c in candidates.iteritems())
+        
+        self.create_created_cache(circuit_id, candidate, candidates)
+        
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
 
@@ -743,22 +736,16 @@ class ProxyCommunity(Community):
         """
 
         if message.extend_with:
-            extend_with_addr = self.candidate_cache.hashed_key_to_candidate[message.extend_with].sock_addr
+            cache = self.get_created_cache(circuit_id, candidate)
+            extend_candidate = cache.candidates[message.extend_with]
+
             self._logger.warning(
                 "ON_EXTEND send CREATE for circuit (%s, %d) to %s:%d!",
                 candidate,
                 circuit_id,
-                extend_with_addr[0],
-                extend_with_addr[1])
+                extend_candidate.sock_addr[0],
+                extend_candidate.sock_addr[1])
         else:
-            self._logger.error("We are extending at random should not happen!")
-            extend_with_addr = next(
-                (x.sock_addr for x in self.dispersy_yield_verified_candidates()
-                 if x and x != candidate),
-                None
-            )
-
-        if not extend_with_addr:
             self._logger.error("Cancelling EXTEND, no candidate!")
             return
 
@@ -775,22 +762,21 @@ class ProxyCommunity(Community):
             del self.relay_from_to[old_to_key]
             del self.relay_from_to[relay_key]
 
-        new_circuit_id = self._generate_circuit_id(extend_with_addr)
-        to_key = (extend_with_addr, new_circuit_id)
+        new_circuit_id = self._generate_circuit_id(extend_candidate.sock_addr)
+        to_key = (extend_candidate.sock_addr, new_circuit_id)
 
         self.waiting_for[to_key] = True
         self.relay_from_to[to_key] = RelayRoute(circuit_id,
                                                 candidate.sock_addr)
         self.relay_from_to[relay_key] = RelayRoute(new_circuit_id,
-                                                   extend_with_addr)
+                                                   extend_candidate.sock_addr)
 
         key = message.key
 
         self.directions[to_key] = ORIGINATOR
         self.directions[relay_key] = ENDPOINT
 
-        extend_candidate = self._candidates.get(extend_with_addr) or self.candidate_cache.ip_to_candidate[extend_with_addr]
-        self._logger.info("Extending circuit, got candidate with IP %s:%d from cache", *extend_with_addr)
+        self._logger.info("Extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
         return self.send_message(extend_candidate, new_circuit_id,
                                  MESSAGE_CREATE, CreateMessage(key))
 
@@ -1011,3 +997,16 @@ class ProxyCommunity(Community):
                     observer.on_enter_tunnel(circuit_id, candidate, source_address, payload)
 
             return result
+
+    def create_created_cache(self, circuit_id, candidate, candidates):
+        """
+
+        @param int circuit_id: the circuit id we received the CREATE from
+        @param WalkCandidate candidate: the candidate we got the CREATE from
+        @param dict[str, WalkCandidate] candidates: list of extend candidates we sent back
+        """
+        cache = CreatedRequestCache(circuit_id, candidate, candidates)
+        self.dispersy.callback.call(self._request_cache.add, (cache, ))
+
+    def get_created_cache(self, circuit_id, candidate):
+        return self.dispersy.callback.call(self.request_cache.get, (CreatedRequestCache.create_identifier(circuit_id, candidate),))

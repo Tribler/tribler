@@ -94,7 +94,7 @@ class Crypto(TunnelObserver):
                 message = self.encrypt_outgoing_packet_content[message_type](destination, circuit_id, message)
             return message
         except:
-            self._logger.error("Cannot encrypt outgoing packet content")
+            self._logger.exception("Cannot encrypt outgoing packet content")
             return None
 
     def handle_relay_packet(self, direction, sock_addr, circuit_id, data):

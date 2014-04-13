@@ -7,10 +7,7 @@ CREATE and CREATED requests.
 """
 
 import logging
-from operator import itemgetter
-import threading
-import time
-from Tribler.dispersy.requestcache import NumberCache
+from Tribler.dispersy.requestcache import NumberCache, Cache
 
 __author__ = 'chris'
 
@@ -110,123 +107,32 @@ class PingRequestCache(NumberCache):
         self.community.remove_circuit(self.number, 'RequestCache')
 
 
-class CandidateCache(object):
-    """
-    The candidate cache caches public keys, IPs of known candidates in the
-    community
-
-    @param ProxyCommunity community: the proxy community instance
-    """
-    def __init__(self, community, timeout=60):
-        self._lock = threading.RLock()
-        self._timeout = timeout
-        self._capacity = 1000
-        self._community = community
-
-        # Public attributes
-        self.hashed_key_to_candidate = {}
-        ''' :type : dict[object, WalkCandidate]'''
-
-        self.ip_to_candidate = {}
-        ''' :type : dict[(str, int), WalkCandidate] '''
-
-        self.candidate_to_time = {}
-        ''' :type : dict[WalkCandidate, float] '''
-
-        def __clean_up_task():
-            while True:
-                try:
-                    self.clean()
-                finally:
-                    yield 300.0
-
-        community.dispersy.callback.register(__clean_up_task)
-
-    def cache(self, candidate, times_out=True):
-        """
-        Caches a supplied candidate
-
-        @param bool times_out: whether the cache entry should timeout
-        @param WalkCandidate candidate: the candidate we should cache
+class CreatedRequestCache(Cache):
+    def __init__(self, circuit_id, candidate, candidates):
         """
 
-        with self._lock:
-            self.invalidate_by_candidate(candidate)
-
-            self.ip_to_candidate[candidate.sock_addr] = candidate
-            self.hashed_key_to_candidate[iter(candidate.get_members()).next().mid] = candidate
-
-            # set the insert time infinitely far in the future to make sure
-            # it remains in the cache for candidates that should not timeout
-            insert_time = time.time() if times_out else float("inf")
-            self.candidate_to_time[candidate] = insert_time
-
-    def invalidate_by_candidate(self, candidate):
+        @param int circuit_id: the circuit's id
+        @param WalkCandidate candidate: the candidate from which we got the CREATE
+        @param dict[str, WalkCandidate] candidates: we sent to the candidate to pick from
         """
-        Invalidate a single candidate in the cache
-        @param WalkCandidate candidate: the candidate to invalidate
-        """
-        with self._lock:
-            # check if already exists
-            if candidate in self.candidate_to_time:
-                if candidate.sock_addr in self.ip_to_candidate:
-                    del self.ip_to_candidate[candidate.sock_addr]
-                del self.candidate_to_time[candidate]
-                del self.hashed_key_to_candidate[iter(candidate.get_members()).next().mid]
+        identifier = self.create_identifier(circuit_id, candidate)
+        super(CreatedRequestCache, self).__init__(identifier)
+
+        self.circuit_id = circuit_id
+        self.candidate = candidate
+        self.candidates = dict(candidates)
 
     @property
-    def items(self):
-        """
-        Returns (candidate, insert_time) from the cache
-        @return:
-        """
-        return self.candidate_to_time.items()
+    def timeout_delay(self):
+        return 10.0
 
     @property
-    def candidates(self):
-        """
-        Returns (candidate, insert_time) from the cache
-        @return:
-        """
-        return self.candidate_to_time.keys()
+    def cleanup_delay(self):
+        return 0.0
 
-    def clean(self):
-        """
-        Clean up the cache by invalidating old entries
-        """
-        sample_time = time.time()
+    @staticmethod
+    def create_identifier(circuit_id, candidate):
+        return u"anon-tunnel:created-request:%d:%s:%d" % (circuit_id, candidate.sock_addr[0], candidate.sock_addr[1])
 
-        with self._lock:
-            timed_out = [candidate
-                         for candidate, insert_time
-                         in self.candidate_to_time.iteritems()
-                         if insert_time + self._timeout < sample_time]
-
-            for candidate in timed_out:
-                self.invalidate_by_candidate(candidate)
-
-            invalid = [(ip, candidate)
-                       for ip, candidate
-                       in self.ip_to_candidate.iteritems() if candidate.sock_addr != ip]
-
-            for ip, candidate in invalid:
-                del self.ip_to_candidate[ip]
-                self.ip_to_candidate[candidate.sock_addr] = candidate
-
-            invalid = [(mid, candidate)
-                       for mid, candidate
-                       in self.hashed_key_to_candidate.iteritems()
-                       if mid != next(iter(candidate.get_members())).mid]
-
-            for mid, candidate in invalid:
-                del self.hashed_key_to_candidate[mid]
-                self.hashed_key_to_candidate[iter(candidate.get_members()).next().mid] = candidate
-
-            # Shrink back to capacity if needed
-            amount_to_remove = max(0, len(self.candidate_to_time) - self._capacity)
-            if amount_to_remove:
-                sorted_list = sorted(self.candidate_to_time, key=itemgetter(1))
-                to_remove = sorted_list[0:amount_to_remove]
-
-                for candidate in to_remove:
-                    self.invalidate_by_candidate(candidate)
+    def on_timeout(self):
+        self.candidates.clear()
