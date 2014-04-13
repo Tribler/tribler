@@ -220,15 +220,8 @@ class ABCApp():
             # So we know if we asked for peer details last cycle
             self.lastwantpeers = []
 
-            # boudewijn 01/04/2010: hack to fix the seedupload speed that
-            # was never used and defaulted to 0 (unlimited upload)
             maxup = self.utility.read_config('maxuploadrate')
-            if maxup == -1:  # no upload
-                self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
-                self.ratelimiter.set_global_max_seedupload_speed(0.00001)
-            else:
-                self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
-                self.ratelimiter.set_global_max_seedupload_speed(maxup)
+            self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
 
             maxdown = self.utility.read_config('maxdownloadrate')
             self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
