@@ -73,8 +73,8 @@ class SaveAs(wx.Dialog):
 
         vSizer.Add(hSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
 
-        self.anon_check = wx.CheckBox(self, -1, 'Use anonymous downloading mode')
-        vSizer.Add(self.anon_check, 0, wx.TOP | wx.BOTTOM, 5)
+        # self.anon_check = wx.CheckBox(self, -1, 'Use anonymous downloading mode')
+        # vSizer.Add(self.anon_check, 0, wx.TOP | wx.BOTTOM, 5)
 
         if tdef and tdef.get_files():
             self.AddFileList(tdef, selectedFiles, vSizer, len(vSizer.GetChildren()))
@@ -200,7 +200,7 @@ class SaveAs(wx.Dialog):
         return None
 
     def GetAnonMode(self):
-        return self.anon_check.GetValue()
+        return False # self.anon_check.GetValue()
 
     def OnOk(self, event=None):
         if self.listCtrl:
