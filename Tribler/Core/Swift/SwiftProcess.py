@@ -30,7 +30,7 @@ class SwiftProcess:
     """ Representation of an operating-system process running the C++ swift engine.
     A swift engine can participate in one or more swarms."""
 
-    def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr, socks5):
+    def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         # Called by any thread, assume sessionlock is held
@@ -39,8 +39,6 @@ class SwiftProcess:
         self.workdir = workdir
         self.zerostatedir = zerostatedir
         self.spmgr = spmgr
-
-        self.socks5 = socks5
 
         # Main UDP listen socket
         if listenport is None:

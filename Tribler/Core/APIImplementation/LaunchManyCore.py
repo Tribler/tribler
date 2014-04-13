@@ -106,8 +106,7 @@ class TriblerLaunchMany(Thread):
                                                                    self.session.get_torrent_collecting_dir(),
                                                                    self.session.get_swift_tunnel_listen_port(),
                                                                    self.session.get_swift_tunnel_httpgw_listen_port(),
-                                                                   self.session.get_swift_tunnel_cmdgw_listen_port(),
-                                                                   ("127.0.0.1", self.session.get_socks5_listen_port()))
+                                                                   self.session.get_swift_tunnel_cmdgw_listen_port(),)
                     self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
 
                 except OSError:
