@@ -88,7 +88,7 @@ class DispersyDebugFrame(wx.Frame):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.__incstuff_checkbox = wx.CheckBox(self, -1, "include stuff")
         self.__incdebug_checkbox = wx.CheckBox(self, -1, "include debug")
-        self.__incdebug_checkbox.SetValue(True)
+        self.__incdebug_checkbox.SetValue(self.__dispersy.statistics.are_debug_statistics_enabled())
 
         self.__incstuff = False
         self.__incdebug = True
