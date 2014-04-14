@@ -50,7 +50,12 @@ class LibtorrentMgr:
                                       lt.alert.category_t.status_notification |
                                       lt.alert.category_t.storage_notification |
                                       lt.alert.category_t.performance_warning)
-        self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
+
+        listen_port = self.trsession.get_listen_port()
+        self.ltsession.listen_on(listen_port, listen_port + 10)
+        if listen_port != self.ltsession.listen_port():
+            self.trsession.set_listen_port_runtime(self.ltsession.listen_port())
+
         self.set_upload_rate_limit(-1)
         self.set_download_rate_limit(-1)
         self.upnp_mapper = self.ltsession.start_upnp()

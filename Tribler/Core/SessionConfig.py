@@ -43,7 +43,7 @@ class SessionConfigInterface(object):
         """
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.randomly_selected_ports = {}
+        self.selected_ports = {}
         self.sessconfig = sessconfig or CallbackConfigParser()
 
         # Poor man's versioning of SessionConfig, add missing default values.
@@ -95,9 +95,11 @@ class SessionConfigInterface(object):
                 this particular setting.
         """
         settings_port = self.sessconfig.get(*keys)
-        if settings_port == -1:
-            path = '~'.join(keys)
-            if path not in self.randomly_selected_ports:
+        path = '~'.join(keys)
+        in_selected_ports = path in self.selected_ports
+
+        if in_selected_ports or settings_port == -1:
+            if not in_selected_ports:
                 random_port = 0
 
                 while True:
@@ -105,11 +107,11 @@ class SessionConfigInterface(object):
                     try:
                         s.bind(('', random_port))
                         random_port = s.getsockname()[1]
-                        if random_port in self.randomly_selected_ports.values():
+                        if random_port in self.selected_ports.values():
                             raise Exception(u"port already in random-list.")
                         else:
                             # get unique port
-                            self.randomly_selected_ports[path] = random_port
+                            self.selected_ports[path] = random_port
                             break
                     except:
                         self._logger.exception(u"Unable to bind port %d", random_port)
@@ -120,8 +122,8 @@ class SessionConfigInterface(object):
                     finally:
                         s.close()
 
-                self._logger.debug(u"Get random port %d for [%s]", self.randomly_selected_ports[path], path)
-            return self.randomly_selected_ports[path]
+                self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
+            return self.selected_ports[path]
         return settings_port
 
     def set_state_dir(self, statedir):
@@ -169,6 +171,12 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'general', u'minport', port)
         self.sessconfig.set(u'general', u'maxport', port)
+
+    def set_listen_port_runtime(self, port):
+        """ Set the UDP and TCP listen port for this Session. This method is non-persistent.
+        @param port A port number.
+        """
+        self.selected_ports['~'.join(('general', 'minport'))] = port
 
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.
