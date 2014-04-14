@@ -763,18 +763,35 @@ class TorrentDetails(AbstractDetails):
 
         selection = set([self.filesList.GetItem(index, 0).GetText() for index in selection])
         selected_files = set(download.get_selected_files()) or set(download.get_def().get_files())
+        all_files = set(download.get_selected_files())
 
-        selected_files_include = list(selected_files | selection)
-        selected_files_exclude = list(selected_files - selection)
+        selected_files_includable = selection - selected_files
+        selected_files_excludable = selection & selected_files
+
+        if not selected_files_includable and not selected_files_excludable:
+            return
 
         menu = wx.Menu()
-        menuitems = [("Include", selected_files_include)]
-        if selected_files_exclude:
-            menuitems += [("Exclude", selected_files_exclude)]
-        for label, files in menuitems:
+
+        menuitems = [("Include", [], False), ("Exclude", [], False)]
+
+        if selected_files_includable:
+            files = list(all_files | selected_files_includable)
+            menuitems[0] = ("Include", files, True)
+
+        if selected_files_excludable:
+            files = list(all_files - selected_files_excludable)
+            # Don't allow excluding everything
+            if files:
+                menuitems[1] = ("Exclude", files, True)
+
+        for label, files, enabled in menuitems:
             itemid = wx.NewId()
             menu.Append(itemid, label)
-            menu.Bind(wx.EVT_MENU, lambda evt, d=download, f=files: self.guiutility.frame.modifySelection(d, f), id=itemid)
+            menu.Enable(itemid, enabled)
+            if enabled:
+                menu.Bind(wx.EVT_MENU, lambda evt, d=download, f=files: self.guiutility.frame.modifySelection(d, f), id=itemid)
+
         self.PopupMenu(menu, self.ScreenToClient(wx.GetMousePosition()))
         menu.Destroy()
 
