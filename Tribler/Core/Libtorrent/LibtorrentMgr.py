@@ -3,7 +3,6 @@
 import os
 import time
 import binascii
-import tempfile
 import threading
 import libtorrent as lt
 
