@@ -51,7 +51,7 @@ class MetadataCommunity(Community):
 # 1X3EgY3OcEkrxinkph+cs57icRqHTjDwaro=
 # -----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040569d8061423ca91a3f35b16e34ff5d83af8ab595a5144b7f0e7888e6199b4959a120613122bb5248b22ae769dc8729c1e69f8170f2d05c035dd036ce07ab4c678f488cbeaceb0c506efb4e04a4be16968dfe520248328734204fc346b0c9c091089736aa4e531674fe595bba0b384d0887f9d38a019d57dc4818dce70492bc629e4a61f9cb39ee2711a874e30f06aba".decode("HEX")
-        master = dispersy.get_member(master_key)
+        master = dispersy.get_member(public_key=master_key)
         return [master]
 
     @classmethod
@@ -80,8 +80,18 @@ class MetadataCommunity(Community):
 
     def initiate_meta_messages(self):
         custom_callback = (self.custom_callback_check, self.custom_callback_store)
-        return [Message(self, u"metadata", MemberAuthentication(encoding="sha1"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1, custom_callback=custom_callback), CommunityDestination(node_count=10), MetadataPayload(), self.check_metadata, self.on_metadata),
-                ]
+        return super(MetadataCommunity, self).initiate_meta_messages() + [
+            Message(self, u"metadata", MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    LastSyncDistribution(synchronization_direction=u"DESC",
+                                         priority=128,
+                                         history_size=1,
+                                         custom_callback=custom_callback),
+                    CommunityDestination(node_count=10),
+                    MetadataPayload(),
+                    self.check_metadata,
+                    self.on_metadata),
+        ]
 
 
     def create_metadata_message(self, infohash, roothash, data_list):
@@ -152,7 +162,7 @@ class MetadataCommunity(Community):
 
                             @forceDispersyThread
                             def callback(_, message=message):
-                                self._dispersy.on_messages([message])
+                                self.on_messages([message])
 
                             th_handler.download_metadata(data_type, message.candidate,
                                 roothash, infohash, contenthash,
@@ -234,7 +244,7 @@ class MetadataCommunity(Community):
 
             if not message.authentication.member.database_id in times:
                 times[message.authentication.member.database_id] = [global_time for global_time, in self._dispersy._database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (message.community.database_id, message.authentication.member.database_id, message.database_id))]
-                #assert len(times[message.authentication.member.database_id]) <= message.distribution.history_size, [message.packet_id, message.distribution.history_size, times[message.authentication.member.database_id]]
+                # assert len(times[message.authentication.member.database_id]) <= message.distribution.history_size, [message.packet_id, message.distribution.history_size, times[message.authentication.member.database_id]]
 
             tim = times[message.authentication.member.database_id]
 

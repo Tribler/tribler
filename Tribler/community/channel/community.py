@@ -227,17 +227,91 @@ class ChannelCommunity(Community):
         # that the modification messages are processed after messages that they can request.  normal
         # priority is 128, therefore, modification_priority is one less
         modification_priority = 128 - 1
-
-        return [Message(self, u"channel", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=130), CommunityDestination(node_count=10), ChannelPayload(), self._disp_check_channel, disp_on_channel),
-                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=129), CommunityDestination(node_count=10), TorrentPayload(), self._disp_check_torrent, disp_on_torrent, disp_undo_torrent, batch=BatchConfiguration(max_window=batch_delay)),
-                Message(self, u"playlist", MemberAuthentication(encoding="sha1"), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistPayload(), self._disp_check_playlist, disp_on_playlist, disp_undo_playlist, batch=BatchConfiguration(max_window=batch_delay)),
-                Message(self, u"comment", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), CommentPayload(), self._disp_check_comment, disp_on_comment, disp_undo_comment, batch=BatchConfiguration(max_window=batch_delay)),
-                Message(self, u"modification", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModificationPayload(), self._disp_check_modification, disp_on_modification, disp_undo_modification, batch=BatchConfiguration(max_window=batch_delay, priority=modification_priority)),
-                Message(self, u"playlist_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), PlaylistTorrentPayload(), self._disp_check_playlist_torrent, disp_on_playlist_torrent, disp_undo_playlist_torrent, batch=BatchConfiguration(max_window=batch_delay)),
-                Message(self, u"moderation", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), ModerationPayload(), self._disp_check_moderation, disp_on_moderation, disp_undo_moderation, batch=BatchConfiguration(max_window=batch_delay)),
-                Message(self, u"mark_torrent", MemberAuthentication(encoding="sha1"), DynamicResolution(LinearResolution(), PublicResolution()), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), MarkTorrentPayload(), self._disp_check_mark_torrent, disp_on_mark_torrent, disp_undo_mark_torrent, batch=BatchConfiguration(max_window=batch_delay)),
-                Message(self, u"missing-channel", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingChannelPayload(), self._disp_check_missing_channel, self._disp_on_missing_channel),
-                ]
+        return super(ChannelCommunity, self).initiate_meta_messages() + [
+            Message(self, u"channel",
+                    MemberAuthentication(encoding="sha1"),
+                    LinearResolution(),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=130),
+                    CommunityDestination(node_count=10),
+                    ChannelPayload(),
+                    self._disp_check_channel,
+                    disp_on_channel),
+            Message(self, u"torrent",
+                    MemberAuthentication(encoding="sha1"),
+                    DynamicResolution(LinearResolution(), PublicResolution()),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=129),
+                    CommunityDestination(node_count=10),
+                    TorrentPayload(),
+                    self._disp_check_torrent,
+                    disp_on_torrent,
+                    disp_undo_torrent,
+                    batch=BatchConfiguration(max_window=batch_delay)),
+            Message(self, u"playlist",
+                    MemberAuthentication(encoding="sha1"),
+                    LinearResolution(),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
+                    CommunityDestination(node_count=10),
+                    PlaylistPayload(),
+                    self._disp_check_playlist,
+                    disp_on_playlist,
+                    disp_undo_playlist,
+                    batch=BatchConfiguration(max_window=batch_delay)),
+            Message(self, u"comment",
+                    MemberAuthentication(encoding="sha1"),
+                    DynamicResolution(LinearResolution(), PublicResolution()),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
+                    CommunityDestination(node_count=10),
+                    CommentPayload(),
+                    self._disp_check_comment,
+                    disp_on_comment,
+                    disp_undo_comment,
+                    batch=BatchConfiguration(max_window=batch_delay)),
+            Message(self, u"modification",
+                    MemberAuthentication(encoding="sha1"),
+                    DynamicResolution(LinearResolution(), PublicResolution()),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=modification_priority),
+                    CommunityDestination(node_count=10),
+                    ModificationPayload(),
+                    self._disp_check_modification,
+                    disp_on_modification,
+                    disp_undo_modification,
+                    batch=BatchConfiguration(max_window=batch_delay)),
+            Message(self, u"playlist_torrent",
+                    MemberAuthentication(encoding="sha1"),
+                    DynamicResolution(LinearResolution(), PublicResolution()),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
+                    CommunityDestination(node_count=10),
+                    PlaylistTorrentPayload(),
+                    self._disp_check_playlist_torrent,
+                    disp_on_playlist_torrent,
+                    disp_undo_playlist_torrent,
+                    batch=BatchConfiguration(max_window=batch_delay)),
+            Message(self, u"moderation",
+                    MemberAuthentication(encoding="sha1"),
+                    DynamicResolution(LinearResolution(), PublicResolution()),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
+                    CommunityDestination(node_count=10),
+                    ModerationPayload(),
+                    self._disp_check_moderation,
+                    disp_on_moderation,
+                    disp_undo_moderation,
+                    batch=BatchConfiguration(max_window=batch_delay)),
+            Message(self, u"mark_torrent",
+                    MemberAuthentication(encoding="sha1"),
+                    DynamicResolution(LinearResolution(), PublicResolution()),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
+                    CommunityDestination(node_count=10),
+                    MarkTorrentPayload(),
+                    self._disp_check_mark_torrent, disp_on_mark_torrent, disp_undo_mark_torrent, batch=BatchConfiguration(max_window=batch_delay)),
+            Message(self, u"missing-channel",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    MissingChannelPayload(),
+                    self._disp_check_missing_channel,
+                    self._disp_on_missing_channel),
+        ]
 
     @property
     def dispersy_sync_response_limit(self):
@@ -296,7 +370,7 @@ class ChannelCommunity(Community):
                     else:
                         new_policies.append((meta, meta.resolution.policies[0]))
 
-            self.create_dispersy_dynamic_settings(new_policies)
+            self.create_dynamic_settings(new_policies)
 
     def create_channel(self, name, description, store=True, update=True, forward=True):
         self._disp_create_channel(name, description, store, update, forward)
@@ -681,7 +755,7 @@ class ChannelCommunity(Community):
                         if not th_handler.has_metadata("thumbs", infohash):
                             @forceDispersyThread
                             def callback(_,message=message):
-                                self._dispersy.on_messages([message])
+                                self.on_messages([message])
                             logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
                             th_handler.download_metadata("thumbs", message.candidate, roothash, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             continue

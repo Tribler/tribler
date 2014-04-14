@@ -57,7 +57,7 @@ class SearchCommunity(Community):
 # OACmKXT1V0kQ11Fm1lKduvAW54CQr7+vg3M=
 #-----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405c09348b2243e53fa190f17fc8c9843d61fc67e8ea22d7b031913ffc912897b57be780c06213dbf937d87e3ef1d48bf8f76e03d5ec40b1cdb877d9fa1ec1f133a412601c262d9ef01840ffc49d6131b1df9e1eac41a8ff6a1730d4541a64e733ed7cee415b220e4a0d2e8ace5099520bf8896e09cac3800a62974f5574910d75166d6529dbaf016e78090afbfaf8373".decode("HEX")
-        master = dispersy.get_member(master_key)
+        master = dispersy.get_member(public_key=master_key)
         return [master]
 
     @classmethod
@@ -138,13 +138,56 @@ class SearchCommunity(Community):
         logger.debug("finished")
 
     def initiate_meta_messages(self):
-        return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self.check_search, self.on_search),
-                Message(self, u"search-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchResponsePayload(), self.check_search_response, self.on_search_response),
-                Message(self, u"torrent-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentRequestPayload(), self.check_torrent_request, self.on_torrent_request),
-                Message(self, u"torrent-collect-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentCollectRequestPayload(), self.check_torrent_collect_request, self.on_torrent_collect_request),
-                Message(self, u"torrent-collect-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentCollectResponsePayload(), self.check_torrent_collect_response, self.on_torrent_collect_response),
-                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=0), TorrentPayload(), self.check_torrent, self.on_torrent),
-                ]
+        return super(SearchCommunity, self).initiate_meta_messages() + [
+            Message(self, u"search-request",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    SearchRequestPayload(),
+                    self.check_search,
+                    self.on_search),
+            Message(self, u"search-response",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    SearchResponsePayload(),
+                    self.check_search_response,
+                    self.on_search_response),
+            Message(self, u"torrent-request",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    TorrentRequestPayload(),
+                    self.check_torrent_request,
+                    self.on_torrent_request),
+            Message(self, u"torrent-collect-request",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    TorrentCollectRequestPayload(),
+                    self.check_torrent_collect_request,
+                    self.on_torrent_collect_request),
+            Message(self, u"torrent-collect-response",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    TorrentCollectResponsePayload(),
+                    self.check_torrent_collect_response,
+                    self.on_torrent_collect_response),
+            Message(self, u"torrent",
+                    MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128),
+                    CommunityDestination(node_count=0),
+                    TorrentPayload(),
+                    self.check_torrent,
+                    self.on_torrent),
+        ]
 
     def _initialize_meta_messages(self):
         Community._initialize_meta_messages(self)
@@ -243,7 +286,7 @@ class SearchCommunity(Community):
             cache = self._request_cache.add(IntroductionRequestCache(self, destination))
             payload = (destination.sock_addr, self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, cache.number, 0, None)
 
-        destination.walk(time(), cache.timeout_delay)
+        destination.walk(time())
         self.add_candidate(destination)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
