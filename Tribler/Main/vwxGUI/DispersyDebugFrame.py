@@ -459,7 +459,7 @@ class RawInfoPanel(wx.Panel):
 
     def __init__(self, parent, id):
         super(RawInfoPanel, self).__init__(parent, id)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(LIST_GREY)
 
         self.__info = None
         self.__selected_category = None
@@ -553,99 +553,93 @@ class RuntimeProfilingPanel(wx.Panel):
 
     def __init__(self, parent, id):
         super(RuntimeProfilingPanel, self).__init__(parent, id)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(LIST_GREY)
 
-        sizer = wx.BoxSizer()
+        self.__current_selection_idx = None
+        self.__combined_list = []
 
-        self.__treectrl = wx.TreeCtrl(self, -1, style=wx.NO_BORDER |
-            wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES |
-            wx.TR_HAS_VARIABLE_ROW_HEIGHT)
-        set_small_modern_font(self.__treectrl)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        sizer.Add(self.__treectrl, 1, wx.EXPAND)
+        self.__list1 = AutoWidthListCtrl(self, -1,
+            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
+        self.__list1.InsertColumn(0, "Duration")
+        self.__list1.InsertColumn(1, "Entry")
+        self.__list1.InsertColumn(2, "Average")
+        self.__list1.InsertColumn(3, "Count")
+        self.__list1.SetColumnWidth(0, 70)
+        self.__list1.SetColumnWidth(1, 250)
+        self.__list1.SetColumnWidth(2, 70)
+        self.__list1.SetColumnWidth(3, 70)
+        set_small_modern_font(self.__list1)
+
+        self.__list1.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnList1Selected)
+
+        self.__list2 = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        self.__list2.InsertColumn(0, "Duration")
+        self.__list2.InsertColumn(1, "Entry")
+        self.__list2.InsertColumn(2, "Average")
+        self.__list2.InsertColumn(3, "Count")
+        self.__list2.SetColumnWidth(0, 70)
+        self.__list2.SetColumnWidth(1, 250)
+        self.__list2.SetColumnWidth(2, 70)
+        self.__list2.SetColumnWidth(3, 70)
+        set_small_modern_font(self.__list2)
+
+        sizer.Add(self.__list1, 1, wx.EXPAND | wx.RIGHT, 2)
+        sizer.Add(self.__list2, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
+    def OnList1Selected(self, event):
+        this_idx = event.GetIndex()
+        if self.__current_selection_idx == this_idx:
+            return
+
+        self.__current_selection_idx = this_idx
+        self.__list2.DeleteAllItems()
+        data_list = self.__combined_list[event.GetIndex()][4]
+        for duration, entry, average, count in data_list:
+            self.__list2.Append([u"%7.2f" % duration, u"%s" % entry,
+                u"%7.2f" % average, u"%s" % count])
+
     def UpdateInfo(self, stats):
-        self.__treectrl.DeleteAllItems()
-        parent_node = self.__treectrl.AddRoot("runtime stats")
-        runtime = {}
-        combined_runtime = defaultdict(list)
-        if getattr(stats, "runtime", None):
-            for stat_dict in stats.runtime:
-                stat_list = []
-                for k, v in stat_dict.iteritems():
-                    if isinstance(v, basestring):
-                        v = v.replace("\n", "\n          ")
-                    stat_list.append("%-10s%s" % (k, v))
+        self.__list1.DeleteAllItems()
+        self.__list2.DeleteAllItems()
+        self.__current_selection_id = None
 
-                name = stat_dict["entry"].split("\n")[0]
-                combined_name = name.split()[0]
+        if not getattr(stats, "runtime", None):
+            return
 
-                label = "duration = %7.2f ; entry = %s" % (stat_dict["duration"], name)
-                combined_runtime[combined_name].append((stat_dict["duration"], label, tuple(stat_list)))
+        combined_dict = {}
+        for stat_dict in stats.runtime:
+            processed_data = {}
+            for k, v in stat_dict.iteritems():
+                if k == "entry":
+                    v = v.replace("\n", "\n          ")
+                processed_data[k] = v
 
-            for key, runtimes in combined_runtime.iteritems():
-                if len(runtimes) > 1:
-                    total_duration = 0
+            name = processed_data["entry"].split("\n")[0]
+            combined_name = name.split()[0]
 
-                    subcalls = defaultdict(list)
-                    for duration, label, stat_list in runtimes:
-                        total_duration += duration
-                        subcalls[label].append(stat_list)
+            data = (processed_data["duration"], name,
+                processed_data["average"], processed_data["count"])
 
-                    _subcalls = {}
-                    for label, subcall_list in subcalls.iteritems():
-                        if len(subcall_list) > 1:
-                            _subcalls[label] = subcall_list
-                        else:
-                            _subcalls[label] = subcall_list[0]
+            if combined_name not in combined_dict:
+                # total-duration, average, count, and data-list
+                combined_dict[combined_name] = [0, 0, 0, list()]
 
-                    runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = _subcalls
+            combined_dict[combined_name][0] += processed_data["duration"]
+            combined_dict[combined_name][1] += processed_data["average"]
+            combined_dict[combined_name][2] += processed_data["count"]
+            combined_dict[combined_name][3].append(data)
 
-                else:
-                    duration, label, stat_list = runtimes[0]
-                    runtime[label] = stat_list
+        # convert dict to list
+        combined_list = []
+        for k, v in combined_dict.iteritems():
+            v[3].sort(reverse=True)
+            combined_list.append((v[0], k, v[1], v[2], v[3]))
+        combined_list.sort(reverse=True)
+        self.__combined_list = combined_list
 
-        self.__AddDataToTree(runtime, parent_node, self.__treectrl, prepend=False, sort_dict=True)
-
-    def __AddDataToTree(self, data, parent, tree, prepend=True, sort_dict=False):
-        def addValue(parentNode, value):
-            if isinstance(value, dict):
-                addDict(parentNode, value)
-            elif isinstance(value, list):
-                addList(parentNode, value)
-            elif isinstance(value, tuple):
-                addTuple(parentNode, value)
-            elif value != None:
-                tree.AppendItem(parentNode, str(value))
-
-        def addList(parentNode, nodelist):
-            for key, value in enumerate(nodelist):
-                keyNode = tree.AppendItem(parentNode, str(key))
-                addValue(keyNode, value)
-
-        def addTuple(parentNode, nodetuple):
-            for value in nodetuple:
-                addValue(parentNode, value)
-
-        def addDict(parentNode, nodedict):
-            kv_pairs = sorted(nodedict.items(), reverse=True) if sort_dict else nodedict.items()
-            if prepend and kv_pairs:
-                kv_pairs.sort(key=lambda kv: kv[1], reverse=True)
-            for key, value in kv_pairs:
-                prepend_str = ''
-                if prepend and not isinstance(value, (list, dict)):
-                    prepend_str = str(value) + "x "
-                    value = None
-
-                if not isinstance(key, basestring):
-                    key = str(key)
-                try:
-                    key = key.decode("utf-8")
-                except UnicodeDecodeError:
-                    key = key.encode("hex")
-
-                keyNode = tree.AppendItem(parentNode, prepend_str + key)
-                addValue(keyNode, value)
-
-        addValue(parent, data)
+        for duration, entry, average, count, _ in combined_list:
+            self.__list1.Append([u"%7.2f" % duration, u"%s" % entry,
+                u"%7.2f" % average, u"%s" % count])
