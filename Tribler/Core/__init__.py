@@ -30,12 +30,6 @@ else:
 
 version = version_short + ' (' + product_name + ')'
 
-try:
-    from os import getpid
-except ImportError:
-    def getpid():
-        return 1
-
 
 def warnDisperyThread(func):
     def invoke_func(*args, **kwargs):
@@ -48,7 +42,6 @@ def warnDisperyThread(func):
             callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
 
             from time import time
-            import sys
             logger.info("%d CANNOT BE ON DISPERSYTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             print_stack()
 
