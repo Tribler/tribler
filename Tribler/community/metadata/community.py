@@ -80,8 +80,18 @@ class MetadataCommunity(Community):
 
     def initiate_meta_messages(self):
         custom_callback = (self.custom_callback_check, self.custom_callback_store)
-        return [Message(self, u"metadata", MemberAuthentication(encoding="sha1"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1, custom_callback=custom_callback), CommunityDestination(node_count=10), MetadataPayload(), self.check_metadata, self.on_metadata),
-                ]
+        return super(MetadataCommunity, self).initiate_meta_messages() + [
+            Message(self, u"metadata", MemberAuthentication(encoding="sha1"),
+                    PublicResolution(),
+                    LastSyncDistribution(synchronization_direction=u"DESC",
+                                         priority=128,
+                                         history_size=1,
+                                         custom_callback=custom_callback),
+                    CommunityDestination(node_count=10),
+                    MetadataPayload(),
+                    self.check_metadata,
+                    self.on_metadata),
+        ]
 
 
     def create_metadata_message(self, infohash, roothash, data_list):
