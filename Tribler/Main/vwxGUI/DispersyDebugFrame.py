@@ -3,7 +3,7 @@ from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 import binascii
 from collections import defaultdict
 
-from Tribler.Main.vwxGUI import warnWxThread, LIST_GREY
+from Tribler.Main.vwxGUI import LIST_GREY
 from Tribler.Main.vwxGUI.widgets import _set_font, SimpleNotebook
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
@@ -391,9 +391,9 @@ class CommunityDetailPanel(wx.Panel):
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        info_panel = wx.Panel(self, -1)
+        info_panel = wx.Panel(self, -1, style=wx.BORDER_SUNKEN)
         info_panel.SetBackgroundColour(wx.WHITE)
-        info_panel.SetMinSize((450, 300))
+        info_panel.SetMinSize((470, 300))
         self.__info_panel = info_panel
 
         self.__text = {}
@@ -411,7 +411,7 @@ class CommunityDetailPanel(wx.Panel):
         info_panel.SetSizer(gridsizer)
 
         self.__candidate_list = AutoWidthListCtrl(self, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT)
+            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
         self.__candidate_list.InsertColumn(0, "Global time")
         self.__candidate_list.InsertColumn(1, "LAN")
         self.__candidate_list.InsertColumn(2, "WAN")
@@ -420,16 +420,16 @@ class CommunityDetailPanel(wx.Panel):
         self.__candidate_list.SetColumnWidth(1, 130)
 
         self.__database_list = AutoWidthListCtrl(self, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT)
+            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
         self.__database_list.InsertColumn(0, "Count")
         self.__database_list.InsertColumn(1, "Info")
 
         self.__to_show_database = False
         self.__database_list.Show(self.__to_show_database)
 
-        hsizer.Add(self.__info_panel, 0, wx.EXPAND | wx.RIGHT, 5)
+        hsizer.Add(self.__info_panel, 0, wx.EXPAND | wx.RIGHT, 2)
         hsizer.Add(self.__candidate_list, 1, wx.EXPAND)
-        hsizer.Add(self.__database_list, 1, wx.EXPAND | wx.LEFT, 5)
+        hsizer.Add(self.__database_list, 1, wx.EXPAND | wx.LEFT, 2)
         self.SetSizer(hsizer)
 
     def ShowDatabaseInfo(self, enabled):
@@ -468,19 +468,19 @@ class RawInfoPanel(wx.Panel):
         self.__IP_CATEGORIES = ("bootstrap_candidates", "walk_fail")
 
         self.__category_list = AutoWidthListCtrl(self, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL)
+            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
         self.__category_list.InsertColumn(0, "Category")
         self.__category_list.InsertColumn(1, "Total Count")
         self.__category_list.SetColumnWidth(0, 150)
         self.__category_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnCategorySelected)
 
-        self.__detail_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT)
+        self.__detail_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.__detail_list.InsertColumn(0, "Count")
         self.__detail_list.InsertColumn(1, "Info")
         self.__detail_list.SetColumnWidth(0, 50)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add(self.__category_list, 1, wx.EXPAND | wx.RIGHT, 5)
+        hsizer.Add(self.__category_list, 1, wx.EXPAND | wx.RIGHT, 2)
         hsizer.Add(self.__detail_list, 2, wx.EXPAND)
         self.SetSizer(hsizer)
 
