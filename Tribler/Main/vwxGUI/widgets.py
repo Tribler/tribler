@@ -1940,8 +1940,9 @@ class TransparentStaticBitmap(wx.StaticBitmap):
         else:
             # Draw the background using the bitmap from the parent
             rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
-            sub = self.GetParent().bitmap.GetSubBitmap(rect)
-            dc.DrawBitmap(sub, 0, 0)
+            if rect.x > 0 and rect.y > 0:
+                sub = self.GetParent().bitmap.GetSubBitmap(rect)
+                dc.DrawBitmap(sub, 0, 0)
         # Draw the bitmap using a gc (dc doesn't do transparency very well)
         bitmap = self.GetBitmap()
         gc = wx.GraphicsContext.Create(dc)
