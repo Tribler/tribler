@@ -449,6 +449,8 @@ class CommunityDetailPanel(wx.Panel):
             self.__database_list.UpdateData(community_data["Database_list"])
             self.__candidate_list.UpdateData(community_data["Candidate_list"])
 
+        self.Layout()
+
 # --------------------------------------------------
 # RawInfo Panel
 # --------------------------------------------------
