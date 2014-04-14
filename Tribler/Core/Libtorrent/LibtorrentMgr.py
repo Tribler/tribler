@@ -53,7 +53,7 @@ class LibtorrentMgr:
 
         listen_port = self.trsession.get_listen_port()
         self.ltsession.listen_on(listen_port, listen_port + 10)
-        if listen_port == self.ltsession.listen_port():
+        if listen_port != self.ltsession.listen_port():
             self.trsession.set_listen_port_runtime(self.ltsession.listen_port())
 
         self.set_upload_rate_limit(-1)
