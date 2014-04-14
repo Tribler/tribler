@@ -370,7 +370,7 @@ class ChannelCommunity(Community):
                     else:
                         new_policies.append((meta, meta.resolution.policies[0]))
 
-            self.create_dispersy_dynamic_settings(new_policies)
+            self.create_dynamic_settings(new_policies)
 
     def create_channel(self, name, description, store=True, update=True, forward=True):
         self._disp_create_channel(name, description, store, update, forward)
