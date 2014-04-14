@@ -162,7 +162,7 @@ class MetadataCommunity(Community):
 
                             @forceDispersyThread
                             def callback(_, message=message):
-                                self._dispersy.on_messages([message])
+                                self.on_messages([message])
 
                             th_handler.download_metadata(data_type, message.candidate,
                                 roothash, infohash, contenthash,
