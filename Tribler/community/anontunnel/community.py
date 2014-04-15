@@ -778,7 +778,7 @@ class ProxyCommunity(Community):
 
         self._logger.info("Extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
         return self.send_message(extend_candidate, new_circuit_id,
-                                 MESSAGE_CREATE, CreateMessage(key))
+                                 MESSAGE_CREATE, CreateMessage(key, self.my_member.public_key))
 
     def on_extended(self, circuit_id, candidate, message):
         """
