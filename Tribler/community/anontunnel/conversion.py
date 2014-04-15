@@ -233,14 +233,14 @@ class CustomProxyConversion():
         :type create_message : CreateMessage
         """
         return "".join([
-            struct.pack("!LL", len(create_message.key), len(create_message.public_key)),
+            struct.pack("!HH", len(create_message.key), len(create_message.public_key)),
             create_message.key,
             create_message.public_key
         ])
 
     def __decode_create(self, message_buffer, offset=0):
-        len_key, len_pub_key = struct.unpack_from("!LL", message_buffer[offset:offset+8])
-        offset += 8
+        len_key, len_pub_key = struct.unpack_from("!HH", message_buffer[offset:offset+4])
+        offset += 4
 
         key = message_buffer[offset:offset+len_key]
         offset += len_key

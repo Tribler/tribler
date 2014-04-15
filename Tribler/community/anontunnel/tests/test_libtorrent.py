@@ -82,7 +82,7 @@ class LibtorrentTest(TunnelObserver):
                 elif ds.get_status() == DLSTATUS_SEEDING and self.download_started_at and not self.download_finished_at:
                     self.download_finished_at = time.time()
                     stats_collector.download_stats = {
-                        'size': 50 * 1024 ** 2,
+                        'size': ds.get_length(),
                         'download_time': self.download_finished_at - self.download_started_at
                     }
 
@@ -92,7 +92,7 @@ class LibtorrentTest(TunnelObserver):
 
                     self._mark_test_completed()
 
-                    thank_you(50 * 1024 ** 2, self.download_started_at, self.download_finished_at)
+                    thank_you(ds.get_length(), self.download_started_at, self.download_finished_at)
                 return 1.0, False
 
             return _callback

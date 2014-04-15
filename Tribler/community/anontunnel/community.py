@@ -13,11 +13,12 @@ from Tribler.community.anontunnel.cache import CircuitRequestCache, \
     PingRequestCache, CreatedRequestCache
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.anontunnel.tests.test_libtorrent import LibtorrentTest
-from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.authentication import MemberAuthentication, \
+    NoAuthentication
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
-from Tribler.dispersy.message import Message
+from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.candidate import Candidate, WalkCandidate
 from Tribler.dispersy.community import Community
@@ -96,7 +97,7 @@ class ProxyCommunity(Community):
                      "4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696" \
                      "f57eec3b8f2f77e7ab56fd8d6d63".decode("HEX")
 
-        master = dispersy.get_member(master_key)
+        master = dispersy.get_member(public_key=master_key)
         return [master]
 
     # noinspection PyMethodOverriding
@@ -280,18 +281,34 @@ class ProxyCommunity(Community):
         to use in the community
         @rtype: list[Message]
         """
-        return [Message(
-            self,
-            u"stats",
-            MemberAuthentication(),
-            PublicResolution(),
-            LastSyncDistribution(synchronization_direction=u"DESC",
-                                 priority=128, history_size=1),
-            CommunityDestination(node_count=10),
-            StatsPayload(),
-            self.dispersy._generic_timeline_check,
-            self._on_stats
+        return super(ProxyCommunity, self).initiate_meta_messages() + [
+            Message(
+                self,
+                u"stats",
+                MemberAuthentication(),
+                PublicResolution(),
+                LastSyncDistribution(synchronization_direction=u"DESC",
+                                     priority=128, history_size=1),
+                CommunityDestination(node_count=10),
+                StatsPayload(),
+                self._generic_timeline_check,
+                self._on_stats
         )]
+
+    def _generic_timeline_check(self, messages):
+        meta = messages[0].meta
+        if isinstance(meta.authentication, NoAuthentication):
+            # we can not timeline.check this message because it uses the NoAuthentication policy
+            for message in messages:
+                yield message
+
+        else:
+            for message in messages:
+                allowed, proofs = self.timeline.check(message)
+                if allowed:
+                    yield message
+                else:
+                    yield DelayMessageByProof(message)
 
     def _on_stats(self, messages):
         for observer in self.observers:
