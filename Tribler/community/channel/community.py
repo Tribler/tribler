@@ -128,13 +128,13 @@ class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
-    def __init__(self, dispersy, master, integrate_with_tribler=True):
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.integrate_with_tribler = integrate_with_tribler
 
         self._channel_id = None
-        super(ChannelCommunity, self).__init__(dispersy, master)
+        super(ChannelCommunity, self).__init__(dispersy, master, my_member)
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
@@ -754,7 +754,7 @@ class ChannelCommunity(Community):
 
                         if not th_handler.has_metadata("thumbs", infohash):
                             @forceDispersyThread
-                            def callback(_,message=message):
+                            def callback(_, message=message):
                                 self.on_messages([message])
                             logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
                             th_handler.download_metadata("thumbs", message.candidate, roothash, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)

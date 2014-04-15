@@ -8,7 +8,7 @@ def load_community(dispersy):
     master = dispersy.get_member(master_key)
     my_member = dispersy.get_new_member(u"low")
 
-    community = PoliSocialCommunity.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=False)
+    community = PoliSocialCommunity(dispersy, master, my_member, integrate_with_tribler=False)
     community.create_text(u"abc", [])
 
     rsakey = rsa_init()

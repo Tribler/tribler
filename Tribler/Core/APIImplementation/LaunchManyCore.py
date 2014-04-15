@@ -147,15 +147,17 @@ class TriblerLaunchMany(Thread):
 
                 self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
-                self.dispersy.callback.call(self.dispersy.define_auto_load, args=(HardKilledCommunity,), kargs={'load': True})
-
-                # notify dispersy finished loading
-                self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
                 from Tribler.Core.permid import read_keypair
                 keypair = read_keypair(self.session.get_permid_keypair_filename())
                 self.session.dispersy_member = callback.call(self.dispersy.get_member,
                                              kargs={'private_key': self.dispersy.crypto.key_to_bin(keypair)})
+
+                self.dispersy.callback.call(self.dispersy.define_auto_load, args=(HardKilledCommunity, self.session.dispersy_member), kargs={'load': True})
+
+                # notify dispersy finished loading
+                self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
+
 
                 self.database_thread = callback
             else:

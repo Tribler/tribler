@@ -451,30 +451,23 @@ class ABCApp():
             now = time()
 
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(SearchCommunity,
-                                     (s.dispersy_member,),
-                                     load=True)
-            dispersy.define_auto_load(AllChannelCommunity,
-                                           (s.dispersy_member,),
-                                           {},
-                                           load=True)
+            dispersy.define_auto_load(SearchCommunity, s.dispersy_member, load=True)
+            dispersy.define_auto_load(AllChannelCommunity, s.dispersy_member, load=True)
 
             # load metadata community
-            dispersy.define_auto_load(MetadataCommunity,
-                               (s.dispersy_member,),
-                               {},
-                               load=True)
+            dispersy.define_auto_load(MetadataCommunity, s.dispersy_member, load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
             # their version before enabling it again.
             # if swift_process:
             #     dispersy.define_auto_load(BarterCommunity,
+            #                               s.dispersy_member,
             #                               (swift_process,),
             #                               load=True)
 
-            dispersy.define_auto_load(ChannelCommunity, load=True)
-            dispersy.define_auto_load(PreviewChannelCommunity)
+            dispersy.define_auto_load(ChannelCommunity, s.dispersy_member, load=True)
+            dispersy.define_auto_load(PreviewChannelCommunity, s.dispersy_member)
 
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)

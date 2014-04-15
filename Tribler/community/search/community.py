@@ -15,6 +15,7 @@ from Tribler.dispersy.destination import CandidateDestination, \
     CommunityDestination
 from Tribler.dispersy.distribution import DirectDistribution, \
     FullSyncDistribution
+from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 
@@ -60,17 +61,8 @@ class SearchCommunity(Community):
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
-    @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, log_incomming_searches=False):
-        try:
-            dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, log_incomming_searches=log_incomming_searches)
-        else:
-            return super(SearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, log_incomming_searches=log_incomming_searches)
-
-    def __init__(self, dispersy, master, integrate_with_tribler=True, log_incomming_searches=False):
-        super(SearchCommunity, self).__init__(dispersy, master)
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, log_incomming_searches=False):
+        super(SearchCommunity, self).__init__(dispersy, master, my_member)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -696,9 +688,9 @@ class SearchCommunity(Community):
 
         try:
             return self._dispersy.get_community(cid, True)
-        except KeyError:
+        except CommunityNotFoundException:
             logger.debug("join preview community %s", cid.encode("HEX"))
-            return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
+            return PreviewChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []

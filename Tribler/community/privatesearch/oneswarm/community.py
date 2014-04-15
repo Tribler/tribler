@@ -18,8 +18,8 @@ ENCRYPTION = True
 
 class OneSwarmCommunity(TTLSearchCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, log_searches=False, cancel_after=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, log_searches=log_searches)
+    def __init__(self, master, my_member, integrate_with_tribler=True, log_searches=False, cancel_after=None):
+        TTLSearchCommunity.__init__(self, master, my_member, integrate_with_tribler, log_searches=log_searches)
         self.overlay_manager = OverlayManager(self)
         self.search_manager = SearchManager(self, self.overlay_manager, cancel_after)
 
@@ -163,19 +163,9 @@ class SourceWrapper:
 
 class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
 
-    @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None, cancel_after=None):
-        dispersy_database = DispersyDatabase.get_instance()
-        try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs, cancel_after=cancel_after)
-        else:
-            return super(PoliOneSwarmCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs, cancel_after=cancel_after)
-
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None, cancel_after=None):
-        OneSwarmCommunity.__init__(self, master, integrate_with_tribler, log_searches, cancel_after=cancel_after)
-        PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+    def __init__(self, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None, cancel_after=None):
+        OneSwarmCommunity.__init__(self, master, my_member, integrate_with_tribler, log_searches, cancel_after=cancel_after)
+        PoliForwardCommunity.__init__(self, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + OneSwarmCommunity.initiate_conversions(self)
