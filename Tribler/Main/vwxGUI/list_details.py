@@ -2323,7 +2323,8 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             else:
                 self.fileindex = link.fileindex
                 self.DoHighlight()
-                self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files()[self.fileindex])
+                # This needs to be in a CallAfter, or VLC may crash.
+                wx.CallAfter(lambda: self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files()[self.fileindex]))
 
         for link in self.links:
             mousepos = wx.GetMousePosition()
