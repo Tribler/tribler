@@ -143,7 +143,7 @@ class AnonTunnel(Thread):
             exitstrategies.DefaultExitStrategy(raw_server, self.community)
 
             if self.crawl:
-                self.community.observers.append(StatsCrawler(self.raw_server))
+                self.community.observers.append(StatsCrawler(self.dispersy, self.raw_server))
 
             return proxy_community
 

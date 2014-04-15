@@ -6,6 +6,7 @@ import time
 import sys
 
 from Tribler.community.anontunnel.events import TunnelObserver
+from Tribler.dispersy.database import Database
 
 __author__ = 'chris'
 
@@ -213,6 +214,129 @@ class StatsCollector(TunnelObserver):
     def share_stats(self):
         self.proxy.send_stats(self._create_stats())
 
+class StatsDatabase(Database):
+    LATEST_VERSION = 1
+    schema = u"""
+        CREATE TABLE result (
+            "result_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+            "session_id" GUID,
+            "time" DATETIME,
+            "host" NULL,
+            "port" NULL,
+            "swift_size" NULL,
+            "swift_time" NULL,
+            "bytes_enter" NULL,
+            "bytes_exit" NULL,
+            "bytes_returned" NULL,
+            "encryption" INTEGER NOT NULL DEFAULT ('0')
+        , "broken_circuits" INTEGER)
+
+        CREATE TABLE IF NOT EXISTS result_circuit (
+            result_circuit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            result_id,
+            hops,
+            bytes_up,
+            bytes_down,
+            time
+        )
+
+        CREATE TABLE IF NOT EXISTS result_relay(
+            result_relay_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            result_id,
+            bytes,
+            time
+        )
+
+        CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
+        INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_VERSION) + """');
+    """
+
+    if __debug__:
+        __doc__ = schema
+
+    def __init__(self, dispersy):
+        self._dispersy = dispersy
+
+        super(StatsDatabase, self).__init__(sys.path.join(dispersy.working_directory, u"sqlite", u"anontunnel.db"))
+
+    def open(self, initial_statements=True, prepare_visioning=True):
+        self._dispersy.database.attach_commit_callback(self.commit)
+        return super(StatsDatabase, self).open(initial_statements, prepare_visioning)
+
+    def close(self, commit=True):
+        self._dispersy.database.detach_commit_callback(self.commit)
+        return super(StatsDatabase, self).close(commit)
+
+    def check_database(self, database_version):
+        assert isinstance(database_version, unicode)
+        assert database_version.isdigit()
+        assert int(database_version) >= 0
+        database_version = int(database_version)
+
+        # setup new database with current database_version
+        if database_version < 1:
+            self.executescript(self.schema)
+            self.commit()
+
+        else:
+            # upgrade to version 2
+            if database_version < 2:
+                # there is no version 2 yet...
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 2)
+                # self.executescript(u"""UPDATE option SET value = '2' WHERE key = 'database_version';""")
+                # self.commit()
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 2, " (done)")
+                pass
+
+        return self.LATEST_VERSION
+
+    def add_stat(self, sock_address, stats):
+        self.execute(
+                u'''INSERT OR FAIL INTO result
+                    (
+                        encryption, session_id, time,
+                        host, port, swift_size, swift_time,
+                        bytes_enter, bytes_exit, bytes_returned
+                    )
+                    VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?)''',
+                (uuid.UUID(bytes_le=stats['uuid']), sock_address[0], sock_address[1],
+                 stats['swift']['size'], stats['swift']['download_time'],
+                 stats['bytes_enter'], stats['bytes_exit'],
+                 (stats['bytes_return'] or 0)
+                )
+            )
+
+        result_id = self.last_insert_rowid
+
+        for circuit in stats['circuits']:
+            self.execute(u'''
+                INSERT INTO result_circuit (
+                    result_id, hops, bytes_up, bytes_down, time
+                ) VALUES (?, ?, ?, ?, ?)''',
+                (
+                   result_id, circuit['hops'],
+                   circuit['bytes_up'],
+                   circuit['bytes_down'],
+                   circuit['time']
+                ))
+
+        for relay in stats['relays']:
+            self.execute(u'''
+                INSERT INTO result_relay (result_id, bytes, time)
+                    VALUES (?, ?, ?)
+            ''', (result_id, relay['bytes'], relay['time']))
+
+    def get_num_stats(self):
+        '''
+        @rtype: int
+        @return: number of stats
+        '''
+
+        return self.execute(u'''
+            SELECT COUNT(*)
+            FROM result
+        ''').fetchone()[0]
+
 
 class StatsCrawler(TunnelObserver):
     """
@@ -221,121 +345,19 @@ class StatsCrawler(TunnelObserver):
     on
     """
 
-    def __init__(self, raw_server):
+    def __init__(self, dispersy, raw_server):
         TunnelObserver.__init__(self)
         self._logger = logging.getLogger(__name__)
         self._logger.warning("Running StatsCrawler")
         self.raw_server = raw_server
-        self.conn = None
-        ''' :type : sqlite3.Connection '''
-
-        def init_sql():
-            self.conn = sqlite3.connect("results.db")
-
-            self.conn.execute('''
-                CREATE TABLE result (
-                    "result_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                    "session_id" GUID,
-                    "time" DATETIME,
-                    "host" NULL,
-                    "port" NULL,
-                    "swift_size" NULL,
-                    "swift_time" NULL,
-                    "bytes_enter" NULL,
-                    "bytes_exit" NULL,
-                    "bytes_returned" NULL,
-                    "encryption" INTEGER NOT NULL DEFAULT ('0')
-                , "broken_circuits" INTEGER)
-
-             ''')
-
-            self.conn.execute('''
-                CREATE TABLE IF NOT EXISTS result_circuit (
-                    result_circuit_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    result_id,
-                    hops,
-                    bytes_up,
-                    bytes_down,
-                    time
-                )
-            ''')
-
-            self.conn.execute('''
-            CREATE TABLE IF NOT EXISTS result_relay(
-                result_relay_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                result_id,
-                bytes,
-                time
-            )
-            ''')
-
-        self.raw_server.add_task(init_sql)
+        self.database = StatsDatabase(dispersy)
 
     def on_tunnel_stats(self, community, candidate, stats):
-        self.raw_server.add_task(
-            lambda: self.on_stats(community, candidate, stats))
+        self.raw_server.add_task(lambda: self.database.add_stat(candidate.sock_addr, stats))
 
     def get_num_stats(self):
-        '''
-        @rtype: int
-        @return: number of stats
-        '''
-
-        return self.conn.execute('''
-            SELECT COUNT(*)
-            FROM result
-        ''').fetchone()[0]
-
-    def on_stats(self, community, candidate, stats):
-        sock_address = candidate.sock_addr
-        cursor = self.conn.cursor()
-
-        try:
-            cursor.execute(
-                '''INSERT OR FAIL INTO result
-                    (
-                        encryption, session_id, time,
-                        host, port, swift_size, swift_time,
-                        bytes_enter, bytes_exit, bytes_returned
-                    )
-                    VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?)''',
-                [uuid.UUID(bytes_le=stats['uuid']), sock_address[0], sock_address[1],
-                 stats['swift']['size'], stats['swift']['download_time'],
-                 stats['bytes_enter'], stats['bytes_exit'],
-                 (stats['bytes_return'] or 0)
-                ]
-            )
-
-            result_id = cursor.lastrowid
-
-            for circuit in stats['circuits']:
-                cursor.execute('''
-                    INSERT INTO result_circuit (
-                        result_id, hops, bytes_up, bytes_down, time
-                    ) VALUES (?, ?, ?, ?, ?)''',
-                               [
-                                   result_id, circuit['hops'],
-                                   circuit['bytes_up'],
-                                   circuit['bytes_down'],
-                                   circuit['time']
-                               ])
-
-            for relay in stats['relays']:
-                cursor.execute('''
-                    INSERT INTO result_relay (result_id, bytes, time)
-                        VALUES (?, ?, ?)
-                ''', [result_id, relay['bytes'], relay['time']])
-
-            self.conn.commit()
-
-            self._logger.warning("Storing stats data of %s:%d" % sock_address)
-        except sqlite3.IntegrityError:
-            self._logger.exception("Stat already exists of %s:%d" % sock_address)
-        except BaseException:
-            self._logger.exception("Error storing stats")
-
-        cursor.close()
+        return self.database.get_num_stats()
 
     def stop(self):
         self._logger.error("Stopping crawler")
-        self.conn.close()
+        self.database.close()
