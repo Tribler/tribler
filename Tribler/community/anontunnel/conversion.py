@@ -229,16 +229,23 @@ class CustomProxyConversion():
         return ExtendedMessage(key, encrypted_candidate_list)
 
     def __encode_create(self, create_message):
-        assert len(create_message.key) == 336, "Key should be 336 bytes long?"
-
         """
         :type create_message : CreateMessage
         """
-        return create_message.key + create_message.public_key
+        return "".join([
+            struct.pack("!LL", len(create_message.key), len(create_message.public_key)),
+            create_message.key,
+            create_message.public_key
+        ])
 
     def __decode_create(self, message_buffer, offset=0):
-        key = message_buffer[offset:offset+336]
-        offset += 336
+        len_key, len_pub_key = struct.unpack_from("!LL", message_buffer[offset:offset+8])
+        offset += 8
 
-        public_key = message_buffer[offset:]
+        key = message_buffer[offset:offset+len_key]
+        offset += len_key
+
+        public_key = message_buffer[offset:offset + len_pub_key]
+        offset += len_pub_key
+
         return CreateMessage(key, public_key)
