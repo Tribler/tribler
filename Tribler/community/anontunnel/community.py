@@ -419,8 +419,13 @@ class ProxyCommunity(Community):
             if is_relay:
                 result = self.__relay(circuit_id, data, relay_key, sock_addr)
             else:
-                candidate = self._candidates.get(sock_addr) or Candidate(sock_addr, False)
-                result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
+                candidate = self._candidates.get(sock_addr)
+                if isinstance(candidate, WalkCandidate) and candidate.get_members():
+                   result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
+                else:
+                    candidate = None
+                    self._logger.error("Unknown candidate at %s, drop!", sock_addr)
+                    result = False
         except:
             result = False
             self._logger.exception(
@@ -773,7 +778,7 @@ class ProxyCommunity(Community):
 
         self._logger.info("Extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
         return self.send_message(extend_candidate, new_circuit_id,
-                                 MESSAGE_CREATE, CreateMessage(key, self.my_member.public_key))
+                                 MESSAGE_CREATE, CreateMessage(key))
 
     def on_extended(self, circuit_id, candidate, message):
         """
