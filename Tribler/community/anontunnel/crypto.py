@@ -466,8 +466,10 @@ class DefaultCrypto(Crypto):
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-            candidate_pub_key = message.public_key if message_type == MESSAGE_CREATE else message.reply_to.public_key
-            candidate_pub_key = self.proxy.crypto.key_from_public_bin(candidate_pub_key)
+#            candidate_pub_key = message.public_key if message_type == MESSAGE_CREATE else message.reply_to.public_key
+#            candidate_pub_key = self.proxy.crypto.key_from_public_bin(candidate_pub_key)
+
+            candidate_pub_key = next(iter(candidate.get_members()))._ec
 
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
