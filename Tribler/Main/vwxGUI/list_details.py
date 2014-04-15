@@ -507,7 +507,6 @@ class TorrentDetails(AbstractDetails):
         todo.append((self.type, ', '.join(self.torrent.categories).capitalize() if isinstance(self.torrent.categories, list) else 'Unknown'))
         todo.append((self.uploaded, self.torrent.formatCreationDate() if hasattr(self.torrent, 'formatCreationDate') else ''))
         todo.append((self.filesize, '%s in %d file(s)' % (self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files)) if hasattr(self.torrent, 'files') else '%s' % self.guiutility.utility.size_format(self.torrent.length)))
-        todo.append((self.health, 'Unknown'))
 
         for control, new_value in todo:
             if control.GetLabel() != new_value:
@@ -922,6 +921,9 @@ class TorrentDetails(AbstractDetails):
                         self.health.SetLabel("%s seeders, %s leechers" % (num_seeders, num_leechers) + updating)
                     else:
                         self.health.SetLabel("%s seeders, %s leechers (updated %s ago%s)" % (num_seeders, num_leechers, updated, updating))
+
+        else:
+            self.health.SetLabel("Unknown")
 
     def OnRefresh(self, dslist, magnetlist):
         found = False
