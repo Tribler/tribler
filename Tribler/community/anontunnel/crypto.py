@@ -464,14 +464,13 @@ class DefaultCrypto(Crypto):
 
         relay_key = (candidate.sock_addr, circuit_id)
 
-        # CREATE and CREATED have to be Elgamal encrypted
-        if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-#            candidate_pub_key = message.public_key if message_type == MESSAGE_CREATE else message.reply_to.public_key
-#            candidate_pub_key = self.proxy.crypto.key_from_public_bin(candidate_pub_key)
-
+        # CREATE are always send to a WalkCandidate, so we got his pub-key
+        if message_type == MESSAGE_CREATE:
             candidate_pub_key = next(iter(candidate.get_members()))._ec
-
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
+        elif message_type == MESSAGE_CREATED:
+            others_pub = self.proxy.crypto.key_from_public_bin(message.reply_to.public_key)
+            content = self.proxy.crypto.encrypt(others_pub, content)
         # Else add AES layer
         elif relay_key in self.session_keys:
             content = aes_encrypt_str(self.session_keys[relay_key], content)
