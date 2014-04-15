@@ -46,8 +46,7 @@ import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
-from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST, \
-    BarterCommunity
+from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
@@ -456,38 +455,30 @@ class ABCApp():
             now = time()
 
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(SearchCommunity,
-                                     (s.dispersy_member,),
-                                     load=True)
-            dispersy.define_auto_load(AllChannelCommunity,
-                                           (s.dispersy_member,),
-                                           {},
-                                           load=True)
+            dispersy.define_auto_load(SearchCommunity, s.dispersy_member, load=True)
+            dispersy.define_auto_load(AllChannelCommunity, s.dispersy_member, load=True)
 
             # load metadata community
-            dispersy.define_auto_load(MetadataCommunity,
-                               (s.dispersy_member,),
-                               {},
-                               load=True)
+            dispersy.define_auto_load(MetadataCommunity, s.dispersy_member, load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
             # their version before enabling it again.
             # if swift_process:
-            #      dispersy.define_auto_load(BarterCommunity,
-            #                                (swift_process,),
-            #                                load=True)
+            #     dispersy.define_auto_load(BarterCommunity,
+            #                               s.dispersy_member,
+            #                               (swift_process,),
+            #                               load=True)
 
-            dispersy.define_auto_load(ChannelCommunity, load=True)
-            dispersy.define_auto_load(PreviewChannelCommunity)
+            dispersy.define_auto_load(ChannelCommunity, s.dispersy_member, load=True)
+            dispersy.define_auto_load(PreviewChannelCommunity, s.dispersy_member)
 
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.get_member(
                 private_key=dispersy.crypto.key_to_bin(keypair),
             )
 
-            proxy_community = dispersy.define_auto_load(
-                ProxyCommunity, (dispersy_member, None, s), load=True)
+            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, s), load=True)
 
             socks_server = Socks5Server(proxy_community[0], s.lm.rawserver)
             socks_server.start()

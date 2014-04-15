@@ -100,25 +100,6 @@ class ProxyCommunity(Community):
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
-    # noinspection PyMethodOverriding
-    @classmethod
-    def load_community(cls, dispersy, master, my_member, settings=None,
-                       tribler_session=None):
-        try:
-            dispersy.database.execute(
-                u"SELECT 1 FROM community WHERE master = ?",
-                (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(
-                dispersy, master, my_member, my_member,
-                settings, tribler_session=tribler_session
-            )
-        else:
-            return super(ProxyCommunity, cls).load_community(
-                dispersy, master, settings,
-                tribler_session=tribler_session
-            )
-
     @property
     def crypto(self):
         """
@@ -126,13 +107,13 @@ class ProxyCommunity(Community):
         """
         return self.dispersy.crypto
 
-    def __init__(self, dispersy, master_member, settings=None,
+    def __init__(self, dispersy, master_member, my_member, settings=None,
                  tribler_session=None):
         """
         @type master_member: Tribler.dispersy.member.Member
         @type tribler_session : Tribler.Core.Session.Session
         """
-        super(ProxyCommunity, self).__init__(dispersy, master_member)
+        super(ProxyCommunity, self).__init__(dispersy, master_member, my_member)
 
         self.lock = threading.RLock()
         self._logger = logging.getLogger(__name__)

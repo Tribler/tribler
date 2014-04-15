@@ -131,8 +131,7 @@ class AnonTunnel(Thread):
 
         def _join_overlay(raw_server, dispersy):
             member = self.dispersy.get_new_member(u"NID_secp160k1")
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, (
-                member, self.settings, False), load=True)[0]
+            proxy_community = dispersy.define_auto_load(ProxyCommunity, member, (self.settings, False), load=True)[0]
             ''' @type: ProxyCommunity '''
 
             if self.socks5_server:

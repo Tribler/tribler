@@ -9,10 +9,10 @@ class DummySwiftProcess(object):
 
 class BarterCrawler(object):
 
-    def __init__(self, dispersy):
+    def __init__(self, dispersy, my_member):
         masters = BarterCommunity.get_master_members(dispersy)
         assert len(masters) == 1
-        self._community = BarterCommunity.load_community(dispersy, masters[0], DummySwiftProcess())
+        self._community = BarterCommunity(dispersy, masters[0], my_member, DummySwiftProcess())
 
     def next_testcase(self):
         # TODO we will remove next_testcase once we cleanup the script starting

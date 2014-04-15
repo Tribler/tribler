@@ -15,6 +15,7 @@ from Tribler.dispersy.database import IgnoreCommits
 from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
+from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.message import Message, DropMessage, \
     BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
@@ -69,21 +70,12 @@ class AllChannelCommunity(Community):
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
-    @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, auto_join_channel=False):
-        try:
-            dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, auto_join_channel=auto_join_channel)
-        else:
-            return super(AllChannelCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, auto_join_channel=auto_join_channel)
-
     @property
     def dispersy_sync_bloom_filter_strategy(self):
         return self._dispersy_claim_sync_bloom_filter_modulo
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, auto_join_channel=False):
-        super(AllChannelCommunity, self).__init__(dispersy, master)
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, auto_join_channel=False):
+        super(AllChannelCommunity, self).__init__(dispersy, master, my_member)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -509,13 +501,13 @@ class AllChannelCommunity(Community):
 
         try:
             return self._dispersy.get_community(cid, True)
-        except KeyError:
+        except CommunityNotFoundException:
             if self.auto_join_channel:
                 logger.debug("join channel community %s", cid.encode("HEX"))
-                return ChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
+                return ChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
             else:
                 logger.debug("join preview community %s", cid.encode("HEX"))
-                return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
+                return PreviewChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def unload_preview(self):
         while True:
