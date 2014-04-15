@@ -2337,7 +2337,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def OnVideoEnded(self, subject, changeType, torrent_tuple):
         infohash, fileindex = torrent_tuple
 
-        if self.tdef.get_id() != infohash:
+        if not self.tdef or self.tdef.get_id() != infohash:
             return
 
         for index, control in enumerate(self.links):
