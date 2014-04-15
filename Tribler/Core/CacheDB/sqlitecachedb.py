@@ -45,7 +45,7 @@ import logging
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is
 # written to the DB in the schema_sdb_v*.sql file!!!
-CURRENT_MAIN_DB_VERSION = 20
+CURRENT_MAIN_DB_VERSION = 21
 
 config_dir = None
 CREATE_SQL_FILE = None
@@ -2182,8 +2182,15 @@ CREATE TABLE MetadataData (
                 tqueue.add_task(kill_threadqueue_if_empty, INITIAL_UPGRADE_PAUSE + 1, 'kill_if_empty')
             tqueue.add_task(upgradeDBV19, INITIAL_UPGRADE_PAUSE)
 
+        if fromver < 21:
+            self.database_update.acquire()
+            self.execute_write("DROP INDEX IF EXISTS torrent_biterm_phrase_idx")
+            self.execute_write("DROP TABLE IF EXISTS TorrentBiTermPhrase")
+            self.execute_write("DROP INDEX IF EXISTS termfrequency_freq_idx")
+            self.execute_write("DROP TABLE IF EXISTS TermFrequency")
+            self.database_update.release()
+
     def clean_db(self, vacuum=False):
-        self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)")
         self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0")
         self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")
         self.execute_write("DELETE FROM Torrent where name is NULL and torrent_id not in (select torrent_id from _ChannelTorrents)")

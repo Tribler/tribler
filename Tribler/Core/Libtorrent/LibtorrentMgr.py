@@ -4,7 +4,6 @@ from libtorrent import proxy_type
 import os
 import time
 import binascii
-import tempfile
 import threading
 import libtorrent as lt
 
@@ -51,7 +50,12 @@ class LibtorrentMgr:
                                       lt.alert.category_t.status_notification |
                                       lt.alert.category_t.storage_notification |
                                       lt.alert.category_t.performance_warning)
-        self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
+
+        listen_port = self.trsession.get_listen_port()
+        self.ltsession.listen_on(listen_port, listen_port + 10)
+        if listen_port != self.ltsession.listen_port():
+            self.trsession.set_listen_port_runtime(self.ltsession.listen_port())
+
         self.set_upload_rate_limit(-1)
         self.set_download_rate_limit(-1)
         self.upnp_mapper = self.ltsession.start_upnp()
@@ -185,13 +189,13 @@ class LibtorrentMgr:
         self.ltsession.set_max_connections(conns)
 
     def set_upload_rate_limit(self, rate):
-        self.ltsession.set_upload_rate_limit(rate)
+        self.ltsession.set_upload_rate_limit(int(rate))
 
     def get_upload_rate_limit(self):
         return self.ltsession.upload_rate_limit()
 
     def set_download_rate_limit(self, rate):
-        self.ltsession.set_download_rate_limit(rate)
+        self.ltsession.set_download_rate_limit(int(rate))
 
     def get_download_rate_limit(self):
         return self.ltsession.download_rate_limit()

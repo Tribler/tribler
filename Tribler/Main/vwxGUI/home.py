@@ -31,7 +31,7 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL,
     NTFY_EXTENDED_FOR
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
-    NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
+    TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE
@@ -42,8 +42,7 @@ from Tribler.Main.vwxGUI.list_body import ListBody
 from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
-    TextCtrlAutoComplete, BetterText as StaticText, _set_font, \
-    LinkStaticText, LinkText
+    TextCtrlAutoComplete, BetterText as StaticText, LinkStaticText
 
 try:
     # C(ython) module
@@ -134,13 +133,13 @@ class Home(wx.Panel):
         menu.AppendCheckItem(itemid, 'Show recent videos')
         menu.Check(itemid, self.aw_panel.IsShown())
 
-        def toggleBuzz(event):
+        def toggleArtwork(event):
             show = not self.aw_panel.IsShown()
             self.aw_panel.Show(show)
             self.guiutility.WriteGuiSetting("show_artwork", show)
             self.Layout()
 
-        menu.Bind(wx.EVT_MENU, toggleBuzz, id=itemid)
+        menu.Bind(wx.EVT_MENU, toggleArtwork, id=itemid)
 
         if menu:
             self.PopupMenu(menu, self.ScreenToClient(wx.GetMousePosition()))
@@ -576,263 +575,6 @@ class ActivityPanel(NewTorrentPanel):
         size = self.list.GetItemCount()
         if size > 50:
             self.list.DeleteItem(size - 1)
-
-
-class BuzzPanel(wx.Panel):
-    INACTIVE_COLOR = (255, 51, 0)
-    ACTIVE_COLOR = (0, 105, 156)
-
-    TERM_BORDERS = [15, 8, 8]
-    DISPLAY_SIZES = [3, 5, 5]
-    REFRESH_EVERY = 5
-
-    def __init__(self, parent):
-        wx.Panel.__init__(self, parent)
-        self.SetBackgroundColour(wx.WHITE)
-        self.SetForegroundColour(parent.GetForegroundColour())
-
-        # Niels 04-06-2012: termextraction needs a session variable, create instance from mainthread
-        TermExtraction.getInstance()
-
-        self.nbdb = None
-        self.xxx_filter = Category.getInstance().xxx_filter
-        self.guiutility = GUIUtility.getInstance()
-        self.utility = self.guiutility.utility
-
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(DetailHeader(self, "Click below to explore what's hot"), 0, wx.EXPAND)
-        vSizer.AddSpacer((-1, 10))
-
-        self.panel = wx.Panel(self)
-        self.panel.SetBackgroundColour(DEFAULT_BACKGROUND)
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.panel.SetSizer(self.vSizer)
-        vSizer.Add(self.panel, 1, wx.EXPAND | wx.BOTTOM, 5)
-
-        self.footer = wx.StaticText(self)
-        vSizer.Add(self.footer, 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 1)
-
-        self.tags = []
-        self.buzz_cache = [[], [], []]
-        self.last_shown_buzz = None
-
-        row1_font = self.GetFont()
-        row1_font.SetPointSize(row1_font.GetPointSize() + 10)
-        row1_font.SetWeight(wx.FONTWEIGHT_BOLD)
-
-        row2_font = self.GetFont()
-        row2_font.SetPointSize(row2_font.GetPointSize() + 4)
-        row2_font.SetWeight(wx.FONTWEIGHT_BOLD)
-
-        row3_font = self.GetFont()
-        row3_font.SetWeight(wx.FONTWEIGHT_BOLD)
-        self.TERM_FONTS = [row1_font, row2_font, row3_font]
-
-        self.panel.Bind(wx.EVT_ENTER_WINDOW, self.OnEnterWindow)
-        self.panel.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
-
-        text = wx.StaticText(self.panel, -1, '...collecting buzz information...')
-        _set_font(text, fontcolour=BuzzPanel.INACTIVE_COLOR)
-        self.vSizer.AddStretchSpacer()
-        self.vSizer.Add(text, 0, wx.ALIGN_CENTER)
-        self.vSizer.AddStretchSpacer()
-
-        self.refresh = 5
-        self.GetBuzzFromDB(doRefresh=True, samplesize=10)
-        self.guiutility.addList(self)
-
-        self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
-        self.timer.Start(1000, False)
-
-        self.SetSizer(vSizer)
-        self.Layout()
-
-    def do_or_schedule_refresh(self, force_refresh=False):
-        # Only called when the FF is toggled.
-        if self.guiutility.ShouldGuiUpdate():
-            self.ForceUpdate()
-        else:
-            self.refresh = -1
-
-    def ForceUpdate(self):
-        self.GetBuzzFromDB(doRefresh=True)
-
-    def GetBuzzFromDB(self, doRefresh=False, samplesize=NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE):
-        def do_db():
-            if self.nbdb == None:
-                self.nbdb = NetworkBuzzDBHandler.getInstance()
-
-            self.buzz_cache = [[], [], []]
-            buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
-            for i in range(len(buzz)):
-                random.shuffle(buzz[i])
-                self.buzz_cache[i] = buzz[i]
-
-            if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
-                self.OnRefreshTimer(force=True, fromDBThread=True)
-        startWorker(None, do_db, uId=u"NetworkBuzz.GetBuzzFromDB", priority=GUI_PRI_DISPERSY)
-
-    @forceWxThread
-    def OnRefreshTimer(self, event=None, force=False, fromDBThread=False):
-        self.refresh -= 1
-        if self.refresh <= 0 or force or fromDBThread:
-            if (self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate()) or force or fromDBThread:
-                # simple caching
-                # (Completely throws away the old cache and refills it)
-                if any(len(row) < 10 for row in self.buzz_cache) and not fromDBThread:
-                    self.GetBuzzFromDB(doRefresh=True)
-                    return
-
-                if self.guiutility.getFamilyFilter():
-                    xxx_filter = self.xxx_filter.isXXX
-                else:
-                    xxx_filter = lambda *args, **kwargs: False
-
-                # consume cache
-                # Note: if a term is fetched from two different row caches, it is shown in the
-                # higher-frequency row, regardless of which information is fresher.
-                filtered_buzz = [[], [], []]
-                empty = True
-                added_terms = set()
-                for i in range(len(filtered_buzz)):
-                    while len(filtered_buzz[i]) < BuzzPanel.DISPLAY_SIZES[i] and len(self.buzz_cache[i]):
-                        term, freq = self.buzz_cache[i].pop(0)
-                        if term not in added_terms and not xxx_filter(term, isFilename=False):
-                            filtered_buzz[i].append((term, freq))
-                            added_terms.add(term)
-                            empty = False
-
-                if empty:
-                    filtered_buzz = None
-                self.DisplayTerms(filtered_buzz)
-                self.last_shown_buzz = filtered_buzz
-            self.refresh = BuzzPanel.REFRESH_EVERY
-
-        self.footer.SetLabel('Update in %d...' % self.refresh)
-        self.Layout()
-
-    def getStaticText(self, term, font=None):
-        if len(self.tags) > 0:
-            text = self.tags.pop()
-            text.SetLabel(term)
-            text.SetFonts([font, font])
-            text.Reset()
-
-        else:
-            text = LinkText(self.panel, term, fonts=[font, font], colours=[BuzzPanel.INACTIVE_COLOR, BuzzPanel.ACTIVE_COLOR])
-            text.SetBackgroundColour(DEFAULT_BACKGROUND)
-            text.Bind(wx.EVT_LEFT_UP, self.OnClick)
-        text.SetToolTipString("Click to search for '%s'" % term)
-        return text
-
-    def DisplayTerms(self, rows):
-        if rows:
-            self.Freeze()
-            self.vSizer.ShowItems(False)
-            self.vSizer.Clear()
-            self.vSizer.AddStretchSpacer()
-
-            cur_tags = []
-            for i in range(len(rows)):
-                row = rows[i]
-                if len(row) == 0:
-                    # don't bother adding an empty hsizer
-                    continue
-                hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                hSizer.AddStretchSpacer(2)
-
-                for term, freq in row:
-                    text = self.getStaticText(term, self.TERM_FONTS[i])
-                    cur_tags.append(text)
-
-                    hSizer.Add(text, 0, wx.BOTTOM, self.TERM_BORDERS[i])
-                    hSizer.AddStretchSpacer()
-                hSizer.AddStretchSpacer()
-                self.vSizer.Add(hSizer, 0, wx.EXPAND)
-
-            self.vSizer.AddStretchSpacer()
-            self.vSizer.ShowItems(True)
-            self.vSizer.Layout()
-
-            # destroy all unnecessary statictexts
-            for text in self.tags:
-                text.Destroy()
-            self.tags = cur_tags
-
-            self.Layout()
-            self.GetParent().Layout()
-            self.Thaw()
-
-    def DoPauseResume(self):
-        def IsEnter(control):
-            if getattr(control, 'GetWindow', False):
-                control = control.GetWindow()
-
-            if getattr(control, 'enter', False):
-                return True
-
-            if getattr(control, 'GetChildren', False):
-                children = control.GetChildren()
-                for child in children:
-                    if IsEnter(child):
-                        return True
-            return False
-
-        enter = getattr(self.panel, 'enter', False) or IsEnter(self)
-        timerstop = not enter  # stop timer if one control has enter==true
-
-        if timerstop != self.timer.IsRunning():
-            if not enter:
-                self.timer.Start(1000, False)
-                self.footer.SetLabel('Resuming update')
-                self.Layout()
-
-        if enter:
-            self.timer.Stop()
-            self.footer.SetLabel('Update has paused')
-            self.Layout()
-        return enter
-
-    def OnMouse(self, event):
-        if event.Entering() or event.Moving():
-            self.OnEnterWindow(event)
-
-        elif event.Leaving():
-            self.OnLeaveWindow(event)
-
-        event.Skip()
-
-    def OnEnterWindow(self, event):
-        evtobj = event.GetEventObject()
-        evtobj.enter = True
-
-        self.DoPauseResume()
-
-    def OnLeaveWindow(self, event=None):
-        if event:
-            evtobj = event.GetEventObject()
-            evtobj.enter = False
-
-        wx.CallAfter(self.DoPauseResume)
-
-    def OnClick(self, event):
-        evtobj = event.GetEventObject()
-        term = evtobj.GetLabel()
-        if term != '...collecting buzz information...':
-            self.guiutility.dosearch(term)
-
-            evtobj.enter = False
-            self.DoPauseResume()
-
-            # 29/06/11 boudewijn: do not perform database inserts on the GUI thread
-
-# 17-10-2011: Niels disabling networkbuzz uel
-#            def db_callback():
-#                uelog = UserEventLogDBHandler.getInstance()
-#                uelog.addEvent(message=repr((term, last_shown_buzz)))
-#            last_shown_buzz = self.last_shown_buzz
-#            self.guiserver.add_task(db_callback)
 
 
 class Anonymity(wx.Panel):

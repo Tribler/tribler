@@ -7,7 +7,7 @@ import wx.animate
 from Tribler import LIBRARYNAME
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, \
-    NetworkBuzzDBHandler
+    TorrentDBHandler
 
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
@@ -52,7 +52,7 @@ class TopSearchPanel(FancyPanel):
         self.utility = self.guiutility.utility
         self.installdir = self.utility.getPath()
         self.uelog = UserEventLogDBHandler.getInstance()
-        self.nbdb = None
+        self.tdb = None
         self.collectedTorrents = {}
 
         FancyPanel.__init__(self, parent, border=wx.BOTTOM)
@@ -238,9 +238,9 @@ class TopSearchPanel(FancyPanel):
     def complete(self, term):
         """autocompletes term."""
         if len(term) > 1:
-            if self.nbdb == None:
-                self.nbdb = NetworkBuzzDBHandler.getInstance()
-            return self.nbdb.getTermsStartingWith(term, num=7)
+            if self.tdb == None:
+                self.tdb = TorrentDBHandler.getInstance()
+            return self.tdb.getAutoCompleteTerms(term, max_terms=7)
         return []
 
     def SearchFocus(self):

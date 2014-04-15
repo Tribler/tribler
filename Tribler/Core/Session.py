@@ -11,9 +11,8 @@ import logging
 
 from Tribler.Core.simpledefs import STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, \
     STATEDIR_DLPSTATE_DIR, STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, \
-    NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_SEEDINGSTATS, \
-    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_SEEDINGSTATSSETTINGS, \
-    NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_METADATA
+    NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, \
+    NTFY_CHANNELCAST, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_METADATA
 from Tribler.Core.exceptions import NotYetImplementedException, \
     OperationNotEnabledByConfigurationException
 from Tribler.Core.SessionConfig import SessionConfigInterface, \
@@ -136,7 +135,7 @@ class Session(SessionConfigInterface):
         self.sessconfig = scfg.sessconfig
         self.sessconfig.lock = self.sesslock
 
-        self.randomly_selected_ports = scfg.randomly_selected_ports
+        self.selected_ports = scfg.selected_ports
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()

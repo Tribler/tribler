@@ -1006,8 +1006,9 @@ class LibraryManager:
             wait_state = [DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK]
             status = download.get_status()
             if status in wait_state:
+                fetch_msg = "Fetching torrent..."
                 if status == DLSTATUS_METADATA:
-                    self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetCollecting()
+                    self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetMessage(fetch_msg, True)
 
                 def wait_until_collected(ds):
                     # Try to kill callbacks from previous calls
@@ -1016,7 +1017,7 @@ class LibraryManager:
                     # Wait until we know for sure that the download has metadata
                     elif ds.get_status() in wait_state:
                         if ds.get_status() == DLSTATUS_METADATA:
-                            self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetCollecting()
+                            self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetMessage(fetch_msg, True)
                         return (1.0, False)
                     # Play the download
                     self._playDownload(infohash, selectedinfilename)
@@ -1048,10 +1049,17 @@ class LibraryManager:
         # Default: pick largest videofile
         if not selectedinfilename:
             videofiles = tdef.get_files(exts=videoextdefaults)
-            selectedinfilename = sorted(videofiles, key=lambda x: tdef.get_length(selectedfiles=[x]))[-1] if videofiles else None
 
-            if not self.guiUtility.frame.videoparentpanel:
+            if not videofiles:
+                if self.guiUtility.frame.videoparentpanel:
+                    self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetMessage("Torrent has no video files.")
+                return
+
+            if self.guiUtility.frame.videoparentpanel:
+                selectedinfilename = sorted(videofiles, key=lambda x: tdef.get_length(selectedfiles=[x]))[-1]
+            else:
                 selectedinfilename = self.guiUtility.SelectVideo(videofiles, selectedinfilename)
+
             if not selectedinfilename:
                 return
 
@@ -1065,8 +1073,8 @@ class LibraryManager:
 
     def stopPlayback(self):
         if self.guiUtility.frame.videoframe:
-            self.guiUtility.frame.videoframe.recreate_vlc_window()
             self.guiUtility.frame.videoframe.get_videopanel().Reset()
+            self.guiUtility.frame.videoframe.recreate_vlc_window()
             self.guiUtility.frame.actlist.expandedPanel_videoplayer.Reset()
         videoplayer = self._get_videoplayer()
         videoplayer.set_vod_download(None)

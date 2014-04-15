@@ -96,17 +96,9 @@ class TriblerLaunchMany(Thread):
             if swift_exists:
                 from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
 
-                self.spm = SwiftProcessMgr(self.session.get_swift_path(),
-                                           self.session.get_swift_tunnel_cmdgw_listen_port(),
-                                           self.session.get_swift_downloads_per_process(),
-                                           self.session.get_swift_tunnel_listen_port(),
-                                           self.sesslock)
+                self.spm = SwiftProcessMgr(self.session.get_swift_path(), self.session.get_swift_tunnel_cmdgw_listen_port(), self.session.get_swift_downloads_per_process(), self.session.get_swift_tunnel_listen_port(), self.sesslock)
                 try:
-                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),
-                                                                   self.session.get_torrent_collecting_dir(),
-                                                                   self.session.get_swift_tunnel_listen_port(),
-                                                                   self.session.get_swift_tunnel_httpgw_listen_port(),
-                                                                   self.session.get_swift_tunnel_cmdgw_listen_port(),)
+                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
                     self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
 
                 except OSError:
@@ -146,9 +138,9 @@ class TriblerLaunchMany(Thread):
                 success = self.dispersy.start()
 
                 # for debugging purpose
-                #from Tribler.dispersy.endpoint import NullEndpoint
-                #self.dispersy._endpoint = NullEndpoint()
-                #self.dispersy._endpoint.open(self.dispersy)
+                # from Tribler.dispersy.endpoint import NullEndpoint
+                # self.dispersy._endpoint = NullEndpoint()
+                # self.dispersy._endpoint.open(self.dispersy)
 
                 diff = timemod.time() - now
                 if success:
@@ -166,8 +158,7 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Core.permid import read_keypair
                 keypair = read_keypair(self.session.get_permid_keypair_filename())
                 self.session.dispersy_member = callback.call(self.dispersy.get_member,
-                                                             (self.dispersy.crypto.key_to_bin(keypair.pub()),
-                                                              self.dispersy.crypto.key_to_bin(keypair)))
+                                             kargs={'private_key': self.dispersy.crypto.key_to_bin(keypair)})
 
                 self.database_thread = callback
             else:
@@ -218,7 +209,7 @@ class TriblerLaunchMany(Thread):
 
             if self.session.get_megacache():
                 import Tribler.Core.CacheDB.sqlitecachedb as cachedb
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler, MiscDBHandler, MetadataDBHandler
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, UserEventLogDBHandler, MiscDBHandler, MetadataDBHandler
                 from Tribler.Category.Category import Category
                 from Tribler.Core.Tag.Extraction import TermExtraction
                 from Tribler.Core.CacheDB.sqlitecachedb import try_register
@@ -243,7 +234,6 @@ class TriblerLaunchMany(Thread):
                 self.votecast_db.registerSession(self.session)
                 self.channelcast_db = ChannelCastDBHandler.getInstance()
                 self.channelcast_db.registerSession(self.session)
-                self.nb_db = NetworkBuzzDBHandler.getInstance()
                 self.ue_db = UserEventLogDBHandler.getInstance()
 
                 if self.dispersy:
@@ -741,7 +731,6 @@ class TriblerLaunchMany(Thread):
             self.mypref_db.delInstance()
             self.votecast_db.delInstance()
             self.channelcast_db.delInstance()
-            self.nb_db.delInstance()
             self.ue_db.delInstance()
             self.cat.delInstance()
             self.term.delInstance()

@@ -457,7 +457,7 @@ class TorrentDetails(AbstractDetails):
         self.updateTrackersTab()
 
     def OnUploadThumbsButtonClick(self, event):
-        type_str = "Pictures|*.png;*.jpeg;*.jpg | PNG files (*.png)|*.png | JPEG files (*.jpeg, *jpg)|*.jpeg;*.jpg"
+        type_str = "Pictures (*.png, *.jpeg, *jpg)|*.png;*.jpeg;*.jpg"
         dialog = wx.FileDialog(self, "Upload Thumbnails", wildcard=type_str,
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
         extra_info = {'thumbnail-tempdir': None, 'thumbnail-file-list': []}
@@ -761,18 +761,35 @@ class TorrentDetails(AbstractDetails):
 
         selection = set([self.filesList.GetItem(index, 0).GetText() for index in selection])
         selected_files = set(download.get_selected_files()) or set(download.get_def().get_files())
+        all_files = set(download.get_selected_files())
 
-        selected_files_include = list(selected_files | selection)
-        selected_files_exclude = list(selected_files - selection)
+        selected_files_includable = selection - selected_files
+        selected_files_excludable = selection & selected_files
+
+        if not selected_files_includable and not selected_files_excludable:
+            return
 
         menu = wx.Menu()
-        menuitems = [("Include", selected_files_include)]
-        if selected_files_exclude:
-            menuitems += [("Exclude", selected_files_exclude)]
-        for label, files in menuitems:
+
+        menuitems = [("Include", [], False), ("Exclude", [], False)]
+
+        if selected_files_includable:
+            files = list(all_files | selected_files_includable)
+            menuitems[0] = ("Include", files, True)
+
+        if selected_files_excludable:
+            files = list(all_files - selected_files_excludable)
+            # Don't allow excluding everything
+            if files:
+                menuitems[1] = ("Exclude", files, True)
+
+        for label, files, enabled in menuitems:
             itemid = wx.NewId()
             menu.Append(itemid, label)
-            menu.Bind(wx.EVT_MENU, lambda evt, d=download, f=files: self.guiutility.frame.modifySelection(d, f), id=itemid)
+            menu.Enable(itemid, enabled)
+            if enabled:
+                menu.Bind(wx.EVT_MENU, lambda evt, d=download, f=files: self.guiutility.frame.modifySelection(d, f), id=itemid)
+
         self.PopupMenu(menu, self.ScreenToClient(wx.GetMousePosition()))
         menu.Destroy()
 
@@ -2140,7 +2157,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.tdef = None
         self.fileindex = -1
-        self.collecting = False
+        self.message = None
 
         self.close_icon = GuiImageManager.getInstance().getImage(u"close.png")
         self.fg_colour = self.GetForegroundColour()
@@ -2195,17 +2212,19 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Freeze()
         self.vSizer.Clear(deleteWindows=True)
         self.links = []
-        if not self.collecting:
+        if not self.message:
             self.AddLinks()
         else:
-            text = wx.StaticText(self, -1, "Fetching torrent...")
-            ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.vwxGUI_path, 'images', 'search_new.gif'))
-            ag.Play()
+            label, show_animation = self.message
+            text = wx.StaticText(self, -1, label)
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(text, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
-            sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
+            if show_animation:
+                ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.vwxGUI_path, 'images', 'search_new.gif'))
+                ag.Play()
+                sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
-            self.vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
+            self.vSizer.Add(sizer, 1, wx.EXPAND)
         self.Layout()
         self.OnChange()
         self.Thaw()
@@ -2215,22 +2234,22 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         if self.tdef != tdef and self.fileindex != fileindex:
             self.tdef = tdef
             self.fileindex = fileindex
-            self.collecting = False
+            self.message = None
             self.UpdateComponents()
 
     @forceWxThread
-    def SetCollecting(self):
-        if not self.collecting:
+    def SetMessage(self, message, show_animation=False):
+        if self.message != (message, show_animation):
             self.tdef = None
             self.fileindex = -1
-            self.collecting = True
+            self.message = (message, show_animation)
             self.UpdateComponents()
 
     @forceWxThread
     def Reset(self):
         self.tdef = None
         self.fileindex = -1
-        self.collecting = False
+        self.message = None
         self.links = []
         self.vSizer.Clear(deleteWindows=True)
         self.Layout()
@@ -2269,7 +2288,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Freeze()
 
         max_height = self.guiutility.frame.actlist.GetSize().y - self.GetParent().GetPosition()[1] * 1.25 - 4
-        virtual_height = sum([link.text.GetSize()[1] for link in self.links]) if self.links else (30 if self.collecting else 0)
+        virtual_height = sum([link.text.GetSize()[1] for link in self.links]) if self.links else (30 if self.message else 0)
         best_height = min(max_height, virtual_height)
         self.SetMinSize((-1, best_height))
         self.GetParent().parent_list.Layout()

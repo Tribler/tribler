@@ -224,15 +224,8 @@ class ABCApp():
             # So we know if we asked for peer details last cycle
             self.lastwantpeers = []
 
-            # boudewijn 01/04/2010: hack to fix the seedupload speed that
-            # was never used and defaulted to 0 (unlimited upload)
             maxup = self.utility.read_config('maxuploadrate')
-            if maxup == -1:  # no upload
-                self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
-                self.ratelimiter.set_global_max_seedupload_speed(0.00001)
-            else:
-                self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
-                self.ratelimiter.set_global_max_seedupload_speed(maxup)
+            self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
 
             maxdown = self.utility.read_config('maxdownloadrate')
             self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
@@ -270,6 +263,7 @@ class ABCApp():
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
                 vlcwrap = s.lm.videoplayer.get_vlcwrap()
+                wx.CallLater(3000, vlcwrap._init_vlc)
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
 
             if sys.platform == 'win32':
@@ -488,7 +482,9 @@ class ABCApp():
             dispersy.define_auto_load(PreviewChannelCommunity)
 
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
-            dispersy_member = dispersy.get_member(dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair))
+            dispersy_member = dispersy.get_member(
+                private_key=dispersy.crypto.key_to_bin(keypair),
+            )
 
             proxy_community = dispersy.define_auto_load(
                 ProxyCommunity, (dispersy_member, None, s), load=True)

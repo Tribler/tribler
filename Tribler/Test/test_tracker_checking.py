@@ -5,7 +5,7 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, \
-    MyPreferenceDBHandler, NetworkBuzzDBHandler
+    MyPreferenceDBHandler
 
 from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
 
@@ -17,7 +17,6 @@ class TestTorrentChecking(TestAsServer):
 
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
-        self.tdb._nb = NetworkBuzzDBHandler.getInstance()
 
         self.torrentChecking = TorrentChecking.getInstance()
         self.torrentChecking.setTorrentSelectionInterval(5)

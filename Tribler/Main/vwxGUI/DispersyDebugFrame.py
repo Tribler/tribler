@@ -3,7 +3,7 @@ from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 import binascii
 from collections import defaultdict
 
-from Tribler.Main.vwxGUI import warnWxThread, LIST_GREY
+from Tribler.Main.vwxGUI import LIST_GREY
 from Tribler.Main.vwxGUI.widgets import _set_font, SimpleNotebook
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
@@ -88,7 +88,7 @@ class DispersyDebugFrame(wx.Frame):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.__incstuff_checkbox = wx.CheckBox(self, -1, "include stuff")
         self.__incdebug_checkbox = wx.CheckBox(self, -1, "include debug")
-        self.__incdebug_checkbox.SetValue(True)
+        self.__incdebug_checkbox.SetValue(self.__dispersy.statistics.are_debug_statistics_enabled())
 
         self.__incstuff = False
         self.__incdebug = True
@@ -391,9 +391,9 @@ class CommunityDetailPanel(wx.Panel):
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        info_panel = wx.Panel(self, -1)
+        info_panel = wx.Panel(self, -1, style=wx.BORDER_SUNKEN)
         info_panel.SetBackgroundColour(wx.WHITE)
-        info_panel.SetMinSize((450, 300))
+        info_panel.SetMinSize((470, 300))
         self.__info_panel = info_panel
 
         self.__text = {}
@@ -411,7 +411,7 @@ class CommunityDetailPanel(wx.Panel):
         info_panel.SetSizer(gridsizer)
 
         self.__candidate_list = AutoWidthListCtrl(self, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT)
+            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
         self.__candidate_list.InsertColumn(0, "Global time")
         self.__candidate_list.InsertColumn(1, "LAN")
         self.__candidate_list.InsertColumn(2, "WAN")
@@ -420,16 +420,16 @@ class CommunityDetailPanel(wx.Panel):
         self.__candidate_list.SetColumnWidth(1, 130)
 
         self.__database_list = AutoWidthListCtrl(self, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT)
+            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
         self.__database_list.InsertColumn(0, "Count")
         self.__database_list.InsertColumn(1, "Info")
 
         self.__to_show_database = False
         self.__database_list.Show(self.__to_show_database)
 
-        hsizer.Add(self.__info_panel, 0, wx.EXPAND | wx.RIGHT, 5)
+        hsizer.Add(self.__info_panel, 0, wx.EXPAND | wx.RIGHT, 2)
         hsizer.Add(self.__candidate_list, 1, wx.EXPAND)
-        hsizer.Add(self.__database_list, 1, wx.EXPAND | wx.LEFT, 5)
+        hsizer.Add(self.__database_list, 1, wx.EXPAND | wx.LEFT, 2)
         self.SetSizer(hsizer)
 
     def ShowDatabaseInfo(self, enabled):
@@ -449,6 +449,8 @@ class CommunityDetailPanel(wx.Panel):
             self.__database_list.UpdateData(community_data["Database_list"])
             self.__candidate_list.UpdateData(community_data["Candidate_list"])
 
+        self.Layout()
+
 # --------------------------------------------------
 # RawInfo Panel
 # --------------------------------------------------
@@ -457,7 +459,7 @@ class RawInfoPanel(wx.Panel):
 
     def __init__(self, parent, id):
         super(RawInfoPanel, self).__init__(parent, id)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(LIST_GREY)
 
         self.__info = None
         self.__selected_category = None
@@ -468,19 +470,19 @@ class RawInfoPanel(wx.Panel):
         self.__IP_CATEGORIES = ("bootstrap_candidates", "walk_fail")
 
         self.__category_list = AutoWidthListCtrl(self, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL)
+            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
         self.__category_list.InsertColumn(0, "Category")
         self.__category_list.InsertColumn(1, "Total Count")
         self.__category_list.SetColumnWidth(0, 150)
         self.__category_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnCategorySelected)
 
-        self.__detail_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT)
+        self.__detail_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.__detail_list.InsertColumn(0, "Count")
         self.__detail_list.InsertColumn(1, "Info")
         self.__detail_list.SetColumnWidth(0, 50)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        hsizer.Add(self.__category_list, 1, wx.EXPAND | wx.RIGHT, 5)
+        hsizer.Add(self.__category_list, 1, wx.EXPAND | wx.RIGHT, 2)
         hsizer.Add(self.__detail_list, 2, wx.EXPAND)
         self.SetSizer(hsizer)
 
@@ -551,99 +553,93 @@ class RuntimeProfilingPanel(wx.Panel):
 
     def __init__(self, parent, id):
         super(RuntimeProfilingPanel, self).__init__(parent, id)
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(LIST_GREY)
 
-        sizer = wx.BoxSizer()
+        self.__current_selection_idx = None
+        self.__combined_list = []
 
-        self.__treectrl = wx.TreeCtrl(self, -1, style=wx.NO_BORDER |
-            wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_NO_LINES |
-            wx.TR_HAS_VARIABLE_ROW_HEIGHT)
-        set_small_modern_font(self.__treectrl)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        sizer.Add(self.__treectrl, 1, wx.EXPAND)
+        self.__list1 = AutoWidthListCtrl(self, -1,
+            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
+        self.__list1.InsertColumn(0, "Duration")
+        self.__list1.InsertColumn(1, "Entry")
+        self.__list1.InsertColumn(2, "Average")
+        self.__list1.InsertColumn(3, "Count")
+        self.__list1.SetColumnWidth(0, 70)
+        self.__list1.SetColumnWidth(1, 250)
+        self.__list1.SetColumnWidth(2, 70)
+        self.__list1.SetColumnWidth(3, 70)
+        set_small_modern_font(self.__list1)
+
+        self.__list1.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnList1Selected)
+
+        self.__list2 = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        self.__list2.InsertColumn(0, "Duration")
+        self.__list2.InsertColumn(1, "Entry")
+        self.__list2.InsertColumn(2, "Average")
+        self.__list2.InsertColumn(3, "Count")
+        self.__list2.SetColumnWidth(0, 70)
+        self.__list2.SetColumnWidth(1, 250)
+        self.__list2.SetColumnWidth(2, 70)
+        self.__list2.SetColumnWidth(3, 70)
+        set_small_modern_font(self.__list2)
+
+        sizer.Add(self.__list1, 1, wx.EXPAND | wx.RIGHT, 2)
+        sizer.Add(self.__list2, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
+    def OnList1Selected(self, event):
+        this_idx = event.GetIndex()
+        if self.__current_selection_idx == this_idx:
+            return
+
+        self.__current_selection_idx = this_idx
+        self.__list2.DeleteAllItems()
+        data_list = self.__combined_list[event.GetIndex()][4]
+        for duration, entry, average, count in data_list:
+            self.__list2.Append([u"%7.2f" % duration, u"%s" % entry,
+                u"%7.2f" % average, u"%s" % count])
+
     def UpdateInfo(self, stats):
-        self.__treectrl.DeleteAllItems()
-        parent_node = self.__treectrl.AddRoot("runtime stats")
-        runtime = {}
-        combined_runtime = defaultdict(list)
-        if getattr(stats, "runtime", None):
-            for stat_dict in stats.runtime:
-                stat_list = []
-                for k, v in stat_dict.iteritems():
-                    if isinstance(v, basestring):
-                        v = v.replace("\n", "\n          ")
-                    stat_list.append("%-10s%s" % (k, v))
+        self.__list1.DeleteAllItems()
+        self.__list2.DeleteAllItems()
+        self.__current_selection_id = None
 
-                name = stat_dict["entry"].split("\n")[0]
-                combined_name = name.split()[0]
+        if not getattr(stats, "runtime", None):
+            return
 
-                label = "duration = %7.2f ; entry = %s" % (stat_dict["duration"], name)
-                combined_runtime[combined_name].append((stat_dict["duration"], label, tuple(stat_list)))
+        combined_dict = {}
+        for stat_dict in stats.runtime:
+            processed_data = {}
+            for k, v in stat_dict.iteritems():
+                if k == "entry":
+                    v = v.replace("\n", "\n          ")
+                processed_data[k] = v
 
-            for key, runtimes in combined_runtime.iteritems():
-                if len(runtimes) > 1:
-                    total_duration = 0
+            name = processed_data["entry"].split("\n")[0]
+            combined_name = name.split()[0]
 
-                    subcalls = defaultdict(list)
-                    for duration, label, stat_list in runtimes:
-                        total_duration += duration
-                        subcalls[label].append(stat_list)
+            data = (processed_data["duration"], name,
+                processed_data["average"], processed_data["count"])
 
-                    _subcalls = {}
-                    for label, subcall_list in subcalls.iteritems():
-                        if len(subcall_list) > 1:
-                            _subcalls[label] = subcall_list
-                        else:
-                            _subcalls[label] = subcall_list[0]
+            if combined_name not in combined_dict:
+                # total-duration, average, count, and data-list
+                combined_dict[combined_name] = [0, 0, 0, list()]
 
-                    runtime["duration = %7.2f ; entry = %s" % (total_duration, key)] = _subcalls
+            combined_dict[combined_name][0] += processed_data["duration"]
+            combined_dict[combined_name][1] += processed_data["average"]
+            combined_dict[combined_name][2] += processed_data["count"]
+            combined_dict[combined_name][3].append(data)
 
-                else:
-                    duration, label, stat_list = runtimes[0]
-                    runtime[label] = stat_list
+        # convert dict to list
+        combined_list = []
+        for k, v in combined_dict.iteritems():
+            v[3].sort(reverse=True)
+            combined_list.append((v[0], k, v[1], v[2], v[3]))
+        combined_list.sort(reverse=True)
+        self.__combined_list = combined_list
 
-        self.__AddDataToTree(runtime, parent_node, self.__treectrl, prepend=False, sort_dict=True)
-
-    def __AddDataToTree(self, data, parent, tree, prepend=True, sort_dict=False):
-        def addValue(parentNode, value):
-            if isinstance(value, dict):
-                addDict(parentNode, value)
-            elif isinstance(value, list):
-                addList(parentNode, value)
-            elif isinstance(value, tuple):
-                addTuple(parentNode, value)
-            elif value != None:
-                tree.AppendItem(parentNode, str(value))
-
-        def addList(parentNode, nodelist):
-            for key, value in enumerate(nodelist):
-                keyNode = tree.AppendItem(parentNode, str(key))
-                addValue(keyNode, value)
-
-        def addTuple(parentNode, nodetuple):
-            for value in nodetuple:
-                addValue(parentNode, value)
-
-        def addDict(parentNode, nodedict):
-            kv_pairs = sorted(nodedict.items(), reverse=True) if sort_dict else nodedict.items()
-            if prepend and kv_pairs:
-                kv_pairs.sort(key=lambda kv: kv[1], reverse=True)
-            for key, value in kv_pairs:
-                prepend_str = ''
-                if prepend and not isinstance(value, (list, dict)):
-                    prepend_str = str(value) + "x "
-                    value = None
-
-                if not isinstance(key, basestring):
-                    key = str(key)
-                try:
-                    key = key.decode("utf-8")
-                except UnicodeDecodeError:
-                    key = key.encode("hex")
-
-                keyNode = tree.AppendItem(parentNode, prepend_str + key)
-                addValue(keyNode, value)
-
-        addValue(parent, data)
+        for duration, entry, average, count, _ in combined_list:
+            self.__list1.Append([u"%7.2f" % duration, u"%s" % entry,
+                u"%7.2f" % average, u"%s" % count])
