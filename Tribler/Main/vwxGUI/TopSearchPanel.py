@@ -294,13 +294,16 @@ class TopSearchPanel(FancyPanel):
                 if torrent.state or inDownloads:
                     states[5] += 1
 
-                if "metadata" not in torrent.state:
-                    if torrent.infohash in self.collectedTorrents:
-                        coltorrent = self.collectedTorrents[torrent.infohash]
-                        if coltorrent.isPlayable():
-                            states[6] += 1
+                if "metadata" not in torrent.state and torrent.infohash in self.collectedTorrents:
+                    coltorrent = self.collectedTorrents[torrent.infohash]
+                    if coltorrent.isPlayable():
+                        states[6] += 1
 
-                        usedCollectedTorrents.add(torrent.infohash)
+                    usedCollectedTorrents.add(torrent.infohash)
+                else:
+                    # If the torrent isn't collected we assume its playable and let the core cancel the VOD if it isn't.
+                    states[6] += 1
+
 
             enableDownload = states[1] + states[2]
             if enableDownload:
@@ -402,7 +405,7 @@ class TopSearchPanel(FancyPanel):
             button.Enable(False)
 
     def OnPlay(self, event):
-        # Select the first playable torrent. Return if none can be found
+        # Select the first playable torrent or not collected torrent. Return if none can be found
         torrent = None
         for t in self.GetSelectedTorrents():
             if t.infohash in self.collectedTorrents:
@@ -410,6 +413,9 @@ class TopSearchPanel(FancyPanel):
                 if coltor.isPlayable():
                     torrent = coltor
                     break
+            else:
+                torrent = t
+                break
 
         if not torrent:
             return
@@ -417,9 +423,8 @@ class TopSearchPanel(FancyPanel):
         play_executed = False
 
         if self.guiutility.frame.videoparentpanel:
-            if torrent.isPlayable():
-                self.guiutility.library_manager.playTorrent(torrent.infohash)
-                play_executed = True
+            self.guiutility.library_manager.playTorrent(torrent.infohash)
+            play_executed = True
 
         else:
             self.guiutility.library_manager.playTorrent(torrent.infohash)
