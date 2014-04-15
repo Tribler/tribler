@@ -6,8 +6,6 @@ from mock import Mock
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.community.anontunnel import exitstrategies
-from Tribler.community.anontunnel.Socks5.server import Socks5Server
-from Tribler.community.anontunnel.cache import CandidateCache
 from Tribler.community.anontunnel.community import ProxyCommunity
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, MESSAGE_CREATE, \
@@ -23,7 +21,7 @@ from Tribler.dispersy.member import Member
 __author__ = 'Chris'
 
 logging.config.fileConfig(
-    os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
+    os.path.dirname(os.path.realpath(__file__)) + "/../logger.conf")
 
 class DummyEndpoint(NullEndpoint):
     def send_simple(self, *args):
@@ -57,20 +55,18 @@ class TestProxyCommunity(TestCase):
 
     def setUp(self):
         dispersy = self.dispersy
-        keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
-        dispersy_member = dispersy.callback.call(dispersy.get_member, (dispersy.crypto.key_to_bin(keypair.pub()), dispersy.crypto.key_to_bin(keypair)))
-
-        self.community = None
-        ''' :type : ProxyCommunity '''
 
         def load_community():
+            keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+            dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
+
             proxy_community = dispersy.define_auto_load(ProxyCommunity, (dispersy_member, None, None), load=True)[0]
             ''' :type : ProxyCommunity '''
             exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
 
-            self.community = proxy_community
+            return proxy_community
 
-        self.dispersy.callback.call(load_community)
+        self.community = dispersy.callback.call(load_community)
 
     def __create_walk_candidate(self):
         candidate = WalkCandidate(("127.0.0.1", self.__candidate_counter), False, ("127.0.0.1", self.__candidate_counter), ("127.0.0.1", self.__candidate_counter), u'unknown')
@@ -79,13 +75,13 @@ class TestProxyCommunity(TestCase):
 
         member = []
         def create_member():
-            member.append(Member(self.dispersy, self.dispersy.crypto.key_to_bin(key.pub())))
+            member.append(Member(self.dispersy, key.pub(), self.community.database_id))
 
         self.dispersy.callback.call(create_member)
 
         candidate.associate(member[0])
         self.__candidate_counter += 1
-        candidate.walk(time.time(), 0.0)
+        candidate.walk(time.time())
         return candidate
 
     def tearDown(self):
@@ -142,8 +138,6 @@ class TestProxyCommunity(TestCase):
         self.assertEqual(CIRCUIT_STATE_READY, circuit.state)
 
     def on_extended(self):
-        cache = CandidateCache(self.community)
-
         # 2 Hop - should fail due to no extend candidates
         first_hop = self.__create_walk_candidate()
         circuit = self.community.create_circuit(first_hop, 2)
@@ -154,10 +148,12 @@ class TestProxyCommunity(TestCase):
 
         # 2 Hop - should succeed
         second_hop = self.__create_walk_candidate()
-        cache.cache(second_hop) # just easy way to get the keys
+
+        mid = next(iter(second_hop.get_members())).mid
+        key = next(iter(second_hop.get_members()))._ec
 
         candidate_dict = {}
-        candidate_dict[cache.candidate_to_hashed_key[second_hop]] = cache.candidate_to_key_string[second_hop]
+        candidate_dict[mid] = self.community.crypto.key_to_bin(key)
         circuit = self.community.create_circuit(first_hop, 2)
 
         self.community.send_message = send_message = Mock()
@@ -173,7 +169,7 @@ class TestProxyCommunity(TestCase):
         self.assertEqual(circuit.circuit_id, circuit_id)
         self.assertEqual(MESSAGE_EXTEND, message_type)
         self.assertIsInstance(message, ExtendMessage)
-        self.assertEqual(message.extend_with, cache.candidate_to_hashed_key[second_hop])
+        self.assertEqual(message.extend_with, mid)
 
         # Upon reception of the ON_EXTENDED the circuit should reach it full 2-hop length and thus be ready for use
         result = self.community.on_extended(circuit.circuit_id, first_hop, ExtendedMessage(None, []))
@@ -213,16 +209,12 @@ class TestProxyCommunity(TestCase):
         on_exiting_from_tunnel.assert_called_with(1337, first_hop, destination, payload)
 
     def test_on_extend(self):
-        cache = CandidateCache(self.community)
-
         # We mimick the intermediary hop ( ORIGINATOR - INTERMEDIARY - NODE_TO_EXTEND_ORIGINATORS_CIRCUIT_WITH )
         originator = self.__create_walk_candidate()
         node_to_extend_with = self.__create_walk_candidate()
         originator_circuit_id = 1337
 
-        cache.cache(originator)
-        cache.cache(node_to_extend_with)
-        hashed_key = cache.candidate_to_hashed_key[node_to_extend_with]
+        hashed_key = next(iter(node_to_extend_with.get_members())).mid
 
         # make sure our node_to_extend_with comes up when yielding verified candidates
         self.community.add_candidate(node_to_extend_with)
@@ -236,7 +228,6 @@ class TestProxyCommunity(TestCase):
         candidate_dict = created_message.candidate_list
         self.assertIsInstance(created_message, CreatedMessage)
         self.assertIn(hashed_key, candidate_dict)
-        self.assertIn(node_to_extend_with, self.community.candidate_cache.candidates)
 
         self.community.on_extend(originator_circuit_id, originator, ExtendMessage(hashed_key))
 
