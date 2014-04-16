@@ -702,8 +702,8 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_id = self.getTorrentID(infohash)
 
         else:  # infohash in db
-            del database_dict["infohash"]
-            where = "infohash = '%s'" % bin2str(infohash)
+            del database_dict["infohash"]  # no need for infohash, its already stored
+            where = "torrent_id = %d" % torrent_id
             self._db.update('Torrent', where=where, **database_dict)
 
         if not torrentdef.is_multifile_torrent():
