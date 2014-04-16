@@ -1440,14 +1440,14 @@ class PoliForwardCommunity(ForwardCommunity):
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
                     py = paillier_polyval(message.payload.coefficients[partition], val, user_n2)
-                    py = paillier_multiply(py, randint(0, 2 ** 40), user_n2)
+                    py = paillier_multiply(py, randint(0, 2 ** self.key.size), user_n2)
                     if not self.use_cardinality:
                         py = paillier_add_unenc(py, val, message.payload.key_g, user_n2)
                     results.append(py)
             else:
                 for partition, val in _myPreferences:
                     py = polyval(message.payload.coefficients[partition], val)
-                    py = py * randint(0, 2 ** 40)
+                    py = py * randint(0, 2 ** self.key.size)
                     if not self.use_cardinality:
                         py += val
                     results.append(py)
