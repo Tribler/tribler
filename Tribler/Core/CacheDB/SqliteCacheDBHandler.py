@@ -1927,7 +1927,10 @@ class VoteCastDBHandler(BasicDBHandler):
             self._logger.error("votecast: couldn't make the table")
 
         self.my_votes = None
-        self._logger.debug("votecast: ")
+
+        self.voteLock = Lock()
+        self.updatedChannels = set()
+        db.schedule_task(self._flush_to_database, delay=5.0)
 
     def registerSession(self, session):
         self.session = session
@@ -1936,36 +1939,53 @@ class VoteCastDBHandler(BasicDBHandler):
         self.channelcast_db = ChannelCastDBHandler.getInstance()
 
     def on_votes_from_dispersy(self, votes):
-        removeVotes = [(channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes if not voter_id]
-        self.removeVotes(removeVotes, updateVotes=False)
-
         insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.executemany(insert_vote, votes)
 
-        # Arno, 2012-08-01: _updateChannelsVotes would be executed one for every
-        # pair, instead of once for every channel. And in many cases there would
-        # be just 1 channel :-(
-        channel_voter_ids = set((channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes)
-        just_channel_ids = set([channel_id for channel_id, _ in channel_voter_ids])
+        for channel_id, voter_id, _, _, _ in votes:
+            if voter_id == None:
+                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id == None)
+            self._scheduleUpdateChannelVotes(channel_id)
 
-        if len(just_channel_ids) == 1:
-            # WARNING: pop removes element
-            self._updateChannelVotes(just_channel_ids.pop())
-        else:
-            self._updateChannelsVotes(just_channel_ids)
-
-        for channel_id, voter_id in channel_voter_ids:
-            self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id == None)
-
-    def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
+    def on_remove_votes_from_dispersy(self, votes, contains_my_vote):
         remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
+        self._db.executemany(remove_vote, votes)
 
-        if redo:
-            deleted_at = None
-        else:
-            deleted_at = long(time())
-        self._db.execute_write(remove_vote, (deleted_at, channel_id, dispersy_id))
-        self._updateChannelVotes(channel_id)
+        if contains_my_vote:
+            for _, channel_id, _ in votes:
+                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, contains_my_vote)
+
+        for _, channel_id, _ in votes:
+            self._scheduleUpdateChannelVotes(channel_id)
+
+    def _scheduleUpdateChannelVotes(self, channel_id):
+        with self.voteLock:
+            self.updatedChannels.add(channel_id)
+
+    def _flush_to_database(self):
+        while True:
+            with self.voteLock:
+                channel_ids = list(self.updatedChannels)
+                self.updatedChannels.clear()
+
+            if channel_ids:
+                parameters = ",".join("?" * len(channel_ids))
+                sql = "Select channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
+                positive_votes = {}
+                negative_votes = {}
+                for channel_id, vote in self._db.fetchall(sql, channel_ids):
+                    if vote == 2:
+                        positive_votes[channel_id] = positive_votes.get(channel_id, 0) + 1
+                    elif vote == -1:
+                        negative_votes[channel_id] = negative_votes.get(channel_id, 0) + 1
+
+                updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
+                self._db.executemany("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
+
+                for channel_id in channel_ids:
+                    self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)
+
+            yield 15.0
 
     def get_latest_vote_dispersy_id(self, channel_id, voter_id):
         if voter_id:
@@ -1981,46 +2001,6 @@ class VoteCastDBHandler(BasicDBHandler):
         if result:
             return result
         return 0, 0
-
-    def removeVote(self, channel_id, voter_id):
-        if voter_id:
-            sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id = ?"
-            self._db.execute_write(sql, (long(time()), channel_id, voter_id))
-        else:
-            sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id ISNULL"
-            self._db.execute_write(sql, (long(time()), channel_id))
-            self.my_votes = None
-
-        self._updateChannelVotes(channel_id)
-
-    def removeVotes(self, votes, updateVotes=True):
-        for channel_id, voter_id in votes:
-            self.removeVote(channel_id, voter_id)
-
-        if updateVotes:
-            # Arno: why not use _updateCHannelsVotes here?
-            channel_ids = set([channel_id for channel_id, _ in votes])
-            for channel_id in channel_ids:
-                self._updateChannelVotes(channel_id)
-
-    def _updateChannelVotes(self, channel_id):
-        nr_favorites = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == 2 AND channel_id = ?", (channel_id,))
-        nr_spam = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == -1 AND channel_id = ?", (channel_id,))
-        self._db.execute_write("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id))
-
-    def _updateChannelsVotes(self, channel_ids):
-        parameters = ",".join("?" * len(channel_ids))
-        sql = "Select channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
-        positive_votes = {}
-        negative_votes = {}
-        for channel_id, vote in self._db.fetchall(sql, channel_ids):
-            if vote == 2:
-                positive_votes[channel_id] = positive_votes.get(channel_id, 0) + 1
-            elif vote == -1:
-                negative_votes[channel_id] = negative_votes.get(channel_id, 0) + 1
-
-        updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
-        self._db.executemany("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
 
     def getVoteOnChannel(self, channel_id, voter_id):
         """ return the vote status if such record exists, otherwise None  """
