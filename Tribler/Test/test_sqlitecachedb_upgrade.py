@@ -11,7 +11,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 class TestSqliteCacheDB(AbstractServer):
 
     def setUp(self):
-        self.setUpCleanup()
+        AbstractServer.setUp(self)
 
         # Speed up upgrade, otherwise this test would take ages.
         self.original_values = [sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE, sqlitecachedb.TEST_OVERRIDE]
@@ -30,7 +30,7 @@ class TestSqliteCacheDB(AbstractServer):
             Session.del_instance()
 
         sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE, sqlitecachedb.TEST_OVERRIDE = self.original_values
-        self.tearDownCleanup()
+        AbstractServer.tearDown(self)
 
     def test_perform_upgrade(self):
         dbpath = init_bak_tribler_sdb('bak_old_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
