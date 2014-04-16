@@ -654,15 +654,12 @@ class TorrentDBHandler(BasicDBHandler):
     def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
-        mime, thumb = torrentdef.get_thumbnail()
 
         dict = {"infohash": bin2str(torrentdef.get_infohash()),
                 "name": torrentdef.get_name_as_unicode(),
-                "torrent_file_name": extra_info.get("filename", None),
                 "length": torrentdef.get_length(),
                 "creation_date": torrentdef.get_creation_date(),
                 "num_files": len(torrentdef.get_files()),
-                "thumbnail": bool(thumb),
                 "insert_time": long(time()),
                 "secret": 1 if torrentdef.is_private() else 0,
                 "relevance": 0.0,
@@ -671,15 +668,19 @@ class TorrentDBHandler(BasicDBHandler):
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
                 "category_id": self.misc_db.categoryName2Id(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
-                "status_id": self.misc_db.torrentStatusName2Id(extra_info.get("status", "unknown")),
-                "num_seeders": extra_info.get("seeder", -1),
-                "num_leechers": extra_info.get("leecher", -1),
                 "comment": torrentdef.get_comment_as_unicode()
                 }
 
+        if extra_info.get("filename", None):
+            dict["torrent_file_name"] = extra_info["filename"]
+        if extra_info.get("seeder", -1) != -1:
+            dict["num_seeders"] = extra_info["seeder"]
+        if extra_info.get("leecher", -1) != -1:
+            dict["num_leechers"] = extra_info["leecher"]
+        if extra_info.get("status", "unknown") != "unknown":
+            dict["status_id"] = self.misc_db.torrentStatusName2Id(extra_info['status'])
         if extra_info.get('swift_hash', ''):
             dict['swift_hash'] = bin2str(extra_info['swift_hash'])
-
         if extra_info.get('swift_torrent_hash', ''):
             dict['swift_torrent_hash'] = bin2str(extra_info['swift_torrent_hash'])
 
@@ -1810,8 +1811,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1], # click position
+                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1],  # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 
