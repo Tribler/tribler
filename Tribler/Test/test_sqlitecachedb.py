@@ -5,11 +5,13 @@ from Tribler.Test.test_as_server import AbstractServer
 class TestSqliteCacheDB(AbstractServer):
 
     def setUp(self):
+        AbstractServer.setUp(self)
         self.sqlite_test = SQLiteCacheDB.getInstance()
         self.db_path = ':memory:'
         self.annotate(self._testMethodName)
 
     def tearDown(self):
+        AbstractServer.tearDown(self)
         self.annotate(self._testMethodName, start=False)
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
