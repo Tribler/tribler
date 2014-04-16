@@ -23,6 +23,7 @@ __author__ = 'Chris'
 logging.config.fileConfig(
     os.path.dirname(os.path.realpath(__file__)) + "/../logger.conf")
 
+
 class DummyEndpoint(NullEndpoint):
     def send_simple(self, *args):
         pass
@@ -59,14 +60,14 @@ class TestProxyCommunity(TestCase):
         def load_community():
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
-
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, (dispersy_member, None, None), load=True)[0]
-            ''' :type : ProxyCommunity '''
+            
+            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, None), load=True)[0]
             exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
 
             return proxy_community
 
         self.community = dispersy.callback.call(load_community)
+        ''' :type : ProxyCommunity '''
 
     def __create_walk_candidate(self):
         candidate = WalkCandidate(("127.0.0.1", self.__candidate_counter), False, ("127.0.0.1", self.__candidate_counter), ("127.0.0.1", self.__candidate_counter), u'unknown')
@@ -85,7 +86,8 @@ class TestProxyCommunity(TestCase):
         return candidate
 
     def tearDown(self):
-        del self.dispersy._auto_load_communities[self.community.get_classification()]
+        # del self.dispersy._auto_load_communities[self.community.get_classification()]
+        self.dispersy.undefine_auto_load(ProxyCommunity)
         self.community.unload_community()
 
     def test_on_create(self):
