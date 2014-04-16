@@ -1,9 +1,9 @@
 from collections import defaultdict
 import logging
+import os
 import sqlite3
 import uuid
 import time
-import sys
 
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.dispersy.database import Database
@@ -229,7 +229,7 @@ class StatsDatabase(Database):
             "bytes_exit" NULL,
             "bytes_returned" NULL,
             "encryption" INTEGER NOT NULL DEFAULT ('0')
-        , "broken_circuits" INTEGER)
+        , "broken_circuits" INTEGER);
 
         CREATE TABLE IF NOT EXISTS result_circuit (
             result_circuit_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -238,14 +238,14 @@ class StatsDatabase(Database):
             bytes_up,
             bytes_down,
             time
-        )
+        );
 
         CREATE TABLE IF NOT EXISTS result_relay(
             result_relay_id INTEGER PRIMARY KEY AUTOINCREMENT,
             result_id,
             bytes,
             time
-        )
+        );
 
         CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
         INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_VERSION) + """');
@@ -257,7 +257,7 @@ class StatsDatabase(Database):
     def __init__(self, dispersy):
         self._dispersy = dispersy
 
-        super(StatsDatabase, self).__init__(sys.path.join(dispersy.working_directory, u"sqlite", u"anontunnel.db"))
+        super(StatsDatabase, self).__init__(os.path.join(dispersy.working_directory, u"anontunnel.db"))
 
     def open(self, initial_statements=True, prepare_visioning=True):
         self._dispersy.database.attach_commit_callback(self.commit)
@@ -292,19 +292,22 @@ class StatsDatabase(Database):
 
     def add_stat(self, sock_address, stats):
         self.execute(
-                u'''INSERT OR FAIL INTO result
-                    (
-                        encryption, session_id, time,
-                        host, port, swift_size, swift_time,
-                        bytes_enter, bytes_exit, bytes_returned
-                    )
-                    VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?)''',
-                (uuid.UUID(bytes_le=stats['uuid']), sock_address[0], sock_address[1],
-                 stats['swift']['size'], stats['swift']['download_time'],
-                 stats['bytes_enter'], stats['bytes_exit'],
-                 (stats['bytes_return'] or 0)
+            u'''INSERT OR FAIL INTO result
+                (
+                    encryption, session_id, time,
+                    host, port, swift_size, swift_time,
+                    bytes_enter, bytes_exit, bytes_returned, broken_circuits
                 )
+                VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?,?)''',
+            (
+                uuid.UUID(bytes_le=stats['uuid']),
+                unicode(sock_address[0]), sock_address[1],
+                stats['swift']['size'], stats['swift']['download_time'],
+                stats['bytes_enter'], stats['bytes_exit'],
+                (stats['bytes_return'] or 0),
+                (stats['broken_circuits'] or 0)
             )
+        )
 
         result_id = self.last_insert_rowid
 
@@ -325,6 +328,8 @@ class StatsDatabase(Database):
                 INSERT INTO result_relay (result_id, bytes, time)
                     VALUES (?, ?, ?)
             ''', (result_id, relay['bytes'], relay['time']))
+
+        self.commit()
 
     def get_num_stats(self):
         '''
@@ -351,6 +356,7 @@ class StatsCrawler(TunnelObserver):
         self._logger.warning("Running StatsCrawler")
         self.raw_server = raw_server
         self.database = StatsDatabase(dispersy)
+        self.raw_server.add_task(lambda: self.database.open())
 
     def on_tunnel_stats(self, community, candidate, stats):
         self.raw_server.add_task(lambda: self.database.add_stat(candidate.sock_addr, stats))
@@ -360,4 +366,4 @@ class StatsCrawler(TunnelObserver):
 
     def stop(self):
         self._logger.error("Stopping crawler")
-        self.database.close()
+        self.raw_server.add_task(lambda: self.database.close())
