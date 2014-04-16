@@ -2188,6 +2188,8 @@ CREATE TABLE MetadataData (
             self.execute_write("DROP TABLE IF EXISTS TorrentBiTermPhrase")
             self.execute_write("DROP INDEX IF EXISTS termfrequency_freq_idx")
             self.execute_write("DROP TABLE IF EXISTS TermFrequency")
+            self.execute_write("DROP INDEX IF EXISTS Torrent_insert_idx")
+            self.execute_write("DROP INDEX IF EXISTS Torrent_info_roothash_idx")
             self.database_update.release()
 
     def clean_db(self, vacuum=False):

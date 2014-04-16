@@ -46,8 +46,6 @@ CREATE TABLE MetadataData (
   FOREIGN KEY (message_id) REFERENCES MetadataMessage(message_id) ON DELETE CASCADE
 );
 
-
-
 ----------------------------------------
 
 CREATE TABLE BarterCast (
@@ -135,19 +133,9 @@ CREATE UNIQUE INDEX infohash_idx
   ON Torrent
   (infohash);
 
-CREATE INDEX Torrent_insert_idx
-  ON Torrent
-  (insert_time, swift_torrent_hash);
-
-CREATE INDEX Torrent_info_roothash_idx
-  ON Torrent
-  (infohash, swift_torrent_hash);
-
--- Arno, 2012-07-30: speed up on_torrent_collect_response
 CREATE UNIQUE INDEX Torrent_swift_torrent_hash_idx
   ON Torrent
   (swift_torrent_hash);
-
 
 ----------------------------------------
 
