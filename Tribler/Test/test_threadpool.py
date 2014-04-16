@@ -8,18 +8,20 @@ import time
 from threading import RLock, enumerate as enumerate_threads
 
 from Tribler.Core.APIImplementation.ThreadPool import ThreadPool
+from Tribler.Test.test_as_server import AbstractServer
 
 
 DEBUG = False
 
 
-class TestThreadPool(unittest.TestCase):
+class TestThreadPool(AbstractServer):
 
     """
     Parent class for testing internal thread pool of Tribler
     """
 
     def setUp(self):
+        AbstractServer.setUp(self)
         """ unittest test setup code """
         self.tp = ThreadPool(10)
         self.exp = []
@@ -38,6 +40,8 @@ class TestThreadPool(unittest.TestCase):
         print >> sys.stderr, "test_threadpool: Number of threads still running", len(ts)
         for t in ts:
             print >> sys.stderr, "test_threadpool: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
+            
+        AbstractServer.tearDown(self)
 
     def test_queueTask1(self):
         if DEBUG:

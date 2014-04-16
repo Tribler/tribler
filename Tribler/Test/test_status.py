@@ -7,6 +7,7 @@ import time
 
 from Tribler.Core.Statistics.Status import Status
 from Tribler.Core.Statistics.Status import LivingLabReporter
+from Tribler.Test.test_as_server import AbstractServer
 
 
 class TestOnChangeStatusReporter(Status.OnChangeStatusReporter):
@@ -29,19 +30,12 @@ class TestPeriodicStatusReporter(Status.PeriodicStatusReporter):
         self.last_value = elements[0].get_value()
 
 
-class StatusTest(unittest.TestCase):
+class StatusTest(AbstractServer):
 
     """
     Unit tests for the Status class
 
-
     """
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def testBasic(self):
 
