@@ -669,6 +669,7 @@ class TorrentDBHandler(BasicDBHandler):
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
                 "category_id": self.misc_db.categoryName2Id(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
+                "status_id": self.misc_db.torrentStatusName2Id(extra_info.get("status", "unknown")),
                 "comment": torrentdef.get_comment_as_unicode()
                 }
 
@@ -678,8 +679,6 @@ class TorrentDBHandler(BasicDBHandler):
             dict["num_seeders"] = extra_info["seeder"]
         if extra_info.get("leecher", -1) != -1:
             dict["num_leechers"] = extra_info["leecher"]
-        if extra_info.get("status", "unknown") != "unknown":
-            dict["status_id"] = self.misc_db.torrentStatusName2Id(extra_info['status'])
         if extra_info.get('swift_hash', ''):
             dict['swift_hash'] = bin2str(extra_info['swift_hash'])
         if extra_info.get('swift_torrent_hash', ''):
