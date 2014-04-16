@@ -697,13 +697,13 @@ class TorrentDBHandler(BasicDBHandler):
 
         # see if there is already a torrent in the database with this infohash
         torrent_id = self.getTorrentID(infohash)
-
         if torrent_id is None:  # not in database
             self._db.insert("Torrent", **database_dict)
             torrent_id = self.getTorrentID(infohash)
 
         else:  # infohash in db
-            where = 'torrent_id = %d' % torrent_id
+            del database_dict["infohash"]
+            where = "infohash = '%s'" % bin2str(infohash)
             self._db.update('Torrent', where=where, **database_dict)
 
         if not torrentdef.is_multifile_torrent():
