@@ -608,7 +608,8 @@ class TorrentDBHandler(BasicDBHandler):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if self.getTorrentID(infohash) is None:
-            self._db.insert_or_ignore('Torrent', infohash=bin2str(infohash))
+            status_id = self.misc_db.torrentStatusName2Id(u'unknown')
+            self._db.insert_or_ignore('Torrent', infohash=bin2str(infohash), status_id=status_id)
 
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -616,7 +617,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent_id = self.getTorrentID(infohash)
         if torrent_id is None:
-            status_id = self.misc_db.torrentStatusName2Id(u'good')
+            status_id = self.misc_db.torrentStatusName2Id(u'unknown')
             self._db.insert('Torrent', infohash=bin2str(infohash), status_id=status_id)
             torrent_id = self.getTorrentID(infohash)
         return torrent_id
@@ -628,7 +629,7 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id = self.getTorrentIDRoot(roothash)
         if torrent_id is None:
             infohash = 'swift' + bin2str(roothash)[5:]
-            status_id = self.misc_db.torrentStatusName2Id(u'good')
+            status_id = self.misc_db.torrentStatusName2Id(u'unknown')
             self._db.insert('Torrent', infohash=infohash,
                 swift_hash=bin2str(roothash), name=name, status_id=status_id)
             torrent_id = self.getTorrentIDRoot(roothash)
@@ -646,7 +647,7 @@ class TorrentDBHandler(BasicDBHandler):
             if torrent_id is None:
                 to_be_inserted.append(infohashes[i])
 
-        status_id = self.misc_db.torrentStatusName2Id(u'good')
+        status_id = self.misc_db.torrentStatusName2Id(u'unknown')
         sql = "INSERT INTO Torrent (infohash, status_id) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.getTorrentIDS(infohashes), to_be_inserted

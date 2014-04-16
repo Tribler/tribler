@@ -117,7 +117,7 @@ CREATE TABLE Torrent (
   relevance        numeric DEFAULT 0,
   source_id        integer,
   category_id      integer,
-  status_id        integer,
+  status_id        integer DEFAULT 0,
   num_seeders      integer,
   num_leechers     integer,
   comment          text,
