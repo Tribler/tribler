@@ -1001,6 +1001,7 @@ class LibraryManager:
             self.last_vod_torrent = [infohash, selectedinfilename]
             self.guiUtility.ShowPlayer()
             self.stopPlayback()
+            self.guiUtility.frame.actlist.expandedPanel_videoplayer.Reset()
 
             # Call _playDownload when download is ready
             wait_state = [DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK]
@@ -1075,7 +1076,6 @@ class LibraryManager:
         if self.guiUtility.frame.videoframe:
             self.guiUtility.frame.videoframe.get_videopanel().Reset()
             self.guiUtility.frame.videoframe.recreate_vlc_window()
-            self.guiUtility.frame.actlist.expandedPanel_videoplayer.Reset()
         videoplayer = self._get_videoplayer()
         videoplayer.set_vod_download(None)
 

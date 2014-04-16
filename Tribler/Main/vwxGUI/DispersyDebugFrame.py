@@ -271,15 +271,12 @@ class CommunityPanel(wx.Panel):
         self.__listctrl = AutoWidthListCtrl(splitter, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL)
         self.__listctrl.SetMinSize((600, 200))
-        self.__listctrl.InsertColumn(0, "Classification")
-        self.__listctrl.InsertColumn(1, "Identifier")
-        self.__listctrl.InsertColumn(2, "Database ID")
-        self.__listctrl.InsertColumn(3, "Member")
+        self.__listctrl.InsertColumn(0, "Classification", width=200)
+        self.__listctrl.InsertColumn(1, "Identifier", width=100)
+        self.__listctrl.InsertColumn(2, "Database ID", width=100)
+        self.__listctrl.InsertColumn(3, "Member", width=100)
         self.__listctrl.InsertColumn(4, "Candidates")
 
-        self.__listctrl.SetColumnWidth(0, 200)
-        for i in xrange(1, 4):
-            self.__listctrl.SetColumnWidth(i, 100)
         self.__detail_panel = CommunityDetailPanel(splitter, -1)
 
         splitter.SplitHorizontally(self.__listctrl, self.__detail_panel)
@@ -412,12 +409,9 @@ class CommunityDetailPanel(wx.Panel):
 
         self.__candidate_list = AutoWidthListCtrl(self, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
-        self.__candidate_list.InsertColumn(0, "Global time")
-        self.__candidate_list.InsertColumn(1, "LAN")
+        self.__candidate_list.InsertColumn(0, "Global time", width=70)
+        self.__candidate_list.InsertColumn(1, "LAN", width=130)
         self.__candidate_list.InsertColumn(2, "WAN")
-
-        self.__candidate_list.SetColumnWidth(0, 70)
-        self.__candidate_list.SetColumnWidth(1, 130)
 
         self.__database_list = AutoWidthListCtrl(self, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
@@ -471,15 +465,13 @@ class RawInfoPanel(wx.Panel):
 
         self.__category_list = AutoWidthListCtrl(self, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
-        self.__category_list.InsertColumn(0, "Category")
+        self.__category_list.InsertColumn(0, "Category", width=150)
         self.__category_list.InsertColumn(1, "Total Count")
-        self.__category_list.SetColumnWidth(0, 150)
         self.__category_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnCategorySelected)
 
         self.__detail_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
-        self.__detail_list.InsertColumn(0, "Count")
+        self.__detail_list.InsertColumn(0, "Count", width=50)
         self.__detail_list.InsertColumn(1, "Info")
-        self.__detail_list.SetColumnWidth(0, 50)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         hsizer.Add(self.__category_list, 1, wx.EXPAND | wx.RIGHT, 2)
@@ -555,34 +547,26 @@ class RuntimeProfilingPanel(wx.Panel):
         super(RuntimeProfilingPanel, self).__init__(parent, id)
         self.SetBackgroundColour(LIST_GREY)
 
-        self.__current_selection_idx = None
+        self.__current_selection_name = None
         self.__combined_list = []
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.__list1 = AutoWidthListCtrl(self, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
-        self.__list1.InsertColumn(0, "Duration")
-        self.__list1.InsertColumn(1, "Entry")
-        self.__list1.InsertColumn(2, "Average")
+        self.__list1.InsertColumn(0, "Duration", width=70)
+        self.__list1.InsertColumn(1, "Entry", width=250)
+        self.__list1.InsertColumn(2, "Average", width=70)
         self.__list1.InsertColumn(3, "Count")
-        self.__list1.SetColumnWidth(0, 70)
-        self.__list1.SetColumnWidth(1, 250)
-        self.__list1.SetColumnWidth(2, 70)
-        self.__list1.SetColumnWidth(3, 70)
         set_small_modern_font(self.__list1)
 
         self.__list1.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnList1Selected)
 
         self.__list2 = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
-        self.__list2.InsertColumn(0, "Duration")
-        self.__list2.InsertColumn(1, "Entry")
-        self.__list2.InsertColumn(2, "Average")
+        self.__list2.InsertColumn(0, "Duration", width=70)
+        self.__list2.InsertColumn(1, "Entry", width=250)
+        self.__list2.InsertColumn(2, "Average", width=70)
         self.__list2.InsertColumn(3, "Count")
-        self.__list2.SetColumnWidth(0, 70)
-        self.__list2.SetColumnWidth(1, 250)
-        self.__list2.SetColumnWidth(2, 70)
-        self.__list2.SetColumnWidth(3, 70)
         set_small_modern_font(self.__list2)
 
         sizer.Add(self.__list1, 1, wx.EXPAND | wx.RIGHT, 2)
@@ -591,12 +575,12 @@ class RuntimeProfilingPanel(wx.Panel):
 
     def OnList1Selected(self, event):
         this_idx = event.GetIndex()
-        if self.__current_selection_idx == this_idx:
+        if self.__current_selection_name == self.__combined_list[this_idx][1]:
             return
 
-        self.__current_selection_idx = this_idx
+        self.__current_selection_name = self.__combined_list[this_idx][1]
         self.__list2.DeleteAllItems()
-        data_list = self.__combined_list[event.GetIndex()][4]
+        data_list = self.__combined_list[this_idx][4]
         for duration, entry, average, count in data_list:
             self.__list2.Append([u"%7.2f" % duration, u"%s" % entry,
                 u"%7.2f" % average, u"%s" % count])
@@ -604,7 +588,8 @@ class RuntimeProfilingPanel(wx.Panel):
     def UpdateInfo(self, stats):
         self.__list1.DeleteAllItems()
         self.__list2.DeleteAllItems()
-        self.__current_selection_id = None
+        prev_selection_name = self.__current_selection_name
+        self.__current_selection_name = None
 
         if not getattr(stats, "runtime", None):
             return
@@ -640,6 +625,14 @@ class RuntimeProfilingPanel(wx.Panel):
         combined_list.sort(reverse=True)
         self.__combined_list = combined_list
 
+        prev_selection_idx = None
+        idx = 0
         for duration, entry, average, count, _ in combined_list:
+            if entry == prev_selection_name:
+                prev_selection_idx = idx
+            idx += 1
             self.__list1.Append([u"%7.2f" % duration, u"%s" % entry,
                 u"%7.2f" % average, u"%s" % count])
+
+        if prev_selection_idx is not None:
+            self.__list1.Select(prev_selection_idx)
