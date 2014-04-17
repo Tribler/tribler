@@ -20,7 +20,6 @@ from threading import enumerate as enumerate_threads
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Cython.Compiler.Options import annotate
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
