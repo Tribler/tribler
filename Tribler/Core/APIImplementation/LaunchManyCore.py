@@ -780,14 +780,12 @@ class TriblerLaunchMany(Thread):
         filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
         self._logger.debug("tlm: network checkpointing: to file %s", filename)
-        with open(filename, "wb") as f:
-            pstate.write(f)
+        pstate.write_file(filename)
 
     def load_download_pstate(self, filename):
         """ Called by any thread """
-
         pstate = CallbackConfigParser()
-        pstate.read(filename)
+        pstate.read_file(filename)
         return pstate
 
     def run(self):

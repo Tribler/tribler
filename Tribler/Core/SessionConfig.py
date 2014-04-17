@@ -14,7 +14,6 @@
 #
 
 import sys
-import codecs
 import os.path
 import socket
 import random
@@ -686,18 +685,14 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         @return SessionStartupConfig object
         """
         # Class method, no locking required
-        if not os.path.exists(filename):
-            raise IOError, u"Failed to open session config file"
-        if not os.path.isfile(filename):
-            raise IOError, u"Failed to open session config file"
-
-        try:
-            f = codecs.open(filename, 'r', 'utf8')
-        except:
-            raise IOError, u"Failed to open session config file"
+        if not os.path.exists(filename) or not os.path.isfile(filename):
+            raise IOError, "Failed to open session config file"
 
         sessconfig = CallbackConfigParser()
-        sessconfig.readfp(f)
+        try:
+            sessconfig.read_file(filename)
+        except:
+            raise IOError, "Failed to open session config file"
 
         return SessionStartupConfig(sessconfig)
 
@@ -707,9 +702,7 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         @param filename  An absolute Unicode filename
         """
         # Called by any thread
-        config_file = codecs.open(filename, 'wb', 'utf8')
-        self.sessconfig.write(config_file)
-        config_file.close()
+        self.sessconfig.write_file(filename)
 
     #
     # Copyable interface

@@ -78,7 +78,7 @@ class Utility:
 
         # Load the config file.
         if os.path.exists(self.configfilepath):
-            self.config.readfp(codecs.open(self.configfilepath, 'r', 'utf-8-sig'))
+            self.config.read_file(self.configfilepath, 'utf-8-sig')
 
         if not self.config.has_section('Tribler'):
             self.config.add_section('Tribler')
@@ -122,8 +122,7 @@ class Utility:
             self.flush_config()
 
     def flush_config(self):
-        with open(self.configfilepath, "wb") as config_file:
-            self.config.write(config_file)
+        self.config.write_file(self.configfilepath)
 
     def eta_value(self, n, truncate=3):
         if n == -1:
