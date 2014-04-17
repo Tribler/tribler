@@ -685,9 +685,6 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
         @return SessionStartupConfig object
         """
         # Class method, no locking required
-        if not os.path.exists(filename) or not os.path.isfile(filename):
-            raise IOError, "Failed to open session config file"
-
         sessconfig = CallbackConfigParser()
         try:
             sessconfig.read_file(filename)

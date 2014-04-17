@@ -235,9 +235,6 @@ class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
         @return DownloadStartupConfig object
         """
         # Class method, no locking required
-        if not os.path.exists(filename) or not os.path.isfile(filename):
-            raise IOError, "Failed to open download config file"
-
         dlconfig = CallbackConfigParser()
         try:
             dlconfig.read_file(filename)
