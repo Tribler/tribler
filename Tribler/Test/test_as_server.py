@@ -20,6 +20,7 @@ from threading import enumerate as enumerate_threads
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Cython.Compiler.Options import annotate
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
@@ -43,11 +44,14 @@ class AbstractServer(unittest.TestCase):
 
     _annotate_counter = 0
 
-    def setUp(self):
+    def setUp(self, annotate=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.setUpCleanup()
         self.annotate_dict = {}
+
+        if annotate:
+            self.annotate(self._testMethodName, start=True)
 
     def setUpCleanup(self):
         # Elric: If the files are still there it means that either the last run segfaulted or
@@ -58,8 +62,10 @@ class AbstractServer(unittest.TestCase):
             if path.startswith(STATE_DIR) or path.startswith(DEST_DIR):
                 shutil.rmtree(unicode(path))
 
-    def tearDown(self):
+    def tearDown(self, annotate=True):
         self.tearDownCleanup()
+        if annotate:
+            self.annotate(self._testMethodName, start=False)
 
     def tearDownCleanup(self):
         self.setUpCleanup()
@@ -105,7 +111,7 @@ class TestAsServer(AbstractServer):
     """
 
     def setUp(self):
-        AbstractServer.setUp(self)
+        AbstractServer.setUp(self, annotate=False)
         self.setUpPreSession()
 
         self.quitting = False
@@ -155,7 +161,7 @@ class TestAsServer(AbstractServer):
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
 
-        self.tearDownCleanup()
+        AbstractServer.tearDown(self, annotate=False)
 
     def _shutdown_session(self, session):
         session_shutdown_start = time.time()
@@ -218,7 +224,7 @@ class TestGuiAsServer(TestAsServer):
     """
 
     def setUp(self):
-        AbstractServer.setUp(self)
+        AbstractServer.setUp(self, annotate=False)
 
         self.app = wx.GetApp()
         if not self.app:
@@ -345,7 +351,7 @@ class TestGuiAsServer(TestAsServer):
             f.close()
             print >> sys.stderr, "teardown: finished printing content of pymdht.log"
 
-        self.tearDownCleanup()
+        AbstractServer.tearDown(self, annotate=False)
 
         for boolean, reason in self.asserts:
             assert boolean, reason
