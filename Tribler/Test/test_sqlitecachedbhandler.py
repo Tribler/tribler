@@ -35,8 +35,8 @@ def teardown():
 class AbstractDB(AbstractServer):
 
     def setUp(self):
-        self.setUpCleanup()
-
+        AbstractServer.setUp(self)
+        
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
         self.sqlitedb = SQLiteCacheDB.getInstance()
         self.sqlitedb.initDB(dbpath, busytimeout=BUSYTIMEOUT)
@@ -46,9 +46,8 @@ class AbstractDB(AbstractServer):
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
-
-        self.tearDownCleanup()
-
+            
+        AbstractServer.tearDown(self)
 
 class TestSqliteBasicDBHandler(AbstractDB):
 

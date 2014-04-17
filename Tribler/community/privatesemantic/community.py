@@ -153,7 +153,7 @@ class PossibleTasteBuddy(TasteBuddy):
 
 class ForwardCommunity():
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
+    def __init__(self, dispersy, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = self.init_key()
@@ -1254,8 +1254,8 @@ class HForwardCommunity(ForwardCommunity):
 
 class PoliForwardCommunity(ForwardCommunity):
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True, send_simi_reveal=False):
-        ForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal)
+    def __init__(self, dispersy, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True, send_simi_reveal=False):
+        ForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal)
         self.use_cardinality = use_cardinality
 
     def init_key(self):
@@ -1440,14 +1440,14 @@ class PoliForwardCommunity(ForwardCommunity):
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
                     py = paillier_polyval(message.payload.coefficients[partition], val, user_n2)
-                    py = paillier_multiply(py, randint(0, 2 ** 40), user_n2)
+                    py = paillier_multiply(py, randint(0, 2 ** self.key.size), user_n2)
                     if not self.use_cardinality:
                         py = paillier_add_unenc(py, val, message.payload.key_g, user_n2)
                     results.append(py)
             else:
                 for partition, val in _myPreferences:
                     py = polyval(message.payload.coefficients[partition], val)
-                    py = py * randint(0, 2 ** 40)
+                    py = py * randint(0, 2 ** self.key.size)
                     if not self.use_cardinality:
                         py += val
                     results.append(py)

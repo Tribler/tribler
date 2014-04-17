@@ -154,28 +154,14 @@ class BarterCommunity(Community):
     def get_master_members(cls, dispersy):
         return [dispersy.get_member(MASTER_MEMBER_PUBLIC_KEY)]
 
-    @classmethod
-    def load_community(cls, dispersy, master, *args, **kargs):
-        try:
-            # test if this community already exists
-            classification, = next(dispersy.database.execute(u"SELECT classification FROM community WHERE master = ?", (master.database_id,)))
-        except StopIteration:
-            # join the community with a new my_member, using a cheap cryptography key
-            return cls.join_community(dispersy, master, dispersy.get_new_member(u"NID_secp160r1"), *args, **kargs)
-        else:
-            if classification == cls.get_classification():
-                return super(BarterCommunity, cls).load_community(dispersy, master, *args, **kargs)
-            else:
-                raise RuntimeError("Unable to load an BarterCommunity that has been killed")
-
-    def __init__(self, dispersy, master, swift_process):
+    def __init__(self, dispersy, master, my_member, swift_process):
         logger.debug("loading the Barter community")
 
         # original walker callbacks (will be set during super(...).__init__)
         self._original_on_introduction_request = None
         self._original_on_introduction_response = None
 
-        super(BarterCommunity, self).__init__(dispersy, master)
+        super(BarterCommunity, self).__init__(dispersy, master, my_member)
 
         # _SWIFT is a SwiftProcess instance (allowing us to schedule CLOSE_EVENT callbacks)
         self._swift = swift_process

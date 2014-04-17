@@ -8,19 +8,9 @@ ENCRYPTION = True
 
 class NoFSemanticCommunity(HForwardCommunity, Community):
 
-    @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
-        dispersy_database = dispersy.database
-        try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, send_simi_reveal=send_simi_reveal)
-        else:
-            return super(NoFSemanticCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, send_simi_reveal=send_simi_reveal)
-
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
-        Community.__init__(self, dispersy, master)
-        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=send_simi_reveal)
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
+        Community.__init__(self, dispersy, master, my_member)
+        HForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=send_simi_reveal)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self)
@@ -34,19 +24,9 @@ class NoFSemanticCommunity(HForwardCommunity, Community):
 
 class HFSemanticCommunity(HForwardCommunity, Community):
 
-    @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
-        dispersy_database = dispersy.database
-        try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, send_simi_reveal=send_simi_reveal)
-        else:
-            return super(HFSemanticCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, send_simi_reveal=send_simi_reveal)
-
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
-        Community.__init__(self, dispersy, master)
-        HForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=send_simi_reveal)
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
+        Community.__init__(self, dispersy, master, my_member)
+        HForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=send_simi_reveal)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self)
@@ -60,19 +40,9 @@ class HFSemanticCommunity(HForwardCommunity, Community):
 
 class PFSemanticCommunity(PForwardCommunity, Community):
 
-    @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
-        dispersy_database = dispersy.database
-        try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, send_simi_reveal=send_simi_reveal)
-        else:
-            return super(PFSemanticCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, send_simi_reveal=send_simi_reveal)
-
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
-        Community.__init__(self, dispersy, master)
-        PForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=send_simi_reveal)
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
+        Community.__init__(self, dispersy, master, my_member)
+        PForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=send_simi_reveal)
 
     def initiate_conversions(self):
         return PForwardCommunity.initiate_conversions(self)
@@ -86,19 +56,9 @@ class PFSemanticCommunity(PForwardCommunity, Community):
 
 class PoliFSemanticCommunity(PoliForwardCommunity, Community):
 
-    @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
-        dispersy_database = dispersy.database
-        try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, send_simi_reveal=send_simi_reveal)
-        else:
-            return super(PoliFSemanticCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, send_simi_reveal=send_simi_reveal)
-
-    def __init__(self, dispersy, master, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
-        Community.__init__(self, dispersy, master)
-        PoliForwardCommunity.__init__(self, dispersy, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=send_simi_reveal)
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, send_simi_reveal=True):
+        Community.__init__(self, dispersy, master, my_member)
+        PoliForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=send_simi_reveal)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self)

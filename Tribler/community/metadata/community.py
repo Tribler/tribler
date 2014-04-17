@@ -20,12 +20,12 @@ from Tribler.community.channel.community import register_callback, \
 
 class MetadataCommunity(Community):
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True):
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._integrate_with_tribler = integrate_with_tribler
 
-        super(MetadataCommunity, self).__init__(dispersy, master)
+        super(MetadataCommunity, self).__init__(dispersy, master, my_member)
 
         if self._integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import MetadataDBHandler, TorrentDBHandler
@@ -53,18 +53,6 @@ class MetadataCommunity(Community):
         master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040569d8061423ca91a3f35b16e34ff5d83af8ab595a5144b7f0e7888e6199b4959a120613122bb5248b22ae769dc8729c1e69f8170f2d05c035dd036ce07ab4c678f488cbeaceb0c506efb4e04a4be16968dfe520248328734204fc346b0c9c091089736aa4e531674fe595bba0b384d0887f9d38a019d57dc4818dce70492bc629e4a61f9cb39ee2711a874e30f06aba".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
-
-    @classmethod
-    def load_community(cls, dispersy, master, my_member,
-            integrate_with_tribler=True):
-        try:
-            dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member,
-                integrate_with_tribler=integrate_with_tribler)
-        else:
-            return super(MetadataCommunity, cls).load_community(dispersy,
-                master, integrate_with_tribler=integrate_with_tribler)
 
     @property
     def dispersy_sync_skip_enable(self):
