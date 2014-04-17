@@ -428,8 +428,6 @@ class AllChannelCommunity(Community):
                     communities[cid] = self._get_channel_community(cid)
 
             for message in messages:
-                logger.debug("%s", message)
-
                 community = communities.get(message.payload.cid)
                 if community:
                     assert community.cid == message.payload.cid
@@ -437,15 +435,13 @@ class AllChannelCommunity(Community):
                     if __debug__:
                         try:
                             self._dispersy.database.execute(u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0", (community.database_id, community.get_meta_message(u"channel").database_id)).next()
-
-                            self._logger.info("!!!We already have the channel message... no need to wait for it %s", community.cid.encode("HEX"))
-                            yield DropMessage(message, "Tribler and Dispersy databases not in sync...")
-                            continue
-
+                            self._logger.error("!!!We already have the channel message... no need to wait for it %s", community.cid.encode("HEX"))
                         except StopIteration:
                             pass
 
+                    logger.debug("Did not receive channel, requesting channel message '%s' from %s", community.cid.encode("HEX"), message.candidate.sock_addr)
                     yield DelayMessageReqChannelMessage(message, community, includeSnapshot=message.payload.vote > 0)  # request torrents if positive vote
+
                 else:
                     message.channel_id = channel_ids[message.payload.cid]
                     yield message
@@ -534,10 +530,7 @@ class AllChannelCommunity(Community):
         assert isinstance(cid, str)
         assert len(cid) == 20
 
-        channel_id = self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
-        if not channel_id:
-            self._get_channel_community(cid)
-        return channel_id
+        return self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
 
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)

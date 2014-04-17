@@ -4,32 +4,22 @@ import sys
 from conversion import SocialConversion
 from payload import TextPayload
 from collections import defaultdict
-from hashlib import sha1
-from binascii import hexlify
 from time import time
 from random import sample, shuffle
 
-from Tribler.dispersy.authentication import MemberAuthentication, \
-    NoAuthentication
+from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination, \
-    CommunityDestination
+from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import FullSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesocial.payload import EncryptedPayload
 from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
-    HForwardCommunity, PForwardCommunity, ForwardCommunity, \
-    TasteBuddy
+    HForwardCommunity, PForwardCommunity, TasteBuddy, PSI_CARDINALITY
 
 from random import choice
-from Tribler.dispersy.member import Member
 from database import FriendDatabase
-from Tribler.community.privatesemantic.conversion import long_to_bytes
-from Tribler.community.privatesemantic.crypto.ecutils import OpenSSLCurves
-from Tribler.community.privatesemantic.crypto.ecelgamal import encrypt_str
 from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 
 DEBUG = False
@@ -63,9 +53,8 @@ class SocialCommunity(Community):
         self._friend_db.close()
 
     def initiate_meta_messages(self):
-        # TODO replace with modified full sync
-        return [Message(self, u"text", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
-                Message(self, u"encrypted", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
+        return [Message(self, u"text", MemberAuthentication(encoding="bin"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
+                Message(self, u"encrypted", MemberAuthentication(encoding="bin"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
@@ -322,9 +311,9 @@ class SocialCommunity(Community):
 
 class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, psi_mode=PSI_CARDINALITY, log_text=None):
         SocialCommunity.__init__(self, dispersy, master, my_member, integrate_with_tribler, encryption, log_text)
-        HForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
+        HForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, psi_mode=psi_mode, send_simi_reveal=True)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -358,9 +347,9 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
 
 class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, psi_mode=PSI_CARDINALITY, log_text=None):
         SocialCommunity.__init__(self, dispersy, master, my_member, integrate_with_tribler, encryption, log_text)
-        PForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
+        PForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, psi_mode=psi_mode, send_simi_reveal=True)
 
     def initiate_conversions(self):
         return PForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -394,9 +383,9 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
 
 class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None):
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, psi_mode=PSI_CARDINALITY, log_text=None):
         SocialCommunity.__init__(self, dispersy, master, my_member, integrate_with_tribler, encryption, log_text)
-        HForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, send_simi_reveal=True)
+        HForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, psi_mode=psi_mode, send_simi_reveal=True)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
@@ -430,9 +419,9 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
 
 class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, use_cardinality=True, log_text=None, send_simi_reveal=True):
+    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, psi_mode=PSI_CARDINALITY, log_text=None, send_simi_reveal=True):
         SocialCommunity.__init__(self, dispersy, master, my_member, integrate_with_tribler, encryption, log_text)
-        PoliForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, use_cardinality=use_cardinality, send_simi_reveal=send_simi_reveal)
+        PoliForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs, max_taste_buddies=sys.maxint, psi_mode=psi_mode, send_simi_reveal=send_simi_reveal)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]

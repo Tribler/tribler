@@ -11,6 +11,7 @@ from traceback import print_exc
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.database import IgnoreCommits
 from Tribler.dispersy.destination import CandidateDestination, \
     CommunityDestination
 from Tribler.dispersy.distribution import DirectDistribution, \
@@ -449,6 +450,9 @@ class SearchCommunity(Community):
                 else:
                     if DEBUG:
                         self._logger.debug("SearchCommunity: got search response identifier not found %s", message.payload.identifier)
+
+            # ensure that no commits occur
+            raise IgnoreCommits()
 
     def create_torrent_request(self, infohash, candidate):
         torrentdict = {}

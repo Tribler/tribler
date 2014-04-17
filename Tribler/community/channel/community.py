@@ -457,8 +457,6 @@ class ChannelCommunity(Community):
     def _disp_on_torrent(self, messages):
         torrentlist = []
         for message in messages:
-            logger.debug("%s", message)
-
             dispersy_id = message.packet_id
             authentication_member = message.authentication.member
             if authentication_member == self._my_member:
@@ -481,7 +479,7 @@ class ChannelCommunity(Community):
 
     def remove_torrents(self, dispersy_ids):
         for dispersy_id in dispersy_ids:
-            message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
+            message = self._dispersy.load_message_by_packetid(dispersy_id)
             if message:
                 if not message.undone:
                     self._dispersy.create_undo(self, message)
@@ -491,7 +489,7 @@ class ChannelCommunity(Community):
 
     def remove_playlists(self, dispersy_ids):
         for dispersy_id in dispersy_ids:
-            message = self._get_message_from_dispersy_id(dispersy_id, "playlist")
+            message = self._dispersy.load_message_by_packetid(dispersy_id)
             if message:
                 if not message.undone:
                     self._dispersy.create_undo(self, message)
@@ -532,7 +530,6 @@ class ChannelCommunity(Community):
 
     def _disp_on_playlist(self, messages):
         for message in messages:
-            logger.debug("%s", message)
             dispersy_id = message.packet_id
             authentication_member = message.authentication.member
             if authentication_member == self._my_member:
@@ -558,9 +555,9 @@ class ChannelCommunity(Community):
         playlist_message = playlist_id
 
         if reply_to:
-            reply_to_message = self._get_message_from_dispersy_id(reply_to, 'comment')
+            reply_to_message = self._dispersy.load_message_by_packetid(reply_to)
         if reply_after:
-            reply_after_message = self._get_message_from_dispersy_id(reply_after, 'comment')
+            reply_after_message = self._dispersy.load_message_by_packetid(reply_after)
         if playlist_id:
             playlist_message = self._get_message_from_playlist_id(playlist_id)
         self._disp_create_comment(text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store, update, forward)
@@ -607,8 +604,6 @@ class ChannelCommunity(Community):
 
     def _disp_on_comment(self, messages):
         for message in messages:
-            logger.debug("%s", message)
-
             dispersy_id = message.packet_id
 
             authentication_member = message.authentication.member
@@ -767,8 +762,6 @@ class ChannelCommunity(Community):
         playlistDict = {}
 
         for message in messages:
-            logger.debug("%s", message)
-
             dispersy_id = message.packet_id
             message_name = message.payload.modification_on.name
             mid_global_time = "%s@%d" % (message.authentication.member.mid, message.distribution.global_time)
@@ -952,7 +945,7 @@ class ChannelCommunity(Community):
         if not cache:
             cache = self.request_cache.add(MissingChannelCache(timeout))
 
-            logger.debug("%s sending missing-channel %s", candidate, self._cid.encode("HEX"))
+            logger.debug("%s sending missing-channel %s %s", candidate, self._cid.encode("HEX"), includeSnapshot)
             meta = self._meta_messages[u"missing-channel"]
             request = meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(includeSnapshot,))
             self._dispersy._forward([request])
@@ -1057,8 +1050,6 @@ class ChannelCommunity(Community):
 
     def _disp_on_moderation(self, messages):
         for message in messages:
-            logger.debug("%s", message)
-
             dispersy_id = message.packet_id
 
             authentication_member = message.authentication.member
@@ -1150,8 +1141,8 @@ class ChannelCommunity(Community):
             dispersy_id = packet.packet_id
             self._channelcast_db.on_remove_mark_torrent(self._channel_id, dispersy_id, redo)
 
-    def dispersy_on_dynamic_settings(self, *args, **kwargs):
-        Community.dispersy_on_dynamic_settings(self, *args, **kwargs)
+    def on_dynamic_settings(self, *args, **kwargs):
+        Community.on_dynamic_settings(self, *args, **kwargs)
         if self._channel_id:
             self._channelcast_db.on_dynamic_settings(self._channel_id)
 
@@ -1252,7 +1243,7 @@ class ChannelCommunity(Community):
             for dispersy_id, prev_global_time in list:
                 if prev_global_time >= max_global_time:
                     try:
-                        message = self._get_message_from_dispersy_id(dispersy_id, 'modification')
+                        message = self._dispersy.load_message_by_packetid(dispersy_id)
                         if message:
                             message = message.load_message()
                             conflicting_messages.append(message)
@@ -1281,24 +1272,6 @@ class ChannelCommunity(Community):
             if len(conflicting_messages) > 0:
                 # 4. return first message
                 return conflicting_messages[0]
-
-    @warnDispersyThread
-    def _get_message_from_dispersy_id(self, dispersy_id, messagename):
-        # 1. get the packet
-        try:
-            packet, packet_id, undone = self._dispersy.database.execute(u"SELECT packet, id, undone FROM sync WHERE id = ?", (dispersy_id,)).next()
-        except StopIteration:
-            raise RuntimeError("Unknown dispersy_id %d" % dispersy_id)
-
-        message = self._dispersy.convert_packet_to_message(str(packet))
-        if message:
-            message.packet_id = packet_id
-            message.undone = undone
-        else:
-            raise RuntimeError("unable to convert packet with dispersy_id %d" % dispersy_id)
-
-        if not messagename or message.name == messagename:
-            return message
 
     @warnDispersyThread
     def _get_packet_id(self, global_time, mid):

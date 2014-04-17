@@ -3,10 +3,8 @@
 import sys
 from os import path
 from time import time
-from random import sample, randint, shuffle, random, choice
+from random import sample, randint, shuffle, random
 from math import ceil
-from hashlib import md5
-from itertools import groupby
 
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
@@ -24,10 +22,7 @@ from payload import *
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
 from Tribler.dispersy.requestcache import Cache
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
-    WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.dispersy.script import assert_
 
 from Tribler.community.privatesemantic.community import PForwardCommunity, \
     HForwardCommunity, PoliForwardCommunity
@@ -135,31 +130,7 @@ class TTLSearchCommunity(Community):
                     CommunityDestination(node_count=0),
                     TorrentPayload(),
                     self._dispersy._generic_timeline_check,
-                    self.on_torrent),
-            Message(self, u"ping",
-                    MemberAuthentication(encoding="sha1"),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    PingPayload(),
-                    self._dispersy._generic_timeline_check,
-                    self.on_ping),
-            Message(self, u"pong",
-                    MemberAuthentication(encoding="sha1"),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    PongPayload(),
-                    self.check_pong,
-                    self.on_pong),
-            Message(self, u"encrypted-response",
-                    MemberAuthentication(encoding="sha1"),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    EncryptedResponsePayload(),
-                    self._dispersy._generic_timeline_check,
-                    self.on_encr_response),
+                    self.on_torrent)
                 ]
 
     def initiate_conversions(self):

@@ -1,13 +1,10 @@
 # Written by Niels Zeilemaker
 import sys
-from os import path
 from collections import defaultdict
 from time import time
 from random import sample, randint, shuffle, random, choice
-from math import ceil
 from hashlib import md5
 from itertools import groupby
-from binascii import hexlify
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -15,15 +12,13 @@ from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination, Destination
-from Tribler.dispersy.dispersy import IntroductionRequestCache
-from Tribler.dispersy.dispersydatabase import DispersyDatabase
+from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.cache import IntroductionRequestCache
 from Tribler.dispersy.distribution import DirectDistribution
-from Tribler.dispersy.member import DummyMember, Member
+from Tribler.dispersy.member import Member
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.requestcache import Cache, NumberCache
-from Tribler.dispersy.script import assert_
+from Tribler.dispersy.requestcache import NumberCache
 
 from payload import *
 from conversion import ForwardConversion, PSearchConversion, \
@@ -37,6 +32,7 @@ from collections import namedtuple
 from Tribler.community.privatesemantic.database import SemanticDatabase
 from Tribler.community.privatesemantic.conversion import bytes_to_long, \
     long_to_bytes
+from Crypto.Random.random import StrongRandom
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -45,6 +41,8 @@ ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME / 5
 PING_TIMEOUT = CANDIDATE_WALK_LIFETIME / 2
 TIME_BETWEEN_CONNECTION_ATTEMPTS = 10.0
+
+PSI_CARDINALITY, PSI_OVERLAP, PSI_AES = range(3)
 
 class TasteBuddy():
     def __init__(self, overlap, sock_addr):
@@ -153,10 +151,11 @@ class PossibleTasteBuddy(TasteBuddy):
 
 class ForwardCommunity():
 
-    def __init__(self, dispersy, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, send_simi_reveal=False):
+    def __init__(self, dispersy, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, psi_mode=PSI_CARDINALITY, send_simi_reveal=False):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = self.init_key()
+        self.psi_mode = psi_mode
 
         if not max_prefs:
             max_len = 2 ** 16 - 60  # self.dispersy_sync_bloom_filter_bits
@@ -1058,7 +1057,7 @@ class PForwardCommunity(ForwardCommunity):
         elif len(global_vector) < self.max_prefs:
             global_vector += [0l] * (self.max_prefs - len(global_vector))
 
-        assert_(len(global_vector) == self.max_prefs, 'vector sizes not equal')
+        assert len(global_vector) == self.max_prefs, 'vector sizes not equal'
         return global_vector
 
     def get_my_vector(self, global_vector, local=False):
@@ -1254,10 +1253,6 @@ class HForwardCommunity(ForwardCommunity):
 
 class PoliForwardCommunity(ForwardCommunity):
 
-    def __init__(self, dispersy, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, use_cardinality=True, send_simi_reveal=False):
-        ForwardCommunity.__init__(self, dispersy, integrate_with_tribler, encryption, forward_to, max_prefs, max_fprefs, max_taste_buddies, send_simi_reveal)
-        self.use_cardinality = use_cardinality
-
     def init_key(self):
         return paillier_init(ForwardCommunity.init_key(self))
 
@@ -1312,7 +1307,7 @@ class PoliForwardCommunity(ForwardCommunity):
 
         if partitions:
             Payload = namedtuple('Payload', ['key_n', 'key_g', 'coefficients'])
-            return Payload(long(self.key.n), 0l if self.use_cardinality else long(self.key.g), partitions)
+            return Payload(long(self.key.n), 0l if self.psi_mode == PSI_CARDINALITY else long(self.key.g), partitions)
         return False
 
     def process_similarity_response(self, candidate, candidate_mid, payload):
@@ -1343,36 +1338,35 @@ class PoliForwardCommunity(ForwardCommunity):
 
         t1 = time()
 
-        if self.use_cardinality:
-            overlap = 0
-            if self.encryption:
-                for py in evaluated_polynomial:
-                    if paillier_decrypt(self.key, py) == 0:
-                        overlap += 1
-            else:
-                for py in evaluated_polynomial:
-                    if py == 0:
-                        overlap += 1
-
-            self.create_time_decryption += time() - t1
-            return overlap
-
-        bitmask = (2 ** 32) - 1
-        myPreferences = set([preference for preference in self._mypref_db.getMyPrefListInfohash() if preference])
-        myPreferences = dict([(long(md5(str(preference)).hexdigest(), 16) & bitmask, preference) for preference in myPreferences])
-
-        overlap = []
+        decrypted_values = []
         if self.encryption:
             for py in evaluated_polynomial:
-                py = paillier_decrypt(self.key, py)
-                if py in myPreferences:
-                    overlap.append(myPreferences[py])
+                decrypted_values.append(paillier_decrypt(self.key, py))
         else:
-            for py in evaluated_polynomial:
-                if py in myPreferences:
-                    overlap.append(myPreferences[py])
+            decrypted_values = evaluated_polynomial
 
         self.create_time_decryption += time() - t1
+
+        if self.psi_mode == PSI_CARDINALITY:
+            overlap = sum(1 if value == 0 else 0 for value in decrypted_values)
+
+        elif self.psi_mode == PSI_OVERLAP:
+            bitmask = (2 ** 32) - 1
+            myPreferences = set([preference for preference in self._mypref_db.getMyPrefListInfohash() if preference])
+            myPreferences = dict([(long(md5(str(preference)).hexdigest(), 16) & bitmask, preference) for preference in myPreferences])
+
+            overlap = [myPreferences[value] for value in decrypted_values if value in myPreferences]
+
+        else:
+            MAX_128 = (2 ** 129) - 1
+            overlap = [value for value in decrypted_values if value < MAX_128]
+
+            if all(value == overlap[0] for value in overlap):
+                aes_key = overlap[0]
+                overlap = len(overlap)
+
+                assert aes_key == 42, [aes_key, 42]
+
         return overlap
 
     def send_msimilarity_request(self, destination, identifier, payload):
@@ -1435,21 +1429,30 @@ class PoliForwardCommunity(ForwardCommunity):
         for message in messages:
             _myPreferences = [(partition, val) for partition, val in myPreferences if partition in message.payload.coefficients]
 
+            if self.psi_mode == PSI_AES:
+                # generate 128 bit session key
+                aes_key = StrongRandom().getrandbits(128)
+                aes_key = 42l
+
             results = []
             if self.encryption:
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
                     py = paillier_polyval(message.payload.coefficients[partition], val, user_n2)
                     py = paillier_multiply(py, randint(0, 2 ** self.key.size), user_n2)
-                    if not self.use_cardinality:
+                    if self.psi_mode == PSI_OVERLAP:
                         py = paillier_add_unenc(py, val, message.payload.key_g, user_n2)
+                    elif self.psi_mode == PSI_AES:
+                        py = paillier_add_unenc(py, aes_key, message.payload.key_g, user_n2)
                     results.append(py)
             else:
                 for partition, val in _myPreferences:
                     py = polyval(message.payload.coefficients[partition], val)
                     py = py * randint(0, 2 ** self.key.size)
-                    if not self.use_cardinality:
+                    if self.psi_mode == PSI_OVERLAP:
                         py += val
+                    elif self.psi_mode == PSI_AES:
+                        py += aes_key
                     results.append(py)
 
             if len(results) > self.max_prefs:
