@@ -955,7 +955,7 @@ class ChannelCommunity(Community):
             logger.debug("%s sending missing-channel %s", candidate, self._cid.encode("HEX"))
             meta = self._meta_messages[u"missing-channel"]
             request = meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(includeSnapshot,))
-            self._dispersy.store_update_forward([request], False, False, True)
+            self._dispersy._forward([request])
             sendRequest = True
 
         if response_func:
