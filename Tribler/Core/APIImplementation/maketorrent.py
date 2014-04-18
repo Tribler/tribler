@@ -382,6 +382,7 @@ def pathlist2filename(pathlist):
         fullpath = os.path.join(fullpath, elem)
     return fullpath
 
+
 def pathlist2savefilename(pathlist, encoding):
     fullpath = u''
     for elem in pathlist:
@@ -390,29 +391,6 @@ def pathlist2savefilename(pathlist, encoding):
         fullpath = os.path.join(fullpath, b)
     return fullpath
 
-def torrentfilerec2savefilename(filerec, length=None):
-    if length is None:
-        length = len(filerec['path'])
-    if 'path.utf-8' in filerec:
-        key = 'path.utf-8'
-        encoding = 'utf-8'
-    else:
-        key = 'path'
-        encoding = None
-
-    return pathlist2savefilename(filerec[key][:length], encoding)
-
-def savefilenames2finaldest(fn1, fn2):
-    """ Returns the join of two savefilenames, possibly shortened
-    to adhere to OS specific limits.
-    """
-    j = os.path.join(fn1, fn2)
-    if sys.platform == 'win32':
-        # Windows has a maximum path length of 260
-        # http://msdn2.microsoft.com/en-us/library/aa365247.aspx
-        j = j[:259]  # 260 don't work.
-    return j
-
 
 def num2num(num):
     """ Converts long to int if small enough to fit """
@@ -420,23 +398,6 @@ def num2num(num):
         return int(num)
     else:
         return num
-
-def get_torrentfilerec_from_metainfo(filename, metainfo):
-    info = metainfo['info']
-    if filename is None:
-        return info
-
-    if filename is not None and 'files' in info:
-        for i in range(len(info['files'])):
-            x = info['files'][i]
-
-            intorrentpath = pathlist2filename(x['path'])
-            if intorrentpath == filename:
-                return x
-
-        raise ValueError("File not found in torrent")
-    else:
-        raise ValueError("File not found in single-file torrent")
 
 
 def get_bitrate_from_metainfo(file, metainfo):
@@ -515,27 +476,6 @@ def get_length_from_metainfo(metainfo, selectedfiles):
                 total += length
         return total
 
-
-def get_length_priority_from_metainfo(metainfo, selectedfiles):
-    if 'files' not in metainfo['info']:
-        # single-file torrent
-        return (metainfo['info']['length'], "")
-    else:
-        # multi-file torrent
-        files = metainfo['info']['files']
-
-        total = 0
-        priorities = []
-        for i in xrange(len(files)):
-            path = files[i]['path']
-            length = files[i]['length']
-
-            if length > 0 and (not selectedfiles or pathlist2filename(path) in selectedfiles):
-                priorities.append("1")
-                total += length
-            else:
-                priorities.append("-1")
-        return (total, ",".join(priorities))
 
 def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
 
