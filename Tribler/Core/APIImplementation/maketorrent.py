@@ -380,7 +380,7 @@ def pathlist2filename(pathlist):
     fullpath = ''
     for elem in pathlist:
         fullpath = os.path.join(fullpath, elem)
-    return fullpath
+    return fullpath.decode('utf-8')
 
 
 def pathlist2savefilename(pathlist, encoding):

@@ -25,8 +25,7 @@ from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndS
 
 if sys.platform == "win32":
     try:
-        import win32api
-        import win32con
+        import ctypes
     except:
         pass
 
@@ -271,7 +270,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self._logger.debug("LibtorrentDownloadImpl: create_engine_wrapper()")
 
         atp = {}
-        atp["save_path"] = os.path.abspath(str(self.get_dest_dir()))
+        atp["save_path"] = os.path.abspath(self.get_dest_dir())
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = True
         atp["auto_managed"] = False
@@ -282,17 +281,16 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             metainfo = self.tdef.get_metainfo()
             torrentinfo = lt.torrent_info(metainfo)
 
-            torrent_files = torrentinfo.files()
-            is_multifile = len(self.tdef.get_files_as_unicode()) > 1
-            commonprefix = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
+            self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
+            is_multifile = len(self.orig_files) > 1
+            commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
             swarmname = commonprefix.partition(os.path.sep)[0]
 
             if is_multifile and swarmname != self.correctedinfoname:
-                for i, file_entry in enumerate(torrent_files):
-                    filename = file_entry.path[len(swarmname) + 1:]
-                    torrentinfo.rename_file(i, str(os.path.join(self.correctedinfoname, filename)))
-
-            self.orig_files = [torrent_file.path for torrent_file in torrentinfo.files()]
+                for i, filename_old in enumerate(self.orig_files):
+                    filename_new = os.path.join(self.correctedinfoname, filename_old[len(swarmname) + 1:])
+                    torrentinfo.rename_file(i, filename_new)
+                    self.orig_files[i] = filename_new
 
             atp["ti"] = torrentinfo
             if resume_data:
@@ -482,7 +480,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.metadata["announce"] = trackers[0]
 
         self.tdef = TorrentDef.load_from_dict(self.metadata)
-        self.orig_files = [torrent_file.path for torrent_file in lt.torrent_info(self.metadata).files()]
+        self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(self.metadata).files()]
         self.set_corrected_infoname()
         self.set_filepieceranges()
 
@@ -549,7 +547,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self.dlstate = (DLSTATUS_SEEDING if self.progress == 1.0 else self.dlstate) if not status.paused else DLSTATUS_STOPPED
         else:
             self.progress = status.progress
-        self.error = unicode(status.error) if status.error else None
+        self.error = status.error.decode('utf-8') if status.error else None
         self.length = float(status.total_wanted)
         self.curspeeds[DOWNLOAD] = float(status.download_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
         self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
@@ -561,7 +559,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         # H4xor this so the 'name' field is safe
         self.correctedinfoname = fix_filebasename(self.tdef.get_name_as_unicode())
 
-        # Allow correctinfoname to be overwritten for multifile torrents only
+        # Allow correctedinfoname to be overwritten for multifile torrents only
         if self.get_corrected_filename() and self.get_corrected_filename() != '' and 'files' in self.tdef.get_metainfo()['info']:
             self.correctedinfoname = self.get_corrected_filename()
 
@@ -574,11 +572,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             else:
                 DownloadConfigInterface.set_selected_files(self, selected_files)
 
-            is_multifile = len(self.tdef.get_files_as_unicode()) > 1
-            commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
+            is_multifile = len(self.orig_files) > 1
+            commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else u''
             swarmname = commonprefix.partition(os.path.sep)[0]
-            unwanteddir = os.path.join(swarmname, '.unwanted')
-            unwanteddir_abs = os.path.join(self.handle.save_path(), unwanteddir)
+            unwanteddir = os.path.join(swarmname, u'.unwanted')
+            unwanteddir_abs = os.path.join(self.handle.save_path().decode('utf-8'), unwanteddir)
 
             filepriorities = []
             for index, orig_path in enumerate(self.orig_files):
@@ -591,13 +589,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     filepriorities.append(0)
                     new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
 
-                cur_path = self.handle.get_torrent_info().files()[index].path
+                cur_path = self.handle.get_torrent_info().files()[index].path.decode('utf-8')
                 if cur_path != new_path:
                     if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
                         try:
                             os.makedirs(unwanteddir_abs)
                             if sys.platform == "win32":
-                                win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
+                                ctypes.windll.kernel32.SetFileAttributesW(unwanteddir_abs, 2)  # 2 = FILE_ATTRIBUTE_HIDDEN
                         except:
                             self._logger.error("LibtorrentDownloadImpl: could not create %s" % unwanteddir_abs)
                             # Note: If the destination directory can't be accessed, libtorrent will not be able to store the files.
@@ -914,7 +912,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 filename = file_entry.path
                 ext = os.path.splitext(filename)[1].lstrip('.')
                 if exts is None or ext in exts:
-                    dest_files.append((filename, os.path.join(self.get_dest_dir(), filename)))
+                    dest_files.append((filename, os.path.join(self.get_dest_dir(), filename.decode('utf-8'))))
         return dest_files
 
     def checkpoint(self):
