@@ -2188,8 +2188,8 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             return ""
 
         self.links = []
-        files = self.tdef.get_files()
-        videofiles = self.tdef.get_files(exts=videoextdefaults)
+        files = self.tdef.get_files_as_unicode()
+        videofiles = self.tdef.get_files_as_unicode(exts=videoextdefaults)
         for filename in sorted(files):
             if filename in videofiles:
                 fileindex = files.index(filename)
