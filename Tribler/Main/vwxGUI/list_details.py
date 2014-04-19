@@ -761,8 +761,7 @@ class TorrentDetails(AbstractDetails):
             selection.append(index)
 
         selection = set([self.filesList.GetItem(index, 0).GetText() for index in selection])
-        selected_files = set(download.get_selected_files()) or set(download.get_def().get_files())
-        all_files = set(download.get_selected_files())
+        selected_files = set(download.get_selected_files()) or set(download.get_def().get_files_as_unicode())
 
         selected_files_includable = selection - selected_files
         selected_files_excludable = selection & selected_files
@@ -775,11 +774,11 @@ class TorrentDetails(AbstractDetails):
         menuitems = [("Include", [], False), ("Exclude", [], False)]
 
         if selected_files_includable:
-            files = list(all_files | selected_files_includable)
+            files = list(selected_files | selected_files_includable)
             menuitems[0] = ("Include", files, True)
 
         if selected_files_excludable:
-            files = list(all_files - selected_files_excludable)
+            files = list(selected_files - selected_files_excludable)
             # Don't allow excluding everything
             if files:
                 menuitems[1] = ("Exclude", files, True)
