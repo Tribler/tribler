@@ -1049,7 +1049,7 @@ class LibraryManager:
 
         # Default: pick largest videofile
         if not selectedinfilename:
-            videofiles = tdef.get_files(exts=videoextdefaults)
+            videofiles = tdef.get_files_as_unicode(exts=videoextdefaults)
 
             if not videofiles:
                 if self.guiUtility.frame.videoparentpanel:
@@ -1064,7 +1064,7 @@ class LibraryManager:
             if not selectedinfilename:
                 return
 
-        fileindex = tdef.get_files().index(selectedinfilename)
+        fileindex = tdef.get_files_as_unicode().index(selectedinfilename)
         videoplayer = self._get_videoplayer()
         videoplayer.play(download, fileindex)
 
