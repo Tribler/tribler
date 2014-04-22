@@ -16,7 +16,7 @@ def get_thumbnail(videofile, thumbfile, resolution, ffmpeg, timecode):
     if sys.platform == "win32":
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'), "-ss", str(int(timecode)), "-i", videofile.encode('utf-8'), "-s", "%dx%d" % resolution.encode('utf-8'), thumbfile), stderr=subprocess.PIPE, startupinfo=startupinfo)
+    ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'), "-ss", str(int(timecode)), "-i", videofile.encode('utf-8'), "-s", "%dx%d" % resolution, thumbfile.encode('utf-8')), stderr=subprocess.PIPE, startupinfo=startupinfo)
     ffmpeg.communicate()
     ffmpeg.stderr.close()
 
