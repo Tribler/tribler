@@ -103,6 +103,8 @@ class AllChannelCommunity(Community):
         self._blocklist = {}
         self._searchCallbacks = {}
 
+        self._recentlyRequested = []
+
         from Tribler.community.channel.community import register_callback
         register_callback(dispersy.callback)
 
@@ -266,7 +268,6 @@ class AllChannelCommunity(Community):
             nr_requests = sum([len(torrents) for torrents in toCollect.values()])
             if nr_requests > 0:
                 self.create_channelcast_request(toCollect, message.candidate)
-
 
     def create_channelcast_request(self, toCollect, candidate):
         # create channelcast request message
@@ -527,6 +528,9 @@ class AllChannelCommunity(Community):
 
         collect = []
 
+        # filter infohashes using recentlyRequested
+        infohashes = filter(lambda infohash: infohash not in self._recentlyRequested, infohashes)
+
         # only request updates if nrT < 100 or we have not received an update in the last half hour
         if nrTorrrents < 100 or latestUpdate < (time() - 1800):
             infohashes = list(infohashes)
@@ -534,6 +538,10 @@ class AllChannelCommunity(Community):
             for i in range(len(infohashes)):
                 if not haveTorrents[i]:
                     collect.append(infohashes[i])
+
+        self._recentlyRequested.extend(collect)
+        self._recentlyRequested = self._recentlyRequested[:100]
+
         return collect
 
     def _get_packets_from_infohashes(self, cid, infohashes):
