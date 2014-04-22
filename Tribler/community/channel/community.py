@@ -1021,40 +1021,6 @@ class ChannelCommunity(Community):
             if message.payload.includeSnapshot:
                 if packets is None:
                     packets = []
-                    identity_meta = self.get_meta_message(u"dispersy-identity")
-                    authorize_meta = self.get_meta_message(u"dispersy-authorize")
-                    dynamic_settings_meta = self.get_meta_message(u"dispersy-dynamic-settings")
-
-                    # 23/11/11: when a node joins a channel for the first time she requires the channel
-                    # message.  decoding the channel message requires a dispersy-identity, furthermore,
-                    # the channel message is only allowed when the dispersy-authorize message is
-                    # available, and this message in turn requires the dispersy-identity of (most
-                    # likely) the master member.  to avoid several sequential requests and responses we
-                    # will send them right now
-
-                    try:
-                        # get the master member dispersy-identity
-                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? AND member = ?", (identity_meta.database_id, self.master_member.database_id)).next()
-                        packets.append(str(packet))
-
-                        # get the dispersy-identity for the member who created the channel message
-                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? AND member = ?", (identity_meta.database_id, channelmessage.authentication.member.database_id)).next()
-                        packets.append(str(packet))
-
-                        # get the first existing dispersy-authorize.  this most likely contains the
-                        # permission for the channel message
-                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? ORDER BY global_time ASC LIMIT 1", (authorize_meta.database_id,)).next()
-                        packets.append(str(packet))
-
-                        # get the first existing dispersy-dynamic-settings.  this most likely
-                        # contains useful permission information
-                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? ORDER BY global_time ASC LIMIT 1", (dynamic_settings_meta.database_id,)).next()
-                        packets.append(str(packet))
-
-                    except StopIteration:
-                        pass
-
-                    # add the channel message
                     packets.append(channelmessage.packet)
 
                     torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
