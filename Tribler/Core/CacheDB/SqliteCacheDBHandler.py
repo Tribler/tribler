@@ -1620,6 +1620,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         if keyword in all_terms:
             all_terms.remove(keyword)
+        if '' in all_terms:
+            all_terms.remove('')
 
         return list(all_terms)
 
@@ -1810,8 +1812,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1], # click position
+                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1],  # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 
