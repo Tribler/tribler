@@ -488,12 +488,22 @@ class AllChannelCommunity(Community):
 
     def undo_votecast(self, descriptors, redo=False):
         if self.integrate_with_tribler:
+            contains_my_vote = False
+            votelist = []
+            now = long(time())
             for _, _, packet in descriptors:
                 message = packet.load_message()
                 dispersy_id = message.packet_id
 
                 channel_id = self._get_channel_id(message.payload.cid)
-                self._votecast_db.on_remove_vote_from_dispersy(channel_id, dispersy_id, redo)
+                votelist.append((None if redo else now, channel_id, dispersy_id))
+
+                authentication_member = message.authentication.member
+                my_vote = authentication_member == self._my_member
+                if my_vote:
+                    contains_my_vote = True
+
+            self._votecast_db.on_remove_votes_from_dispersy(votelist, contains_my_vote)
 
     def _get_channel_community(self, cid):
         assert isinstance(cid, str)

@@ -608,7 +608,8 @@ class TorrentDBHandler(BasicDBHandler):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if self.getTorrentID(infohash) is None:
-            self._db.insert_or_ignore('Torrent', infohash=bin2str(infohash))
+            status_id = self.misc_db.torrentStatusName2Id(u'unknown')
+            self._db.insert_or_ignore('Torrent', infohash=bin2str(infohash), status_id=status_id)
 
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -616,7 +617,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrent_id = self.getTorrentID(infohash)
         if torrent_id is None:
-            status_id = self.misc_db.torrentStatusName2Id(u'good')
+            status_id = self.misc_db.torrentStatusName2Id(u'unknown')
             self._db.insert('Torrent', infohash=bin2str(infohash), status_id=status_id)
             torrent_id = self.getTorrentID(infohash)
         return torrent_id
@@ -628,7 +629,7 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_id = self.getTorrentIDRoot(roothash)
         if torrent_id is None:
             infohash = 'swift' + bin2str(roothash)[5:]
-            status_id = self.misc_db.torrentStatusName2Id(u'good')
+            status_id = self.misc_db.torrentStatusName2Id(u'unknown')
             self._db.insert('Torrent', infohash=infohash,
                 swift_hash=bin2str(roothash), name=name, status_id=status_id)
             torrent_id = self.getTorrentIDRoot(roothash)
@@ -646,7 +647,7 @@ class TorrentDBHandler(BasicDBHandler):
             if torrent_id is None:
                 to_be_inserted.append(infohashes[i])
 
-        status_id = self.misc_db.torrentStatusName2Id(u'good')
+        status_id = self.misc_db.torrentStatusName2Id(u'unknown')
         sql = "INSERT INTO Torrent (infohash, status_id) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
         return self.getTorrentIDS(infohashes), to_be_inserted
@@ -654,15 +655,12 @@ class TorrentDBHandler(BasicDBHandler):
     def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
-        mime, thumb = torrentdef.get_thumbnail()
 
         dict = {"infohash": bin2str(torrentdef.get_infohash()),
                 "name": torrentdef.get_name_as_unicode(),
-                "torrent_file_name": extra_info.get("filename", None),
                 "length": torrentdef.get_length(),
                 "creation_date": torrentdef.get_creation_date(),
                 "num_files": len(torrentdef.get_files()),
-                "thumbnail": bool(thumb),
                 "insert_time": long(time()),
                 "secret": 1 if torrentdef.is_private() else 0,
                 "relevance": 0.0,
@@ -672,14 +670,17 @@ class TorrentDBHandler(BasicDBHandler):
                 # the proper torrentdef api
                 "category_id": self.misc_db.categoryName2Id(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
                 "status_id": self.misc_db.torrentStatusName2Id(extra_info.get("status", "unknown")),
-                "num_seeders": extra_info.get("seeder", -1),
-                "num_leechers": extra_info.get("leecher", -1),
                 "comment": torrentdef.get_comment_as_unicode()
                 }
 
+        if extra_info.get("filename", None):
+            dict["torrent_file_name"] = extra_info["filename"]
+        if extra_info.get("seeder", -1) != -1:
+            dict["num_seeders"] = extra_info["seeder"]
+        if extra_info.get("leecher", -1) != -1:
+            dict["num_leechers"] = extra_info["leecher"]
         if extra_info.get('swift_hash', ''):
             dict['swift_hash'] = bin2str(extra_info['swift_hash'])
-
         if extra_info.get('swift_torrent_hash', ''):
             dict['swift_torrent_hash'] = bin2str(extra_info['swift_torrent_hash'])
 
@@ -695,13 +696,13 @@ class TorrentDBHandler(BasicDBHandler):
 
         # see if there is already a torrent in the database with this infohash
         torrent_id = self.getTorrentID(infohash)
-
         if torrent_id is None:  # not in database
             self._db.insert("Torrent", **database_dict)
             torrent_id = self.getTorrentID(infohash)
 
         else:  # infohash in db
-            where = 'torrent_id = %d' % torrent_id
+            del database_dict["infohash"]  # no need for infohash, its already stored
+            where = "torrent_id = %d" % torrent_id
             self._db.update('Torrent', where=where, **database_dict)
 
         if not torrentdef.is_multifile_torrent():
@@ -1810,8 +1811,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1], # click position
+                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1],  # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 
@@ -1926,7 +1927,10 @@ class VoteCastDBHandler(BasicDBHandler):
             self._logger.error("votecast: couldn't make the table")
 
         self.my_votes = None
-        self._logger.debug("votecast: ")
+
+        self.voteLock = Lock()
+        self.updatedChannels = set()
+        db.schedule_task(self._flush_to_database, delay=5.0)
 
     def registerSession(self, session):
         self.session = session
@@ -1935,36 +1939,53 @@ class VoteCastDBHandler(BasicDBHandler):
         self.channelcast_db = ChannelCastDBHandler.getInstance()
 
     def on_votes_from_dispersy(self, votes):
-        removeVotes = [(channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes if not voter_id]
-        self.removeVotes(removeVotes, updateVotes=False)
-
         insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.executemany(insert_vote, votes)
 
-        # Arno, 2012-08-01: _updateChannelsVotes would be executed one for every
-        # pair, instead of once for every channel. And in many cases there would
-        # be just 1 channel :-(
-        channel_voter_ids = set((channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes)
-        just_channel_ids = set([channel_id for channel_id, _ in channel_voter_ids])
+        for channel_id, voter_id, _, _, _ in votes:
+            if voter_id == None:
+                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id == None)
+            self._scheduleUpdateChannelVotes(channel_id)
 
-        if len(just_channel_ids) == 1:
-            # WARNING: pop removes element
-            self._updateChannelVotes(just_channel_ids.pop())
-        else:
-            self._updateChannelsVotes(just_channel_ids)
-
-        for channel_id, voter_id in channel_voter_ids:
-            self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id == None)
-
-    def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
+    def on_remove_votes_from_dispersy(self, votes, contains_my_vote):
         remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
+        self._db.executemany(remove_vote, votes)
 
-        if redo:
-            deleted_at = None
-        else:
-            deleted_at = long(time())
-        self._db.execute_write(remove_vote, (deleted_at, channel_id, dispersy_id))
-        self._updateChannelVotes(channel_id)
+        if contains_my_vote:
+            for _, channel_id, _ in votes:
+                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, contains_my_vote)
+
+        for _, channel_id, _ in votes:
+            self._scheduleUpdateChannelVotes(channel_id)
+
+    def _scheduleUpdateChannelVotes(self, channel_id):
+        with self.voteLock:
+            self.updatedChannels.add(channel_id)
+
+    def _flush_to_database(self):
+        while True:
+            with self.voteLock:
+                channel_ids = list(self.updatedChannels)
+                self.updatedChannels.clear()
+
+            if channel_ids:
+                parameters = ",".join("?" * len(channel_ids))
+                sql = "Select channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
+                positive_votes = {}
+                negative_votes = {}
+                for channel_id, vote in self._db.fetchall(sql, channel_ids):
+                    if vote == 2:
+                        positive_votes[channel_id] = positive_votes.get(channel_id, 0) + 1
+                    elif vote == -1:
+                        negative_votes[channel_id] = negative_votes.get(channel_id, 0) + 1
+
+                updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
+                self._db.executemany("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
+
+                for channel_id in channel_ids:
+                    self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)
+
+            yield 15.0
 
     def get_latest_vote_dispersy_id(self, channel_id, voter_id):
         if voter_id:
@@ -1980,46 +2001,6 @@ class VoteCastDBHandler(BasicDBHandler):
         if result:
             return result
         return 0, 0
-
-    def removeVote(self, channel_id, voter_id):
-        if voter_id:
-            sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id = ?"
-            self._db.execute_write(sql, (long(time()), channel_id, voter_id))
-        else:
-            sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id ISNULL"
-            self._db.execute_write(sql, (long(time()), channel_id))
-            self.my_votes = None
-
-        self._updateChannelVotes(channel_id)
-
-    def removeVotes(self, votes, updateVotes=True):
-        for channel_id, voter_id in votes:
-            self.removeVote(channel_id, voter_id)
-
-        if updateVotes:
-            # Arno: why not use _updateCHannelsVotes here?
-            channel_ids = set([channel_id for channel_id, _ in votes])
-            for channel_id in channel_ids:
-                self._updateChannelVotes(channel_id)
-
-    def _updateChannelVotes(self, channel_id):
-        nr_favorites = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == 2 AND channel_id = ?", (channel_id,))
-        nr_spam = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == -1 AND channel_id = ?", (channel_id,))
-        self._db.execute_write("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id))
-
-    def _updateChannelsVotes(self, channel_ids):
-        parameters = ",".join("?" * len(channel_ids))
-        sql = "Select channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
-        positive_votes = {}
-        negative_votes = {}
-        for channel_id, vote in self._db.fetchall(sql, channel_ids):
-            if vote == 2:
-                positive_votes[channel_id] = positive_votes.get(channel_id, 0) + 1
-            elif vote == -1:
-                negative_votes[channel_id] = negative_votes.get(channel_id, 0) + 1
-
-        updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
-        self._db.executemany("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
 
     def getVoteOnChannel(self, channel_id, voter_id):
         """ return the vote status if such record exists, otherwise None  """
