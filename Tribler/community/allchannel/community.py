@@ -505,10 +505,10 @@ class AllChannelCommunity(Community):
             return self._dispersy.get_community(cid, True)
         except CommunityNotFoundException:
             if self.auto_join_channel:
-                logger.debug("join channel community %s", cid.encode("HEX"))
+                logger.info("join channel community %s", cid.encode("HEX"))
                 return ChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
             else:
-                logger.debug("join preview community %s", cid.encode("HEX"))
+                logger.info("join preview community %s", cid.encode("HEX"))
                 return PreviewChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def unload_preview(self):
