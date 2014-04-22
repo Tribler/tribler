@@ -1,7 +1,5 @@
 from Tribler.community.channel.community import ChannelCommunity
 from time import time
-from random import sample
-
 
 class PreviewChannelCommunity(ChannelCommunity):
 
@@ -16,8 +14,6 @@ class PreviewChannelCommunity(ChannelCommunity):
 
     @property
     def dispersy_enable_bloom_filter_sync(self):
-        # 1. disable bloom filter sync in walker
-        # 2. accept messages in any global time range
         return False
 
     @property
@@ -26,7 +22,4 @@ class PreviewChannelCommunity(ChannelCommunity):
 
     def get_channel_mode(self):
         return ChannelCommunity.CHANNEL_CLOSED, False
-
-    def _periodically_cleanup_candidates(self):
-        pass
 

@@ -7,7 +7,6 @@ from time import time
 
 from conversion import AllChannelConversion
 
-from Tribler.dispersy.cache import MissingMessageCache
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -400,7 +399,7 @@ class AllChannelCommunity(Community):
         # check if we need to cancel a previous vote
         latest_dispersy_id = self._votecast_db.get_latest_vote_dispersy_id(community._channel_id, None)
         if latest_dispersy_id:
-            message = self._get_message_from_dispersy_id(latest_dispersy_id, "votecast")
+            message = self._dispersy.load_message_by_packetid(self, latest_dispersy_id)
             if message:
                 self._dispersy.create_undo(self, message)
 
@@ -479,9 +478,6 @@ class AllChannelCommunity(Community):
 
             self._votecast_db.on_votes_from_dispersy(votelist)
 
-            # this might be a response to a dispersy-missing-message
-            self.handle_missing_messages(messages, MissingMessageCache)
-
     def undo_votecast(self, descriptors, redo=False):
         if self.integrate_with_tribler:
             contains_my_vote = False
@@ -554,6 +550,9 @@ class AllChannelCommunity(Community):
         return collect
 
     def _get_packets_from_infohashes(self, cid, infohashes):
+        assert all(isinstance(infohash, str) for infohash in infohashes)
+        assert all(len(infohash) == 20 for infohash in infohashes)
+
         channel_id = self._get_channel_id(cid)
 
         packets = []
@@ -564,9 +563,9 @@ class AllChannelCommunity(Community):
                 try:
                     # 2. get the message
                     packets.append(self._get_packet_from_dispersy_id(dispersy_id, "torrent"))
-
                 except RuntimeError:
                     pass
+
         return packets
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
@@ -575,25 +574,6 @@ class AllChannelCommunity(Community):
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
         return str(packet)
-
-    def _get_message_from_dispersy_id(self, dispersy_id, messagename):
-        # 1. get the packet
-        try:
-            packet, packet_id = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
-        except StopIteration:
-            raise RuntimeError("Unknown dispersy_id")
-
-        # 2. convert packet into a Message instance
-        message = self._dispersy.convert_packet_to_message(str(packet), verify=False)
-        if message:
-            message.packet_id = packet_id
-        else:
-            raise RuntimeError("Unable to convert packet")
-
-        if message.name == messagename:
-            return message
-
-        raise RuntimeError("Message is of an incorrect type, expecting a '%s' message got a '%s'" % (messagename, message.name))
 
     def _drop_all_newer(self, dispersy_id):
         self._channelcast_db.drop_all_newer(dispersy_id)

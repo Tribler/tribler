@@ -13,6 +13,7 @@ from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.community.privatesearch.oneswarm.payload import SearchCancelPayload
 from Tribler.community.privatesearch.oneswarm.conversion import OneSwarmConversion
 from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.requestcache import RandomNumberCache
 
 ENCRYPTION = True
 
@@ -32,7 +33,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
         return [DefaultConversion(self), OneSwarmConversion(self)]
 
     def create_search(self, keywords, callback):
-        identifier = self._dispersy.request_cache.generate_identifier()
+        identifier = RandomNumberCache.find_unclaimed_identifier(self._request_cache, u"search")
         if self.log_searches:
             self.log_searches("search-statistics", identifier=identifier, keywords=keywords, created_by_me=True)
 

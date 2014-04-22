@@ -22,7 +22,7 @@ from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
 from Tribler.dispersy.distribution import LastSyncDistribution, DirectDistribution, GlobalTimePruning
 from Tribler.dispersy.message import BatchConfiguration, Message, DropMessage
-from Tribler.dispersy.requestcache import NumberCache
+from Tribler.dispersy.requestcache import RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
 
 # generated: Fri Apr 19 17:07:32 2013
@@ -49,27 +49,13 @@ def bitcount(l):
     return c
 
 
-class PingCache(NumberCache):
-
-    @staticmethod
-    def create_identifier(number):
-        assert isinstance(number, (int, long)), type(number)
-        return u"request-cache:ping:%d" % (number,)
-
-    @classmethod
-    def create_identifier_from_message(cls, message):
-        assert isinstance(message, Message.Implementation), type(message)
-        return cls.create_identifier(message.payload.identifier)
+class PingCache(RandomNumberCache):
 
     def __init__(self, community, candidate, member):
-        super(PingCache, self).__init__(community.request_cache)
+        super(PingCache, self).__init__(community.request_cache, u"ping")
         self.community = community
         self.candidate = candidate
         self.member = member
-
-    @property
-    def cleanup_delay(self):
-        return 0.0
 
     def on_timeout(self):
         self.community.remove_from_slope(self.member)
@@ -77,20 +63,10 @@ class PingCache(NumberCache):
             self.candidate.obsolete(time())
 
 
-class MemberRequestCache(NumberCache):
-
-    @staticmethod
-    def create_identifier(number):
-        assert isinstance(number, (int, long)), type(number)
-        return u"request-cache:member-request:%d" % (number,)
-
-    @classmethod
-    def create_identifier_from_message(cls, message):
-        assert isinstance(message, Message.Implementation), type(message)
-        return cls.create_identifier(message.payload.identifier)
+class MemberRequestCache(RandomNumberCache):
 
     def __init__(self, community, func):
-        super(MemberRequestCache, self).__init__(community.request_cache)
+        super(MemberRequestCache, self).__init__(community.request_cache, u"member-request")
         self.func = func
 
     def on_timeout(self):
@@ -736,7 +712,7 @@ class BarterCommunity(Community):
 
     def check_pong(self, messages):
         for message in messages:
-            if not self._request_cache.has(PingCache.create_identifier_from_message(message)):
+            if not self._request_cache.has(u"ping", message.payload.identifier):
                 yield DropMessage(message, "invalid response identifier")
                 continue
 
@@ -745,7 +721,7 @@ class BarterCommunity(Community):
     def on_pong(self, messages):
         cycle = int(time() / CYCLE_SIZE)
         for message in messages:
-            self._request_cache.pop(PingCache.create_identifier_from_message(message))
+            self._request_cache.pop(u"ping", message.payload.identifier)
             book = self.get_book(message.payload.member)
             if book.cycle < cycle:
                 book.cycle = cycle
@@ -829,10 +805,10 @@ class BarterCommunity(Community):
 
     def check_member_response(self, messages):
         # stupidly accept everything...
+        # Niels: this should at least check if we have a member-request associated with this identifier
         return messages
 
     def on_member_response(self, messages):
         for message in messages:
-            cache = self._request_cache.pop(MemberRequestCache.create_identifier_from_message(message))
-            if cache:
-                cache.func(message)
+            cache = self._request_cache.pop(u"member-request", message.payload.identifier)
+            cache.func(message)

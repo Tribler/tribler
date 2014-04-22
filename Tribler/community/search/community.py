@@ -27,10 +27,10 @@ from Tribler.community.search.payload import SearchRequestPayload, \
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.channel.payload import TorrentPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.dispersy.requestcache import NumberCache
+from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache, \
+    IntroductionRequestCache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
     WalkCandidate, BootstrapCandidate
-from Tribler.dispersy.cache import IntroductionRequestCache
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 from os import path
@@ -327,24 +327,16 @@ class SearchCommunity(Community):
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % message.candidate.sock_addr)
 
-    class SearchRequest(NumberCache):
+    class SearchRequest(RandomNumberCache):
 
-        @staticmethod
-        def create_identifier(number):
-            return u"request-cache:search-request:%d" % (number,)
-
-        @classmethod
-        def create_identifier_from_message(cls, message):
-            return cls.create_identifier(message.payload.identifier)
+        def __init__(self, request_cache, keywords, callback):
+            super(SearchCommunity.SearchRequest, self).__init__(request_cache, u"search")
+            self.keywords = keywords
+            self.callback = callback
 
         @property
         def timeout_delay(self):
             return 30.0
-
-        def __init__(self, request_cache, keywords, callback):
-            super(SearchCommunity.SearchRequest, self).__init__(request_cache)
-            self.keywords = keywords
-            self.callback = callback
 
         def on_timeout(self):
             pass
@@ -358,7 +350,7 @@ class SearchCommunity(Community):
             # register callback/fetch identifier
             cache = self._request_cache.add(SearchCommunity.SearchRequest(self._request_cache, keywords, callback))
 
-            # create channelcast request message
+            # create search request message
             meta = self.get_meta_message(u"search-request")
             message = meta.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,), payload=(cache.number, keywords))
@@ -426,7 +418,7 @@ class SearchCommunity(Community):
         with self._dispersy.database:
             for message in messages:
                 # fetch callback using identifier
-                search_request = self._request_cache.get(SearchCommunity.SearchRequest.create_identifier_from_message(message))
+                search_request = self._request_cache.get(u"search", message.payload.identifier)
                 if search_request:
                     if DEBUG:
                         self._logger.debug("SearchCommunity: got search response for %s %s %s", search_request.keywords, len(message.payload.results), message.candidate)
@@ -484,17 +476,19 @@ class SearchCommunity(Community):
             if DEBUG:
                 self._logger.debug("SearchCommunity: got request for %s torrents from %s", len(requested_packets), message.candidate)
 
-    class PingRequestCache(IntroductionRequestCache):
-
-        @classmethod
-        def create_identifier_from_message(cls, message):
-            return cls.create_identifier(message.payload.identifier)
+    class PingRequestCache(RandomNumberCache):
 
         def __init__(self, community, candidate):
-            self._logger = logging.getLogger(self.__class__.__name__)
+            super(SearchCommunity.PingRequestCache, self).__init__(community._request_cache, u"ping")
 
+            self._logger = logging.getLogger(self.__class__.__name__)
+            self.community = community
             self.candidate = candidate
-            IntroductionRequestCache.__init__(self, community, None)
+
+        @property
+        def timeout_delay(self):
+            # we will accept the response at most 10.5 seconds after our request
+            return 10.5
 
         def on_timeout(self):
             refreshIf = time() - CANDIDATE_WALK_LIFETIME
@@ -506,8 +500,7 @@ class SearchCommunity(Community):
                     break
 
             if remove:
-                if DEBUG:
-                    self._logger.debug("SearchCommunity: no response on ping, removing from taste_buddies %s", self.candidate)
+                self._logger.debug("SearchCommunity: no response on ping, removing from taste_buddies %s", self.candidate)
                 self.community.taste_buddies.remove(remove)
 
     def create_torrent_collect_requests(self):
@@ -549,8 +542,8 @@ class SearchCommunity(Community):
         toPopularity = {}
         for message in messages:
             if verifyRequest:
-                pong_request = self._request_cache.pop(SearchCommunity.PingRequestCache.create_identifier_from_message(message))
-                logger.debug("pop %s", pong_request.helper_candidate if pong_request else "unknown")
+                pong_request = self._request_cache.pop(u"ping", message.payload.identifier)
+                logger.debug("pop %s", pong_request.candidate if pong_request else "unknown")
             else:
                 logger.debug("no-pop")
                 pong_request = True
@@ -598,9 +591,7 @@ class SearchCommunity(Community):
                                 distribution=(self.global_time,), destination=(candidate,), payload=(identifier, SWIFT_INFOHASHES, torrents))
 
             self._dispersy._forward([message])
-
-            if DEBUG:
-                self._logger.debug("SearchCommunity: send %s to %s", meta_name, candidate)
+            self._logger.debug("SearchCommunity: send %s to %s", meta_name, candidate)
 
         addresses = [candidate.sock_addr for candidate in candidates]
         for taste_buddy in self.taste_buddies:

@@ -13,7 +13,12 @@ class DelayMessageReqChannelMessage(DelayMessage):
         assert isinstance(delayed, Message.Implementation)
 
         self._community = community or delayed.community
+        self._cid = self._community.cid
         self._includeSnapshot = includeSnapshot
 
-    def create_request(self):
-        return self._community.disp_create_missing_channel(self._delayed.candidate, self._includeSnapshot, self._process_delayed_message)
+    @property
+    def match_info(self):
+        return (self._cid, u"channel", None, None, []),
+
+    def send_request(self, community, candidate):
+        self._community.disp_create_missing_channel(candidate, self._includeSnapshot)
