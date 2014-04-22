@@ -252,8 +252,19 @@ class AllChannelCommunity(Community):
         return len(list(self.dispersy_yield_candidates()))
 
     def check_channelcast(self, messages):
-        # no timeline check because PublicResolution policy is used
-        return messages
+        with self._dispersy.database:
+            for message in messages:
+                for cid in message.payload.torrents.keys():
+                    channel_id = self._get_channel_id(cid)
+                    if not channel_id:
+                        community = self._get_channel_community(cid)
+                        yield DelayMessageReqChannelMessage(message, community, includeSnapshot=True)
+                        break
+                else:
+                    yield message
+
+            # ensure that no commits occur
+            raise IgnoreCommits()
 
     def on_channelcast(self, messages):
         for message in messages:
@@ -365,6 +376,9 @@ class AllChannelCommunity(Community):
                         break
                 else:
                     yield message
+
+            # ensure that no commits occur
+            raise IgnoreCommits()
 
     def on_channelsearch_response(self, messages):
         # request missing torrents
