@@ -269,7 +269,7 @@ class DefaultCrypto(Crypto):
             hop = self.proxy.circuits[circuit_id].unverified_hop
             hop.dh_secret = dh_secret
             hop.dh_first_part = dh_first_part
-            hop.set_public_key(pub_key)
+            hop.public_key = pub_key
         else:
             message.key = self.key_to_forward
             self.key_to_forward = None
@@ -311,7 +311,7 @@ class DefaultCrypto(Crypto):
         """
         dh_secret, dh_first_part = self.__generate_diffie_secret()
 
-        pub_key = self.proxy.circuits[circuit_id].unverified_hop.pub_key
+        pub_key = self.proxy.circuits[circuit_id].unverified_hop.public_key
 
         encrypted_dh_first_part = self.proxy.crypto.encrypt(
             pub_key, long_to_bytes(dh_first_part))

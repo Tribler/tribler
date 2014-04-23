@@ -2,6 +2,7 @@ import hashlib
 import logging
 import threading
 import time
+from M2Crypto.EC import EC_pub
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY, \
     CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, PING_INTERVAL
@@ -116,23 +117,18 @@ class Hop:
     the Diffie-Hellman handshake
     """
 
-    def __init__(self, hashed_public_key):
+    def __init__(self, public_key=None):
         """
-        @param (str, int) address: the socket address of the hop
-        @param long dh_first_part: first part of the DH-handshake
+        @param None|EC_pub public_key: public key object of the hop
         """
-        self.pub_key = None
+
+        assert public_key is None or isinstance(public_key, EC_pub)
+
         self.session_key = None
         self.dh_first_part = None
         self.dh_secret = None
         self.address = None
-        self.hashed_public_key = hashed_public_key
-
-    def set_public_key(self, public_key):
-        """
-        @param M2Crypto.EC.EC_pub public_key: the EC public key of the hop
-        """
-        self.pub_key = public_key
+        self.public_key = public_key
 
     @property
     def host(self):

@@ -17,7 +17,7 @@ class ExtendStrategy:
 
     def extend(self, candidate_list=None):
         if not candidate_list:
-            candidate_list = {}
+            candidate_list = []
 
         raise NotImplementedError()
 
@@ -34,7 +34,7 @@ class TrustThyNeighbour(ExtendStrategy):
 
     def extend(self, candidate_list=None):
         if not candidate_list:
-            candidate_list = {}
+            candidate_list = []
 
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, \
             "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
@@ -60,26 +60,23 @@ class NeighbourSubset(ExtendStrategy):
 
     def extend(self, candidate_list=None):
         if not candidate_list:
-            candidate_list = {}
+            candidate_list = []
 
         assert self.circuit.state == CIRCUIT_STATE_EXTENDING, \
             "Only circuits with state CIRCUIT_STATE_EXTENDING can be extended"
         assert self.circuit.goal_hops > len(self.circuit.hops), \
             "Circuits with correct length cannot be extended"
 
-        hashed_public_key, extend_hop_public_key = next(
-            ((hashed_public_key, key) for hashed_public_key, key in candidate_list.iteritems() if key),
-            (None, None)
-        )
+        extend_hop_public_bin = next(iter(candidate_list), None)
 
-        if not hashed_public_key:
+        if not extend_hop_public_bin:
             raise NoCandidatesException("No candidates (with key) to extend, bailing out.")
 
-        extend_hop_public_key = self.proxy.dispersy.crypto.key_from_public_bin(extend_hop_public_key)
+        extend_hop_public_key = self.proxy.dispersy.crypto.key_from_public_bin(extend_hop_public_bin)
+        hashed_public_key = self.proxy.dispersy.crypto.key_to_hash(extend_hop_public_key)
 
         self.circuit.candidate.pub_key = extend_hop_public_key
-        self.circuit.unverified_hop = Hop(hashed_public_key)
-        self.circuit.unverified_hop.set_public_key(extend_hop_public_key)
+        self.circuit.unverified_hop = Hop(extend_hop_public_key)
 
         try:
             self._logger.info(
@@ -89,7 +86,7 @@ class NeighbourSubset(ExtendStrategy):
             self.proxy.send_message(
                 self.circuit.candidate, self.circuit.circuit_id,
                 MESSAGE_EXTEND,
-                ExtendMessage(hashed_public_key))
+                ExtendMessage(extend_hop_public_bin))
         except BaseException:
             self._logger.exception("Encryption error")
             return False

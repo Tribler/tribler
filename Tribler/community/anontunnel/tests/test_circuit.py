@@ -20,7 +20,7 @@ class TestCircuit(TestCase):
     def test_beat_heart(self):
         candidate = Candidate(("127.0.0.1", 1000), False)
         circuit = Circuit(1, 1, candidate)
-        circuit.add_hop(Hop(hashed_public_key=None))
+        circuit.add_hop(Hop(None))
 
         circuit.beat_heart()
         self.assertAlmostEqual(time.time(), circuit.last_incoming, delta=0.1, msg="Beat heart should update the last_incoming time")
@@ -38,7 +38,7 @@ class TestCircuit(TestCase):
             CIRCUIT_STATE_READY, circuit.state,
             "Single hop circuit without confirmed first hop should always be offline")
 
-        circuit.add_hop(Hop(hashed_public_key=None))
+        circuit.add_hop(Hop(None))
         self.assertEqual(
             CIRCUIT_STATE_READY, circuit.state,
             "Single hop circuit with candidate should always be online")

@@ -22,7 +22,7 @@ class TestLengthSelectionStrategy(TestCase):
 
         circuit = Circuit(randint(0, 1000), hops, candidate)
         for c in [candidate] * hops:
-            circuit.add_hop(Hop(hashed_public_key=None))
+            circuit.add_hop(Hop(None))
 
         return circuit
 

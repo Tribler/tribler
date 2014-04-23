@@ -57,7 +57,7 @@ class ProxySettings:
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
         self.length_strategy = lengthstrategies.ConstantCircuitLength(length)
-        self.crypto = crypto.DefaultCrypto()
+        self.crypto = crypto.NoCrypto()
 
 
 class ProxyCommunity(Community):
@@ -471,8 +471,8 @@ class ProxyCommunity(Community):
                 circuit.extend_strategy = self.settings.extend_strategy(
                     self, circuit)
 
-            circuit.unverified_hop = Hop(iter(first_hop.get_members()).next().mid)
-            circuit.unverified_hop.pub_key = iter(first_hop.get_members()).next()._ec
+            hop_public_key = iter(first_hop.get_members()).next()._ec
+            circuit.unverified_hop = Hop(hop_public_key)
             circuit.unverified_hop.address = first_hop.sock_addr
 
             self._logger.warning("Creating circuit %d of %d hops. Fist hop: %s:%d",
@@ -562,9 +562,7 @@ class ProxyCommunity(Community):
 
             candidates[iter(candidate_temp.get_members()).next().mid] = candidate_temp
 
-        candidate_dict = dict(
-            (mid, self.dispersy.crypto.key_to_bin(next(iter(c.get_members()))._ec))
-            for mid, c in candidates.iteritems())
+        candidate_list = [next(iter(c.get_members())).public_key for c in candidates.itervalues()]
         
         self.create_created_cache(circuit_id, candidate, candidates)
         
@@ -578,7 +576,7 @@ class ProxyCommunity(Community):
             destination=candidate,
             circuit_id=circuit_id,
             message_type=MESSAGE_CREATED,
-            message=CreatedMessage(candidate_dict, reply_to=message)
+            message=CreatedMessage(candidate_list, reply_to=message)
         )
 
     def on_created(self, circuit_id, candidate, message):
@@ -629,22 +627,19 @@ class ProxyCommunity(Community):
         circuit.add_hop(circuit.unverified_hop)
         circuit.unverified_hop = None
 
-        if self.my_member.mid in candidate_list:
-            del candidate_list[self.my_member.mid]
+        if self.my_member.public_key in candidate_list:
+            candidate_list.remove(self.my_member.public_key)
 
         for hop in circuit.hops:
-            if hop.hashed_public_key in candidate_list:
-                del candidate_list[hop.hashed_public_key]
+            if hop.public_key in candidate_list:
+                candidate_list.remove(hop.public_key)
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             try:
                 if not circuit.extend_strategy.extend(candidate_list):
                     raise ValueError("Extend strategy returned False")
-            except BaseException:
-                self._logger.exception("Cannot extend due to exception")
-                reason = 'Extend error, state = %s' % circuit.state
-                self.remove_circuit(circuit.circuit_id, reason)
-
+            except BaseException as e:
+                self.remove_circuit(circuit.circuit_id, e.message)
                 return False
 
         elif circuit.state == CIRCUIT_STATE_READY:
@@ -726,7 +721,9 @@ class ProxyCommunity(Community):
 
         if message.extend_with:
             cache = self.get_created_cache(circuit_id, candidate)
-            extend_candidate = cache.candidates[message.extend_with]
+            key = self.dispersy.crypto.key_from_public_bin(message.extend_with)
+            mid = self.dispersy.crypto.key_to_hash(key)
+            extend_candidate = cache.candidates[mid]
 
             self._logger.warning(
                 "ON_EXTEND send CREATE for circuit (%s, %d) to %s:%d!",

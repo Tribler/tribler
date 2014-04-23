@@ -25,7 +25,7 @@ class TestTrustThyNeighbour(TestCase):
     def test_extend_ready_circuit(self):
         circuit_candidate = Candidate(("127.0.0.1", 1000), False)
         circuit = Circuit(1, 1, circuit_candidate)
-        circuit.add_hop(Hop(hashed_public_key=None))
+        circuit.add_hop(Hop(None))
 
         es = TrustThyNeighbour(self.proxy, circuit)
         self.assertRaises(AssertionError, es.extend)

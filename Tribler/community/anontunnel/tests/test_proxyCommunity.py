@@ -137,13 +137,13 @@ class TestProxyCommunity(TestAsServer):
         mid = next(iter(second_hop.get_members())).mid
         key = next(iter(second_hop.get_members()))._ec
 
-        candidate_dict = {}
-        candidate_dict[mid] = self.community.crypto.key_to_bin(key)
+        candidate_list = []
+        candidate_list.append(self.community.crypto.key_to_bin(key))
         circuit = self.community.create_circuit(first_hop, 2)
 
         self.community.send_message = send_message = Mock()
 
-        result = self.community.on_created(circuit.circuit_id, first_hop, CreatedMessage(candidate_dict))
+        result = self.community.on_created(circuit.circuit_id, first_hop, CreatedMessage(candidate_list))
         self.assertTrue(result)
 
         # ProxyCommunity should send an EXTEND message with the hash of second_hop's pub-key
@@ -199,7 +199,8 @@ class TestProxyCommunity(TestAsServer):
         node_to_extend_with = self.__create_walk_candidate()
         originator_circuit_id = 1337
 
-        hashed_key = next(iter(node_to_extend_with.get_members())).mid
+        extend_pub_key = next(iter(node_to_extend_with.get_members()))._ec
+        extend_pub_key = self.dispersy.crypto.key_to_bin(extend_pub_key)
 
         # make sure our node_to_extend_with comes up when yielding verified candidates
         self.dispersy.callback.call(self.community.add_candidate, (node_to_extend_with,))
@@ -213,9 +214,9 @@ class TestProxyCommunity(TestAsServer):
         created_message = kwargs['message']
         candidate_dict = created_message.candidate_list
         self.assertIsInstance(created_message, CreatedMessage)
-        self.assertIn(hashed_key, candidate_dict)
+        self.assertIn(extend_pub_key, candidate_dict)
 
-        self.community.on_extend(originator_circuit_id, originator, ExtendMessage(hashed_key))
+        self.community.on_extend(originator_circuit_id, originator, ExtendMessage(extend_pub_key))
 
         # Check whether we are sending a CREATE to node_to_extend_with
         args, kwargs = send_message.call_args

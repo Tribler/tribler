@@ -124,17 +124,26 @@ class CustomProxyConversion():
         extend_with = extend_message.extend_with
         key = extend_message.key
 
-        data = extend_with + key
+        data = "".join((
+            struct.pack("!HH", len(extend_with), len(key)),
+            extend_with,
+            key
+        ))
+
         return data
 
     def __decode_extend(self, message_buffer, offset=0):
-        if len(message_buffer) < offset + 20:
+        if len(message_buffer) < offset + 4:
             raise ValueError(
                 "Cannot unpack extend_with, insufficient packet size")
-        extend_with = message_buffer[offset : offset + 20]
-        offset += 20
 
-        key = message_buffer[offset:]
+        extendwith_length, key_length = struct.unpack_from("!HH", message_buffer)
+        offset += 4
+
+        extend_with = message_buffer[offset:offset + extendwith_length]
+        offset += extendwith_length
+
+        key = message_buffer[offset:key_length]
 
         message = ExtendMessage(extend_with)
         message.key = key
