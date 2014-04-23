@@ -21,7 +21,7 @@ class DispersyBypassEndpoint(RawserverEndpoint):
     @type ip: str
     """
     def __init__(self, raw_server, port, ip="0.0.0.0"):
-        RawserverEndpoint.__init__(self, raw_server, port, ip)
+        super(DispersyBypassEndpoint, self).__init__(raw_server, port, ip)
         self.packet_handlers = {}
         self.queue = Queue()
 
@@ -37,7 +37,7 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         """
         self.packet_handlers[prefix] = handler
 
-    def data_came_in(self, packets):
+    def data_came_in(self, packets, cache=True):
         """
         Called by the RawServer when UDP packets arrive
         @type packets: list[((str, int), str)]
@@ -50,8 +50,7 @@ class DispersyBypassEndpoint(RawserverEndpoint):
                 prefix = next((p for p in self.packet_handlers if
                                packet[1].startswith(p)), None)
                 if prefix:
-                    self.packet_handlers[prefix](packet[0], packet[1])
-                    # self.queue.put_nowait((prefix, packet))
+                    self.packet_handlers[prefix](*packet)
                 else:
                     normal_packets.append(packet)
         except Full:
@@ -59,4 +58,4 @@ class DispersyBypassEndpoint(RawserverEndpoint):
                 "DispersyBypassEndpoint cant keep up with incoming packets!")
 
         if normal_packets:
-            RawserverEndpoint.data_came_in(self, normal_packets)
+            super(DispersyBypassEndpoint, self).data_came_in(normal_packets, cache)
