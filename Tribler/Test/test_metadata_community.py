@@ -103,3 +103,14 @@ class TestMetadataCommunity(TestGuiAsServer):
         d = ds.get_download()
         print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
         return (5.0, False)
+
+    def setUp(self):
+        TestGuiAsServer.setUp(self)
+        self.session2 = None
+
+    def tearDown(self):
+        if self.session2:
+            self._shutdown_session(self.session2)
+            time.sleep(10)
+
+        TestGuiAsServer.tearDown(self)
