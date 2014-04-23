@@ -217,17 +217,14 @@ class ProxyCommunity(Community):
 
                 else:
                     circuit_candidates = set([c.candidate for c in self.circuits.values()])
-                    candidates = (c for c
-                                  in self.dispersy_yield_verified_candidates()
-                                  if c not in circuit_candidates and isinstance(c, WalkCandidate) and c.get_members())
+                    candidate = next((c for c in self.dispersy_yield_verified_candidates()
+                                      if c not in circuit_candidates), None)
 
-                    c = next(candidates, None)
-
-                    if c is None:
+                    if candidate is None:
                         return
                     else:
                         try:
-                            self.create_circuit(c, goal_hops)
+                            self.create_circuit(candidate, goal_hops)
                         except:
                             self._logger.exception("Error creating circuit while running __discover")
 
@@ -642,10 +639,9 @@ class ProxyCommunity(Community):
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             try:
                 if not circuit.extend_strategy.extend(candidate_list):
-                    self._logger.warning("Couldn't extend")
-
-            except ValueError:
-                self._logger.error("Cannot extend due to exception:")
+                    raise ValueError("Extend strategy returned False")
+            except BaseException:
+                self._logger.exception("Cannot extend due to exception")
                 reason = 'Extend error, state = %s' % circuit.state
                 self.remove_circuit(circuit.circuit_id, reason)
 
@@ -657,6 +653,8 @@ class ProxyCommunity(Community):
             first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
             if first_pool:
                 first_pool.fill(circuit)
+        else:
+            return False
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, \

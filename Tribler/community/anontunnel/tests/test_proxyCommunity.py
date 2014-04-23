@@ -43,7 +43,7 @@ class TestProxyCommunity(TestAsServer):
             settings = ProxySettings()
             settings.crypto = NoCrypto()
 
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, None), load=True)[0]
+            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
             exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
 
             return proxy_community
@@ -61,7 +61,11 @@ class TestProxyCommunity(TestAsServer):
             wan_address = ("8.8.8.{0}".format(self.__candidate_counter), self.__candidate_counter)
             lan_address = ("0.0.0.0", 0)
             candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
-            candidate.associate(self.dispersy.get_new_member(u"NID_secp160k1"))
+
+            key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
+            member = self.dispersy.get_member(public_key=self.dispersy.crypto.key_to_bin(key.pub()))
+            candidate.associate(member)
+
             now = time.time()
             candidate.walk(now - CANDIDATE_ELIGIBLE_DELAY)
             candidate.walk_response(now)

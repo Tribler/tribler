@@ -6,6 +6,11 @@ from Tribler.community.anontunnel.routing import Hop
 
 __author__ = 'chris'
 
+
+class NoCandidatesException(ValueError):
+    pass
+
+
 class ExtendStrategy:
     def __init__(self):
         self._logger = logging.getLogger(__name__)
@@ -68,8 +73,7 @@ class NeighbourSubset(ExtendStrategy):
         )
 
         if not hashed_public_key:
-            self._logger.warning("No candidates (with key) to extend, bailing out.")
-            return False
+            raise NoCandidatesException("No candidates (with key) to extend, bailing out.")
 
         extend_hop_public_key = self.proxy.dispersy.crypto.key_from_public_bin(extend_hop_public_key)
 
