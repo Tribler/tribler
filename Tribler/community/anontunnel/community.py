@@ -57,7 +57,7 @@ class ProxySettings:
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
         self.length_strategy = lengthstrategies.ConstantCircuitLength(length)
-        self.crypto = crypto.NoCrypto()
+        self.crypto = crypto.DefaultCrypto()
 
 
 class ProxyCommunity(Community):
