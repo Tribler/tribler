@@ -10,7 +10,6 @@ import shutil
 import time
 import gc
 import wx
-from PIL import Image
 import re
 import logging
 
@@ -356,6 +355,12 @@ class TestGuiAsServer(TestAsServer):
             assert boolean, reason
 
     def screenshot(self, title=None, destdir=OUTPUT_DIR, window=None):
+        try:
+            from PIL import Image
+        except ImportError:
+            self._logger.error("Could not load PIL: not making screenshots")
+            return
+
         if window == None:
             app = wx.GetApp()
             window = app.GetTopWindow()
