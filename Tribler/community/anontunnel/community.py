@@ -464,7 +464,6 @@ class ProxyCommunity(Community):
                 circuit_id=circuit_id,
                 goal_hops=goal_hops,
                 candidate=first_hop,
-                deferred=deferred,
                 proxy=self)
 
             self.dispersy.callback.call(create_circuit_cache, (circuit,))
@@ -558,13 +557,7 @@ class ProxyCommunity(Community):
         ''' :type : dict[str, WalkCandidate] '''
 
         for _ in range(1, 5):
-            candidate_temp = next(
-                (
-                    c for c in self.dispersy_yield_verified_candidates()
-                    if isinstance(c, WalkCandidate) and next(iter(c.get_members()), None)
-                ),
-                None
-            )
+            candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
             " :type: WalkCandidate"
 
             if not candidate_temp:
