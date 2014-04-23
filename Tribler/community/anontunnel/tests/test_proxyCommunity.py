@@ -1,12 +1,12 @@
 import logging.config
 import os
-from unittest import TestCase
 import time
 from mock import Mock
-from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.anontunnel import exitstrategies
-from Tribler.community.anontunnel.community import ProxyCommunity
+from Tribler.community.anontunnel.community import ProxyCommunity, \
+    ProxySettings
+from Tribler.community.anontunnel.crypto import NoCrypto
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.community.anontunnel.globals import MESSAGE_CREATED, MESSAGE_CREATE, \
     CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_BROKEN, MESSAGE_EXTEND, \
@@ -14,9 +14,8 @@ from Tribler.community.anontunnel.globals import MESSAGE_CREATED, MESSAGE_CREATE
 from Tribler.community.anontunnel.payload import CreateMessage, CreatedMessage, ExtendedMessage, ExtendMessage, \
     DataMessage, PingMessage, PongMessage
 from Tribler.community.anontunnel.routing import Circuit
-from Tribler.dispersy.candidate import WalkCandidate
+from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
 from Tribler.dispersy.endpoint import NullEndpoint
-from Tribler.dispersy.member import Member
 
 __author__ = 'Chris'
 
@@ -29,38 +28,21 @@ class DummyEndpoint(NullEndpoint):
         pass
 
 
-class TestProxyCommunity(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        config = SessionStartupConfig()
-        config.set_torrent_checking(False)
-        config.set_multicast_local_peer_discovery(False)
-        config.set_megacache(False)
-        config.set_dispersy(True)
-        config.set_swift_proc(False)
-        config.set_mainline_dht(False)
-        config.set_torrent_collecting(False)
-        config.set_libtorrent(False)
-        config.set_dht_torrent_collecting(False)
-        cls.session_config = config
-        cls.session = Session(scfg=cls.session_config)
-        cls.session.start()
-        while not cls.session.lm.initComplete:
-            time.sleep(1)
-        cls.dispersy = cls.session.lm.dispersy
-        cls.dispersy._endpoint = DummyEndpoint()
-        ''' :type : Tribler.dispersy.Dispersy '''
-
-        cls.__candidate_counter = 0
-
+class TestProxyCommunity(TestAsServer):
     def setUp(self):
+        super(TestProxyCommunity, self).setUp()
+        self.__candidate_counter = 0
+        self.dispersy = self.session.lm.dispersy
+
         dispersy = self.dispersy
 
         def load_community():
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
-            
+
+            settings = ProxySettings()
+            settings.crypto = NoCrypto()
+
             proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, None), load=True)[0]
             exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
 
@@ -69,26 +51,23 @@ class TestProxyCommunity(TestCase):
         self.community = dispersy.callback.call(load_community)
         ''' :type : ProxyCommunity '''
 
+    def setUpPreSession(self):
+        super(TestProxyCommunity, self).setUpPreSession()
+        self.config.set_dispersy(True)
+
     def __create_walk_candidate(self):
-        candidate = WalkCandidate(("127.0.0.1", self.__candidate_counter), False, ("127.0.0.1", self.__candidate_counter), ("127.0.0.1", self.__candidate_counter), u'unknown')
-        key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
-        ''' :type : EC '''
+        def __create():
+            self.__candidate_counter += 1
+            wan_address = ("8.8.8.{0}".format(self.__candidate_counter), self.__candidate_counter)
+            lan_address = ("0.0.0.0", 0)
+            candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
+            candidate.associate(self.dispersy.get_new_member(u"NID_secp160k1"))
+            now = time.time()
+            candidate.walk(now - CANDIDATE_ELIGIBLE_DELAY)
+            candidate.walk_response(now)
+            return candidate
 
-        member = []
-        def create_member():
-            member.append(Member(self.dispersy, key.pub(), self.community.database_id))
-
-        self.dispersy.callback.call(create_member)
-
-        candidate.associate(member[0])
-        self.__candidate_counter += 1
-        candidate.walk(time.time())
-        return candidate
-
-    def tearDown(self):
-        # del self.dispersy._auto_load_communities[self.community.get_classification()]
-        self.dispersy.undefine_auto_load(ProxyCommunity)
-        self.community.unload_community()
+        return self.dispersy.callback.call(__create)
 
     def test_on_create(self):
         create_sender = self.__create_walk_candidate()
@@ -139,7 +118,7 @@ class TestProxyCommunity(TestCase):
         self.community.on_created(circuit.circuit_id, first_hop, CreatedMessage([]))
         self.assertEqual(CIRCUIT_STATE_READY, circuit.state)
 
-    def on_extended(self):
+    def test_on_extended(self):
         # 2 Hop - should fail due to no extend candidates
         first_hop = self.__create_walk_candidate()
         circuit = self.community.create_circuit(first_hop, 2)
@@ -219,7 +198,8 @@ class TestProxyCommunity(TestCase):
         hashed_key = next(iter(node_to_extend_with.get_members())).mid
 
         # make sure our node_to_extend_with comes up when yielding verified candidates
-        self.community.add_candidate(node_to_extend_with)
+        self.dispersy.callback.call(self.community.add_candidate, (node_to_extend_with,))
+        self.assertIn(node_to_extend_with, self.community._candidates.itervalues())
 
         self.community.send_message = send_message = Mock()
         self.community.on_create(originator_circuit_id, originator, CreateMessage())
