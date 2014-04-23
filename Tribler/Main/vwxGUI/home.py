@@ -594,7 +594,7 @@ class Anonymity(wx.Panel):
 
         self.AddComponents()
 
-        self.my_address = Hop(self.proxy_community.my_member.mid)
+        self.my_address = Hop(self.proxy_community.my_member._ec.pub())
         self.my_address.address = ('127.0.0.1', "SELF")
 
         self.vertices = {}
