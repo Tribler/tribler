@@ -57,7 +57,7 @@ class ExtendedMessage(BaseMessage):
 
 class DataMessage(BaseMessage):
     def __init__(self, destination, data, origin=None):
-        assert isinstance(destination[0], basestring) and isinstance(destination[1], int)
+        assert destination is None or isinstance(destination[0], basestring) and isinstance(destination[1], int)
         assert isinstance(data, basestring)
         assert origin is None or isinstance(origin[0], basestring) and isinstance(origin[1], int)
 
