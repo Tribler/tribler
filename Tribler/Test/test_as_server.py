@@ -358,6 +358,7 @@ class TestGuiAsServer(TestAsServer):
         try:
             from PIL import Image
         except ImportError:
+            self._logger.error("Could not load PIL: not making screenshots")
             return
 
         if window == None:
