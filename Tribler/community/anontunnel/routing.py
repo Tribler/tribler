@@ -13,8 +13,7 @@ __author__ = 'chris'
 class Circuit:
     """ Circuit data structure storing the id, state and hops """
 
-    def __init__(self, circuit_id, goal_hops=0, candidate=None, proxy=None,
-                 deferred=None):
+    def __init__(self, circuit_id, goal_hops=0, candidate=None, proxy=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: ProxyCommunity
@@ -37,7 +36,6 @@ class Circuit:
 
         self.unverified_hop = None
         ''' :type : Hop '''
-
 
     @property
     def hops(self):
