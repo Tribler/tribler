@@ -19,9 +19,9 @@ from Tribler.dispersy.message import Message, DropMessage, \
     BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
 
-from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
+from Tribler.community.allchannel.message import DelayMessageReqChannelMessage
 from Tribler.community.allchannel.payload import ChannelCastRequestPayload, \
     ChannelCastPayload, VoteCastPayload, ChannelSearchPayload, ChannelSearchResponsePayload
 from traceback import print_exc
