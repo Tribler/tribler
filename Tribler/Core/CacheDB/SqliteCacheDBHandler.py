@@ -640,12 +640,12 @@ class TorrentDBHandler(BasicDBHandler):
         return torrentIds
 
     def addOrGetTorrentIDSReturn(self, infohashes):
-        to_be_inserted = []
+        to_be_inserted = set()
         torrent_ids = self.getTorrentIDS(infohashes)
         for i in range(len(torrent_ids)):
             torrent_id = torrent_ids[i]
             if torrent_id is None:
-                to_be_inserted.append(infohashes[i])
+                to_be_inserted.add(infohashes[i])
 
         status_id = self.misc_db.torrentStatusName2Id(u'unknown')
         sql = "INSERT INTO Torrent (infohash, status_id) VALUES (?, ?)"
