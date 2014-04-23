@@ -140,9 +140,3 @@ class TestMyChannel(TestGuiAsServer):
         tdef.save(torrentfn)
 
         return torrentfn
-
-    def setUp(self):
-        TestGuiAsServer.setUp(self)
-
-    def tearDown(self):
-        TestGuiAsServer.tearDown(self)
