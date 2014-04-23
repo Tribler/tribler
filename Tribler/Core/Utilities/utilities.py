@@ -281,7 +281,7 @@ def parse_magnetlink(url):
         for key, value in parse_qsl(query):
             if key == "dn":
                 # convert to unicode
-                dn = value.decode()
+                dn = value.decode() if not isinstance(value, unicode) else value
 
             elif key == "xt" and value.startswith("urn:btih:"):
                 # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
