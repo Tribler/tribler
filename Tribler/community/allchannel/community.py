@@ -418,7 +418,6 @@ class AllChannelCommunity(Community):
             for message in messages:
                 community = communities.get(message.payload.cid)
                 if community:
-                    assert community.cid == message.payload.cid
                     # at this point we should NOT have the channel message for this community
                     if __debug__:
                         try:
@@ -486,8 +485,6 @@ class AllChannelCommunity(Community):
     def _get_channel_community(self, cid):
         assert isinstance(cid, str)
         assert len(cid) == 20
-
-        logger.error("getting channel with id %s", cid.encode("HEX"))
 
         try:
             return self._dispersy.get_community(cid, True)
