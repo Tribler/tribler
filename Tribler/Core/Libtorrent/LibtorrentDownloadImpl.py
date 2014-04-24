@@ -289,7 +289,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             if is_multifile and swarmname != self.correctedinfoname:
                 for i, filename_old in enumerate(self.orig_files):
                     filename_new = os.path.join(self.correctedinfoname, filename_old[len(swarmname) + 1:])
-                    torrentinfo.rename_file(i, filename_new)
+                    # Path should be unicode if Libtorrent is using std::wstring (on Windows), else we use str (on Linux).
+                    try:
+                        torrentinfo.rename_file(i, filename_new)
+                    except TypeError:
+                        torrentinfo.rename_file(i, filename_new.encode("utf-8"))
                     self.orig_files[i] = filename_new
 
             atp["ti"] = torrentinfo
@@ -601,7 +605,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                             # Note: If the destination directory can't be accessed, libtorrent will not be able to store the files.
                             # This will result in a DLSTATUS_STOPPED_ON_ERROR.
 
-                    self.handle.rename_file(index, new_path)
+                    # Path should be unicode if Libtorrent is using std::wstring (on Windows), else we use str (on Linux).
+                    try:
+                        self.handle.rename_file(index, new_path)
+                    except TypeError:
+                        self.handle.rename_file(index, new_path.encode("utf-8"))
 
             self.handle.prioritize_files(filepriorities)
 
