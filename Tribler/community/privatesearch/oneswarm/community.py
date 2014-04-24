@@ -13,6 +13,7 @@ from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.community.privatesearch.oneswarm.payload import SearchCancelPayload
 from Tribler.community.privatesearch.oneswarm.conversion import OneSwarmConversion
 from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.requestcache import RandomNumberCache
 
 ENCRYPTION = True
 
@@ -32,9 +33,9 @@ class OneSwarmCommunity(TTLSearchCommunity):
         return [DefaultConversion(self), OneSwarmConversion(self)]
 
     def create_search(self, keywords, callback):
-        identifier = self._dispersy.request_cache.generate_identifier()
+        identifier = RandomNumberCache.find_unclaimed_identifier(self._request_cache, u"search")
         if self.log_searches:
-            log("dispersy.log", "search-statistics", identifier=identifier, keywords=keywords, created_by_me=True)
+            self.log_searches("search-statistics", identifier=identifier, keywords=keywords, created_by_me=True)
 
         # create request message
         meta = self.get_meta_message(u"search-request")
@@ -46,7 +47,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
             msg = wrapped_msg.dispersy_msg
 
             if self.log_searches and msg.payload.results:
-                log("dispersy.log", "search-response", identifier=msg.payload.identifier)
+                self.log_searches("search-response", identifier=msg.payload.identifier)
 
             callback(keywords, msg.payload.results, msg.candidate)
 
@@ -61,7 +62,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
             cycle = self.overlay_manager.handleSearch(message, connection, self.search_manager.handleIncomingSearch)
             if self.log_searches:
-                log("dispersy.log", "search-statistics", identifier=message.dispersy_msg.payload.identifier, cycle=cycle)
+                self.log_searches("search-statistics", identifier=message.dispersy_msg.payload.identifier, cycle=cycle)
 
     def send_response(self, original_request, single_result):
         original_request = original_request.dispersy_msg

@@ -47,6 +47,7 @@ from Tribler.community.search.community import SearchCommunity
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Video.utils import videoextdefaults
+from Tribler.dispersy.exception import CommunityNotFoundException
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
@@ -1706,10 +1707,8 @@ class ChannelManager:
     @warnDispersyThread
     def _disp_get_community_from_cid(self, dispersy_cid):
         try:
-            community = self.dispersy.get_community(dispersy_cid)
-            return community
-
-        except (KeyError, AttributeError):
+            return self.dispersy.get_community(dispersy_cid)
+        except CommunityNotFoundException:
             return None
 
     @forcePrioDispersyThread

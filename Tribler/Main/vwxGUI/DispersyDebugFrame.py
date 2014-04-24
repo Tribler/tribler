@@ -171,14 +171,12 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 "Packets sent vs Packets handled"],
             ["Packets Received", DATA_NONE,
                 "Packets received vs Packets handled"],
-            ["Packets Dropped", DATA_NONE,
-                "Packets dropped vs Packets received"],
             ["Packets Success", DATA_NONE,
                 "Messages successfully handled vs Packets received"],
+            ["Packets Dropped", DATA_NONE,
+                "Packets dropped vs Packets received"],
             ["Packets Delayed", DATA_NONE,
-                "Packets being delayed vs Packets reveived"],
-            ["Sync-Messages Created", DATA_NONE,
-                "Total number of messages created by us in this session which should be synced"],
+                "Packets being delayed vs Packets received"],
             ["Packets Delayed send", DATA_NONE,
                 "Total number of delaymessages or delaypacket messages being sent"],
             ["Packets Delayed success", DATA_NONE,
@@ -188,6 +186,8 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
             ["Walker Success", DATA_NONE, None],
             ["Walker Success (from trackers)", DATA_NONE,
                 "Comparing the successes to tracker to overall successes"],
+            ["Sync-Messages Created", DATA_NONE,
+                "Total number of messages created by us in this session which should be synced"],
             ["Bloom New", DATA_NONE,
                 "Total number of bloomfilters created vs IntroductionRequest sent in this session"],
             ["Bloom Reused", DATA_NONE,
@@ -232,16 +232,16 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 stats.received_count + stats.total_send)
             self.__info_list[7][1] = compute_ratio(stats.received_count,
                 stats.received_count + stats.total_send)
-            self.__info_list[8][1] = compute_ratio(stats.drop_count, stats.received_count)
-            self.__info_list[9][1] = compute_ratio(stats.success_count, stats.received_count)
+            self.__info_list[8][1] = compute_ratio(stats.success_count, stats.received_count)
+            self.__info_list[9][1] = compute_ratio(stats.drop_count, stats.received_count)
             self.__info_list[10][1] = compute_ratio(stats.delay_count, stats.received_count)
-            self.__info_list[11][1] = "%s" % stats.created_count
-            self.__info_list[12][1] = compute_ratio(stats.delay_send, stats.delay_count)
-            self.__info_list[13][1] = compute_ratio(stats.delay_success, stats.delay_count)
-            self.__info_list[14][1] = compute_ratio(stats.delay_timeout, stats.delay_count)
-            self.__info_list[15][1] = compute_ratio(stats.walk_success, stats.walk_attempt)
-            self.__info_list[16][1] = compute_ratio(stats.walk_bootstrap_success,
+            self.__info_list[11][1] = compute_ratio(stats.delay_send, stats.delay_count)
+            self.__info_list[12][1] = compute_ratio(stats.delay_success, stats.delay_count)
+            self.__info_list[13][1] = compute_ratio(stats.delay_timeout, stats.delay_count)
+            self.__info_list[14][1] = compute_ratio(stats.walk_success, stats.walk_attempt)
+            self.__info_list[15][1] = compute_ratio(stats.walk_bootstrap_success,
                 stats.walk_bootstrap_attempt)
+            self.__info_list[16][1] = "%s" % stats.created_count
             self.__info_list[17][1] = compute_ratio(sum(c.sync_bloom_new for c in stats.communities),
                 sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
             self.__info_list[18][1] = compute_ratio(sum(c.sync_bloom_reuse for c in stats.communities),
