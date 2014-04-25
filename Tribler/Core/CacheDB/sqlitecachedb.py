@@ -231,16 +231,15 @@ class SQLiteCacheDBBase:
 
         if not self._pragma_applied:
             self._pragma_applied = True
-            # disable this, seems to be doing nothing for us now
-            #page_size, = next(cur.execute("PRAGMA page_size"))
-            #if page_size < 8192:
+            page_size, = next(cur.execute("PRAGMA page_size"))
+            if page_size < 8192:
                 # journal_mode and page_size only need to be set once.  because of the VACUUM this
                 # is very expensive
-                #self._logger.info("begin page_size upgrade...")
-                #cur.execute("PRAGMA journal_mode = DELETE;")
-                #cur.execute("PRAGMA page_size = 8192;")
-                #cur.execute("VACUUM;")
-                #self._logger.info("...end page_size upgrade")
+                self._logger.info("begin page_size upgrade...")
+                cur.execute("PRAGMA journal_mode = DELETE;")
+                cur.execute("PRAGMA page_size = 8192;")
+                cur.execute("VACUUM;")
+                self._logger.info("...end page_size upgrade")
 
             # http://www.sqlite.org/pragma.html
             # When synchronous is NORMAL, the SQLite database engine will still
