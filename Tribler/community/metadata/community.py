@@ -69,7 +69,7 @@ class MetadataCommunity(Community):
     def initiate_meta_messages(self):
         custom_callback = (self.custom_callback_check, self.custom_callback_store)
         return super(MetadataCommunity, self).initiate_meta_messages() + [
-            Message(self, u"metadata", MemberAuthentication(encoding="sha1"),
+            Message(self, u"metadata", MemberAuthentication(),
                     PublicResolution(),
                     LastSyncDistribution(synchronization_direction=u"DESC",
                                          priority=128,
