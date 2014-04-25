@@ -650,7 +650,10 @@ class TorrentDBHandler(BasicDBHandler):
         status_id = self.misc_db.torrentStatusName2Id(u'unknown')
         sql = "INSERT INTO Torrent (infohash, status_id) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
-        return self.getTorrentIDS(infohashes), to_be_inserted
+
+        torrent_ids = self.getTorrentIDS(infohashes)
+        assert all(torrent_id for torrent_id in torrent_ids), torrent_ids
+        return torrent_ids, to_be_inserted
 
     def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
