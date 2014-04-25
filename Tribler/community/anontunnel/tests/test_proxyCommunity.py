@@ -134,7 +134,7 @@ class TestProxyCommunity(TestAsServer):
         # 2 Hop - should succeed
         second_hop = self.__create_walk_candidate()
 
-        mid = next(iter(second_hop.get_members())).mid
+        public_bin = next(iter(second_hop.get_members())).public_key
         key = next(iter(second_hop.get_members()))._ec
 
         candidate_list = []
@@ -154,10 +154,10 @@ class TestProxyCommunity(TestAsServer):
         self.assertEqual(circuit.circuit_id, circuit_id)
         self.assertEqual(MESSAGE_EXTEND, message_type)
         self.assertIsInstance(message, ExtendMessage)
-        self.assertEqual(message.extend_with, mid)
+        self.assertEqual(message.extend_with, public_bin)
 
         # Upon reception of the ON_EXTENDED the circuit should reach it full 2-hop length and thus be ready for use
-        result = self.community.on_extended(circuit.circuit_id, first_hop, ExtendedMessage(None, []))
+        result = self.community.on_extended(circuit.circuit_id, first_hop, ExtendedMessage("", []))
         self.assertTrue(result)
         self.assertEqual(CIRCUIT_STATE_READY, circuit.state)
 
@@ -240,7 +240,7 @@ class TestProxyCommunity(TestAsServer):
         result = self.community.on_pong(circuit.circuit_id, first_hop, PongMessage())
         self.assertFalse(result, "Cannot handle a pong when we never sent a PING")
 
-        self.community.create_ping(first_hop, circuit.circuit_id)
+        self.community.create_ping(first_hop, circuit)
 
         # Check whether the circuit last incoming time is correct after the pong
         circuit.last_incoming = 0
