@@ -68,51 +68,11 @@ class ProxyCommunity(Community):
     @type dispersy: Tribler.dispersy.dispersy.Dispersy
     @type master_member: Tribler.dispersy.member.Member
     @type settings: ProxySettings or unknown
-    @type integrate_with_tribler: bool
+    @type tribler_session: Tribler.Core.Session.Session
     """
-
-    @classmethod
-    def get_master_members(cls, dispersy):
-        # generated: Wed Sep 18 22:47:22 2013
-        # curve: high <<< NID_sect571r1 >>>
-        # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000404608
-        # 29f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7b42402f3c5cfa183d8d
-        # 96738c40ffd909a70020488e3b59b67de57bb1ac5dec351d172fe692555898ac94
-        # 4b68c730590f850ab931c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485
-        # d08ff4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696f57eec3b8
-        # f2f77e7ab56fd8d6d63
-        # pub-sha1 089515d307ed31a25eec2c54667ddcd2d402c041
-        #-----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQEYIKfm7cvDLCUkEqm+IX/cOHphlHo
-        # ERmx57QkAvPFz6GD2NlnOMQP/ZCacAIEiOO1m2feV7saxd7DUdFy/mklVYmKyUS2
-        # jHMFkPhQq5McVzLVqdVzp/4fncipIBvDy2OrGCyeSF0I/0rClPCeFtOSWTCUb4fp
-        # HvnEC7tBifnFr2aW9X7sO48vd+erVv2NbWM=
-        #-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004" \
-                     "0460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7" \
-                     "b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de" \
-                     "57bb1ac5dec351d172fe692555898ac944b68c730590f850ab93" \
-                     "1c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff" \
-                     "4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696" \
-                     "f57eec3b8f2f77e7ab56fd8d6d63".decode("HEX")
-
-        master = dispersy.get_member(public_key=master_key)
-        return [master]
-
-    @property
-    def crypto(self):
-        """
-        @rtype: ElgamalCrypto
-        """
-        return self.dispersy.crypto
 
     def __init__(self, dispersy, master_member, my_member, settings=None,
                  tribler_session=None):
-        """
-        @type master_member: Tribler.dispersy.member.Member
-        @type tribler_session : Tribler.Core.Session.Session
-        """
         super(ProxyCommunity, self).__init__(dispersy, master_member, my_member)
 
         self.lock = threading.RLock()
@@ -190,6 +150,42 @@ class ProxyCommunity(Community):
 
         self.dispersy.callback.register(__loop_discover)
 
+    @classmethod
+    def get_master_members(cls, dispersy):
+        # generated: Wed Sep 18 22:47:22 2013
+        # curve: high <<< NID_sect571r1 >>>
+        # len: 571 bits ~ 144 bytes signature
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000404608
+        # 29f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7b42402f3c5cfa183d8d
+        # 96738c40ffd909a70020488e3b59b67de57bb1ac5dec351d172fe692555898ac94
+        # 4b68c730590f850ab931c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485
+        # d08ff4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696f57eec3b8
+        # f2f77e7ab56fd8d6d63
+        # pub-sha1 089515d307ed31a25eec2c54667ddcd2d402c041
+        #-----BEGIN PUBLIC KEY-----
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQEYIKfm7cvDLCUkEqm+IX/cOHphlHo
+        # ERmx57QkAvPFz6GD2NlnOMQP/ZCacAIEiOO1m2feV7saxd7DUdFy/mklVYmKyUS2
+        # jHMFkPhQq5McVzLVqdVzp/4fncipIBvDy2OrGCyeSF0I/0rClPCeFtOSWTCUb4fp
+        # HvnEC7tBifnFr2aW9X7sO48vd+erVv2NbWM=
+        #-----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004" \
+                     "0460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7" \
+                     "b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de" \
+                     "57bb1ac5dec351d172fe692555898ac944b68c730590f850ab93" \
+                     "1c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff" \
+                     "4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696" \
+                     "f57eec3b8f2f77e7ab56fd8d6d63".decode("HEX")
+
+        master = dispersy.get_member(public_key=master_key)
+        return [master]
+
+    @property
+    def crypto(self):
+        """
+        @rtype: ElgamalCrypto
+        """
+        return self.dispersy.crypto
+
     @property
     def packet_crypto(self):
         return self.settings.crypto
@@ -207,9 +203,7 @@ class ProxyCommunity(Community):
 
                 if goal_hops == 0:
                     circuit_id = self._generate_circuit_id()
-                    self.circuits[circuit_id] = Circuit(
-                        circuit_id=circuit_id,
-                        proxy=self)
+                    self.circuits[circuit_id] = Circuit(circuit_id, self)
 
                     first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
                     if first_pool:
@@ -452,18 +446,13 @@ class ProxyCommunity(Community):
 
         with self.lock:
             circuit_id = self._generate_circuit_id(first_hop.sock_addr)
-
-            def create_circuit_cache(circuit):
-                cache = self._request_cache.add(CircuitRequestCache(self, circuit_id))
-                cache.circuit = circuit
-
             circuit = Circuit(
                 circuit_id=circuit_id,
                 goal_hops=goal_hops,
                 candidate=first_hop,
                 proxy=self)
 
-            self.dispersy.callback.call(create_circuit_cache, (circuit,))
+            self.dispersy.callback.call(self._request_cache.add, (CircuitRequestCache(self, circuit),))
 
             if extend_strategy:
                 circuit.extend_strategy = extend_strategy
@@ -560,10 +549,10 @@ class ProxyCommunity(Community):
             if not candidate_temp:
                 break
 
-            candidates[iter(candidate_temp.get_members()).next().mid] = candidate_temp
+            candidates[iter(candidate_temp.get_members()).next().public_key] = candidate_temp
 
         candidate_list = [next(iter(c.get_members())).public_key for c in candidates.itervalues()]
-        
+
         self.create_created_cache(circuit_id, candidate, candidates)
         
         if self.notifier:
@@ -620,7 +609,9 @@ class ProxyCommunity(Community):
 
         request = self.dispersy.callback.call(
             self.request_cache.get,
-            args=(CircuitRequestCache.create_identifier(circuit.circuit_id),))
+            args=(
+                CircuitRequestCache.PREFIX,
+                CircuitRequestCache.create_identifier(circuit),))
 
         candidate_list = message.candidate_list
 
@@ -721,9 +712,7 @@ class ProxyCommunity(Community):
 
         if message.extend_with:
             cache = self.get_created_cache(circuit_id, candidate)
-            key = self.dispersy.crypto.key_from_public_bin(message.extend_with)
-            mid = self.dispersy.crypto.key_to_hash(key)
-            extend_candidate = cache.candidates[mid]
+            extend_candidate = cache.candidates[message.extend_with]
 
             self._logger.warning(
                 "ON_EXTEND send CREATE for circuit (%s, %d) to %s:%d!",
@@ -792,8 +781,7 @@ class ProxyCommunity(Community):
         """
 
         def __do_add():
-            identifier = PingRequestCache.create_identifier(circuit_id)
-            if not self._request_cache.has(identifier):
+            if not self._request_cache.has(PingRequestCache.PREFIX, circuit_id):
                 cache = PingRequestCache(self, circuit_id)
                 self._request_cache.add(cache)
 
@@ -832,7 +820,7 @@ class ProxyCommunity(Community):
         """
         request = self.dispersy.callback.call(
             self._request_cache.get,
-            args=(PingRequestCache.create_identifier(circuit_id),))
+            args=(PingRequestCache.PREFIX, circuit_id,))
 
         if request:
             request.on_pong(message)
@@ -991,8 +979,14 @@ class ProxyCommunity(Community):
         @param WalkCandidate candidate: the candidate we got the CREATE from
         @param dict[str, WalkCandidate] candidates: list of extend candidates we sent back
         """
-        cache = CreatedRequestCache(circuit_id, candidate, candidates)
-        self.dispersy.callback.call(self._request_cache.add, (cache, ))
+        cache = CreatedRequestCache(self, circuit_id, candidate, candidates)
+        self.dispersy.callback.call(self._request_cache.add, (cache,))
 
     def get_created_cache(self, circuit_id, candidate):
-        return self.dispersy.callback.call(self.request_cache.get, (CreatedRequestCache.create_identifier(circuit_id, candidate),))
+        return self.dispersy.callback.call(
+            self.request_cache.get,
+            (
+                CreatedRequestCache.PREFIX,
+                CreatedRequestCache.create_identifier(circuit_id, candidate),
+            )
+        )

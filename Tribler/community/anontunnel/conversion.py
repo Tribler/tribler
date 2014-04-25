@@ -97,7 +97,7 @@ class CustomProxyConversion():
         @param int offset: the offset to start decoding from
         @rtype (int, str)
         """
-        circuit_id, = struct.unpack_from("!L", message_buffer, offset)
+        circuit_id, = struct.unpack_from("!L", message_buffer[offset:offset+4])
         offset += 4
 
         return circuit_id, message_buffer[offset:]
@@ -124,11 +124,11 @@ class CustomProxyConversion():
         extend_with = extend_message.extend_with
         key = extend_message.key
 
-        data = "".join((
+        data = "".join([
             struct.pack("!HH", len(extend_with), len(key)),
             extend_with,
             key
-        ))
+        ])
 
         return data
 
@@ -137,13 +137,13 @@ class CustomProxyConversion():
             raise ValueError(
                 "Cannot unpack extend_with, insufficient packet size")
 
-        extendwith_length, key_length = struct.unpack_from("!HH", message_buffer)
+        extendwith_length, key_length = struct.unpack_from("!HH", message_buffer[offset:offset+4])
         offset += 4
 
         extend_with = message_buffer[offset:offset + extendwith_length]
         offset += extendwith_length
 
-        key = message_buffer[offset:key_length]
+        key = message_buffer[offset:offset+key_length]
 
         message = ExtendMessage(extend_with)
         message.key = key
