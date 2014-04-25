@@ -452,7 +452,7 @@ class ProxyCommunity(Community):
                 candidate=first_hop,
                 proxy=self)
 
-            self.dispersy.callback.call(self._request_cache.add, (CircuitRequestCache(self, circuit),))
+            self.dispersy.callback.call(lambda: self._request_cache.add(CircuitRequestCache(self, circuit)))
 
             if extend_strategy:
                 circuit.extend_strategy = extend_strategy
@@ -770,19 +770,21 @@ class ProxyCommunity(Community):
         circuit = self.circuits[circuit_id]
         return self._ours_on_created_extended(circuit, message)
 
-    def create_ping(self, candidate, circuit_id):
+    def create_ping(self, candidate, circuit):
         """
         Creates, sends and keeps track of a PING message to given candidate on
         the specified circuit.
 
         @param Candidate candidate: the candidate to which we want to sent a
             ping
-        @param int circuit_id: the circuit id to sent the ping over
+        @param Circuit circuit: the circuit id to sent the ping over
         """
+
+        circuit_id = circuit.circuit_id
 
         def __do_add():
             if not self._request_cache.has(PingRequestCache.PREFIX, circuit_id):
-                cache = PingRequestCache(self, circuit_id)
+                cache = PingRequestCache(self, circuit)
                 self._request_cache.add(cache)
 
         self._dispersy.callback.register(__do_add)
@@ -918,7 +920,7 @@ class ProxyCommunity(Community):
 
                 #self._logger.info("pinging %d circuits", len(to_be_pinged))
                 for circuit in to_be_pinged:
-                    self.create_ping(circuit.candidate, circuit.circuit_id)
+                    self.create_ping(circuit.candidate, circuit)
             except Exception:
                 self._logger.error("Ping error")
 
@@ -979,8 +981,7 @@ class ProxyCommunity(Community):
         @param WalkCandidate candidate: the candidate we got the CREATE from
         @param dict[str, WalkCandidate] candidates: list of extend candidates we sent back
         """
-        cache = CreatedRequestCache(self, circuit_id, candidate, candidates)
-        self.dispersy.callback.call(self._request_cache.add, (cache,))
+        self.dispersy.callback.call(lambda: self._request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates)))
 
     def get_created_cache(self, circuit_id, candidate):
         return self.dispersy.callback.call(
