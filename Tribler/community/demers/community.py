@@ -16,7 +16,7 @@ class DemersTest(Community):
     def initiate_meta_messages(self):
         return super(DemersTest, self).initiate_meta_messages() + [
             Message(self, u"text",
-                    MemberAuthentication(encoding="bin"),
+                    MemberAuthentication(),
                     PublicResolution(),
                     FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
                     CommunityDestination(node_count=10), TextPayload(),
