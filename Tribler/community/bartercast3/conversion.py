@@ -10,7 +10,7 @@ from Tribler.dispersy.message import DropPacket
 class BarterConversion(BinaryConversion):
 
     def __init__(self, community):
-        super(BarterConversion, self).__init__(community, "\x01")
+        super(BarterConversion, self).__init__(community, "\x02")
         self.define_meta_message(chr(1), community.get_meta_message(u"barter-record"), self._encode_barter_record, self._decode_barter_record)
         self.define_meta_message(chr(2), community.get_meta_message(u"ping"), self._encode_ping_pong, self._decode_ping_pong)
         self.define_meta_message(chr(3), community.get_meta_message(u"pong"), self._encode_ping_pong, self._decode_ping_pong)

@@ -9,7 +9,7 @@ from Tribler.community.privatesemantic.conversion import long_to_bytes, \
 class SocialConversion(NoDefBinaryConversion):
 
     def __init__(self, community):
-        super(SocialConversion, self).__init__(community, "\x01")
+        super(SocialConversion, self).__init__(community, "\x02")
         self.define_meta_message(chr(1), community.get_meta_message(u"text"), self._encode_text, self._decode_text)
         self.define_meta_message(chr(2), community.get_meta_message(u"encrypted"), self._encode_encrypted, self._decode_encrypted)
 

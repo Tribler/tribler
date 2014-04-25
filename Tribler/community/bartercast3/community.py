@@ -201,7 +201,7 @@ class BarterCommunity(Community):
         pruning = GlobalTimePruning(10000, 11000)
         return super(BarterCommunity, self).initiate_meta_messages() + [
             Message(self, u"barter-record",
-                    DoubleMemberAuthentication(allow_signature_func=self.allow_signature_request, encoding="bin"),
+                    DoubleMemberAuthentication(allow_signature_func=self.allow_signature_request),
                     PublicResolution(),
                     LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1, pruning=pruning),
                     CommunityDestination(node_count=10),
@@ -234,7 +234,7 @@ class BarterCommunity(Community):
                     self.check_member_request,
                     self.on_member_request),
             Message(self, u"member-response",
-                    MemberAuthentication(encoding="bin"),
+                    MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),

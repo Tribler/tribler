@@ -11,7 +11,7 @@ from Tribler.dispersy.message import DropPacket
 class Conversion(BinaryConversion):
 
     def __init__(self, community):
-        super(Conversion, self).__init__(community, "\x01")
+        super(Conversion, self).__init__(community, "\x02")
         self.define_meta_message(chr(1), community.get_meta_message(u"text"), self._encode_text, self._decode_text)
 
     def _encode_text(self, message):

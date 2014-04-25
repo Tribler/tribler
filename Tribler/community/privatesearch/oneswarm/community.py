@@ -26,7 +26,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
     def initiate_meta_messages(self):
         messages = TTLSearchCommunity.initiate_meta_messages(self)
-        messages.append(Message(self, u"search-cancel", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchCancelPayload(), self._dispersy._generic_timeline_check, self.on_search_cancel))
+        messages.append(Message(self, u"search-cancel", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchCancelPayload(), self._dispersy._generic_timeline_check, self.on_search_cancel))
         return messages
 
     def initiate_conversions(self):
