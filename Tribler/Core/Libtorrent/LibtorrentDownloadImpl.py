@@ -306,7 +306,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 atp["url"] = self.tdef.get_url()
             else:
                 atp["info_hash"] = lt.big_number(self.tdef.get_infohash())
-            atp["name"] = str(self.tdef.get_name())
+            atp["name"] = self.tdef.get_name_as_unicode()
 
         self.handle = self.ltmgr.add_torrent(self, atp)
 
