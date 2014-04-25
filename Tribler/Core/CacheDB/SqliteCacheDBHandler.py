@@ -1983,7 +1983,7 @@ class VoteCastDBHandler(BasicDBHandler):
                         negative_votes[channel_id] = negative_votes.get(channel_id, 0) + 1
 
                 updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
-                self._db.executemany("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
+                self._db.executemany("UPDATE OR IGNORE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
 
                 for channel_id in channel_ids:
                     self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)
