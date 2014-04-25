@@ -186,9 +186,7 @@ class SearchCommunity(Community):
         Community._initialize_meta_messages(self)
 
         ori = self._meta_messages[u"dispersy-introduction-request"]
-        self._disp_intro_handler = ori.handle_callback
-
-        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, TasteIntroPayload(), ori.check_callback, self.on_taste_intro)
+        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, TasteIntroPayload(), ori.check_callback, ori.handle_callback)
         self._meta_messages[u"dispersy-introduction-request"] = new
 
     def initiate_conversions(self):
@@ -299,8 +297,8 @@ class SearchCommunity(Community):
         self._dispersy._forward([request])
         return request
 
-    def on_taste_intro(self, messages):
-        self._disp_intro_handler(messages)
+    def on_introduction_request(self, messages):
+        super(SearchCommunity, self).on_introduction_request(messages)
         messages = [message for message in messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
 
         if any(message.payload.taste_bloom_filter for message in messages):

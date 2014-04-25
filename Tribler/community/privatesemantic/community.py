@@ -212,9 +212,7 @@ class ForwardCommunity():
 
     def initiate_meta_messages(self):
         ori = self._meta_messages[u"dispersy-introduction-request"]
-        self._disp_intro_handler = ori.handle_callback
-
-        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, ExtendedIntroPayload(), ori.check_callback, self.on_intro_request)
+        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, ExtendedIntroPayload(), ori.check_callback, ori.handle_callback)
         self._meta_messages[u"dispersy-introduction-request"] = new
 
         return [Message(self, u"similarity-reveal", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SimiRevealPayload(), self.check_similarity_reveal, self.on_similarity_reveal),
@@ -753,7 +751,7 @@ class ForwardCommunity():
             print >> sys.stderr, long(time()), "ForwardCommunity: sending introduction-request to %s (%s,%s,%s)" % (destination, introduce_me_to.encode("HEX") if introduce_me_to else '', allow_sync, advice)
 
 
-    def on_intro_request(self, messages):
+    def on_introduction_request(self, messages):
         for message in messages:
             introduce_me_to = ''
             if message.payload.introduce_me_to:
@@ -769,7 +767,7 @@ class ForwardCommunity():
             if DEBUG:
                 print >> sys.stderr, long(time()), "ForwardCommunity: got introduction request", message.payload.introduce_me_to.encode("HEX") if message.payload.introduce_me_to else '', introduce_me_to, self.requested_introductions
 
-        self._disp_intro_handler(messages)
+        super(ForwardCommunity, self).on_introduction_request(messages)
 
         if self._notifier:
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
