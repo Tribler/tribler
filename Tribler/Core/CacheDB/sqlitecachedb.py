@@ -1509,7 +1509,7 @@ CREATE TABLE MetadataData (
                         votes[channel_id][1] = neg_votes
 
                 channel_tuples = [(values[1], values[0], channel_id) for channel_id, values in votes.iteritems()]
-                update_votes = "UPDATE OR IGNORE _Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
+                update_votes = "UPDATE _Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
                 self.executemany(update_votes, channel_tuples)
 
                 self.execute_write('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid,))
