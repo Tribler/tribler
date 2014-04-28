@@ -5,6 +5,7 @@ from time import time
 from random import sample, randint, shuffle, random, choice
 from hashlib import md5
 from itertools import groupby
+from binascii import hexlify
 
 from Tribler.dispersy.authentication import MemberAuthentication, \
     NoAuthentication
@@ -284,6 +285,9 @@ class ForwardCommunity():
                 return tb
 
     def is_taste_buddy_mid(self, mid):
+        assert isinstance(mid, str), type(mid)
+        assert len(mid) == 20, len(mid)
+
         for tb in self.yield_taste_buddies():
             if mid in [member.mid for member in tb.candidate.get_members()]:
                 return tb
@@ -294,10 +298,13 @@ class ForwardCommunity():
                 return tb
 
     def is_overlapping_taste_buddy_mid(self, mid):
+        assert isinstance(mid, str), type(mid)
+        assert len(mid) == 20, len(mid)
+
         if self.is_taste_buddy_mid(mid):
             return True
 
-        _mid = bytes_to_long(mid)
+        _mid = long(hexlify(mid), 16)
         for tb in self.yield_taste_buddies():
             if tb.does_overlap(_mid):
                 return True
@@ -326,7 +333,7 @@ class ForwardCommunity():
 
         low_sim = self.get_least_similar_tb()
         for new_possible in possibles:
-            if new_possible <= low_sim or self.is_taste_buddy_mid(new_possible.candidate_mid):
+            if new_possible <= low_sim or self.is_taste_buddy_mid(new_possible.candidate_mid) or self.my_member.mid == new_possible.candidate_mid:
                 possibles.remove(new_possible)
                 continue
 
@@ -790,7 +797,7 @@ class ForwardCommunity():
             return tb.candidate
 
         # no exact match, see if this is a friend
-        _mid = bytes_to_long(mid)
+        _mid = long(hexlify(mid), 16)
         tbs = [tb for tb in self.yield_taste_buddies() if tb.does_overlap(_mid)]
         if tbs:
             tb = choice(tbs)
