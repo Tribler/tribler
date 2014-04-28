@@ -53,8 +53,9 @@ class SocialCommunity(Community):
         self._friend_db.close()
 
     def initiate_meta_messages(self):
-        return [Message(self, u"text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
-                Message(self, u"encrypted", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
+        return super(SocialCommunity, self).initiate_meta_messages() + [
+                Message(self, u"text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), TextPayload(), self._generic_timeline_check, self.on_text),
+                Message(self, u"encrypted", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), EncryptedPayload(), self._generic_timeline_check, self.on_encrypted)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
@@ -319,7 +320,11 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return SocialCommunity.initiate_meta_messages(self) + HForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        SocialCommunity._initialize_meta_messages(self)
+        HForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         HForwardCommunity.unload_community(self)
@@ -355,7 +360,11 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
         return PForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return PForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return SocialCommunity.initiate_meta_messages(self) + PForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        SocialCommunity._initialize_meta_messages(self)
+        PForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         PForwardCommunity.unload_community(self)
@@ -391,7 +400,11 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return SocialCommunity.initiate_meta_messages(self) + HForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        SocialCommunity._initialize_meta_messages(self)
+        HForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         HForwardCommunity.unload_community(self)
@@ -427,7 +440,11 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
         return PoliForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return PoliForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return SocialCommunity.initiate_meta_messages(self) + PoliForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        SocialCommunity._initialize_meta_messages(self)
+        PoliForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         PoliForwardCommunity.unload_community(self)

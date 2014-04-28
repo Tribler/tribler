@@ -404,7 +404,7 @@ class TTLSearchCommunity(Community):
                 candidates, _, _ = self.create_search(keywords, callback, number, ttl, self.fneighbors, bloomfilter, results, message.candidate, message.authentication.member)
 
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d, %f, %f) received from" % (ttl, message.payload.ttl, len(candidates), identifier, self.prob, self.fprob), message.candidate
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d, %f, %f) received from" % (ttl, message.payload.ttl, len(candidates), number, self.prob, self.fprob), message.candidate
 
                 if len(candidates):
                     self.search_forward += len(candidates)
@@ -412,7 +412,7 @@ class TTLSearchCommunity(Community):
                     forward_message = False
             else:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "TTLSearchCommunity: not forwarding initial ttl = %d, replying to (identifier = %d)" % (message.payload.ttl, identifier), message.candidate
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: not forwarding initial ttl = %d, replying to (identifier = %d)" % (message.payload.ttl, number), message.candidate
 
             if not forward_message:
                 if DEBUG:
@@ -668,7 +668,11 @@ class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
         return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
 
     def initiate_meta_messages(self):
-        return HForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
+        return TTLSearchCommunity.initiate_meta_messages(self) + HForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        TTLSearchCommunity._initialize_meta_messages(self)
+        HForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         HForwardCommunity.unload_community(self)
@@ -684,7 +688,11 @@ class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
         return PForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
 
     def initiate_meta_messages(self):
-        return PForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
+        return TTLSearchCommunity.initiate_meta_messages(self) + PForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        TTLSearchCommunity._initialize_meta_messages(self)
+        PForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         PForwardCommunity.unload_community(self)
@@ -700,7 +708,11 @@ class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
         return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
 
     def initiate_meta_messages(self):
-        return HForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
+        return TTLSearchCommunity.initiate_meta_messages(self) + HForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        TTLSearchCommunity._initialize_meta_messages(self)
+        HForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         HForwardCommunity.unload_community(self)
@@ -716,7 +728,11 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
         return PoliForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
 
     def initiate_meta_messages(self):
-        return PoliForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
+        return TTLSearchCommunity.initiate_meta_messages(self) + PoliForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        TTLSearchCommunity._initialize_meta_messages(self)
+        PoliForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         PoliForwardCommunity.unload_community(self)
