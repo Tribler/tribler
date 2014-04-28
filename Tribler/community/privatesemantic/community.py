@@ -535,7 +535,7 @@ class ForwardCommunity():
                     if DEBUG_VERBOSE:
                         print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate, self.received_lists
 
-                    self.community.request_cache.pop(self.identifier)
+                    self.community.request_cache.pop(self.prefix, self.number)
                     return self.community.send_msimilarity_response(self.requesting_candidate, self.number, self.my_response, self.received_lists)
 
                 for response in self.received_lists:
@@ -845,7 +845,7 @@ class ForwardCommunity():
 
     def check_pong(self, messages):
         for message in messages:
-            request = self._request_cache.get(ForwardCommunity.PingRequestCache.create_identifier(message.payload.identifier))
+            request = self._request_cache.get(u"ping", message.payload.identifier)
             if not request:
                 yield DropMessage(message, "invalid response identifier")
                 continue
@@ -859,9 +859,9 @@ class ForwardCommunity():
 
     def on_pong(self, messages):
         for message in messages:
-            request = self._request_cache.get(ForwardCommunity.PingRequestCache.create_identifier(message.payload.identifier))
+            request = self._request_cache.get(u"ping", message.payload.identifier)
             if request.on_success(message.candidate):
-                self._request_cache.pop(ForwardCommunity.PingRequestCache.create_identifier(message.payload.identifier))
+                self._request_cache.pop(u"ping", message.payload.identifier)
 
             self.reset_taste_buddy(message.candidate)
 
