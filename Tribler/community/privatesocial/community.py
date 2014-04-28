@@ -44,10 +44,6 @@ class SocialCommunity(Community):
         self.friend_sync_id = dispersy.callback.register(self.sync_with_friends)
         self._pending_callbacks.append(self.friend_sync_id)
 
-        # replace _get_packets_for_bloomfilters
-        self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
-        self._dispersy._get_packets_for_bloomfilters = self._get_packets_for_bloomfilters
-
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
         self._friend_db.close()
@@ -85,27 +81,23 @@ class SocialCommunity(Community):
         if tb.overlap:
             self.dispersy.callback.replace_register(self.friend_sync_id, self.sync_with_friends)
 
-    def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
-        if community != self:
-            for message, packet in self._orig__get_packets_for_bloomfilters(community, requests, include_inactive):
-                yield message, packet
-        else:
-            for message, time_low, time_high, offset, modulo in requests:
+    def _get_packets_for_bloomfilters(self, requests, include_inactive=True):
+        for message, time_low, time_high, offset, modulo in requests:
 
-                tb = self.is_taste_buddy(message.candidate)
-                if tb and tb.overlap:
-                    if DEBUG_VERBOSE:
-                        print >> sys.stderr, "GOT sync-request from", message.candidate, tb
+            tb = self.is_taste_buddy(message.candidate)
+            if tb and tb.overlap:
+                if DEBUG_VERBOSE:
+                    print >> sys.stderr, "GOT sync-request from", message.candidate, tb
 
-                    keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
-                    sync_ids = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ")",
-                                                       (time_low, time_high, offset, modulo) + keyhashes)
+                keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
+                sync_ids = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ")",
+                                                   (time_low, time_high, offset, modulo) + keyhashes)
 
-                    sync_ids = tuple(str(sync_id) for sync_id, in sync_ids)
-                    yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ",".join(sync_ids) + ") ORDER BY global_time DESC"))
+                sync_ids = tuple(str(sync_id) for sync_id, in sync_ids)
+                yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ",".join(sync_ids) + ") ORDER BY global_time DESC"))
 
-                elif DEBUG:
-                    print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
+            elif DEBUG:
+                print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
 
     def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
         tb = self.is_taste_buddy(request_cache.helper_candidate)

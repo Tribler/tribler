@@ -577,7 +577,7 @@ class ForwardCommunity():
             candidates = self.get_connections(self.forward_to, message.candidate)
 
             # create a register similarity request
-            request = ForwardCommunity.MSimilarityRequest(self, message.candidate, candidates, force_number=message.payload.identifier)
+            request = ForwardCommunity.MSimilarityRequest(self, message.candidate, candidates, message.payload.identifier)
             # TODO: this shouldn't be necessary, requires a change in dispersy
             request._number = message.payload.identifier
             assert request.number == message.payload.identifier, (request.number, message.payload.identifier)
@@ -594,7 +594,7 @@ class ForwardCommunity():
                 request.process()
 
     def create_similarity_request(self, destination, payload):
-        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], send_reveal=self.send_simi_reveal))
+        cache = self._request_cache.add(ForwardCommunity.MSimilarityRequest(self, None, [destination], RandomNumberCache.find_unclaimed_identifier(self._request_cache, u"m-similarity-request"), self.send_simi_reveal))
         self.send_similarity_request([destination], cache.number, payload)
 
         if DEBUG:
@@ -732,7 +732,7 @@ class ForwardCommunity():
         self._dispersy.statistics.walk_attempt += 1
 
         cache = self._request_cache.add(IntroductionRequestCache(self, destination))
-        destination.walk(time(), cache.timeout_delay)
+        destination.walk(time())
 
         if allow_sync:
             sync = self.dispersy_claim_sync_bloom_filter(cache)
@@ -768,7 +768,7 @@ class ForwardCommunity():
             if DEBUG:
                 print >> sys.stderr, long(time()), "ForwardCommunity: got introduction request", message.payload.introduce_me_to.encode("HEX") if message.payload.introduce_me_to else '', introduce_me_to, self.requested_introductions
 
-        super(ForwardCommunity, self).on_introduction_request(messages)
+        Community.on_introduction_request(self, messages)
 
         if self._notifier:
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
