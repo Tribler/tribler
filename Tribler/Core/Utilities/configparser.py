@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import ast
+import codecs
 
 from ConfigParser import RawConfigParser
 from multiprocessing.synchronize import RLock
@@ -19,6 +20,10 @@ class CallbackConfigParser(RawConfigParser):
     def set_callback(self, callback):
         with self.lock:
             self.callback = callback
+
+    def read_file(self, filename, encoding='utf-8'):
+        with codecs.open(filename, 'rb', encoding) as fp:
+            self.readfp(fp)
 
     def set(self, section, option, new_value):
         with self.lock:
@@ -46,6 +51,10 @@ class CallbackConfigParser(RawConfigParser):
                 for option, value in self.items(section):
                     copied_config.set(section, option, value)
             return copied_config
+
+    def write_file(self, filename, encoding='utf-8'):
+        with codecs.open(filename, 'wb', encoding) as fp:
+            self.write(fp)
 
     def write(self, fp):
         with self.lock:

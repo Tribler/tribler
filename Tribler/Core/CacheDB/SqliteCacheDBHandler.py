@@ -1611,8 +1611,8 @@ class TorrentDBHandler(BasicDBHandler):
         return results
 
     def getAutoCompleteTerms(self, keyword, max_terms, limit=100):
-        sql = "SELECT swarmname FROM FullTextIndex WHERE FullTextIndex MATCH 'swarmname: %s*' LIMIT ?" % keyword
-        result = self._db.fetchall(sql, (limit,))
+        sql = "SELECT swarmname FROM FullTextIndex WHERE swarmname MATCH ? LIMIT ?"
+        result = self._db.fetchall(sql, (keyword + '*', limit))
 
         all_terms = set()
         for line, in result:
@@ -1624,6 +1624,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         if keyword in all_terms:
             all_terms.remove(keyword)
+        if '' in all_terms:
+            all_terms.remove('')
 
         return list(all_terms)
 

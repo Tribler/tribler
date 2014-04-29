@@ -1,3 +1,4 @@
+# Written by Egbert Bouman
 import os
 import wx
 import sys
@@ -6,6 +7,7 @@ import subprocess
 
 from re import search
 from math import sqrt
+
 from Tribler.Main.vwxGUI import forceAndReturnWxThread
 
 
@@ -14,7 +16,7 @@ def get_thumbnail(videofile, thumbfile, resolution, ffmpeg, timecode):
     if sys.platform == "win32":
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    ffmpeg = subprocess.Popen((ffmpeg, "-ss", str(int(timecode)), "-i", videofile, "-s", "%dx%d" % resolution, thumbfile), stderr=subprocess.PIPE, startupinfo=startupinfo)
+    ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'), "-ss", str(int(timecode)), "-i", videofile.encode('utf-8'), "-s", "%dx%d" % resolution, thumbfile.encode('utf-8')), stderr=subprocess.PIPE, startupinfo=startupinfo)
     ffmpeg.communicate()
     ffmpeg.stderr.close()
 
@@ -24,7 +26,7 @@ def get_videoinfo(videofile, ffmpeg):
     if sys.platform == "win32":
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    ffmpeg = subprocess.Popen((ffmpeg, "-i", videofile), stderr=subprocess.PIPE, startupinfo=startupinfo)
+    ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'), "-i", videofile.encode('utf-8')), stderr=subprocess.PIPE, startupinfo=startupinfo)
     out, err = ffmpeg.communicate()
     info = out or err
     ffmpeg.stderr.close()
@@ -117,9 +119,8 @@ def colourfulness(image_data):
 
     return s_rgyb + 0.3 * m_rgyb
 
+
 # Source: http://www.physics.rutgers.edu/~masud/computing/WPark_recipes_in_python.html
-
-
 def meanstdv(x):
     n, mean, std = len(x), 0, 0
     for a in x:
@@ -130,8 +131,10 @@ def meanstdv(x):
     std = sqrt(std / float(n - 1))
     return mean, std
 
+
 # def considered_xxx(image):
 #    return skinratio(image) > 0.50
+#
 #
 # def skinratio(image):
 #    image_data = image.GetData()

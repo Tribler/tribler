@@ -222,7 +222,7 @@ class LibtorrentMgr:
                 if handle:
                     self.ltsession.remove_torrent(handle, 0)
 
-            handle = self.ltsession.add_torrent(atp)
+            handle = self.ltsession.add_torrent(encode_atp(atp))
             infohash = str(handle.info_hash())
             with self.torlock:
                 if infohash in self.torrents:
@@ -346,7 +346,7 @@ class LibtorrentMgr:
                     atp['url'] = magnet
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
-                handle = self.ltsession.add_torrent(atp)
+                handle = self.ltsession.add_torrent(encode_atp(atp))
                 if notify:
                     self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
 
@@ -421,3 +421,9 @@ class LibtorrentMgr:
             self.metainfo_cache[infohash] = (time.time(), metainfo)
         else:
             self.metainfo_cache[infohash][1] = metainfo
+
+def encode_atp(atp):
+    for k, v in atp.iteritems():
+        if isinstance(v, unicode):
+            atp[k] = v.encode('utf-8')
+    return atp
