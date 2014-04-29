@@ -2323,7 +2323,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 self.fileindex = link.fileindex
                 self.DoHighlight()
                 # This needs to be in a CallAfter, or VLC may crash.
-                wx.CallAfter(lambda: self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files()[self.fileindex]))
+                wx.CallAfter(lambda: self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files_as_unicode()[self.fileindex]))
 
         for link in self.links:
             mousepos = wx.GetMousePosition()
@@ -2347,4 +2347,4 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                     control_next.SetForegroundColour(TRIBLER_RED)
                     self.fileindex = control_next.fileindex
                     self.DoHighlight()
-                    self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files()[control_next.fileindex])
+                    self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files_as_unicode()[control_next.fileindex])
