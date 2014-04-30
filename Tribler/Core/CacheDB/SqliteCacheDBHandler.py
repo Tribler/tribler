@@ -1630,10 +1630,10 @@ class TorrentDBHandler(BasicDBHandler):
         return list(all_terms)
 
     def getSearchSuggestion(self, keywords, limit=1):
-        match = [keyword.lower() for keyword in keywords]
+        match = [keyword.lower() for keyword in keywords if len(keyword) > 3]
 
-        def lev(b):
-            a = match
+        def lev(a, b):
+            a = a.lower()
             b = b.lower()
 
             "Calculates the Levenshtein distance between a and b."
@@ -1656,8 +1656,8 @@ class TorrentDBHandler(BasicDBHandler):
             return current[n]
 
         def levcollate(s1, s2):
-            l1 = lev(s1.split()[0])
-            l2 = lev(s2.split()[0])
+            l1 = sum(sorted([lev(a, b) for a in s1.split() for b in match])[:len(match)])
+            l2 = sum(sorted([lev(a, b) for a in s2.split() for b in match])[:len(match)])
 
             # return -1 if s1<s2, +1 if s1>s2 else 0
             if l1 < l2:
@@ -1670,10 +1670,10 @@ class TorrentDBHandler(BasicDBHandler):
         connection = cursor.getconnection()
         connection.createcollation("leven", levcollate)
 
-        sql = "SELECT term, freq FROM TermFrequency WHERE term LIKE '%" + match[0] + "'ORDER By term collate leven ASC, freq DESC LIMIT ?"
-        result = self._db.fetchall(sql, (limit,))
+        sql = "SELECT swarmname FROM FullTextIndex WHERE swarmname MATCH ? ORDER By swarmname collate leven ASC LIMIT ?"
+        results = self._db.fetchall(sql, (' OR '.join(['*%s*' % m for m in match]), limit))
         connection.createcollation("leven", None)
-        return result
+        return [result[0] for result in results]
 
     def getTorrentFiles(self, torrent_id):
         sql = "SELECT path, length FROM TorrentFiles WHERE torrent_id = ?"
@@ -1816,8 +1816,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1],  # click position
+                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1], # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 
