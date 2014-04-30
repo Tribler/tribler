@@ -1633,9 +1633,6 @@ class TorrentDBHandler(BasicDBHandler):
         match = [keyword.lower() for keyword in keywords if len(keyword) > 3]
 
         def lev(a, b):
-            a = a.lower()
-            b = b.lower()
-
             "Calculates the Levenshtein distance between a and b."
             n, m = len(a), len(b)
             if n > m:
