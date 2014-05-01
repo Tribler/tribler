@@ -172,4 +172,8 @@ class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
         return PoliForwardCommunity.initiate_conversions(self) + OneSwarmCommunity.initiate_conversions(self)
 
     def initiate_meta_messages(self):
-        return PoliForwardCommunity.initiate_meta_messages(self) + OneSwarmCommunity.initiate_meta_messages(self)
+        return OneSwarmCommunity.initiate_meta_messages(self) + PoliForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        OneSwarmCommunity._initialize_meta_messages(self)
+        PoliForwardCommunity._initialize_meta_messages(self)

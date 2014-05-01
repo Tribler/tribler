@@ -44,17 +44,14 @@ class SocialCommunity(Community):
         self.friend_sync_id = dispersy.callback.register(self.sync_with_friends)
         self._pending_callbacks.append(self.friend_sync_id)
 
-        # replace _get_packets_for_bloomfilters
-        self._orig__get_packets_for_bloomfilters = self._dispersy._get_packets_for_bloomfilters
-        self._dispersy._get_packets_for_bloomfilters = self._get_packets_for_bloomfilters
-
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
         self._friend_db.close()
 
     def initiate_meta_messages(self):
-        return [Message(self, u"text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), TextPayload(), self._dispersy._generic_timeline_check, self.on_text),
-                Message(self, u"encrypted", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), EncryptedPayload(), self._dispersy._generic_timeline_check, self.on_encrypted)]
+        return super(SocialCommunity, self).initiate_meta_messages() + [
+                Message(self, u"text", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), TextPayload(), self._generic_timeline_check, self.on_text),
+                Message(self, u"encrypted", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=0), EncryptedPayload(), self._generic_timeline_check, self.on_encrypted)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SocialConversion(self)]
@@ -84,27 +81,23 @@ class SocialCommunity(Community):
         if tb.overlap:
             self.dispersy.callback.replace_register(self.friend_sync_id, self.sync_with_friends)
 
-    def _get_packets_for_bloomfilters(self, community, requests, include_inactive=True):
-        if community != self:
-            for message, packet in self._orig__get_packets_for_bloomfilters(community, requests, include_inactive):
-                yield message, packet
-        else:
-            for message, time_low, time_high, offset, modulo in requests:
+    def _get_packets_for_bloomfilters(self, requests, include_inactive=True):
+        for message, time_low, time_high, offset, modulo in requests:
 
-                tb = self.is_taste_buddy(message.candidate)
-                if tb and tb.overlap:
-                    if DEBUG_VERBOSE:
-                        print >> sys.stderr, "GOT sync-request from", message.candidate, tb
+            tb = self.is_taste_buddy(message.candidate)
+            if tb and tb.overlap:
+                if DEBUG_VERBOSE:
+                    print >> sys.stderr, "GOT sync-request from", message.candidate, tb
 
-                    keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
-                    sync_ids = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ")",
-                                                       (time_low, time_high, offset, modulo) + keyhashes)
+                keyhashes = tuple(buffer(str(overlapping_friend)) for overlapping_friend in tb.overlap)
+                sync_ids = self._friend_db.execute(u"SELECT sync_id FROM friendsync WHERE global_time BETWEEN ? AND ? AND (global_time + ?) % ? = 0 AND keyhash in (" + ", ".join("?" * len(keyhashes)) + ")",
+                                                   (time_low, time_high, offset, modulo) + keyhashes)
 
-                    sync_ids = tuple(str(sync_id) for sync_id, in sync_ids)
-                    yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ",".join(sync_ids) + ") ORDER BY global_time DESC"))
+                sync_ids = tuple(str(sync_id) for sync_id, in sync_ids)
+                yield message, ((str(packet),) for packet, in self._dispersy._database.execute(u"SELECT packet FROM sync WHERE undone = 0 AND id IN (" + ",".join(sync_ids) + ") ORDER BY global_time DESC"))
 
-                elif DEBUG:
-                    print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
+            elif DEBUG:
+                print >> sys.stderr, "GOT sync-request from, ignoring", message.candidate
 
     def _select_and_fix(self, request_cache, syncable_messages, global_time, to_select, higher=True):
         tb = self.is_taste_buddy(request_cache.helper_candidate)
@@ -319,7 +312,11 @@ class NoFSocialCommunity(HForwardCommunity, SocialCommunity):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return SocialCommunity.initiate_meta_messages(self) + HForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        SocialCommunity._initialize_meta_messages(self)
+        HForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         HForwardCommunity.unload_community(self)
@@ -355,7 +352,11 @@ class PSocialCommunity(PForwardCommunity, SocialCommunity):
         return PForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return PForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return SocialCommunity.initiate_meta_messages(self) + PForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        SocialCommunity._initialize_meta_messages(self)
+        PForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         PForwardCommunity.unload_community(self)
@@ -391,7 +392,11 @@ class HSocialCommunity(HForwardCommunity, SocialCommunity):
         return HForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return HForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return SocialCommunity.initiate_meta_messages(self) + HForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        SocialCommunity._initialize_meta_messages(self)
+        HForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         HForwardCommunity.unload_community(self)
@@ -427,7 +432,11 @@ class PoliSocialCommunity(PoliForwardCommunity, SocialCommunity):
         return PoliForwardCommunity.initiate_conversions(self) + [SocialConversion(self)]
 
     def initiate_meta_messages(self):
-        return PoliForwardCommunity.initiate_meta_messages(self) + SocialCommunity.initiate_meta_messages(self)
+        return SocialCommunity.initiate_meta_messages(self) + PoliForwardCommunity.initiate_meta_messages(self)
+
+    def _initialize_meta_messages(self):
+        SocialCommunity._initialize_meta_messages(self)
+        PoliForwardCommunity._initialize_meta_messages(self)
 
     def unload_community(self):
         PoliForwardCommunity.unload_community(self)
