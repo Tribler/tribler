@@ -293,6 +293,15 @@ class ForwardCommunity():
             if tb == sock_addr:
                 return tb
 
+    def is_overlapping_taste_buddy_mid(self, mid):
+        if self.is_taste_buddy_mid(mid):
+            return True
+
+        _mid = bytes_to_long(mid)
+        for tb in self.yield_taste_buddies():
+            if tb.does_overlap(_mid):
+                return True
+
     def reset_taste_buddy(self, candidate):
         for tb in self.yield_taste_buddies():
             if tb == candidate:
@@ -1475,7 +1484,7 @@ class PoliForwardCommunity(ForwardCommunity):
         return len(response.packet)
 
     def get_most_similar(self, candidate):
-        if self.use_cardinality:
+        if self.psi_mode == PSI_CARDINALITY:
             return ForwardCommunity.get_most_similar(self, candidate)
 
         ctb = self.is_taste_buddy(candidate)
