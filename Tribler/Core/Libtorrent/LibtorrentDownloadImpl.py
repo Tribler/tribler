@@ -658,11 +658,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return self.progress
 
     def get_current_speed(self, dir):
-        """ Return last reported speed in KB/s
+        """ Return last reported speed in bytes/s
         @return float
         """
         with self.dllock:
-            return self.curspeeds[dir] / 1024.0
+            return self.curspeeds[dir]
 
     def set_moreinfo_stats(self, enable):
         """ Called by any thread """

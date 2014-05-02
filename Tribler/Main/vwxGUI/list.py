@@ -1873,10 +1873,10 @@ class LibraryList(SizeList):
 
                 item.RefreshColumn(3, ds.get_eta() if ds else None)
 
-                item.RefreshColumn(4, ds.get_current_speed('down') * 1024 if ds else 0)
+                item.RefreshColumn(4, ds.get_current_speed('down') if ds else 0)
                 item.SetToolTipColumn(4, tooltip)
 
-                item.RefreshColumn(5, ds.get_current_speed('up') * 1024 if ds else 0)
+                item.RefreshColumn(5, ds.get_current_speed('up') if ds else 0)
                 item.SetToolTipColumn(5, tooltip)
 
                 seeds, peers = ds.get_num_seeds_peers() if ds else (0, 0)

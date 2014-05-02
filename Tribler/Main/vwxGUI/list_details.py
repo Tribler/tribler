@@ -965,7 +965,7 @@ class TorrentDetails(AbstractDetails):
         if self.torrent.magnetstatus or statusflag == DLSTATUS_METADATA:
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
-            uls = ds.get_current_speed('up') * 1024
+            uls = ds.get_current_speed('up')
             status = 'Seeding @ %s' % self.utility.speed_format(uls)
         elif finished:
             status = 'Completed'
@@ -974,7 +974,7 @@ class TorrentDetails(AbstractDetails):
         elif statusflag == DLSTATUS_HASHCHECKING:
             status = 'Checking'
         elif statusflag == DLSTATUS_DOWNLOADING:
-            dls = ds.get_current_speed('down') * 1024
+            dls = ds.get_current_speed('down')
             status = 'Streaming' if is_vod else 'Downloading'
             status += ' @ %s' % self.utility.speed_format(dls)
         elif statusflag == DLSTATUS_STOPPED:
@@ -1804,8 +1804,8 @@ class ProgressPanel(wx.BoxSizer):
 
             seeds, peers = ds.get_num_seeds_peers()
 
-            dls = ds.get_current_speed('down') * 1024
-            uls = ds.get_current_speed('up') * 1024
+            dls = ds.get_current_speed('down')
+            uls = ds.get_current_speed('up')
 
             eta = ds.get_eta()
             status = ds.get_status()

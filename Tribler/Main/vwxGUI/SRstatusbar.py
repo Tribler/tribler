@@ -94,7 +94,7 @@ class SRstatusbar(wx.StatusBar):
         for ds in dslist:
             total_down += ds.get_current_speed(DOWNLOAD)
             total_up += ds.get_current_speed(UPLOAD)
-        self.SetTransferSpeeds(total_down * 1024, total_up * 1024)
+        self.SetTransferSpeeds(total_down, total_up)
 
     @warnWxThread
     def SetTransferSpeeds(self, down, up):
@@ -202,21 +202,6 @@ class SRstatusbar(wx.StatusBar):
         self.activity.Refresh()
         self.activity.SetToolTipString(msg)
         self.activity_timer = wx.CallLater(300, revert)
-
-    def format_bytes(self, bytes):
-        if bytes < 1000:
-            return '%d B' % bytes
-        if bytes < 1024:
-            return '%1.1f KB' % (bytes / 1024.0)
-        if bytes < 1022796:
-            return '%d KB' % (bytes // 1024)
-        if bytes < 1048576:
-            return '%1.1f MB' % (bytes // 1048576.0)
-        if bytes < 1047527425:
-            return '%d MB' % (bytes // 1048576)
-        if bytes < 1073741824:
-            return '%1.1f GB' % (bytes // 1073741824.0)
-        return '%d GB' % (bytes // 1073741824)
 
     def OnSize(self, event):
         self.Reposition()
