@@ -1570,7 +1570,7 @@ class SearchList(GenericSearchList):
                 def create_suggestion(parentPanel):
                     vSizer = wx.BoxSizer(wx.VERTICAL)
                     vSizer.Add(BetterText(parentPanel, -1, "Alternatively, try one of the following suggestions:"))
-                    for suggestion, hits in suggestions:
+                    for suggestion in suggestions:
                         label = LinkStaticText(parentPanel, suggestion)
                         label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
                         vSizer.Add(label)
