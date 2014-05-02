@@ -43,6 +43,8 @@ class GuiImageManager(object):
 
         self._icons = {}
 
+        print >> sys.stderr, "!! GuiImageManager initialized..."
+
     @staticmethod
     def getInstance(*args, **kw):
         if GuiImageManager.__single is None:
@@ -52,6 +54,7 @@ class GuiImageManager(object):
     @staticmethod
     def delInstance(*args, **kw):
         GuiImageManager.__single = None
+        print >> sys.stderr, "!! GuiImageManager destoryed..."
 
     @warnWxThread
     def __loadAllImages(self):

@@ -1009,6 +1009,11 @@ class ActionButton(wx.Panel):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnFocus)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ ActionButton OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def GetBitmapLabel(self):
         return self.bitmaps[0]
@@ -1073,10 +1078,10 @@ class ActionButton(wx.Panel):
             return self.bitmaps[1]
         return self.bitmaps[0]
 
-    def Bind(self, event, handler):
+    def Bind(self, event, handler, source=None):
         if event == wx.EVT_LEFT_UP:
             self.handler = handler
-        wx.Panel.Bind(self, event, handler)
+        wx.Panel.Bind(self, event, handler, source)
 
     def Enable(self, enable):
         if enable and self.handler:
@@ -1216,6 +1221,11 @@ class FancyPanel(wx.Panel):
         self.bitmap = None
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ FancyPanel OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def SetBorderColour(self, colour, highlight=None):
         self.border_colour = colour
@@ -1319,6 +1329,11 @@ class MinMaxSlider(wx.Panel):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ MinMaxSlider OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def SetMinMax(self, min, max):
         if max < min:
@@ -1464,6 +1479,11 @@ class SimpleNotebook(wx.Panel):
         vSizer.Add(self.hSizer_panels, 1, wx.EXPAND)
         self.SetSizer(vSizer)
         self.tab_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ SimpleNotebook OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def OnLeftUp(self, event):
         obj = event.GetEventObject()
@@ -1713,6 +1733,11 @@ class TagText(wx.Panel):
         self.SetMinSize((w, h))
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ TagText OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def SetValue(self, label):
         self.label = label
@@ -1766,6 +1791,11 @@ class TorrentStatus(wx.Panel):
         self.prnt_colour = parent.GetBackgroundColour()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ TorrentStatus OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def SetMinSize(self, size):
         w, h = size
@@ -1905,6 +1935,11 @@ class TransparentText(wx.StaticText):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: None)
         self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ TransparentText OnDestroy %s %s %s" % \
+            (self.__class__.__name__, self.GetId(), self.GetName())
 
     def SetLabel(self, value):
         size = self.GetTextExtent(value)
@@ -1963,6 +1998,11 @@ class TextCtrl(wx.TextCtrl):
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnGetFocus)
         self.Bind(wx.EVT_SET_FOCUS, self.OnGetFocus)
         self.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ TextCtrl OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def SetDescriptiveText(self, descr_label):
         self.descr_label = descr_label
@@ -2004,6 +2044,11 @@ class StaticBitmaps(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ StaticBitmaps OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def SetPositions(self):
         width, height = self.GetSize()
@@ -2106,6 +2151,11 @@ class Graph(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ Graph OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def SetAxisLabels(self, x_label, y_label):
         self.x_label = x_label
@@ -2240,6 +2290,11 @@ class VideoProgress(wx.Panel):
         self.SetValue(value)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ VideoProgress OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def SetValue(self, value):
         self.value = value
@@ -2323,6 +2378,11 @@ class VideoSlider(wx.Panel):
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ VideoSlider OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def GetValue(self):
         return self.value
@@ -2458,6 +2518,11 @@ class VideoVolume(wx.Panel):
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ VideoVolume OnDestroy %s %s" % \
+            (self.__class__.__name__, self.GetId())
 
     def PositionOnTriangle(self, position=None):
         x, y = position or self.ScreenToClient(wx.GetMousePosition())

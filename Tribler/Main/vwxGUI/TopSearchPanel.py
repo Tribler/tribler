@@ -60,6 +60,10 @@ class TopSearchPanel(FancyPanel):
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.AddComponents()
         self.Bind(wx.EVT_SIZE, self.OnResize)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ TopSearchPanel OnDestroy()"
 
     def AddComponents(self):
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))

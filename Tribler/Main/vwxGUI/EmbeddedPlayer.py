@@ -8,6 +8,8 @@
 import wx
 import time
 import logging
+import sys
+
 from threading import currentThread
 from traceback import print_exc
 
@@ -162,6 +164,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.guiutility.utility.session.add_observer(self.OnVideoBuffering, NTFY_TORRENTS, [NTFY_VIDEO_BUFFERING])
 
             self.videoplayer.set_internalplayer_callback(self.LoadAndStartPlay)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
 
     def OnVideoBuffering(self, subject, changeType, torrent_tuple):
         download_hash, _, is_buffering = torrent_tuple
@@ -505,6 +508,10 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.Destroy()
             self.vlcwin = vlcwin
 
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ Destroying EmbeddedPlayerPanel"
+
+
 class VLCWindow(wx.Panel):
     """ A wx.Window to be passed to the vlc.MediaControl to draw the video in (normally). """
 
@@ -524,8 +531,14 @@ class VLCWindow(wx.Panel):
         self.vlcwrap.set_window(self)
         self.Refresh()
 
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
     def get_vlcwrap(self):
         return self.vlcwrap
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ Destroying VLCWindow"
+
 
 class LogoWindow(wx.Panel):
     """ A wx.Window that can display the buffering progress when VLC is not playing. """

@@ -30,6 +30,7 @@ http://boa-constructor.cvs.sourceforge.net/boa-constructor/boa/About.py?revision
 for inspiration and code.
 """
 
+import sys
 import logging
 import wx
 
@@ -67,10 +68,15 @@ class GaugeSplash(wx.Frame):
         self.Layout()
         self.Show(True)
 
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
+
         try:
             wx.Yield()
         except:
             pass
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ GaugeSplash OnDestroy() %s" % self.__class__.__name__
 
     def setTicks(self, count):
         """Set the total number of ticks that will be contained in the

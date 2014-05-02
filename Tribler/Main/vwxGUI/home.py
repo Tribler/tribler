@@ -97,8 +97,12 @@ class Home(wx.Panel):
         self.Layout()
 
         self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
 
         self.SearchFocus()
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "+++ Home OnDestroy()"
 
     def OnRightClick(self, event):
         menu = wx.Menu()

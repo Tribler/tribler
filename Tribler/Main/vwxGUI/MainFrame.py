@@ -348,6 +348,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_ICONIZE, self.onIconify)
         self.Bind(wx.EVT_SIZE, self.onSize)
         self.Bind(wx.EVT_MAXIMIZE, self.onSize)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.OnDestroy, self)
 
         findId = wx.NewId()
         quitId = wx.NewId()
@@ -393,6 +394,9 @@ class MainFrame(wx.Frame):
 
         if event:
             event.Skip()
+
+    def OnDestroy(self, event):
+        print >> sys.stderr, "~~~ MainFrame OnDestroy()", event.GetEventObject()
 
     def startCMDLineTorrent(self):
         if self.params[0] != "" and not self.params[0].startswith("--"):
@@ -1062,7 +1066,7 @@ class MainFrame(wx.Frame):
             except:
                 print_exc()
 
-        print >> sys.stderr, 'GUI closing'
+        print >> sys.stderr, '+++ MainFrame closing'
         self.utility.abcquitting = True
         self.GUIupdate = False
 
@@ -1098,7 +1102,7 @@ class MainFrame(wx.Frame):
         for t in ts:
             self._logger.info("mainframe: Thread still running %s daemon %s", t.getName(), t.isDaemon())
 
-        print >> sys.stderr, 'GUI closed'
+        print >> sys.stderr, '--- MainFrame closed'
 
     @forceWxThread
     def onWarning(self, exc):
@@ -1211,11 +1215,14 @@ class MainFrame(wx.Frame):
     @forceWxThread
     def quit(self, force=True):
         self._logger.info("mainframe: in quit")
+        print >> sys.stderr, "+++ MainFrame in quit()"
         if self.wxapp is not None:
             self._logger.info("mainframe: using self.wxapp")
+            print >> sys.stderr, "=== MainFrame using self.wxapp"
             app = self.wxapp
         else:
             self._logger.info("mainframe: got app from wx")
+            print >> sys.stderr, "=== MainFrame using wx.GetApp()"
             app = wx.GetApp()
 
         self._logger.info("mainframe: looping through toplevelwindows")
@@ -1223,9 +1230,11 @@ class MainFrame(wx.Frame):
             if item != self:
                 if isinstance(item, wx.Dialog):
                     self._logger.info("mainframe: destroying %s", item)
+                    print >> sys.stderr, "=== MainFrame destroying %s" % item
                     item.Destroy()
                 item.Close()
         self._logger.info("mainframe: destroying %s", self)
+        print >> sys.stderr, "=== MainFrame Destroy()"
         self.Destroy()
 
         if app:
