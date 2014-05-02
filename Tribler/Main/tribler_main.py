@@ -16,7 +16,7 @@ import sys
 import logging
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
 from Tribler.Core.version import version_id, commit_id, build_date
-from Tribler.Core.osutils import fix_filebasename
+from Tribler.Core.osutils import fix_filebasename, get_free_space
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,7 @@ from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 # import hotshot
 
+from collections import defaultdict
 from traceback import print_exc
 import urllib2
 import tempfile
@@ -122,6 +123,7 @@ from time import time, sleep
 
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
+FREE_SPACE_CHECK_INTERVAL = 300.0
 
 DEBUG = False
 DEBUG_DOWNLOADS = False
@@ -287,6 +289,7 @@ class ABCApp():
 
             self.splash.Destroy()
             self.frame.Show(True)
+            self.guiserver.add_task(self.guiservthread_free_space_check, 0)
 
             self.torrentfeed = RssParser.getInstance()
 
@@ -701,6 +704,27 @@ class ABCApp():
                 initialdlstatus_dict[id] = DLSTATUS_STOPPED
 
         self.utility.session.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
+
+    def guiservthread_free_space_check(self):
+        free_space = get_free_space(DefaultDownloadStartupConfig.getInstance().get_dest_dir())
+        self.frame.SRstatusbar.RefreshFreeSpace(free_space)
+
+        storage_locations = defaultdict(list)
+        for download in self.utility.session.get_downloads():
+            if download.get_def().get_def_type() == 'torrent' and download.get_status() == DLSTATUS_DOWNLOADING:
+                storage_locations[download.get_dest_dir()].append(download)
+
+        show_message = False
+        low_on_space = [path for path in set(storage_locations.keys()) if get_free_space(path) < self.utility.read_config('free_space_threshold')]
+        for path in low_on_space:
+            for download in storage_locations[path]:
+                download.stop()
+                show_message = True
+
+        if show_message:
+            wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.", "Error")
+
+        self.guiserver.add_task(self.guiservthread_free_space_check, FREE_SPACE_CHECK_INTERVAL)
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """

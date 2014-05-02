@@ -5,7 +5,7 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.vwxGUI import warnWxThread
+from Tribler.Main.vwxGUI import warnWxThread, forceWxThread
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import HorizontalGauge, ActionButton
@@ -18,9 +18,9 @@ class SRstatusbar(wx.StatusBar):
 
         # On Linux/OS X the resize handle and icons overlap, therefore we add an extra field.
         # On Windows this field is automatically set to 1 when the wx.ST_SIZEGRIP is set.
-        self.SetFieldsCount(6)
-        self.SetStatusStyles([wx.SB_FLAT] * 6)
-        self.SetStatusWidths([-1, 250, 19, 19, 19, 19])
+        self.SetFieldsCount(7)
+        self.SetStatusStyles([wx.SB_FLAT] * 7)
+        self.SetStatusWidths([-1, 250, 50, 19, 19, 19, 19])
 
         self._gui_image_manager = GuiImageManager.getInstance()
 
@@ -43,6 +43,10 @@ class SRstatusbar(wx.StatusBar):
         self.speed_up_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
         self.speed_up = wx.StaticText(self, -1, '')
         self.speed_up.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
+
+        self.free_space_icon = self._gui_image_manager.getImage(u"drive.png")
+        self.free_space_sbmp = wx.StaticBitmap(self, -1, self.free_space_icon)
+        self.free_space = wx.StaticText(self, -1, '')
 
         self.searchConnectionImages = [u"progressbarEmpty.png", u"progressbarFull.png"]
         self.searchConnectionImages = [self._gui_image_manager.getImage(image) for image in self.searchConnectionImages]
@@ -68,6 +72,22 @@ class SRstatusbar(wx.StatusBar):
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
         self.library_manager.add_download_state_callback(self.RefreshTransferSpeed)
+
+    @forceWxThread
+    def RefreshFreeSpace(self, space):
+        if space >= 0:
+            space_str = self.utility.size_format(space, truncate=1)
+            space_label = space_str.replace(' ', '')
+            space_tooltip = 'You current have %s of disk space available on your default download location.' % space_str
+            self.free_space.SetLabel(space_label)
+            self.free_space.SetToolTipString(space_tooltip)
+            self.free_space.Show(True)
+            self.free_space_sbmp.SetToolTipString(space_tooltip)
+            self.free_space_sbmp.Show(True)
+        else:
+            self.free_space.Show(False)
+            self.free_space_sbmp.Show(False)
+        self.Reposition()
 
     def RefreshTransferSpeed(self, dslist, magnetlist):
         total_down, total_up = 0.0, 0.0
@@ -217,18 +237,26 @@ class SRstatusbar(wx.StatusBar):
             control.SetPosition((x, rect.y + yAdd))
 
         rect = self.GetFieldRect(2)
+        x = rect.x + rect.width
+        for control in [self.free_space, self.free_space_sbmp]:
+            size = control.GetSize()
+            yAdd = (rect.height - size[1]) / 2
+            x -= size[0] + 5
+            control.SetPosition((x, rect.y + yAdd))
+
+        rect = self.GetFieldRect(3)
         size = self.connection.GetSize()
         yAdd = (rect.height - size[1]) / 2
         xAdd = (rect.width - size[0]) / 2
         self.connection.SetPosition((rect.x + xAdd, rect.y + yAdd))
 
-        rect = self.GetFieldRect(3)
+        rect = self.GetFieldRect(4)
         size = self.activity.GetSize()
         yAdd = (rect.height - size[1]) / 2
         xAdd = (rect.width - size[0]) / 2
         self.activity.SetPosition((rect.x + xAdd, rect.y + yAdd))
 
-        rect = self.GetFieldRect(4)
+        rect = self.GetFieldRect(5)
         size = self.firewallStatus.GetSize()
         yAdd = (rect.height - size[1]) / 2
         xAdd = (rect.width - size[0]) / 2
