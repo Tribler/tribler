@@ -297,7 +297,7 @@ class DownloadState(Serializable):
         if len(self.download.get_selected_files()) > 0:
             files = self.download.get_selected_files()
         else:
-            files = self.download.get_def().get_files()
+            files = self.download.get_def().get_files_as_unicode()
 
         completion = []
         if self.filepieceranges:

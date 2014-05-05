@@ -629,7 +629,8 @@ class ABCApp():
             doCheckpoint = False
             for ds in dslist:
                 state = ds.get_status()
-                safename = ds.get_download().get_def().get_name()
+                cdef = ds.get_download().get_def()
+                safename = cdef.get_name_as_unicode() if cdef.get_def_type() == 'torrent' else cdef.get_name()
 
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)

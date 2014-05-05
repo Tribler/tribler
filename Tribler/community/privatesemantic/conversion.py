@@ -31,7 +31,7 @@ def bytes_to_long(val, nrbytes=0):
 
 class ForwardConversion(BinaryConversion):
     def __init__(self, community):
-        super(ForwardConversion, self).__init__(community, "\x01")
+        super(ForwardConversion, self).__init__(community, "\x02")
         # we need to use 4 , 5, and 6 as we are combining this overlay with the searchcommunity which has 1,2,and 3 defined.
         self.define_meta_message(chr(4), community.get_meta_message(u"similarity-reveal"), lambda message: self._encode_decode(self._encode_simi_reveal, self._decode_simi_reveal, message), self._decode_simi_reveal)
         self.define_meta_message(chr(5), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)

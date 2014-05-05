@@ -133,7 +133,7 @@ class SearchCommunity(Community):
     def initiate_meta_messages(self):
         return super(SearchCommunity, self).initiate_meta_messages() + [
             Message(self, u"search-request",
-                    MemberAuthentication(encoding="sha1"),
+                    MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
@@ -141,7 +141,7 @@ class SearchCommunity(Community):
                     self.check_search,
                     self.on_search),
             Message(self, u"search-response",
-                    MemberAuthentication(encoding="sha1"),
+                    MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
@@ -149,7 +149,7 @@ class SearchCommunity(Community):
                     self.check_search_response,
                     self.on_search_response),
             Message(self, u"torrent-request",
-                    MemberAuthentication(encoding="sha1"),
+                    MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
@@ -157,7 +157,7 @@ class SearchCommunity(Community):
                     self.check_torrent_request,
                     self.on_torrent_request),
             Message(self, u"torrent-collect-request",
-                    MemberAuthentication(encoding="sha1"),
+                    MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
@@ -165,7 +165,7 @@ class SearchCommunity(Community):
                     self.check_torrent_collect_request,
                     self.on_torrent_collect_request),
             Message(self, u"torrent-collect-response",
-                    MemberAuthentication(encoding="sha1"),
+                    MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
@@ -173,7 +173,7 @@ class SearchCommunity(Community):
                     self.check_torrent_collect_response,
                     self.on_torrent_collect_response),
             Message(self, u"torrent",
-                    MemberAuthentication(encoding="sha1"),
+                    MemberAuthentication(),
                     PublicResolution(),
                     FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128),
                     CommunityDestination(node_count=0),
@@ -186,9 +186,7 @@ class SearchCommunity(Community):
         Community._initialize_meta_messages(self)
 
         ori = self._meta_messages[u"dispersy-introduction-request"]
-        self._disp_intro_handler = ori.handle_callback
-
-        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, TasteIntroPayload(), ori.check_callback, self.on_taste_intro)
+        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, TasteIntroPayload(), ori.check_callback, ori.handle_callback)
         self._meta_messages[u"dispersy-introduction-request"] = new
 
     def initiate_conversions(self):
@@ -299,8 +297,8 @@ class SearchCommunity(Community):
         self._dispersy._forward([request])
         return request
 
-    def on_taste_intro(self, messages):
-        self._disp_intro_handler(messages)
+    def on_introduction_request(self, messages):
+        super(SearchCommunity, self).on_introduction_request(messages)
         messages = [message for message in messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
 
         if any(message.payload.taste_bloom_filter for message in messages):

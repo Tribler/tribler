@@ -650,7 +650,10 @@ class TorrentDBHandler(BasicDBHandler):
         status_id = self.misc_db.torrentStatusName2Id(u'unknown')
         sql = "INSERT INTO Torrent (infohash, status_id) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), status_id) for infohash in to_be_inserted])
-        return self.getTorrentIDS(infohashes), to_be_inserted
+
+        torrent_ids = self.getTorrentIDS(infohashes)
+        assert all(torrent_id for torrent_id in torrent_ids), torrent_ids
+        return torrent_ids, to_be_inserted
 
     def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
@@ -1608,8 +1611,8 @@ class TorrentDBHandler(BasicDBHandler):
         return results
 
     def getAutoCompleteTerms(self, keyword, max_terms, limit=100):
-        sql = "SELECT swarmname FROM FullTextIndex WHERE FullTextIndex MATCH 'swarmname: %s*' LIMIT ?" % keyword
-        result = self._db.fetchall(sql, (limit,))
+        sql = "SELECT swarmname FROM FullTextIndex WHERE swarmname MATCH ? LIMIT ?"
+        result = self._db.fetchall(sql, (keyword + '*', limit))
 
         all_terms = set()
         for line, in result:
@@ -1621,16 +1624,15 @@ class TorrentDBHandler(BasicDBHandler):
 
         if keyword in all_terms:
             all_terms.remove(keyword)
+        if '' in all_terms:
+            all_terms.remove('')
 
         return list(all_terms)
 
     def getSearchSuggestion(self, keywords, limit=1):
-        match = [keyword.lower() for keyword in keywords]
+        match = [keyword.lower() for keyword in keywords if len(keyword) > 3]
 
-        def lev(b):
-            a = match
-            b = b.lower()
-
+        def lev(a, b):
             "Calculates the Levenshtein distance between a and b."
             n, m = len(a), len(b)
             if n > m:
@@ -1651,8 +1653,8 @@ class TorrentDBHandler(BasicDBHandler):
             return current[n]
 
         def levcollate(s1, s2):
-            l1 = lev(s1.split()[0])
-            l2 = lev(s2.split()[0])
+            l1 = sum(sorted([lev(a, b) for a in s1.split() for b in match])[:len(match)])
+            l2 = sum(sorted([lev(a, b) for a in s2.split() for b in match])[:len(match)])
 
             # return -1 if s1<s2, +1 if s1>s2 else 0
             if l1 < l2:
@@ -1665,10 +1667,10 @@ class TorrentDBHandler(BasicDBHandler):
         connection = cursor.getconnection()
         connection.createcollation("leven", levcollate)
 
-        sql = "SELECT term, freq FROM TermFrequency WHERE term LIKE '%" + match[0] + "'ORDER By term collate leven ASC, freq DESC LIMIT ?"
-        result = self._db.fetchall(sql, (limit,))
+        sql = "SELECT swarmname FROM FullTextIndex WHERE swarmname MATCH ? ORDER By swarmname collate leven ASC LIMIT ?"
+        results = self._db.fetchall(sql, (' OR '.join(['*%s*' % m for m in match]), limit))
         connection.createcollation("leven", None)
-        return result
+        return [result[0] for result in results]
 
     def getTorrentFiles(self, torrent_id):
         sql = "SELECT path, length FROM TorrentFiles WHERE torrent_id = ?"
@@ -1811,8 +1813,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             recent_preflist_with_clicklog = []
         else:
             recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3],  # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1],  # click position
+                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
+                                              t[1], # click position
                                               t[2]]  # reranking strategy
                                              for t in recent_preflist_with_clicklog]
 
@@ -1980,7 +1982,7 @@ class VoteCastDBHandler(BasicDBHandler):
                         negative_votes[channel_id] = negative_votes.get(channel_id, 0) + 1
 
                 updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
-                self._db.executemany("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
+                self._db.executemany("UPDATE OR IGNORE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
 
                 for channel_id in channel_ids:
                     self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)

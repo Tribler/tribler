@@ -22,7 +22,7 @@ class TemplateCommunity(Community):
     def initiate_meta_messages(self):
         return super(TemplateCommunity, self).initiate_meta_messages() + [
             Message(self, u"text",
-                    MemberAuthentication(encoding="sha1"),
+                    MemberAuthentication(),
                     LinearResolution(),
                     FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128),
                     CommunityDestination(node_count=10),

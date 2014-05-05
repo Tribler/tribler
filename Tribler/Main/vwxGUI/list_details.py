@@ -759,8 +759,7 @@ class TorrentDetails(AbstractDetails):
             selection.append(index)
 
         selection = set([self.filesList.GetItem(index, 0).GetText() for index in selection])
-        selected_files = set(download.get_selected_files()) or set(download.get_def().get_files())
-        all_files = set(download.get_selected_files())
+        selected_files = set(download.get_selected_files()) or set(download.get_def().get_files_as_unicode())
 
         selected_files_includable = selection - selected_files
         selected_files_excludable = selection & selected_files
@@ -773,11 +772,11 @@ class TorrentDetails(AbstractDetails):
         menuitems = [("Include", [], False), ("Exclude", [], False)]
 
         if selected_files_includable:
-            files = list(all_files | selected_files_includable)
+            files = list(selected_files | selected_files_includable)
             menuitems[0] = ("Include", files, True)
 
         if selected_files_excludable:
-            files = list(all_files - selected_files_excludable)
+            files = list(selected_files - selected_files_excludable)
             # Don't allow excluding everything
             if files:
                 menuitems[1] = ("Exclude", files, True)
@@ -2189,8 +2188,8 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             return ""
 
         self.links = []
-        files = self.tdef.get_files()
-        videofiles = self.tdef.get_files(exts=videoextdefaults)
+        files = self.tdef.get_files_as_unicode()
+        videofiles = self.tdef.get_files_as_unicode(exts=videoextdefaults)
         for filename in sorted(files):
             if filename in videofiles:
                 fileindex = files.index(filename)
@@ -2324,7 +2323,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 self.fileindex = link.fileindex
                 self.DoHighlight()
                 # This needs to be in a CallAfter, or VLC may crash.
-                wx.CallAfter(lambda: self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files()[self.fileindex]))
+                wx.CallAfter(lambda: self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files_as_unicode()[self.fileindex]))
 
         for link in self.links:
             mousepos = wx.GetMousePosition()
@@ -2348,4 +2347,4 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                     control_next.SetForegroundColour(TRIBLER_RED)
                     self.fileindex = control_next.fileindex
                     self.DoHighlight()
-                    self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files()[control_next.fileindex])
+                    self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files_as_unicode()[control_next.fileindex])

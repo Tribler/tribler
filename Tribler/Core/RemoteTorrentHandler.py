@@ -338,7 +338,7 @@ class RemoteTorrentHandler:
                     os.remove(mfpath + ".mhash")
 
                 try:
-                    shutil.copy(filename, mfpath)
+                    shutil.move(filename, mfpath)
                     shutil.move(filename + '.mhash', mfpath + '.mhash')
                     shutil.move(filename + '.mbinmap', mfpath + '.mbinmap')
 

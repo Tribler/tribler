@@ -242,7 +242,9 @@ class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
         """
         # Class method, no locking required
         dlconfig = CallbackConfigParser()
-        if not dlconfig.read(filename):
+        try:
+            dlconfig.read_file(filename)
+        except:
             raise IOError, "Failed to open download config file"
 
         return DownloadStartupConfig(dlconfig)
@@ -254,9 +256,7 @@ class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
         @param filename  An absolute Unicode filename
         """
         # Called by any thread
-        config_file = open(filename, "wb")
-        self.dlconfig.write(config_file)
-        config_file.close()
+        self.sessconfig.write_file(filename)
 
     #
     # Copyable interface
