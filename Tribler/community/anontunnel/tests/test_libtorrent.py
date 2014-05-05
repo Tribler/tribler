@@ -63,7 +63,7 @@ class LibtorrentTest(TunnelObserver):
             wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
         def state_call():
-            stats_collector = StatsCollector(self.proxy)
+            stats_collector = StatsCollector(self.proxy, "AnonTest")
 
             def _callback(ds):
                 if self.stopping:

@@ -46,7 +46,7 @@ class RelayStats:
 
 
 class StatsCollector(TunnelObserver):
-    def __init__(self, proxy):
+    def __init__(self, proxy, name):
         """
         @type proxy: Tribler.community.anontunnel.community.ProxyCommunity
         """
@@ -54,7 +54,8 @@ class StatsCollector(TunnelObserver):
         TunnelObserver.__init__(self)
         
         self._logger = logging.getLogger(__name__)
-        
+        self.name = name
+
         self.stats = {
             'bytes_returned': 0,
             'bytes_exit': 0,
@@ -76,6 +77,7 @@ class StatsCollector(TunnelObserver):
         """
         Pause stats collecting
         """
+        self._logger.info("Removed StatsCollector %s as observer", self.name)
         self.running = False
         self.proxy.observers.remove(self)
 
@@ -93,9 +95,9 @@ class StatsCollector(TunnelObserver):
 
     def start(self):
         if self.running:
-            raise ValueError("Cannot start an already running stats collector")
+            raise ValueError("Cannot start collector {0} since it is already running".format(self.name))
 
-        self._logger.error("Resuming stats collecting!")
+        self._logger.info("Resuming stats collector {0}!".format(self.name))
         self.running = True
         self.proxy.observers.append(self)
         self.proxy.dispersy.callback.register(self.__calc_speeds)
@@ -213,6 +215,7 @@ class StatsCollector(TunnelObserver):
 
     def share_stats(self):
         self.proxy.send_stats(self._create_stats())
+
 
 class StatsDatabase(Database):
     LATEST_VERSION = 1

@@ -121,7 +121,7 @@ class ProxyCommunity(Community):
         # Enable global counters
         from Tribler.community.anontunnel.stats import StatsCollector
 
-        self.global_stats = StatsCollector(self)
+        self.global_stats = StatsCollector(self, "global")
         self.global_stats.start()
 
         # Listen to prefix endpoint
