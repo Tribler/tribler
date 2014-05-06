@@ -715,7 +715,7 @@ class ABCApp():
                 storage_locations[download.get_dest_dir()].append(download)
 
         show_message = False
-        low_on_space = [path for path in set(storage_locations.keys()) if get_free_space(path) < self.utility.read_config('free_space_threshold')]
+        low_on_space = [path for path in storage_locations.keys() if get_free_space(path) < self.utility.read_config('free_space_threshold')]
         for path in low_on_space:
             for download in storage_locations[path]:
                 download.stop()
