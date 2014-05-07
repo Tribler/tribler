@@ -258,14 +258,16 @@ class DefaultCrypto(Crypto):
         @return CreateMessage: Version of the message with encrypted contents
         """
 
+        pub_key = iter(candidate.get_members()).next()._ec
+        message.public_key = self.proxy.crypto.key_to_bin(self.proxy.my_member._ec.pub())
+
         if circuit_id in self.proxy.circuits:
             dh_secret, dh_first_part = self._generate_diffie_secret()
-
-            pub_key = iter(candidate.get_members()).next()._ec
 
             encrypted_dh_first_part = self.proxy.crypto.encrypt(
                 pub_key, long_to_bytes(dh_first_part))
             message.key = encrypted_dh_first_part
+
             hop = self.proxy.circuits[circuit_id].unverified_hop
             hop.dh_secret = dh_secret
             hop.dh_first_part = dh_first_part
@@ -289,6 +291,7 @@ class DefaultCrypto(Crypto):
         relay_key = (candidate.sock_addr, circuit_id)
         my_key = self.proxy.my_member._ec
         dh_second_part = mpz(bytes_to_long(self.proxy.crypto.decrypt(my_key, message.key)))
+        message.key = dh_second_part
 
         if dh_second_part < 2 or dh_second_part > DIFFIE_HELLMAN_MODULUS - 1:
             self._logger.warning("Invalid DH data received over circuit {}.".format(circuit_id))
