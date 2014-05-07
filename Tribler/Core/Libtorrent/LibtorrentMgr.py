@@ -1,5 +1,6 @@
 
 # Written by Egbert Bouman
+from libtorrent import proxy_type
 import os
 import time
 import binascii
@@ -99,11 +100,14 @@ class LibtorrentMgr:
         if not os.path.exists(self.metadata_tmpdir):
             os.mkdir(self.metadata_tmpdir)
 
+        self.ltsession_anon = None
+
     def getInstance(*args, **kw):
         if LibtorrentMgr.__single is None:
             LibtorrentMgr(*args, **kw)
         return LibtorrentMgr.__single
     getInstance = staticmethod(getInstance)
+    ''' :type : () -> LibtorrentMgr '''
 
     def delInstance():
         del LibtorrentMgr.__single
@@ -113,6 +117,38 @@ class LibtorrentMgr:
     def hasInstance():
         return LibtorrentMgr.__single != None
     hasInstance = staticmethod(hasInstance)
+
+    def is_anon_ready(self):
+        return self.ltsession_anon is not None
+
+    def create_anonymous_session(self):
+        settings = lt.session_settings()
+        settings.enable_outgoing_utp = True
+        settings.enable_incoming_utp = True
+        settings.enable_outgoing_tcp = False
+        settings.enable_incoming_tcp = False
+        settings.anonymous_mode = True
+        ltsession = lt.session(flags=1)
+        ltsession.set_settings(settings)
+        ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
+                                 lt.alert.category_t.error_notification |
+                                 lt.alert.category_t.status_notification |
+                                 lt.alert.category_t.storage_notification |
+                                 lt.alert.category_t.performance_warning |
+                                 lt.alert.category_t.debug_notification)
+
+        proxy_settings = lt.proxy_settings()
+        proxy_settings.type = lt.proxy_type(proxy_type.socks5)
+        proxy_settings.hostname = "127.0.0.1"
+        proxy_settings.port = self.trsession.get_socks5_listen_port()
+        proxy_settings.proxy_hostnames = True
+        proxy_settings.proxy_peer_connections = True
+
+        self.ltsession_anon = ltsession
+        self.ltsession_anon.set_proxy(proxy_settings)
+
+        ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
+        self._logger.info("Started ANON LibTorrent session on port %d", ltsession.listen_port())
 
     def shutdown(self):
         # Save DHT state
@@ -173,41 +209,11 @@ class LibtorrentMgr:
     def is_dht_ready(self):
         return self.dht_ready
 
-    def queue_position_up(self, infohash):
-        with self.torlock:
-            download = self.torrents.get(hexlify(infohash), None)
-            if download:
-                download.handle.queue_position_up()
-                self._refresh_queue_positions()
-
-    def queue_position_down(self, infohash):
-        with self.torlock:
-            download = self.torrents.get(hexlify(infohash), None)
-            if download:
-                download.handle.queue_position_down()
-                self._refresh_queue_positions()
-
-    def queue_position_top(self, infohash):
-        with self.torlock:
-            download = self.torrents.get(hexlify(infohash), None)
-            if download:
-                download.handle.queue_position_top()
-                self._refresh_queue_positions()
-
-    def queue_position_bottom(self, infohash):
-        with self.torlock:
-            download = self.torrents.get(hexlify(infohash), None)
-            if download:
-                download.handle.queue_position_bottom()
-                self._refresh_queue_positions()
-
-    def _refresh_queue_positions(self):
-        for d in self.torrents.values():
-            d.queue_position = d.handle.queue_position()
-
     def add_torrent(self, torrentdl, atp):
         # If we are collecting the torrent for this infohash, abort this first.
         with self.metainfo_lock:
+            anon_mode = atp.pop('anon_mode', False)
+            ltsession = self.ltsession_anon if anon_mode else self.ltsession
 
             if atp.has_key('ti'):
                 infohash = str(atp['ti'].info_hash())
@@ -220,14 +226,14 @@ class LibtorrentMgr:
                 self._logger.info("LibtorrentMgr: killing get_metainfo request for %s", infohash)
                 handle, _, _ = self.metainfo_requests.pop(infohash)
                 if handle:
-                    self.ltsession.remove_torrent(handle, 0)
+                    ltsession.remove_torrent(handle, 0)
 
-            handle = self.ltsession.add_torrent(encode_atp(atp))
+            handle = ltsession.add_torrent(encode_atp(atp))
             infohash = str(handle.info_hash())
             with self.torlock:
                 if infohash in self.torrents:
                     raise DuplicateDownloadException()
-                self.torrents[infohash] = torrentdl
+                self.torrents[infohash] = (torrentdl, ltsession)
 
             self._logger.debug("LibtorrentMgr: added torrent %s", infohash)
 
@@ -239,7 +245,7 @@ class LibtorrentMgr:
             infohash = str(handle.info_hash())
             with self.torlock:
                 if infohash in self.torrents:
-                    self.ltsession.remove_torrent(handle, int(removecontent))
+                    self.torrents[infohash][1].remove_torrent(handle, int(removecontent))
                     del self.torrents[infohash]
                     self._logger.debug("LibtorrentMgr: remove torrent %s", infohash)
                 else:
@@ -263,31 +269,36 @@ class LibtorrentMgr:
                 self.upnp_mapper.delete_mapping(mapping)
 
     def process_alerts(self):
-        if self.ltsession:
-            alert = self.ltsession.pop_alert()
-            while alert:
-                alert_type = str(type(alert)).split("'")[1].split(".")[-1]
-                if alert_type == 'external_ip_alert':
-                    external_ip = str(alert).split()[-1]
-                    if self.external_ip != external_ip:
-                        self.external_ip = external_ip
-                        self._logger.info('LibtorrentMgr: external IP is now %s', self.external_ip)
-                handle = getattr(alert, 'handle', None)
-                if handle:
-                    if handle.is_valid():
-                        infohash = str(handle.info_hash())
-                        with self.torlock:
-                            if infohash in self.torrents:
-                                self.torrents[infohash].process_alert(alert, alert_type)
-                            elif infohash in self.metainfo_requests:
-                                if type(alert) == lt.metadata_received_alert:
-                                    self.got_metainfo(infohash)
-                            else:
-                                self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+        for ltsession in [self.ltsession, self.ltsession_anon]:
+            if ltsession:
+                alert = ltsession.pop_alert()
+                while alert:
+                    self.process_alert(alert)
+                    alert = ltsession.pop_alert()
+
+        self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
+
+    def process_alert(self, alert):
+        alert_type = str(type(alert)).split("'")[1].split(".")[-1]
+        if alert_type == 'external_ip_alert':
+            external_ip = str(alert).split()[-1]
+            if self.external_ip != external_ip:
+                self.external_ip = external_ip
+                self._logger.info('LibtorrentMgr: external IP is now %s', self.external_ip)
+        handle = getattr(alert, 'handle', None)
+        if handle:
+            if handle.is_valid():
+                infohash = str(handle.info_hash())
+                with self.torlock:
+                    if infohash in self.torrents:
+                        self.torrents[infohash][0].process_alert(alert, alert_type)
+                    elif infohash in self.metainfo_requests:
+                        if type(alert) == lt.metadata_received_alert:
+                            self.got_metainfo(infohash)
                     else:
-                        self._logger.debug("LibtorrentMgr: alert for invalid torrent")
-                alert = self.ltsession.pop_alert()
-            self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
+                        self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+            else:
+                self._logger.debug("LibtorrentMgr: alert for invalid torrent")
 
     def reachability_check(self):
         if self.ltsession and self.ltsession.status().has_incoming_connections:

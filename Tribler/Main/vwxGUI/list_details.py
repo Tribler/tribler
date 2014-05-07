@@ -35,10 +35,8 @@ from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, startWorker, \
     SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
-    SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, \
-    FancyPanel, TransparentText, LinkText, StaticBitmaps, \
+from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
+    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 
 
@@ -979,6 +977,8 @@ class TorrentDetails(AbstractDetails):
             status += ' @ %s' % self.utility.speed_format(dls)
         elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
+        elif statusflag == DLSTATUS_WAITING_TUNNEL:
+            status = 'Waiting for tunnel'
 
         if status and not finished and self.torrent.progress and statusflag in [DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED]:
             status += " (%.1f%%)" % (self.torrent.progress * 100)

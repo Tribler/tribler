@@ -71,6 +71,7 @@ class SwiftProcess:
         args.append("127.0.0.1:" + str(self.cmdport))
         args.append("-g")  # HTTP gateway port
         args.append("127.0.0.1:" + str(self.httpport))
+
         args.append("-w")
         if zerostatedir is not None:
             if sys.platform == "win32":
@@ -89,7 +90,11 @@ class SwiftProcess:
 
         self._logger.debug("SwiftProcess: __init__: Running %s workdir %s", args, workdir)
 
+        startupinfo = None
         if sys.platform == "win32":
+            startupinfo = subprocess.STARTUPINFO()
+            import _subprocess
+            startupinfo.dwFlags |= _subprocess.STARTF_USESHOWWINDOW
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             creationflags = 0

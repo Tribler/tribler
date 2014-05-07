@@ -4,9 +4,9 @@
 import sys
 import random
 import time
-from traceback import print_exc
 import logging
 
+from traceback import print_exc
 from Tribler.Core.Swift.SwiftProcess import SwiftProcess
 
 

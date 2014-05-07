@@ -14,6 +14,9 @@
 
 import sys
 import logging
+from Tribler.community.anontunnel import exitstrategies
+from Tribler.community.anontunnel.Socks5.server import Socks5Server
+
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
 from Tribler.Core.version import version_id, commit_id, build_date
 from Tribler.Core.osutils import fix_filebasename
@@ -446,6 +449,7 @@ class ABCApp():
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
+            from Tribler.community.anontunnel.community import ProxyCommunity
 
             self._logger.info("tribler: Preparing communities...")
             now = time()
@@ -469,13 +473,27 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, s.dispersy_member, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity, s.dispersy_member)
 
+            keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+            dispersy_member = dispersy.get_member(
+                private_key=dispersy.crypto.key_to_bin(keypair),
+            )
+
+            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, s), load=True)[0]
+
+            socks_server = Socks5Server(proxy_community, s.lm.rawserver)
+            socks_server.start()
+            exit_strategy = exitstrategies.DefaultExitStrategy(s.lm.rawserver, proxy_community)
+            proxy_community.observers.append(exit_strategy)
+
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
         swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
+
         return s
+
 
     @staticmethod
     def determine_install_dir():

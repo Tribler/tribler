@@ -11,6 +11,7 @@ DLSTATUS_SEEDING = 4
 DLSTATUS_STOPPED = 5
 DLSTATUS_STOPPED_ON_ERROR = 6
 DLSTATUS_METADATA = 7
+DLSTATUS_WAITING_TUNNEL = 9
 
 dlstatus_strings = ['DLSTATUS_ALLOCATING_DISKSPACE',
     'DLSTATUS_WAITING4HASHCHECK',
@@ -19,7 +20,8 @@ dlstatus_strings = ['DLSTATUS_ALLOCATING_DISKSPACE',
     'DLSTATUS_SEEDING',
     'DLSTATUS_STOPPED',
     'DLSTATUS_STOPPED_ON_ERROR',
-    'DLSTATUS_METADATA']
+    'DLSTATUS_METADATA',
+    'DLSTATUS_WAITING_TUNNEL']
 
 UPLOAD = 'up'
 DOWNLOAD = 'down'
@@ -62,6 +64,7 @@ NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
 NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
+NTFY_ANONTUNNEL = 'anontunnel'
 NTFY_TRACKERINFO = 'trackerinfo'
 
 # non data handler subjects
@@ -86,6 +89,12 @@ NTFY_VIDEO_STARTED = 'video_started'
 NTFY_VIDEO_STOPPED = 'video_stopped'
 NTFY_VIDEO_ENDED = 'video_ended'
 NTFY_VIDEO_BUFFERING = 'video_bufering'
+NTFY_CREATED = 'created'
+NTFY_EXTENDED = 'extended'
+NTFY_EXTENDED_FOR = 'extended_for'
+NTFY_BROKEN = 'broken'
+NTFY_SELECT = 'select'
+NTFY_JOINED = 'joined'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0

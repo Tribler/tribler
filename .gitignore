@@ -11,7 +11,9 @@
 /output
 /swift
 /swift.exe
-\#*\#
-/.project
-/.pydevproject
+.project
+.pydevproject
+Tribler/.idea/
+/.idea
+/.TriblerAnonTunnel
 flycheck_*

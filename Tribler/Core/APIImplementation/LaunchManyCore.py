@@ -10,6 +10,9 @@ import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto, \
+    NoElgamalCrypto
 
 import logging
 from traceback import print_exc
@@ -121,12 +124,12 @@ class TriblerLaunchMany(Thread):
                 if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
                 else:
-                    endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
+                    endpoint = DispersyBypassEndpoint(self.rawserver, self.session.get_dispersy_port())
 
                 callback = Callback("Dispersy")  # WARNING NAME SIGNIFICANT
                 working_directory = unicode(self.session.get_state_dir())
 
-                self.dispersy = Dispersy(callback, endpoint, working_directory)
+                self.dispersy = Dispersy(callback, endpoint, working_directory, crypto=ElgamalCrypto())
 
                 # TODO: see if we can postpone dispersy.start to improve GUI responsiveness.
                 # However, for now we must start self.dispersy.callback before running

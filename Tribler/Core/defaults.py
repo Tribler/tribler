@@ -57,6 +57,10 @@ sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
 sessdefaults['general']['live_aux_seeders'] = []
 
+# Socks5 section
+sessdefaults['socks5'] = OrderedDict()
+sessdefaults['socks5']['listen_port'] = 1080
+
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()
 sessdefaults['mainline_dht']['enabled'] = True

@@ -7,7 +7,8 @@ from threading import RLock
 
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, DLSTATUS_ALLOCATING_DISKSPACE, \
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
-    DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
+    DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, \
+    DLSTATUS_WAITING_TUNNEL
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 
@@ -60,6 +61,7 @@ class RateManager:
         self.statusmap[DLSTATUS_SEEDING] = []
         self.statusmap[DLSTATUS_STOPPED] = []
         self.statusmap[DLSTATUS_STOPPED_ON_ERROR] = []
+        self.statusmap[DLSTATUS_WAITING_TUNNEL] = []
         for dir in [UPLOAD, DOWNLOAD]:
             self.currenttotal[dir] = 0
         self.dset.clear()

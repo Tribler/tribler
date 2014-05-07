@@ -1828,6 +1828,8 @@ class TorrentStatus(wx.Panel):
             status = 'Stopped on error'
         elif 'stopped' in torrent_state:
             status = 'Stopped'
+        elif 'waiting_tunnel' in torrent_state:
+            status = 'Waiting for tunnel'
         else:
             status = 'Unknown'
 
