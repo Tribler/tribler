@@ -140,7 +140,8 @@ class AnonTunnel(Thread):
                 self.socks5_server.start()
 
             self.community = proxy_community
-            exitstrategies.DefaultExitStrategy(raw_server, self.community)
+            exit_strategy = exitstrategies.DefaultExitStrategy(raw_server, self.community)
+            proxy_community.observers.append(exit_strategy)
 
             if self.crawl:
                 self.community.observers.append(StatsCrawler(self.dispersy, self.raw_server))

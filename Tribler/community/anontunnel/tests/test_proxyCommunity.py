@@ -44,7 +44,8 @@ class TestProxyCommunity(TestAsServer):
             settings.crypto = NoCrypto()
 
             proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
-            exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
+            exit_strategy = exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
+            proxy_community.observers.append(exit_strategy)
 
             return proxy_community
 

@@ -18,7 +18,6 @@ class DefaultExitStrategy(TunnelObserver):
 
         self.proxy = proxy
         self._exit_sockets = {}
-        proxy.observers.append(self)
 
     def on_exiting_from_tunnel(self, circuit_id, return_candidate, destination,
                                data):
