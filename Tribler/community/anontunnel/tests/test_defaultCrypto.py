@@ -7,9 +7,9 @@ from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.anontunnel import exitstrategies
 from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
 from Tribler.community.anontunnel.crypto import NoCrypto, DefaultCrypto
-from Tribler.community.anontunnel.payload import CreateMessage
+from Tribler.community.anontunnel.payload import CreateMessage, ExtendMessage, CreatedMessage
 from Tribler.community.anontunnel.routing import Circuit, Hop
-from Tribler.community.privatesemantic.conversion import long_to_bytes, bytes_to_long
+from Tribler.community.privatesemantic.conversion import long_to_bytes
 from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
 from Tribler.dispersy.endpoint import NullEndpoint
 
@@ -88,7 +88,22 @@ class TestDefaultCrypto(TestAsServer):
         return self.dispersy.callback.call(__create)
 
     def __prepare_for_create(self):
-        self.crypto.key_to_forward = '0' * 16
+        self.crypto.key_to_forward = long_to_bytes('0' * 16)
+
+    def __prepare_for_created(self, candidate, circuit_id):
+        dh_key = self.crypto._generate_diffie_secret()
+        hop = Hop(self.community.my_member._ec.pub())
+        hop.dh_secret = dh_key[0]
+        hop.dh_first_part = dh_key[1]
+        self.community.circuits[circuit_id] = Circuit(circuit_id, 1, candidate, self.community)
+        self.community.circuits[circuit_id].unverified_hop = hop
+        self.crypto._received_secrets[(candidate.sock_addr, circuit_id)] = dh_key[1]
+
+    def __generate_candidate_list(self):
+        list = {}
+        list['a'] = 'A'
+        list['b'] = 'B'
+        return list
 
     def __add_circuit(self, circuit_id):
         self.crypto.proxy.circuits[circuit_id] = Circuit(circuit_id)
@@ -117,7 +132,7 @@ class TestDefaultCrypto(TestAsServer):
         self.assertIn(relay_key, self.crypto.session_keys)
         self.assertNotIn(second_relay_key, self.crypto.session_keys)
 
-    def test__encrypt_create_content(self):
+    def test__encrypt_decrypt_create_content(self):
         #test own circuit create
         candidate = DummyCandidate(self.community.my_member._ec)
 
@@ -129,10 +144,18 @@ class TestDefaultCrypto(TestAsServer):
 
         encrypted_create_message = \
             self.crypto._encrypt_create_content(candidate, circuit_id, create_message)
-        decrypted_create_message = self.crypto._decrypt_create_content(candidate, circuit_id, encrypted_create_message)
-        self.assertEquals(create_message, decrypted_create_message)
 
-        #test another circuit create
+        unverified_hop = self.community.circuits[123].unverified_hop
+        unencrypted_key = unverified_hop.dh_first_part
+        unencrypted_pub_key = self.community.crypto.key_to_bin(self.community.my_member._ec.pub())
+        self.assertNotEquals(unencrypted_key, encrypted_create_message.key)
+
+        decrypted_create_message = self.crypto._decrypt_create_content(candidate, circuit_id, encrypted_create_message)
+
+        self.assertEquals(unencrypted_key, decrypted_create_message.key)
+        self.assertEquals(unencrypted_pub_key, decrypted_create_message.public_key)
+
+        #test other circuit create
         self.__prepare_for_create()
         del self.community.circuits[123]
         candidate = DummyCandidate(self.community.my_member._ec)
@@ -145,35 +168,56 @@ class TestDefaultCrypto(TestAsServer):
 
         encrypted_create_message = \
             self.crypto._encrypt_create_content(candidate, circuit_id, create_message)
+
+        unverified_hop = self.community.circuits[123].unverified_hop
+        unencrypted_key = unverified_hop.dh_first_part
+        unencrypted_pub_key = self.community.crypto.key_to_bin(self.community.my_member._ec.pub())
+        self.assertNotEquals(unencrypted_key, encrypted_create_message.key)
+
         decrypted_create_message = self.crypto._decrypt_create_content(candidate, circuit_id, encrypted_create_message)
-        self.assertEquals(create_message, decrypted_create_message)
 
-    def test__decrypt_create_content(self):
-        self.fail()
+        self.assertEquals(unencrypted_key, decrypted_create_message.key)
+        self.assertEquals(unencrypted_pub_key, decrypted_create_message.public_key)
 
-    def test__encrypt_extend_content(self):
-        self.fail()
 
-    def test__decrypt_extend_content(self):
-        self.fail()
+    def test__encrypt_decrypt_extend_content(self):
+        candidate = DummyCandidate(self.community.my_member._ec)
 
-    def test__encrypt_created_content(self):
-        self.fail()
+        extend_message = ExtendMessage(self.community.my_member.mid)
+        circuit_id = 123
+        self.community.circuits[123] = Circuit(123, 1, candidate, self.community)
+        hop = Hop(self.community.my_member._ec.pub())
+        self.community.circuits[123].unverified_hop = hop
 
-    def test__decrypt_created_content(self):
-        self.fail()
+        encrypted_extend_message = \
+            self.crypto._encrypt_extend_content(candidate, circuit_id, extend_message)
 
-    def test__encrypt_extended_content(self):
-        self.fail()
+        unverified_hop = self.community.circuits[123].unverified_hop
+        unencrypted_key = unverified_hop.dh_first_part
+        self.assertNotEquals(unencrypted_key, encrypted_extend_message.key)
 
-    def test__decrypt_extended_content(self):
-        self.fail()
+        decrypted_extend_message = self.crypto._decrypt_create_content(candidate, circuit_id, encrypted_extend_message)
 
-    def test__crypto_outgoing_packet(self):
-        self.fail()
+        self.assertEquals(unencrypted_key, decrypted_extend_message.key)
+        self.assertEquals(self.community.my_member.mid, decrypted_extend_message.extend_with)
 
-    def test__crypto_relay_packet(self):
-        self.fail()
 
-    def test__crypto_incoming_packet(self):
-        self.fail()
+    def test__encrypt_decrypt_created_content(self):
+        candidate = DummyCandidate(self.community.my_member._ec)
+        candidate_list = self.__generate_candidate_list()
+
+        circuit_id = 123
+        self.__prepare_for_created(candidate, circuit_id)
+
+        created_message = CreatedMessage(candidate_list)
+
+        encrypted_created_message = \
+            self.crypto._encrypt_created_content(candidate, circuit_id, created_message)
+
+        unverified_hop = self.community.circuits[circuit_id].unverified_hop
+        unencrypted_key = unverified_hop.dh_first_part
+        self.assertNotEquals(unencrypted_key, encrypted_created_message.key)
+
+        decrypted_created_message = self.crypto._decrypt_created_content(candidate, circuit_id, encrypted_created_message)
+
+        self.assertEquals(candidate_list, decrypted_created_message.candidate_list)
