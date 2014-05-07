@@ -193,7 +193,7 @@ class NoCrypto(Crypto):
 class DefaultCrypto(Crypto):
 
     @staticmethod
-    def __generate_diffie_secret():
+    def _generate_diffie_secret():
         """
         Generates a new Diffie Hellman g^x. Note the mpz lib used for Windows
         @return: tuple of x and g^x
@@ -259,7 +259,7 @@ class DefaultCrypto(Crypto):
         """
 
         if circuit_id in self.proxy.circuits:
-            dh_secret, dh_first_part = self.__generate_diffie_secret()
+            dh_secret, dh_first_part = self._generate_diffie_secret()
 
             pub_key = iter(candidate.get_members()).next()._ec
 
@@ -309,7 +309,7 @@ class DefaultCrypto(Crypto):
         @param ExtendMessage message: Message as passed from the community
         @return ExtendMessage: Version of the message with encrypted contents
         """
-        dh_secret, dh_first_part = self.__generate_diffie_secret()
+        dh_secret, dh_first_part = self._generate_diffie_secret()
 
         pub_key = self.proxy.circuits[circuit_id].unverified_hop.public_key
 
@@ -349,7 +349,7 @@ class DefaultCrypto(Crypto):
         @return CreatedMessage: Version of the message with encrypted contents
         """
         relay_key = (candidate.sock_addr, circuit_id)
-        dh_secret, _ = self.__generate_diffie_secret()
+        dh_secret, _ = self._generate_diffie_secret()
 
         key = pow(self._received_secrets[relay_key],
                   dh_secret, DIFFIE_HELLMAN_MODULUS)

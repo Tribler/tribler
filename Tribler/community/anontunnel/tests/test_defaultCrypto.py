@@ -1,81 +1,97 @@
-from collections import defaultdict
+import logging.config
+import os
 import random
-from threading import Event
-from unittest import TestCase
 from mock import Mock
 import time
-from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.anontunnel import exitstrategies
-from Tribler.community.anontunnel.community import ProxyCommunity
+from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
+from Tribler.community.anontunnel.crypto import NoCrypto, DefaultCrypto
 from Tribler.community.anontunnel.payload import CreateMessage
-from Tribler.community.anontunnel.tests.test_proxyCommunity import \
-    DummyEndpoint
-from Tribler.dispersy.candidate import WalkCandidate
-from Tribler.dispersy.member import Member
+from Tribler.community.anontunnel.routing import Circuit, Hop
+from Tribler.community.privatesemantic.conversion import long_to_bytes, bytes_to_long
+from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
+from Tribler.dispersy.endpoint import NullEndpoint
+
+logging.config.fileConfig(
+    os.path.dirname(os.path.realpath(__file__)) + "/../logger.conf")
 
 __author__ = 'rutger'
 
-class TestDefaultCrypto(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        config = SessionStartupConfig()
-        config.set_torrent_checking(False)
-        config.set_multicast_local_peer_discovery(False)
-        config.set_megacache(False)
-        config.set_dispersy(True)
-        config.set_swift_proc(False)
-        config.set_mainline_dht(False)
-        config.set_torrent_collecting(False)
-        config.set_libtorrent(False)
-        config.set_dht_torrent_collecting(False)
-        cls.session_config = config
-        cls.session = Session(scfg=cls.session_config)
-        cls.session.start()
-        while not cls.session.lm.initComplete:
-            time.sleep(1)
-        cls.dispersy = cls.session.lm.dispersy
-        cls.dispersy._endpoint = DummyEndpoint()
-        ''' :type : Tribler.dispersy.Dispersy '''
+class DummyEndpoint(NullEndpoint):
+    def send_simple(self, *args):
+        pass
 
-        cls.__candidate_counter = 0
+class DummyCandidate():
+    def __init__(self, key=None):
+        #super(DummyCandidate, self).__init__(self)
+        self.members = []
+        self.sock_addr = Mock()
+        member = Mock()
+        if not key:
+            key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
+        member._ec = key
+        self.members.append(member)
+
+    def get_members(self):
+        return self.members
+
+
+class TestDefaultCrypto(TestAsServer):
+    @property
+    def crypto(self):
+        return self.community.settings.crypto
 
     def setUp(self):
+        super(TestDefaultCrypto, self).setUp()
+        self.__candidate_counter = 0
+        self.dispersy = self.session.lm.dispersy
+
         dispersy = self.dispersy
 
         def load_community():
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, (dispersy_member, None, None), load=True)[0]
-            ''' :type : ProxyCommunity '''
+            settings = ProxySettings()
+            settings.crypto = DefaultCrypto()
+
+            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
             exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
 
             return proxy_community
 
         self.community = dispersy.callback.call(load_community)
+        ''' :type : ProxyCommunity '''
+
+    def setUpPreSession(self):
+        super(TestDefaultCrypto, self).setUpPreSession()
+        self.config.set_dispersy(True)
 
     def __create_walk_candidate(self):
-        candidate = WalkCandidate(("127.0.0.1", self.__candidate_counter), False, ("127.0.0.1", self.__candidate_counter), ("127.0.0.1", self.__candidate_counter), u'unknown')
-        key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
-        ''' :type : EC '''
+        def __create():
+            self.__candidate_counter += 1
+            wan_address = ("8.8.8.{0}".format(self.__candidate_counter), self.__candidate_counter)
+            lan_address = ("0.0.0.0", 0)
+            candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
 
-        member = []
-        def create_member():
-            member.append(Member(self.dispersy, key.pub(), self.community.database_id))
 
-        self.dispersy.callback.call(create_member)
+            key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
+            member = self.dispersy.get_member(public_key=self.dispersy.crypto.key_to_bin(key.pub()))
+            candidate.associate(member)
 
-        candidate.associate(member[0])
-        self.__candidate_counter += 1
-        candidate.walk(time.time())
-        return candidate
+            now = time.time()
+            candidate.walk(now - CANDIDATE_ELIGIBLE_DELAY)
+            candidate.walk_response(now)
+            return candidate
+
+        return self.dispersy.callback.call(__create)
 
     def __prepare_for_create(self):
         self.crypto.key_to_forward = '0' * 16
 
     def __add_circuit(self, circuit_id):
-        self.crypto.proxy.circuits[circuit_id] = Mock()
+        self.crypto.proxy.circuits[circuit_id] = Circuit(circuit_id)
 
     def __add_relay(self, relay_key=None):
         if not relay_key:
@@ -102,14 +118,35 @@ class TestDefaultCrypto(TestCase):
         self.assertNotIn(second_relay_key, self.crypto.session_keys)
 
     def test__encrypt_create_content(self):
-        create_message = CreateMessage("a")
-        self.__prepare_for_create()
-        candidate = self.__create_walk_candidate()
+        #test own circuit create
+        candidate = DummyCandidate(self.community.my_member._ec)
+
+        create_message = CreateMessage()
         circuit_id = 123
+        self.community.circuits[123] = Circuit(123, 1, candidate, self.community)
+        hop = Hop(self.community.my_member._ec.pub())
+        self.community.circuits[123].unverified_hop = hop
+
         encrypted_create_message = \
             self.crypto._encrypt_create_content(candidate, circuit_id, create_message)
         decrypted_create_message = self.crypto._decrypt_create_content(candidate, circuit_id, encrypted_create_message)
-        self.assertEquals(encrypted_create_message, decrypted_create_message)
+        self.assertEquals(create_message, decrypted_create_message)
+
+        #test another circuit create
+        self.__prepare_for_create()
+        del self.community.circuits[123]
+        candidate = DummyCandidate(self.community.my_member._ec)
+
+        create_message = CreateMessage()
+        circuit_id = 123
+        self.community.circuits[123] = Circuit(123, 1, candidate, self.community)
+        hop = Hop(self.community.my_member._ec.pub())
+        self.community.circuits[123].unverified_hop = hop
+
+        encrypted_create_message = \
+            self.crypto._encrypt_create_content(candidate, circuit_id, create_message)
+        decrypted_create_message = self.crypto._decrypt_create_content(candidate, circuit_id, encrypted_create_message)
+        self.assertEquals(create_message, decrypted_create_message)
 
     def test__decrypt_create_content(self):
         self.fail()
