@@ -88,7 +88,7 @@ class TestDefaultCrypto(TestAsServer):
         return self.dispersy.callback.call(__create)
 
     def __prepare_for_create(self):
-        self.crypto.key_to_forward = long_to_bytes('0' * 16)
+        self.crypto.key_to_forward = '0' * 16
 
     def __prepare_for_created(self, candidate, circuit_id):
         dh_key = self.crypto._generate_diffie_secret()
