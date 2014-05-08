@@ -115,7 +115,6 @@ sessdefaults['video']['port'] = -1
 sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 
 # Anonymous libtorrent
-sessdefaults['libtorrent']  = OrderedDict()
 sessdefaults['libtorrent']['anon_port'] = 1080 # same as socks5
 sessdefaults['libtorrent']['anon_listen_port'] = 1081
 sessdefaults['libtorrent']['anon_hostname'] = '127.0.0.1'
