@@ -70,7 +70,8 @@ class Utility:
                             'swiftreseed': 1,
                             'showsaveas': 1,
                             'i2ilistenport': 57891,
-                            'mintray': 2 if sys.platform == 'win32' else 0}
+                            'mintray': 2 if sys.platform == 'win32' else 0,
+                            'free_space_threshold': 100 * 1024 * 1024}
 
         self.defaults = {'Tribler': tribler_defaults}
         self.configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")

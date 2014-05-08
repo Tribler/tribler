@@ -284,12 +284,12 @@ class SwiftDownloadImpl(DownloadConfigInterface):
             self.dllock.release()
 
     def get_current_speed(self, dir):
-        """ Return last reported speed in KB/s
+        """ Return last reported speed in bytes/s
         @return float
         """
         self.dllock.acquire()
         try:
-            return self.curspeeds[dir] / 1024.0
+            return self.curspeeds[dir]
         finally:
             self.dllock.release()
 
@@ -391,8 +391,8 @@ class SwiftDownloadImpl(DownloadConfigInterface):
             d = {}
             d['ip'] = channel['ip']
             d['port'] = channel['port']
-            d['utotal'] = channel['bytes_up'] / 1024.0
-            d['dtotal'] = channel['bytes_down'] / 1024.0
+            d['utotal'] = channel['bytes_up']
+            d['dtotal'] = channel['bytes_down']
             plist.append(d)
 
         return plist

@@ -375,7 +375,7 @@ class BarterCommunity(Community):
             cache = self._request_cache.add(MemberRequestCache(self, _delayed_update))
             meta = self._meta_messages[u"member-request"]
             request = meta.impl(distribution=(self.global_time,),
-                                destination=(Candidate(swift_address, True),),  # assume tunnel=True
+                                destination=(Candidate(swift_address, True),), # assume tunnel=True
                                 payload=(cache.number,))
             logger.debug("trying to obtain member from swift address %s:%d [%s]",
                          swift_address[0],
@@ -435,10 +435,10 @@ class BarterCommunity(Community):
 
             # set OLD for the next call to DOWNLOAD_STATE_CALLBACK
             new[identifier] = dict(((str(peer["ip"]), peer["port"]),
-                                    (long(peer["utotal"] * 1024), long(peer["dtotal"] * 1024)))
+                                    (long(peer["utotal"]), long(peer["dtotal"])))
                                    for peer
                                    in state.get_peerlist()
-                                   if peer["utotal"] > 0.0 or peer["dtotal"] > 0.0)
+                                   if peer["utotal"] > 0 or peer["dtotal"] > 0)
 
     def on_introduction_request(self, messages):
         try:

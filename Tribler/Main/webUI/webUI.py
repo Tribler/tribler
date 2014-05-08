@@ -163,8 +163,8 @@ class WebUI():
                     ul = ds.get_total_transferred(UPLOAD)
 
                 seeds, peers = ds.get_num_seeds_peers()
-                downS = ds.get_current_speed('down') * 1024
-                upS = ds.get_current_speed('up') * 1024
+                downS = ds.get_current_speed('down')
+                upS = ds.get_current_speed('up')
                 eta = ds.get_eta() or sys.maxsize
             else:
                 progress = torrent.progress

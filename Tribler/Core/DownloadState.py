@@ -154,14 +154,14 @@ class DownloadState(Serializable):
     def get_current_speed(self, direct):
         """
         Returns the current up or download speed.
-        @return The speed in KB/s, as float.
+        @return The speed in bytes/s.
         """
         if self.stats is None:
-            return 0.0
+            return 0
         if direct == UPLOAD:
-            return self.stats['up'] / 1024.0
+            return self.stats['up']
         else:
-            return self.stats['down'] / 1024.0
+            return self.stats['down']
 
     def get_total_transferred(self, direct):
         """
