@@ -108,7 +108,7 @@ class LibtorrentTest(TunnelObserver):
         except:
             pass
 
-        tdef = TorrentDef.load("public.torrent")
+        tdef = TorrentDef.load("anon_test.torrent")
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
         ''' :type : DefaultDownloadStartupConfig '''
