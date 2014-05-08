@@ -37,25 +37,34 @@ try:
     from Crypto.Cipher import AES
 
     def aes_encrypt_str(aes_key, plain_str):
-        cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+        if isinstance(aes_key, long):
+            aes_key = long_to_bytes(aes_key, 16)
+        cipher = AES.new(aes_key, AES.MODE_CFB, '\x00' * 16)
         return cipher.encrypt(plain_str)
 
     def aes_decrypt_str(aes_key, encr_str):
-        cipher = AES.new(long_to_bytes(aes_key, 16), AES.MODE_CFB, '\x00' * 16)
+        if isinstance(aes_key, long):
+            aes_key = long_to_bytes(aes_key, 16)
+        cipher = AES.new(aes_key, AES.MODE_CFB, '\x00' * 16)
         return cipher.decrypt(encr_str)
 
 except ImportError:
     from random import Random as StrongRandom
 
     from Tribler.community.privatesemantic.conversion import long_to_bytes
+    from Tribler.dispersy.decorator import attach_runtime_statistics
     from M2Crypto import EVP
 
     def aes_encrypt_str(aes_key, plain_str):
-        cipher = EVP.Cipher(alg='aes_128_cfb', key=long_to_bytes(aes_key, 16), iv='\x00' * 16, op=1)
+        if isinstance(aes_key, long):
+            aes_key = long_to_bytes(aes_key, 16)
+        cipher = EVP.Cipher(alg='aes_128_cfb', key=aes_key, iv='\x00' * 16, op=1)
         ret = cipher.update(plain_str)
         return ret + cipher.final()
 
     def aes_decrypt_str(aes_key, encr_str):
-        cipher = EVP.Cipher(alg='aes_128_cfb', key=long_to_bytes(aes_key, 16), iv='\x00' * 16, op=0)
+        if isinstance(aes_key, long):
+            aes_key = long_to_bytes(aes_key, 16)
+        cipher = EVP.Cipher(alg='aes_128_cfb', key=aes_key, iv='\x00' * 16, op=0)
         ret = cipher.update(encr_str)
         return ret + cipher.final()
