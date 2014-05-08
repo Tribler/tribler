@@ -238,6 +238,11 @@ class GUIUtility:
             elif self.guiPage == 'stats':
                 self.frame.stats.Show(False)
 
+            if page == 'anonymity':
+                self.frame.anonymity.Show()
+            elif self.guiPage == 'anonymity':
+                self.frame.anonymity.Show(False)
+
             if self.frame.videoparentpanel:
                 if page == 'videoplayer':
                     self.frame.videoparentpanel.Show(True)

@@ -9,8 +9,12 @@ import copy
 
 import wx
 from wx.lib.wordwrap import wordwrap
+from time import time
+from datetime import date, datetime
+from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from Tribler.Category.Category import Category
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 from Tribler.Core.simpledefs import NTFY_MISC, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
@@ -1641,7 +1645,8 @@ class LibraryList(SizeList):
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
                    {'name': 'Swift ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name': 'Swift time seeding', 'width': '30em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
+                   {'name': 'Swift time seeding', 'width': '30em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
+                   {'name': 'Anonymous', 'width': '15em', 'autoRefresh': False}]
 
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8, 9, 10])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
@@ -2197,11 +2202,11 @@ class ActivitiesList(List):
 
     def __SetData(self):
         self.list.SetData([(1, ['Home'], None, ActivityListItem), (2, ['Results'], None, ActivityListItem), (3, ['Channels'], None, ActivityListItem),
-                           (4, ['Downloads'], None, ActivityListItem), (5, ['Videoplayer'], None, ActivityListItem)])
+                           (4, ['Downloads'], None, ActivityListItem), (5, ['Anonymity'], None, ActivityListItem), (6, ['Videoplayer'], None, ActivityListItem)])
         self.ResizeListItems()
         self.DisableItem(2)
         if not self.guiutility.frame.videoparentpanel:
-            self.DisableItem(5)
+            self.DisableItem(6)
         self.DisableCollapse()
         self.selectTab('home')
 
@@ -2287,6 +2292,8 @@ class ActivitiesList(List):
             return self.expandedPanel_channels
         elif item.data[0] == 'Downloads':
             self.guiutility.ShowPage('my_files')
+        elif item.data[0] == 'Anonymity':
+            self.guiutility.ShowPage('anonymity')
         elif item.data[0] == 'Videoplayer':
             if self.guiutility.guiPage not in ['videoplayer']:
                 self.guiutility.ShowPage('videoplayer')
@@ -2352,8 +2359,10 @@ class ActivitiesList(List):
             itemKey = 3
         elif tab == 'my_files':
             itemKey = 4
-        elif tab == 'videoplayer':
+        elif tab == 'anonymity':
             itemKey = 5
+        elif tab == 'videoplayer':
+            itemKey = 6
         if itemKey:
             wx.CallAfter(self.Select, itemKey, True)
         return

@@ -59,7 +59,7 @@ from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, 
     TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
-from Tribler.Main.vwxGUI.home import Home, Stats
+from Tribler.Main.vwxGUI.home import Home, Stats, Anonymity
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
     ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
@@ -261,6 +261,8 @@ class MainFrame(wx.Frame):
 
         self.stats = Stats(self)
         self.stats.Show(False)
+        self.anonymity = Anonymity(self)
+        self.anonymity.Show(False)
         self.managechannel = ManageChannel(self)
         self.managechannel.Show(False)
 
@@ -281,6 +283,7 @@ class MainFrame(wx.Frame):
             hSizer.Add(separator, 0, wx.EXPAND)
             hSizer.Add(self.home, 1, wx.EXPAND)
             hSizer.Add(self.stats, 1, wx.EXPAND)
+            hSizer.Add(self.anonymity, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -439,7 +442,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
         return False
 
-    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, doemode=None, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
+    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, anon_mode=False, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
         self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
@@ -510,11 +513,22 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
+                        anon_mode = dlg.GetAnonMode()
                     else:
                         cancelDownload = True
                     dlg.Destroy()
                 else:
                     raise Exception("cannot create dialog, not on wx thread")
+
+            if anon_mode:
+                if not tdef:
+                    raise Exception('Currently only torrents can be downloaded in anonymous mode')
+                elif sdef:
+                    sdef = None
+                    cdef = tdef
+                    monitorSwiftProgress = False
+
+            dscfg.set_anon_mode(anon_mode)
 
             if not cancelDownload:
                 if destdir is not None:

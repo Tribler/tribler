@@ -62,6 +62,7 @@ NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
 NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
+NTFY_ANONTUNNEL = 'anontunnel'
 NTFY_TRACKERINFO = 'trackerinfo'
 
 # non data handler subjects
@@ -86,6 +87,12 @@ NTFY_VIDEO_STARTED = 'video_started'
 NTFY_VIDEO_STOPPED = 'video_stopped'
 NTFY_VIDEO_ENDED = 'video_ended'
 NTFY_VIDEO_BUFFERING = 'video_bufering'
+NTFY_CREATED = 'created'
+NTFY_EXTENDED = 'extended'
+NTFY_EXTENDED_FOR = 'extended_for'
+NTFY_BROKEN = 'broken'
+NTFY_SELECT = 'select'
+NTFY_JOINED = 'joined'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0
