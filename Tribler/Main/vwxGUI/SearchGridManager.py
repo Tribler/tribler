@@ -1140,7 +1140,7 @@ class LibraryManager:
 
         # Niels 09-01-2013: we need to commit now to prevent possibly forgetting the link between this torrent and the roothash
         dispersy = self.session.lm.dispersy
-        startWorker(None, dispersy._commit_now)
+        startWorker(None, dispersy.database.commit)
 
     def deleteTorrent(self, torrent, removecontent=False):
         if torrent.dslist:
