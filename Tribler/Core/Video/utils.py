@@ -126,6 +126,8 @@ def return_feasible_playback_modes():
             raise Exception("Incorrect vlc version. We require at least version 0.9, this is %s" % version)
 
         l.append(PLAYBACKMODE_INTERNAL)
+    except NameError:
+        logger.error("libvlc_get_version couldn't be called, no playback possible")
     except Exception:
         print_exc()
 
