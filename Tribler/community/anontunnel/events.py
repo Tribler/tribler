@@ -59,9 +59,10 @@ class TunnelObserver(object):
         """
         pass
 
-    def on_tunnel_stats(self, community, candidate, stats):
+    def on_tunnel_stats(self, community, member, candidate, stats):
         """
         Called when a STATS message has been received
+        @param Member member: member according to authentication
         @type community: Tribler.community.anontunnel.community.ProxyCommunity
         @type candidate: Candidate
         @type stats: dict

@@ -4,6 +4,7 @@ import os
 import sqlite3
 import uuid
 import time
+from Tribler.community.anontunnel.crypto import NoCrypto
 
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.dispersy.database import Database
@@ -181,6 +182,7 @@ class StatsCollector(TunnelObserver):
     def _create_stats(self):
         stats = {
             'uuid': self.session_id.get_bytes_le(),
+            'encryption': 0 if isinstance(self.proxy.settings.crypto, NoCrypto) else 1,
             'swift': self.download_stats,
             'bytes_enter': self.stats['bytes_enter'],
             'bytes_exit': self.stats['bytes_exit'],
@@ -222,6 +224,7 @@ class StatsDatabase(Database):
     schema = u"""
         CREATE TABLE result (
             "result_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+            "mid" BLOB,
             "session_id" GUID,
             "time" DATETIME,
             "host" NULL,
@@ -293,18 +296,28 @@ class StatsDatabase(Database):
 
         return self.LATEST_VERSION
 
-    def add_stat(self, sock_address, stats):
+    def add_stat(self, member, candidate, stats):
+        """
+        @param Member member:
+        @param Candidate candidate:
+        @param stats:
+        """
+
+        sock_addr = candidate.sock_addr
+
         self.execute(
             u'''INSERT OR FAIL INTO result
                 (
-                    encryption, session_id, time,
+                    mid, encryption, session_id, time,
                     host, port, swift_size, swift_time,
                     bytes_enter, bytes_exit, bytes_returned, broken_circuits
                 )
-                VALUES (1, ?,DATETIME('now'),?,?,?,?,?,?,?,?)''',
+                VALUES (?, ?, ?,DATETIME('now'),?,?,?,?,?,?,?,?)''',
             (
+                buffer(member.mid),
+                stats['encryption'] or 0,
                 uuid.UUID(bytes_le=stats['uuid']),
-                unicode(sock_address[0]), sock_address[1],
+                unicode(sock_addr[0]), sock_addr[1],
                 stats['swift']['size'], stats['swift']['download_time'],
                 stats['bytes_enter'], stats['bytes_exit'],
                 (stats['bytes_return'] or 0),
@@ -361,8 +374,8 @@ class StatsCrawler(TunnelObserver):
         self.database = StatsDatabase(dispersy)
         self.raw_server.add_task(lambda: self.database.open())
 
-    def on_tunnel_stats(self, community, candidate, stats):
-        self.raw_server.add_task(lambda: self.database.add_stat(candidate.sock_addr, stats))
+    def on_tunnel_stats(self, community, member, candidate, stats):
+        self.raw_server.add_task(lambda: self.database.add_stat(member, candidate, stats))
 
     def get_num_stats(self):
         return self.database.get_num_stats()

@@ -285,7 +285,7 @@ class ProxyCommunity(Community):
     def _on_stats(self, messages):
         for observer in self.observers:
             for message in messages:
-                observer.on_tunnel_stats(self, message.candidate, message.payload.stats)
+                observer.on_tunnel_stats(self, message.authentication.member, message.candidate, message.payload.stats)
 
     def send_stats(self, stats):
         """
