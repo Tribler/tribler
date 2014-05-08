@@ -57,6 +57,10 @@ sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
 sessdefaults['general']['live_aux_seeders'] = []
 
+# Socks5 section
+sessdefaults['socks5'] = OrderedDict()
+sessdefaults['socks5']['listen_port'] = 1080
+
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()
 sessdefaults['mainline_dht']['enabled'] = True
@@ -109,6 +113,13 @@ sessdefaults['video']['enabled'] = True
 sessdefaults['video']['path'] = None
 sessdefaults['video']['port'] = -1
 sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
+
+# Anonymous libtorrent
+sessdefaults['libtorrent']  = OrderedDict()
+sessdefaults['libtorrent']['anon_port'] = 1080 # same as socks5
+sessdefaults['libtorrent']['anon_listen_port'] = 1081
+sessdefaults['libtorrent']['anon_hostname'] = '127.0.0.1'
+
 
 #
 # BT per download opts
