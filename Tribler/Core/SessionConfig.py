@@ -670,6 +670,28 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'video', u'preferredmode', mode)
 
+    #
+    # LibTorrent settings
+    #
+
+    def set_libtorrent_anon_port(self, port):
+        self.sessconfig.set('libtorrent', 'anon_port', port)
+
+    def get_libtorrent_anon_port(self):
+        return self.sessconfig.get('libtorrent', 'anon_port')
+
+    def set_libtorrent_anon_listen_port(self, port):
+        self.sessconfig.set('libtorrent', 'anon_listen_port', port)
+
+    def get_libtorrent_anon_listen_port(self):
+        return self.sessconfig.get('libtorrent', 'anon_listen_port')
+
+    def set_libtorrent_anon_hostname(self, hostname):
+        self.sessconfig.set('libtorrent', 'anon_hostname', hostname)
+
+    def get_libtorrent_anon_hostname(self):
+        return self.sessconfig.get('libtorrent', 'anon_hostname')
+
 
 class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
 
