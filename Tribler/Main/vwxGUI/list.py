@@ -1068,8 +1068,8 @@ class GenericSearchList(SizeList):
     @warnWxThread
     def CreateRatio(self, parent, item):
         num_seeders, num_leechers, _ = item.original_data.swarminfo
-        seeders = int(num_seeders)
-        leechers = int(num_leechers)
+        seeders = int(num_seeders) if num_seeders else 0
+        leechers = int(num_leechers) if num_leechers else 0
         item.data[-2] = seeders + leechers
 
         control = SwarmHealth(parent)

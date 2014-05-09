@@ -246,6 +246,8 @@ class Torrent(Helper):
 
     def updateSwarminfo(self, swarminfo):
         self.num_seeders, self.num_leechers, _ = swarminfo
+        self.num_seeders = self.num_seeders or 0
+        self.num_leechers = self.num_leechers or 0
 
     @property
     def state(self):
@@ -435,6 +437,8 @@ class CollectedTorrent(Helper):
 
     def updateSwarminfo(self, swarminfo):
         self.torrent.num_seeders, self.torrent.num_leechers, self.last_check = swarminfo
+        self.torrent.num_seeders = self.torrent.num_seeders or 0
+        self.torrent.num_leechers = self.torrent.num_leechers or 0
         self._cache['swarminfo'] = swarminfo
 
     @cacheProperty
