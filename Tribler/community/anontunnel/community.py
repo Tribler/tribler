@@ -54,6 +54,7 @@ class ProxySettings:
         length = random.randint(3, 3)
 
         self.max_circuits = 1
+        self.delay = 5 if __debug__ else 300
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
         self.length_strategy = lengthstrategies.ConstantCircuitLength(length)
@@ -136,8 +137,8 @@ class ProxyCommunity(Community):
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.tribler_session = tribler_session
             self.notifier = Notifier.getInstance()
-
-            tribler_session.lm.rawserver.add_task(lambda: LibtorrentTest(self, self.tribler_session))
+            delay = self.settings.delay if self.settings.delay is not None else 300
+            tribler_session.lm.rawserver.add_task(lambda: LibtorrentTest(self, self.tribler_session, delay))
         else:
             self.notifier = None
 
