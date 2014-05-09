@@ -1,5 +1,4 @@
 import logging
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.community.anontunnel.Socks5 import conversion
 from Tribler.community.anontunnel.Socks5.connection import \
     Socks5ConnectionObserver
@@ -88,6 +87,7 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         if not affected_destinations:
             return
 
+        from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
         mgr = LibtorrentMgr.getInstance()
         anon_session = mgr.ltsession_anon
         ''' :type : libtorrent.session '''
