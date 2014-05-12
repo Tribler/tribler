@@ -480,15 +480,19 @@ class ABCApp():
                 private_key=dispersy.crypto.key_to_bin(keypair),
             )
 
+
             proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, s), load=True)[0]
 
-            socks_server = Socks5Server(proxy_community, s.lm.rawserver)
+            socks_server = Socks5Server(proxy_community, s.lm.rawserver, s.get_proxy_community_socks5_listen_port())
             socks_server.start()
             exit_strategy = exitstrategies.DefaultExitStrategy(s.lm.rawserver, proxy_community)
             proxy_community.observers.append(exit_strategy)
 
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
+
+        s.set_proxy_community_socks5_listen_port(1080)
+        s.set_anon_proxy_settings("127.0.0.1", 1080, 1081)
 
         swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()

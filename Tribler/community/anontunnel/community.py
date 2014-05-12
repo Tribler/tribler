@@ -55,6 +55,7 @@ class ProxySettings:
 
         self.max_circuits = 1
         self.delay = 300
+
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
         self.length_strategy = lengthstrategies.ConstantCircuitLength(length)

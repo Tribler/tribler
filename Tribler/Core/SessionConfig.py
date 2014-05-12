@@ -177,11 +177,11 @@ class SessionConfigInterface(object):
         """
         self.selected_ports['~'.join(('general', 'minport'))] = port
 
-    def set_socks5_listen_port(self, port):
-        self.sessconfig.set(u'socks5', u'listen_port', port)
+    def set_proxy_community_socks5_listen_port(self, port):
+        self.sessconfig.set(u'proxy_community', u'socks5_listen_port', port)
 
-    def get_socks5_listen_port(self):
-        return self.sessconfig.get(u'socks5', u'listen_port')
+    def get_proxy_community_socks5_listen_port(self):
+        return self.sessconfig.get(u'proxy_community', u'socks5_listen_port')
 
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.
@@ -249,6 +249,25 @@ class SessionConfigInterface(object):
         return (self.sessconfig.get(u'libtorrent', u'lt_proxytype'), \
                 self.sessconfig.get(u'libtorrent', u'lt_proxyserver'), \
                 self.sessconfig.get(u'libtorrent', u'lt_proxyauth'))
+
+    def set_anon_proxy_settings(self, anon_proxy_hostname, anon_proxy_port, anon_listen_port):
+        """
+        @param anon_proxy_hostname: hostname of the anon proxy
+        @param anon_proxy_port: port of the anon proxy
+        @param anon_listen_port: listening port of the anon session
+        """
+        self.sessconfig.set(u'libtorrent', u'anon_proxy_hostname', anon_proxy_hostname)
+        self.sessconfig.set(u'libtorrent', u'anon_listen_port', anon_listen_port)
+        self.sessconfig.set(u'libtorrent', u'anon_proxy_port', anon_proxy_port)
+
+    def get_anon_proxy_settings(self):
+        """
+        @return: libtorrent anonymous settings
+        """
+        return (self.sessconfig.get(u'libtorrent', u'anon_proxy_hostname'), \
+                self.sessconfig.get(u'libtorrent', u'anon_proxy_port'), \
+                self.sessconfig.get(u'libtorrent', u'anon_listen_port'))
+
 
     def set_libtorrent_utp(self, value):
         """ Enable or disable LibTorrent uTP (default = True).
@@ -669,28 +688,6 @@ class SessionConfigInterface(object):
         @param mode integer (0..2, see Tribler.Core.Video.def).
         """
         self.sessconfig.set(u'video', u'preferredmode', mode)
-
-    #
-    # LibTorrent settings
-    #
-
-    def set_libtorrent_anon_port(self, port):
-        self.sessconfig.set(u'libtorrent', u'anon_port', port)
-
-    def get_libtorrent_anon_port(self):
-        return self.sessconfig.get(u'libtorrent', u'anon_port')
-
-    def set_libtorrent_anon_listen_port(self, port):
-        self.sessconfig.set(u'libtorrent', u'anon_listen_port', port)
-
-    def get_libtorrent_anon_listen_port(self):
-        return self.sessconfig.get(u'libtorrent', u'anon_listen_port')
-
-    def set_libtorrent_anon_hostname(self, hostname):
-        self.sessconfig.set(u'libtorrent', u'anon_hostname', hostname)
-
-    def get_libtorrent_anon_hostname(self):
-        return self.sessconfig.get(u'libtorrent', u'anon_hostname')
 
 
 class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):

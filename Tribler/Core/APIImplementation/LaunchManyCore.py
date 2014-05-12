@@ -934,8 +934,11 @@ class TriblerLaunchMany(Thread):
                 self.rtorrent_handler.set_max_num_torrents(new_value)
         # Return True/False, depending on whether or not the config value can be changed at runtime.
         elif (section == 'general' and name in ['nickname', 'mugshot', 'videoanalyserpath']) or \
-             (section == 'libtorrent' and name in ['lt_proxytype', 'lt_proxyserver']) or \
+             (section == 'libtorrent' and name in ['lt_proxytype', 'lt_proxyserver',
+                                                   'anon_proxy_hostname', 'anon_proxy_port',
+                                                   'anon_listen_port']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
+             (section == 'proxy_community' and name in ['socks5_listen_port']) or \
              (section == 'swift' and name in ['swiftmetadir']):
             return True
         else:
