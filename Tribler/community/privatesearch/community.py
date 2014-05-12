@@ -1,31 +1,28 @@
 # Written by Niels Zeilemaker
-
 import sys
-from os import path
-from time import time
-from random import sample, randint, shuffle, random
 from math import ceil
+from os import path
+from random import sample, randint, shuffle, random
+from time import time
 
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+
+from Tribler.community.channel.preview import PreviewChannelCommunity
+from Tribler.community.privatesemantic.community import PForwardCommunity, HForwardCommunity, PoliForwardCommunity
 from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination, \
-    CommunityDestination
-from Tribler.dispersy.distribution import DirectDistribution, \
-    FullSyncDistribution
+from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
+from Tribler.dispersy.distribution import DirectDistribution, FullSyncDistribution
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
+from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
-
 from conversion import SearchConversion
 from payload import *
-from Tribler.community.channel.preview import PreviewChannelCommunity
 
-from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
-from Tribler.dispersy.bloomfilter import BloomFilter
-
-from Tribler.community.privatesemantic.community import PForwardCommunity, \
-    HForwardCommunity, PoliForwardCommunity
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -77,11 +74,13 @@ class TTLSearchCommunity(Community):
             self._notifier = Notifier.getInstance()
 
             # fast connecting
-            self.dispersy.callback.register(self.fast_walker)
+            self._pending_tasks["fast walker"] = reactor.callLater(0, self.fast_walker)
         else:
             self._torrent_db = self._channelcast_db = Das4DBStub(self._dispersy)
             self._notifier = None
 
+    # TODO(emilon): Replace this with the new dispersy property
+    @inlineCallbacks
     def fast_walker(self):
         for cycle in xrange(10):
             if cycle < 2:
@@ -95,7 +94,7 @@ class TTLSearchCommunity(Community):
                 self.create_introduction_request(candidate, allow_sync=False)
 
             # wait for NAT hole punching
-            yield 1.0
+            yield deferLater(reactor, 1, lambda: None)
 
     def initiate_meta_messages(self):
         return super(SearchCommunity, self).initiate_meta_messages() + [
@@ -175,7 +174,7 @@ class TTLSearchCommunity(Community):
 
             # call self.on_timeout after self.timeout_delay seconds.  We do not need to cancel this
             # call registered call because we rely on the self.processed boolean
-            self.community.dispersy.callback.register(self.on_timeout, delay=self.timeout_delay)
+            self._pending_tas["on timeout"] = reactor.callLater(self.timeout_delay, self.on_timeout)
 
         def did_request(self, candidate_mid):
             return candidate_mid in self.requested_mids
@@ -611,7 +610,7 @@ class TTLSearchCommunity(Community):
         try:
             return self._dispersy.get_community(cid, True)
         except CommunityNotFoundException:
-            return PreviewChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
+            return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []

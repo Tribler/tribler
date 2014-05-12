@@ -1,14 +1,15 @@
 # Written by Niels Zeilemaker
 # conversion of SearchManager.java from OneSwarm
 import sys
-
+from Queue import Queue
 from math import floor
 from random import random, randint
-from time import time, sleep
 from threading import Thread
+from time import time, sleep
 from traceback import print_exc
-from collections import namedtuple
-from Queue import Queue
+
+from twisted.internet import reactor
+
 
 DEBUG = False
 
@@ -108,8 +109,7 @@ class SearchManager:
                 for result in results:
                     task = DelayedSearchResponse(msg, result, self, self.community)
                     delay = self.getSearchDelayForInfohash(source.getRemoteFriend())
-
-                    self.community.dispersy.callback.register(task.run, delay=(delay / 1000.0))
+                    reactor.callFromThread(reactor.callLater, delay/1000.0, task.run)
             else:
                 shouldForward = False
         return shouldForward
