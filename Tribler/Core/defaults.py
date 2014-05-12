@@ -89,8 +89,9 @@ sessdefaults['libtorrent']['utp'] = True
 
 # Anonymous libtorrent
 sessdefaults['libtorrent']['anon_listen_port'] = -1
-sessdefaults['libtorrent']['anon_proxy_port'] = -1
-sessdefaults['libtorrent']['anon_proxy_hostname'] = None
+sessdefaults['libtorrent']['anon_proxytype'] = 0
+sessdefaults['libtorrent']['anon_proxyserver'] = None
+sessdefaults['libtorrent']['anon_proxyauth'] = None
 
 # SWIFTPROC config
 sessdefaults['swift'] = OrderedDict()
