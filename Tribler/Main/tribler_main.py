@@ -42,7 +42,7 @@ import Tribler.Debug.console
 import os
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
-from Tribler.dispersy.decorator import attach_profiler
+from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
 from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
@@ -106,7 +106,7 @@ from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
-from Tribler.Core.Video.VideoPlayer import VideoPlayer, return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
+from Tribler.Core.Video.VideoPlayer import return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
 import Tribler.Core.DecentralizedTracking.pymdht.core
@@ -120,6 +120,9 @@ import Tribler.Core.DecentralizedTracking.pymdht.core.routing_table
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
 from time import time, sleep
+
+from twisted.python.threadable import isInIOThread
+from twisted.internet import reactor
 
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
@@ -141,6 +144,7 @@ ALLOW_MULTIPLE = False
 class ABCApp():
 
     def __init__(self, params, installdir):
+        assert not isInIOThread(), "isInIOThread() seems to not be working correctly"
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.params = params
@@ -192,7 +196,7 @@ class ABCApp():
             self.utility.app = self
             self.utility.session = s
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
-            GUIDBProducer.getInstance(self.dispersy.callback)
+            GUIDBProducer.getInstance()
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
@@ -311,8 +315,9 @@ class ABCApp():
 
             status = get_status_holder("LivingLab")
             status.add_reporter(NullReporter("Periodically remove all events", 0))
-# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
-# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
+            # TODO(emilon): can we delete this?
+            # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
+            # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
             status.create_and_add_event("client-startup-version", [version_id])
@@ -345,7 +350,8 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
 
         self.dispersy.attach_progress_handler(self.frame.progressHandler)
-        self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
+        # TODO(emilon): Use the LogObserver I already implemented
+        #self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
 
         startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="guiTaskQueue")
 
@@ -443,7 +449,9 @@ class ABCApp():
         s = Session(self.sconfig)
         s.start()
 
-        def define_communities():
+        @call_on_reactor_thread
+        def define_communities(dispersy):
+            assert isInIOThread()
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
             from Tribler.community.channel.community import ChannelCommunity
@@ -495,7 +503,7 @@ class ABCApp():
 
         swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
-        dispersy.callback.call(define_communities)
+        define_communities(s.get_dispersy_instance())
         return s
 
     @staticmethod
@@ -610,23 +618,6 @@ class ABCApp():
                 wantpeers.extend(self.guiUtility.library_manager.download_state_callback(no_collected_list))
             except:
                 print_exc()
-
-#            # Update bandwidth statistics in the Barter Community
-#            if not self.barter_community:
-#                self.barter_community = self.dispersy.callback.call(self._dispersy_get_barter_community)
-#
-#            if self.barter_community and not isinstance(self.barter_community, HardKilledCommunity):
-#                if self.barter_community.has_been_killed:
-#                    # set BARTER_COMMUNITY to None.  next state callback we will again get the
-#                    # community resulting in the HardKilledCommunity instead
-#                    self.barter_community = None
-#                else:
-#                    if True in self.lastwantpeers:
-#                        self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist, True))
-#
-#                    # only request peer info every 120 intervals
-#                    if self.ratestatecallbackcount % 120 == 0:
-#                        wantpeers.append(True)
 
             # Check to see if a download has finished
             newActiveDownloads = []
