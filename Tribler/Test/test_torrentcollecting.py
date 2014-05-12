@@ -58,7 +58,7 @@ class TestTorrentCollecting(TestAsServer):
         torrentfn = os.path.join(session.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
 
-        sdef, swiftpath = session.lm.rtorrent_handler._write_to_collected(torrentfn)
+        sdef, swiftpath = session.lm.rtorrent_handler._move_to_collected(torrentfn)
         return tdef.get_id() if tdef else None, sdef.get_id()
 
     def test_torrent_collecting(self):

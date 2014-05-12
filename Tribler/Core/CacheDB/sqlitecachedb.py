@@ -1843,7 +1843,7 @@ CREATE TABLE MetadataData (
                             if not os.path.isfile(torrent_filename):
                                 not_found.append((infohash,))
                             else:
-                                sdef, swiftpath = rth._write_to_collected(torrent_filename)
+                                sdef, swiftpath = rth._move_to_collected(torrent_filename)
                                 found.append((bin2str(sdef.get_roothash()), swiftpath, infohash))
 
                                 os.remove(torrent_filename)

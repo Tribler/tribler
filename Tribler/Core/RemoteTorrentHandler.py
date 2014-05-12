@@ -319,7 +319,7 @@ class RemoteTorrentHandler:
             tmp_filename = os.path.join(self.session.get_torrent_collecting_dir(), ("tmp_%d_" % filename_index) + get_collected_torrent_filename(tdef.get_infohash()))
 
         tdef.save(tmp_filename)
-        sdef, swiftpath = self._write_to_collected(tmp_filename)
+        sdef, swiftpath = self._move_to_collected(tmp_filename)
         if not os.path.exists(tmp_filename):
             return
         try:
@@ -352,7 +352,7 @@ class RemoteTorrentHandler:
         elif callback:
             callback()
 
-    def _write_to_collected(self, filename):
+    def _move_to_collected(self, filename):
         # if we don't have swift, write to collected using infohash as name
         if os.path.isfile(self.session.get_swift_path()):
             # calculate root-hash
