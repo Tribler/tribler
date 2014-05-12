@@ -19,6 +19,7 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 
 logger = logging.getLogger(__name__)
 
+@call_on_reactor_thread
 def define_allchannel(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
     from Tribler.community.channel.community import ChannelCommunity
@@ -62,7 +63,7 @@ def main(define_communities):
     session.start()
 
     dispersy = session.get_dispersy_instance()
-    dispersy.callback.call(define_communities, args=(session,))
+    define_communities(session)
 
     try:
         while True:

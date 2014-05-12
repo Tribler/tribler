@@ -33,10 +33,10 @@ version = version_short + ' (' + product_name + ')'
 
 def warnDisperyThread(func):
     def invoke_func(*args, **kwargs):
-        from threading import currentThread
+        from twisted.python.threadable import isInIOThread
         from traceback import print_stack
 
-        if currentThread().getName() == 'Dispersy':
+        if isInIOThread():
             import inspect
             caller = inspect.stack()[1]
             callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])

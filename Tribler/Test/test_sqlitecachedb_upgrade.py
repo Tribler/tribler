@@ -1,15 +1,16 @@
 import sys
 
-from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.bak_tribler_sdb import init_bak_tribler_sdb
-
-from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB import sqlitecachedb
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.Core.Session import Session
+from Tribler.Test.bak_tribler_sdb import init_bak_tribler_sdb
+from Tribler.Test.test_as_server import AbstractServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestSqliteCacheDB(AbstractServer):
 
+    @blocking_call_on_reactor_thread
     def setUp(self):
         AbstractServer.setUp(self)
 
@@ -21,6 +22,7 @@ class TestSqliteCacheDB(AbstractServer):
         sqlitecachedb.UPGRADE_BATCH_SIZE = sys.maxsize
         sqlitecachedb.TEST_OVERRIDE = True
 
+    @blocking_call_on_reactor_thread
     def tearDown(self):
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
@@ -35,6 +37,10 @@ class TestSqliteCacheDB(AbstractServer):
     def test_perform_upgrade(self):
         dbpath = init_bak_tribler_sdb('bak_old_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
 
-        self.sqlitedb = SQLiteCacheDB.getInstance()
-        self.sqlitedb.initDB(dbpath)
+        # TODO(emilon): Replace this with the database decorator when the database stuff gets its own thread again
+        @blocking_call_on_reactor_thread
+        def do_db():
+            self.sqlitedb = SQLiteCacheDB.getInstance()
+            self.sqlitedb.initDB(dbpath)
+        do_db()
         self.sqlitedb.waitForUpdateComplete()

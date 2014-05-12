@@ -1,18 +1,18 @@
 # Written by Bram Cohen and Pawel Garbacki
 # see LICENSE.txt for license information
-
-from bisect import insort
-from SocketHandler import SocketHandler
-import socket
-from traceback import print_exc
-from select import error
-from threading import Event, RLock
-from thread import get_ident
-from Tribler.Core.Utilities.clock import clock
-import sys
 import logging
+import socket
+import sys
+from bisect import insort
+from select import error
+from thread import get_ident
+from threading import Event, RLock
+from traceback import print_exc
 
-from Tribler.dispersy.decorator import attach_profiler
+from SocketHandler import SocketHandler
+from Tribler.Core.Utilities.clock import clock
+from Tribler.dispersy.util import attach_profiler
+
 
 try:
     True

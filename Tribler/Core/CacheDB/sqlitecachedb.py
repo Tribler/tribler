@@ -1772,7 +1772,7 @@ CREATE TABLE MetadataData (
             self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)")
             self.execute_write("CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check)")
             self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
-            self.clean_db(True)
+
 
             self.database_update.release()
 
@@ -2271,7 +2271,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         except:
             self._logger.exception("INITIAL BEGIN FAILED")
             raise
-        _shouldCommit = True
+        _shouldCommit = False
 
     @forceDBThread
     def commitNow(self, vacuum=False, exiting=False):

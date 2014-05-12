@@ -12,7 +12,7 @@ from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker, \
     GUI_PRI_DISPERSY
 
 from threading import Event
-from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG, register_task, call_task
+from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG
 
 logger = logging.getLogger(__name__)
 

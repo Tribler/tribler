@@ -91,6 +91,11 @@ class BasicDBHandler:
 
     @classmethod
     def delInstance(cls):
+        if cls._single:
+            # cancel all pending tasks
+            for key in cls._single._pending_tasks.keys():
+                cls._single.cancel_pending_task(key)
+                cls._single._pending_tasks.clear()
         with cls._singleton_lock:
             cls._single = None
 

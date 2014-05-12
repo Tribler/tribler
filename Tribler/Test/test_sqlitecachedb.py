@@ -1,38 +1,46 @@
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestSqliteCacheDB(AbstractServer):
 
+    @blocking_call_on_reactor_thread
     def setUp(self):
         AbstractServer.setUp(self)
         self.sqlite_test = SQLiteCacheDB.getInstance()
         self.db_path = ':memory:'
 
+    @blocking_call_on_reactor_thread
     def tearDown(self):
         AbstractServer.tearDown(self)
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
 
+    @blocking_call_on_reactor_thread
     def test_open_db(self):
         self.sqlite_test.openDB(self.db_path, 0)
 
+    @blocking_call_on_reactor_thread
     def test_create_db(self):
         sql = "create table person(lastname, firstname);"
         self.sqlite_test.createDBTable(sql, self.db_path)
 
+    @blocking_call_on_reactor_thread
     def test_get_del_instance(self):
         SQLiteCacheDB.delInstance()
         sqlite_test2 = SQLiteCacheDB.getInstance()
 
         assert sqlite_test2 != self.sqlite_test
 
+    @blocking_call_on_reactor_thread
     def test_insert(self):
         self.test_create_db()
 
         self.sqlite_test.insert('person', lastname='a', firstname='b')
         assert self.sqlite_test.size('person') == 1
 
+    @blocking_call_on_reactor_thread
     def test_fetchone(self):
         self.test_insert()
         one = self.sqlite_test.fetchone('select * from person')
@@ -42,8 +50,9 @@ class TestSqliteCacheDB(AbstractServer):
         assert one == 'a'
 
         one = self.sqlite_test.fetchone("select lastname from person where firstname == 'c'")
-        assert one == None
+        assert one is None
 
+    @blocking_call_on_reactor_thread
     def test_insertmany(self):
         self.test_create_db()
 
@@ -54,6 +63,7 @@ class TestSqliteCacheDB(AbstractServer):
         self.sqlite_test.insertMany('person', values)
         assert self.sqlite_test.size('person') == 100
 
+    @blocking_call_on_reactor_thread
     def test_fetchall(self):
         self.test_insertmany()
 
@@ -63,6 +73,7 @@ class TestSqliteCacheDB(AbstractServer):
         all = self.sqlite_test.fetchall("select * from person where lastname=='101'")
         assert all == []
 
+    @blocking_call_on_reactor_thread
     def test_insertorder(self):
         self.test_insertmany()
 
@@ -73,6 +84,7 @@ class TestSqliteCacheDB(AbstractServer):
         all = self.sqlite_test.fetchall("select firstname from person where lastname == '1'")
         assert len(all) == 2
 
+    @blocking_call_on_reactor_thread
     def test_update(self):
         self.test_insertmany()
 

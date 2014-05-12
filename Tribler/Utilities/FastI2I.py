@@ -15,7 +15,7 @@ try:
 except ImportError as e:
     prctlimported = False
 
-from Tribler.dispersy.decorator import attach_profiler
+from Tribler.dispersy.util import attach_profiler
 
 
 class FastI2IConnection(Thread):

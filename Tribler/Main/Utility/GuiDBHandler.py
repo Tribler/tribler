@@ -126,11 +126,6 @@ class GUIDBProducer():
                 return
 
             except Exception as exc:
-                if str(exc).startswith("BusyError") and retryOnBusy:
-                    self._logger.error("GUIDBHandler: BusyError, retrying Task(%s) in 0.5s", name)
-                    self._pending_tasks[name] = reactor.callLater(0.5, wrapper)
-                    return
-
                 originalTb = format_exc()
                 sender.sendException(exc, originalTb)
                 return
@@ -161,13 +156,11 @@ class GUIDBProducer():
 
         if not self.onSameThread(workerType) or delay:
             if workerType == "dbThread":
-                if isgeneratorfunction(workerFn):
-                    self._pending_tasks[callbackId] = reactor.callFromThread(reactor.callLater, delay, workerFn)
-                else:
-                    self._pending_tasks[callbackId] = reactor.callFromThread(reactor.callLater, delay, wrapper)
-
+                dc = reactor.callFromThread(reactor.callLater, delay, wrapper)
+                if uId:
+                    self._pending_tasks[uId] = dc
             elif workerType == "guiTaskQueue":
-                self.guitaskqueue.add_task(wrapper, t=delay)
+                self.guitaskqueue.add_task(wrapper, t=delay, id=uId)
         else:
             self._logger.debug("GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately", name)
             wrapper()
@@ -299,9 +292,9 @@ def startWorker(
     used to check if such a task is already scheduled, ignores it if it is.
     Returns the delayedResult created, in case caller needs join/etc.
     """
+    # TODO(emilon): Deprecate retryOnBusy
     if isgeneratorfunction(workerFn):
-        assert consumer is None, "Cannot have consumer and yielding task"
-        consumer = None
+        raise Exception("generators are not supported anymore")
 
     if not consumer:
         consumer = exceptionConsumer

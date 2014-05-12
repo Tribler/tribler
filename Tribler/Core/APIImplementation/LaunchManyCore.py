@@ -168,13 +168,11 @@ class TriblerLaunchMany(Thread):
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
 
-                def do_db():
-                    nocachedb = cachedb.init(self.session.get_state_dir(), self.session.get_install_dir(), self.rawserver_fatalerrorfunc)
-                    nocachedb.initialBegin()
+                nocachedb = cachedb.init(self.session.get_state_dir(), self.session.get_install_dir(), self.rawserver_fatalerrorfunc)
 
                 # TODO(emilon): have a function on the new twistified database module that does this on the right thread
                 # (we will have a dedicated DB thread again soon)
-                blockingCallFromThread(reactor, do_db)
+                blockingCallFromThread(reactor, nocachedb.initialBegin)
 
                 self.cat = Category.getInstance(self.session.get_install_dir())
                 self.term = TermExtraction.getInstance(self.session.get_install_dir())

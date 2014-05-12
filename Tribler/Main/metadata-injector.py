@@ -30,8 +30,11 @@ from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager
     ChannelManager
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 
+from twisted.internet import reactor
+
 logger = logging.getLogger(__name__)
 
+@call_on_reactor_thread
 def define_communities(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
     from Tribler.community.channel.community import ChannelCommunity
@@ -180,9 +183,8 @@ def main():
     torrentStateManager.connect(torrentManager, libraryManager, channelManager)
 
     dispersy = session.get_dispersy_instance()
-    dispersy.callback.call(define_communities, args=(session,))
-    dispersy.callback.register(dispersy_started, args=(session, opt,
-        torrentManager, channelManager, torrentStateManager))
+    define_communities()
+    reactor.callFromThread(dispersy_started, session, opt, torrentManager, channelManager, torrentStateManager)
 
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
