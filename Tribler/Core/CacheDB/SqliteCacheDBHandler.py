@@ -4,34 +4,37 @@
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py
 # for any function you add to database.
 # Please reuse the functions in sqlitecachedb as much as possible
-
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
-from copy import deepcopy
-from traceback import print_exc
-from time import time
-from binascii import hexlify
-from Tribler.Core.TorrentDef import TorrentDef
+import binascii
+import logging
 import os
 import threading
 import urllib
+from binascii import hexlify
+from copy import deepcopy
 from random import sample
 from struct import unpack_from
+from threading import RLock, Lock
+from time import time
+from traceback import print_exc
 
-import logging
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import deferLater
 
 from Notifier import Notifier
+from Tribler.Category.Category import Category
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.Search.SearchManager import split_into_keywords, \
+    filter_keywords
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, \
     NTFY_INSERT, NTFY_DELETE, NTFY_CREATE, NTFY_MODIFIED, NTFY_TRACKERINFO, \
     NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS, NTFY_CHANNELCAST, \
     NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, \
     NTFY_MARKINGS, NTFY_STATE
-from Tribler.Core.Search.SearchManager import split_into_keywords, \
-    filter_keywords
-from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Category.Category import Category
-from threading import RLock, Lock
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-import binascii
+
 
 try:
     # python 2.7 only...
@@ -1990,6 +1993,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         self.votecast_db = VoteCastDBHandler.getInstance()
         self.torrent_db = TorrentDBHandler.getInstance()
 
+        @inlineCallbacks
         def updateNrTorrents():
             while True:
                 rows = self.getChannelNrTorrents(50)
@@ -1997,15 +2001,16 @@ class ChannelCastDBHandler(BasicDBHandler):
                 self._db.executemany(update, rows)
 
                 # schedule a call for in 5 minutes
-                yield 300.0
+                yield deferLater(reactor, 300.0, lambda: None)
 
                 rows = self.getChannelNrTorrentsLatestUpdate(50)
                 update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
                 self._db.executemany(update, rows)
 
                 # schedule a call for in 5 minutes
-                yield 300.0
-        self.session.lm.database_thread.register(updateNrTorrents, delay=120.0)
+                yield deferLater(reactor, 300.0, lambda: None)
+
+        self._db.schedule_task(updateNrTorrents, delay=120.0)
 
     # dispersy helper functions
     def _get_my_dispersy_cid(self):

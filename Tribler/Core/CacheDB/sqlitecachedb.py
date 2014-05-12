@@ -1,23 +1,25 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
-
+import inspect
+import logging
 import os
-from time import time
-from base64 import encodestring, decodestring
 import threading
-from traceback import print_exc
-
-from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
-from Tribler import LIBRARYNAME
-from Tribler.Core.Utilities.unicode import dunno2unicode
+from base64 import encodestring, decodestring
+from threading import currentThread, RLock
+from time import time
+from traceback import print_exc, print_stack
 
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
-from threading import currentThread, RLock
-import inspect
+from twisted.internet import reactor
+from twisted.python.threadable import isInIOThread
+from twisted.internet.threads import blockingCallFromThread
 
-import logging
+from Tribler import LIBRARYNAME
+from Tribler.Core.Utilities.unicode import dunno2unicode
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
+
 
 # support_version = (3,5,9)
 # support_version = (3,3,13)
@@ -60,7 +62,10 @@ INITIAL_UPGRADE_PAUSE = 10
 SUCCESIVE_UPGRADE_PAUSE = 5
 UPGRADE_BATCH_SIZE = 100
 
+INSERT_MY_TORRENTS_INTERVAL = 10
+
 TRHEADING_DEBUG = False
+
 
 logger = logging.getLogger(__name__)
 
@@ -1523,10 +1528,10 @@ CREATE TABLE MetadataData (
                     def dispersy_started(subject, changeType, objectID):
                         self._logger.info("Dispersy started")
                         dispersy = session.lm.dispersy
-                        callback = dispersy.callback
 
                         community = None
 
+                        @call_on_reactor_thread
                         def create_my_channel():
                             global community
 
@@ -1552,8 +1557,9 @@ CREATE TABLE MetadataData (
                                 insert_votes_for_me()
 
                                 # schedule insert torrents
-                                dispersy.callback.register(insert_my_torrents, delay=10.0)
+                                insert_my_torrents()
 
+                        @forceDBThread
                         def insert_votes_for_me():
                             self._logger.info("Dispersy started, inserting votes")
                             my_channel_id = self.fetchone(select_mychannel_id)
@@ -1573,6 +1579,7 @@ CREATE TABLE MetadataData (
                                 votecast = VoteCastDBHandler.getInstance()
                                 votecast._updateVotes(my_channel_id)
 
+                        @call_on_reactor_thread
                         def insert_my_torrents():
                             global community
 
@@ -1610,7 +1617,7 @@ CREATE TABLE MetadataData (
 
                                     if len(to_be_removed) > 0:
                                         self.executemany("DELETE FROM ChannelCast WHERE infohash = ?", to_be_removed)
-                                    dispersy.callback.register(insert_my_torrents, delay=10.0)
+                                    reactor.callLater(INSERT_MY_TORRENTS_INTERVAL, insert_my_torrents)
 
                                 else:  # done
                                     drop_channelcast = "DROP TABLE ChannelCast"
@@ -1619,12 +1626,12 @@ CREATE TABLE MetadataData (
                                     drop_votecast = "DROP TABLE VoteCast"
                                     self.execute_write(drop_votecast)
                             else:
-                                dispersy.callback.register(insert_my_torrents, delay=float(SUCCESIVE_UPGRADE_PAUSE))
+                                reactor.callLater(SUCCESIVE_UPGRADE_PAUSE, insert_my_torrents)
 
                         from Tribler.community.channel.community import ChannelCommunity
                         from Tribler.Core.TorrentDef import TorrentDef
 
-                        callback.register(create_my_channel, delay=float(INITIAL_UPGRADE_PAUSE))
+                        reactor.callLater(INITIAL_UPGRADE_PAUSE, create_my_channel)
                         session.remove_observer(dispersy_started)
 
                     session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
@@ -2208,62 +2215,8 @@ CREATE TABLE MetadataData (
 
 _shouldCommit = False
 
-_callback = None
-_callback_lock = RLock()
-
-
-def try_register(db, callback=None):
-    global _callback, _callback_lock
-
-    if not _callback:
-        _callback_lock.acquire()
-        try:
-            # check again if _callback hasn't been set, but now we are thread safe
-            if not _callback:
-                if callback and callback.is_running:
-                    logger.info("Using actual DB thread %s", callback)
-                    _callback = callback
-
-                    if db:
-                        if currentThread().getName() == 'Dispersy':
-                            db.initialBegin()
-                        else:
-                            # Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
-                            _callback.register(db.initialBegin, priority=1024)
-        finally:
-            _callback_lock.release()
-
-
-def unregister():
-    global _callback
-    _callback = None
-
-
-def register_task(db, *args, **kwargs):
-    global _callback
-    if not _callback:
-        try_register(db)
-    if not _callback or not _callback.is_running:
-        def fakeDispersy(call, args=(), kwargs={}):
-            call(*args, **kwargs)
-        return fakeDispersy(*args)
-    return _callback.register(*args, **kwargs)
-
-
-def call_task(db, *args, **kwargs):
-    global _callback
-    if not _callback:
-        try_register(db)
-
-    if not _callback or not _callback.is_running:
-        def fakeDispersy(call, args=(), kwargs={}):
-            return call(*args, **kwargs)
-        return fakeDispersy(*args)
-    return _callback.call(*args, **kwargs)
-
-
 def onDBThread():
-    return currentThread().getName() == 'Dispersy'
+    return isInIOThread()
 
 
 def forceDBThread(func):
@@ -2277,37 +2230,15 @@ def forceDBThread(func):
                     callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
                 logger.debug("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
-            register_task(None, func, args, kwargs)
+            reactor.callFromThread(func, *args, **kwargs)
         else:
             func(*args, **kwargs)
 
     invoke_func.__name__ = func.__name__
     return invoke_func
-
-
-def forcePrioDBThread(func):
-    def invoke_func(*args, **kwargs):
-        if not onDBThread():
-            if TRHEADING_DEBUG:
-                stack = inspect.stack()
-                callerstr = ""
-                for i in range(1, min(10, len(stack))):
-                    caller = stack[i]
-                    callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
-                logger.debug("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-
-            register_task(None, func, args, kwargs, priority=99)
-        else:
-            func(*args, **kwargs)
-
-    invoke_func.__name__ = func.__name__
-    return invoke_func
-
 
 def forceAndReturnDBThread(func):
     def invoke_func(*args, **kwargs):
-        global _callback
-
         if not onDBThread():
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
@@ -2317,7 +2248,7 @@ def forceAndReturnDBThread(func):
                     callerstr += "%s %s:%s" % (caller[3], caller[1], caller[2])
                 logger.debug("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
-            return call_task(None, func, args, kwargs, timeout=15.0, priority=99)
+            return blockingCallFromThread(reactor, func, *args, **kwargs)
         else:
             return func(*args, **kwargs)
 
@@ -2473,5 +2404,7 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
             raise RuntimeError("SQLiteCacheDB is singleton")
         SQLiteNoCacheDB.__init__(self, *args, **kargs)
 
+    @forceDBThread
     def schedule_task(self, task, delay=0.0):
-        register_task(None, task, delay=delay)
+        # TODO(emilon): These tasks are not being collected to be canceled at shutdown time
+        reactor.callLater(delay, task)
