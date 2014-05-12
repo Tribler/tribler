@@ -42,6 +42,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
             session = Session(config, ignore_singleton=True)
             session.start()
+            self.sessions.append(session)
 
             while not session.lm.initComplete:
                 time.sleep(1)
