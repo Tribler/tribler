@@ -3,34 +3,37 @@
 #
 # Handles the case where the user did a remote query and now selected one of the
 # returned torrents for download.
-
-import sys
 import Queue
-import os
-
+import atexit
+import binascii
 import logging
-from traceback import print_exc
+import os
+import shutil
+import sys
+import urllib
 from binascii import hexlify
 from time import sleep, time
+from traceback import print_exc
 
-from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH, \
-    DLSTATUS_STOPPED_ON_ERROR
+from twisted.internet import reactor
+from twisted.internet.base import DelayedCall
+from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.task import deferLater, LoopingCall
+
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
-from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-import shutil
-from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.exceptions import DuplicateDownloadException, \
-    OperationNotEnabledByConfigurationException
-
-import atexit
-import urllib
-import binascii
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from Tribler.Core.exceptions import DuplicateDownloadException, OperationNotEnabledByConfigurationException
+from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
+
 
 SWIFTFAILED_TIMEOUT = 5 * 60  # 5 minutes
+TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
+# TODO(emilon): This is not a constant
 LOW_PRIO_COLLECTING = 2
-
 
 class RemoteTorrentHandler:
 
@@ -53,6 +56,8 @@ class RemoteTorrentHandler:
 
         self.num_torrents = 0
 
+        self._pending_tasks = {}
+
     def getInstance(*args, **kw):
         if RemoteTorrentHandler.__single is None:
             RemoteTorrentHandler(*args, **kw)
@@ -63,10 +68,9 @@ class RemoteTorrentHandler:
         RemoteTorrentHandler.__single = None
     delInstance = staticmethod(delInstance)
 
-    def register(self, dispersy, database_thead, session, max_num_torrents):
+    def register(self, dispersy, session, max_num_torrents):
         self.session = session
         self.dispersy = dispersy
-        self.database_thead = database_thead
         self.max_num_torrents = max_num_torrents
         self.tor_col_dir = self.session.get_torrent_collecting_dir()
 
@@ -77,7 +81,7 @@ class RemoteTorrentHandler:
         self.torrent_db = None
         if self.session.get_megacache():
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
-            self.database_thead.register(self.__check_overflow, delay=30.0)
+            self.__check_overflow()
 
         if session.get_dht_torrent_collecting():
             self.drequesters[0] = MagnetRequester(self, 0)
@@ -88,33 +92,55 @@ class RemoteTorrentHandler:
     def is_registered(self):
         return self.registered
 
+    def cancel_pending_task(self, key):
+        task = self._pending_tasks.pop(key)
+        if isinstance(task, Deferred) and not task.called:
+            # Have in mind that any deferred in the pending tasks list should have been constructed with a
+            # canceller function.
+            task.cancel()
+        elif isinstance(task, DelayedCall) and task.active():
+            task.cancel()
+        elif isinstance(task, LoopingCall) and task.running:
+            task.stop()
+
     def shutdown(self):
+        # TODO(emilon): have a superclass for classes that keep a pending task dictionary
+        for key in self._pending_tasks.keys():
+            self.cancel_pending_task(key)
+
         if self.registered:
             self.tqueue.shutdown(True)
 
     def set_max_num_torrents(self, max_num_torrents):
         self.max_num_torrents = max_num_torrents
 
+    @call_on_reactor_thread
     def __check_overflow(self):
         global LOW_PRIO_COLLECTING
-        while True:
+        def clean_until_done(num_delete, deletions_per_step):
+            """
+            Delete torrents in steps to avoid too much IO at once.
+            """
+            if num_delete > 0:
+                to_remove = min(num_delete, deletions_per_step)
+                num_delete -= to_remove
+                self.torrent_db.freeSpace(to_remove)
+                reactor.callLater(5, clean_until_done, num_delete)
+
+        def torrent_overflow_check():
+            """
+            Check if we have reached the collected torrent limit and throttle its collection if so.
+            """
             self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
             self._logger.debug("rtorrent: check overflow: current %d max %d", self.num_torrents, self.max_num_torrents)
 
             if self.num_torrents > self.max_num_torrents:
                 num_delete = int(self.num_torrents - self.max_num_torrents * 0.95)
-                num_per_step = max(25, num_delete / 180)
-
+                deletions_per_step = max(25, num_delete / 180)
+                clean_until_done(num_delete, deletions_per_step)
                 self._logger.info("rtorrent: ** limit space:: %d %d %d", self.num_torrents, self.max_num_torrents, num_delete)
 
                 LOW_PRIO_COLLECTING = 20
-
-                while num_delete > 0:
-                    to_remove = min(num_delete, num_per_step)
-                    num_delete -= to_remove
-                    self.torrent_db.freeSpace(to_remove)
-                    yield 5.0
-
             elif self.num_torrents > (self.max_num_torrents * .75):
                 LOW_PRIO_COLLECTING = 10
 
@@ -126,9 +152,11 @@ class RemoteTorrentHandler:
 
             self._logger.debug("rtorrent: setting low_prio_collection to one .torrent every %.1f seconds", LOW_PRIO_COLLECTING * .5)
 
-            yield 30 * 60.0  # run every 30 minutes
+        self._pending_tasks["torrent overflow check"] = lc = LoopingCall(torrent_overflow_check)
+        lc.start(TORRENT_OVERFLOW_CHECKING_INTERVAL, now=True)
 
     @property
+    @blocking_call_on_reactor_thread
     def searchcommunity(self):
         if self.registered:
 
@@ -243,10 +271,11 @@ class RemoteTorrentHandler:
         assert not roothash or isinstance(roothash, str), "ROOTHASH has invalid type: %s" % type(roothash)
 
         if self.torrent_db:
-            self.database_thead.register(self._has_torrent, args=(hashes, self.tor_col_dir, callback))
+            self._has_torrent(hashes, self.tor_col_dir, callback)
         else:
             callback(False)
 
+    @call_on_reactor_thread
     def _has_torrent(self, hashes, tor_col_dir, callback):
         infohash, roothash = hashes
 
@@ -277,7 +306,7 @@ class RemoteTorrentHandler:
                 if not filename:
                     self._save_torrent(tdef, callback)
                 elif callback:
-                    self.database_thead.register(callback)
+                    callback()
 
             infohash = tdef.get_infohash()
             self.has_torrent((infohash, None), do_schedule)
@@ -298,6 +327,7 @@ class RemoteTorrentHandler:
         except:
             atexit.register(lambda tmp_filename=tmp_filename: os.remove(tmp_filename))
 
+        @forceDBThread
         def do_db(callback):
             # add this new torrent to db
             infohash = tdef.get_infohash()
@@ -318,7 +348,7 @@ class RemoteTorrentHandler:
                 callback()
 
         if self.torrent_db:
-            self.database_thead.register(do_db, args=(callback,))
+            do_db(callback)
         elif callback:
             callback()
 
@@ -360,7 +390,7 @@ class RemoteTorrentHandler:
             if key[1] == roothash:
                 handle_lambda = lambda key = key: self._handleCallback(key, True)
                 self.scheduletask(handle_lambda)
-
+        @forceDBThread
         def do_db(tdef):
             if self.torrent_db.hasTorrent(tdef.get_infohash()):
                 self.torrent_db.updateTorrent(tdef.get_infohash(), swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
@@ -372,7 +402,7 @@ class RemoteTorrentHandler:
         if os.path.exists(swiftpath) and self.torrent_db:
             try:
                 tdef = TorrentDef.load(swiftpath)
-                self.database_thead.register(do_db, args=(tdef,))
+                do_db(tdef)
 
             except:
                 # ignore if tdef loading fails
