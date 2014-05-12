@@ -362,6 +362,9 @@ class TestGuiAsServer(TestAsServer):
         if window == None:
             app = wx.GetApp()
             window = app.GetTopWindow()
+            if not window:
+                self._logger.error("Couldn't obtain top window and no window was passed as argument, bailing out")
+                return
 
         rect = window.GetClientRect()
         size = window.GetSize()
