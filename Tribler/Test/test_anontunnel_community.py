@@ -24,7 +24,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
     def startTest(self, callback, min_timeout=5):
         def setup_proxies():
-            for i in range(4):
+            for i in range(3, 7):
                 create_proxy(i)
 
             callback()
@@ -74,6 +74,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         self.config.set_libtorrent(True)
 
         self.config2 = self.config.copy()
+        self.config2.set_state_dir(self.getStateDir(2))
         self.session2 = Session(self.config2, ignore_singleton=True)
         self.session2.start()
 

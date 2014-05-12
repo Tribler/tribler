@@ -76,7 +76,7 @@ class LibtorrentMgr:
         self.ltsession.add_dht_router('router.bitcomet.com', 6881)
 
         # Load proxy settings
-        self.set_proxy_settings(*self.trsession.get_libtorrent_proxy_settings())
+        self.set_proxy_settings(self.ltsession, *self.trsession.get_libtorrent_proxy_settings())
 
         self.set_utp(self.trsession.get_libtorrent_utp())
 
@@ -137,18 +137,11 @@ class LibtorrentMgr:
                                  lt.alert.category_t.performance_warning |
                                  lt.alert.category_t.debug_notification)
 
-        proxy_settings = lt.proxy_settings()
-        proxy_settings.type = lt.proxy_type(proxy_type.socks5)
-        anonymous_libtorrent_settings = self.trsession.get_anon_proxy_settings()
-        proxy_settings.hostname = anonymous_libtorrent_settings[0]
-        proxy_settings.port = anonymous_libtorrent_settings[1]
-        proxy_settings.proxy_hostnames = True
-        proxy_settings.proxy_peer_connections = True
 
+        self.set_proxy_settings(ltsession, *self.trsession.get_anon_proxy_settings())
         self.ltsession_anon = ltsession
-        self.ltsession_anon.set_proxy(proxy_settings)
 
-        ltsession.listen_on(anonymous_libtorrent_settings[2], anonymous_libtorrent_settings[2]+10)
+        ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port()+10)
         self._logger.info("Started ANON LibTorrent session on port %d", ltsession.listen_port())
 
     def shutdown(self):
@@ -164,7 +157,7 @@ class LibtorrentMgr:
         if os.path.exists(self.metadata_tmpdir):
             rmtree(self.metadata_tmpdir)
 
-    def set_proxy_settings(self, ptype, server=None, auth=None):
+    def set_proxy_settings(self, ltsession, ptype, server=None, auth=None):
         proxy_settings = lt.proxy_settings()
         proxy_settings.type = lt.proxy_type(ptype)
         if server:
@@ -175,10 +168,7 @@ class LibtorrentMgr:
             proxy_settings.password = auth[1]
         proxy_settings.proxy_hostnames = True
         proxy_settings.proxy_peer_connections = True
-        self.ltsession.set_peer_proxy(proxy_settings)
-        self.ltsession.set_web_seed_proxy(proxy_settings)
-        self.ltsession.set_tracker_proxy(proxy_settings)
-        self.ltsession.set_dht_proxy(proxy_settings)
+        ltsession.set_proxy(proxy_settings)
 
     def set_utp(self, enable):
         settings = self.ltsession.settings()

@@ -928,14 +928,14 @@ class TriblerLaunchMany(Thread):
                 self.ltmgr.set_utp(new_value)
         elif section == 'libtorrent' and name == 'lt_proxyauth':
             if self.ltmgr:
-                self.ltmgr.set_proxy_settings(*self.session.get_libtorrent_proxy_settings())
+                self.ltmgr.set_proxy_settings(self.ltmgr.ltsession, *self.session.get_libtorrent_proxy_settings())
         elif section == 'torrent_checking' and name == 'torrent_checking_period':
             if self.rtorrent_handler and value_changed:
                 self.rtorrent_handler.set_max_num_torrents(new_value)
         # Return True/False, depending on whether or not the config value can be changed at runtime.
         elif (section == 'general' and name in ['nickname', 'mugshot', 'videoanalyserpath']) or \
              (section == 'libtorrent' and name in ['lt_proxytype', 'lt_proxyserver',
-                                                   'anon_proxy_hostname', 'anon_proxy_port',
+                                                   'anon_proxyserver', 'anon_proxytype', 'anon_proxyauth',
                                                    'anon_listen_port']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
              (section == 'proxy_community' and name in ['socks5_listen_port']) or \

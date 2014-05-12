@@ -273,7 +273,7 @@ class SessionConfigInterface(object):
         self.sessconfig.set(u'libtorrent', u'anon_listen_port', listen_port)
 
     def get_anon_listen_port(self):
-        self._obtain_port(u'libtorrent', u'anon_listen_port')
+        return self._obtain_port(u'libtorrent', u'anon_listen_port')
 
     def set_libtorrent_utp(self, value):
         """ Enable or disable LibTorrent uTP (default = True).
