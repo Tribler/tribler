@@ -491,8 +491,7 @@ class ABCApp():
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
-        s.set_proxy_community_socks5_listen_port(s.get_proxy_community_socks5_listen_port())
-        s.set_anon_proxy_settings(2, ("127.0.0.1", s._obtain_port(u'proxy_community',u'socks5_listen_port')))
+        s.set_anon_proxy_settings(2, ("127.0.0.1", s.get_proxy_community_socks5_listen_port()))
 
         swift_process = s.get_swift_proc() and s.get_swift_process()
         dispersy = s.get_dispersy_instance()
