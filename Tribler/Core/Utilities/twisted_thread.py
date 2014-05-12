@@ -15,7 +15,11 @@ def threaded_reactor():
     if not _twisted_thread:
         from twisted.python import threadable
         from threading import Thread
-        _twisted_thread = Thread(target=lambda: reactor.run(installSignalHandlers=False))
+        def _reactor_runner():
+            reactor.suggestThreadPoolSize(1)
+            reactor.run(installSignalHandlers=False)
+
+        _twisted_thread = Thread(target=_reactor_runner)
         _twisted_thread.setDaemon(True)
         _twisted_thread.start()
         def hook_observer():
