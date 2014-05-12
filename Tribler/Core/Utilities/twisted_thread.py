@@ -19,7 +19,7 @@ def threaded_reactor():
             reactor.suggestThreadPoolSize(1)
             reactor.run(installSignalHandlers=False)
 
-        _twisted_thread = Thread(target=_reactor_runner)
+        _twisted_thread = Thread(target=_reactor_runner, name="Twisted")
         _twisted_thread.setDaemon(True)
         _twisted_thread.start()
         def hook_observer():
