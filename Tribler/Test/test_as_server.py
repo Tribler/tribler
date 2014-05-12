@@ -20,6 +20,8 @@ from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
+from nose.twistedtools import reactor
+
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
 DEST_DIR = os.path.join(BASE_DIR, "test_TriblerDownloads")
@@ -283,15 +285,11 @@ class TestGuiAsServer(TestAsServer):
             print >> sys.stderr, "tgs: found instance, staring to wait for lm to be initcomplete"
             self.session = Session.get_instance()
             self.lm = self.session.lm
-
+            self.hadSession = True
             self.CallConditional(30, lambda: self.lm.initComplete, wait_for_guiutility)
 
-        def wait_for_session():
-            self.hadSession = True
-            print >> sys.stderr, "tgs: waiting for session instance"
-            self.CallConditional(30, lambda: Session.has_instance(), wait_for_instance)
-
-        self.CallConditional(30, lambda: Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_session))
+        print >> sys.stderr, "tgs: waiting for session instance"
+        self.CallConditional(30, Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_instance))
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
