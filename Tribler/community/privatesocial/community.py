@@ -26,6 +26,8 @@ DEBUG = False
 DEBUG_VERBOSE = False
 ENCRYPTION = True
 
+SYNC_WITH_TASTE_BUDDIES_INTERVAL = 300
+
 class SocialCommunity(Community):
     def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, log_text=None):
         assert isinstance(dispersy.crypto, ElgamalCrypto)
@@ -40,9 +42,6 @@ class SocialCommunity(Community):
         # never sync while taking a step, only sync with friends
         self._orig_send_introduction_request = self.send_introduction_request
         self.send_introduction_request = lambda destination, introduce_me_to = None, allow_sync = True, advice = True: self._orig_send_introduction_request(destination, introduce_me_to, False, True)
-
-        self.friend_sync_id = dispersy.callback.register(self.sync_with_friends)
-        self._pending_callbacks.append(self.friend_sync_id)
 
     def unload_community(self):
         super(SocialCommunity, self).unload_community()
@@ -64,22 +63,16 @@ class SocialCommunity(Community):
     def dispersy_sync_cache_enable(self):
         return False
 
-    def sync_with_friends(self):
-        while True:
-            tbs = list(self.yield_taste_buddies())
-            shuffle(tbs)
-
-            if tbs:
-                interval = max(300 / float(len(tbs)), 5.0)
-                for tb in tbs:
-                    self._orig_send_introduction_request(tb.candidate, None, True, False)
-                    yield interval
-            else:
-                yield 15.0
+    def sync_with_friend(self, tb):
+        if self.is_taste_buddy(tb):
+            self._orig_send_introduction_request(tb.candidate, None, True, False)
+        else:
+            self.cancel_pending_task(tb)
 
     def new_taste_buddy(self, tb):
         if tb.overlap:
-            self.dispersy.callback.replace_register(self.friend_sync_id, self.sync_with_friends)
+            self._pending_tasks[tb] = lc = LoopingCall(self._sync_with_friend, tb)
+            lc.start(SYNC_WITH_TASTE_BUDDIES_INTERVAL, now=True)
 
     def _get_packets_for_bloomfilters(self, requests, include_inactive=True):
         for message, time_low, time_high, offset, modulo in requests:
