@@ -38,7 +38,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             config = self.config.copy()
             config.set_libtorrent(True)
             config.set_dispersy(True)
-            config.set_state_dir(self.session.get_state_dir() + str(index))
+            config.set_state_dir(self.getStateDir(index))
 
             session = Session(config, ignore_singleton=True)
             session.start()
