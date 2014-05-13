@@ -11,10 +11,15 @@ from Tribler.Core.simpledefs import dlstatus_strings
 
 class TestAnonTunnelCommunity(TestGuiAsServer):
 
-    def test_libtorrent_download(self):
+    def test_anon_download(self):
+        def take_second_screenshot():
+            self.screenshot()
+            self.quit()
+
         def take_screenshot(download_time):
             self.screenshot("After an anonymous libtorrent download (took %.2f s)" % download_time)
-            self.quit()
+            self.guiUtility.ShowPage('anonymity')
+            self.Call(1, take_second_screenshot)
 
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()
