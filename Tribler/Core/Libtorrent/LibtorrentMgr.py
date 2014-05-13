@@ -1,6 +1,5 @@
 
 # Written by Egbert Bouman
-from libtorrent import proxy_type
 import os
 import time
 import binascii
@@ -9,7 +8,6 @@ import libtorrent as lt
 
 import logging
 from copy import deepcopy
-from binascii import hexlify
 from shutil import rmtree
 
 from Tribler.Core.version import version_id

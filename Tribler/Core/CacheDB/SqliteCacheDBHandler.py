@@ -15,7 +15,6 @@ import os
 import threading
 import urllib
 from random import sample
-import math
 from struct import unpack_from
 
 import logging
