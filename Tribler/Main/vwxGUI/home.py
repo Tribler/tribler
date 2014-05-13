@@ -880,7 +880,9 @@ class Anonymity(wx.Panel):
 
     def OnSize(self, evt):
         size = min(*evt.GetEventObject().GetSize())
-        self.graph_panel.SetSize((size + self.margin_x * 2, size + self.margin_y * 2))
+        x = min(size + self.margin_x * 2, self.GetSize().x - self.circuit_list.GetSize().x)
+        y = size + self.margin_y * 2
+        self.graph_panel.SetSize((x, y))
 
     def OnEraseBackground(self, event):
         pass
