@@ -181,15 +181,6 @@ CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS
 
 -- V2: Patch for BuddyCast 4
 
-CREATE TABLE ClicklogSearch (
-                     peer_id INTEGER DEFAULT 0,
-                     torrent_id INTEGER DEFAULT 0,
-                     term_id INTEGER DEFAULT 0,
-                     term_order INTEGER DEFAULT 0
-                     );
-CREATE INDEX idx_search_term ON ClicklogSearch (term_id);
-CREATE INDEX idx_search_torrent ON ClicklogSearch (torrent_id);
-
 -------------------------------------
 
 -- v7: TermFrequency and TorrentBiTermPhrase

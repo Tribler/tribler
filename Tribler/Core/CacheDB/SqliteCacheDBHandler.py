@@ -15,7 +15,6 @@ import os
 import threading
 import urllib
 from random import sample
-import math
 from struct import unpack_from
 
 import logging
@@ -1743,28 +1742,16 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if torrent_id is not None:
             return self.getMyPrefStats(torrent_id)[torrent_id]
 
-    def getRecentLivePrefListWithClicklog(self, num=0):
-        """returns OL 8 style preference list: a list of lists, with each of the inner lists
-           containing infohash, search terms, click position, and reranking strategy"""
-
-        if self.recent_preflist_with_clicklog is None:
-            self.rlock.acquire()
-            try:
-                if self.recent_preflist_with_clicklog is None:
-                    self.recent_preflist_with_clicklog = self._getRecentLivePrefListWithClicklog()
-            finally:
-                self.rlock.release()
-        if num > 0:
-            return self.recent_preflist_with_clicklog[:num]
-        else:
-            return self.recent_preflist_with_clicklog
-
     def getRecentLivePrefList(self, num=0):
         if self.recent_preflist is None:
             self.rlock.acquire()
             try:
                 if self.recent_preflist is None:
-                    self.recent_preflist = self._getRecentLivePrefList()
+                    sql = """SELECT infohash from MyPreference m, Torrent t
+                        WHERE m.torrent_id == t.torrent_id AND status_id == %d
+                        ORDER BY creation_time DESC""" % self.status_good
+                    recent_preflist = self._db.fetchall(sql)
+                    self.recent_preflist = [str2bin(t[0]) for t in recent_preflist] if recent_preflist else []
             finally:
                 self.rlock.release()
         if num > 0:
@@ -1789,70 +1776,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             self._logger.debug("addClicklogToMyPreference: updatable clicklog data: %s", d)
             self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, **d)
-
-        # have keywords stored by SearchDBHandler
-        if 'keywords' in clicklog_data:
-            if not clicklog_data['keywords'] == []:
-                searchdb = SearchDBHandler.getInstance()
-                searchdb.storeKeywords(peer_id=0,
-                                       torrent_id=torrent_id,
-                                       terms=clicklog_data['keywords'])
-
-    def _getRecentLivePrefListWithClicklog(self, num=0):
-        """returns a list containing a list for each torrent: [infohash, [seach terms], click position, reranking strategy]"""
-
-        sql = """
-        select infohash, click_position, reranking_strategy, m.torrent_id from MyPreference m, Torrent t
-        where m.torrent_id == t.torrent_id
-        and status_id == %d
-        order by creation_time desc
-        """ % self.status_good
-
-        recent_preflist_with_clicklog = self._db.fetchall(sql)
-        if recent_preflist_with_clicklog is None:
-            recent_preflist_with_clicklog = []
-        else:
-            recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1], # click position
-                                              t[2]]  # reranking strategy
-                                             for t in recent_preflist_with_clicklog]
-
-        if num != 0:
-            recent_preflist_with_clicklog = recent_preflist_with_clicklog[:num]
-
-        # now that we only have those torrents left in which we are actually interested,
-        # replace torrent id by user's search terms for torrent id
-        searchdb = SearchDBHandler.getInstance()
-        torrent_ids = [pref[1] for pref in recent_preflist_with_clicklog]
-        terms_dict = searchdb.getMyTorrentsSearchTermsStr(torrent_ids)
-
-        for pref in recent_preflist_with_clicklog:
-            search_terms = [term.encode("UTF-8") for term in terms_dict[pref[1]]]
-
-            # Arno, 2010-02-02: Explicit encoding
-            pref[1] = search_terms
-        return recent_preflist_with_clicklog
-
-    def _getRecentLivePrefList(self, num=0):  # num = 0: all files
-        # get recent and live torrents
-        sql = """
-        select infohash from MyPreference m, Torrent t
-        where m.torrent_id == t.torrent_id
-        and status_id == %d
-        order by creation_time desc
-        """ % self.status_good
-
-        recent_preflist = self._db.fetchall(sql)
-        if recent_preflist is None:
-            recent_preflist = []
-        else:
-            recent_preflist = [str2bin(t[0]) for t in recent_preflist]
-
-        if num != 0:
-            return recent_preflist[:num]
-        else:
-            return recent_preflist
 
     def hasMyPreference(self, torrent_id):
         res = self.getOne('torrent_id', torrent_id=torrent_id)
@@ -3017,63 +2940,6 @@ class ChannelCastDBHandler(BasicDBHandler):
                 elif channel[5] == best_channel[5] and channel[4] > best_channel[4]:
                     best_channel = channel
             return best_channel
-
-
-class SearchDBHandler(BasicDBHandler):
-
-    def __init__(self):
-        if SearchDBHandler._single is not None:
-            raise RuntimeError("SearchDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'ClicklogSearch')  # # self,db,'Search'
-
-    def storeKeywords(self, peer_id, torrent_id, terms):
-        """creates a single entry in Search with peer_id and torrent_id for every term in terms"""
-        terms = [term.strip() for term in terms if len(term.strip()) > 0]
-        term_ids = self.getTermsIDS(terms)
-        if term_ids:
-            term_ids = [id for id, term in term_ids]
-            self.storeKeywordsByID(peer_id, torrent_id, term_ids)
-
-    def storeKeywordsByID(self, peer_id, torrent_id, term_ids):
-        sql_insert_search = u"INSERT INTO ClicklogSearch (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?)"
-
-        if len(term_ids) > MAX_KEYWORDS_STORED:
-            term_ids = term_ids[0:MAX_KEYWORDS_STORED]
-
-        # TODO before we insert, we should delete all potentially existing entries
-        # with these exact values
-        # otherwise, some strange attacks might become possible
-        # and again we cannot assume that user/torrent/term only occurs once
-
-        # vliegendhart: only store 1 query per (peer_id,torrent_id)
-        # Step 1: delete (peer_id,torrent_id) records, if any
-        self._db.execute_write("DELETE FROM ClicklogSearch WHERE peer_id=? AND torrent_id=?", [peer_id, torrent_id])
-
-        # create insert data
-        values = [(peer_id, torrent_id, term_id, term_order)
-                  for (term_id, term_order)
-                  in zip(term_ids, range(len(term_ids)))]
-        self._db.executemany(sql_insert_search, values)
-
-    def getTermsIDS(self, terms):
-        parameters = '?,' * len(terms)
-        sql = "SELECT term_id, term FROM TermFrequency WHERE term IN (" + parameters[:-1] + ")"
-        return self._db.fetchall(sql, terms)
-
-    def getMyTorrentsSearchTermsStr(self, torrent_ids):
-        return_dict = {}
-        for torrent_id in torrent_ids:
-            return_dict[torrent_id] = set()
-
-        parameters = '?,' * len(torrent_ids)
-        sql = "SELECT torrent_id, term FROM ClicklogSearch, TermFrequency WHERE ClicklogSearch.term_id = TermFrequency.term_id AND torrent_id IN (" + parameters[:-1] + ") AND peer_id = ? ORDER BY freq"
-
-        parameters = torrent_ids[:]
-        parameters.append(0)
-        for torrent_id, term in self._db.fetchall(sql, parameters):
-            return_dict[torrent_id].add(term)
-        return return_dict
 
 
 class UserEventLogDBHandler(BasicDBHandler):
