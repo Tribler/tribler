@@ -239,9 +239,24 @@ class GUIUtility:
                 self.frame.stats.Show(False)
 
             if page == 'anonymity':
-                self.frame.anonymity.Show()
+                lib_details = self.frame.librarydetailspanel
+                anon_panel = lib_details.anonymityPanel
+                anon_panel.Reparent(self.frame)
+                anon_panel.SetFullScreenMode(True)
+                anon_panel.Show(False)
+                lib_details.anonymitySizer.Detach(anon_panel)
+                anon_panel.Show(True)
+                self.frame.GetSizer().GetChildren()[1].GetSizer().Add(anon_panel, 1, wx.EXPAND)
             elif self.guiPage == 'anonymity':
-                self.frame.anonymity.Show(False)
+                lib_details = self.frame.librarydetailspanel
+                anon_panel = lib_details.anonymityPanel
+                anon_panel.Show(False)
+                self.frame.GetSizer().GetChildren()[1].GetSizer().Detach(anon_panel)
+                anon_panel.Show(True)
+                anon_panel.Reparent(lib_details.anonymityTab)
+                lib_details.anonymitySizer.Add(anon_panel, 1, wx.EXPAND)
+                anon_panel.SetFullScreenMode(False)
+                lib_details.Layout()
 
             if self.frame.videoparentpanel:
                 if page == 'videoplayer':

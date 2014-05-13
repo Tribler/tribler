@@ -616,6 +616,7 @@ class Anonymity(wx.Panel):
         self.last_keyframe = 0
         self.time_step = 5.0
         self.radius = 32
+        self.line_width = 4
 
         self.layout_busy = False
         self.new_data = False
@@ -640,6 +641,16 @@ class Anonymity(wx.Panel):
         self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
         self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
 
+    def SetFullScreenMode(self, enable):
+        self.fullscreen = enable
+        self.log_text.Show(enable)
+        self.radius = 20 if enable else 12
+        self.line_width = 2 if enable else 1
+        self.vSizer.GetChildren()[0].SetBorder(20 if enable else 0)
+        self.main_sizer.GetChildren()[0].SetBorder(20 if enable else 0)
+        self.main_sizer.GetChildren()[1].SetBorder(20 if enable else 0)
+        self.Layout()
+
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
         self.graph_panel.Bind(wx.EVT_MOTION, self.OnMouse)
@@ -662,12 +673,12 @@ class Anonymity(wx.Panel):
         self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
         self.log_text.SetEditable(False)
 
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20)
-        vSizer.Add(self.log_text, 1, wx.EXPAND)
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20)
+        self.vSizer.Add(self.log_text, 1, wx.EXPAND)
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.ALL, 20)
-        self.main_sizer.Add(vSizer, 2, wx.EXPAND | wx.ALL, 20)
+        self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 20)
         self.SetSizer(self.main_sizer)
 
     def OnItemSelected(self, event):
@@ -909,9 +920,9 @@ class Anonymity(wx.Panel):
                 for vertexid1, vertexid2 in self.edges:
                     if int_points.has_key(vertexid1) and int_points.has_key(vertexid2):
                         if set([vertexid1, vertexid2]) in self.selected_edges:
-                            gc.SetPen(wx.Pen(wx.BLUE, 4))
+                            gc.SetPen(wx.Pen(wx.BLUE, self.line_width))
                         else:
-                            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), 4))
+                            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
                         x1, y1 = int_points[vertexid1]
                         x2, y2 = int_points[vertexid2]
                         gc.DrawLines([(x1, y1), (x2, y2)])
@@ -958,24 +969,26 @@ class Anonymity(wx.Panel):
                     gc.SetPen(pen)
                     gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
-                    text_height = dc.GetTextExtent('gG')[1]
-                    box_height = text_height + 3
+                    if 'UNKNOWN HOST' not in self.peers[self.vertex_active].host:
+                        text_height = dc.GetTextExtent('gG')[1]
+                        box_height = text_height + 3
 
-                    # Draw status box
-                    x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
-                    y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
-                    gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
-                    gc.SetPen(wx.Pen(LIST_BLUE))
-                    gc.DrawRectangle(x, y, 150, box_height)
+                        # Draw status box
+                        x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
+                        y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
+                        gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
+                        gc.SetPen(wx.Pen(LIST_BLUE))
+                        gc.DrawRectangle(x, y, 150, box_height)
 
-                    # Draw status text
-                    dc.SetFont(self.GetFont())
-                    for index, text in enumerate(['IP %s:%s' % (self.peers[self.vertex_active].host, self.peers[self.vertex_active].port)]):
-                        dc.DrawText(text, x + 5, y + index * text_height + 5)
+                        # Draw status text
+                        dc.SetFont(self.GetFont())
+                        for index, text in enumerate(['IP %s:%s' % (self.peers[self.vertex_active].host, self.peers[self.vertex_active].port)]):
+                            dc.DrawText(text, x + 5, y + index * text_height + 5)
 
-            # Draw vertex count
-            gc.SetFont(self.GetFont())
-            gc.DrawText("|V| = %d" % len(int_points), w - 50, h - 20)
+            if self.fullscreen:
+                # Draw vertex count
+                gc.SetFont(self.GetFont())
+                gc.DrawText("|V| = %d" % len(int_points), w - 50, h - 20)
 
     def PositionToVertex(self, position, key_to_position):
         for vertexid, vposition in key_to_position.iteritems():
