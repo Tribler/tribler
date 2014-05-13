@@ -1743,22 +1743,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if torrent_id is not None:
             return self.getMyPrefStats(torrent_id)[torrent_id]
 
-    def getRecentLivePrefListWithClicklog(self, num=0):
-        """returns OL 8 style preference list: a list of lists, with each of the inner lists
-           containing infohash, search terms, click position, and reranking strategy"""
-
-        if self.recent_preflist_with_clicklog is None:
-            self.rlock.acquire()
-            try:
-                if self.recent_preflist_with_clicklog is None:
-                    self.recent_preflist_with_clicklog = self._getRecentLivePrefListWithClicklog()
-            finally:
-                self.rlock.release()
-        if num > 0:
-            return self.recent_preflist_with_clicklog[:num]
-        else:
-            return self.recent_preflist_with_clicklog
-
     def getRecentLivePrefList(self, num=0):
         if self.recent_preflist is None:
             self.rlock.acquire()
