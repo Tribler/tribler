@@ -1888,6 +1888,8 @@ class LibraryList(SizeList):
                 item.RefreshColumn(6, seeds + peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers." % (seeds, peers) if ds else '')
 
+                item.RefreshColumn(11, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
+
                 # For updating torrent icons
                 torrent_ds, swift_ds = item.original_data.dslist
                 torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
@@ -1923,7 +1925,7 @@ class LibraryList(SizeList):
         SizeList.SetData(self, data)
 
         if len(data) > 0:
-            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, 0, 0, -1], file, LibraryListItem) for file in data]
+            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, 0, 0, ''], file, LibraryListItem) for file in data]
         else:
             header = "Currently not downloading or uploading any torrents."
             message = "Torrents can be found using our integrated search or using channels.\n"
@@ -1937,7 +1939,7 @@ class LibraryList(SizeList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
 
-        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, -1], data)
+        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, ''], data)
         self.list.RefreshData(key, data)
 
     def SetNrResults(self, nr):
