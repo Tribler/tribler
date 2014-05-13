@@ -1778,14 +1778,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
             self._logger.debug("addClicklogToMyPreference: updatable clicklog data: %s", d)
             self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, **d)
 
-        # have keywords stored by SearchDBHandler
-        if 'keywords' in clicklog_data:
-            if not clicklog_data['keywords'] == []:
-                searchdb = SearchDBHandler.getInstance()
-                searchdb.storeKeywords(peer_id=0,
-                                       torrent_id=torrent_id,
-                                       terms=clicklog_data['keywords'])
-
     def hasMyPreference(self, torrent_id):
         res = self.getOne('torrent_id', torrent_id=torrent_id)
         if res is not None:
