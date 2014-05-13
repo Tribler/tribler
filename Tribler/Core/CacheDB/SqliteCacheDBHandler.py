@@ -1748,7 +1748,11 @@ class MyPreferenceDBHandler(BasicDBHandler):
             self.rlock.acquire()
             try:
                 if self.recent_preflist is None:
-                    self.recent_preflist = self._getRecentLivePrefList()
+                    sql = """SELECT infohash from MyPreference m, Torrent t
+                        WHERE m.torrent_id == t.torrent_id AND status_id == %d
+                        ORDER BY creation_time DESC""" % self.status_good
+                    recent_preflist = self._db.fetchall(sql)
+                    self.recent_preflist = [str2bin(t[0]) for t in recent_preflist] if recent_preflist else []
             finally:
                 self.rlock.release()
         if num > 0:
@@ -1781,23 +1785,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
                 searchdb.storeKeywords(peer_id=0,
                                        torrent_id=torrent_id,
                                        terms=clicklog_data['keywords'])
-
-    def _getRecentLivePrefList(self):
-        # get recent and live torrents
-        sql = """
-        select infohash from MyPreference m, Torrent t
-        where m.torrent_id == t.torrent_id
-        and status_id == %d
-        order by creation_time desc
-        """ % self.status_good
-
-        recent_preflist = self._db.fetchall(sql)
-        if recent_preflist is None:
-            recent_preflist = []
-        else:
-            recent_preflist = [str2bin(t[0]) for t in recent_preflist]
-
-        return recent_preflist
 
     def hasMyPreference(self, torrent_id):
         res = self.getOne('torrent_id', torrent_id=torrent_id)
