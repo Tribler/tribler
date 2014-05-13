@@ -11,8 +11,7 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
-from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto, \
-    NoElgamalCrypto
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 
 import logging
 from traceback import print_exc
