@@ -13,6 +13,8 @@ from Tribler.community.privatesemantic.conversion import long_to_bytes
 from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
 from Tribler.dispersy.endpoint import NullEndpoint
 
+from twisted.internet.threads import blockingCallFromThread
+
 logging.config.fileConfig(
     os.path.dirname(os.path.realpath(__file__)) + "/../logger.conf")
 
@@ -42,6 +44,7 @@ class TestDefaultCrypto(TestAsServer):
     def crypto(self):
         return self.community.settings.crypto
 
+    @call_on_reactor_thread
     def setUp(self):
         super(TestDefaultCrypto, self).setUp()
         self.__candidate_counter = 0
@@ -49,43 +52,37 @@ class TestDefaultCrypto(TestAsServer):
 
         dispersy = self.dispersy
 
-        def load_community():
-            keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
-            dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
+        keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+        dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-            settings = ProxySettings()
-            settings.crypto = DefaultCrypto()
+        settings = ProxySettings()
+        settings.crypto = DefaultCrypto()
 
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
-            exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
+        self.community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
+        exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, self.community)
 
-            return proxy_community
-
-        self.community = dispersy.callback.call(load_community)
         ''' :type : ProxyCommunity '''
 
     def setUpPreSession(self):
         super(TestDefaultCrypto, self).setUpPreSession()
         self.config.set_dispersy(True)
 
+    @call_on_reactor_thread
     def __create_walk_candidate(self):
-        def __create():
-            self.__candidate_counter += 1
-            wan_address = ("8.8.8.{0}".format(self.__candidate_counter), self.__candidate_counter)
-            lan_address = ("0.0.0.0", 0)
-            candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
+        self.__candidate_counter += 1
+        wan_address = ("8.8.8.{0}".format(self.__candidate_counter), self.__candidate_counter)
+        lan_address = ("0.0.0.0", 0)
+        candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
 
 
-            key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
-            member = self.dispersy.get_member(public_key=self.dispersy.crypto.key_to_bin(key.pub()))
-            candidate.associate(member)
+        key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
+        member = self.dispersy.get_member(public_key=self.dispersy.crypto.key_to_bin(key.pub()))
+        candidate.associate(member)
 
-            now = time.time()
-            candidate.walk(now - CANDIDATE_ELIGIBLE_DELAY)
-            candidate.walk_response(now)
-            return candidate
-
-        return self.dispersy.callback.call(__create)
+        now = time.time()
+        candidate.walk(now - CANDIDATE_ELIGIBLE_DELAY)
+        candidate.walk_response(now)
+        return candidate
 
     def __prepare_for_create(self):
         self.crypto.key_to_forward = '0' * 16

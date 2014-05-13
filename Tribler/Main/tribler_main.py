@@ -446,8 +446,8 @@ class ABCApp():
             self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
         progress('Creating session/Checking database (may take a minute)')
-        s = Session(self.sconfig)
-        s.start()
+        session = Session(self.sconfig)
+        session.start()
 
         @call_on_reactor_thread
         def define_communities(dispersy):
@@ -465,11 +465,11 @@ class ABCApp():
             now = time()
 
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(SearchCommunity, s.dispersy_member, load=True)
-            dispersy.define_auto_load(AllChannelCommunity, s.dispersy_member, load=True)
+            dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True)
+            dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True)
 
             # load metadata community
-            dispersy.define_auto_load(MetadataCommunity, s.dispersy_member, load=True)
+            dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True)
 
             # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
             # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
@@ -480,31 +480,31 @@ class ABCApp():
             #                               (swift_process,),
             #                               load=True)
 
-            dispersy.define_auto_load(ChannelCommunity, s.dispersy_member, load=True)
-            dispersy.define_auto_load(PreviewChannelCommunity, s.dispersy_member)
+            dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True)
+            dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member)
 
             keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
             dispersy_member = dispersy.get_member(
                 private_key=dispersy.crypto.key_to_bin(keypair),
             )
 
+            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, load=True,
+                                                        kargs={'tribler_session': session})[0]
 
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, s), load=True)[0]
-
-            socks_server = Socks5Server(proxy_community, s.lm.rawserver, s.get_proxy_community_socks5_listen_port())
+            socks_server = Socks5Server(proxy_community, session.lm.rawserver, session.get_proxy_community_socks5_listen_port())
             socks_server.start()
-            exit_strategy = exitstrategies.DefaultExitStrategy(s.lm.rawserver, proxy_community)
+            exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
             proxy_community.observers.append(exit_strategy)
 
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
-        s.set_anon_proxy_settings(2, ("127.0.0.1", s.get_proxy_community_socks5_listen_port()))
+        session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_proxy_community_socks5_listen_port()))
 
-        swift_process = s.get_swift_proc() and s.get_swift_process()
-        dispersy = s.get_dispersy_instance()
-        define_communities(s.get_dispersy_instance())
-        return s
+        swift_process = session.get_swift_proc() and session.get_swift_process()
+        dispersy = session.get_dispersy_instance()
+        define_communities(session.get_dispersy_instance())
+        return session
 
     @staticmethod
     def determine_install_dir():

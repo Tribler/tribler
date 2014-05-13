@@ -1,13 +1,18 @@
-from collections import defaultdict
 import logging
 import os
 import sqlite3
-import uuid
 import time
-from Tribler.community.anontunnel.crypto import NoCrypto
+import uuid
+from collections import defaultdict
 
+from twisted.internet.base import DelayedCall
+from twisted.internet.defer import Deferred
+from twisted.internet.task import LoopingCall
+
+from Tribler.community.anontunnel.crypto import NoCrypto
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.dispersy.database import Database
+
 
 __author__ = 'chris'
 
@@ -53,9 +58,11 @@ class StatsCollector(TunnelObserver):
         """
 
         TunnelObserver.__init__(self)
-        
+
         self._logger = logging.getLogger(__name__)
         self.name = name
+
+        self._pending_tasks = {}
 
         self.stats = {
             'bytes_returned': 0,
@@ -74,6 +81,17 @@ class StatsCollector(TunnelObserver):
         self._circuit_cache = {}
         ''':type : dict[int, Circuit] '''
 
+    def cancel_pending_task(self, key):
+        task = self._pending_tasks.pop(key)
+        if isinstance(task, Deferred) and not task.called:
+            # Have in mind that any deferred in the pending tasks list should have been constructed with a
+            # canceller function.
+            task.cancel()
+        elif isinstance(task, DelayedCall) and task.active():
+            task.cancel()
+        elif isinstance(task, LoopingCall) and task.running:
+            task.stop()
+
     def pause(self):
         """
         Pause stats collecting
@@ -81,6 +99,10 @@ class StatsCollector(TunnelObserver):
         self._logger.info("Removed StatsCollector %s as observer", self.name)
         self.running = False
         self.proxy.observers.remove(self)
+
+        # cancel all pending tasks
+        for key in self._pending_tasks.keys():
+            self.cancel_pending_task(key)
 
     def clear(self):
         """
@@ -101,14 +123,15 @@ class StatsCollector(TunnelObserver):
         self._logger.info("Resuming stats collector {0}!".format(self.name))
         self.running = True
         self.proxy.observers.append(self)
-        self.proxy.dispersy.callback.register(self.__calc_speeds)
+        self._pending_tasks["calc speeds"] = lc = LoopingCall(self.__calc_speeds)
+        lc.start(1, now=True)
 
     def on_break_circuit(self, circuit):
         if len(circuit.hops) == circuit.goal_hops:
             self.stats['broken_circuits'] += 1
 
     def __calc_speeds(self):
-        while self.running:
+        if self.running:
             t2 = time.time()
             self._circuit_cache.update(self.proxy.circuits)
 
@@ -152,8 +175,6 @@ class StatsCollector(TunnelObserver):
                         t2 - r.timestamp)
                     r.timestamp = t2
                     r.bytes = [r.bytes[1], r.bytes[1]]
-
-            yield 1.0
 
     def on_enter_tunnel(self, circuit_id, candidate, origin, payload):
         self.stats['bytes_enter'] += len(payload)

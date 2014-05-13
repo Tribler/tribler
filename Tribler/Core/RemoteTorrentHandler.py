@@ -306,7 +306,10 @@ class RemoteTorrentHandler:
                 if not filename:
                     self._save_torrent(tdef, callback)
                 elif callback:
-                    callback()
+                    @forceDBThread
+                    def perform_callback():
+                        callback()
+                    perform_callback()
 
             infohash = tdef.get_infohash()
             self.has_torrent((infohash, None), do_schedule)
