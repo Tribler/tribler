@@ -1088,6 +1088,7 @@ class LibraryDetails(TorrentDetails):
         self.createTrackersTab()
         self.createPeersTab()
         self.createSpeedTab()
+        self.createAnonymityTab()
         self.Thaw()
         self.Layout()
 
@@ -1155,6 +1156,15 @@ class LibraryDetails(TorrentDetails):
         self.speedPanel.AddGraph(wx.Colour(0, 162, 232), [bw[1] for bw in self.bw_history], "Download speed")
         self.speedPanel.AddGraph(wx.Colour(163, 73, 164), [bw[0] for bw in self.bw_history], "Upload speed")
         self.notebook.AddPage(self.speedPanel, "Speed")
+
+    def createAnonymityTab(self):
+        self.anonymityTab, self.anonymitySizer = self._create_tab(self.notebook, "Anonymity", border=10)
+        self.anonymityTab.SetBackgroundColour(wx.WHITE)
+
+        from Tribler.Main.vwxGUI.home import Anonymity
+        self.anonymityPanel = Anonymity(self.anonymityTab)
+        self.anonymityPanel.SetFullScreenMode(False)
+        self.anonymitySizer.Add(self.anonymityPanel, 1, wx.EXPAND)
 
     def updateAllTabs(self):
         self.updateDetailsTab()
