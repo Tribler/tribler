@@ -1782,7 +1782,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
                                        torrent_id=torrent_id,
                                        terms=clicklog_data['keywords'])
 
-    def _getRecentLivePrefList(self, num=0):  # num = 0: all files
+    def _getRecentLivePrefList(self):
         # get recent and live torrents
         sql = """
         select infohash from MyPreference m, Torrent t
@@ -1797,10 +1797,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             recent_preflist = [str2bin(t[0]) for t in recent_preflist]
 
-        if num != 0:
-            return recent_preflist[:num]
-        else:
-            return recent_preflist
+        return recent_preflist
 
     def hasMyPreference(self, torrent_id):
         res = self.getOne('torrent_id', torrent_id=torrent_id)
