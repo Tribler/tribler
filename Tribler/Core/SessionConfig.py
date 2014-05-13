@@ -177,6 +177,12 @@ class SessionConfigInterface(object):
         """
         self.selected_ports['~'.join(('general', 'minport'))] = port
 
+    def set_proxy_community_socks5_listen_port(self, port):
+        self.sessconfig.set(u'proxy_community', u'socks5_listen_port', port)
+
+    def get_proxy_community_socks5_listen_port(self):
+        return self._obtain_port(u'proxy_community', u'socks5_listen_port')
+
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.
         @return Port number. """
@@ -243,6 +249,31 @@ class SessionConfigInterface(object):
         return (self.sessconfig.get(u'libtorrent', u'lt_proxytype'), \
                 self.sessconfig.get(u'libtorrent', u'lt_proxyserver'), \
                 self.sessconfig.get(u'libtorrent', u'lt_proxyauth'))
+
+    def set_anon_proxy_settings(self, ptype, server=None, auth=None):
+        """
+        @param ptype Integer (0 = no proxy server, 1 = SOCKS4, 2 = SOCKS5, 3 = SOCKS5 + auth, 4 = HTTP, 5 = HTTP + auth)
+        @param server (host, port) tuple or None
+        @param auth (username, password) tuple or None
+        """
+        self.sessconfig.set(u'libtorrent', u'anon_proxytype', ptype)
+        self.sessconfig.set(u'libtorrent', u'anon_proxyserver', server if ptype else None)
+        self.sessconfig.set(u'libtorrent', u'anon_proxyauth', auth if ptype in [3, 5] else None)
+
+    def get_anon_proxy_settings(self):
+        """
+        @return: libtorrent anonymous settings
+        """
+        return (self.sessconfig.get(u'libtorrent', u'anon_proxytype'),
+                self.sessconfig.get(u'libtorrent', u'anon_proxyserver'),
+                self.sessconfig.get(u'libtorrent', u'anon_proxyauth'))
+
+
+    def set_anon_listen_port(self, listen_port=None):
+        self.sessconfig.set(u'libtorrent', u'anon_listen_port', listen_port)
+
+    def get_anon_listen_port(self):
+        return self._obtain_port(u'libtorrent', u'anon_listen_port')
 
     def set_libtorrent_utp(self, value):
         """ Enable or disable LibTorrent uTP (default = True).

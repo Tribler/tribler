@@ -10,6 +10,9 @@ import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
 from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto, \
+    NoElgamalCrypto
 
 import logging
 from traceback import print_exc
@@ -121,12 +124,12 @@ class TriblerLaunchMany(Thread):
                 if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
                 else:
-                    endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
+                    endpoint = DispersyBypassEndpoint(self.rawserver, self.session.get_dispersy_port())
 
                 callback = Callback("Dispersy")  # WARNING NAME SIGNIFICANT
                 working_directory = unicode(self.session.get_state_dir())
 
-                self.dispersy = Dispersy(callback, endpoint, working_directory)
+                self.dispersy = Dispersy(callback, endpoint, working_directory, crypto=ElgamalCrypto())
 
                 # TODO: see if we can postpone dispersy.start to improve GUI responsiveness.
                 # However, for now we must start self.dispersy.callback before running
@@ -925,14 +928,17 @@ class TriblerLaunchMany(Thread):
                 self.ltmgr.set_utp(new_value)
         elif section == 'libtorrent' and name == 'lt_proxyauth':
             if self.ltmgr:
-                self.ltmgr.set_proxy_settings(*self.session.get_libtorrent_proxy_settings())
+                self.ltmgr.set_proxy_settings(self.ltmgr.ltsession, *self.session.get_libtorrent_proxy_settings())
         elif section == 'torrent_checking' and name == 'torrent_checking_period':
             if self.rtorrent_handler and value_changed:
                 self.rtorrent_handler.set_max_num_torrents(new_value)
         # Return True/False, depending on whether or not the config value can be changed at runtime.
         elif (section == 'general' and name in ['nickname', 'mugshot', 'videoanalyserpath']) or \
-             (section == 'libtorrent' and name in ['lt_proxytype', 'lt_proxyserver']) or \
+             (section == 'libtorrent' and name in ['lt_proxytype', 'lt_proxyserver',
+                                                   'anon_proxyserver', 'anon_proxytype', 'anon_proxyauth',
+                                                   'anon_listen_port']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
+             (section == 'proxy_community' and name in ['socks5_listen_port']) or \
              (section == 'swift' and name in ['swiftmetadir']):
             return True
         else:

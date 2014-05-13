@@ -57,6 +57,10 @@ sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
 sessdefaults['general']['live_aux_seeders'] = []
 
+# Proxy community section
+sessdefaults['proxy_community'] = OrderedDict()
+sessdefaults['proxy_community']['socks5_listen_port'] = -1
+
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()
 sessdefaults['mainline_dht']['enabled'] = True
@@ -82,6 +86,12 @@ sessdefaults['libtorrent']['lt_proxytype'] = 0  # no proxy server is used by def
 sessdefaults['libtorrent']['lt_proxyserver'] = None
 sessdefaults['libtorrent']['lt_proxyauth'] = None
 sessdefaults['libtorrent']['utp'] = True
+
+# Anonymous libtorrent
+sessdefaults['libtorrent']['anon_listen_port'] = -1
+sessdefaults['libtorrent']['anon_proxytype'] = 0
+sessdefaults['libtorrent']['anon_proxyserver'] = None
+sessdefaults['libtorrent']['anon_proxyauth'] = None
 
 # SWIFTPROC config
 sessdefaults['swift'] = OrderedDict()
@@ -109,6 +119,8 @@ sessdefaults['video']['enabled'] = True
 sessdefaults['video']['path'] = None
 sessdefaults['video']['port'] = -1
 sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
+
+
 
 #
 # BT per download opts
