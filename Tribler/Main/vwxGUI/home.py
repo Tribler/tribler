@@ -587,10 +587,7 @@ class Anonymity(wx.Panel):
         self.session = self.utility.session
 
         dispersy = self.utility.session.lm.dispersy
-        ''':type : Dispersy'''
-
         self.proxy_community = (c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
-        ''':type : ProxyCommunity '''
 
         self.AddComponents()
 
@@ -617,6 +614,7 @@ class Anonymity(wx.Panel):
         self.time_step = 5.0
         self.radius = 32
         self.line_width = 4
+        self.margin_x = self.margin_y = 0
 
         self.layout_busy = False
         self.new_data = False
@@ -649,6 +647,7 @@ class Anonymity(wx.Panel):
         self.vSizer.GetChildren()[0].SetBorder(20 if enable else 0)
         self.main_sizer.GetChildren()[0].SetBorder(20 if enable else 0)
         self.main_sizer.GetChildren()[1].SetBorder(20 if enable else 0)
+        self.margin_x = 0 if enable else 50
         self.Layout()
 
     def AddComponents(self):
@@ -881,7 +880,7 @@ class Anonymity(wx.Panel):
 
     def OnSize(self, evt):
         size = min(*evt.GetEventObject().GetSize())
-        self.graph_panel.SetSize((size, size))
+        self.graph_panel.SetSize((size + self.margin_x * 2, size + self.margin_y * 2))
 
     def OnEraseBackground(self, event):
         pass
@@ -892,7 +891,7 @@ class Anonymity(wx.Panel):
         dc.Clear()
         gc = wx.GraphicsContext.Create(dc)
 
-        w, h = eo.GetSize().x - 2 * self.radius - 1, eo.GetSize().y - 2 * self.radius - 1
+        w, h = eo.GetSize().x - 2 * self.radius - 2 * self.margin_x - 1, eo.GetSize().y - 2 * self.radius - 2 * self.margin_y - 1
 
         schedule_layout = not self.layout_busy and self.new_data and time() - self.last_keyframe >= self.time_step
         if schedule_layout:
@@ -914,7 +913,7 @@ class Anonymity(wx.Panel):
                             scaled_x, scaled_y = self.InterpolateVertexPosition(vertexid, self.step - 1, self.step)
                         else:
                             scaled_x, scaled_y = self.GetVertexPosition(vertexid, self.step)
-                        int_points[vertexid] = (scaled_x * w + self.radius, scaled_y * h + self.radius)
+                        int_points[vertexid] = (scaled_x * w + self.radius + self.margin_x, scaled_y * h + self.radius + self.margin_y)
 
                 # Draw edges
                 for vertexid1, vertexid2 in self.edges:
