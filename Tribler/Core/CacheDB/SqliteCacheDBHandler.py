@@ -1782,42 +1782,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
                                        torrent_id=torrent_id,
                                        terms=clicklog_data['keywords'])
 
-    def _getRecentLivePrefListWithClicklog(self, num=0):
-        """returns a list containing a list for each torrent: [infohash, [seach terms], click position, reranking strategy]"""
-
-        sql = """
-        select infohash, click_position, reranking_strategy, m.torrent_id from MyPreference m, Torrent t
-        where m.torrent_id == t.torrent_id
-        and status_id == %d
-        order by creation_time desc
-        """ % self.status_good
-
-        recent_preflist_with_clicklog = self._db.fetchall(sql)
-        if recent_preflist_with_clicklog is None:
-            recent_preflist_with_clicklog = []
-        else:
-            recent_preflist_with_clicklog = [[str2bin(t[0]),
-                                              t[3], # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1], # click position
-                                              t[2]]  # reranking strategy
-                                             for t in recent_preflist_with_clicklog]
-
-        if num != 0:
-            recent_preflist_with_clicklog = recent_preflist_with_clicklog[:num]
-
-        # now that we only have those torrents left in which we are actually interested,
-        # replace torrent id by user's search terms for torrent id
-        searchdb = SearchDBHandler.getInstance()
-        torrent_ids = [pref[1] for pref in recent_preflist_with_clicklog]
-        terms_dict = searchdb.getMyTorrentsSearchTermsStr(torrent_ids)
-
-        for pref in recent_preflist_with_clicklog:
-            search_terms = [term.encode("UTF-8") for term in terms_dict[pref[1]]]
-
-            # Arno, 2010-02-02: Explicit encoding
-            pref[1] = search_terms
-        return recent_preflist_with_clicklog
-
     def _getRecentLivePrefList(self, num=0):  # num = 0: all files
         # get recent and live torrents
         sql = """
