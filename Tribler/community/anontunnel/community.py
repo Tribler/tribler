@@ -713,7 +713,7 @@ class ProxyCommunity(Community):
         """
 
         if message.extend_with:
-            cache = self.get_created_cache(circuit_id, candidate)
+            cache = self.pop_created_cache(circuit_id, candidate)
             extend_candidate = cache.candidates[message.extend_with]
 
             self._logger.warning(
@@ -823,7 +823,7 @@ class ProxyCommunity(Community):
         @return: whether the message could be handled correctly
         """
         request = self.dispersy.callback.call(
-            self._request_cache.get,
+            self._request_cache.pop,
             args=(PingRequestCache.PREFIX, circuit_id,))
 
         if request:
@@ -985,7 +985,7 @@ class ProxyCommunity(Community):
         """
         self.dispersy.callback.call(lambda: self._request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates)))
 
-    def get_created_cache(self, circuit_id, candidate):
+    def pop_created_cache(self, circuit_id, candidate):
         return self.dispersy.callback.call(
             self.request_cache.get,
             (
