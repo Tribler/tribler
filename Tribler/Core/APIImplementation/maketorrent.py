@@ -94,11 +94,6 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
         cdict['Content'] = mdict
         metainfo['azureus_properties'] = cdict
 
-    if input['torrentsigkeypairfilename'] is not None:
-        from Tribler.Core.Overlay.permid import create_torrent_signature
-
-        create_torrent_signature(metainfo, input['torrentsigkeypairfilename'])
-
     if 'url-compat' in input:
         metainfo['info']['url-compat'] = input['url-compat']
 
