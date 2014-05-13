@@ -219,7 +219,6 @@ class SearchCommunity(Community):
         return [0, time(), candidate]
 
     def create_introduction_request(self, destination, allow_sync, is_fast_walker=False):
-        # TODO(emilon): Move is_fast_walker to dispersy to be able to use it everywhere
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
         if DEBUG:
