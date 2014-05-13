@@ -2943,63 +2943,6 @@ class ChannelCastDBHandler(BasicDBHandler):
             return best_channel
 
 
-class SearchDBHandler(BasicDBHandler):
-
-    def __init__(self):
-        if SearchDBHandler._single is not None:
-            raise RuntimeError("SearchDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'ClicklogSearch')  # # self,db,'Search'
-
-    def storeKeywords(self, peer_id, torrent_id, terms):
-        """creates a single entry in Search with peer_id and torrent_id for every term in terms"""
-        terms = [term.strip() for term in terms if len(term.strip()) > 0]
-        term_ids = self.getTermsIDS(terms)
-        if term_ids:
-            term_ids = [id for id, term in term_ids]
-            self.storeKeywordsByID(peer_id, torrent_id, term_ids)
-
-    def storeKeywordsByID(self, peer_id, torrent_id, term_ids):
-        sql_insert_search = u"INSERT INTO ClicklogSearch (peer_id, torrent_id, term_id, term_order) values (?, ?, ?, ?)"
-
-        if len(term_ids) > MAX_KEYWORDS_STORED:
-            term_ids = term_ids[0:MAX_KEYWORDS_STORED]
-
-        # TODO before we insert, we should delete all potentially existing entries
-        # with these exact values
-        # otherwise, some strange attacks might become possible
-        # and again we cannot assume that user/torrent/term only occurs once
-
-        # vliegendhart: only store 1 query per (peer_id,torrent_id)
-        # Step 1: delete (peer_id,torrent_id) records, if any
-        self._db.execute_write("DELETE FROM ClicklogSearch WHERE peer_id=? AND torrent_id=?", [peer_id, torrent_id])
-
-        # create insert data
-        values = [(peer_id, torrent_id, term_id, term_order)
-                  for (term_id, term_order)
-                  in zip(term_ids, range(len(term_ids)))]
-        self._db.executemany(sql_insert_search, values)
-
-    def getTermsIDS(self, terms):
-        parameters = '?,' * len(terms)
-        sql = "SELECT term_id, term FROM TermFrequency WHERE term IN (" + parameters[:-1] + ")"
-        return self._db.fetchall(sql, terms)
-
-    def getMyTorrentsSearchTermsStr(self, torrent_ids):
-        return_dict = {}
-        for torrent_id in torrent_ids:
-            return_dict[torrent_id] = set()
-
-        parameters = '?,' * len(torrent_ids)
-        sql = "SELECT torrent_id, term FROM ClicklogSearch, TermFrequency WHERE ClicklogSearch.term_id = TermFrequency.term_id AND torrent_id IN (" + parameters[:-1] + ") AND peer_id = ? ORDER BY freq"
-
-        parameters = torrent_ids[:]
-        parameters.append(0)
-        for torrent_id, term in self._db.fetchall(sql, parameters):
-            return_dict[torrent_id].add(term)
-        return return_dict
-
-
 class UserEventLogDBHandler(BasicDBHandler):
 
     """
