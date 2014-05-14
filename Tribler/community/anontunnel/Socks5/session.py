@@ -77,6 +77,11 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         @param Circuit broken_circuit: the circuit that has been broken
         @return:
         """
+        from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+
+        if not LibtorrentMgr.hasInstance():
+            return
+
         affected_destinations = set(destination
                                     for destination, tunnel_circuit
                                     in self.destinations.iteritems()
@@ -87,7 +92,6 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
         if not affected_destinations:
             return
 
-        from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
         mgr = LibtorrentMgr.getInstance()
         anon_session = mgr.ltsession_anon
         ''' :type : libtorrent.session '''
