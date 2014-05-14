@@ -239,6 +239,7 @@ class GUIUtility:
                 self.frame.stats.Show(False)
 
             if page == 'anonymity':
+                # Removing anonymity panel from library details in order to make it fullscreen.
                 lib_details = self.frame.librarydetailspanel
                 anon_panel = lib_details.anonymityPanel
                 anon_panel.Reparent(self.frame)
