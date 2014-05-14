@@ -50,7 +50,7 @@ class Socks5Server(TunnelObserver):
         if len(self.circuit_pool.available_circuits) >= self.min_circuits:
             try:
                 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-                if LibtorrentMgr.hasInstance:
+                if LibtorrentMgr.hasInstance():
                     self._logger.info("Creating ANON session")
                     LibtorrentMgr.getInstance().create_anonymous_session()
                     made_session = True
