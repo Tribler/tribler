@@ -366,7 +366,7 @@ class MainFrame(wx.Frame):
 
         accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
         accelerators.append((wx.ACCEL_CTRL, ord('d'), dispId))
-        accelerators.append((wx.ACCEL_CTRL, ord('a'), anonId))
+        accelerators.append((wx.ACCEL_CTRL, ord('n'), anonId))
         accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
         accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
         accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_ALT, ord('d'), DISPERSY_DEBUG_FRAME_ID))
