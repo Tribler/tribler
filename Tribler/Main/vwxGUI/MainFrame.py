@@ -59,7 +59,7 @@ from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, 
     TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
-from Tribler.Main.vwxGUI.home import Home, Stats, Anonymity
+from Tribler.Main.vwxGUI.home import Home, Stats
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
     ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
@@ -261,8 +261,6 @@ class MainFrame(wx.Frame):
 
         self.stats = Stats(self)
         self.stats.Show(False)
-        self.anonymity = Anonymity(self)
-        self.anonymity.Show(False)
         self.managechannel = ManageChannel(self)
         self.managechannel.Show(False)
 
@@ -283,7 +281,6 @@ class MainFrame(wx.Frame):
             hSizer.Add(separator, 0, wx.EXPAND)
             hSizer.Add(self.home, 1, wx.EXPAND)
             hSizer.Add(self.stats, 1, wx.EXPAND)
-            hSizer.Add(self.anonymity, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -357,16 +354,19 @@ class MainFrame(wx.Frame):
         nextId = wx.NewId()
         prevId = wx.NewId()
         dispId = wx.NewId()
+        anonId = wx.NewId()
         DISPERSY_DEBUG_FRAME_ID = wx.NewId()
         self.Bind(wx.EVT_MENU, self.OnFind, id=findId)
         self.Bind(wx.EVT_MENU, lambda event: self.Close(), id=quitId)
         self.Bind(wx.EVT_MENU, self.OnNext, id=nextId)
         self.Bind(wx.EVT_MENU, self.OnPrev, id=prevId)
         self.Bind(wx.EVT_MENU, lambda evt: self.guiUtility.ShowPage('stats'), id=dispId)
+        self.Bind(wx.EVT_MENU, lambda evt: self.guiUtility.ShowPage('anonymity'), id=anonId)
         self.Bind(wx.EVT_MENU, self.OnOpenDebugFrame, id=DISPERSY_DEBUG_FRAME_ID)
 
         accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
         accelerators.append((wx.ACCEL_CTRL, ord('d'), dispId))
+        accelerators.append((wx.ACCEL_CTRL, ord('n'), anonId))
         accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
         accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
         accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_ALT, ord('d'), DISPERSY_DEBUG_FRAME_ID))

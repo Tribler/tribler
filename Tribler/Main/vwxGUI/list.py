@@ -1888,6 +1888,8 @@ class LibraryList(SizeList):
                 item.RefreshColumn(6, seeds + peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers." % (seeds, peers) if ds else '')
 
+                item.RefreshColumn(11, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
+
                 # For updating torrent icons
                 torrent_ds, swift_ds = item.original_data.dslist
                 torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
@@ -1923,7 +1925,7 @@ class LibraryList(SizeList):
         SizeList.SetData(self, data)
 
         if len(data) > 0:
-            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, 0, 0, -1], file, LibraryListItem) for file in data]
+            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, 0, 0, ''], file, LibraryListItem) for file in data]
         else:
             header = "Currently not downloading or uploading any torrents."
             message = "Torrents can be found using our integrated search or using channels.\n"
@@ -1937,7 +1939,7 @@ class LibraryList(SizeList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
 
-        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, -1], data)
+        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, ''], data)
         self.list.RefreshData(key, data)
 
     def SetNrResults(self, nr):
@@ -2202,7 +2204,7 @@ class ActivitiesList(List):
 
     def __SetData(self):
         self.list.SetData([(1, ['Home'], None, ActivityListItem), (2, ['Results'], None, ActivityListItem), (3, ['Channels'], None, ActivityListItem),
-                           (4, ['Downloads'], None, ActivityListItem), (5, ['Anonymity'], None, ActivityListItem), (6, ['Videoplayer'], None, ActivityListItem)])
+                           (4, ['Downloads'], None, ActivityListItem), (5, ['Videoplayer'], None, ActivityListItem)])
         self.ResizeListItems()
         self.DisableItem(2)
         if not self.guiutility.frame.videoparentpanel:
@@ -2292,8 +2294,6 @@ class ActivitiesList(List):
             return self.expandedPanel_channels
         elif item.data[0] == 'Downloads':
             self.guiutility.ShowPage('my_files')
-        elif item.data[0] == 'Anonymity':
-            self.guiutility.ShowPage('anonymity')
         elif item.data[0] == 'Videoplayer':
             if self.guiutility.guiPage not in ['videoplayer']:
                 self.guiutility.ShowPage('videoplayer')
@@ -2359,10 +2359,8 @@ class ActivitiesList(List):
             itemKey = 3
         elif tab == 'my_files':
             itemKey = 4
-        elif tab == 'anonymity':
-            itemKey = 5
         elif tab == 'videoplayer':
-            itemKey = 6
+            itemKey = 5
         if itemKey:
             wx.CallAfter(self.Select, itemKey, True)
         return
