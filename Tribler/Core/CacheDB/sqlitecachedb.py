@@ -148,7 +148,7 @@ class SQLiteCacheDBBase:
 
         self.cursor_lock = RLock()
         self.cursor_table = {}  # {thread_name:cur}
-        self.class_variables = safe_dict({'db_path': None, 'busytimeout': None})  # busytimeout is in milliseconds
+        self.class_variables = safe_dict({'db_path': None, 'busytimeout': DEFAULT_BUSY_TIMEOUT})  # busytimeout is in milliseconds
 
         # Arno, 2012-08-02: As there is just Dispersy thread here, removing
         # safe_dict() here
@@ -197,6 +197,7 @@ class SQLiteCacheDBBase:
 
             cur = self.cursor_table.get(thread_name, None)  # return [cur, cur, lib] or None
             # print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
+            assert self.class_variables['db_path'], "No db_path defined"
             if cur is None and create and self.class_variables['db_path']:
                 self.openDB(self.class_variables['db_path'], self.class_variables['busytimeout'])  # create a new db obj for this thread
             cur = self.cursor_table.get(thread_name)
@@ -222,6 +223,7 @@ class SQLiteCacheDBBase:
                 return self.cursor_table[thread_name]
 
             assert dbfile_path, "You must specify the path of database file"
+            self.class_variables['db_path'] = dbfile_path
 
             if dbfile_path.lower() != ':memory:':
                 db_dir = os.path.dirname(dbfile_path)
@@ -1617,7 +1619,7 @@ CREATE TABLE MetadataData (
 
                                     if len(to_be_removed) > 0:
                                         self.executemany("DELETE FROM ChannelCast WHERE infohash = ?", to_be_removed)
-                                    reactor.callLater(INSERT_MY_TORRENTS_INTERVAL, insert_my_torrents)
+                                    self._pending_tasks.append(reactor.callLater(INSERT_MY_TORRENTS_INTERVAL, insert_my_torrents))
 
                                 else:  # done
                                     drop_channelcast = "DROP TABLE ChannelCast"
@@ -1626,12 +1628,12 @@ CREATE TABLE MetadataData (
                                     drop_votecast = "DROP TABLE VoteCast"
                                     self.execute_write(drop_votecast)
                             else:
-                                reactor.callLater(SUCCESIVE_UPGRADE_PAUSE, insert_my_torrents)
+                                self._pending_tasks.append(reactor.callLater(SUCCESIVE_UPGRADE_PAUSE, insert_my_torrents))
 
                         from Tribler.community.channel.community import ChannelCommunity
                         from Tribler.Core.TorrentDef import TorrentDef
 
-                        reactor.callLater(INITIAL_UPGRADE_PAUSE, create_my_channel)
+                        self._pending_tasks.append(reactor.callLater(INITIAL_UPGRADE_PAUSE, create_my_channel))
                         session.remove_observer(dispersy_started)
 
                     session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
@@ -2371,11 +2373,22 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             self._logger.exception('===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
             raise msg
 
+    @forceAndReturnDBThread
+    def createDBTable(self, *argv, **kwargs):
+        return SQLiteCacheDBV5.createDBTable(self, *argv, **kwargs)
+
 # Arno, 2012-08-02: If this becomes multithreaded again, reinstate safe_dict() in caches
 
 
 class SQLiteCacheDB(SQLiteNoCacheDB):
     __single = None  # used for multithreaded singletons pattern
+
+    def __init__(self, *args, **kargs):
+        # always use getInstance() to create this object
+        if self.__single != None:
+            raise RuntimeError("SQLiteCacheDB is singleton")
+        SQLiteNoCacheDB.__init__(self, *args, **kargs)
+        self._pending_tasks = []
 
     @classmethod
     def getInstance(cls, *args, **kw):
@@ -2392,19 +2405,15 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
 
     @classmethod
     def delInstance(cls, *args, **kw):
+        for task in cls.__single._pending_tasks:
+            if not task.active():
+                task.cancel()
         cls.__single = None
 
     @classmethod
     def hasInstance(cls, *args, **kw):
         return cls.__single != None
 
-    def __init__(self, *args, **kargs):
-        # always use getInstance() to create this object
-        if self.__single != None:
-            raise RuntimeError("SQLiteCacheDB is singleton")
-        SQLiteNoCacheDB.__init__(self, *args, **kargs)
-
     @forceDBThread
     def schedule_task(self, task, delay=0.0):
-        # TODO(emilon): These tasks are not being collected to be canceled at shutdown time
-        reactor.callLater(delay, task)
+        self._pending_tasks.append(reactor.callLater(delay, task))
