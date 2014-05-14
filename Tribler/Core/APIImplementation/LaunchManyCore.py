@@ -100,9 +100,9 @@ class TriblerLaunchMany(Thread):
                     self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
                     self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
 
-                except OSError:
+                except OSError, (ErrorNumber, ErrorMessage):
                     # could not find/run swift
-                    self._logger.error("lmc: could not start a swift process")
+                    self._logger.error("lmc: could not start a swift process (Err#%s: %s)" % (ErrorNumber, ErrorMessage))
 
             else:
                 self.spm = None
