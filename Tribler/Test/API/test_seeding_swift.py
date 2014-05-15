@@ -141,22 +141,22 @@ class TestSeeding(TestAsServer):
             return (1.0, True)
         return (1.0, False)
 
-    def test_singlefile_swift(self):
+    def ttest_singlefile_swift(self):
         filenames = ['video.avi']
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)
 
-    def test_multifile_swift(self):
+    def ttest_multifile_swift(self):
         filenames = ['video.avi', 'video2.avi']
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)
 
-    def test_multifile_swift_with_subdirs(self):
+    def ttest_multifile_swift_with_subdirs(self):
         filenames = ['video.avi', os.path.join('contentdir', 'video.avi')]
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)
 
-    def test_zerostate(self):
+    def ttest_zerostate(self):
         tor_col_dir = self.session.get_torrent_collecting_dir()
         filenames = [os.path.join(tor_col_dir, 'video.avi')]
         shutil.copyfile(os.path.join(BASE_DIR, "API", 'video.avi'), filenames[0])
@@ -175,3 +175,8 @@ class TestSeeding(TestAsServer):
             print_exc()
 
         self.setup_downloader(roothash, filenames)
+
+    def test_metadir(self):
+        self.session.set_swift_meta_dir(BASE_DIR)
+        filenames = ['video.avi']
+        self.setup_seeder(filenames)
