@@ -48,13 +48,12 @@ class TestSeeding(TestAsServer):
 
         TestAsServer.tearDown(self)
 
-    def setup_seeder(self, filenames):
-        self.filenames = filenames
-
+    def setup_seeder(self, filenames, destdir=None, add_to_session=True):
         self.sdef = SwiftDef()
         self.sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
 
-        destdir = os.path.join(BASE_DIR, "API")
+        destdir = destdir or os.path.join(BASE_DIR, "API")
+        self.filenames = [os.path.join(destdir, f) for f in filenames]
 
         for f in filenames:
             if len(filenames) == 1:
@@ -88,14 +87,15 @@ class TestSeeding(TestAsServer):
 
         print >> sys.stderr, "test: setup_seeder: seeding", filenames
 
-        self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(storagepath)
+        if add_to_session:
+            self.dscfg = DownloadStartupConfig()
+            self.dscfg.set_dest_dir(storagepath)
 
-        d = self.session.start_download(self.sdef, self.dscfg)
-        d.set_state_callback(self.seeder_state_callback)
+            d = self.session.start_download(self.sdef, self.dscfg)
+            d.set_state_callback(self.seeder_state_callback)
 
-        print >> sys.stderr, "test: setup_seeder: starting to wait for download to reach seeding state"
-        assert self.seeding_event.wait(60)
+            print >> sys.stderr, "test: setup_seeder: starting to wait for download to reach seeding state"
+            assert self.seeding_event.wait(60)
         return self.sdef.get_roothash()
 
     def seeder_state_callback(self, ds):
@@ -129,11 +129,10 @@ class TestSeeding(TestAsServer):
 
         if ds.get_status() == DLSTATUS_SEEDING:
             for filename in self.filenames:
-                destfn = os.path.join(self.getDestDir(2), filename)
-                f = open(destfn, "rb")
+                f = open(filename, "rb")
                 realdata = f.read()
                 f.close()
-                f = open(os.path.join(BASE_DIR, "API", filename), "rb")
+                f = open(os.path.join(BASE_DIR, "API", os.path.split(filename)[1]), "rb")
                 expdata = f.read()
                 f.close()
                 self.assert_(realdata == expdata)
@@ -156,3 +155,28 @@ class TestSeeding(TestAsServer):
         filenames = ['video.avi', os.path.join('contentdir', 'video.avi')]
         roothash = self.setup_seeder(filenames)
         self.setup_downloader(roothash, filenames)
+
+    def test_zerostate(self):
+        tor_col_dir = self.session.get_torrent_collecting_dir()
+        filenames = [os.path.join(tor_col_dir, 'video.avi')]
+        shutil.copyfile(os.path.join(BASE_DIR, "API", 'video.avi'), filenames[0])
+
+        self.session.set_swift_meta_dir(tor_col_dir)
+        roothash = self.setup_seeder(['video.avi'], destdir=tor_col_dir, add_to_session=False)
+
+        # The download needs to be put into the zerostate dir in order for Swift to find it. 
+        old_storagepath = filenames[0]
+        new_storagepath = os.path.join(tor_col_dir, roothash.encode('hex'))
+        try:
+            shutil.move(old_storagepath, new_storagepath)
+            shutil.move(old_storagepath + '.mhash', new_storagepath + '.mhash')
+            shutil.move(old_storagepath + '.mbinmap', new_storagepath + '.mbinmap')
+        except:
+            print_exc()
+
+        self.setup_downloader(roothash, filenames)
+
+    def test_metadir(self):
+        self.session.set_swift_meta_dir(BASE_DIR)
+        filenames = ['video.avi']
+        self.setup_seeder(filenames)
