@@ -323,12 +323,11 @@ class RemoteTorrentHandler:
 
         tdef.save(tmp_filename)
         sdef, swiftpath = self._move_to_collected(tmp_filename)
-        if not os.path.exists(tmp_filename):
-            return
-        try:
-            os.remove(tmp_filename)
-        except:
-            atexit.register(lambda tmp_filename=tmp_filename: os.remove(tmp_filename))
+        if os.path.exists(tmp_filename):
+            try:
+                os.remove(tmp_filename)
+            except:
+                atexit.register(lambda tmp_filename=tmp_filename: os.remove(tmp_filename))
 
         @forceDBThread
         def do_db(callback):
