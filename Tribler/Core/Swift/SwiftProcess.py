@@ -71,7 +71,7 @@ class SwiftProcess:
         args.append("127.0.0.1:" + str(self.cmdport))
         args.append("-g")  # HTTP gateway port
         args.append("127.0.0.1:" + str(self.httpport))
-        args.append("-w")
+
         if zerostatedir is not None:
             if sys.platform == "win32":
                 # Swift on Windows expects command line arguments as UTF-16.
