@@ -1,29 +1,3 @@
--- Tribler SQLite Database
--- Version: 9
---
--- History:
---   v1: Published as part of Tribler 4.5
---   v2: Published as part of Tribler 5.0
---   v3: Published as part of Next-Share M16
---   v4: Published as part of Tribler 5.2
---   v5: Published as part of Next-Share M30 for subtitles integration
---   v7: Published as part of Tribler 5.3
---   v8: Published as part of Tribler 5.4
---   v8: Published as part of Tribler 5.5/6.0?
---   v9: Published as part of Tribler 5.5
-
---
--- See Tribler/Core/CacheDB/sqlitecachedb.py updateDB() for exact version diffs.
---
--- v4: ChannelCast is an extension of the concept of ModerationCast, with
---     an additional integrity measure. 'torrenthash' field is used to protect
---     the integrity of the torrent file created by the publisher, from fake-
---     tracker attack, by including sha1 hash of the dictionary corresponding
---     to the entire torrent.
---
---     'InvertedIndex' table is used for precise keyword matching than
---     substring search that was used previously.
-
 BEGIN TRANSACTION create_table;
 
 ----------------------------------------
@@ -178,10 +152,6 @@ CREATE TABLE TorrentTrackerMapping (
 ----------------------------------------
 
 CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
-
--- V2: Patch for BuddyCast 4
-
--------------------------------------
 
 -- v7: TermFrequency and TorrentBiTermPhrase
 --     for "Network Buzz" feature (removed in v21);
@@ -429,7 +399,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 21);
+INSERT INTO MyInfo VALUES ('version', 22);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
