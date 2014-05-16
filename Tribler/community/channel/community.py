@@ -28,8 +28,8 @@ import json
 import binascii
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 
-if __debug__:
-    from Tribler.dispersy.tool.lencoder import log
+#if __debug__:
+#    from Tribler.dispersy.tool.lencoder import log
 
 
 _register_task = None

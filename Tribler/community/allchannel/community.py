@@ -28,8 +28,8 @@ from traceback import print_exc
 import sys
 from random import sample
 
-if __debug__:
-    from Tribler.dispersy.tool.lencoder import log
+#if __debug__:
+#    from Tribler.dispersy.tool.lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 15.0

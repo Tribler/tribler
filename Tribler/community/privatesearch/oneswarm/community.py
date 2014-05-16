@@ -3,7 +3,7 @@ from Tribler.community.privatesemantic.community import PoliForwardCommunity
 from Tribler.community.privatesearch.oneswarm.SearchManager import SearchManager
 from Tribler.community.privatesearch.oneswarm.OverlayManager import OverlayManager
 
-from Tribler.dispersy.tool.lencoder import log
+#from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.authentication import MemberAuthentication
