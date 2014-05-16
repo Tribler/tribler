@@ -32,7 +32,9 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-#from Tribler.Core.Video.VideoPlayer import VideoPlayer
+# FIXME: Disable the VideoPlayer
+if not 'ANDROID_PRIVATE' in os.environ and not 'ANDROID_EMULATE' in os.environ:
+    from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.osutils import get_readable_torrent_name
 
 
@@ -246,8 +248,8 @@ class TriblerLaunchMany(Thread):
                 self.rtorrent_handler = RemoteTorrentHandler()
 
             self.videoplayer = None
-            #if self.session.get_videoplayer():
-            #    self.videoplayer = VideoPlayer(self.session)
+            if self.session.get_videoplayer():
+                self.videoplayer = VideoPlayer(self.session)
 
             self.mainline_dht = None
             self.ltmgr = None
