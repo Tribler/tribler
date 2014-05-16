@@ -5,7 +5,7 @@ import time
 import binascii
 import threading
 # FIXME: Temporary disable libtorrent
-if 'ANDROID_PRIVATE' in os.environ:
+if 'ANDROID_PRIVATE' in os.environ or 'ANDROID_EMULATE' in os.environ:
     lt = None
 else:
     import libtorrent as lt
@@ -32,7 +32,7 @@ class LibtorrentMgr:
 
     def __init__(self, trsession, ignore_singleton=False):
         # FIXME: Temporary disable libtorrent
-        if 'ANDROID_PRIVATE' in os.environ:
+        if 'ANDROID_PRIVATE' in os.environ or 'ANDROID_EMULATE' in os.environ:
             return
 
         if not ignore_singleton:
