@@ -4,7 +4,11 @@ import os
 import sys
 import time
 import logging
-import libtorrent as lt
+# FIXME: Temporary disable libtorrent
+if 'ANDROID_PRIVATE' in os.environ:
+    lt = None
+else:
+    import libtorrent as lt
 
 from binascii import hexlify
 from traceback import print_exc

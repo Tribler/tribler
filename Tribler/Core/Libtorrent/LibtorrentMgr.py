@@ -4,7 +4,11 @@ import os
 import time
 import binascii
 import threading
-import libtorrent as lt
+# FIXME: Temporary disable libtorrent
+if 'ANDROID_PRIVATE' in os.environ:
+    lt = None
+else:
+    import libtorrent as lt
 
 import logging
 from copy import deepcopy
@@ -27,6 +31,10 @@ class LibtorrentMgr:
     __single = None
 
     def __init__(self, trsession, ignore_singleton=False):
+        # FIXME: Temporary disable libtorrent
+        if 'ANDROID_PRIVATE' in os.environ:
+            return
+
         if not ignore_singleton:
             if LibtorrentMgr.__single:
                 raise RuntimeError("LibtorrentMgr is singleton")
