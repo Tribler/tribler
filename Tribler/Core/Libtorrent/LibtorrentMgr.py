@@ -4,7 +4,7 @@ import os
 import time
 import binascii
 import threading
-# FIXME: Temporary disable libtorrent
+# FIXME: Temporarily disable libtorrent until we have a properly compiled version
 if 'ANDROID_HOST' in os.environ:
     lt = None
 else:
@@ -31,7 +31,7 @@ class LibtorrentMgr:
     __single = None
 
     def __init__(self, trsession, ignore_singleton=False):
-        # FIXME: Temporary disable libtorrent
+        # FIXME: Temporarily disable libtorrent until we have a properly compiled version
         if 'ANDROID_HOST' in os.environ:
             return
 
