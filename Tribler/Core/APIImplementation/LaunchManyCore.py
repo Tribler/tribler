@@ -33,7 +33,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 # FIXME: Disable the VideoPlayer
-if not 'ANDROID_PRIVATE' in os.environ and not 'ANDROID_EMULATE' in os.environ:
+if not 'ANDROID_HOST' in os.environ:
     from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.osutils import get_readable_torrent_name
 

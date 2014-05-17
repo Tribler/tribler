@@ -5,7 +5,7 @@ import sys
 import time
 import logging
 # FIXME: Temporary disable libtorrent
-if 'ANDROID_PRIVATE' in os.environ or 'ANDROID_EMULATE' in os.environ:
+if 'ANDROID_HOST' in os.environ:
     lt = None
 else:
     import libtorrent as lt
