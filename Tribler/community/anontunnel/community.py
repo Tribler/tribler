@@ -987,7 +987,7 @@ class ProxyCommunity(Community):
 
     def pop_created_cache(self, circuit_id, candidate):
         return self.dispersy.callback.call(
-            self.request_cache.get,
+            self.request_cache.pop,
             (
                 CreatedRequestCache.PREFIX,
                 CreatedRequestCache.create_identifier(circuit_id, candidate),
