@@ -37,9 +37,9 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir(), anon_mode=True)
 
             self.guiUtility.ShowPage('my_files')
-            # self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
             self.CallConditional(
-                30,
+                150,
                 lambda: download.get_progress() == 1.0,
                 lambda: take_screenshot(time.time() - start_time),
                 'Anonymous download should be finished in 150 seconds',
