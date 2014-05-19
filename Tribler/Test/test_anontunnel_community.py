@@ -21,15 +21,9 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.guiUtility.ShowPage('anonymity')
             self.Call(1, take_second_screenshot)
 
-        def on_fail(expected, message, do_assert):
-            def screenshot_on_fail():
-                self.screenshot()
-                self.assert_(expected, message, True)
-                self.quit()
-
+        def on_fail(expected, reason, do_assert):
             self.guiUtility.ShowPage('anonymity')
-            self.Call(1, screenshot_on_fail)
-
+            self.Call(1, lambda: self.assert_(expected, reason, True))
 
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()
