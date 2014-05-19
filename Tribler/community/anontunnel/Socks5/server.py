@@ -45,19 +45,23 @@ class Socks5Server(TunnelObserver):
         raw_server.add_task(self.__start_anon_session, 5.0)
 
     def __start_anon_session(self):
-        if len(self.circuit_pool.available_circuits) >= self.min_circuits:
-            self._logger.warning("Creating ANON session")
+        made_session = False
 
+        if len(self.circuit_pool.available_circuits) >= self.min_circuits:
             try:
                 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-                LibtorrentMgr.getInstance().create_anonymous_session()
+                if LibtorrentMgr.hasInstance():
+                    self._logger.info("Creating ANON session")
+                    LibtorrentMgr.getInstance().create_anonymous_session()
+                    made_session = True
+
             except ImportError:
                 self._logger.exception("Cannot create anonymous session!")
 
-            return True
-        else:
+        if not made_session:
             self.raw_server.add_task(self.__start_anon_session, delay=1.0)
-            return False
+
+        return made_session
 
     def start(self):
         try:

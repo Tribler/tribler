@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from Tribler.community.anontunnel.events import TunnelObserver
 import shutil
@@ -50,7 +51,7 @@ class LibtorrentTest(TunnelObserver):
             self.tribler_session.lm.rawserver.add_task(remove_download, delay=delay)
 
     def _has_completed_before(self):
-        return False # os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
+        return os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
 
     def start(self):
         from Tribler.community.anontunnel.stats import StatsCollector

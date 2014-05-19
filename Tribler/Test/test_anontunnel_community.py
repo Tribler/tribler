@@ -21,6 +21,10 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.guiUtility.ShowPage('anonymity')
             self.Call(1, take_second_screenshot)
 
+        def on_fail(expected, reason, do_assert):
+            self.guiUtility.ShowPage('anonymity')
+            self.Call(1, lambda: self.assert_(expected, reason, True))
+
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()
             start_time = time.time()
@@ -29,17 +33,18 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
             self.CallConditional(
-                100,
+                150,
                 lambda: download.get_progress() == 1.0,
                 lambda: take_screenshot(time.time() - start_time),
-                'Download should be finished after 100 seconds'
+                'Anonymous download should be finished in 150 seconds',
+                on_fail
             )
 
         self.startTest(do_create_local_torrent)
 
     def startTest(self, callback, min_timeout=5):
         def setup_proxies():
-            for i in range(3, 7):
+            for i in range(3, 11):
                 create_proxy(i)
 
             callback()
