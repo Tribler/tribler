@@ -315,7 +315,12 @@ class ProxyCommunity(Community):
             return False
 
         # Try to parse the packet
-        _, payload = self.proxy_conversion.decode(data)
+
+        try:
+            _, payload = self.proxy_conversion.decode(data)
+        except KeyError as e:
+            self._logger.warning("Cannot decode payload, probably orphaned session")
+            return False;
 
         packet_type = self.proxy_conversion.get_type(data)
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
@@ -714,6 +719,11 @@ class ProxyCommunity(Community):
 
         if message.extend_with:
             cache = self.pop_created_cache(circuit_id, candidate)
+
+            if not cache:
+                self._logger.warning("Cannot find created cache for circuit %d", circuit_id)
+                return False
+
             extend_candidate = cache.candidates[message.extend_with]
 
             self._logger.warning(
