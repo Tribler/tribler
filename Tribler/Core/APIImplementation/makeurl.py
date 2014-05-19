@@ -16,8 +16,8 @@ import sys
 import urlparse
 import urllib
 import math
-if sys.platform != "win32":
-    import curses.ascii
+#if sys.platform != "win32":
+#    import curses.ascii
 from struct import pack, unpack
 from base64 import b64encode, b64decode
 from M2Crypto import Rand  # TODO REMOVE FOR LICHT
@@ -270,7 +270,7 @@ def p2purl_decode_name2utf8(v):
     """ URL decode name to UTF-8 encoding """
     if sys.platform != "win32":
         for c in v:
-            if not curses.ascii.isascii(c):
+            if not ord(c) < 128: #curses.ascii.isascii(c):
                 raise ValueError("Name contains unescaped 8-bit value " + repr(c))
     return urllib.unquote_plus(v)
 

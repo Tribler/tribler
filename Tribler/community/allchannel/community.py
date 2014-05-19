@@ -28,7 +28,8 @@ from traceback import print_exc
 import sys
 from random import sample
 
-if __debug__:
+import os
+if __debug__ and not 'ANDROID_HOST' in os.environ:
     from Tribler.dispersy.tool.lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0

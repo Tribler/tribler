@@ -28,7 +28,8 @@ import json
 import binascii
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 
-if __debug__:
+import os
+if __debug__ and not 'ANDROID_HOST' in os.environ:
     from Tribler.dispersy.tool.lencoder import log
 
 
