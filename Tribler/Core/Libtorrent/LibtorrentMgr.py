@@ -9,6 +9,7 @@ if 'ANDROID_HOST' in os.environ:
     lt = None
 else:
     import libtorrent as lt
+    from libtorrent import proxy_type
 
 import logging
 from copy import deepcopy
