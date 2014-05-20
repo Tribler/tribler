@@ -744,8 +744,6 @@ class ForwardCommunity():
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
 
-        self._dispersy.statistics.walk_attempt += 1
-
         cache = self._request_cache.add(IntroductionRequestCache(self, destination))
         destination.walk(time())
 

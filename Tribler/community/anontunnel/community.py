@@ -338,10 +338,9 @@ class ProxyCommunity(Community):
         result = handler(circuit_id, sock_addr, payload)
 
         if result:
-            self.__dict_inc(self.dispersy.statistics.success, str_type)
+            self.__dict_inc(u"success", str_type)
         else:
-            self.__dict_inc(self.dispersy.statistics.success,
-                            str_type + '-ignored')
+            self.__dict_inc(u"success", str_type + '-ignored')
             self._logger.debug("Prev message was IGNORED")
 
         return True
@@ -385,8 +384,7 @@ class ProxyCommunity(Community):
             relayed=True
         )
 
-        self.__dict_inc(self.dispersy.statistics.success,
-                        str_type + '-relayed')
+        self.__dict_inc(u"success", str_type + '-relayed')
 
         return True
 
@@ -894,15 +892,12 @@ class ProxyCommunity(Community):
         str_type = MESSAGE_TYPE_STRING.get(
             message_type, "unknown-type-" + str(ord(message_type)))
 
-        self.__dict_inc(self.dispersy.statistics.outgoing,
-                        str_type + ('-relayed' if relayed else ''), 1)
-
         # we need to make sure that this endpoint is thread safe
         return self.dispersy.endpoint.send_packet(Candidate(destination, False), self.__packet_prefix + packet)
 
     def __dict_inc(self, statistics_dict, key, inc=1):
         key = u"anontunnel-" + key
-        self._dispersy.statistics.dict_inc(statistics_dict, key, inc)
+        self.statistics.increase_msg_count(statistics_dict, key, inc)
 
     @property
     def active_circuits(self):
