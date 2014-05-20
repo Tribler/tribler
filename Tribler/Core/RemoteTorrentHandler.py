@@ -788,7 +788,7 @@ class MagnetRequester(Requester):
 
                 self._logger.debug('%d rtorrent: requesting magnet %s %s %s %d', long(time()), bin2str(infohash), self.prio, magnetlink, len(self.requestedInfohashes))
 
-                TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections=30 if self.prio == 0 else 10)
+                TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections=30 if self.prio == 0 else 10, silent=True)
             construct_magnet()
 
             failed_lambda = lambda infohash = infohash: self.__torrentdef_failed(infohash)
