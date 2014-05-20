@@ -2406,7 +2406,7 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
     @classmethod
     def delInstance(cls, *args, **kw):
         for task in cls.__single._pending_tasks:
-            if not task.active():
+            if task.active():
                 task.cancel()
         cls.__single = None
 
