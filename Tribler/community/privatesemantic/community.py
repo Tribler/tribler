@@ -103,7 +103,7 @@ class ActualTasteBuddy(TasteBuddy):
             return self.sock_addr == other.sock_addr
 
         elif isinstance(other, Member):
-            return other in self.candidate.get_members()
+            return other.mid == self.candidate.get_member().mid
 
         elif isinstance(other, Candidate):
             return self.candidate.sock_addr == other.sock_addr
@@ -148,7 +148,7 @@ class PossibleTasteBuddy(TasteBuddy):
 
 class ForwardCommunity():
 
-    def __init__(self, dispersy, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, psi_mode=PSI_CARDINALITY, send_simi_reveal=False):
+    def initialize(self, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, psi_mode=PSI_CARDINALITY, send_simi_reveal=False):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = self.init_key()
@@ -287,7 +287,7 @@ class ForwardCommunity():
         assert len(mid) == 20, len(mid)
 
         for tb in self.yield_taste_buddies():
-            if mid in [member.mid for member in tb.candidate.get_members()]:
+            if mid == tb.candidate.get_member().mid:
                 return tb
 
     def is_taste_buddy_sock(self, sock_addr):

@@ -47,15 +47,11 @@ class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
-    def __init__(self, dispersy, master, my_member):
+    def initialize(self, integrate_with_tribler=True):
+        super(ChannelCommunity, self).initialize()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._channel_id = None
-        super(ChannelCommunity, self).__init__(dispersy, master, my_member)
-
-    def initialize(self, attach=True, integrate_with_tribler=True):
-        super(ChannelCommunity, self).initialize(attach=attach)
-
         self.integrate_with_tribler = integrate_with_tribler
 
         if self.integrate_with_tribler:

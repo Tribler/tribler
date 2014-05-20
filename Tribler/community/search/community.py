@@ -18,7 +18,7 @@ from Tribler.community.search.payload import (SearchRequestPayload, SearchRespon
                                               TasteIntroPayload)
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, WalkCandidate, BootstrapCandidate
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, WalkCandidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.database import IgnoreCommits
@@ -59,8 +59,8 @@ class SearchCommunity(Community):
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, log_incomming_searches=False):
-        super(SearchCommunity, self).__init__(dispersy, master, my_member)
+    def initialize(self, integrate_with_tribler=True, log_incomming_searches=False):
+        super(SearchCommunity, self).initialize()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -225,7 +225,7 @@ class SearchCommunity(Community):
             self._logger.debug("SearchCommunity: sending introduction request to %s", destination)
 
         advice = True
-        if not (isinstance(destination, BootstrapCandidate) or is_fast_walker):
+        if not is_fast_walker:
             myPreferences = sorted(self._mypref_db.getMyPrefListInfohash(limit=500))
             num_preferences = len(myPreferences)
 
@@ -260,8 +260,6 @@ class SearchCommunity(Community):
         logger.debug("%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
 
         self._dispersy.statistics.walk_attempt += 1
-        if isinstance(destination, BootstrapCandidate):
-            self._dispersy.statistics.walk_bootstrap_attempt += 1
         if request.payload.advice:
             self._dispersy.statistics.walk_advice_outgoing_request += 1
 
@@ -270,7 +268,6 @@ class SearchCommunity(Community):
 
     def on_introduction_request(self, messages):
         super(SearchCommunity, self).on_introduction_request(messages)
-        messages = [message for message in messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
 
         if any(message.payload.taste_bloom_filter for message in messages):
             myPreferences = self._mypref_db.getMyPrefListInfohash(limit=500)

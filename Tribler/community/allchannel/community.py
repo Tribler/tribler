@@ -72,15 +72,6 @@ class AllChannelCommunity(Community):
     def dispersy_sync_bloom_filter_strategy(self):
         return self._dispersy_claim_sync_bloom_filter_modulo
 
-    def __init__(self, dispersy, master, my_member):
-        super(AllChannelCommunity, self).__init__(dispersy, master, my_member)
-
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        self._blocklist = {}
-        self._searchCallbacks = {}
-        self._recentlyRequested = []
-
     def initiate_meta_messages(self):
         batch_delay = 1.0
 
@@ -129,9 +120,14 @@ class AllChannelCommunity(Community):
                     batch=BatchConfiguration(max_window=batch_delay))
                 ]
 
-    def initialize(self, attach=True, integrate_with_tribler=True, auto_join_channel=False):
-        super(AllChannelCommunity, self).initialize(attach)
+    def initialize(self, integrate_with_tribler=True, auto_join_channel=False):
+        super(AllChannelCommunity, self).initialize()
 
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        self._blocklist = {}
+        self._searchCallbacks = {}
+        self._recentlyRequested = []
         self.integrate_with_tribler = integrate_with_tribler
         self.auto_join_channel = auto_join_channel
 
@@ -190,9 +186,8 @@ class AllChannelCommunity(Community):
             # only check if we actually have a channel
             if mychannel_id:
                 peer_ids = set()
-                for member in candidate.get_members():
-                    key = member.public_key
-                    peer_ids.add(self._peer_db.addOrGetPeerID(key))
+                key = candidate.get_member().public_key
+                peer_ids.add(self._peer_db.addOrGetPeerID(key))
 
                 # see if all members on this address are subscribed to my channel
                 didFavorite = len(peer_ids) > 0

@@ -17,12 +17,11 @@ from payload import MetadataPayload
 
 class MetadataCommunity(Community):
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True):
+    def initialize(self, integrate_with_tribler=True):
+        super(MetadataCommunity, self).initialize()
+
         self._logger = logging.getLogger(self.__class__.__name__)
-
         self._integrate_with_tribler = integrate_with_tribler
-
-        super(MetadataCommunity, self).__init__(dispersy, master, my_member)
 
         if self._integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import MetadataDBHandler, TorrentDBHandler

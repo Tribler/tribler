@@ -3,6 +3,7 @@ import os
 import time
 
 from mock import Mock
+from twisted.internet import reactor
 from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Test.test_as_server import TestAsServer
@@ -136,8 +137,8 @@ class TestProxyCommunity(TestAsServer):
         # 2 Hop - should succeed
         second_hop = self.__create_walk_candidate()
 
-        public_bin = next(iter(second_hop.get_members())).public_key
-        key = next(iter(second_hop.get_members()))._ec
+        public_bin = second_hop.get_member().public_key
+        key = second_hop.get_member()._ec
 
         candidate_list = []
         candidate_list.append(self.community.crypto.key_to_bin(key))
@@ -201,7 +202,7 @@ class TestProxyCommunity(TestAsServer):
         node_to_extend_with = self.__create_walk_candidate()
         originator_circuit_id = 1337
 
-        extend_pub_key = next(iter(node_to_extend_with.get_members()))._ec
+        extend_pub_key = node_to_extend_with.get_member()._ec
         extend_pub_key = self.dispersy.crypto.key_to_bin(extend_pub_key)
 
         # make sure our node_to_extend_with comes up when yielding verified candidates

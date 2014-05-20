@@ -42,8 +42,8 @@ class TTLSearchCommunity(Community):
         master = dispersy.get_member(master_key)
         return [master]
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True):
-        super(TTLSearchCommunity, self).__init__(dispersy, master, my_member)
+    def initialize(self, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True):
+        super(TTLSearchCommunity, self).initialize()
 
         self.integrate_with_tribler = integrate_with_tribler
         self.ttl = ttl
@@ -159,8 +159,7 @@ class TTLSearchCommunity(Community):
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
             for candidate in self.requested_candidates:
-                for member in candidate.get_members():
-                    self.requested_mids.add(member.mid)
+                self.requested_mids.add(candidate.get_member().mid)
             self.received_candidates = []
 
             # setting timeout
@@ -296,10 +295,7 @@ class TTLSearchCommunity(Community):
             prev_mrequest = self.request_cache.get(u"m-search-request", number)
             ignore_candidates = prev_mrequest.get_requested_candidates() if prev_mrequest else set()
 
-        if return_candidate:
-            # ERR
-            # for member in return_candidate.get_members():
-            #     ignore_candidates.add(member.mid)
+        if return_member:
             ignore_candidates.add(return_member.mid)
 
         # impose upper limit for forwarding
@@ -567,20 +563,18 @@ class TTLSearchCommunity(Community):
             _taste_buddies = []
             for candidate in random_peers:
                 add = True
-                for member in candidate.get_members():
-                    if member.mid in ignore_candidates:
-                        add = False
-                        break
+                if candidate.get_member().mid in ignore_candidates:
+                    add = False
+                    break
 
                 if add:
                     _random_peers.append(candidate)
 
             for candidate in taste_buddies:
                 add = True
-                for member in candidate.get_members():
-                    if member.mid in ignore_candidates:
-                        add = False
-                        break
+                if candidate.get_member().mid in ignore_candidates:
+                    add = False
+                    break
 
                 if add:
                     _taste_buddies.append(candidate)

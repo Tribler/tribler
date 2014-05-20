@@ -7,7 +7,6 @@ from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
 
 from binascii import hexlify, unhexlify
-from Tribler.dispersy.candidate import BootstrapCandidate
 def long_to_bytes(val, nrbytes=0):
     hex_val = '%x' % abs(val)
     if nrbytes:
@@ -90,9 +89,8 @@ class ForwardConversion(BinaryConversion):
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
 
-        if not isinstance(message.destination.candidates[0], BootstrapCandidate):
-            if message.payload.introduce_me_to:
-                data.insert(0, pack('!c20s', 'Y', message.payload.introduce_me_to))
+        if message.payload.introduce_me_to:
+            data.insert(0, pack('!c20s', 'Y', message.payload.introduce_me_to))
         return data
 
     def _decode_introduction_request(self, placeholder, offset, data):

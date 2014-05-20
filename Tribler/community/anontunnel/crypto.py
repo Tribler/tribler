@@ -258,7 +258,7 @@ class DefaultCrypto(Crypto):
         @return CreateMessage: Version of the message with encrypted contents
         """
 
-        pub_key = iter(candidate.get_members()).next()._ec
+        pub_key = candidate.get_member()._ec
         message.public_key = self.proxy.crypto.key_to_bin(self.proxy.my_member._ec.pub())
 
         if circuit_id in self.proxy.circuits:
@@ -472,7 +472,7 @@ class DefaultCrypto(Crypto):
 #            candidate_pub_key = message.public_key if message_type == MESSAGE_CREATE else message.reply_to.public_key
 #            candidate_pub_key = self.proxy.crypto.key_from_public_bin(candidate_pub_key)
 
-            candidate_pub_key = next(iter(candidate.get_members()))._ec
+            candidate_pub_key = candidate.get_member()._ec
 
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer

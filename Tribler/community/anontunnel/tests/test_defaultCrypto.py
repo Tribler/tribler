@@ -26,18 +26,15 @@ class DummyEndpoint(NullEndpoint):
 
 class DummyCandidate():
     def __init__(self, key=None):
-        #super(DummyCandidate, self).__init__(self)
-        self.members = []
+        # super(DummyCandidate, self).__init__(self)
         self.sock_addr = Mock()
-        member = Mock()
+        self.member = Mock()
         if not key:
             key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
-        member._ec = key
-        self.members.append(member)
+        self.member._ec = key
 
-    def get_members(self):
-        return self.members
-
+    def get_member(self):
+        return self.member
 
 class TestDefaultCrypto(TestAsServer):
     @property
@@ -130,7 +127,7 @@ class TestDefaultCrypto(TestAsServer):
         self.assertNotIn(second_relay_key, self.crypto.session_keys)
 
     def test__encrypt_decrypt_create_content(self):
-        #test own circuit create
+        # test own circuit create
         candidate = DummyCandidate(self.community.my_member._ec)
 
         create_message = CreateMessage()
@@ -152,7 +149,7 @@ class TestDefaultCrypto(TestAsServer):
         self.assertEquals(unencrypted_key, decrypted_create_message.key)
         self.assertEquals(unencrypted_pub_key, decrypted_create_message.public_key)
 
-        #test other circuit create
+        # test other circuit create
         self.__prepare_for_create()
         del self.community.circuits[123]
         candidate = DummyCandidate(self.community.my_member._ec)

@@ -9,7 +9,7 @@ from .database import BarterDatabase
 from .efforthistory import CYCLE_SIZE, EffortHistory
 from .payload import BarterRecordPayload, PingPayload, PongPayload, MemberRequestPayload, MemberResponsePayload
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, NoAuthentication, MemberAuthentication
-from Tribler.dispersy.candidate import WalkCandidate, BootstrapCandidate, Candidate
+from Tribler.dispersy.candidate import WalkCandidate, Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
@@ -379,7 +379,7 @@ class BarterCommunity(Community):
             cache = self._request_cache.add(MemberRequestCache(self, _delayed_update))
             meta = self._meta_messages[u"member-request"]
             request = meta.impl(distribution=(self.global_time,),
-                                destination=(Candidate(swift_address, True),), # assume tunnel=True
+                                destination=(Candidate(swift_address, True),),  # assume tunnel=True
                                 payload=(cache.number,))
             logger.debug("trying to obtain member from swift address %s:%d [%s]",
                          swift_address[0],
@@ -450,15 +450,14 @@ class BarterCommunity(Community):
         finally:
             cycle = int(time() / CYCLE_SIZE)
             for message in messages:
-                if not isinstance(message.candidate, BootstrapCandidate):
-                    # logger.debug("received introduction-request message from %s", message.candidate)
+                # logger.debug("received introduction-request message from %s", message.candidate)
 
-                    book = self.get_book(message.authentication.member)
-                    if book.cycle < cycle:
-                        book.cycle = cycle
-                        book.effort.set(cycle * CYCLE_SIZE)
+                book = self.get_book(message.authentication.member)
+                if book.cycle < cycle:
+                    book.cycle = cycle
+                    book.effort.set(cycle * CYCLE_SIZE)
 
-                    self.try_adding_to_slope(message.candidate, book.member)
+                self.try_adding_to_slope(message.candidate, book.member)
 
     def on_introduction_response(self, messages):
         try:
@@ -466,15 +465,14 @@ class BarterCommunity(Community):
         finally:
             cycle = int(time() / CYCLE_SIZE)
             for message in messages:
-                if not isinstance(message.candidate, BootstrapCandidate):
-                    # logger.debug("received introduction-response message from %s", message.candidate)
+                # logger.debug("received introduction-response message from %s", message.candidate)
 
-                    book = self.get_book(message.authentication.member)
-                    if book.cycle < cycle:
-                        book.cycle = cycle
-                        book.effort.set(cycle * CYCLE_SIZE)
+                book = self.get_book(message.authentication.member)
+                if book.cycle < cycle:
+                    book.cycle = cycle
+                    book.effort.set(cycle * CYCLE_SIZE)
 
-                    self.try_adding_to_slope(message.candidate, book.member)
+                self.try_adding_to_slope(message.candidate, book.member)
 
     def create_barter_record(self, second_candidate, second_member):
         """

@@ -106,8 +106,8 @@ class ProxyCommunity(Community):
         self.circuit_pools = []
         ''' :type : list[CircuitPool] '''
 
-    def initialize(self, attach=True, tribler_session=None, settings=None):
-        super(ProxyCommunity, self).initialize(attach=attach)
+    def initialize(self, tribler_session=None, settings=None):
+        super(ProxyCommunity, self).initialize()
 
         self.settings = settings if settings else ProxySettings()
         self._tribler_session = tribler_session
@@ -407,8 +407,8 @@ class ProxyCommunity(Community):
                 result = self.__relay(circuit_id, data, relay_key, sock_addr)
             else:
                 candidate = self._candidates.get(sock_addr)
-                if isinstance(candidate, WalkCandidate) and candidate.get_members():
-                   result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
+                if isinstance(candidate, WalkCandidate) and candidate.get_member():
+                    result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
                 else:
                     candidate = None
                     self._logger.error("Unknown candidate at %s, drop!", sock_addr)
@@ -462,7 +462,7 @@ class ProxyCommunity(Community):
                 circuit.extend_strategy = self.settings.extend_strategy(
                     self, circuit)
 
-            hop_public_key = iter(first_hop.get_members()).next()._ec
+            hop_public_key = first_hop.get_member()._ec
             circuit.unverified_hop = Hop(hop_public_key)
             circuit.unverified_hop.address = first_hop.sock_addr
 
@@ -551,9 +551,9 @@ class ProxyCommunity(Community):
             if not candidate_temp:
                 break
 
-            candidates[iter(candidate_temp.get_members()).next().public_key] = candidate_temp
+            candidates[candidate_temp.get_member().public_key] = candidate_temp
 
-        candidate_list = [next(iter(c.get_members())).public_key for c in candidates.itervalues()]
+        candidate_list = [c.get_member().public_key for c in candidates.itervalues()]
 
         self.create_created_cache(circuit_id, candidate, candidates)
 

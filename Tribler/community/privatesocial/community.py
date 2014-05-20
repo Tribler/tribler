@@ -29,14 +29,16 @@ ENCRYPTION = True
 SYNC_WITH_TASTE_BUDDIES_INTERVAL = 300
 
 class SocialCommunity(Community):
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, log_text=None):
-        assert isinstance(dispersy.crypto, ElgamalCrypto)
 
-        super(SocialCommunity, self).__init__(dispersy, master, my_member)
+    def initialize(self, integrate_with_tribler=True, encryption=ENCRYPTION, log_text=None):
+        assert isinstance(self.dispersy.crypto, ElgamalCrypto)
+
+        super(SocialCommunity, self).initialize()
+
         self.encryption = bool(encryption)
         self.log_text = log_text
 
-        self._friend_db = FriendDatabase(dispersy)
+        self._friend_db = FriendDatabase(self.dispersy)
         self._friend_db.open()
 
         # never sync while taking a step, only sync with friends

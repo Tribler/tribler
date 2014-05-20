@@ -3,7 +3,7 @@ from random import sample
 import zlib
 
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.dispersy.message import DropPacket, Packet,\
+from Tribler.dispersy.message import DropPacket, Packet, \
     DelayPacketByMissingMessage, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import BinaryConversion
 
@@ -199,11 +199,9 @@ class ChannelConversion(BinaryConversion):
                 packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
                 playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
             except DropPacket:
-                members = self._community.dispersy.get_members_from_id(playlist_mid)
-                if not members:
+                member = self._community.get_member(mid=playlist_mid)
+                if not member:
                     raise DelayPacketByMissingMember(self._community, playlist_mid)
-
-                member = members[0]
                 raise DelayPacketByMissingMessage(self._community, member, playlist_global_time)
         else:
             playlist = None
@@ -259,11 +257,9 @@ class ChannelConversion(BinaryConversion):
             cause_packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
 
         except DropPacket:
-            members = self._community.dispersy.get_members_from_id(cause_mid)
-            if not members:
+            member = self._community.get_member(mid=cause_mid)
+            if not member:
                 raise DelayPacketByMissingMember(self._community, cause_mid)
-
-            member = members[0]
             raise DelayPacketByMissingMessage(self._community, member, cause_global_time)
 
         return offset, placeholder.meta.payload.implement(text, timestamp, severity, cause_packet)
@@ -357,11 +353,9 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
             modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except DropPacket:
-            members = self._community.dispersy.get_members_from_id(modification_on_mid)
-            if not members:
+            member = self._community.dispersy.get_member(mid=modification_on_mid)
+            if not member:
                 raise DelayPacketByMissingMember(self._community, modification_on_mid)
-
-            member = members[0]
             raise DelayPacketByMissingMessage(self._community, member, modification_on_global_time)
 
         prev_modification_mid = dic.get("prev-modification-mid", None)
@@ -393,11 +387,9 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
 
         except DropPacket:
-            members = self._community.dispersy.get_members_from_id(playlist_mid)
-            if not members:
+            member = self._community.dispersy.get_member(mid=playlist_mid)
+            if not member:
                 raise DelayPacketByMissingMember(self._community, playlist_mid)
-
-            member = members[0]
             raise DelayPacketByMissingMessage(self._community, member, playlist_global_time)
 
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
