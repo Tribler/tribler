@@ -581,6 +581,10 @@ class ProxyCommunity(Community):
         """
         relay_key = (candidate.sock_addr, circuit_id)
 
+        if not relay_key in self.waiting_for:
+            self._logger.error("Got an unexpected CREATED message for circuit %d from %s:%d", circuit_id, *candidate.sock_addr)
+            return False
+
         del self.waiting_for[relay_key]
         self.directions[relay_key] = ORIGINATOR
         if relay_key in self.relay_from_to:
