@@ -74,6 +74,8 @@ class AbstractServer(unittest.TestCase):
         dir = STATE_DIR + (str(nr) if nr else '')
         if not os.path.exists(dir):
             os.mkdir(dir)
+        if os.path.isfile("bootstraptribler.txt"):
+            shutil.copy("bootstraptribler.txt", os.path.join(dir, "bootstraptribler.txt"))
         return dir
 
     def getDestDir(self, nr=0):
@@ -375,9 +377,10 @@ class TestGuiAsServer(TestAsServer):
 
         mem = wx.MemoryDC(bmp)
         mem.Blit(0, 30, rect.GetWidth(), rect.GetHeight(), screen, rect.GetX(), rect.GetY())
+
+        titlerect = wx.Rect(0, 0, rect.GetWidth(), 30)
+        mem.DrawRectangleRect(titlerect)
         if title:
-            titlerect = wx.Rect(0, 0, rect.GetWidth(), 30)
-            mem.DrawRectangleRect(titlerect)
             mem.DrawLabel(title, titlerect, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
         del mem
 

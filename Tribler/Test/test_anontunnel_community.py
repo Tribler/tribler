@@ -25,7 +25,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
         def on_fail(expected, reason, do_assert):
             self.guiUtility.ShowPage('anonymity')
-            self.Call(1, lambda: self.assert_(expected, reason, True))
+            self.Call(1, lambda: self.assert_(expected, reason, do_assert))
 
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()
@@ -45,6 +45,8 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         self.startTest(do_create_local_torrent)
 
     def startTest(self, callback, min_timeout=5):
+        self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
+
         from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
         def setup_proxies():
             proxy_communities = []
@@ -91,9 +93,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                settings = ProxySettings()
-
-                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
+                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, None), load=True)[0]
                 exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
                 proxy_community.observers.append(exit_strategy)
 
