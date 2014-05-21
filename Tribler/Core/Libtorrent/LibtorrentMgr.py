@@ -4,12 +4,8 @@ import os
 import time
 import binascii
 import threading
-# FIXME: Temporarily disable libtorrent until we have a properly compiled version
-if 'ANDROID_HOST' in os.environ:
-    lt = None
-else:
-    import libtorrent as lt
-    from libtorrent import proxy_type
+import libtorrent as lt
+from libtorrent import proxy_type
 
 import logging
 from copy import deepcopy
@@ -32,10 +28,6 @@ class LibtorrentMgr:
     __single = None
 
     def __init__(self, trsession, ignore_singleton=False):
-        # FIXME: Temporarily disable libtorrent until we have a properly compiled version
-        if 'ANDROID_HOST' in os.environ:
-            return
-
         if not ignore_singleton:
             if LibtorrentMgr.__single:
                 raise RuntimeError("LibtorrentMgr is singleton")

@@ -4,11 +4,7 @@ import os
 import sys
 import time
 import logging
-# FIXME: Temporarily disable libtorrent until we have a properly compiled version
-if 'ANDROID_HOST' in os.environ:
-    lt = None
-else:
-    import libtorrent as lt
+import libtorrent as lt
 
 from binascii import hexlify
 from traceback import print_exc
