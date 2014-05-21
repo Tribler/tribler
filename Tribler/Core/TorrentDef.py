@@ -155,8 +155,10 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                 if not silent:
                     raise
             callback(tdef)
-        LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
-        return True
+        if LibtorrentMgr.hasInstance():
+            LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
+            return True
+        return False
 
     @staticmethod
     def retrieve_from_magnet_infohash(infohash, callback, timeout=30.0, max_connections=30.0):
