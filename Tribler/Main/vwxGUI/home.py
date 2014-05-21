@@ -586,13 +586,7 @@ class Anonymity(wx.Panel):
         self.utility = self.guiutility.utility
         self.session = self.utility.session
 
-        dispersy = self.utility.session.lm.dispersy
-        self.proxy_community = (c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
-
         self.AddComponents()
-
-        self.my_address = Hop(self.proxy_community.my_member._ec.pub())
-        self.my_address.address = ('127.0.0.1', "SELF")
 
         self.vertices = {}
         self.edges = []
@@ -621,6 +615,22 @@ class Anonymity(wx.Panel):
 
         self.peers = []
         self.toInsert = set()
+
+        self.try_proxy()
+
+    def try_proxy(self):
+        dispersy = self.utility.session.lm.dispersy
+        try:
+            proxy_community = (c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
+            self.found_proxy(proxy_community)
+        except:
+            wx.CallLater(1000, self.try_proxy)
+
+    def found_proxy(self, proxy_community):
+        self.proxy_community = proxy_community
+
+        self.my_address = Hop(self.proxy_community.my_member._ec.pub())
+        self.my_address.address = ('127.0.0.1', "SELF")
 
         self.refresh_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, lambda evt: self.graph_panel.Refresh(), self.refresh_timer)

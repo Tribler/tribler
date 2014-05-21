@@ -206,6 +206,10 @@ class ProxyCommunity(Community):
 
                 else:
                     circuit_candidates = set([c.candidate for c in self.circuits.values()])
+
+                    if self.dispersy._discovery_community:  # exclude the trackers
+                        circuit_candidates.update(self.dispersy._discovery_community.bootstrap.candidates)
+
                     candidate = next((c for c in self.dispersy_yield_verified_candidates()
                                       if c not in circuit_candidates), None)
 
@@ -544,8 +548,12 @@ class ProxyCommunity(Community):
         candidates = {}
         ''' :type : dict[str, WalkCandidate] '''
 
+        trackers = []
+        if self.dispersy._discovery_community:  # exclude the trackers
+            trackers = self.dispersy._discovery_community.bootstrap.candidates
+
         for _ in range(1, 5):
-            candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
+            candidate_temp = next((c for c in self.dispersy_yield_verified_candidates() if c not in trackers), None)
             " :type: WalkCandidate"
 
             if not candidate_temp:
