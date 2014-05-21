@@ -340,7 +340,9 @@ class TorrentManager:
             t.channelcast_db = self.channelcast_db
             t.metadata_db = self.metadata_db
 
+            # prefetching channel, metadata
             _ = t.channel
+            _ = t.metadata
             return t
 
     def set_gridmgr(self, gridmgr):
