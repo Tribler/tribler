@@ -202,7 +202,7 @@ class TorrentDetails(AbstractDetails):
                     self.messageGauge.Show(False)
                     self.messageButton.Show(True)
                     self.messagePanel.Layout()
-                startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs=(self.torrent,), wkwargs={'callback': self.showTorrent}, workerType="guiTaskQueue")
+                startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs=(self.torrent,), wkwargs={'callback': self.showTorrent})
 
     @forceWxThread
     def showTorrent(self, torrent, showTab=None):
@@ -488,22 +488,9 @@ class TorrentDetails(AbstractDetails):
     def updateDetailsTab(self):
         self.Freeze()
 
-        the_description = self.torrent.get('description', '')
-        if not the_description:
-            # try metadata
-            metadata = self.torrent.get('metadata', None)
-            if metadata:
-                the_description = metadata.get('description', '')
-
-        if not the_description:
-            if self.canEdit:
-                the_description = 'No description yet, be the first to add a description.'
-            else:
-                the_description = ''
-
         todo = []
         todo.append((self.name, self.torrent.name))
-        todo.append((self.description, the_description))
+        todo.append((self.description, ''))
         todo.append((self.type, ', '.join(self.torrent.categories).capitalize() if isinstance(self.torrent.categories, list) else 'Unknown'))
         todo.append((self.uploaded, self.torrent.formatCreationDate() if hasattr(self.torrent, 'formatCreationDate') else ''))
         todo.append((self.filesize, '%s in %d file(s)' % (self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files)) if hasattr(self.torrent, 'files') else '%s' % self.guiutility.utility.size_format(self.torrent.length)))
@@ -516,10 +503,10 @@ class TorrentDetails(AbstractDetails):
         self.downloaded.Update(torrent=self.torrent)
         self.downloaded.Show(bool(self.torrent.state))
 
-        # Toggle description
-        show_description = self.canEdit or bool(the_description)
-        self.description_title.Show(show_description)
-        self.description.Show(show_description)
+        # Hide description
+        self.description_title.Show(False)
+        self.description.Show(False)
+        self._updateDescription()
 
         # Toggle status
         show_status = bool(self.torrent.state) or bool(self.torrent.magnetstatus)
@@ -560,6 +547,33 @@ class TorrentDetails(AbstractDetails):
         self.detailsTab.Layout()
 
         self.Thaw()
+
+    def _updateDescription(self):
+        def do_db():
+            # try metadata
+            metadata = self.torrent.get('metadata', None)
+            if metadata:
+                return metadata.get('description', '')
+
+        def set_description(description):
+            if not description:
+                if self.canEdit:
+                    description = 'No description yet, be the first to add a description.'
+                else:
+                    description = ''
+
+            # Toggle description
+            self.description.SetLabel(description)
+
+            show_description = self.canEdit or bool(description)
+            self.description_title.Show(show_description)
+            self.description.Show(show_description)
+
+        the_description = self.torrent.get('description', '')
+        if not the_description:
+            startWorker(lambda delayedResult: set_description(delayedResult.get()), do_db)
+        else:
+            set_description(the_description)
 
     def updateFilesTab(self):
         self.filesList.DeleteAllItems()
@@ -867,8 +881,6 @@ class TorrentDetails(AbstractDetails):
             curTorrent.length = newTorrent.length
             curTorrent.category_id = newTorrent.category_id
             curTorrent.status_id = newTorrent.status_id
-            curTorrent.num_seeders = newTorrent.num_seeders
-            curTorrent.num_leechers = newTorrent.num_leechers
 
             self.updateDetailsTab()
             if self.canEdit:
@@ -878,16 +890,12 @@ class TorrentDetails(AbstractDetails):
                 if not self.isEditable['description'].IsChanged():
                     self.isEditable['description'].SetValue(curTorrent.description or '')
 
-        elif curTorrent.num_seeders != newTorrent.num_seeders or curTorrent.num_leechers != newTorrent.num_leechers:
-            curTorrent.num_seeders = newTorrent.num_seeders
-            curTorrent.num_leechers = newTorrent.num_leechers
-            self.ShowHealth(False)
-
     @forceDBThread
     def UpdateHealth(self):
+        # touch swarminfo property
+        _, _, last_check = self.torrent.swarminfo
+
         if getattr(self.torrent, 'trackers', None) and len(self.torrent.trackers) > 0:
-            # touch swarminfo property
-            _, _, last_check = self.torrent.swarminfo
             diff = time() - last_check
 
             if diff > 1800:

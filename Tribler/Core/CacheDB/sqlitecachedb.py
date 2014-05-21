@@ -2230,7 +2230,7 @@ def forceDBThread(func):
                 for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
-                logger.debug("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+                logger.info("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
             reactor.callFromThread(func, *args, **kwargs)
         else:
@@ -2248,7 +2248,7 @@ def forceAndReturnDBThread(func):
                 for i in range(1, min(10, len(stack))):
                     caller = stack[i]
                     callerstr += "%s %s:%s" % (caller[3], caller[1], caller[2])
-                logger.debug("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+                logger.error("%d BLOCKING ON DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
             return blockingCallFromThread(reactor, func, *args, **kwargs)
         else:
