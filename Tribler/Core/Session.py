@@ -2,25 +2,22 @@
 # Updated by George Milescu
 # see LICENSE.txt for license information
 """ A Session is a running instance of the Tribler Core and the Core's central class. """
-
-import os
-import sys
 import copy
-import socket
 import logging
+import os
+import socket
+import sys
 
-from Tribler.Core.simpledefs import STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, \
-    STATEDIR_DLPSTATE_DIR, STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, \
-    NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, \
-    NTFY_CHANNELCAST, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_METADATA
-from Tribler.Core.exceptions import NotYetImplementedException, \
-    OperationNotEnabledByConfigurationException
-from Tribler.Core.SessionConfig import SessionConfigInterface, \
-    SessionStartupConfig
+from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
+from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
+from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
 from Tribler.Core.osutils import get_appstate_dir
-from Tribler.Core import NoDispersyRLock
+from Tribler.Core.simpledefs import (STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR,
+                                     STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS,
+                                     NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE,
+                                     NTFY_INSERT, NTFY_DELETE, NTFY_METADATA)
 
 GOTM2CRYPTO = False
 try:

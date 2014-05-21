@@ -19,8 +19,7 @@ ENCRYPTION = True
 
 class OneSwarmCommunity(TTLSearchCommunity):
 
-    def __init__(self, master, my_member, integrate_with_tribler=True, log_searches=False, cancel_after=None):
-        TTLSearchCommunity.__init__(self, master, my_member, integrate_with_tribler, log_searches=log_searches)
+    def initialize(self, integrate_with_tribler=True, log_searches=False, cancel_after=None):
         self.overlay_manager = OverlayManager(self)
         self.search_manager = SearchManager(self, self.overlay_manager, cancel_after)
 
@@ -154,9 +153,9 @@ class SourceWrapper:
         return self.community.is_taste_buddy(self.dispersy_source)
 
     def getRemotePublicKeyHash(self):
-        members = list(self.dispersy_source.get_members(self.community))
-        if members:
-            return members[0].mid
+        member = self.dispersy_source.get_member()
+        if member:
+            return member.mid
         return str(self.dispersy_source.sock_addr[1])
 
     def __str__(self):

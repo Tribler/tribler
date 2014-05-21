@@ -1,22 +1,23 @@
 # Written by Niels Zeilemaker
 # Extending wx.lib.delayedresult with a startWorker method which uses single producer
 # Additionally DelayedResult is returned, allowing a thread to wait for result
-
-import wx
-from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, \
-    AbortedException, SenderNoWx
+import logging
 import os
 import threading
-import logging
 from collections import namedtuple
-from threading import Event, Lock, RLock
-from thread import get_ident
-from time import time
-from traceback import extract_stack, format_exc, print_exc, print_stack
 from inspect import isgeneratorfunction
 from random import randint
+from threading import Event, Lock, RLock
+from time import time
+from traceback import extract_stack, format_exc, print_exc, print_stack
+
+import wx
+from twisted.internet import reactor
+from twisted.python.threadable import isInIOThread
+from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException, SenderNoWx
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
 GUI_PRI_DISPERSY = 99
@@ -30,13 +31,13 @@ class GUIDBProducer():
     __single = None
     __singleton_lock = RLock()
 
-    def __init__(self, database_thread):
+    def __init__(self):
         if GUIDBProducer.__single:
             raise RuntimeError("GuiDBProducer is singleton")
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.database_thread = database_thread
+        self._pending_tasks = {}
         self.guitaskqueue = GUITaskQueue.getInstance()
 
         # Lets get a reference to utility
@@ -65,12 +66,11 @@ class GUIDBProducer():
 
     @classmethod
     def hasInstance(cls):
-        return GUIDBProducer.__single != None
+        return GUIDBProducer.__single is not None
 
     def onSameThread(self, type):
-        onDBThread = get_ident() == self.database_thread._thread_ident
-        if type == "dbThread" or onDBThread:
-            return onDBThread
+        if type == "dbThread" or isInIOThread():
+            return isInIOThread()
 
         return threading.currentThread().getName().startswith('GUITaskQueue')
 
@@ -126,12 +126,6 @@ class GUIDBProducer():
                 return
 
             except Exception as exc:
-                if str(exc).startswith("BusyError") and retryOnBusy:
-                    self._logger.error("GUIDBHandler: BusyError, retrying Task(%s) in 0.5s", name)
-                    self.database_thread.register(wrapper, delay=0.5, id_=name)
-
-                    return
-
                 originalTb = format_exc()
                 sender.sendException(exc, originalTb)
                 return
@@ -162,16 +156,11 @@ class GUIDBProducer():
 
         if not self.onSameThread(workerType) or delay:
             if workerType == "dbThread":
-                if not self.database_thread.is_running:
-                    self.getDatabaseThread()
-
-                if isgeneratorfunction(workerFn):
-                    self.database_thread.register(workerFn, delay=delay, priority=priority, id_=callbackId)
-                else:
-                    self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
-
+                dc = reactor.callFromThread(reactor.callLater, delay, wrapper)
+                if uId:
+                    self._pending_tasks[uId] = dc
             elif workerType == "guiTaskQueue":
-                self.guitaskqueue.add_task(wrapper, t=delay)
+                self.guitaskqueue.add_task(wrapper, t=delay, id=uId)
         else:
             self._logger.debug("GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately", name)
             wrapper()
@@ -190,10 +179,14 @@ class GUIDBProducer():
             finally:
                 self.uIdsLock.release()
 
-            self.database_thread.unregister(uId)
+            task = self._pending_tasks.pop(uId, None)
+            if task and task.active():
+                task.cancel()
             self.guitaskqueue.remove_task(uId)
 
 # Wrapping Senders for new delayedResult impl
+
+
 class MySender():
 
     def __init__(self, delayedResult):
@@ -222,6 +215,7 @@ class MySenderCallAfter(MySender, SenderCallAfter):
         SenderCallAfter.__init__(self, listener, jobID, args, kwargs)
         MySender.__init__(self, delayedResult)
 
+
 class MySenderNoWx(MySender, SenderNoWx):
 
     def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
@@ -230,6 +224,8 @@ class MySenderNoWx(MySender, SenderNoWx):
 
 # ASyncDelayedResult, allows a get call before result is set
 # This call is blocking, but allows you to specify a timeout
+
+
 class ASyncDelayedResult():
 
     def __init__(self, jobID=None):
@@ -262,8 +258,8 @@ class ASyncDelayedResult():
             return self.__result
         else:
             print_stack()
-            self._logger.info("TIMEOUT on get %s %s" %\
-                (repr(self.__jobID), repr(timeout)))
+            self._logger.info("TIMEOUT on get %s %s" %
+                              (repr(self.__jobID), repr(timeout)))
 
     def wait(self, timeout=None):
         return self.isFinished.wait(timeout) or self.isFinished.isSet()
@@ -277,6 +273,8 @@ def exceptionConsumer(delayedResult, *args, **kwargs):
 
 # Modified startWorker to use our single thread
 # group and daemon variables have been removed
+
+
 def startWorker(
     consumer, workerFn,
     cargs=(), ckwargs={},
@@ -294,15 +292,15 @@ def startWorker(
     used to check if such a task is already scheduled, ignores it if it is.
     Returns the delayedResult created, in case caller needs join/etc.
     """
+    # TODO(emilon): Deprecate retryOnBusy
     if isgeneratorfunction(workerFn):
-        assert consumer == None, "Cannot have consumer and yielding task"
-        consumer = None
+        raise Exception("generators are not supported anymore")
 
     if not consumer:
         consumer = exceptionConsumer
 
     if not workerFn:
-        raise Exception("no workerfunction specified")
+        raise Exception("no worker function specified")
 
     if jobID is None:
         if __debug__:
@@ -328,7 +326,7 @@ def startWorker(
     if GUIDBProducer.hasInstance():
         thread = GUIDBProducer.getInstance()
         thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs,
-                name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, priority=priority, workerType=workerType)
+                   name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, priority=priority, workerType=workerType)
 
         return result
 
@@ -337,6 +335,7 @@ def cancelWorker(uId):
     if GUIDBProducer.hasInstance():
         thread = GUIDBProducer.getInstance()
         thread.Remove(uId)
+
 
 def onWorkerThread(type):
     if GUIDBProducer.hasInstance():

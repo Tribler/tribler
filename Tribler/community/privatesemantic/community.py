@@ -1,39 +1,35 @@
 # Written by Niels Zeilemaker
 import sys
-from collections import defaultdict
-from time import time
-from random import sample, randint, shuffle, random, choice
+from binascii import hexlify
+from collections import defaultdict, namedtuple
 from hashlib import md5
 from itertools import groupby
-from binascii import hexlify
+from random import sample, randint, shuffle, choice
+from time import time
 
-from Tribler.dispersy.authentication import MemberAuthentication, \
-    NoAuthentication
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
-    WalkCandidate, BootstrapCandidate, Candidate
+from Crypto.Random.random import StrongRandom
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import LoopingCall, deferLater
+
+from .conversion import ForwardConversion, PSearchConversion, HSearchConversion, PoliSearchConversion
+from .crypto.paillier import (paillier_add, paillier_init, paillier_encrypt, paillier_decrypt, paillier_polyval,
+                              paillier_multiply, paillier_add_unenc)
+from .crypto.polycreate import compute_coeff, polyval
+from .crypto.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
+from .payload import *
+from Tribler.community.privatesemantic.conversion import bytes_to_long, long_to_bytes
+from Tribler.community.privatesemantic.database import SemanticDatabase
+from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.member import Member
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
+from Tribler.dispersy.requestcache import NumberCache, IntroductionRequestCache, RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.requestcache import NumberCache, IntroductionRequestCache, \
-    RandomNumberCache
-
-from payload import *
-from conversion import ForwardConversion, PSearchConversion, \
-    HSearchConversion, PoliSearchConversion
-
-from crypto.paillier import paillier_add, paillier_init, paillier_encrypt, paillier_decrypt, \
-    paillier_polyval, paillier_multiply, paillier_add_unenc
-from crypto.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
-from crypto.polycreate import compute_coeff, polyval
-from collections import namedtuple
-from Tribler.community.privatesemantic.database import SemanticDatabase
-from Tribler.community.privatesemantic.conversion import bytes_to_long, \
-    long_to_bytes
-from Crypto.Random.random import StrongRandom
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -107,7 +103,7 @@ class ActualTasteBuddy(TasteBuddy):
             return self.sock_addr == other.sock_addr
 
         elif isinstance(other, Member):
-            return other in self.candidate.get_members()
+            return other.mid == self.candidate.get_member().mid
 
         elif isinstance(other, Candidate):
             return self.candidate.sock_addr == other.sock_addr
@@ -152,7 +148,7 @@ class PossibleTasteBuddy(TasteBuddy):
 
 class ForwardCommunity():
 
-    def __init__(self, dispersy, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, psi_mode=PSI_CARDINALITY, send_simi_reveal=False):
+    def initialize(self, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None, max_taste_buddies=10, psi_mode=PSI_CARDINALITY, send_simi_reveal=False):
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = self.init_key()
@@ -245,7 +241,9 @@ class ForwardCommunity():
                         print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? yes adding to list"
 
                     self.taste_buddies.append(new_taste_buddy)
-                    self._pending_callbacks.append(self.dispersy.callback.persistent_register(u"send_ping_requests", self.create_ping_requests, delay=new_taste_buddy.time_remaining() - 5.0))
+                    if "send_ping_requests" not in self._pending_tasks:
+                        self._pending_tasks["send_ping_requests"] = lc = LoopingCall(self.create_ping_requests)
+                        lc.start(PING_INTERVAL)
 
                 elif DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no smaller than", new_taste_buddy, self.taste_buddies[-1]
@@ -289,7 +287,7 @@ class ForwardCommunity():
         assert len(mid) == 20, len(mid)
 
         for tb in self.yield_taste_buddies():
-            if mid in [member.mid for member in tb.candidate.get_members()]:
+            if mid == tb.candidate.get_member().mid:
                 return tb
 
     def is_taste_buddy_sock(self, sock_addr):
@@ -418,6 +416,7 @@ class ForwardCommunity():
             if DEBUG:
                 print >> sys.stderr, long(time()), "ForwardCommunity: connecting to", len(tbs), [str(tb_possibles[0]) for tb_possibles in tbs]
 
+            @inlineCallbacks
             def attempt_to_connect(tbs):
                 for tb in tbs:
                     candidate = self.get_candidate(tb.sock_addr, replace=False)
@@ -427,13 +426,13 @@ class ForwardCommunity():
                     if not self.is_taste_buddy_sock(candidate.sock_addr):
                         self.create_similarity_request(candidate, payload)
 
-                    yield TIME_BETWEEN_CONNECTION_ATTEMPTS
+                    yield deferLater(reactor, TIME_BETWEEN_CONNECTION_ATTEMPTS, lambda: None)
 
                     if self.is_taste_buddy_sock(candidate.sock_addr):
                         break
 
             for i, tb_possibles in enumerate(tbs):
-                self._pending_callbacks.append(self.dispersy.callback.register(attempt_to_connect, args=(tb_possibles,), delay=0.005 * i))
+                self._pending_tasts["attempt to connect %d" % i] = reactor.callLater(0.005 * i, attempt_to_connect, tb_possibles)
 
         elif DEBUG:
             print >> sys.stderr, long(time()), "ForwardCommunity: no similarity_payload, cannot connect"
@@ -843,15 +842,12 @@ class ForwardCommunity():
                     self.community.remove_taste_buddy(candidate)
 
     def create_ping_requests(self):
-        while True:
-            tbs = self.filter_tb(self.yield_taste_buddies())
-            tbs = [tb.candidate for tb in tbs if tb.time_remaining() < PING_INTERVAL]
+        tbs = self.filter_tb(self.yield_taste_buddies())
+        tbs = [tb.candidate for tb in tbs if tb.time_remaining() < PING_INTERVAL]
 
-            if tbs:
-                cache = self._request_cache.add(ForwardCommunity.PingRequestCache(self, tbs))
-                self._create_pingpong(u"ping", tbs, cache.number)
-
-            yield PING_INTERVAL
+        if tbs:
+            cache = self._request_cache.add(ForwardCommunity.PingRequestCache(self, tbs))
+            self._create_pingpong(u"ping", tbs, cache.number)
 
     def on_ping(self, messages):
         for message in messages:

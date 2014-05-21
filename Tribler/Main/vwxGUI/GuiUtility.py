@@ -13,7 +13,7 @@ from Tribler import LIBRARYNAME
 
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
-from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
@@ -640,7 +640,7 @@ class GUIUtility:
                 response = dlg.ShowModal()
 
             if response == wx.ID_OK:
-                @forcePrioDBThread
+                @forceDBThread
                 def add_vote():
                     self.channelsearch_manager.favorite(channel.id)
                     wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon='favourite')
@@ -671,7 +671,7 @@ class GUIUtility:
                 response = dlg.ShowModal()
 
             if response == wx.ID_OK:
-                @forcePrioDBThread
+                @forceDBThread
                 def remove_vote():
                     self.channelsearch_manager.remove_vote(channel.id)
                     wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon='favourite')
@@ -699,7 +699,7 @@ class GUIUtility:
                 response = dlg.ShowModal()
 
             if response == wx.ID_OK:
-                @forcePrioDBThread
+                @forceDBThread
                 def remove_vote():
                     self.channelsearch_manager.spam(channel.id)
                     wx.CallAfter(self.Notify, "Channel marked as spam", "Channel '%s' marked as spam" % channel.name)
@@ -726,7 +726,7 @@ class GUIUtility:
                 response = dlg.ShowModal()
 
             if response == wx.ID_OK:
-                @forcePrioDBThread
+                @forceDBThread
                 def remove_vote():
                     self.channelsearch_manager.remove_vote(channel.id)
                     wx.CallAfter(self.Notify, "Channel unmarked as spam", "Channel '%s' unmarked as spam" % channel.name)

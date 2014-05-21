@@ -1,13 +1,15 @@
 # Written by Niels Zeilemaker
 # see LICENSE.txt for license information
-
 import os
 import sys
 import time
 
-from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
-from Tribler.Core.simpledefs import dlstatus_strings
+from twisted.internet import reactor
+from twisted.internet.threads import blockingCallFromThread
 
+from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
+from Tribler.dispersy.candidate import Candidate
 
 class TestAnonTunnelCommunity(TestGuiAsServer):
 
@@ -23,7 +25,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
         def on_fail(expected, reason, do_assert):
             self.guiUtility.ShowPage('anonymity')
-            self.Call(1, lambda: self.assert_(expected, reason, True))
+            self.Call(1, lambda: self.assert_(expected, reason, do_assert))
 
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()
@@ -43,20 +45,38 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         self.startTest(do_create_local_torrent)
 
     def startTest(self, callback, min_timeout=5):
+        self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
+
+        from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
         def setup_proxies():
+            proxy_communities = []
             for i in range(3, 11):
-                create_proxy(i)
+                proxy_communities.append(create_proxy(i))
+
+
+            # Connect the proxies to the Tribler instance
+            for community in self.lm.dispersy.get_communities():
+                if isinstance(community, ProxyCommunity):
+                    proxy_communities.append(community)
+
+            candidates = []
+            for session in self.sessions:
+                dispersy = session.get_dispersy_instance()
+                candidates.append(Candidate(dispersy.lan_address, tunnel=False))
+
+            for community in proxy_communities:
+                for candidate in candidates:
+                    # We are letting dispersy deal with addins the community's candidate to itself.
+                    community.add_discovered_candidate(candidate)
 
             callback()
 
         def create_proxy(index):
             from Tribler.Core.Session import Session
-            from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
             from Tribler.community.anontunnel import exitstrategies, crypto
 
             self.setUpPreSession()
             config = self.config.copy()
-            config.set_libtorrent(True)
             config.set_dispersy(True)
             config.set_state_dir(self.getStateDir(index))
 
@@ -67,21 +87,19 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             while not session.lm.initComplete:
                 time.sleep(1)
 
-            dispersy = session.lm.dispersy
+            dispersy = session.get_dispersy_instance()
 
             def load_community(session):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                settings = ProxySettings()
-
-                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
+                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, None), load=True)[0]
                 exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
                 proxy_community.observers.append(exit_strategy)
 
                 return proxy_community
 
-            self.community = dispersy.callback.call(load_community, (session,))
+            return blockingCallFromThread(reactor, load_community, session)
 
         TestGuiAsServer.startTest(self, setup_proxies)
 
@@ -118,6 +136,9 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         return (5.0, False)
 
     def setUp(self):
+        with open("bootstraptribler.txt", "w") as f:
+            f.write("127.0.0.1 1")
+
         TestGuiAsServer.setUp(self)
         self.sessions = []
         self.session2 = None
@@ -129,5 +150,6 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         for session in self.sessions:
             self._shutdown_session(session)
 
+        os.unlink("bootstraptribler.txt")
         time.sleep(10)
         TestGuiAsServer.tearDown(self)

@@ -4,34 +4,35 @@
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py
 # for any function you add to database.
 # Please reuse the functions in sqlitecachedb as much as possible
-
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
-from copy import deepcopy
-from traceback import print_exc
-from time import time
-from binascii import hexlify
-from Tribler.Core.TorrentDef import TorrentDef
+import binascii
+import logging
 import os
 import threading
 import urllib
+from binascii import hexlify
+from copy import deepcopy
 from random import sample
 from struct import unpack_from
+from threading import RLock, Lock
+from time import time
+from traceback import print_exc
 
-import logging
+from twisted.internet.base import DelayedCall
+from twisted.internet.defer import Deferred
+from twisted.internet.task import LoopingCall
 
 from Notifier import Notifier
-from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, \
-    NTFY_INSERT, NTFY_DELETE, NTFY_CREATE, NTFY_MODIFIED, NTFY_TRACKERINFO, \
-    NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS, NTFY_CHANNELCAST, \
-    NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, \
-    NTFY_MARKINGS, NTFY_STATE
-from Tribler.Core.Search.SearchManager import split_into_keywords, \
-    filter_keywords
-from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Category.Category import Category
-from threading import RLock, Lock
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-import binascii
+from Tribler.Core.Search.SearchManager import split_into_keywords, filter_keywords
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.unicode import dunno2unicode
+from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CREATE,
+                                     NTFY_MODIFIED, NTFY_TRACKERINFO, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS,
+                                     NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS,
+                                     NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_STATE)
+
 
 try:
     # python 2.7 only...
@@ -79,6 +80,8 @@ class BasicDBHandler:
         self.table_name = table_name
         self.notifier = Notifier.getInstance()
 
+        self._pending_tasks = {}
+
     @classmethod
     def getInstance(cls, *args, **kargs):
         with cls._singleton_lock:
@@ -88,6 +91,11 @@ class BasicDBHandler:
 
     @classmethod
     def delInstance(cls):
+        if cls._single:
+            # cancel all pending tasks
+            for key in cls._single._pending_tasks.keys():
+                cls._single.cancel_pending_task(key)
+                cls._single._pending_tasks.clear()
         with cls._singleton_lock:
             cls._single = None
 
@@ -96,11 +104,27 @@ class BasicDBHandler:
         return cls._single != None
 
     def close(self):
+        # cancel all pending tasks
+        for key in self._pending_tasks.keys():
+            self.cancel_pending_task(key)
+        self._pending_tasks.clear()
+
         try:
             self._db.close()
         except:
             if SHOW_ERROR:
                 print_exc()
+
+    def cancel_pending_task(self, key):
+        task = self._pending_tasks.pop(key)
+        if isinstance(task, Deferred) and not task.called:
+            # Have in mind that any deferred in the pending tasks list should have been constructed with a
+            # canceller function.
+            task.cancel()
+        elif isinstance(task, DelayedCall) and task.active():
+            task.cancel()
+        elif isinstance(task, LoopingCall) and task.running:
+            task.stop()
 
     def size(self):
         return self._db.size(self.table_name)
@@ -1991,21 +2015,16 @@ class ChannelCastDBHandler(BasicDBHandler):
         self.torrent_db = TorrentDBHandler.getInstance()
 
         def updateNrTorrents():
-            while True:
-                rows = self.getChannelNrTorrents(50)
-                update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
-                self._db.executemany(update, rows)
+            rows = self.getChannelNrTorrents(50)
+            update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
+            self._db.executemany(update, rows)
 
-                # schedule a call for in 5 minutes
-                yield 300.0
+            rows = self.getChannelNrTorrentsLatestUpdate(50)
+            update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
+            self._db.executemany(update, rows)
 
-                rows = self.getChannelNrTorrentsLatestUpdate(50)
-                update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
-                self._db.executemany(update, rows)
-
-                # schedule a call for in 5 minutes
-                yield 300.0
-        self.session.lm.database_thread.register(updateNrTorrents, delay=120.0)
+        self._pending_tasks["updateNrTorrents"] = lc = LoopingCall(updateNrTorrents)
+        lc.start(300, now=False)
 
     # dispersy helper functions
     def _get_my_dispersy_cid(self):

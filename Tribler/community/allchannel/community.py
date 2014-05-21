@@ -1,39 +1,38 @@
 import logging
-logger = logging.getLogger(__name__)
-
-from hashlib import sha1
-from itertools import islice
+from random import sample
 from time import time
+from traceback import print_exc
 
-from conversion import AllChannelConversion
+from twisted.internet.task import LoopingCall
+from twisted.python.threadable import isInIOThread
 
-from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
+from .conversion import AllChannelConversion
+from Tribler.community.allchannel.message import DelayMessageReqChannelMessage
+from Tribler.community.allchannel.payload import (ChannelCastRequestPayload, ChannelCastPayload, VoteCastPayload,
+                                                  ChannelSearchPayload, ChannelSearchResponsePayload)
+from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.channel.preview import PreviewChannelCommunity
+from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.database import IgnoreCommits
 from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
-from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.dispersy.exception import CommunityNotFoundException
-from Tribler.dispersy.message import Message, DropMessage, \
-    BatchConfiguration
+from Tribler.dispersy.message import Message, BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
 
-from Tribler.community.channel.community import ChannelCommunity
-from Tribler.community.channel.preview import PreviewChannelCommunity
-from Tribler.community.allchannel.message import DelayMessageReqChannelMessage
-from Tribler.community.allchannel.payload import ChannelCastRequestPayload, \
-    ChannelCastPayload, VoteCastPayload, ChannelSearchPayload, ChannelSearchResponsePayload
-from traceback import print_exc
-import sys
-from random import sample
 
 if __debug__:
     from Tribler.dispersy.tool.lencoder import log
 
+logger = logging.getLogger(__name__)
+
+
 CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 15.0
 CHANNELCAST_BLOCK_PERIOD = 10.0 * 60.0  # block for 10 minutes
+UNLOAD_COMMUNITY_INTERVAL = 60.0
 
 DEBUG = False
 
@@ -72,41 +71,6 @@ class AllChannelCommunity(Community):
     @property
     def dispersy_sync_bloom_filter_strategy(self):
         return self._dispersy_claim_sync_bloom_filter_modulo
-
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, auto_join_channel=False):
-        super(AllChannelCommunity, self).__init__(dispersy, master, my_member)
-
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.integrate_with_tribler = integrate_with_tribler
-        self.auto_join_channel = auto_join_channel
-
-        if self.integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler, PeerDBHandler
-
-            # tribler channelcast database
-            self._channelcast_db = ChannelCastDBHandler.getInstance()
-            self._votecast_db = VoteCastDBHandler.getInstance()
-            self._peer_db = PeerDBHandler.getInstance()
-
-        else:
-            self._channelcast_db = ChannelCastDBStub(self._dispersy)
-            self._votecast_db = VoteCastDBStub(self._dispersy)
-            self._peer_db = PeerDBStub(self._dispersy)
-
-        self._register_task = self.dispersy.callback.register
-        self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
-        # 15/02/12 Boudewijn: add the callback id to _pending_callbacks to allow the task to be
-        # unregistered when the community is unloaded
-        self._pending_callbacks.append(self._register_task(self.unload_preview, priority= -128))
-
-        self._blocklist = {}
-        self._searchCallbacks = {}
-
-        self._recentlyRequested = []
-
-        from Tribler.community.channel.community import register_callback
-        register_callback(dispersy.callback)
 
     def initiate_meta_messages(self):
         batch_delay = 1.0
@@ -156,6 +120,37 @@ class AllChannelCommunity(Community):
                     batch=BatchConfiguration(max_window=batch_delay))
                 ]
 
+    def initialize(self, integrate_with_tribler=True, auto_join_channel=False):
+        super(AllChannelCommunity, self).initialize()
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        self._blocklist = {}
+        self._searchCallbacks = {}
+        self._recentlyRequested = []
+        self.integrate_with_tribler = integrate_with_tribler
+        self.auto_join_channel = auto_join_channel
+
+        if self.integrate_with_tribler:
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler, PeerDBHandler
+
+            # tribler channelcast database
+            self._channelcast_db = ChannelCastDBHandler.getInstance()
+            self._votecast_db = VoteCastDBHandler.getInstance()
+            self._peer_db = PeerDBHandler.getInstance()
+
+        else:
+            self._channelcast_db = ChannelCastDBStub(self._dispersy)
+            self._votecast_db = VoteCastDBStub(self._dispersy)
+            self._peer_db = PeerDBStub(self._dispersy)
+
+        # TODO(emilon): Have a generic superclass for classes that keep track of tasks
+        self._pending_tasks["channelcast"] = lc = LoopingCall(self.create_channelcast)
+        lc.start(CHANNELCAST_FIRST_MESSAGE, now=True)
+
+        self._pending_tasks["unload preview"] = dc = LoopingCall(self.unload_preview)
+        dc.start(UNLOAD_COMMUNITY_INTERVAL, now=False)
+
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
 
@@ -169,76 +164,67 @@ class AllChannelCommunity(Community):
         return 25 * 1024
 
     def create_channelcast(self):
-        mychannel_id = None
-        while True:
-            try:
-                now = time()
+        assert isInIOThread()
+        now = time()
 
-                favoriteTorrents = None
-                normalTorrents = None
+        favoriteTorrents = None
+        normalTorrents = None
 
-                # cleanup blocklist
-                for candidate in self._blocklist.keys():
-                    if self._blocklist[candidate] + CHANNELCAST_BLOCK_PERIOD < now:  # unblock address
-                        self._blocklist.pop(candidate)
+        # cleanup blocklist
+        for candidate in self._blocklist.keys():
+            if self._blocklist[candidate] + CHANNELCAST_BLOCK_PERIOD < now:  # unblock address
+                self._blocklist.pop(candidate)
 
-                # fetch mychannel_id if neccesary
-                if mychannel_id == None:
-                    mychannel_id = self._channelcast_db.getMyChannelId()
+        mychannel_id = self._channelcast_db.getMyChannelId()
 
-                # loop through all candidates to see if we can find a non-blocked address
-                for candidate in [candidate for candidate in self._iter_categories([u'walk', u'stumble'], once=True) if not candidate in self._blocklist]:
-                    if not candidate:
-                        continue
+        # loop through all candidates to see if we can find a non-blocked address
+        for candidate in [candidate for candidate in self._iter_categories([u'walk', u'stumble'], once=True) if not candidate in self._blocklist]:
+            if not candidate:
+                continue
 
-                    didFavorite = False
-                    # only check if we actually have a channel
-                    if mychannel_id:
-                        peer_ids = set()
-                        for member in candidate.get_members():
-                            key = member.public_key
-                            peer_ids.add(self._peer_db.addOrGetPeerID(key))
+            didFavorite = False
+            # only check if we actually have a channel
+            if mychannel_id:
+                peer_ids = set()
+                key = candidate.get_member().public_key
+                peer_ids.add(self._peer_db.addOrGetPeerID(key))
 
-                        # see if all members on this address are subscribed to my channel
-                        didFavorite = len(peer_ids) > 0
-                        for peer_id in peer_ids:
-                            vote = self._votecast_db.getVoteForMyChannel(peer_id)
-                            if vote != 2:
-                                didFavorite = False
-                                break
-
-                    # Modify type of message depending on if all peers have marked my channels as their favorite
-                    if didFavorite:
-                        if not favoriteTorrents:
-                            favoriteTorrents = self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25, 5)
-                        torrents = favoriteTorrents
-                    else:
-                        if not normalTorrents:
-                            normalTorrents = self._channelcast_db.getRecentAndRandomTorrents()
-                        torrents = normalTorrents
-
-                    if len(torrents) > 0:
-                        meta = self.get_meta_message(u"channelcast")
-                        message = meta.impl(authentication=(self._my_member,),
-                                            distribution=(self.global_time,), destination=(candidate,), payload=(torrents,))
-
-                        self._dispersy._forward([message])
-
-                        # we've send something to this address, add to blocklist
-                        self._blocklist[candidate] = now
-
-                        nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                        self._logger.debug("sending channelcast message containing %s torrents to %s didFavorite %s", nr_torrents, candidate.sock_addr, didFavorite)
-
-                        # we're done
+                # see if all members on this address are subscribed to my channel
+                didFavorite = len(peer_ids) > 0
+                for peer_id in peer_ids:
+                    vote = self._votecast_db.getVoteForMyChannel(peer_id)
+                    if vote != 2:
+                        didFavorite = False
                         break
 
-                else:
-                    self._logger.debug("Did not send channelcast messages, no candidates or torrents")
-            except:
-                print_exc()
+            # Modify type of message depending on if all peers have marked my channels as their favorite
+            if didFavorite:
+                if not favoriteTorrents:
+                    favoriteTorrents = self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25, 5)
+                torrents = favoriteTorrents
+            else:
+                if not normalTorrents:
+                    normalTorrents = self._channelcast_db.getRecentAndRandomTorrents()
+                torrents = normalTorrents
 
-            yield CHANNELCAST_INTERVAL
+            if len(torrents) > 0:
+                meta = self.get_meta_message(u"channelcast")
+                message = meta.impl(authentication=(self._my_member,),
+                                    distribution=(self.global_time,), destination=(candidate,), payload=(torrents,))
+
+                self._dispersy._forward([message])
+
+                # we've send something to this address, add to blocklist
+                self._blocklist[candidate] = now
+
+                nr_torrents = sum(len(torrent) for torrent in torrents.values())
+                self._logger.debug("sending channelcast message containing %s torrents to %s didFavorite %s", nr_torrents, candidate.sock_addr, didFavorite)
+
+                # we're done
+                break
+
+        else:
+            self._logger.debug("Did not send channelcast messages, no candidates or torrents")
 
     def get_nr_connections(self):
         return len(list(self.dispersy_yield_candidates()))
@@ -491,21 +477,18 @@ class AllChannelCommunity(Community):
         except CommunityNotFoundException:
             if self.auto_join_channel:
                 logger.info("join channel community %s", cid.encode("HEX"))
-                return ChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
+                return ChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
             else:
                 logger.info("join preview community %s", cid.encode("HEX"))
-                return PreviewChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
+                return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
 
     def unload_preview(self):
-        while True:
-            yield 60.0
+        cleanpoint = time() - 300
+        inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
+        logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
 
-            cleanpoint = time() - 300
-            inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
-            logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
-
-            for community in inactive:
-                community.unload_community()
+        for community in inactive:
+            community.unload_community()
 
     def _get_channel_id(self, cid):
         assert isinstance(cid, str)

@@ -1,31 +1,27 @@
-import logging
-import json
 import binascii
+import json
+import logging
 
 from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
-
+from Tribler.dispersy.util import call_on_reactor_thread
 from conversion import MetadataConversion
 from payload import MetadataPayload
-
-from Tribler.community.channel.community import register_callback, \
-    forceDispersyThread
 
 
 class MetadataCommunity(Community):
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True):
+    def initialize(self, integrate_with_tribler=True):
+        super(MetadataCommunity, self).initialize()
+
         self._logger = logging.getLogger(self.__class__.__name__)
-
         self._integrate_with_tribler = integrate_with_tribler
-
-        super(MetadataCommunity, self).__init__(dispersy, master, my_member)
 
         if self._integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import MetadataDBHandler, TorrentDBHandler
@@ -34,8 +30,6 @@ class MetadataCommunity(Community):
             self._torrent_db = TorrentDBHandler.getInstance()
         else:
             self._metadata_db = MetadataDBStub(self._dispersy)
-
-        register_callback(dispersy.callback)
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -148,7 +142,7 @@ class MetadataCommunity(Community):
                             self._logger.debug("Will try to download %s with roothash %s from %s",
                                 key, roothash.encode("HEX"), message.candidate.sock_addr[0])
 
-                            @forceDispersyThread
+                            @call_on_reactor_thread
                             def callback(_, message=message):
                                 self.on_messages([message])
 

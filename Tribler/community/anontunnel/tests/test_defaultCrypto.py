@@ -13,6 +13,8 @@ from Tribler.community.privatesemantic.conversion import long_to_bytes
 from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
 from Tribler.dispersy.endpoint import NullEndpoint
 
+from twisted.internet.threads import blockingCallFromThread
+
 logging.config.fileConfig(
     os.path.dirname(os.path.realpath(__file__)) + "/../logger.conf")
 
@@ -24,24 +26,22 @@ class DummyEndpoint(NullEndpoint):
 
 class DummyCandidate():
     def __init__(self, key=None):
-        #super(DummyCandidate, self).__init__(self)
-        self.members = []
+        # super(DummyCandidate, self).__init__(self)
         self.sock_addr = Mock()
-        member = Mock()
+        self.member = Mock()
         if not key:
             key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
-        member._ec = key
-        self.members.append(member)
+        self.member._ec = key
 
-    def get_members(self):
-        return self.members
-
+    def get_member(self):
+        return self.member
 
 class TestDefaultCrypto(TestAsServer):
     @property
     def crypto(self):
         return self.community.settings.crypto
 
+    @call_on_reactor_thread
     def setUp(self):
         super(TestDefaultCrypto, self).setUp()
         self.__candidate_counter = 0
@@ -49,43 +49,37 @@ class TestDefaultCrypto(TestAsServer):
 
         dispersy = self.dispersy
 
-        def load_community():
-            keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
-            dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
+        keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+        dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-            settings = ProxySettings()
-            settings.crypto = DefaultCrypto()
+        settings = ProxySettings()
+        settings.crypto = DefaultCrypto()
 
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
-            exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, proxy_community)
+        self.community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
+        exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, self.community)
 
-            return proxy_community
-
-        self.community = dispersy.callback.call(load_community)
         ''' :type : ProxyCommunity '''
 
     def setUpPreSession(self):
         super(TestDefaultCrypto, self).setUpPreSession()
         self.config.set_dispersy(True)
 
+    @call_on_reactor_thread
     def __create_walk_candidate(self):
-        def __create():
-            self.__candidate_counter += 1
-            wan_address = ("8.8.8.{0}".format(self.__candidate_counter), self.__candidate_counter)
-            lan_address = ("0.0.0.0", 0)
-            candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
+        self.__candidate_counter += 1
+        wan_address = ("8.8.8.{0}".format(self.__candidate_counter), self.__candidate_counter)
+        lan_address = ("0.0.0.0", 0)
+        candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
 
 
-            key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
-            member = self.dispersy.get_member(public_key=self.dispersy.crypto.key_to_bin(key.pub()))
-            candidate.associate(member)
+        key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
+        member = self.dispersy.get_member(public_key=self.dispersy.crypto.key_to_bin(key.pub()))
+        candidate.associate(member)
 
-            now = time.time()
-            candidate.walk(now - CANDIDATE_ELIGIBLE_DELAY)
-            candidate.walk_response(now)
-            return candidate
-
-        return self.dispersy.callback.call(__create)
+        now = time.time()
+        candidate.walk(now - CANDIDATE_ELIGIBLE_DELAY)
+        candidate.walk_response(now)
+        return candidate
 
     def __prepare_for_create(self):
         self.crypto.key_to_forward = '0' * 16
@@ -133,7 +127,7 @@ class TestDefaultCrypto(TestAsServer):
         self.assertNotIn(second_relay_key, self.crypto.session_keys)
 
     def test__encrypt_decrypt_create_content(self):
-        #test own circuit create
+        # test own circuit create
         candidate = DummyCandidate(self.community.my_member._ec)
 
         create_message = CreateMessage()
@@ -155,7 +149,7 @@ class TestDefaultCrypto(TestAsServer):
         self.assertEquals(unencrypted_key, decrypted_create_message.key)
         self.assertEquals(unencrypted_pub_key, decrypted_create_message.public_key)
 
-        #test other circuit create
+        # test other circuit create
         self.__prepare_for_create()
         del self.community.circuits[123]
         candidate = DummyCandidate(self.community.my_member._ec)

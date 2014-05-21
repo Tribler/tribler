@@ -20,7 +20,7 @@ from Tribler.Category.Category import Category
 
 from Tribler.Core.simpledefs import NTFY_MISC
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
@@ -74,7 +74,7 @@ class ChannelManager(BaseManager):
         else:
             BaseManager.refreshDirty(self)
 
-    @forcePrioDBThread
+    @forceDBThread
     def reload(self, channel_id):
         channel = self.channelsearch_manager.getChannel(channel_id)
         self.refresh(channel)

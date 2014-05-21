@@ -1,44 +1,41 @@
 # Written by Niels Zeilemaker
-
 import logging
-logger = logging.getLogger(__name__)
-
-import sys
-from time import time
+from os import path
 from random import shuffle
+from time import time
 from traceback import print_exc
 
+from twisted.internet.task import LoopingCall
+
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.community.channel.payload import TorrentPayload
+from Tribler.community.channel.preview import PreviewChannelCommunity
+from Tribler.community.search.conversion import SearchConversion
+from Tribler.community.search.payload import (SearchRequestPayload, SearchResponsePayload, TorrentRequestPayload,
+                                              TorrentCollectRequestPayload, TorrentCollectResponsePayload,
+                                              TasteIntroPayload)
 from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.bloomfilter import BloomFilter
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, WalkCandidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.database import IgnoreCommits
-from Tribler.dispersy.destination import CandidateDestination, \
-    CommunityDestination
-from Tribler.dispersy.distribution import DirectDistribution, \
-    FullSyncDistribution
+from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
+from Tribler.dispersy.distribution import DirectDistribution, FullSyncDistribution
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.message import Message
+from Tribler.dispersy.requestcache import RandomNumberCache, IntroductionRequestCache
 from Tribler.dispersy.resolution import PublicResolution
 
-from Tribler.community.search.conversion import SearchConversion
-from Tribler.community.search.payload import SearchRequestPayload, \
-    SearchResponsePayload, TorrentRequestPayload, TorrentCollectRequestPayload, \
-    TorrentCollectResponsePayload, TasteIntroPayload
-from Tribler.community.channel.preview import PreviewChannelCommunity
-from Tribler.community.channel.payload import TorrentPayload
-from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache, \
-    IntroductionRequestCache
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, \
-    WalkCandidate, BootstrapCandidate
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.TorrentDef import TorrentDef
-from os import path
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+
+logger = logging.getLogger(__name__)
+
 
 DEBUG = False
 SWIFT_INFOHASHES = 0
-
+CREATE_TORRENT_COLLECT_INTERVAL = 5
 
 class SearchCommunity(Community):
 
@@ -62,8 +59,8 @@ class SearchCommunity(Community):
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
-    def __init__(self, dispersy, master, my_member, integrate_with_tribler=True, log_incomming_searches=False):
-        super(SearchCommunity, self).__init__(dispersy, master, my_member)
+    def initialize(self, integrate_with_tribler=True, log_incomming_searches=False):
+        super(SearchCommunity, self).initialize()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -97,38 +94,12 @@ class SearchCommunity(Community):
 
         self.torrent_cache = None
 
-        self.dispersy.callback.register(self.create_torrent_collect_requests, delay=CANDIDATE_WALK_LIFETIME)
-        self.dispersy.callback.register(self.fast_walker)
+        self._pending_tasks["create torrent collect requests"] = lc = LoopingCall(self.create_torrent_collect_requests)
+        lc.start(CREATE_TORRENT_COLLECT_INTERVAL, now=True)
 
-    def fast_walker(self):
-        for cycle in xrange(5):
-            now = time()
-
-            # count -everyone- that is active (i.e. walk or stumble)
-            active_canidates = list(self.dispersy_yield_verified_candidates())
-            if len(active_canidates) > 10:
-                logger.debug("there are %d active non-bootstrap candidates available, prematurely quitting fast walker", len(active_canidates))
-                break
-
-            # request -everyone- that is eligible
-            eligible_candidates = [candidate
-                                   for candidate
-                                   in self._candidates.itervalues()
-                                   if candidate.is_eligible_for_walk(now)]
-            for candidate in eligible_candidates:
-                logger.debug("extra walk to %s", candidate)
-                self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
-
-            # poke bootstrap peers
-            if cycle % 2:
-                for candidate in self._dispersy.bootstrap_candidates:
-                    logger.debug("extra walk to %s", candidate)
-                    self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
-
-            # wait for NAT hole punching
-            yield 2.0
-
-        logger.debug("finished")
+    @property
+    def dispersy_enable_fast_candidate_walker(self):
+        return True
 
     def initiate_meta_messages(self):
         return super(SearchCommunity, self).initiate_meta_messages() + [
@@ -254,7 +225,7 @@ class SearchCommunity(Community):
             self._logger.debug("SearchCommunity: sending introduction request to %s", destination)
 
         advice = True
-        if not (isinstance(destination, BootstrapCandidate) or is_fast_walker):
+        if not is_fast_walker:
             myPreferences = sorted(self._mypref_db.getMyPrefListInfohash(limit=500))
             num_preferences = len(myPreferences)
 
@@ -289,8 +260,6 @@ class SearchCommunity(Community):
         logger.debug("%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
 
         self._dispersy.statistics.walk_attempt += 1
-        if isinstance(destination, BootstrapCandidate):
-            self._dispersy.statistics.walk_bootstrap_attempt += 1
         if request.payload.advice:
             self._dispersy.statistics.walk_advice_outgoing_request += 1
 
@@ -299,7 +268,6 @@ class SearchCommunity(Community):
 
     def on_introduction_request(self, messages):
         super(SearchCommunity, self).on_introduction_request(messages)
-        messages = [message for message in messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
 
         if any(message.payload.taste_bloom_filter for message in messages):
             myPreferences = self._mypref_db.getMyPrefListInfohash(limit=500)
@@ -502,16 +470,13 @@ class SearchCommunity(Community):
                 self.community.taste_buddies.remove(remove)
 
     def create_torrent_collect_requests(self):
-        while True:
-            refreshIf = time() - CANDIDATE_WALK_LIFETIME
-            try:
-                # determine to which peers we need to send a ping
-                candidates = [candidate for _, prev, candidate in self.taste_buddies if prev < refreshIf]
-                self._create_torrent_collect_requests(candidates)
-            except:
-                print_exc()
+        refreshIf = time() - CANDIDATE_WALK_LIFETIME
+        # determine to which peers we need to send a ping
+        candidates = [candidate for _, prev, candidate in self.taste_buddies if prev < refreshIf]
+        self._create_torrent_collect_requests(candidates)
 
-            yield 5.0
+
+
 
     def _create_torrent_collect_requests(self, candidates):
         if len(candidates) > 0:
@@ -683,7 +648,7 @@ class SearchCommunity(Community):
             return self._dispersy.get_community(cid, True)
         except CommunityNotFoundException:
             logger.debug("join preview community %s", cid.encode("HEX"))
-            return PreviewChannelCommunity(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
+            return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []

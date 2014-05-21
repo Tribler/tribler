@@ -3,45 +3,39 @@ AnonTunnel community module
 """
 
 # Python imports
-import threading
+import logging
 import random
+import threading
 import time
 from collections import defaultdict
 
-# Tribler and Dispersy imports
-from Tribler.community.anontunnel.cache import CircuitRequestCache, \
-    PingRequestCache, CreatedRequestCache
+from twisted.internet.task import LoopingCall
+from twisted.internet import reactor
+
+from Tribler.community.anontunnel import crypto, extendstrategies, selectionstrategies, lengthstrategies
+from Tribler.community.anontunnel.cache import CircuitRequestCache, PingRequestCache, CreatedRequestCache
+from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion
+from Tribler.community.anontunnel.globals import (MESSAGE_EXTEND, MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_DATA,
+                                                  MESSAGE_EXTENDED, MESSAGE_PING, MESSAGE_PONG, MESSAGE_TYPE_STRING,
+                                                  CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
+                                                  PING_INTERVAL, ENDPOINT)
+from Tribler.community.anontunnel.payload import (StatsPayload, CreateMessage, CreatedMessage, ExtendedMessage,
+                                                  PongMessage, PingMessage, DataMessage)
 from Tribler.community.anontunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.anontunnel.tests.test_libtorrent import LibtorrentTest
-from Tribler.dispersy.authentication import MemberAuthentication, \
-    NoAuthentication
+from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
+from Tribler.dispersy.candidate import Candidate, WalkCandidate
+from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.candidate import Candidate, WalkCandidate
-from Tribler.dispersy.community import Community
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
-# AnonTunnel imports
-from Tribler.community.anontunnel import crypto
-from Tribler.community.anontunnel import extendstrategies
-from Tribler.community.anontunnel import selectionstrategies
-from Tribler.community.anontunnel import lengthstrategies
-from Tribler.community.anontunnel.payload import StatsPayload, CreateMessage, \
-    CreatedMessage, ExtendedMessage, \
-    PongMessage, PingMessage, DataMessage
-from Tribler.community.anontunnel.conversion import CustomProxyConversion, \
-    ProxyConversion
-from Tribler.community.anontunnel.globals import MESSAGE_EXTEND, \
-    MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_DATA, MESSAGE_EXTENDED, \
-    MESSAGE_PING, MESSAGE_PONG, MESSAGE_TYPE_STRING, \
-    CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, \
-    ORIGINATOR, PING_INTERVAL, ENDPOINT
 
 __author__ = 'chris'
 
-import logging
 
 
 class ProxySettings:
@@ -73,14 +67,12 @@ class ProxyCommunity(Community):
     @type tribler_session: Tribler.Core.Session.Session
     """
 
-    def __init__(self, dispersy, master_member, my_member, settings=None,
-                 tribler_session=None):
+    def __init__(self, dispersy, master_member, my_member):
         super(ProxyCommunity, self).__init__(dispersy, master_member, my_member)
 
         self.lock = threading.RLock()
         self._logger = logging.getLogger(__name__)
 
-        self.settings = settings if settings else ProxySettings()
         # Custom conversion
         self.__packet_prefix = "fffffffe".decode("HEX")
 
@@ -114,6 +106,12 @@ class ProxyCommunity(Community):
         self.circuit_pools = []
         ''' :type : list[CircuitPool] '''
 
+    def initialize(self, tribler_session=None, settings=None):
+        super(ProxyCommunity, self).initialize()
+
+        self.settings = settings if settings else ProxySettings()
+        self._tribler_session = tribler_session
+
         # Attach message handlers
         self._initiate_message_handlers()
 
@@ -128,29 +126,24 @@ class ProxyCommunity(Community):
 
         # Listen to prefix endpoint
         try:
-            dispersy.endpoint.listen_to(self.__packet_prefix, self.__handle_packet)
+            self._dispersy.endpoint.listen_to(self.__packet_prefix, self.__handle_packet)
         except AttributeError:
             self._logger.error("Cannot listen to our prefix, are you sure that you are using the DispersyBypassEndpoint?")
 
-        dispersy.callback.register(self.__ping_circuits)
-
-        if tribler_session:
+        if self._tribler_session:
             from Tribler.Core.CacheDB.Notifier import Notifier
-            self.tribler_session = tribler_session
             self.notifier = Notifier.getInstance()
             delay = self.settings.delay if self.settings.delay is not None else 300
-            tribler_session.lm.rawserver.add_task(lambda: LibtorrentTest(self, self.tribler_session, delay))
+            self._tribler_session.lm.rawserver.add_task(lambda: LibtorrentTest(self, self._tribler_session, delay))
         else:
             self.notifier = None
 
-        def __loop_discover():
-            while True:
-                try:
-                    self.__discover()
-                finally:
-                    yield 5.0
+        self._pending_tasks["discover"] = lc = LoopingCall(self.__discover)
+        lc.start(5, now=True)
 
-        self.dispersy.callback.register(__loop_discover)
+        self._pending_tasks["ping circuits"] = lc = LoopingCall(self.__ping_circuits)
+        lc.start(PING_INTERVAL)
+
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -289,22 +282,20 @@ class ProxyCommunity(Community):
             for message in messages:
                 observer.on_tunnel_stats(self, message.authentication.member, message.candidate, message.payload.stats)
 
+    @call_on_reactor_thread
     def send_stats(self, stats):
         """
         Send a stats message to the community
         @param dict stats: the statistics dictionary to share
         """
 
-        def __send_stats():
-            meta = self.get_meta_message(u"stats")
-            record = meta.impl(authentication=(self._my_member,),
-                               distribution=(self.claim_global_time(),),
-                               payload=(stats,))
+        meta = self.get_meta_message(u"stats")
+        record = meta.impl(authentication=(self._my_member,),
+                           distribution=(self.claim_global_time(),),
+                           payload=(stats,))
 
-            self._logger.warning("Sending stats")
-            self.dispersy.store_update_forward([record], True, False, True)
-
-        self.dispersy.callback.register(__send_stats)
+        self._logger.warning("Sending stats")
+        self.dispersy.store_update_forward([record], True, False, True)
 
     def __handle_incoming(self, circuit_id, am_originator, candidate, data):
         # Let packet_crypto handle decrypting the incoming packet
@@ -416,8 +407,8 @@ class ProxyCommunity(Community):
                 result = self.__relay(circuit_id, data, relay_key, sock_addr)
             else:
                 candidate = self._candidates.get(sock_addr)
-                if isinstance(candidate, WalkCandidate) and candidate.get_members():
-                   result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
+                if isinstance(candidate, WalkCandidate) and candidate.get_member():
+                    result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
                 else:
                     candidate = None
                     self._logger.error("Unknown candidate at %s, drop!", sock_addr)
@@ -435,8 +426,7 @@ class ProxyCommunity(Community):
             elif is_originator:
                 self.remove_circuit(circuit_id, "error on incoming packet!")
 
-    def create_circuit(self, first_hop, goal_hops, extend_strategy=None,
-                        deferred=None):
+    def create_circuit(self, first_hop, goal_hops, extend_strategy=None, deferred=None):
         """ Create a new circuit, with one initial hop
 
         @param WalkCandidate first_hop: The first hop of our circuit, needs to
@@ -451,6 +441,7 @@ class ProxyCommunity(Community):
         if not (goal_hops > 0):
             raise ValueError("We can only create circuits with more than 0 hops using create_circuit()!")
 
+        # TODO(emilon): Can this lock be removed or at least be converted to a DeferredLock?
         with self.lock:
             circuit_id = self._generate_circuit_id(first_hop.sock_addr)
             circuit = Circuit(
@@ -459,7 +450,11 @@ class ProxyCommunity(Community):
                 candidate=first_hop,
                 proxy=self)
 
-            self.dispersy.callback.call(lambda: self._request_cache.add(CircuitRequestCache(self, circuit)))
+            @blocking_call_on_reactor_thread
+            def _add_cache():
+                self._request_cache.add(CircuitRequestCache(self, circuit))
+
+            _add_cache()
 
             if extend_strategy:
                 circuit.extend_strategy = extend_strategy
@@ -467,7 +462,7 @@ class ProxyCommunity(Community):
                 circuit.extend_strategy = self.settings.extend_strategy(
                     self, circuit)
 
-            hop_public_key = iter(first_hop.get_members()).next()._ec
+            hop_public_key = first_hop.get_member()._ec
             circuit.unverified_hop = Hop(hop_public_key)
             circuit.unverified_hop.address = first_hop.sock_addr
 
@@ -556,12 +551,12 @@ class ProxyCommunity(Community):
             if not candidate_temp:
                 break
 
-            candidates[iter(candidate_temp.get_members()).next().public_key] = candidate_temp
+            candidates[candidate_temp.get_member().public_key] = candidate_temp
 
-        candidate_list = [next(iter(c.get_members())).public_key for c in candidates.itervalues()]
+        candidate_list = [c.get_member().public_key for c in candidates.itervalues()]
 
         self.create_created_cache(circuit_id, candidate, candidates)
-        
+
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
 
@@ -614,12 +609,11 @@ class ProxyCommunity(Community):
             EXTENDED message we received
         """
 
-        request = self.dispersy.callback.call(
-            self.request_cache.get,
-            args=(
-                CircuitRequestCache.PREFIX,
-                CircuitRequestCache.create_identifier(circuit),))
+        @blocking_call_on_reactor_thread
+        def _get_cache():
+            return self.request_cache.get(CircuitRequestCache.PREFIX, CircuitRequestCache.create_identifier(circuit))
 
+        request = _get_cache()
         candidate_list = message.candidate_list
 
         circuit.add_hop(circuit.unverified_hop)
@@ -641,7 +635,7 @@ class ProxyCommunity(Community):
                 return False
 
         elif circuit.state == CIRCUIT_STATE_READY:
-            request.on_success()
+            reactor.callFromThread(request.on_success)
 
             first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
             if first_pool:
@@ -791,17 +785,16 @@ class ProxyCommunity(Community):
             ping
         @param Circuit circuit: the circuit id to sent the ping over
         """
-
         circuit_id = circuit.circuit_id
-
-        def __do_add():
+        @call_on_reactor_thread
+        def _create_ping():
             if not self._request_cache.has(PingRequestCache.PREFIX, circuit_id):
                 cache = PingRequestCache(self, circuit)
                 self._request_cache.add(cache)
 
-        self._dispersy.callback.register(__do_add)
-
+        _create_ping()
         self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
+
         self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
 
     def on_ping(self, circuit_id, candidate, message):
@@ -832,9 +825,12 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-        request = self.dispersy.callback.call(
-            self._request_cache.pop,
-            args=(PingRequestCache.PREFIX, circuit_id,))
+
+        @blocking_call_on_reactor_thread
+        def pop_cache():
+            return self._request_cache.pop(PingRequestCache.PREFIX, circuit_id)
+
+        request = pop_cache()
 
         if request:
             request.on_pong(message)
@@ -915,28 +911,26 @@ class ProxyCommunity(Community):
                 if circuit.state == CIRCUIT_STATE_READY)
 
     def __ping_circuits(self):
-        while True:
-            try:
-                to_be_removed = [
-                    self.remove_relay(relay_key, 'no activity')
-                    for relay_key, relay in self.relay_from_to.items()
-                    if relay.ping_time_remaining == 0]
+        try:
+            to_be_removed = [
+                self.remove_relay(relay_key, 'no activity')
+                for relay_key, relay in self.relay_from_to.items()
+                if relay.ping_time_remaining == 0]
 
-                self._logger.info("removed %d relays", len(to_be_removed))
-                assert all(to_be_removed)
+            self._logger.info("removed %d relays", len(to_be_removed))
+            assert all(to_be_removed)
 
-                to_be_pinged = [
-                    circuit for circuit in self.circuits.values()
-                    if circuit.ping_time_remaining < PING_INTERVAL
-                    and circuit.candidate]
+            to_be_pinged = [
+                circuit for circuit in self.circuits.values()
+                if circuit.ping_time_remaining < PING_INTERVAL
+                and circuit.candidate]
 
-                #self._logger.info("pinging %d circuits", len(to_be_pinged))
-                for circuit in to_be_pinged:
-                    self.create_ping(circuit.candidate, circuit)
-            except Exception:
-                self._logger.error("Ping error")
-
-            yield PING_INTERVAL
+            # self._logger.info("pinging %d circuits", len(to_be_pinged))
+            for circuit in to_be_pinged:
+                self.create_ping(circuit.candidate, circuit)
+        except Exception:
+            self._logger.error("Ping error")
+            raise
 
     def tunnel_data_to_end(self, ultimate_destination, payload, circuit):
         """
@@ -986,6 +980,7 @@ class ProxyCommunity(Community):
 
             return result
 
+    @blocking_call_on_reactor_thread
     def create_created_cache(self, circuit_id, candidate, candidates):
         """
 
@@ -993,13 +988,9 @@ class ProxyCommunity(Community):
         @param WalkCandidate candidate: the candidate we got the CREATE from
         @param dict[str, WalkCandidate] candidates: list of extend candidates we sent back
         """
-        self.dispersy.callback.call(lambda: self._request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates)))
+        self._request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
 
+    @blocking_call_on_reactor_thread
     def pop_created_cache(self, circuit_id, candidate):
-        return self.dispersy.callback.call(
-            self.request_cache.pop,
-            (
-                CreatedRequestCache.PREFIX,
-                CreatedRequestCache.create_identifier(circuit_id, candidate),
-            )
-        )
+        return self.request_cache.pop(CreatedRequestCache.PREFIX, CreatedRequestCache.create_identifier(circuit_id,
+                                                                                                        candidate))

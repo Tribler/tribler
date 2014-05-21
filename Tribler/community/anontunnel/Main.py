@@ -1,33 +1,29 @@
 """
 AnonTunnel CLI interface
 """
-
-import logging.config
-import threading
-import os
-from Tribler.community.anontunnel.Socks5.server import Socks5Server
-from Tribler.community.anontunnel.stats import StatsCrawler
-
-import sys
 import argparse
+import logging.config
+import os
+import sys
+import threading
+import time
 from threading import Thread, Event
 from traceback import print_exc
-import time
+
+from twisted.internet.task import LoopingCall
+
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.community.anontunnel import exitstrategies
-from Tribler.community.anontunnel.community import ProxyCommunity, \
-    ProxySettings
+from Tribler.community.anontunnel.Socks5.server import Socks5Server
+from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
-from Tribler.community.privatesemantic.crypto.elgamalcrypto import \
-    ElgamalCrypto, NoElgamalCrypto
-from Tribler.dispersy.callback import Callback
+from Tribler.community.anontunnel.extendstrategies import TrustThyNeighbour, NeighbourSubset
+from Tribler.community.anontunnel.lengthstrategies import RandomCircuitLengthStrategy, ConstantCircuitLength
+from Tribler.community.anontunnel.selectionstrategies import RandomSelectionStrategy, LengthSelectionStrategy
+from Tribler.community.anontunnel.stats import StatsCrawler
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.dispersy import Dispersy
-from Tribler.community.anontunnel.extendstrategies import TrustThyNeighbour, \
-    NeighbourSubset
-from Tribler.community.anontunnel.lengthstrategies import \
-    RandomCircuitLengthStrategy, ConstantCircuitLength
-from Tribler.community.anontunnel.selectionstrategies import \
-    RandomSelectionStrategy, LengthSelectionStrategy
+from Tribler.dispersy.util import call_on_reactor_thread
 
 
 logging.config.fileConfig(
@@ -70,8 +66,7 @@ class AnonTunnel(Thread):
         self.socks5_server = None
 
         endpoint = DispersyBypassEndpoint(self.raw_server, port=10000)
-        self.dispersy = Dispersy(callback, endpoint, u".",
-                                 u":memory:", crypto=ElgamalCrypto())
+        self.dispersy = Dispersy(endpoint, u".", u":memory:", crypto=ElgamalCrypto())
 
         self.community = None
         ''' @type: ProxyCommunity '''
@@ -107,7 +102,7 @@ class AnonTunnel(Thread):
         bytes_enter = 0
         bytes_relay = 0
 
-        while True:
+        def speed_stats_lc():
             stats = self.__calc_diff(time, bytes_exit, bytes_enter, bytes_relay)
             time, speed_exit, speed_enter, speed_relay, bytes_exit, bytes_enter, bytes_relay = stats
 
@@ -118,8 +113,10 @@ class AnonTunnel(Thread):
                 active_circuits, num_routes, speed_exit / 1024.0,
                 speed_enter / 1024.0, speed_relay / 1024.0),
 
-            yield 3.0
+        self._pending_tasks["speed stats"] = lc = LoopingCall(speed_sats)
+        lc.start(3, now=True)
 
+    @call_on_reactor_thread
     def run(self):
         """
         Start the standalone AnonTunnel
@@ -129,30 +126,25 @@ class AnonTunnel(Thread):
         logger.error(
             "Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
-        def _join_overlay(raw_server, dispersy):
-            member = self.dispersy.get_new_member(u"NID_secp160k1")
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, member, (self.settings, False), load=True)[0]
-            ''' @type: ProxyCommunity '''
-
-            if self.socks5_server:
-                self.socks5_server = Socks5Server(
-                    proxy_community, self.raw_server, self.socks5_port)
-                self.socks5_server.start()
-
-            self.community = proxy_community
-            exit_strategy = exitstrategies.DefaultExitStrategy(raw_server, self.community)
-            proxy_community.observers.append(exit_strategy)
-
-            if self.crawl:
-                self.community.observers.append(StatsCrawler(self.dispersy, self.raw_server))
-
-            return proxy_community
-
         proxy_args = self.raw_server, self.dispersy
-        self.community = self.dispersy.callback.call(_join_overlay, proxy_args)
+        member = self.dispersy.get_new_member(u"NID_secp160k1")
+        self.community = dispersy.define_auto_load(ProxyCommunity, member, (self.settings, False), load=True)[0]
+        ''' @type: ProxyCommunity '''
+
+        if self.socks5_server:
+            self.socks5_server = Socks5Server(
+                self.community, self.raw_server, self.socks5_port)
+            self.socks5_server.start()
+
+        exit_strategy = exitstrategies.DefaultExitStrategy(proxy_args, self.community)
+        self.community.observers.append(exit_strategy)
+
+        if self.crawl:
+            self.community.observers.append(StatsCrawler(self.dispersy, self.raw_server))
+
         ''' :type : Tribler.community.anontunnel.community.ProxyCommunity '''
 
-        self.dispersy.callback.register(self.__speed_stats)
+        self.__speed_stats()
         self.raw_server.listen_forever(None)
 
     def stop(self):
@@ -335,4 +327,3 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-

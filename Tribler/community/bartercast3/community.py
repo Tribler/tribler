@@ -1,22 +1,15 @@
 import logging
-logger = logging.getLogger(__name__)
-
-try:
-    # python 2.7 only...
-    from collections import OrderedDict
-except ImportError:
-    from Tribler.dispersy.python27_ordereddict import OrderedDict
-
 from random import random
 from time import time
+
+from twisted.internet import reactor
 
 from .conversion import BarterConversion
 from .database import BarterDatabase
 from .efforthistory import CYCLE_SIZE, EffortHistory
 from .payload import BarterRecordPayload, PingPayload, PongPayload, MemberRequestPayload, MemberResponsePayload
-
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, NoAuthentication, MemberAuthentication
-from Tribler.dispersy.candidate import WalkCandidate, BootstrapCandidate, Candidate
+from Tribler.dispersy.candidate import WalkCandidate, Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
@@ -24,6 +17,16 @@ from Tribler.dispersy.distribution import LastSyncDistribution, DirectDistributi
 from Tribler.dispersy.message import BatchConfiguration, Message, DropMessage
 from Tribler.dispersy.requestcache import RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
+
+
+try:
+    # python 2.7 only...
+    from collections import OrderedDict
+except ImportError:
+    from Tribler.dispersy.python27_ordereddict import OrderedDict
+
+
+logger = logging.getLogger(__name__)
 
 # generated: Fri Apr 19 17:07:32 2013
 # curve: high <<< NID_sect571r1 >>>
@@ -78,6 +81,7 @@ class RecordCandidate(object):
     """
     Container class for a candidate that is on our slope.
     """
+    # TODO(emilon): the callback_id could be removed and use the object itself as a key on the pending tasks dict
     def __init__(self, candidate, callback_id):
         super(RecordCandidate, self).__init__()
         self.candidate = candidate
@@ -179,7 +183,7 @@ class BarterCommunity(Community):
         self._has_been_killed = False
 
         # wait till next time we can create records with the candidates on our slope
-        self._pending_callbacks.append(self._dispersy.callback.register(self._periodically_create_records))
+        self._pending_tasks["periodically create records"] = reactor.callLater(0, self._periodically_create_records)
 
     @property
     def database(self):
@@ -276,7 +280,7 @@ class BarterCommunity(Community):
 
         # cancel outstanding pings
         for record_candidate in self._slope.itervalues():
-            self._dispersy.callback.unregister(record_candidate.callback_id)
+            self.cancel_pending_task(record_candidate.callback_id)
         self._slope = {}
 
         # update all up and download values
@@ -331,7 +335,7 @@ class BarterCommunity(Community):
         When we do not yet know the book associated with SWIFT_ADDRESS we will attempt to retrieve
         this information, the update will only occur when this is successful.
         """
-        assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
+        assert isInIOThread(), "Must be called on the reactor thread"
 
         def _update(member):
             if member:
@@ -375,7 +379,7 @@ class BarterCommunity(Community):
             cache = self._request_cache.add(MemberRequestCache(self, _delayed_update))
             meta = self._meta_messages[u"member-request"]
             request = meta.impl(distribution=(self.global_time,),
-                                destination=(Candidate(swift_address, True),), # assume tunnel=True
+                                destination=(Candidate(swift_address, True),),  # assume tunnel=True
                                 payload=(cache.number,))
             logger.debug("trying to obtain member from swift address %s:%d [%s]",
                          swift_address[0],
@@ -389,7 +393,7 @@ class BarterCommunity(Community):
         #                  swift_address[1])
 
     def i2ithread_channel_close(self, *args):
-        self._dispersy.callback.register(self._channel_close, args)
+        reactor.callFromThread(self._channel_close, *args)
 
     def _channel_close(self, roothash_hex, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down):
         assert isinstance(roothash_hex, str), type(roothash_hex)
@@ -398,13 +402,13 @@ class BarterCommunity(Community):
         assert isinstance(raw_bytes_down, (int, long)), type(raw_bytes_down)
         assert isinstance(cooked_bytes_up, (int, long)), type(cooked_bytes_up)
         assert isinstance(cooked_bytes_down, (int, long)), type(cooked_bytes_down)
-        assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
+        assert isInIOThread(), "Must be called on the reactor thread"
         if cooked_bytes_up or cooked_bytes_down:
             logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
             self.update_book_from_address(address, time(), cooked_bytes_up, cooked_bytes_down, delayed=True)
 
     def download_state_callback(self, states, delayed):
-        assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
+        assert isInIOThread(), "Must be called on the reactor thread"
         assert isinstance(states, list), type(states)
         assert isinstance(delayed, bool), type(delayed)
         timestamp = int(time())
@@ -446,15 +450,14 @@ class BarterCommunity(Community):
         finally:
             cycle = int(time() / CYCLE_SIZE)
             for message in messages:
-                if not isinstance(message.candidate, BootstrapCandidate):
-                    # logger.debug("received introduction-request message from %s", message.candidate)
+                # logger.debug("received introduction-request message from %s", message.candidate)
 
-                    book = self.get_book(message.authentication.member)
-                    if book.cycle < cycle:
-                        book.cycle = cycle
-                        book.effort.set(cycle * CYCLE_SIZE)
+                book = self.get_book(message.authentication.member)
+                if book.cycle < cycle:
+                    book.cycle = cycle
+                    book.effort.set(cycle * CYCLE_SIZE)
 
-                    self.try_adding_to_slope(message.candidate, book.member)
+                self.try_adding_to_slope(message.candidate, book.member)
 
     def on_introduction_response(self, messages):
         try:
@@ -462,15 +465,14 @@ class BarterCommunity(Community):
         finally:
             cycle = int(time() / CYCLE_SIZE)
             for message in messages:
-                if not isinstance(message.candidate, BootstrapCandidate):
-                    # logger.debug("received introduction-response message from %s", message.candidate)
+                # logger.debug("received introduction-response message from %s", message.candidate)
 
-                    book = self.get_book(message.authentication.member)
-                    if book.cycle < cycle:
-                        book.cycle = cycle
-                        book.effort.set(cycle * CYCLE_SIZE)
+                book = self.get_book(message.authentication.member)
+                if book.cycle < cycle:
+                    book.cycle = cycle
+                    book.effort.set(cycle * CYCLE_SIZE)
 
-                    self.try_adding_to_slope(message.candidate, book.member)
+                self.try_adding_to_slope(message.candidate, book.member)
 
     def create_barter_record(self, second_candidate, second_member):
         """
@@ -597,7 +599,8 @@ class BarterCommunity(Community):
         # WINNERS holds the members that have 'won' this cycle
         winners = set()
 
-        while True:
+        @inlineCallbacks
+        def do_iteration():
             now = time()
             start_climb = int(now / CYCLE_SIZE) * CYCLE_SIZE
             start_create = start_climb + CYCLE_SIZE * 0.5
@@ -607,12 +610,12 @@ class BarterCommunity(Community):
             if start_climb <= now < start_create:
                 logger.debug("cycle %d.  first climbing phase.  wait %.2f seconds until the next phase",
                              now / CYCLE_SIZE, start_create - now)
-                yield start_create - now
+                yield deferLater(reactor, start_create - now, lambda: None)
 
             elif start_create <= now < start_idle and len(winners) < self._signature_count:
                 logger.debug("cycle %d.  record creation phase.  wait %.2f seconds until record creation",
                              now / CYCLE_SIZE, CYCLE_SIZE * 0.4 / self._signature_count)
-                yield (CYCLE_SIZE * 0.4 / self._signature_count) * random()
+                yield deferLater(reactor, (CYCLE_SIZE * 0.4 / self._signature_count) * random(), lambda: None)
 
                 # find the best candidate for this cycle
                 score = 0
@@ -634,7 +637,7 @@ class BarterCommunity(Community):
                     # assume that the peer is online
                     # record_candidate.history.set(now)
 
-                    self._dispersy.callback.unregister(record_candidate.callback_id)
+                    self.cancel_pending_task(record_candidate.callback_id)
                     self.create_barter_record(record_candidate.candidate, winner)
 
                 else:
@@ -646,10 +649,12 @@ class BarterCommunity(Community):
                              now / CYCLE_SIZE, start_next - now)
                 assert now >= start_idle or len(winners) >= self._signature_count
                 for record_candidate in self._slope.itervalues():
-                    self._dispersy.callback.unregister(record_candidate.callback_id)
+                    self.cancel_pending_task(record_candidate.callback_id)
                 self._slope = {}
                 winners = set()
-                yield start_next - now
+                yield deferLater(reactor, start_next - now, lambda: None)
+
+        return do_iteration()
 
     def try_adding_to_slope(self, candidate, member):
         if not member in self._slope:

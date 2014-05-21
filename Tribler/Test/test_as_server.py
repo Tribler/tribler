@@ -20,6 +20,8 @@ from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
+from nose.twistedtools import reactor
+
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
 DEST_DIR = os.path.join(BASE_DIR, "test_TriblerDownloads")
@@ -72,6 +74,8 @@ class AbstractServer(unittest.TestCase):
         dir = STATE_DIR + (str(nr) if nr else '')
         if not os.path.exists(dir):
             os.mkdir(dir)
+        if os.path.isfile("bootstraptribler.txt"):
+            shutil.copy("bootstraptribler.txt", os.path.join(dir, "bootstraptribler.txt"))
         return dir
 
     def getDestDir(self, nr=0):
@@ -283,15 +287,11 @@ class TestGuiAsServer(TestAsServer):
             print >> sys.stderr, "tgs: found instance, staring to wait for lm to be initcomplete"
             self.session = Session.get_instance()
             self.lm = self.session.lm
-
+            self.hadSession = True
             self.CallConditional(30, lambda: self.lm.initComplete, wait_for_guiutility)
 
-        def wait_for_session():
-            self.hadSession = True
-            print >> sys.stderr, "tgs: waiting for session instance"
-            self.CallConditional(30, lambda: Session.has_instance(), wait_for_instance)
-
-        self.CallConditional(30, lambda: Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_session))
+        print >> sys.stderr, "tgs: waiting for session instance"
+        self.CallConditional(30, Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_instance))
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
@@ -364,6 +364,9 @@ class TestGuiAsServer(TestAsServer):
         if window == None:
             app = wx.GetApp()
             window = app.GetTopWindow()
+            if not window:
+                self._logger.error("Couldn't obtain top window and no window was passed as argument, bailing out")
+                return
 
         rect = window.GetClientRect()
         size = window.GetSize()
@@ -374,9 +377,10 @@ class TestGuiAsServer(TestAsServer):
 
         mem = wx.MemoryDC(bmp)
         mem.Blit(0, 30, rect.GetWidth(), rect.GetHeight(), screen, rect.GetX(), rect.GetY())
+
+        titlerect = wx.Rect(0, 0, rect.GetWidth(), 30)
+        mem.DrawRectangleRect(titlerect)
         if title:
-            titlerect = wx.Rect(0, 0, rect.GetWidth(), 30)
-            mem.DrawRectangleRect(titlerect)
             mem.DrawLabel(title, titlerect, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
         del mem
 

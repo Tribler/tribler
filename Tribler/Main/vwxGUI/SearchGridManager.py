@@ -1,53 +1,47 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat, Arno Bakker
 # see LICENSE.txt for license information
+import json
+import logging
+import os
+import threading
+from math import sqrt
+from time import time
+from traceback import print_exc
 
 import wx
-import os
-import logging
-from traceback import print_exc
-from time import time
-from math import sqrt
-import threading
-import json
 
 from Tribler.Category.Category import Category
-from Tribler.Core.simpledefs import NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, \
-    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_METADATA, \
-    DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK
-from Tribler.Core.Search.SearchManager import split_into_keywords
-from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
-
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.Search.Bundler import Bundler
+from Tribler.Core.Search.Reranking import DefaultTorrentReranker
+from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-
-from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-
-from Tribler.community.channel.community import ChannelCommunity, \
-    forceDispersyThread, forcePrioDispersyThread, warnDispersyThread
-from Tribler.community.metadata.community import MetadataCommunity
-
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
-
-from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, \
-    TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS, CHANNEL_REQ_COLUMNS, \
-    PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS, MODERATION_REQ_COLUMNS, \
-    MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS, TUMBNAILTORRENT_REQ_COLUMNS
-from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.Core.Search.Bundler import Bundler
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
-    CollectedTorrent, RemoteTorrent, NotCollectedTorrent, LibraryTorrent, \
-    Comment, Modification, Channel, RemoteChannel, Playlist, Moderation, \
-    RemoteChannelTorrent, Marking, MetadataModification
-
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.community.search.community import SearchCommunity
-from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Video.utils import videoextdefaults
+from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
+                                     NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK)
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
+from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
+                                              NotCollectedTorrent, LibraryTorrent, Comment, Modification, Channel,
+                                              RemoteChannel, Playlist, Moderation, RemoteChannelTorrent, Marking,
+                                              MetadataModification)
+from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS,
+                                 CHANNEL_REQ_COLUMNS, PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS,
+                                 MODERATION_REQ_COLUMNS, MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS,
+                                 TUMBNAILTORRENT_REQ_COLUMNS)
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+from Tribler.community.allchannel.community import AllChannelCommunity
+from Tribler.community.channel.community import (ChannelCommunity, warnDispersyThread)
+from Tribler.community.metadata.community import MetadataCommunity
+from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
+from Tribler.dispersy.util import call_on_reactor_thread
+
 
 SEARCHMODE_STOPPED = 1
 SEARCHMODE_SEARCHING = 2
@@ -789,7 +783,7 @@ class TorrentManager:
         return return_dict
 
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def modifyTorrent(self, torrent, modifications):
         for community in self.dispersy.get_communities():
             if isinstance(community, MetadataCommunity):
@@ -1711,18 +1705,18 @@ class ChannelManager:
         except CommunityNotFoundException:
             return None
 
-    @forcePrioDispersyThread
+    @call_on_reactor_thread
     def createChannel(self, name, description):
         community = ChannelCommunity.create_community(self.dispersy, self.session.dispersy_member)
         community.set_channel_mode(ChannelCommunity.CHANNEL_OPEN)
         community.create_channel(name, description)
 
-    @forcePrioDispersyThread
+    @call_on_reactor_thread
     def createPlaylist(self, channel_id, name, description, infohashes=[]):
         community = self._disp_get_community_from_channel_id(channel_id)
         community.create_playlist(name, description, infohashes)
 
-    @forcePrioDispersyThread
+    @call_on_reactor_thread
     def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
         # detect changesmodification
         to_be_created = set(infohashes)
@@ -1746,13 +1740,13 @@ class ChannelManager:
             if len(to_be_removed) > 0:
                 community.remove_playlist_torrents(playlist_id, to_be_removed)
 
-    @forcePrioDispersyThread
+    @call_on_reactor_thread
     def addPlaylistTorrent(self, playlist, torrent):
         if not self.channelcast_db.playlistHasTorrent(playlist.id, torrent.channeltorrent_id):
             community = self._disp_get_community_from_channel_id(playlist.channel.id)
             community.create_playlist_torrents(playlist.id, [torrent.infohash])
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def createTorrent(self, channel, torrent):
         if not isinstance(torrent, CollectedTorrent):
             def torrent_loaded(loaded_torrent):
@@ -1778,7 +1772,7 @@ class ChannelManager:
             return True
         return False
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def createTorrentFromDef(self, channel_id, tdef, extraInfo={}, forward=True):
         # Make sure that this new tdef is also in collected torrents
         self.remote_th.save_torrent(tdef)
@@ -1808,7 +1802,7 @@ class ChannelManager:
             return True
         return False
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def createTorrentsFromDefs(self, channel_id, tdefs):
         if not channel_id:
             channel_id = self.channelcast_db.getMyChannelId()
@@ -1820,14 +1814,14 @@ class ChannelManager:
         for tdef in tdefs:
             self.createTorrentFromDef(channel_id, tdef, forward=False)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def removeTorrent(self, channel, infohash):
         torrent = self.getTorrentFromChannel(channel, infohash, collectedOnly=False)
         if torrent:
             community = self._disp_get_community_from_channel_id(channel.id)
             community.remove_torrents([torrent.dispersy_id])
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def removeAllTorrents(self, channel):
         _, _, torrents = self.getTorrentsFromChannel(channel, filterTorrents=False)
         dispersy_ids = [torrent.dispersy_id for torrent in torrents if torrent]
@@ -1835,7 +1829,7 @@ class ChannelManager:
         community = self._disp_get_community_from_channel_id(channel.id)
         community.remove_torrents(dispersy_ids)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def removePlaylist(self, channel, playlist_id):
         playlist = self.getPlaylist(channel, playlist_id)
         if playlist:
@@ -1844,7 +1838,7 @@ class ChannelManager:
 
             self.removeAllPlaylistTorrents(community, playlist)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def removeAllPlaylists(self, channel):
         _, playlists = self.dispersy_id(channel)
         dispersy_ids = [playlist.dispersy_id for playlist in playlists if playlist]
@@ -1854,7 +1848,7 @@ class ChannelManager:
         for playlist in playlists:
             self.removeAllPlaylistTorrents(community, playlist)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def removeAllPlaylistTorrents(self, community, playlist):
         sql = "SELECT dispersy_id FROM PlaylistTorrents WHERE playlist_id = ?"
         records = self.channelcast_db._db.fetchall(sql, (playlist.id,))
@@ -1862,7 +1856,7 @@ class ChannelManager:
 
         community.remove_playlist_torrents(playlist.dispersy_id, to_be_removed)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def createComment(self, comment, channel, reply_to=None, reply_after=None, playlist=None, infohash=None):
         comment = comment.strip()
         comment = comment[:1023]
@@ -1874,24 +1868,24 @@ class ChannelManager:
             community = self._disp_get_community_from_channel_id(channel.id)
             community.create_comment(comment, long(time()), reply_to, reply_after, playlist_id, infohash)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def removeComment(self, comment, channel):
         community = self._disp_get_community_from_channel_id(channel.id)
         community.remove_comment(comment.dispersy_id)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def modifyChannel(self, channel_id, changes):
         community = self._disp_get_community_from_channel_id(channel_id)
         community.modifyChannel(changes)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def modifyPlaylist(self, channel_id, playlist_id, name, description):
         dict = {'name': name, 'description': description}
 
         community = self._disp_get_community_from_channel_id(channel_id)
         community.modifyPlaylist(playlist_id, dict)
 
-    @forceDispersyThread
+    @call_on_reactor_thread
     def modifyTorrent(self, channel_id, channeltorrent_id, dict_changes, forward=True):
         community = self._disp_get_community_from_channel_id(channel_id)
         community.modifyTorrent(channeltorrent_id, dict_changes, forward=forward)
@@ -1919,7 +1913,7 @@ class ChannelManager:
         else:
             self.votecastdb.unsubscribe(channel_id)
 
-    @forcePrioDispersyThread
+    @call_on_reactor_thread
     def do_vote_cid(self, dispersy_cid, vote, timestamp=None):
         if not timestamp:
             timestamp = int(time())
@@ -1930,12 +1924,12 @@ class ChannelManager:
                     community.disp_create_votecast(dispersy_cid, vote, timestamp)
                     break
 
-    @forcePrioDispersyThread
+    @call_on_reactor_thread
     def markTorrent(self, channel_id, infohash, type):
         community = self._disp_get_community_from_channel_id(channel_id)
         community._disp_create_mark_torrent(infohash, type, long(time()))
 
-    @forcePrioDispersyThread
+    @call_on_reactor_thread
     def revertModification(self, channel, moderation, text, severity, revert_to):
         cause = moderation.dispersy_id
 

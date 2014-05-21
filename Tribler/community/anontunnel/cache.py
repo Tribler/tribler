@@ -5,9 +5,11 @@ Keeps track of outstanding PING and EXTEND requests and of candidates used in
 CREATE and CREATED requests.
 
 """
-
 import logging
+
 from Tribler.dispersy.requestcache import NumberCache
+from Tribler.dispersy.util import call_on_reactor_thread
+
 
 __author__ = 'chris'
 
@@ -43,13 +45,13 @@ class CircuitRequestCache(NumberCache):
         Mark the Request as successful, cancelling the timeout
         """
 
+        # TODO(emilon): Is there a reason to import these here instead of at the beggining?
         from Tribler.community.anontunnel.globals \
             import CIRCUIT_STATE_READY
 
         if self.circuit.state == CIRCUIT_STATE_READY:
             self._logger.info("Circuit %d is ready", self.number)
-            self.community.dispersy.callback.register(
-                self.community.request_cache.pop, args=(self.prefix, self.number,))
+            self.community.request_cache.pop(self.prefix, self.number)
 
     def on_timeout(self):
         from Tribler.community.anontunnel.globals \
@@ -84,10 +86,10 @@ class PingRequestCache(NumberCache):
     def timeout_delay(self):
         return 10.0
 
+    @call_on_reactor_thread
     def on_pong(self, message):
         self.community.circuits[self.number].beat_heart()
-        self.community.dispersy.callback.register(
-            self.community.request_cache.pop, args=(self.PREFIX, self.number,))
+        self.community.request_cache.pop(self.PREFIX, self.number)
 
     def on_timeout(self):
         self.community.remove_circuit(self.number, 'RequestCache')
