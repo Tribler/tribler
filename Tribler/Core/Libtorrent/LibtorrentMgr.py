@@ -5,7 +5,6 @@ import time
 import binascii
 import threading
 import libtorrent as lt
-from libtorrent import proxy_type
 
 import logging
 from copy import deepcopy
