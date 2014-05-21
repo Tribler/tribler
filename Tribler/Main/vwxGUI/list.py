@@ -177,11 +177,12 @@ class RemoteSearchManager(BaseManager):
 
     def refresh_partial(self, infohashes=[], channelids=[]):
         for infohash in infohashes:
-            curTorrent = self.list.GetItem(infohash).original_data
-            if isinstance(curTorrent, ChannelTorrent):
-                startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelTorrentId, cargs=(infohash,), wargs=(curTorrent.channel, curTorrent.channeltorrent_id), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
-            else:
-                startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            if self.list.HasItem(infohash):
+                curTorrent = self.list.GetItem(infohash).original_data
+                if isinstance(curTorrent, ChannelTorrent):
+                    startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelTorrentId, cargs=(infohash,), wargs=(curTorrent.channel, curTorrent.channeltorrent_id), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+                else:
+                    startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
         if channelids:
             def do_db():
@@ -650,6 +651,11 @@ class List(wx.BoxSizer):
         assert self.isReady, "List not ready"
         if self.isReady:
             return self.list.InList(key, onlyCreated)
+
+    def HasItem(self, key):
+        assert self.isReady, "List not ready"
+        if self.isReady:
+            return self.list.HasItem(key)
 
     def GetItem(self, key):
         assert self.isReady, "List not ready"

@@ -133,7 +133,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     _create = staticmethod(_create)
 
     @staticmethod
-    def retrieve_from_magnet(url, callback, timeout=30.0, max_connections=30.0):
+    def retrieve_from_magnet(url, callback, timeout=30.0, max_connections=30.0, silent=False):
         """
         If the URL conforms to a magnet link, the .torrent info is
         downloaded and converted into a TorrentDef.  The resulting
@@ -149,10 +149,16 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         assert callable(callback), "CALLBACK must be callable"
 
         def metainfo_retrieved(metadata):
-            tdef = TorrentDef.load_from_dict(metadata)
+            try:
+                tdef = TorrentDef.load_from_dict(metadata)
+            except UnicodeDecodeError:
+                if not silent:
+                    raise
             callback(tdef)
-        LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
-        return True
+        if LibtorrentMgr.hasInstance():
+            LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
+            return True
+        return False
 
     @staticmethod
     def retrieve_from_magnet_infohash(infohash, callback, timeout=30.0, max_connections=30.0):
