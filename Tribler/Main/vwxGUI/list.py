@@ -652,6 +652,11 @@ class List(wx.BoxSizer):
         if self.isReady:
             return self.list.InList(key, onlyCreated)
 
+    def HasItem(self, key):
+        assert self.isReady, "List not ready"
+        if self.isReady:
+            return self.list.HasItem(key)
+
     def GetItem(self, key):
         assert self.isReady, "List not ready"
         if self.isReady:
