@@ -18,6 +18,9 @@ class ElgamalCrypto(ECCrypto):
         ecelgamalkey = self.openssl.get_ecelgamalkey_for_key(key)
         return decrypt_str(ecelgamalkey, string)
 
+    def get_curve(self, key):
+        return self.openssl.get_curvename_for_key(key)
+
 class NoElgamalCrypto(NoCrypto, ElgamalCrypto):
 
     def __init__(self):
@@ -28,3 +31,6 @@ class NoElgamalCrypto(NoCrypto, ElgamalCrypto):
 
     def decrypt(self, key, string):
         return string
+
+    def get_curve(self, key):
+        return "(42)"

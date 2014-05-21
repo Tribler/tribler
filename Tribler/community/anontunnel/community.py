@@ -207,7 +207,7 @@ class ProxyCommunity(Community):
                 else:
                     circuit_candidates = set([c.candidate for c in self.circuits.values()])
                     candidate = next((c for c in self.dispersy_yield_verified_candidates()
-                                      if c not in circuit_candidates), None)
+                                      if (c not in circuit_candidates) and self.packet_crypto.is_candidate_compatible(c)), None)
 
                     if candidate is None:
                         return
@@ -545,7 +545,7 @@ class ProxyCommunity(Community):
         ''' :type : dict[str, WalkCandidate] '''
 
         for _ in range(1, 5):
-            candidate_temp = next(self.dispersy_yield_verified_candidates(), None)
+            candidate_temp = next((c for c in self.dispersy_yield_verified_candidates() if self.packet_crypto.is_candidate_compatible(c)), None)
             " :type: WalkCandidate"
 
             if not candidate_temp:
@@ -625,6 +625,11 @@ class ProxyCommunity(Community):
         for hop in circuit.hops:
             if hop.public_key in candidate_list:
                 candidate_list.remove(hop.public_key)
+
+        for i in range(len(candidate_list) - 1, -1, -1):
+            public_key = self.crypto.key_from_public_bin(candidate_list[i])
+            if not self.packet_crypto.is_key_compatible(public_key):
+                candidate_list.pop(i)
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             try:

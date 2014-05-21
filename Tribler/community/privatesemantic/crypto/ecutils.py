@@ -233,6 +233,17 @@ class OpenSSLCurves():
             except Exception, ex:
                 curve[1] = ex
 
+    def get_curvename_for_key(self, key):
+        ec = ECCrypto()
+        der_encoded_str = ec.key_to_bin(key)
+
+        if isinstance(key, EC_pub):
+            decoded_pk, _ = decoder.decode(der_encoded_str, asn1Spec=SubjectPublicKeyInfo())
+            return str(decoded_pk[0]['parameters']['namedCurve'])
+
+        decoded_pk, _ = decoder.decode(der_encoded_str, asn1Spec=ECPrivateKey())
+        return str(decoded_pk['parameters']['namedCurve'])
+
     def get_curve_for_key(self, key):
         ec = ECCrypto()
         der_encoded_str = ec.key_to_bin(key)

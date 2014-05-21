@@ -120,6 +120,18 @@ class Crypto(TunnelObserver):
             self._logger.error("Cannot crypt relay packet")
             return None
 
+    def is_candidate_compatible(self, candidate):
+        """
+        Test if we can use this candidate, and its key, to encrypt/decrypt messages
+        """
+        return True
+
+    def is_key_compatible(self, key):
+        """
+        Test if we can use this key, to encrypt/decrypt messages
+        """
+        return True
+
 
 class NoCrypto(Crypto):
     def __init__(self):
@@ -209,6 +221,7 @@ class DefaultCrypto(Crypto):
     def __init__(self):
         Crypto.__init__(self)
         self.proxy = None
+        self.my_curve = None
         """ :type proxy: ProxyCommunity """
         self._logger = logging.getLogger(__name__)
         self._received_secrets = {}
@@ -221,6 +234,18 @@ class DefaultCrypto(Crypto):
         self.decrypt_incoming_packet_content[MESSAGE_CREATED] = self._decrypt_created_content
         self.decrypt_incoming_packet_content[MESSAGE_EXTEND] = self._decrypt_extend_content
         self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
+
+    def is_candidate_compatible(self, candidate):
+        """
+        Test if we can use this candidate, and its key, to encrypt/decrypt messages
+        """
+        if candidate.get_member():
+            return self.is_key_compatible(candidate.get_member()._ec)
+        return False
+
+    def is_key_compatible(self, key):
+        his_curve = self.proxy.crypto.get_curve(key)
+        return self.my_curve == his_curve
 
     def on_break_relay(self, relay_key):
         """
@@ -244,6 +269,8 @@ class DefaultCrypto(Crypto):
         """
         self.proxy = proxy
         proxy.observers.append(self)
+
+        self.my_curve = self.proxy.crypto.get_curve(self.proxy.my_member._ec)
 
     def _encrypt_create_content(self, candidate, circuit_id, message):
         """
