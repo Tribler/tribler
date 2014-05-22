@@ -141,6 +141,7 @@ class RemoteTorrentHandler:
                 self._logger.info("rtorrent: ** limit space:: %d %d %d", self.num_torrents, self.max_num_torrents, num_delete)
 
                 LOW_PRIO_COLLECTING = 20
+
             elif self.num_torrents > (self.max_num_torrents * .75):
                 LOW_PRIO_COLLECTING = 10
 
