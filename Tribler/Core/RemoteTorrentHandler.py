@@ -125,7 +125,7 @@ class RemoteTorrentHandler:
                 to_remove = min(num_delete, deletions_per_step)
                 num_delete -= to_remove
                 self.torrent_db.freeSpace(to_remove)
-                reactor.callLater(5, clean_until_done, num_delete)
+                reactor.callLater(5, clean_until_done, num_delete, deletions_per_step)
 
         def torrent_overflow_check():
             """
@@ -141,6 +141,7 @@ class RemoteTorrentHandler:
                 self._logger.info("rtorrent: ** limit space:: %d %d %d", self.num_torrents, self.max_num_torrents, num_delete)
 
                 LOW_PRIO_COLLECTING = 20
+
             elif self.num_torrents > (self.max_num_torrents * .75):
                 LOW_PRIO_COLLECTING = 10
 
