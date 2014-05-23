@@ -1,9 +1,9 @@
 [submodule "Tribler/dispersy"]
 	path = Tribler/dispersy
-	url = git@github.com:wtud/dispersy.git
+	url = https://github.com/wtud/dispersy.git
 [submodule "Tribler/SwiftEngine"]
 	path = Tribler/SwiftEngine
-	url = git@github.com:wtud/libswift.git
+	url = https://github.com/wtud/libswift.git
 [submodule "Tribler/Core/DecentralizedTracking/pymdht"]
 	path = Tribler/Core/DecentralizedTracking/pymdht
-	url = git@github.com:wtud/pymdht.git
+	url = https://github.com/wtud/pymdht.git
