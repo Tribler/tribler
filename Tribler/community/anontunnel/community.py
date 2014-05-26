@@ -405,7 +405,10 @@ class ProxyCommunity(Community):
                 result = self.__relay(circuit_id, data, relay_key, sock_addr)
             else:
                 candidate = self._candidates.get(sock_addr)
-                if isinstance(candidate, WalkCandidate) and candidate.get_member():
+                if circuit_id in self.circuits or isinstance(candidate, WalkCandidate) and candidate.get_member():
+                    if candidate is None:
+                        candidate = Candidate(sock_addr, False)
+
                     result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
                 else:
                     candidate = None
