@@ -662,6 +662,7 @@ class OpportunisticCrypto(DefaultCrypto):
                     if not hop.session_key in self.counters:
                         self.initialize_session_key(hop.session_key)
                     key = self.get_key(hop.session_key, self.counters[hop.session_key])
+                    content += str(self.counters[hop.session_key]).zfill(10)
                     self.increment_counter_for_session_key(hop.session_key)
                     content = aes_encrypt_str(key, content, 'aes_128_cbc')
                     self._logger.error("Encrypted with counter {}, key {}"
@@ -683,29 +684,30 @@ class OpportunisticCrypto(DefaultCrypto):
             session_key = self.session_keys[relay_key]
             if not session_key in self.counters:
                 self.initialize_session_key(session_key)
+            #try with missed packets
             for counter in self.missed_packets[session_key]:
-                try:
-                    key = self.get_key(session_key, counter)
-                    message = aes_decrypt_str(key, data, 'aes_128_cbc')
-                    self._logger.error("Decrypted packet with missed counter {}: key {}".format(counter, bytes_to_long(key)))
-                    del self.missed_packets[counter]
-                    return message
-                except:
-                    self._logger.error("Couldn't decrypt with counter {}".format(counter))
+                key = self.get_key(session_key, counter)
+                message = aes_decrypt_str(key, data, 'aes_128_cbc')
+                if message[-10:] != str(counter).zfill(10):
+                    #self._logger.error("Couldn't decrypt with counter {}".format(counter))
                     continue
-            for missed in [0, 1, 2, 3]:
+                #self._logger.error("Decrypted packet with missed counter {}: key {}".format(counter, bytes_to_long(key)))
+                del self.missed_packets[counter]
+                return message[0:-10]
+            # try the current one and three after that
+            for missed in [0, 1, 2, 3, 4, 5]:
                 counter = self.counters[session_key] + missed
-                try:
-                    key = self.get_key(session_key, counter)
-                    message = aes_decrypt_str(key, data, 'aes_128_cbc')
-                    self.counters[session_key] = counter + 1
-                    self.clean_missed_packets(session_key)
-                    self._logger.error("Decrypted packet with counter {}, {} missed: key {}".format(counter, missed, bytes_to_long(key)))
-                    return message
-                except:
+                key = self.get_key(session_key, counter)
+                message = aes_decrypt_str(key, data, 'aes_128_cbc')
+                if message[-10:] != str(counter).zfill(10):
+                    #self._logger.error("Couldn't decrypt with counter {}".format(counter))
                     self.missed_packets[session_key].append(counter)
-                    self._logger.error("Couldn't decrypt with counter {}".format(counter))
                     continue
+
+                self.counters[session_key] = counter + 1
+                self.clean_missed_packets(session_key)
+                #self._logger.error("Decrypted packet with counter: {}, missed: {}, key: {}".format(counter, missed, bytes_to_long(key)))
+                return message[0:-10]
 
             self._logger.warning("Cannot decrypt a message destined for us, the end of a circuit.")
             return None
