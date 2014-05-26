@@ -103,7 +103,7 @@ class TestRemoteQuery(TestGuiAsServer):
         if searchComm:
             def wait_for_search():
                 print >> sys.stderr, "tgs: frame ready, staring to wait for search to be ready"
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.5, callback, 'did not connect to 50% of expected peers within 300s')
+                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.75, callback, 'did not connect to 75% of expected peers within 300s')
             TestGuiAsServer.startTest(self, wait_for_search)
 
         else:
