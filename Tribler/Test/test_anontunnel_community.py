@@ -34,8 +34,8 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.guiUtility.ShowPage('anonymity')
 
             def do_asserts():
-                self.assert_(LibtorrentMgr.getInstance().ltsession_anon is not None, "Anon session should have been created")
-                self.assert_(len(proxy_community.circuits) >= 4, "At least 4 circuits should have been created")
+                self.assert_(LibtorrentMgr.getInstance().ltsession_anon is not None, "Anon session should have been created", False)
+                self.assert_(len(proxy_community.circuits) >= 4, "At least 4 circuits should have been created", False)
                 self.assert_(expected, reason, do_assert)
 
             self.Call(1, do_asserts)
