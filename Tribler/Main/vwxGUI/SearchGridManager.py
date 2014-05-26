@@ -1153,7 +1153,7 @@ class LibraryManager:
 
     def deleteTorrentDS(self, ds, infohash, removecontent=False):
         if not ds is None:
-            self.stopVideoIfEqual(ds.download)
+            self.stopVideoIfEqual(ds.download, reset_playlist=True)
             self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
 
         elif infohash:
@@ -1168,12 +1168,15 @@ class LibraryManager:
         if id:
             self.user_download_choice.remove_download_state(id)
 
-    def stopVideoIfEqual(self, download):
+    def stopVideoIfEqual(self, download, reset_playlist=False):
         videoplayer = self._get_videoplayer()
         playd = videoplayer.get_vod_download()
 
         if playd == download:
             self.stopPlayback()
+
+            if reset_playlist:
+                self.guiUtility.frame.actlist.expandedPanel_videoplayer.Reset()
 
     def connect(self, session, torrentsearch_manager, channelsearch_manager):
         if not self.connected:
