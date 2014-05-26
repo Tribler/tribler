@@ -587,11 +587,14 @@ class TorrentManager:
         """ Called by GetHitsInCategory() to add remote results to self.hits """
         begintime = time()
         try:
-            self.remoteLock.acquire()
-
             hitsUpdated = False
             hitsModified = set()
-            for remoteItem in self.remoteHits:
+
+            with self.remoteLock:
+                hits = self.remoteHits
+                self.remoteHits = []
+
+            for remoteItem in hits:
                 known = False
 
                 for item in self.hits:
@@ -640,14 +643,12 @@ class TorrentManager:
                     self.hits.append(remoteItem)
                     hitsUpdated = True
 
-            self.remoteHits = []
             return hitsUpdated, hitsModified
         except:
             raise
 
         finally:
             self.remoteRefresh = False
-            self.remoteLock.release()
 
             self._logger.debug("TorrentSearchGridManager: addStoredRemoteResults: %s", time() - begintime)
 
@@ -657,7 +658,6 @@ class TorrentManager:
         refreshGrid = False
         try:
             self._logger.debug("TorrentSearchGridManager: gotRemoteHist: got %s unfiltered results for %s %s %s", len(results), keywords, candidate, time())
-            self.remoteLock.acquire()
 
             if self.searchkeywords == keywords:
                 self.gotRemoteHits = True
@@ -701,11 +701,10 @@ class TorrentManager:
                     remoteHit.torrent_db = self.torrent_db
                     remoteHit.channelcast_db = self.channelcast_db
 
-                    self.remoteHits.append(remoteHit)
+                    with self.remoteLock:
+                        self.remoteHits.append(remoteHit)
                     refreshGrid = True
         finally:
-            self.remoteLock.release()
-
             if self.gridmgr:
                 self.gridmgr.NewResult(keywords)
 
