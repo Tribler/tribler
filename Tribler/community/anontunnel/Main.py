@@ -61,7 +61,6 @@ class AnonTunnel(Thread):
                                     failfunc=lambda (e): print_exc(),
                                     errorfunc=lambda (e): print_exc())
 
-        callback = Callback()
         self.socks5_port = socks5_port
         self.socks5_server = None
 
