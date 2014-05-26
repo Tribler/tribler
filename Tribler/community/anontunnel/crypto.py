@@ -645,7 +645,7 @@ class OpportunisticCrypto(DefaultCrypto):
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-            candidate_pub_key = next(iter(candidate.get_members()))._ec
+            candidate_pub_key = candidate.get_member()._ec
 
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
@@ -665,8 +665,8 @@ class OpportunisticCrypto(DefaultCrypto):
                     content += str(self.counters[hop.session_key]).zfill(10)
                     self.increment_counter_for_session_key(hop.session_key)
                     content = aes_encrypt_str(key, content, 'aes_128_cbc')
-                    self._logger.error("Encrypted with counter {}, key {}"
-                        .format(self.counters[hop.session_key], bytes_to_long(key)))
+                    #self._logger.error("Encrypted with counter {}, key {}"
+                    #    , self.counters[hop.session_key], bytes_to_long(key))
                     first = False
                 else:
                     content = aes_encrypt_str(hop.session_key, content)
@@ -692,7 +692,7 @@ class OpportunisticCrypto(DefaultCrypto):
                     #self._logger.error("Couldn't decrypt with counter {}".format(counter))
                     continue
                 #self._logger.error("Decrypted packet with missed counter {}: key {}".format(counter, bytes_to_long(key)))
-                del self.missed_packets[counter]
+                del self.missed_packets[session_key][counter]
                 return message[0:-10]
             # try the current one and three after that
             for missed in [0, 1, 2, 3, 4, 5]:
