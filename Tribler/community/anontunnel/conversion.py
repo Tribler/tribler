@@ -235,7 +235,7 @@ class CustomProxyConversion():
                message.candidate_list
 
     def __decode_extended(self, message_buffer, offset=0):
-        key_length, = struct.unpack_from("!H", message_buffer[offset:])
+        key_length, = struct.unpack_from("!H", message_buffer[offset:offset + 2])
         offset += 2
         key = message_buffer[offset:offset+key_length]
         offset += key_length
