@@ -622,7 +622,7 @@ class OpportunisticCrypto(DefaultCrypto):
 
     def initialize_session_key(self, session_key):
         self.counters[session_key] = 0
-        self.missed_packets[session_key] = []
+        self.missed_packets[session_key] = {}
 
     def get_key(self, session_key, counter):
         return aes_encrypt_str(session_key, str(counter))
@@ -631,9 +631,9 @@ class OpportunisticCrypto(DefaultCrypto):
         self.counters[session_key] += 1
 
     def clean_missed_packets(self, session_key):
-        for packet_number in self.missed_packets[session_key]:
+        for index, packet_number in self.missed_packets[session_key].items():
             if packet_number + 5 > self.counters[session_key]:
-                del self.missed_packets[session_key][packet_number]
+                del self.missed_packets[session_key][index]
 
     def add_missed_packet(self, session_key, missed_packet_number):
         self.missed_packets[session_key].append(missed_packet_number)
