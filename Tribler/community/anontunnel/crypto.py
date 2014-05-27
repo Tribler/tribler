@@ -451,7 +451,7 @@ class DefaultCrypto(Crypto):
             message.candidate_list = cand_dict
         except:
             reason = "Can't decrypt candidate list!"
-            self._logger.error(reason)
+            self._logger.exception(reason)
             self.proxy.remove_circuit(circuit_id, reason)
             return None
 
@@ -488,7 +488,7 @@ class DefaultCrypto(Crypto):
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
             candidate_pub_key = message.destination_key if message_type == MESSAGE_CREATE \
-                else self.proxy.crypto.bin_to_key(message.reply_to.public_key)
+                else self.proxy.crypto.key_from_public_bin(message.reply_to.public_key)
 
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
@@ -636,7 +636,7 @@ class OpportunisticCrypto(DefaultCrypto):
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
             candidate_pub_key = message.destination_key if message_type == MESSAGE_CREATE \
-                else self.proxy.crypto.bin_to_key(message.reply_to.public_key)
+                else self.proxy.crypto.key_from_public_bin(message.reply_to.public_key)
 
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer

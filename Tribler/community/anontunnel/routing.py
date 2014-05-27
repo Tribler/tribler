@@ -14,12 +14,12 @@ __author__ = 'chris'
 class Circuit:
     """ Circuit data structure storing the id, state and hops """
 
-    def __init__(self, circuit_id, goal_hops=0, candidate=None, proxy=None):
+    def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: ProxyCommunity
         :param int circuit_id: the id of the candidate circuit
-        :param WalkCandidate candidate: the first hop of the circuit
+        :param WalkCandidate first_hop: the first hop of the circuit
         :return: Circuit
         """
 
@@ -28,7 +28,7 @@ class Circuit:
         self._logger = logging.getLogger(__name__)
 
         self.circuit_id = circuit_id
-        self.candidate = candidate
+        self.first_hop = first_hop
         self.goal_hops = goal_hops
         self.extend_strategy = None
         self.last_incoming = time.time()
@@ -82,7 +82,7 @@ class Circuit:
     def __contains__(self, other):
         if isinstance(other, Candidate):
             # TODO: should compare to a list here
-            return other == self.candidate
+            return other == self.first_hop
 
     def beat_heart(self):
         """

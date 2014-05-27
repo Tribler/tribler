@@ -46,14 +46,14 @@ class TunnelObserver(object):
         """
         pass
 
-    def on_exiting_from_tunnel(self, circuit_id, candidate, destination, data):
+    def on_exiting_from_tunnel(self, circuit_id, sock_addr, destination, data):
         """
         Called when a DATA message has been received destined for the outside
         world
 
         @param int circuit_id: the circuit id where the the DATA message was
             received on
-        @param Candidate candidate: the relay candidate who relayed the message
+        @param (string, int) sock_addr: the relay candidate who relayed the message
         @param (str, int) destination: the packet's ultimate destination
         @param data: the payload
         """
@@ -69,24 +69,24 @@ class TunnelObserver(object):
         """
         pass
 
-    def on_enter_tunnel(self, circuit_id, candidate, origin, payload):
+    def on_enter_tunnel(self, circuit_id, sock_addr, origin, payload):
         """
         Called when we received a packet from the outside world
 
         @param int circuit_id: the circuit for which we received data from the
             outside world
-        @param Candidate candidate: the known relay for this circuit
+        @param (string, int) sock_addr: the known relay for this circuit
         @param (str, int) origin: the outside origin of the packet
         @param str payload: the packet's payload
         """
         pass
 
-    def on_send_data(self, circuit_id, candidate, destination, payload):
+    def on_send_data(self, circuit_id, sock_addr, destination, payload):
         """
         Called when uploading data over a circuit
 
         @param int circuit_id: the circuit where data being uploaded over
-        @param Candidate candidate: the relay used to send data over
+        @param (string, int) sock_addr: the relay used to send data over
         @param (str, int) destination: the destination of the packet
         @param str payload: the packet's payload
         """

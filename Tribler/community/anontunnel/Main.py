@@ -142,7 +142,6 @@ class AnonTunnel():
         logger.error(
             "Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
-        proxy_args = self.raw_server, self.dispersy
         member = self.dispersy.get_new_member(u"NID_secp160k1")
         self.community = self.dispersy.define_auto_load(ProxyCommunity, member,
                                                    (False, self.settings),
@@ -154,8 +153,7 @@ class AnonTunnel():
                 self.community, self.raw_server, self.socks5_port)
             self.socks5_server.start()
 
-        exit_strategy = exitstrategies.DefaultExitStrategy(proxy_args,
-                                                           self.community)
+        exit_strategy = exitstrategies.DefaultExitStrategy(self.raw_server, self.community)
         self.community.observers.append(exit_strategy)
 
         if self.crawl:
@@ -226,8 +224,8 @@ class LineHandler(LineReceiver):
                   "id\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
             for circuit_id, circuit in anon_tunnel.community.circuits.items():
                 print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (
-                    circuit.circuit_id, circuit.candidate.sock_addr[0],
-                    circuit.candidate.sock_addr[1],
+                    circuit.circuit_id, circuit.first_hop[0],
+                    circuit.first_hop[1],
                     circuit.goal_hops, len(circuit.hops),
                     stats[circuit_id].bytes_downloaded / 1024.0 / 1024.0,
                     stats[circuit_id].bytes_uploaded / 1024.0 / 1024.0
