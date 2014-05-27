@@ -514,8 +514,8 @@ class TTLSearchCommunity(Community):
                 requested_packets.extend(self._get_packets_from_infohashes(cid, torrents))
 
             if requested_packets:
-                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"torrent-response", len(requested_packets))
-                self._dispersy.endpoint.send([message.candidate], requested_packets)
+                self._dispersy._send_packets([message.candidate], requested_packets,
+                    self, "-caused by on-torrent-request-")
 
             if DEBUG:
                 print >> sys.stderr, long(time()), long(time()), "SearchCommunity: got request for ", len(requested_packets), "torrents from", message.candidate

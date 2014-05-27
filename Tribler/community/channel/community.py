@@ -955,12 +955,12 @@ class ChannelCommunity(Community):
                         if tormessage:
                             packets.append(tormessage.packet)
 
-                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"missing-channel-response-snapshot", len(packets))
-                self._dispersy.endpoint.send([message.candidate], packets)
+                self._dispersy._send_packets([message.candidate], packets,
+                    self, "-caused by missing-channel-response-snapshot-")
 
             else:
-                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"missing-channel-response")
-                self._dispersy.endpoint.send([message.candidate], [channelmessage.packet])
+                self._dispersy._send_packets([message.candidate], [channelmessage.packet],
+                    self, "-caused by missing-channel-response-")
 
 
     def on_dynamic_settings(self, *args, **kwargs):

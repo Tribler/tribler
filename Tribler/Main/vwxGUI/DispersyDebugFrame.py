@@ -128,7 +128,6 @@ class DispersyDebugFrame(wx.Frame):
         def do_gui(delayedResult):
             stats = delayedResult.get()  # can contain an exception
             enabled = bool(self.__incstuff_checkbox.GetValue())
-            self.__community_panel.ShowDatabaseInfo(enabled)
 
             self.__summary_panel.UpdateInfo(stats)
             self.__community_panel.UpdateInfo(stats)
@@ -184,8 +183,6 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
             ["Packets Delayed timeout", DATA_NONE,
                 "Total number of packets which were delayed, but got a timeout"],
             ["Walker Success", DATA_NONE, None],
-            ["Walker Success (from trackers)", DATA_NONE,
-                "Comparing the successes to tracker to overall successes"],
             ["Sync-Messages Created", DATA_NONE,
                 "Total number of messages created by us in this session which should be synced"],
             ["Bloom New", DATA_NONE,
@@ -229,26 +226,24 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 self.__utility.size_format(int(stats.total_up / (stats.timestamp - stats.start)))
             )
             self.__info_list[6][1] = compute_ratio(stats.total_send,
-                stats.received_count + stats.total_send)
-            self.__info_list[7][1] = compute_ratio(stats.received_count,
-                stats.received_count + stats.total_send)
-            self.__info_list[8][1] = compute_ratio(stats.success_count, stats.received_count)
-            self.__info_list[9][1] = compute_ratio(stats.drop_count, stats.received_count)
-            self.__info_list[10][1] = compute_ratio(stats.delay_count, stats.received_count)
-            self.__info_list[11][1] = compute_ratio(stats.delay_send, stats.delay_count)
-            self.__info_list[12][1] = compute_ratio(stats.delay_success, stats.delay_count)
-            self.__info_list[13][1] = compute_ratio(stats.delay_timeout, stats.delay_count)
-            self.__info_list[14][1] = compute_ratio(stats.walk_success, stats.walk_attempt)
-            self.__info_list[15][1] = compute_ratio(stats.walk_bootstrap_success,
-                stats.walk_bootstrap_attempt)
-            self.__info_list[16][1] = "%s" % stats.created_count
-            self.__info_list[17][1] = compute_ratio(sum(c.sync_bloom_new for c in stats.communities),
+                stats.total_received + stats.total_send)
+            self.__info_list[7][1] = compute_ratio(stats.total_received,
+                stats.total_received + stats.total_send)
+            self.__info_list[8][1] = compute_ratio(stats.msg_statistics.success_count, stats.total_received)
+            self.__info_list[9][1] = compute_ratio(stats.msg_statistics.drop_count, stats.total_received)
+            self.__info_list[10][1] = compute_ratio(stats.msg_statistics.delay_received_count, stats.total_received)
+            self.__info_list[11][1] = compute_ratio(stats.msg_statistics.delay_send_count, stats.msg_statistics.delay_received_count)
+            self.__info_list[12][1] = compute_ratio(stats.msg_statistics.delay_success_count, stats.msg_statistics.delay_received_count)
+            self.__info_list[13][1] = compute_ratio(stats.msg_statistics.delay_timeout_count, stats.msg_statistics.delay_received_count)
+            self.__info_list[14][1] = compute_ratio(stats.walk_success_count, stats.walk_attempt_count)
+            self.__info_list[15][1] = "%s" % stats.msg_statistics.created_count
+            self.__info_list[16][1] = compute_ratio(sum(c.sync_bloom_new for c in stats.communities),
                 sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
-            self.__info_list[18][1] = compute_ratio(sum(c.sync_bloom_reuse for c in stats.communities),
+            self.__info_list[17][1] = compute_ratio(sum(c.sync_bloom_reuse for c in stats.communities),
                 sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
-            self.__info_list[19][1] = compute_ratio(sum(c.sync_bloom_skip for c in stats.communities),
+            self.__info_list[18][1] = compute_ratio(sum(c.sync_bloom_skip for c in stats.communities),
                 sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
-            self.__info_list[20][1] = "yes" if __debug__ else "no"
+            self.__info_list[19][1] = "yes" if __debug__ else "no"
 
         for key, value, _ in self.__info_list:
             self.__text_dict[key].SetLabel(value)
@@ -289,9 +284,6 @@ class CommunityPanel(wx.Panel):
         self.__selected_community_identifier = None
 
         self.__listctrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnListCtrlSelected)
-
-    def ShowDatabaseInfo(self, enable):
-        self.__detail_panel.ShowDatabaseInfo(enable)
 
     def OnListCtrlSelected(self, event):
         community_data = self.__community_data_list[event.GetIndex()]
@@ -353,6 +345,15 @@ class CommunityPanel(wx.Panel):
                 "Candidate_list": candidate_list,
                 "Database": database_str,
                 "Database_list": database_list,
+                "Packets Sent": "%s" % community.msg_statistics.outgoing_count,
+                "Packets Created": "%s" % community.msg_statistics.created_count,
+                "Packets Success": "%s" % community.msg_statistics.success_count,
+                "Packets Dropped": "%s" % community.msg_statistics.drop_count,
+                "Packets Delayed Sent": "%s" % community.msg_statistics.delay_send_count,
+                "Packets Delayed Received": "%s" % community.msg_statistics.delay_received_count,
+                "Packets Delayed Success": "%s" % community.msg_statistics.delay_success_count,
+                "Packets Delayed Timeout": "%s" % community.msg_statistics.delay_timeout_count,
+                "Statistics": community,
             }
             # update community data list
             self.__community_data_list.append(community_data)
@@ -369,6 +370,7 @@ class CommunityPanel(wx.Panel):
         # update community detail
         self.__listctrl.UpdateData(community_list_for_update)
         community_data_for_update = None
+        community_statistics = None
         if reselect_community_idx is not None:
             self.__listctrl.Select(reselect_community_idx)
             community_data_for_update = self.__community_data_list[reselect_community_idx]
@@ -381,16 +383,19 @@ class CommunityDetailPanel(wx.Panel):
         super(CommunityDetailPanel, self).__init__(parent, id, style=wx.RAISED_BORDER)
         self.SetBackgroundColour(LIST_GREY)
 
-        self.__FIELDS = ("Identifier", "Member", "Classification", "Global time", \
-            "Median global time", "Acceptable range", "Sync bloom created", \
-            "Sync bloom reused", "Sync bloom skipped", "Candidates", \
-            "Database")
+        self.__FIELDS = ("Identifier", "Member", "Classification", "Global time",
+            "Median global time", "Acceptable range", "Sync bloom created",
+            "Sync bloom reused", "Sync bloom skipped",
+            "Packets Sent", "Packets Created", "Packets Success", "Packets Dropped",
+            "Packets Delayed Sent", "Packets Delayed Received",
+            "Packets Delayed Success", "Packets Delayed Timeout",
+            "Candidates", "Database")
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         info_panel = wx.Panel(self, -1, style=wx.BORDER_SUNKEN)
         info_panel.SetBackgroundColour(wx.WHITE)
-        info_panel.SetMinSize((470, 300))
+        info_panel.SetMinSize((500, 300))
         self.__info_panel = info_panel
 
         self.__text = {}
@@ -407,29 +412,28 @@ class CommunityDetailPanel(wx.Panel):
             self.__text[title] = (key_text, value_text)
         info_panel.SetSizer(gridsizer)
 
-        self.__candidate_list = AutoWidthListCtrl(self, -1,
+        self.__detail_notebook = SimpleNotebook(self, show_single_tab=True, style=wx.NB_NOPAGETHEME)
+
+        self.__candidate_list = AutoWidthListCtrl(self.__detail_notebook, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
-        self.__candidate_list.InsertColumn(0, "Global time", width=70)
-        self.__candidate_list.InsertColumn(1, "LAN", width=130)
+        self.__candidate_list.InsertColumn(0, "Global time", width=100)
+        self.__candidate_list.InsertColumn(1, "LAN", width=170)
         self.__candidate_list.InsertColumn(2, "WAN")
 
-        self.__database_list = AutoWidthListCtrl(self, -1,
+        self.__rawinfo_panel = RawInfoPanel(self.__detail_notebook, -1)
+
+        self.__database_list = AutoWidthListCtrl(self.__detail_notebook, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
         self.__database_list.InsertColumn(0, "Count")
         self.__database_list.InsertColumn(1, "Info")
 
-        self.__to_show_database = False
-        self.__database_list.Show(self.__to_show_database)
+        self.__detail_notebook.AddPage(self.__candidate_list, "Candidates")
+        self.__detail_notebook.AddPage(self.__rawinfo_panel, "RawInfo")
+        self.__detail_notebook.AddPage(self.__database_list, "Database")
 
         hsizer.Add(self.__info_panel, 0, wx.EXPAND | wx.RIGHT, 2)
-        hsizer.Add(self.__candidate_list, 1, wx.EXPAND)
-        hsizer.Add(self.__database_list, 1, wx.EXPAND | wx.LEFT, 2)
+        hsizer.Add(self.__detail_notebook, 1, wx.EXPAND)
         self.SetSizer(hsizer)
-
-    def ShowDatabaseInfo(self, enabled):
-        if enabled != self.__to_show_database:
-            self.__to_show_database = enabled
-            self.__database_list.Show(self.__to_show_database)
 
     def UpdateInfo(self, community_data):
         if community_data == None:
@@ -437,11 +441,13 @@ class CommunityDetailPanel(wx.Panel):
                 self.__text[field_name][1].SetLabel(DATA_NONE)
             self.__database_list.DeleteAllItems()
             self.__candidate_list.DeleteAllItems()
+            self.__rawinfo_panel.UpdateInfo(None)
         else:
             for field_name in self.__FIELDS:
                 self.__text[field_name][1].SetLabel(community_data[field_name])
             self.__database_list.UpdateData(community_data["Database_list"])
             self.__candidate_list.UpdateData(community_data["Candidate_list"])
+            self.__rawinfo_panel.UpdateInfo(community_data["Statistics"])
 
         self.Layout()
 
@@ -458,10 +464,10 @@ class RawInfoPanel(wx.Panel):
         self.__info = None
         self.__selected_category = None
 
-        self.__CATEGORIES = ("drop", "delay", "success", "outgoing",
-            "created", "walk_fail", "attachment", "database",
-            "endpoint_recv", "endpoint_send", "bootstrap_candidates")
-        self.__IP_CATEGORIES = ("bootstrap_candidates", "walk_fail")
+        self.__CATEGORIES = ("attachment", "endpoint_recv", "endpoint_send",
+            "walk_failure_dict", "incoming_intro_dict", "outgoing_intro_dict")
+        self.__MSG_CATEGORIES = ("success", "drop", "created", "delay", "outgoing")
+        self.__IP_CATEGORIES = ("walk_failure_dict", "incoming_intro_dict", "outgoing_intro_dict")
 
         self.__category_list = AutoWidthListCtrl(self, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
@@ -487,12 +493,24 @@ class RawInfoPanel(wx.Panel):
         self.__detail_list.UpdateData(self.__info[event.GetIndex()][1])
 
     def UpdateInfo(self, stats):
+        if stats is None:
+            self.__category_list.DeleteAllItems()
+            self.__detail_list.DeleteAllItems()
+            return
+
         raw_info = {}
         self.__info = []
         category_list = []
         for category in self.__CATEGORIES:
-            if getattr(stats, category):
+            if getattr(stats, category, None):
                 raw_info[category] = getattr(stats, category).items()
+                category_list.append(category)
+                self.__info.append((category, []))
+
+        for category in self.__MSG_CATEGORIES:
+            dict_name = "%s_dict" % category
+            if getattr(stats.msg_statistics, dict_name, None):
+                raw_info[category] = getattr(stats.msg_statistics, dict_name).items()
                 category_list.append(category)
                 self.__info.append((category, []))
 
@@ -529,6 +547,8 @@ class RawInfoPanel(wx.Panel):
             if self.__selected_category == category:
                 reselect_category_idx = idx
             idx += 1
+        while self.__category_list.GetItemCount() > len(category_list):
+            self.__category_list.DeleteItem(self.__category_list.GetItemCount() - 1)
 
         # reselect the previous selection
         category_data_for_update = None

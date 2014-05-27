@@ -271,8 +271,8 @@ class MetadataCommunity(Community):
                         except StopIteration:
                             pass
                         else:
-                            self._dispersy._statistics.dict_inc(self._dispersy._statistics.outgoing, u"-lastdist-")
-                            self._dispersy._endpoint.send([message.candidate], [str(packet)])
+                            self._dispersy._send_packets([message.candidate], [str(packet)],
+                                self, "-caused by custom-check-lastdist-")
 
                     self.__log(3, message)
                     return DropMessage(message, u"This metadata message is old.")
