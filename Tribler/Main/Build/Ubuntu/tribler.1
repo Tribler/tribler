@@ -6,15 +6,17 @@ tribler \- towards an anonymous video streaming client
 .B tribler
 .SH DESCRIPTION
 .B Tribler
-Tribler is a Bittorrent-based video streaming client.
-It includes fast keyword search and thumbnail-based
-navigation. Tribler does not require websites to find 
-interesting content to watch. 
+is a Bittorrent-based video streaming client.
+You can watch video files, while you are still downloading them.
+It relies on VLC for playback of videos.
+Tribler also includes fast keyword search and thumbnail-based
+navigation. Tribler does not require websites or any central
+server to find and watch interesting content. 
 
 This version of Tribler automatically downloads a
 single 50MByte test file using our new anonymous mode.
-Downloading all content using anonymous mode are not yet supported,
-this is scheduled for our next release.
+Downloading all content using anonymous mode is not yet supported,
+it will be included in the next release.
 Tribler now includes support for the TOR protocol.
 TOR provides anonymous streaming through multiple
 layers of encryption and relaying through other peers.
@@ -57,9 +59,6 @@ channels of torrents and votes on channels.
 .I ~/Desktop/TriblerDownloads
 .RS
 Default location of downloads and streaming videos.
-.SH FILES
-.P 
-.I /usr/bin/tribler
 .SH AUTHOR
 .nf
 The Tribler Team, Delft University of Technology (github.com/tribler)
