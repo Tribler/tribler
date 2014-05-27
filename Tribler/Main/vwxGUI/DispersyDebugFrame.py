@@ -395,7 +395,7 @@ class CommunityDetailPanel(wx.Panel):
 
         info_panel = wx.Panel(self, -1, style=wx.BORDER_SUNKEN)
         info_panel.SetBackgroundColour(wx.WHITE)
-        info_panel.SetMinSize((470, 300))
+        info_panel.SetMinSize((500, 300))
         self.__info_panel = info_panel
 
         self.__text = {}
@@ -416,8 +416,8 @@ class CommunityDetailPanel(wx.Panel):
 
         self.__candidate_list = AutoWidthListCtrl(self.__detail_notebook, -1,
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
-        self.__candidate_list.InsertColumn(0, "Global time", width=70)
-        self.__candidate_list.InsertColumn(1, "LAN", width=130)
+        self.__candidate_list.InsertColumn(0, "Global time", width=100)
+        self.__candidate_list.InsertColumn(1, "LAN", width=170)
         self.__candidate_list.InsertColumn(2, "WAN")
 
         self.__rawinfo_panel = RawInfoPanel(self.__detail_notebook, -1)
