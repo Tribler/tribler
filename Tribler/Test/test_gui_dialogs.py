@@ -206,7 +206,7 @@ class TestGuiDialogs(TestGuiAsServer):
 
         def wait_for_channel():
             def has_connections_or_channel():
-                if self.frame.SRstatusbar.GetChannelConnections() > 5:
+                if self.frame.SRstatusbar.GetChannelConnections() > 10:
                     return True
                 if self.frame.channellist.GetItems():
                     return True
@@ -214,8 +214,7 @@ class TestGuiDialogs(TestGuiAsServer):
                 self.frame.channellist.GetManager().refresh()
                 return False
 
-
-            self.CallConditional(300, has_connections_or_channel, do_search, 'did not connect to more than 5 peers within 300s')
+            self.CallConditional(300, has_connections_or_channel, do_search, 'did not connect to more than 10 peers within 300s')
 
         self.startTest(wait_for_channel)
 
