@@ -37,19 +37,13 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
+from Tribler.Main.Utility.arflayout import ArfLayout, CubicHermiteInterpolate
 from Tribler.Main.vwxGUI.list_header import DetailHeader
 from Tribler.Main.vwxGUI.list_body import ListBody
 from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, LinkStaticText
-
-try:
-    # C(ython) module
-    import arflayout
-except ImportError, e:
-    # Python fallback module
-    import arflayout_fb as arflayout
 
 
 class Home(wx.Panel):
@@ -588,6 +582,7 @@ class Anonymity(wx.Panel):
 
         self.AddComponents()
 
+        self.arflayout = ArfLayout()
         self.vertices = {}
         self.edges = []
 
@@ -864,7 +859,7 @@ class Anonymity(wx.Panel):
                     edge[1] -= 1
 
             # The arflayout module keeps the vertex positions from the latest iteration in memory. So we need to notify arflayout.
-            arflayout.arf_remove([toremove_id])
+            self.arflayout.remove([toremove_id])
 
     def CalculateLayout(self):
         with self.lock:
@@ -873,7 +868,7 @@ class Anonymity(wx.Panel):
             self.toInsert = set()
 
         graph = igraph.Graph(edges, directed=False)
-        positions = arflayout.arf_layout(toInsert, graph)
+        positions = self.arflayout.calculate(toInsert, graph)
 
         with self.lock:
             self.step += 1
@@ -1035,8 +1030,8 @@ class Anonymity(wx.Panel):
         t1 = 1.0 / 5 * self.time_step
         t2 = 3.0 / 5 * self.time_step
         t3 = 1.0 / 5 * self.time_step
-        x = arflayout.CubicHermiteInterpolate(t1, t2, t3, x0, x1, t)
-        y = arflayout.CubicHermiteInterpolate(t1, t2, t3, y0, y1, t)
+        x = CubicHermiteInterpolate(t1, t2, t3, x0, x1, t)
+        y = CubicHermiteInterpolate(t1, t2, t3, y0, y1, t)
         return (x, y)
 
     def GetVertexPosition(self, vertexid, t):
