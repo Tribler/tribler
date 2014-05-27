@@ -418,10 +418,10 @@ class MainFrame(wx.Frame):
             else:
                 self.startDownload(url_filename, cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
 
-    def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False):
+    def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, anon_mode=False):
         name, infohash, _ = parse_magnetlink(url)
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
-        wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode)
+        wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, anon_mode=anon_mode)
         return True
 
     def startDownloadFromSwift(self, url, destdir=None):
@@ -431,11 +431,11 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self.startDownload, sdef=sdef, destdir=destdir)
         return True
 
-    def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=[], vodmode=False):
+    def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=[], vodmode=False, anon_mode=False):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
-                wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode)
+                wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, anon_mode=anon_mode)
                 return True
         except:
             print_exc()
