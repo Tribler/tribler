@@ -609,6 +609,7 @@ class Anonymity(wx.Panel):
         self.radius = 32
         self.line_width = 4
         self.margin_x = self.margin_y = 0
+        self.swarm_size = wx.Size(200, 80)
 
         self.layout_busy = False
         self.new_data = False
@@ -686,7 +687,7 @@ class Anonymity(wx.Panel):
         self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20)
         self.vSizer.Add(self.log_text, 1, wx.EXPAND)
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.ALL, 20)
+        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 20)
         self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 20)
         self.SetSizer(self.main_sizer)
 
@@ -890,7 +891,7 @@ class Anonymity(wx.Panel):
 
     def OnSize(self, evt):
         size = min(*evt.GetEventObject().GetSize())
-        x = min(size + self.margin_x * 2, self.GetSize().x - self.circuit_list.GetSize().x)
+        x = min(size + self.margin_x * 2 + self.swarm_size.x, self.GetSize().x - self.circuit_list.GetSize().x)
         y = size + self.margin_y * 2
         self.graph_panel.SetSize((x, y))
 
@@ -903,7 +904,8 @@ class Anonymity(wx.Panel):
         dc.Clear()
         gc = wx.GraphicsContext.Create(dc)
 
-        w, h = eo.GetSize().x - 2 * self.radius - 2 * self.margin_x - 1, eo.GetSize().y - 2 * self.radius - 2 * self.margin_y - 1
+        w = eo.GetSize().x - 2 * self.radius - 2 * self.margin_x - 1 - self.swarm_size.x
+        h = eo.GetSize().y - 2 * self.radius - 2 * self.margin_y - 1
 
         schedule_layout = not self.layout_busy and self.new_data and time() - self.last_keyframe >= self.time_step
         if schedule_layout:
@@ -915,6 +917,8 @@ class Anonymity(wx.Panel):
         if len(self.vertices) > 0:
 
             int_points = {}
+            swarm_pos = (eo.GetSize().x - self.swarm_size.x - 11, eo.GetSize().y / 2 - self.swarm_size.y / 2)
+            swarm_center = (eo.GetSize().x - self.swarm_size.x / 2, eo.GetSize().y / 2)
 
             with self.lock:
 
@@ -928,6 +932,7 @@ class Anonymity(wx.Panel):
                         int_points[vertexid] = (scaled_x * w + self.radius + self.margin_x, scaled_y * h + self.radius + self.margin_y)
 
                 # Draw edges
+                exit_nodes = [circuit.hops[-1] for circuit in self.circuits.values() if circuit.goal_hops == len(circuit.hops)]
                 for vertexid1, vertexid2 in self.edges:
                     if int_points.has_key(vertexid1) and int_points.has_key(vertexid2):
                         if set([vertexid1, vertexid2]) in self.selected_edges:
@@ -937,6 +942,21 @@ class Anonymity(wx.Panel):
                         x1, y1 = int_points[vertexid1]
                         x2, y2 = int_points[vertexid2]
                         gc.DrawLines([(x1, y1), (x2, y2)])
+
+                        if not self.fullscreen:
+                            # If exit node, draw edge to bittorrent swarm
+                            if self.peers[vertexid1] in exit_nodes:
+                                gc.DrawLines([(x1, y1), swarm_center])
+                            if self.peers[vertexid2] in exit_nodes:
+                                gc.DrawLines([(x2, y2), swarm_center])
+
+                if not self.fullscreen:
+                    # Draw swarm
+                    gc.SetPen(wx.Pen(wx.Colour(210, 210, 210)))
+                    gc.SetBrush(wx.Brush(wx.Colour(240, 240, 240)))
+                    gc.DrawEllipse(swarm_pos[0], swarm_pos[1], self.swarm_size.x, self.swarm_size.y)
+                    dc.SetTextForeground(wx.Colour(100, 100, 100))
+                    dc.DrawLabel("Bittorrent swarm(s)", wx.Rect(*(swarm_pos + self.swarm_size.Get())), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
                 # Draw vertices
                 gc.SetPen(wx.TRANSPARENT_PEN)
