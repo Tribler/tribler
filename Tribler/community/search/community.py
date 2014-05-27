@@ -433,7 +433,7 @@ class SearchCommunity(Community):
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
-                    self, "-caused by on-torrent-response-")
+                    self, "-caused by on-torrent-request-")
 
             if DEBUG:
                 self._logger.debug("SearchCommunity: got request for %s torrents from %s", len(requested_packets), message.candidate)
