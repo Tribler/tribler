@@ -59,7 +59,7 @@ class CircuitRequestCache(NumberCache):
 
         if not self.circuit.state == CIRCUIT_STATE_READY:
             reason = 'timeout on CircuitRequestCache, state = %s, candidate = %s' % \
-                     (self.circuit.state, self.circuit.candidate.sock_addr)
+                     (self.circuit.state, self.circuit.first_hop)
             self.community.remove_circuit(self.number, reason)
 
     @classmethod
@@ -92,7 +92,7 @@ class PingRequestCache(NumberCache):
         self.community.request_cache.pop(self.PREFIX, self.number)
 
     def on_timeout(self):
-        self.community.remove_circuit(self.number, 'RequestCache')
+        self.community.remove_circuit(self.number, 'ping time out')
 
 
 class CreatedRequestCache(NumberCache):
