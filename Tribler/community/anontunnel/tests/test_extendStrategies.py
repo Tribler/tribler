@@ -51,7 +51,7 @@ class TestTrustThyNeighbour(TestCase):
 
         candidate, circuit_id, message_type, message = self.proxy.message
 
-        self.assertEqual(candidate, circuit.candidate,
+        self.assertEqual(candidate, circuit.first_hop,
                          "Candidate should be first hop of circuit")
         self.assertEqual(circuit_id, circuit.circuit_id,
                          "Circuit_id should be circuit's id")

@@ -207,6 +207,9 @@ class CustomProxyConversion():
         return DataMessage(destination, payload, origin)
 
     def __encode_created(self, message):
+        # if len(message.candidate_list) % 16 > 0:
+        #     raise Exception("Should be multiple of 16")
+
         #key = long_to_bytes(messages.key, DIFFIE_HELLMAN_MODULUS_SIZE / 8)
         return struct.pack("!H", len(message.key)) + message.key + \
                message.candidate_list
@@ -219,6 +222,10 @@ class CustomProxyConversion():
         offset += key_length
 
         encrypted_candidate_list = message_buffer[offset:]
+
+        # if len(encrypted_candidate_list) % 16 > 0:
+        #     raise Exception("Should be multiple of 16")
+
         message = CreatedMessage(encrypted_candidate_list)
         message.key = key
         return message
