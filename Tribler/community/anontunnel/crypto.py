@@ -193,7 +193,7 @@ class NoCrypto(Crypto):
         """
         Convert candidate list from string to dict
 
-        @param Csock_addr: Sender of the message
+        @param sock_addr: Sender of the message
         @param int circuit_id: Circuit identifier
         @param ExtendedMessage message: Message as passed from the community
         @return ExtendedMessage: Extended message with candidate list as dict

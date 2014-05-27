@@ -209,7 +209,7 @@ class ProxyCommunity(Community):
                     candidate = next(
                         (
                             c for c in self.dispersy_yield_verified_candidates()
-                            if (c not in circuit_candidates) and \
+                            if (c.sock_addr not in circuit_candidates) and \
                                self.packet_crypto.is_key_compatible(c.get_member()._ec)
                         ), None
                     )
