@@ -26,34 +26,34 @@ class Crypto(TunnelObserver):
         self.decrypt_incoming_packet_content = defaultdict()
         self._logger = logging.getLogger(__name__)
 
-    def outgoing_packet_crypto(self, candidate, circuit, message_type, message, payload):
+    def outgoing_packet_crypto(self, sock_addr, circuit, message_type, message, payload):
         return payload
 
-    def incoming_packet_crypto(self, candidate, circuit, payload):
+    def incoming_packet_crypto(self, sock_addr, circuit, payload):
         return payload
 
     def relay_packet_crypto(self, destination, circuit, message_type, content):
         return content
 
-    def handle_incoming_packet(self, candidate, circuit_id, data):
+    def handle_incoming_packet(self, sock_addr, circuit_id, data):
         """
         As soon as a packet comes in it has to be decrypted depending on candidate / circuit id
-        @param candidate: The originator of the packet
+        @param sock_addr: The sock_addr of the packet
         @param circuit_id: The circuit ID in the packet
         @param data: The packet data
         @return: The unencrypted data
         """
 
-        data = self.incoming_packet_crypto(candidate, circuit_id, data)
+        data = self.incoming_packet_crypto(sock_addr, circuit_id, data)
         if not data:
             return None
         return data
 
-    def handle_incoming_packet_content(self, candidate, circuit_id, payload, packet_type):
+    def handle_incoming_packet_content(self, sock_addr, circuit_id, payload, packet_type):
         """
         As soon as an incoming packet is decrypted, the content has to be decrypted
         depending on the packet type
-        @param candidate: The originator of the packet
+        @param sock_addr: The originator of the packet
         @param circuit_id: The circuit ID in the packet
         @param payload: The packet data
         @param packet_type: The type of the packet
@@ -61,7 +61,7 @@ class Crypto(TunnelObserver):
         """
 
         if packet_type in self.decrypt_incoming_packet_content:
-            payload = self.decrypt_incoming_packet_content[packet_type](candidate, circuit_id, payload)
+            payload = self.decrypt_incoming_packet_content[packet_type](sock_addr, circuit_id, payload)
         if not payload:
             return None
         return payload
@@ -157,17 +157,17 @@ class NoCrypto(Crypto):
         """
         Disables the crypto settings
         """
-        self.outgoing_packet_crypto = lambda candidate, circuit, message, payload: payload
-        self.incoming_packet_crypto = lambda candidate, circuit, payload: payload
+        self.outgoing_packet_crypto = lambda sock_addr, circuit, message, payload: payload
+        self.incoming_packet_crypto = lambda sock_addr, circuit, payload: payload
         self.relay_packet_crypto = lambda destination, circuit, message_type, content: content
         self.encrypt_outgoing_packet_content = defaultdict()
         self.decrypt_incoming_packet_content = defaultdict()
 
-    def _encrypt_created_content(self, candidate, circuit_id, message):
+    def _encrypt_created_content(self, sock_addr, circuit_id, message):
         """
         Candidate list must be converted to a string in nocrypto
 
-        @param Candidate candidate: Destination of the message
+        @param sock_addr: Destination of the message
         @param int circuit_id: Circuit identifier
         @param CreatedMessage message: Message as passed from the community
         @return CreatedMessage: Version of the message with candidate string
@@ -175,11 +175,11 @@ class NoCrypto(Crypto):
         message.candidate_list = encode(message.candidate_list)
         return message
 
-    def _decrypt_created_content(self, candidate, circuit_id, message):
+    def _decrypt_created_content(self, sock_addr, circuit_id, message):
         """
         If created is for us, decode candidate list from string to dict
 
-        @param Candidate candidate: Sender of the message
+        @param sock_addr: Sender of the message
         @param int circuit_id: Circuit identifier
         @param CreatedMessage message: Message as passed from the community
         @return CreatedMessage: Message with candidates as dict
@@ -188,11 +188,11 @@ class NoCrypto(Crypto):
             _, message.candidate_list = decode(message.candidate_list)
         return message
 
-    def _decrypt_extended_content(self, candidate, circuit_id, message):
+    def _decrypt_extended_content(self, sock_addr, circuit_id, message):
         """
         Convert candidate list from string to dict
 
-        @param Candidate candidate: Sender of the message
+        @param Csock_addr: Sender of the message
         @param int circuit_id: Circuit identifier
         @param ExtendedMessage message: Message as passed from the community
         @return ExtendedMessage: Extended message with candidate list as dict
@@ -234,14 +234,6 @@ class DefaultCrypto(Crypto):
         self.decrypt_incoming_packet_content[MESSAGE_EXTEND] = self._decrypt_extend_content
         self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
 
-    def is_candidate_compatible(self, candidate):
-        """
-        Test if we can use this candidate, and its key, to encrypt/decrypt messages
-        """
-        if candidate.get_member():
-            return self.is_key_compatible(candidate.get_member()._ec)
-        return False
-
     def is_key_compatible(self, key):
         his_curve = self.proxy.crypto.get_curve(key)
         return self.my_curve == his_curve
@@ -271,20 +263,20 @@ class DefaultCrypto(Crypto):
 
         self.my_curve = self.proxy.crypto.get_curve(self.proxy.my_member._ec)
 
-    def _encrypt_create_content(self, candidate, circuit_id, message):
+    def _encrypt_create_content(self, sock_addr, circuit_id, message):
         """
         Method which encrypts the contents of a CREATE message before it
         is being sent. The only thing in a CREATE message that needs to be
         encrypted is the first part of the DIFFIE HELLMAN handshake, which is
         created in this method.
 
-        @param Candidate candidate: Destination of the message
+        @param sock_addr: Destination of the message
         @param int circuit_id: Circuit identifier
         @param CreateMessage message: Message as passed from the community
         @return CreateMessage: Version of the message with encrypted contents
         """
 
-        pub_key = candidate.get_member()._ec
+        pub_key = message.destination_key
         message.public_key = self.proxy.crypto.key_to_bin(self.proxy.my_member._ec.pub())
 
         if circuit_id in self.proxy.circuits:
@@ -304,17 +296,17 @@ class DefaultCrypto(Crypto):
 
         return message
 
-    def _decrypt_create_content(self, candidate, circuit_id, message):
+    def _decrypt_create_content(self, sock_addr, circuit_id, message):
         """
         The first part of the DIFFIE HELLMAN handshake is encrypted with
         Elgamal and is decrypted here
 
-        @param Candidate candidate: Sender of the message
+        @param sock_addr: Sender of the message
         @param int circuit_id: Circuit identifier
         @param CreateMessage message: Message as passed from the community
         @return CreateMessage: Message with decrypted contents
         """
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
         my_key = self.proxy.my_member._ec
         dh_second_part = mpz(bytes_to_long(self.proxy.crypto.decrypt(my_key, message.key)))
         message.key = dh_second_part
@@ -326,14 +318,14 @@ class DefaultCrypto(Crypto):
         self._received_secrets[relay_key] = dh_second_part
         return message
 
-    def _encrypt_extend_content(self, candidate, circuit_id, message):
+    def _encrypt_extend_content(self, sock_addr, circuit_id, message):
         """
         Method which encrypts the contents of an EXTEND message before it
         is being sent. The only thing in an EXTEND message that needs to be
         encrypted is the first part of the DIFFIE HELLMAN handshake, which is
         created in this method.
 
-        @param Candidate candidate: Destination of the message
+        @param sock_addr: Destination of the message
         @param int circuit_id: Circuit identifier
         @param ExtendMessage message: Message as passed from the community
         @return ExtendMessage: Version of the message with encrypted contents
@@ -352,11 +344,11 @@ class DefaultCrypto(Crypto):
 
         return message
 
-    def _decrypt_extend_content(self, candidate, circuit_id, message):
+    def _decrypt_extend_content(self, sock_addr, circuit_id, message):
         """
         Nothing is encrypted in an Extend message
 
-        @param Candidate candidate: Sender of the message
+        @param sock_addr: Sender of the message
         @param int circuit_id: Circuit identifier
         @param ExtendMessage message: Message as passed from the community
         @return ExtendMessage: Message with decrypted contents
@@ -364,7 +356,7 @@ class DefaultCrypto(Crypto):
         self.key_to_forward = message.key
         return message
 
-    def _encrypt_created_content(self, candidate, circuit_id, message):
+    def _encrypt_created_content(self, sock_addr, circuit_id, message):
         """
         Method which encrypts the contents of a CREATED message before it
         is being sent. There are two things that need to be encrypted in a
@@ -372,12 +364,12 @@ class DefaultCrypto(Crypto):
         is being generated and encrypted in this method, and the candidate
         list, which is passed from the community.
 
-        @param Candidate candidate: Destination of the message
+        @param sock_addr: Destination of the message
         @param int circuit_id: Circuit identifier
         @param CreatedMessage message: Message as passed from the community
         @return CreatedMessage: Version of the message with encrypted contents
         """
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
         dh_secret, _ = self._generate_diffie_secret()
 
         key = pow(self._received_secrets[relay_key],
@@ -397,27 +389,27 @@ class DefaultCrypto(Crypto):
 
         return message
 
-    def _decrypt_created_content(self, candidate, circuit_id, message):
+    def _decrypt_created_content(self, sock_addr, circuit_id, message):
         """
         Nothing to decrypt if you're not the originator of the circuit. Else,
         The candidate list should be decrypted as if it was an Extended
         message.
 
-        @param Candidate candidate: Sender of the message
+        @param sock_addr: Sender of the message
         @param int circuit_id: Circuit identifier
         @param CreatedMessage message: Message as passed from the community
         @return CreatedMessage: Message with decrypted contents
         """
         if circuit_id in self.proxy.circuits:
             return self._decrypt_extended_content(
-                candidate, circuit_id, message)
+                sock_addr, circuit_id, message)
         return message
 
-    def _encrypt_extended_content(self, candidate, circuit_id, message):
+    def _encrypt_extended_content(self, sock_addr, circuit_id, message):
         """
         Everything is already encrypted in an Extended message
 
-        @param Candidate candidate: Destination of the message
+        @param sock_addr: Destination of the message
         @param int circuit_id: Circuit identifier
         @param ExtendedMessage | CreatedMessage message: Message as passed
         from the community
@@ -425,13 +417,13 @@ class DefaultCrypto(Crypto):
         """
         return message
 
-    def _decrypt_extended_content(self, candidate, circuit_id, message):
+    def _decrypt_extended_content(self, sock_addr, circuit_id, message):
         """
         This method decrypts the contents of an encrypted Extended message.
         If the candidate list is undecryptable, the message is malformed and
         the circuit should be broken.
 
-        @param Candidate candidate: Sender of the message
+        @param sock_addr: Sender of the message
         @param int circuit_id: Circuit identifier
         @param ExtendedMessage|CreatedMessage message: Message as passed from
         the community
@@ -465,7 +457,7 @@ class DefaultCrypto(Crypto):
 
         return message
 
-    def outgoing_packet_crypto(self, candidate, circuit_id,
+    def outgoing_packet_crypto(self, sock_addr, circuit_id,
                                 message_type, message, content):
         """
         Apply crypto to outgoing messages. The current protocol handles 3
@@ -483,7 +475,7 @@ class DefaultCrypto(Crypto):
         the circuit encrypt it with the SESSION KEY linked to the circuit
         itself
 
-        @param Candidate candidate: the recipient of the message
+        @param sock_addr: the recipient of the message
         @param int circuit_id: the circuit to sent the message over
         @param str message_type: the message's type
         @param str content: the raw (serialized) content of the message
@@ -491,14 +483,12 @@ class DefaultCrypto(Crypto):
         @return: the encrypted payload
         """
 
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-#            candidate_pub_key = message.public_key if message_type == MESSAGE_CREATE else message.reply_to.public_key
-#            candidate_pub_key = self.proxy.crypto.key_from_public_bin(candidate_pub_key)
-
-            candidate_pub_key = candidate.get_member()._ec
+            candidate_pub_key = message.destination_key if message_type == MESSAGE_CREATE \
+                else self.proxy.crypto.bin_to_key(message.reply_to.public_key)
 
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
@@ -554,7 +544,7 @@ class DefaultCrypto(Crypto):
 
         return data
 
-    def incoming_packet_crypto(self, candidate, circuit_id, data):
+    def incoming_packet_crypto(self, sock_addr, circuit_id, data):
         """
         Decrypt incoming packets. Three cases are considered. The case that
         we are the ENDPOINT of the circuit, the case that we are the ORIGINATOR
@@ -564,14 +554,14 @@ class DefaultCrypto(Crypto):
 
         @todo: Check whether it really is a CREATE or CREATED message ?
 
-        @param Candidate candidate: the candidate we got the message from
+        @param sock_addr: the candidate we got the message from
         @param int circuit_id: the circuit we got the message on
         @param str data: the raw payload we received
         @return: the decrypted payload
         @rtype: str
         """
 
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
         # I'm the last node in the circuit, probably an EXTEND message,
         # decrypt with AES
         if relay_key in self.session_keys:
@@ -638,14 +628,15 @@ class OpportunisticCrypto(DefaultCrypto):
     def add_missed_packet(self, session_key, missed_packet_number):
         self.missed_packets[session_key].append(missed_packet_number)
 
-    def outgoing_packet_crypto(self, candidate, circuit_id,
+    def outgoing_packet_crypto(self, sock_addr, circuit_id,
                                 message_type, message, content):
 
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
 
         # CREATE and CREATED have to be Elgamal encrypted
         if message_type == MESSAGE_CREATED or message_type == MESSAGE_CREATE:
-            candidate_pub_key = candidate.get_member()._ec
+            candidate_pub_key = message.destination_key if message_type == MESSAGE_CREATE \
+                else self.proxy.crypto.bin_to_key(message.reply_to.public_key)
 
             content = self.proxy.crypto.encrypt(candidate_pub_key, content)
         # Else add AES layer
@@ -675,9 +666,9 @@ class OpportunisticCrypto(DefaultCrypto):
 
         return content
 
-    def incoming_packet_crypto(self, candidate, circuit_id, data):
+    def incoming_packet_crypto(self, sock_addr, circuit_id, data):
 
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
         # I'm the last node in the circuit, probably an EXTEND or DATAREQUEST message,
         # decrypt with AES
         if relay_key in self.session_keys:
