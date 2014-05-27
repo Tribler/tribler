@@ -248,6 +248,8 @@ class SwiftProcess:
                 # register new channel prefix
                 self.tunnels[prefix] = callback
                 self.send_tunnel_subscribe(prefix)
+            else:
+                raise RuntimeError("Tunnel already registered by another module")
 
         finally:
             self.splock.release()
