@@ -277,7 +277,7 @@ class AllChannelCommunity(Community):
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
-                    self, "-caused by channelcast-response-")
+                    self, "-caused by channelcast-request-")
 
             self._logger.debug("got request for %s torrents from %s", len(requested_packets), message.candidate)
 

@@ -502,19 +502,17 @@ class RawInfoPanel(wx.Panel):
         self.__info = []
         category_list = []
         for category in self.__CATEGORIES:
-            if hasattr(stats, category):
-                if getattr(stats, category):
-                    raw_info[category] = getattr(stats, category).items()
-                    category_list.append(category)
-                    self.__info.append((category, []))
+            if getattr(stats, category, None):
+                raw_info[category] = getattr(stats, category).items()
+                category_list.append(category)
+                self.__info.append((category, []))
 
         for category in self.__MSG_CATEGORIES:
             dict_name = "%s_dict" % category
-            if hasattr(stats.msg_statistics, dict_name):
-                if getattr(stats.msg_statistics, dict_name):
-                    raw_info[category] = getattr(stats.msg_statistics, dict_name).items()
-                    category_list.append(category)
-                    self.__info.append((category, []))
+            if getattr(stats.msg_statistics, dict_name, None):
+                raw_info[category] = getattr(stats.msg_statistics, dict_name).items()
+                category_list.append(category)
+                self.__info.append((category, []))
 
         idx = 0
         reselect_category_idx = None

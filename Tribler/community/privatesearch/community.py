@@ -515,7 +515,7 @@ class TTLSearchCommunity(Community):
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
-                    self, "-caused by on-torrent-response-")
+                    self, "-caused by on-torrent-request-")
 
             if DEBUG:
                 print >> sys.stderr, long(time()), long(time()), "SearchCommunity: got request for ", len(requested_packets), "torrents from", message.candidate
