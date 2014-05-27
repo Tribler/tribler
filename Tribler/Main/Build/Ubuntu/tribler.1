@@ -1,36 +1,66 @@
 .\" Tribler: Python based Bittorrent/Internet TV application 
-.TH man 1 "12 June 2007" "1.0" "Tribler man page"
+.TH man 1 "27 May 2014" "1.1" "Tribler man page"
 .SH NAME
-tribler \- Python based Bittorrent/Internet TV application
+tribler \- towards an anonymous video streaming client
 .SH SYNOPSIS
 .B tribler
 .SH DESCRIPTION
 .B Tribler
-is a python-based Bittorrent/Internet TV application
-It allows you to watch videos and download
-content. Tribler aims to combine the ease of
-Youtube.com with the performance of peer-to-peer.
+Tribler is a Bittorrent-based video streaming client.
+It includes fast keyword search and thumbnail-based
+navigation. Tribler does not require websites to find 
+interesting content to watch. 
 
-Tribler is backwards compatible with the Bittorrent
-download protocol. To discover interesting content
-standard RSS feeds with .torrent links are supported
-plus the "Tribe protocol" which automatically scans
-the network for available Bittorrent swarms upon
-startup. Tribler uses an embedded web browser to
-access video clips of Youtube.com and Liveleak.com
-Other features are "People who like this also like"
-for recommending related swarms, the ability to
-make friends, and to donate idle upload capacity
-to friends. The later can improve download speed
-by a factor of two on asymmetric Internet links.
-The fastest way of social file sharing
+This version of Tribler automatically downloads a
+single 50MByte test file using our new anonymous mode.
+Downloading all content using anonymous mode are not yet supported,
+this is scheduled for our next release.
+Tribler now includes support for the TOR protocol.
+TOR provides anonymous streaming through multiple
+layers of encryption and relaying through other peers.
+Tribler joins a modified TOR network automatically upon startup.
+This custom network is modified to support streaming and 
+allows everyone to function as a relay. Our custom network
+is focussed on supporting HD video streaming bitrates and
+is not compatible with normal TOR. Unlike the original 
+TOR network it is UDP-based, does not rely on any central
+server and supports NAT puncturing. This means it is not
+as safe and secure, please do not get yourself in danger.
+
+Tribler aims to combine the ease of Youtube.com 
+with the performance of peer-to-peer.
+Tribler is backwards compatible with Bittorrent.
+To discover interesting content every user has the
+ability to create a channel of Bittorrent swarms.
+Voting on channels is used to reduce spam and allow
+the quick discovery of interesting content.
+Each channel is equiped with a commenting section.
+Tribler periodically makes connections to various peers 
+to discover new swarms, channels and votes.
 
 Homepage: http://www.tribler.org
 .SH FILES
+.I /usr/share/tribler
+.RS
+The Python installation files.
+.RE
+.I ~/.Tribler/ecpub.pem
+.RS
+Personal public key using elliptic-curve cryptography.
+.RE
+.I ~/.Tribler/sqlite/*
+.RS
+Various SQLite databases for storing public keys of 
+encountered peers, metadata of discovered torrents, 
+channels of torrents and votes on channels.
+.RE
+.I ~/Desktop/TriblerDownloads
+.RS
+Default location of downloads and streaming videos.
+.SH FILES
 .P 
 .I /usr/bin/tribler
-.I /usr/share/tribler
 .SH AUTHOR
 .nf
-Arno Bakker (arno@cs.vu.nl)
+The Tribler Team, Delft University of Technology (github.com/tribler)
 .fi
