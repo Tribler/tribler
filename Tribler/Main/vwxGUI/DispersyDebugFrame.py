@@ -549,6 +549,8 @@ class RawInfoPanel(wx.Panel):
             if self.__selected_category == category:
                 reselect_category_idx = idx
             idx += 1
+        while self.__category_list.GetItemCount() > len(category_list):
+            self.__category_list.DeleteItem(self.__category_list.GetItemCount() - 1)
 
         # reselect the previous selection
         category_data_for_update = None
