@@ -58,7 +58,7 @@ from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, 
     TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
     TopSearchPanelStub
-from Tribler.Main.vwxGUI.home import Home, Stats
+from Tribler.Main.vwxGUI.home import Home, Stats, Anonymity
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
     ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
@@ -190,6 +190,8 @@ class MainFrame(wx.Frame):
             self.splitter_bottom_window.OnChange = lambda: self.splitter_bottom.Layout()
             self.splitter_bottom_window.parent_list = self.splitter_bottom_window
 
+            self.anonymity = Anonymity(self)
+            self.anonymity.Show(False)
             self.searchlist = SearchList(self.splitter_top_window)
             self.searchlist.Show(False)
             self.librarylist = LibraryList(self.splitter_top_window)
@@ -280,6 +282,7 @@ class MainFrame(wx.Frame):
             hSizer.Add(separator, 0, wx.EXPAND)
             hSizer.Add(self.home, 1, wx.EXPAND)
             hSizer.Add(self.stats, 1, wx.EXPAND)
+            hSizer.Add(self.anonymity, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL)

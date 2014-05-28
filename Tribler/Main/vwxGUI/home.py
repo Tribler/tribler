@@ -572,15 +572,13 @@ class ActivityPanel(NewTorrentPanel):
 
 
 class Anonymity(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent, fullscreen=True):
         wx.Panel.__init__(self, parent, -1)
 
         self.SetBackgroundColour(wx.WHITE)
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.session = self.utility.session
-
-        self.AddComponents()
 
         self.arflayout = ArfLayout()
         self.vertices = {}
@@ -599,11 +597,13 @@ class Anonymity(wx.Panel):
         self.step = 0
         self.fps = 20
 
+        self.fullscreen = fullscreen
         self.last_keyframe = 0
         self.time_step = 5.0
-        self.radius = 32
-        self.line_width = 4
-        self.margin_x = self.margin_y = 0
+        self.radius = 20 if self.fullscreen else 12
+        self.line_width = 2 if self.fullscreen else 1
+        self.margin_x = 0 if self.fullscreen else 50
+        self.margin_y = 0
         self.swarm_size = wx.Size(200, 80)
 
         self.layout_busy = False
@@ -611,6 +611,8 @@ class Anonymity(wx.Panel):
 
         self.peers = []
         self.toInsert = set()
+
+        self.AddComponents()
 
         self.try_proxy()
 
@@ -645,17 +647,6 @@ class Anonymity(wx.Panel):
         self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
         self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
 
-    def SetFullScreenMode(self, enable):
-        self.fullscreen = enable
-        self.log_text.Show(enable)
-        self.radius = 20 if enable else 12
-        self.line_width = 2 if enable else 1
-        self.vSizer.GetChildren()[0].SetBorder(20 if enable else 0)
-        self.main_sizer.GetChildren()[0].SetBorder(20 if enable else 0)
-        self.main_sizer.GetChildren()[1].SetBorder(20 if enable else 0)
-        self.margin_x = 0 if enable else 50
-        self.Layout()
-
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
         self.graph_panel.Bind(wx.EVT_MOTION, self.OnMouse)
@@ -677,13 +668,14 @@ class Anonymity(wx.Panel):
 
         self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
         self.log_text.SetEditable(False)
+        self.log_text.Show(self.fullscreen)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20)
+        self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20 if self.fullscreen else 0)
         self.vSizer.Add(self.log_text, 1, wx.EXPAND)
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 20)
-        self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 20)
+        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 20 if self.fullscreen else 0)
+        self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 20 if self.fullscreen else 0)
         self.SetSizer(self.main_sizer)
 
     def OnItemSelected(self, event):

@@ -1176,8 +1176,7 @@ class LibraryDetails(TorrentDetails):
         self.anonymityTab.SetBackgroundColour(wx.WHITE)
 
         from Tribler.Main.vwxGUI.home import Anonymity
-        self.anonymityPanel = Anonymity(self.anonymityTab)
-        self.anonymityPanel.SetFullScreenMode(False)
+        self.anonymityPanel = Anonymity(self.anonymityTab, fullscreen=False)
         self.anonymitySizer.Add(self.anonymityPanel, 1, wx.EXPAND)
 
     def updateAllTabs(self):
