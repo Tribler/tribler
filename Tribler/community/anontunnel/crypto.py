@@ -1,5 +1,5 @@
 from Crypto.Util.number import bytes_to_long, long_to_bytes
-from Tribler.community.privatesemantic.crypto.optional_crypto import mpz, rand
+from Tribler.community.privatesemantic.crypto.optional_crypto import mpz, rand, aes_decrypt_str, aes_encrypt_str
 from collections import defaultdict
 import hashlib
 import logging
@@ -743,20 +743,4 @@ class OpportunisticCrypto(DefaultCrypto):
             except:
                 self._logger.warning("Cannot decrypt packet, should be an initial packet encrypted with our public Elgamal key");
                 return None
-
-from M2Crypto import EVP
-
-def aes_encrypt_str(aes_key, plain_str, mode='aes_128_ecb'):
-    if isinstance(aes_key, long):
-        aes_key = long_to_bytes(aes_key, 16)
-    cipher = EVP.Cipher(alg=mode, key=aes_key, iv='\x00' * 16, op=1)
-    ret = cipher.update(plain_str)
-    return ret + cipher.final()
-
-def aes_decrypt_str(aes_key, encr_str, mode='aes_128_ecb'):
-    if isinstance(aes_key, long):
-        aes_key = long_to_bytes(aes_key, 16)
-    cipher = EVP.Cipher(alg=mode, key=aes_key, iv='\x00' * 16, op=0)
-    ret = cipher.update(encr_str)
-    return ret + cipher.final()
 
