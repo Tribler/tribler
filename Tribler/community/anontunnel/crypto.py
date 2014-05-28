@@ -690,7 +690,11 @@ class OpportunisticCrypto(DefaultCrypto):
             #try with missed packets
             for counter in self.missed_packets[session_key]:
                 key = self.get_key(session_key, counter)
-                message = aes_decrypt_str(key, data, 'aes_128_cbc')
+                # try is ugly and (theoretically) unneccessary but works for now
+                try:
+                    message = aes_decrypt_str(key, data, 'aes_128_cbc')
+                except:
+                    continue
                 if message[-10:] != str(counter).zfill(10):
                     #self._logger.error("Couldn't decrypt with counter {}".format(counter))
                     continue
@@ -701,7 +705,14 @@ class OpportunisticCrypto(DefaultCrypto):
             for missed in [0, 1, 2, 3, 4, 5]:
                 counter = self.counters[session_key] + missed
                 key = self.get_key(session_key, counter)
-                message = aes_decrypt_str(key, data, 'aes_128_cbc')
+                # try because M2Crypto somethimes throws errors.
+                # Obvious redundant code alert!
+                try:
+                    message = aes_decrypt_str(key, data, 'aes_128_cbc')
+                except:
+                    #self._logger.error("Couldn't decrypt with counter {}".format(counter))
+                    self.missed_packets[session_key].append(counter)
+                    continue
                 if message[-10:] != str(counter).zfill(10):
                     #self._logger.error("Couldn't decrypt with counter {}".format(counter))
                     self.missed_packets[session_key].append(counter)
@@ -743,4 +754,3 @@ class OpportunisticCrypto(DefaultCrypto):
             except:
                 self._logger.warning("Cannot decrypt packet, should be an initial packet encrypted with our public Elgamal key");
                 return None
-
