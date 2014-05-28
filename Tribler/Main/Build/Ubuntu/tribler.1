@@ -17,14 +17,14 @@ This version of Tribler automatically downloads a
 single 50MByte test file using our new anonymous mode.
 Downloading all content using anonymous mode is not yet supported,
 it will be included in the next release.
-Tribler now includes support for the TOR protocol.
-TOR provides anonymous streaming through multiple
+Tribler now includes support for a subset of the TOR onion routing protocol.
+This TOR subset provides anonymous downloads with multiple
 layers of encryption and relaying through other peers.
 Tribler joins a modified TOR network automatically upon startup.
-This custom network is modified to support streaming and 
-allows everyone to function as a relay. Our custom network
-is focussed on supporting HD video streaming bitrates and
-is not compatible with normal TOR. Unlike the original 
+This custom network is enhanced to allow everyone to function 
+as a relay. Our custom network is focussed on supporting 
+the high bitrates required for HD video streaming and
+it is not compatible with normal TOR. Unlike the original 
 TOR network it is UDP-based, does not rely on any central
 server and supports NAT puncturing. This means it is not
 as safe and secure, please do not get yourself in danger.
