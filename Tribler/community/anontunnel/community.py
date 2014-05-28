@@ -205,9 +205,14 @@ class ProxyCommunity(Community):
                         first_pool.fill(self.circuits[circuit_id])
 
                 else:
-                    circuit_candidates = set([c.candidate for c in self.circuits.values()])
-                    candidate = next((c for c in self.dispersy_yield_verified_candidates()
-                                      if (c not in circuit_candidates) and self.packet_crypto.is_candidate_compatible(c)), None)
+                    circuit_candidates = set([c.first_hop for c in self.circuits.values()])
+                    candidate = next(
+                        (
+                            c for c in self.dispersy_yield_verified_candidates()
+                            if (c.sock_addr not in circuit_candidates) and \
+                               self.packet_crypto.is_key_compatible(c.get_member()._ec)
+                        ), None
+                    )
 
                     if candidate is None:
                         return
@@ -297,9 +302,9 @@ class ProxyCommunity(Community):
         self._logger.warning("Sending stats")
         self.dispersy.store_update_forward([record], True, False, True)
 
-    def __handle_incoming(self, circuit_id, am_originator, candidate, data):
+    def __handle_incoming(self, circuit_id, am_originator, sock_addr, data):
         # Let packet_crypto handle decrypting the incoming packet
-        data = self.packet_crypto.handle_incoming_packet(candidate, circuit_id, data)
+        data = self.packet_crypto.handle_incoming_packet(sock_addr, circuit_id, data)
 
         if not data:
             self._logger.error("Circuit ID {0} doesn't talk crypto language, dropping packet".format(circuit_id))
@@ -317,20 +322,20 @@ class ProxyCommunity(Community):
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
 
         # Let packet_crypto handle decrypting packet contents
-        payload = self.packet_crypto.handle_incoming_packet_content(candidate, circuit_id, payload, packet_type)
+        payload = self.packet_crypto.handle_incoming_packet_content(sock_addr, circuit_id, payload, packet_type)
 
         # If un-decrypt-able, drop packet
         if not payload:
             self._logger.warning("IGNORED %s from %s:%d over circuit %d",
-                                 str_type, candidate.sock_addr[0],
-                                 candidate.sock_addr[1], circuit_id)
+                                 str_type, sock_addr[0],
+                                 sock_addr[1], circuit_id)
             return False
 
         if am_originator:
             self.circuits[circuit_id].beat_heart()
 
         handler = self._message_handlers[packet_type]
-        result = handler(circuit_id, candidate, payload)
+        result = handler(circuit_id, sock_addr, payload)
 
         if result:
             self.__dict_inc(u"success", str_type)
@@ -372,7 +377,7 @@ class ProxyCommunity(Community):
         )
 
         self.send_packet(
-            destination=Candidate(next_relay.sock_addr, False),
+            destination=next_relay.sock_addr,
             circuit_id=next_relay.circuit_id,
             message_type=packet_type,
             packet=data,
@@ -398,19 +403,11 @@ class ProxyCommunity(Community):
         is_originator = not is_relay and circuit_id in self.circuits
         is_initial = not is_relay and not is_originator
 
-        result = False
-
         try:
             if is_relay:
                 result = self.__relay(circuit_id, data, relay_key, sock_addr)
             else:
-                candidate = self._candidates.get(sock_addr)
-                if isinstance(candidate, WalkCandidate) and candidate.get_member():
-                    result = self.__handle_incoming(circuit_id, is_originator, candidate, data)
-                else:
-                    candidate = None
-                    self._logger.error("Unknown candidate at %s, drop!", sock_addr)
-                    result = False
+                result = self.__handle_incoming(circuit_id, is_originator, sock_addr, data)
         except:
             result = False
             self._logger.exception(
@@ -445,7 +442,7 @@ class ProxyCommunity(Community):
             circuit = Circuit(
                 circuit_id=circuit_id,
                 goal_hops=goal_hops,
-                candidate=first_hop,
+                first_hop=first_hop.sock_addr,
                 proxy=self)
 
             @blocking_call_on_reactor_thread
@@ -473,8 +470,9 @@ class ProxyCommunity(Community):
             self.circuits[circuit_id] = circuit
             self.waiting_for[(first_hop.sock_addr, circuit_id)] = True
 
-            self.send_message(first_hop, circuit_id, MESSAGE_CREATE,
-                              CreateMessage("", self.my_member.public_key))
+            destination_key = first_hop.get_member()._ec
+            self.send_message(first_hop.sock_addr, circuit_id, MESSAGE_CREATE,
+                              CreateMessage("", self.my_member.public_key, destination_key))
 
             return circuit
 
@@ -525,19 +523,19 @@ class ProxyCommunity(Community):
             return True
         return False
 
-    def on_create(self, circuit_id, candidate, message):
+    def on_create(self, circuit_id, sock_addr, message):
         """
         Handle incoming CREATE message, acknowledge the CREATE request with a
         CREATED reply
 
         @param int circuit_id: The circuit's identifier
-        @param Candidate candidate: The candidate we got a CREATE message from
+        @param (string, int) sock_addr: The candidate we got a CREATE message from
         @param CreateMessage message: The message's payload
         """
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
         self.directions[relay_key] = ENDPOINT
         self._logger.info('We joined circuit %d with neighbour %s'
-                          , circuit_id, candidate)
+                          , circuit_id, sock_addr)
 
         candidates = {}
         ''' :type : dict[str, WalkCandidate] '''
@@ -553,33 +551,37 @@ class ProxyCommunity(Community):
 
         candidate_list = [c.get_member().public_key for c in candidates.itervalues()]
 
-        self.create_created_cache(circuit_id, candidate, candidates)
+        self.create_created_cache(circuit_id, sock_addr, candidates)
 
         if self.notifier:
             from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
 
             self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED,
-                                 candidate.sock_addr, circuit_id)
+                                 sock_addr, circuit_id)
 
         return self.send_message(
-            destination=candidate,
+            destination=sock_addr,
             circuit_id=circuit_id,
             message_type=MESSAGE_CREATED,
             message=CreatedMessage(candidate_list, reply_to=message)
         )
 
-    def on_created(self, circuit_id, candidate, message):
+    def on_created(self, circuit_id, sock_addr, message):
         """ Handle incoming CREATED messages relay them backwards towards
         the originator if necessary
 
         @param int circuit_id: The circuit's id we got a CREATED message on
-        @param Candidate candidate: The candidate we got the message from
+        @param (string, int) sock_addr: The candidate we got the message from
         @param CreatedMessage message: The message we received
 
         @return: whether the message could be handled correctly
 
         """
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
+
+        if not relay_key in self.waiting_for:
+            self._logger.error("Got an unexpected CREATED message for circuit %d from %s:%d", circuit_id, *sock_addr)
+            return False
 
         del self.waiting_for[relay_key]
         self.directions[relay_key] = ORIGINATOR
@@ -590,8 +592,7 @@ class ProxyCommunity(Community):
                                                message.candidate_list)
             forwarding_relay = self.relay_from_to[relay_key]
 
-            candidate = Candidate(forwarding_relay.sock_addr, False)
-            return self.send_message(candidate, forwarding_relay.circuit_id,
+            return self.send_message(forwarding_relay.sock_addr, forwarding_relay.circuit_id,
                                      MESSAGE_EXTENDED, extended_message)
 
         # This is ours!
@@ -659,7 +660,7 @@ class ProxyCommunity(Community):
 
         return True
 
-    def on_data(self, circuit_id, candidate, message):
+    def on_data(self, circuit_id, sock_addr, message):
         """
         Handles incoming DATA message
 
@@ -674,7 +675,7 @@ class ProxyCommunity(Community):
         on_exiting_from_tunnel method.
 
         @param int circuit_id: the circuit's id we received the DATA message on
-        @param Candidate|None candidate: the messenger of the packet
+        @param (string, int) sock_addr: the messenger of the packet
         @param DataMessage message: the message's content
 
         @return: whether the message could be handled correctly
@@ -684,7 +685,7 @@ class ProxyCommunity(Community):
         # circuit and the DATA's destination is set to the zero-address then
         # the packet is from the outside world and addressed to us from
         if circuit_id in self.circuits and message.origin \
-                and candidate == self.circuits[circuit_id].candidate:
+                and sock_addr == self.circuits[circuit_id].first_hop:
 
             self.circuits[circuit_id].beat_heart()
             for observer in self.observers:
@@ -695,12 +696,12 @@ class ProxyCommunity(Community):
         if message.destination != ('0.0.0.0', 0):
 
             for observer in self.observers:
-                observer.on_exiting_from_tunnel(circuit_id, candidate, message.destination, message.data)
+                observer.on_exiting_from_tunnel(circuit_id, sock_addr, message.destination, message.data)
 
             return True
         return False
 
-    def on_extend(self, circuit_id, candidate, message):
+    def on_extend(self, circuit_id, sock_addr, message):
         """
         Upon reception of a EXTEND message the message is forwarded over the
         Circuit if possible. At the end of the circuit a CREATE request is
@@ -708,14 +709,14 @@ class ProxyCommunity(Community):
         eventually be received and propagated back along the Circuit.
 
         @param int circuit_id: the circuit's id we got the EXTEND message on
-        @param Candidate candidate: the relay which sent us the EXTEND
+        @param (string, int) sock_addr: the relay which sent us the EXTEND
         @param ExtendMessage message: the message's content
 
         @return: whether the message could be handled correctly
         """
 
         if message.extend_with:
-            cache = self.pop_created_cache(circuit_id, candidate)
+            cache = self.pop_created_cache(circuit_id, sock_addr)
 
             if not cache:
                 self._logger.warning("Cannot find created cache for circuit %d", circuit_id)
@@ -725,7 +726,7 @@ class ProxyCommunity(Community):
 
             self._logger.warning(
                 "ON_EXTEND send CREATE for circuit (%s, %d) to %s:%d!",
-                candidate,
+                sock_addr,
                 circuit_id,
                 extend_candidate.sock_addr[0],
                 extend_candidate.sock_addr[1])
@@ -733,7 +734,7 @@ class ProxyCommunity(Community):
             self._logger.error("Cancelling EXTEND, no candidate!")
             return
 
-        relay_key = (candidate.sock_addr, circuit_id)
+        relay_key = (sock_addr, circuit_id)
         if relay_key in self.relay_from_to:
             current_relay = self.relay_from_to[relay_key]
             assert not current_relay.online, \
@@ -750,8 +751,7 @@ class ProxyCommunity(Community):
         to_key = (extend_candidate.sock_addr, new_circuit_id)
 
         self.waiting_for[to_key] = True
-        self.relay_from_to[to_key] = RelayRoute(circuit_id,
-                                                candidate.sock_addr)
+        self.relay_from_to[to_key] = RelayRoute(circuit_id, sock_addr)
         self.relay_from_to[relay_key] = RelayRoute(new_circuit_id,
                                                    extend_candidate.sock_addr)
 
@@ -761,8 +761,9 @@ class ProxyCommunity(Community):
         self.directions[relay_key] = ENDPOINT
 
         self._logger.info("Extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
-        return self.send_message(extend_candidate, new_circuit_id,
-                                 MESSAGE_CREATE, CreateMessage(key, self.my_member.public_key))
+        destination_key = extend_candidate.get_member()._ec
+        return self.send_message(extend_candidate.sock_addr, new_circuit_id,
+                                 MESSAGE_CREATE, CreateMessage(key, self.my_member.public_key, destination_key))
 
     def on_extended(self, circuit_id, candidate, message):
         """
@@ -770,7 +771,7 @@ class ProxyCommunity(Community):
         origin of the EXTEND. If we are the origin update our records.
 
         @param int circuit_id: the circuit's id we got the EXTENDED message on
-        @param Candidate candidate: the relay which sent us the EXTENDED
+        @param (string, int) sock_addr: the relay which sent us the EXTENDED
         @param ExtendedMessage message: the message's content
 
         @return: whether the message could be handled correctly
@@ -779,12 +780,12 @@ class ProxyCommunity(Community):
         circuit = self.circuits[circuit_id]
         return self._ours_on_created_extended(circuit, message)
 
-    def create_ping(self, candidate, circuit):
+    def create_ping(self, sock_addr, circuit):
         """
         Creates, sends and keeps track of a PING message to given candidate on
         the specified circuit.
 
-        @param Candidate candidate: the candidate to which we want to sent a
+        @param (string, int) sock_addr: the candidate to which we want to sent a
             ping
         @param Circuit circuit: the circuit id to sent the ping over
         """
@@ -798,32 +799,32 @@ class ProxyCommunity(Community):
         _create_ping()
         self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
 
-        self.send_message(candidate, circuit_id, MESSAGE_PING, PingMessage())
+        self.send_message(sock_addr, circuit_id, MESSAGE_PING, PingMessage())
 
-    def on_ping(self, circuit_id, candidate, message):
+    def on_ping(self, circuit_id, sock_addr, message):
         """
         Upon reception of a PING message we respond with a PONG message
 
         @param int circuit_id: the circuit's id we got the PING from
-        @param Candidate candidate: the relay we got the PING from
+        @param (string, int) sock_addr: the relay we got the PING from
         @param PingMessage message: the message's content
 
         @return: whether the message could be handled correctly
         """
         self._logger.debug("GOT PING FROM CIRCUIT {0}".format(circuit_id))
         return self.send_message(
-            destination=candidate,
+            destination=sock_addr,
             circuit_id=circuit_id,
             message_type=MESSAGE_PONG,
             message=PongMessage())
 
-    def on_pong(self, circuit_id, candidate, message):
+    def on_pong(self, circuit_id, sock_addr, message):
         """
         When we receive a PONG message on our circuit we can be sure that the
         circuit is alive and well.
 
         @param int circuit_id: the circuit's id we got the PONG message on
-        @param Candidate candidate: the relay which sent us the PONG
+        @param (string, int) sock_addr: the relay which sent us the PONG
         @param PongMessage message: the message's content
 
         @return: whether the message could be handled correctly
@@ -853,7 +854,7 @@ class ProxyCommunity(Community):
     def send_message(self, destination, circuit_id, message_type, message):
         """
         Send a message to a specified destination and circuit
-        @param Candidate destination: the relay's candidate
+        @param (string, int) destination: the relay's candidate
         @param int circuit_id: the circuit to sent over
         @param str message_type: the messages type, used to determine how to
          serialize it
@@ -877,14 +878,13 @@ class ProxyCommunity(Community):
                     relayed=False):
         """
         Sends a packet to a relay over the specified circuit
-        @param Candidate destination: the relay's candidate structure
+        @param (string, int): the relay's candidate structure
         @param int circuit_id: the circuit to sent over
         @param str message_type: the messages type, for logging purposes
         @param str packet: the messages content in serialised form
         @param bool relayed: whether this is a relay packet or not
         @return: whether the send was successful
         """
-        assert isinstance(destination, Candidate), type(destination)
         assert isinstance(packet, str), type(packet)
 
         packet = self.proxy_conversion.add_circuit(packet, circuit_id)
@@ -893,7 +893,7 @@ class ProxyCommunity(Community):
             message_type, "unknown-type-" + str(ord(message_type)))
 
         # we need to make sure that this endpoint is thread safe
-        return self.dispersy._send_packets([destination], [self.__packet_prefix + packet],
+        return self.dispersy._send_packets([Candidate(destination, False)], [self.__packet_prefix + packet],
             self, '-caused by %s-' % (str_type + ('-relayed' if relayed else '')))
 
     def __dict_inc(self, statistics_dict, key, inc=1):
@@ -924,11 +924,11 @@ class ProxyCommunity(Community):
             to_be_pinged = [
                 circuit for circuit in self.circuits.values()
                 if circuit.ping_time_remaining < PING_INTERVAL
-                and circuit.candidate]
+                and circuit.first_hop]
 
             # self._logger.info("pinging %d circuits", len(to_be_pinged))
             for circuit in to_be_pinged:
-                self.create_ping(circuit.candidate, circuit)
+                self.create_ping(circuit.first_hop, circuit)
         except Exception:
             self._logger.error("Ping error")
             raise
@@ -951,19 +951,19 @@ class ProxyCommunity(Community):
                 observer.on_exiting_from_tunnel(circuit.circuit_id, None, ultimate_destination, payload)
         else:
             self.send_message(
-                circuit.candidate, circuit.circuit_id, MESSAGE_DATA,
+                circuit.first_hop, circuit.circuit_id, MESSAGE_DATA,
                 DataMessage(ultimate_destination, payload, None))
 
             for observer in self.observers:
-                observer.on_send_data(circuit.circuit_id, circuit.candidate, ultimate_destination, payload)
+                observer.on_send_data(circuit.circuit_id, circuit.first_hop, ultimate_destination, payload)
 
-    def tunnel_data_to_origin(self, circuit_id, candidate, source_address,
+    def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address,
                               payload):
         """
         Tunnel data to originator
 
         @param int circuit_id: The circuit's id to return data over
-        @param Candidate candidate: The relay to return data over
+        @param Candidate sock_addr: The relay to return data over
         @param (str, int) source_address: The source outside the tunnel
             community
         @param str payload: The raw payload to return to the originator
@@ -972,12 +972,12 @@ class ProxyCommunity(Community):
         """
         with self.lock:
             result = self.send_message(
-                candidate, circuit_id, MESSAGE_DATA,
+                sock_addr, circuit_id, MESSAGE_DATA,
                 DataMessage(None, payload, source_address))
 
             if result:
                 for observer in self.observers:
-                    observer.on_enter_tunnel(circuit_id, candidate, source_address, payload)
+                    observer.on_enter_tunnel(circuit_id, sock_addr, source_address, payload)
 
             return result
 

@@ -104,7 +104,7 @@ class TestProxyCommunity(TestAsServer):
 
         # Newly created circuit should be stored in circuits dict
         self.assertIsInstance(circuit, Circuit)
-        self.assertEqual(create_sender, circuit.candidate)
+        self.assertEqual(create_sender, circuit.first_hop)
         self.assertEqual(hops, circuit.goal_hops)
         self.assertIn(circuit.circuit_id, self.community.circuits)
         self.assertEqual(circuit, self.community.circuits[circuit.circuit_id])

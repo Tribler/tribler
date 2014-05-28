@@ -19,12 +19,13 @@ class PongMessage(BaseMessage):
 
 
 class CreateMessage(BaseMessage):
-    def __init__(self, key="\0"*336, public_key=""):
+    def __init__(self, key="\0"*336, public_key="", destination_key=""):
         assert isinstance(key, basestring)
         assert isinstance(public_key, basestring)
 
         self.key = key
         self.public_key = public_key
+        self.destination_key = destination_key
 
 
 class CreatedMessage(BaseMessage):

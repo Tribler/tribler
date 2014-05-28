@@ -43,7 +43,7 @@ class TrustThyNeighbour(ExtendStrategy):
 
         self._logger.info("Trusting our tunnel to extend circuit %d",
                     self.circuit.circuit_id)
-        self.proxy.send_message(self.circuit.candidate,
+        self.proxy.send_message(self.circuit.first_hop,
                                 self.circuit.circuit_id, MESSAGE_EXTEND,
                                 ExtendMessage(None))
 
@@ -75,7 +75,6 @@ class NeighbourSubset(ExtendStrategy):
         extend_hop_public_key = self.proxy.dispersy.crypto.key_from_public_bin(extend_hop_public_bin)
         hashed_public_key = self.proxy.dispersy.crypto.key_to_hash(extend_hop_public_key)
 
-        self.circuit.candidate.pub_key = extend_hop_public_key
         self.circuit.unverified_hop = Hop(extend_hop_public_key)
 
         try:
@@ -84,7 +83,7 @@ class NeighbourSubset(ExtendStrategy):
                 hashed_public_key, self.circuit.circuit_id)
 
             self.proxy.send_message(
-                self.circuit.candidate, self.circuit.circuit_id,
+                self.circuit.first_hop, self.circuit.circuit_id,
                 MESSAGE_EXTEND,
                 ExtendMessage(extend_hop_public_bin))
         except BaseException:

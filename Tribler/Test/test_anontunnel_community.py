@@ -24,8 +24,21 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.Call(1, take_second_screenshot)
 
         def on_fail(expected, reason, do_assert):
+            from Tribler.community.anontunnel.community import ProxyCommunity
+            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+
+            dispersy = self.session.lm.dispersy
+            ''' :type : Dispersy '''
+            proxy_community = next(c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity))
+
             self.guiUtility.ShowPage('anonymity')
-            self.Call(1, lambda: self.assert_(expected, reason, do_assert))
+
+            def do_asserts():
+                self.assert_(LibtorrentMgr.getInstance().ltsession_anon is not None, "Anon session should have been created", False)
+                self.assert_(len(proxy_community.circuits) >= 4, "At least 4 circuits should have been created", False)
+                self.assert_(expected, reason, do_assert)
+
+            self.Call(1, do_asserts)
 
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()
