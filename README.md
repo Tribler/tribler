@@ -5,7 +5,23 @@ We make use of submodules, so remember using the --recursive argument when cloni
 ## Dependencies
 
 ### Debian/Ubuntu/Mint
-sudo apt-get install scons build-essential libevent-dev python-libtorrent python-apsw python-wxgtk2.8 python-netifaces python-m2crypto vlc python-igraph python-pyasn1, python-gmpy
+```sh
+sudo apt-get install scons build-essential libevent-dev \
+                     python-libtorrent python-apsw \
+                     python-wxgtk2.8 python-netifaces \
+                     python-m2crypto vlc python-igraph \
+                     python-pyasn1 python-gmpy
+```
+
+### Fedora
+```sh
+sudo yum group install "Development Tools" -y
+sudo yum install scons libevent-devel python-apsw \
+                 python-netifaces vlc python-igraph \
+                 python-pyasn1 gmpy gmp-devel python-pip \
+                 rb_libtorrent-python wxPython
+sudo pip install gmpy m2crypto twisted
+```
 
 ### Windows
 TODO
