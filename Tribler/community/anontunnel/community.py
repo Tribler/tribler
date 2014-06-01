@@ -45,10 +45,10 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(3, 3)
+        length = random.randint(0,0)
 
         self.max_circuits = 1
-        self.delay = 300
+        self.delay = 5
 
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
@@ -198,7 +198,7 @@ class ProxyCommunity(Community):
 
                 if goal_hops == 0:
                     circuit_id = self._generate_circuit_id()
-                    self.circuits[circuit_id] = Circuit(circuit_id, self)
+                    self.circuits[circuit_id] = Circuit(circuit_id,proxy=self)
 
                     first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
                     if first_pool:
