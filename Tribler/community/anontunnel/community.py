@@ -842,12 +842,12 @@ class ProxyCommunity(Community):
         return False
 
     def _generate_circuit_id(self, neighbour=None):
-        circuit_id = random.randint(1, 255000)
+        circuit_id = random.getrandbits(32)
 
         # prevent collisions
         while circuit_id in self.circuits or \
                 (neighbour and (neighbour, circuit_id) in self.relay_from_to):
-            circuit_id = random.randint(1, 255000)
+            circuit_id = random.getrandbits(32)
 
         return circuit_id
 
