@@ -121,6 +121,11 @@ mkdir dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_stable dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_unstable dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 
+mkdir dist\installdir\Tribler\community
+mkdir dist\installdir\Tribler\community\privatesemantic
+mkdir dist\installdir\Tribler\community\privatesemantic\crypto
+copy Tribler\community\privatesemantic\crypto\curves.ec dist\installdir\Tribler\community\privatesemantic\crypto
+
 copy logger.conf dist\installdir
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
