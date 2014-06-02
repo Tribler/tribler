@@ -884,7 +884,7 @@ class ProxyCommunity(Community):
             to_be_removed = [
                 self.remove_relay(relay_key, 'no activity')
                 for relay_key, relay in self.relay_from_to.items()
-                if relay.last_incoming < time.time() - 60.0 == 0]
+                if relay.last_incoming < time.time() - 60.0]
 
             self._logger.info("removed %d relays", len(to_be_removed))
             assert all(to_be_removed)
@@ -940,7 +940,7 @@ class ProxyCommunity(Community):
         Tunnel data to originator
 
         @param int circuit_id: The circuit's id to return data over
-        @param Candidate sock_addr: The relay to return data over
+        @param (str, int) sock_addr: The relay to return data over
         @param (str, int) source_address: The source outside the tunnel
             community
         @param str payload: The raw payload to return to the originator
