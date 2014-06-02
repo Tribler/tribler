@@ -28,7 +28,7 @@ class Circuit:
         assert isinstance(circuit_id, long)
         assert isinstance(goal_hops, int)
         assert proxy is None or isinstance(proxy, ProxyCommunity)
-        assert first_hop is None or isinstance(first_hop, tuple) and isinstance(first_hop[0], basestring) and isinstance(first_hop[0], int)
+        assert first_hop is None or isinstance(first_hop, tuple) and isinstance(first_hop[0], basestring) and isinstance(first_hop[1], int)
 
         self._broken = False
         self._hops = []
