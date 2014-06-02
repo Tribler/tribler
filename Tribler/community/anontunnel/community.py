@@ -884,7 +884,7 @@ class ProxyCommunity(Community):
             to_be_removed = [
                 self.remove_relay(relay_key, 'no activity')
                 for relay_key, relay in self.relay_from_to.items()
-                if relay.ping_time_remaining == 0]
+                if relay.last_incoming < time.time() - 60.0 == 0]
 
             self._logger.info("removed %d relays", len(to_be_removed))
             assert all(to_be_removed)
@@ -894,7 +894,7 @@ class ProxyCommunity(Community):
                 for circuit in self.active_circuits.values()
                 if circuit.last_incoming < time.time() - 2.5 * PING_INTERVAL]
 
-            self._logger.error("Broke %d circuits", len(circuits_to_be_removed))
+            self._logger.error("broke %d circuits", len(circuits_to_be_removed))
             assert all(circuits_to_be_removed)
 
             to_be_pinged = [

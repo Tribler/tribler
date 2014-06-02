@@ -29,6 +29,8 @@ class RoundRobin(SelectionStrategy):
         self.index = -1
 
     def select(self, circuits_to_select_from):
+        if not circuits_to_select_from:
+            raise ValueError("Variable circuits_to_select must be a list of circuits")
         self.index = (self.index + 1) % len(circuits_to_select_from)
         return circuits_to_select_from[self.index]
 
