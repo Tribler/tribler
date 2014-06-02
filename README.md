@@ -19,8 +19,8 @@ sudo yum group install "Development Tools" -y
 sudo yum install scons libevent-devel python-apsw \
                  python-netifaces vlc python-igraph \
                  python-pyasn1 gmpy gmp-devel python-pip \
-                 rb_libtorrent-python wxPython
-sudo pip install gmpy m2crypto twisted
+                 rb_libtorrent-python wxPython python-devel
+sudo pip install m2crypto twisted
 ```
 
 ### Windows
