@@ -102,6 +102,8 @@ class Session(SessionConfigInterface):
         if scfg.get_swift_path() is None:
             if sys.platform == "win32":
                 scfg.set_swift_path(os.path.join(scfg.get_install_dir(), "swift.exe"))
+            elif 'ANDROID_HOST' in os.environ and os.environ['ANDROID_HOST'].startswith("ANDROID"):
+                scfg.set_swift_path(os.path.join(os.environ['ANDROID_PRIVATE'], 'swift'))
             else:
                 scfg.set_swift_path(os.path.join(scfg.get_install_dir(), "swift"))
 
