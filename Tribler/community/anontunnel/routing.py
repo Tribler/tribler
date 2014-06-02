@@ -3,6 +3,7 @@ import logging
 import threading
 import time
 from M2Crypto.EC import EC_pub
+
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY, \
     CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, PING_INTERVAL
@@ -19,9 +20,15 @@ class Circuit:
         Instantiate a new Circuit data structure
         :type proxy: ProxyCommunity
         :param int circuit_id: the id of the candidate circuit
-        :param WalkCandidate first_hop: the first hop of the circuit
+        :param (str, int) first_hop: the first hop of the circuit
         :return: Circuit
         """
+
+        from Tribler.community.anontunnel.community import ProxyCommunity
+        assert isinstance(circuit_id, long)
+        assert isinstance(goal_hops, int)
+        assert proxy is None or isinstance(proxy, ProxyCommunity)
+        assert first_hop is None or isinstance(first_hop, tuple) and isinstance(first_hop[0], basestring) and isinstance(first_hop[0], int)
 
         self._broken = False
         self._hops = []

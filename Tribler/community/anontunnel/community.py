@@ -47,7 +47,7 @@ class ProxySettings:
         length = random.randint(3, 3)
 
         self.max_circuits = 1
-        self.delay = 5
+        self.delay = 300
 
         self.extend_strategy = extendstrategies.NeighbourSubset
         self.select_strategy = selectionstrategies.RoundRobin()
