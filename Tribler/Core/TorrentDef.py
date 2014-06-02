@@ -149,6 +149,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         assert callable(callback), "CALLBACK must be callable"
 
         def metainfo_retrieved(metadata):
+            tdef = None
             try:
                 tdef = TorrentDef.load_from_dict(metadata)
             except UnicodeDecodeError:
