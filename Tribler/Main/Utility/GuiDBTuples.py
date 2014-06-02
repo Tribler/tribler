@@ -1,7 +1,7 @@
 # Niels: getValidArgs based on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
 import binascii
 import logging
-import os.path
+import os
 import sys
 from inspect import getargspec
 from time import time
@@ -13,10 +13,12 @@ from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING,
                                      DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA)
-from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM, data2wxBitmap
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+
+if not 'ANDROID_HOST' in os.environ:
+    from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS
+    from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM, data2wxBitmap
 
 
 logger = logging.getLogger(__name__)
