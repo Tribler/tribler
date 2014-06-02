@@ -315,7 +315,7 @@ class ProxyCommunity(Community):
             _, payload = self.proxy_conversion.decode(data)
         except KeyError as e:
             self._logger.warning("Cannot decode payload, probably orphaned session")
-            return False;
+            return False
 
         packet_type = self.proxy_conversion.get_type(data)
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
@@ -383,7 +383,7 @@ class ProxyCommunity(Community):
             relayed=True
         )
 
-        self.__dict_inc(u"success", str_type + '-relayed')
+        self.__dict_inc(u"success", 'relayed')
 
         return True
 
@@ -881,6 +881,8 @@ class ProxyCommunity(Community):
 
     def __ping_circuits(self):
         try:
+            circuits = [c for c in self.active_circuits.values() if c.goal_hops > 0]
+
             to_be_removed = [
                 self.remove_relay(relay_key, 'no activity')
                 for relay_key, relay in self.relay_from_to.items()
@@ -891,18 +893,14 @@ class ProxyCommunity(Community):
 
             circuits_to_be_removed = [
                 self.remove_circuit(circuit.circuit_id, 'ping timeout')
-                for circuit in self.active_circuits.values()
-                if circuit.last_incoming < time.time() - 2.5 * PING_INTERVAL]
+                for circuit in circuits
+                if circuit.last_incoming < time.time() - 3.5 * PING_INTERVAL]
 
             self._logger.error("broke %d circuits", len(circuits_to_be_removed))
             assert all(circuits_to_be_removed)
 
-            to_be_pinged = [
-                circuit for circuit in self.active_circuits.values()
-                if circuit.goal_hops > 0]
-
-            self._logger.error("pinging %d circuits", len(to_be_pinged))
-            for circuit in to_be_pinged:
+            self._logger.error("pinging %d circuits", len(circuits))
+            for circuit in circuits:
                 self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit.circuit_id))
                 self.send_message(circuit.first_hop, circuit.circuit_id, MESSAGE_PING, PingMessage())
 
