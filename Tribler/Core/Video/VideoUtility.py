@@ -92,7 +92,8 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
             def GetImageData():
                 return wx.Bitmap(outputfile, wx.BITMAP_TYPE_ANY).ConvertToImage().GetData()
             results.append((colourfulness(GetImageData()), timecode))
-            os.remove(outputfile)
+            if os.path.exists(outputfile):
+                os.remove(outputfile)
 
     results.sort()
     results.reverse()

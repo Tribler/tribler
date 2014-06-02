@@ -29,7 +29,7 @@ def getUniformedURL(tracker_url):
     try:
         unicode(tracker_url)
     except Exception:
-        logger.exception(u"Bad URL")
+        logger.warn("Bad tracker URL [%s]" % tracker_url)
         return None
 
     tracker_url = tracker_url.strip()
@@ -80,3 +80,4 @@ def getUniformedURL(tracker_url):
         return None
     else:
         return uniformed_url
+
