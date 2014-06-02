@@ -18,9 +18,9 @@ sudo apt-get install scons build-essential libevent-dev \
 sudo yum group install "Development Tools" -y
 sudo yum install scons libevent-devel python-apsw \
                  python-netifaces vlc python-igraph \
-                 python-pyasn1 gmpy gmp-devel python-pip \
-                 rb_libtorrent-python wxPython python-devel
-sudo pip install m2crypto twisted
+                 python-pyasn1 gmpy gmp-devel m2crypto \
+                 rb_libtorrent-python wxPython \
+                 python-devel python-twisted
 ```
 
 ### Windows
