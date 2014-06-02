@@ -66,35 +66,6 @@ class CircuitRequestCache(NumberCache):
     def create_identifier(cls, circuit):
         return circuit.circuit_id
 
-
-class PingRequestCache(NumberCache):
-    PREFIX = u"anon-ping"
-
-    """
-    Request cache that is used to time-out PING messages
-
-    @param ProxyCommunity community: instance of the ProxyCommunity
-    @param force_number:
-    """
-    def __init__(self, community, circuit):
-        NumberCache.__init__(self, community.request_cache, self.PREFIX, circuit.circuit_id)
-
-        self.circuit = circuit
-        self.community = community
-
-    @property
-    def timeout_delay(self):
-        return 10.0
-
-    @call_on_reactor_thread
-    def on_pong(self, message):
-        self.community.circuits[self.number].beat_heart()
-        self.community.request_cache.pop(self.PREFIX, self.number)
-
-    def on_timeout(self):
-        self.community.remove_circuit(self.number, 'ping time out')
-
-
 class CreatedRequestCache(NumberCache):
     PREFIX = u"anon-created"
 

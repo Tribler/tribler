@@ -13,7 +13,7 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
 from Tribler.community.anontunnel import crypto, extendstrategies, selectionstrategies, lengthstrategies
-from Tribler.community.anontunnel.cache import CircuitRequestCache, PingRequestCache, CreatedRequestCache
+from Tribler.community.anontunnel.cache import CircuitRequestCache, CreatedRequestCache
 from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion
 from Tribler.community.anontunnel.globals import (MESSAGE_EXTEND, MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_DATA,
                                                   MESSAGE_EXTENDED, MESSAGE_PING, MESSAGE_PONG, MESSAGE_TYPE_STRING,
@@ -37,7 +37,6 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_react
 __author__ = 'chris'
 
 
-
 class ProxySettings:
     """
     Data structure containing settings, including some defaults,
@@ -45,7 +44,7 @@ class ProxySettings:
     """
 
     def __init__(self):
-        length = random.randint(0,0)
+        length = random.randint(3, 3)
 
         self.max_circuits = 1
         self.delay = 5
@@ -780,27 +779,6 @@ class ProxyCommunity(Community):
         circuit = self.circuits[circuit_id]
         return self._ours_on_created_extended(circuit, message)
 
-    def create_ping(self, sock_addr, circuit):
-        """
-        Creates, sends and keeps track of a PING message to given candidate on
-        the specified circuit.
-
-        @param (string, int) sock_addr: the candidate to which we want to sent a
-            ping
-        @param Circuit circuit: the circuit id to sent the ping over
-        """
-        circuit_id = circuit.circuit_id
-        @call_on_reactor_thread
-        def _create_ping():
-            if not self._request_cache.has(PingRequestCache.PREFIX, circuit_id):
-                cache = PingRequestCache(self, circuit)
-                self._request_cache.add(cache)
-
-        _create_ping()
-        self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
-
-        self.send_message(sock_addr, circuit_id, MESSAGE_PING, PingMessage())
-
     def on_ping(self, circuit_id, sock_addr, message):
         """
         Upon reception of a PING message we respond with a PONG message
@@ -829,17 +807,7 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-
-        @blocking_call_on_reactor_thread
-        def pop_cache():
-            return self._request_cache.pop(PingRequestCache.PREFIX, circuit_id)
-
-        request = pop_cache()
-
-        if request:
-            request.on_pong(message)
-            return True
-        return False
+        return True
 
     def _generate_circuit_id(self, neighbour=None):
         circuit_id = random.getrandbits(32)
@@ -921,14 +889,23 @@ class ProxyCommunity(Community):
             self._logger.info("removed %d relays", len(to_be_removed))
             assert all(to_be_removed)
 
-            to_be_pinged = [
-                circuit for circuit in self.circuits.values()
-                if circuit.ping_time_remaining < PING_INTERVAL
-                and circuit.first_hop]
+            circuits_to_be_removed = [
+                self.remove_circuit(circuit.circuit_id, 'ping timeout')
+                for circuit in self.active_circuits.values()
+                if circuit.last_incoming < time.time() - 2.5 * PING_INTERVAL]
 
-            # self._logger.info("pinging %d circuits", len(to_be_pinged))
+            self._logger.error("Broke %d circuits", len(circuits_to_be_removed))
+            assert all(circuits_to_be_removed)
+
+            to_be_pinged = [
+                circuit for circuit in self.active_circuits.values()
+                if circuit.goal_hops > 0]
+
+            self._logger.error("pinging %d circuits", len(to_be_pinged))
             for circuit in to_be_pinged:
-                self.create_ping(circuit.first_hop, circuit)
+                self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit.circuit_id))
+                self.send_message(circuit.first_hop, circuit.circuit_id, MESSAGE_PING, PingMessage())
+
         except Exception:
             self._logger.error("Ping error")
             raise

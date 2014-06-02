@@ -68,22 +68,6 @@ class Circuit:
         else:
             return CIRCUIT_STATE_READY
 
-    @property
-    def ping_time_remaining(self):
-        """
-        The time left before we consider the circuit inactive, when it returns
-        0 a PING must be sent to keep the circuit, including relays at its hop,
-        alive.
-        """
-        too_old = time.time() - 2 * PING_INTERVAL
-        diff = self.last_incoming - too_old
-        return diff if diff > 0 else 0
-
-    def __contains__(self, other):
-        if isinstance(other, Candidate):
-            # TODO: should compare to a list here
-            return other == self.first_hop
-
     def beat_heart(self):
         """
         Mark the circuit as active
@@ -166,15 +150,6 @@ class RelayRoute(object):
         self.circuit_id = circuit_id
         self.online = False
         self.last_incoming = time.time()
-
-    @property
-    def ping_time_remaining(self):
-        """
-        The time left before we consider the relay inactive
-        """
-        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
-        diff = self.last_incoming - too_old
-        return diff if diff > 0 else 0
 
 
 class CircuitPool(TunnelObserver):
