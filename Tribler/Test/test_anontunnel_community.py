@@ -20,7 +20,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
         def take_screenshot(download_time):
             self.screenshot("After an anonymous libtorrent download (took %.2f s)" % download_time)
-            self.guiUtility.ShowPage('anonymity')
+            self.guiUtility.ShowPage('networkgraph')
             self.Call(1, take_second_screenshot)
 
         def on_fail(expected, reason, do_assert):
@@ -31,7 +31,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             ''' :type : Dispersy '''
             proxy_community = next(c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity))
 
-            self.guiUtility.ShowPage('anonymity')
+            self.guiUtility.ShowPage('networkgraph')
 
             def do_asserts():
                 self.assert_(LibtorrentMgr.getInstance().ltsession_anon is not None, "Anon session should have been created", False)
