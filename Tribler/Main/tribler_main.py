@@ -143,12 +143,13 @@ ALLOW_MULTIPLE = False
 
 class ABCApp():
 
-    def __init__(self, params, installdir):
+    def __init__(self, params, installdir, is_unit_testing=False):
         assert not isInIOThread(), "isInIOThread() seems to not be working correctly"
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.params = params
         self.installdir = installdir
+        self.is_unit_testing = is_unit_testing
 
         self.state_dir = None
         self.error = None
@@ -483,23 +484,26 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member)
 
-            keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
-            dispersy_member = dispersy.get_member(
-                private_key=dispersy.crypto.key_to_bin(keypair),
-            )
+            if not self.is_unit_testing:
+                keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+                dispersy_member = dispersy.get_member(
+                    private_key=dispersy.crypto.key_to_bin(keypair),
+                )
 
-            proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, load=True,
+                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, load=True,
                                                         kargs={'tribler_session': session})[0]
 
-            socks_server = Socks5Server(proxy_community, session.lm.rawserver, session.get_proxy_community_socks5_listen_port())
-            socks_server.start()
-            exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
-            proxy_community.observers.append(exit_strategy)
+                socks_server = Socks5Server(proxy_community, session.lm.rawserver, session.get_proxy_community_socks5_listen_port())
+                socks_server.start()
+                exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
+                proxy_community.observers.append(exit_strategy)
+
+                session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_proxy_community_socks5_listen_port()))
+
 
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
-        session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_proxy_community_socks5_listen_port()))
 
         swift_process = session.get_swift_proc() and session.get_swift_process()
         dispersy = session.get_dispersy_instance()
@@ -1109,7 +1113,7 @@ class ABCApp():
 #
 #
 @attach_profiler
-def run(params=None):
+def run(params=None, is_unit_testing=False):
     if params is None:
         params = [""]
 
@@ -1146,7 +1150,7 @@ def run(params=None):
             app = wx.GetApp()
             if not app:
                 app = wx.PySimpleApp(redirect=False)
-            abc = ABCApp(params, installdir)
+            abc = ABCApp(params, installdir, is_unit_testing)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)

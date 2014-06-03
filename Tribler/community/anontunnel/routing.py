@@ -3,6 +3,7 @@ import logging
 import threading
 import time
 from M2Crypto.EC import EC_pub
+
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY, \
     CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, PING_INTERVAL
@@ -19,9 +20,15 @@ class Circuit:
         Instantiate a new Circuit data structure
         :type proxy: ProxyCommunity
         :param int circuit_id: the id of the candidate circuit
-        :param WalkCandidate first_hop: the first hop of the circuit
+        :param (str, int) first_hop: the first hop of the circuit
         :return: Circuit
         """
+
+        from Tribler.community.anontunnel.community import ProxyCommunity
+        assert isinstance(circuit_id, long)
+        assert isinstance(goal_hops, int)
+        assert proxy is None or isinstance(proxy, ProxyCommunity)
+        assert first_hop is None or isinstance(first_hop, tuple) and isinstance(first_hop[0], basestring) and isinstance(first_hop[1], int)
 
         self._broken = False
         self._hops = []
@@ -67,22 +74,6 @@ class Circuit:
             return CIRCUIT_STATE_EXTENDING
         else:
             return CIRCUIT_STATE_READY
-
-    @property
-    def ping_time_remaining(self):
-        """
-        The time left before we consider the circuit inactive, when it returns
-        0 a PING must be sent to keep the circuit, including relays at its hop,
-        alive.
-        """
-        too_old = time.time() - 2 * PING_INTERVAL
-        diff = self.last_incoming - too_old
-        return diff if diff > 0 else 0
-
-    def __contains__(self, other):
-        if isinstance(other, Candidate):
-            # TODO: should compare to a list here
-            return other == self.first_hop
 
     def beat_heart(self):
         """
@@ -167,22 +158,13 @@ class RelayRoute(object):
         self.online = False
         self.last_incoming = time.time()
 
-    @property
-    def ping_time_remaining(self):
-        """
-        The time left before we consider the relay inactive
-        """
-        too_old = time.time() - CANDIDATE_WALK_LIFETIME - 5.0
-        diff = self.last_incoming - too_old
-        return diff if diff > 0 else 0
-
 
 class CircuitPool(TunnelObserver):
     def __init__(self, size, name):
         super(CircuitPool, self).__init__()
 
         self._logger = logging.getLogger(__name__)
-        self._logger.info("Creating a circuit pool of size %d with name '%s'", size, name)
+        self._logger.warning("Creating a circuit pool of size %d with name '%s'", size, name)
 
         self.lock = threading.RLock()
         self.size = size
@@ -207,12 +189,15 @@ class CircuitPool(TunnelObserver):
                 if circuit not in self.allocated_circuits]
 
     def remove_circuit(self, circuit):
-        self._logger.info("Removing circuit %d from pool '%s'", circuit.circuit_id, self.name)
+        self._logger.warning("Removing circuit %d from pool '%s'", circuit.circuit_id, self.name)
         with self.lock:
+            if circuit in self.allocated_circuits:
+                self.allocated_circuits.remove(circuit)
+
             self.circuits.remove(circuit)
 
     def fill(self, circuit):
-        self._logger.info("Adding circuit %d to pool '%s'", circuit.circuit_id, self.name)
+        self._logger.warning("Adding circuit %d to pool '%s'", circuit.circuit_id, self.name)
 
         with self.lock:
             self.circuits.add(circuit)
@@ -220,7 +205,7 @@ class CircuitPool(TunnelObserver):
                 observer.on_circuit_added(self, circuit)
 
     def deallocate(self, circuit):
-        self._logger.info("Deallocate circuit %d from pool '%s'", circuit.circuit_id, self.name)
+        self._logger.warning("Deallocate circuit %d from pool '%s'", circuit.circuit_id, self.name)
 
         with self.lock:
             self.allocated_circuits.remove(circuit)
@@ -230,7 +215,7 @@ class CircuitPool(TunnelObserver):
             try:
                 circuit = next((c for c in self.circuits if c not in self.allocated_circuits))
                 self.allocated_circuits.add(circuit)
-                self._logger.info("Allocate circuit %d from pool %s", circuit.circuit_id, self.name)
+                self._logger.warning("Allocate circuit %d from pool %s", circuit.circuit_id, self.name)
 
                 return circuit
 

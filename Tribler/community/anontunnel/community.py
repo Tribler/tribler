@@ -13,7 +13,7 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
 from Tribler.community.anontunnel import crypto, extendstrategies, selectionstrategies, lengthstrategies
-from Tribler.community.anontunnel.cache import CircuitRequestCache, PingRequestCache, CreatedRequestCache
+from Tribler.community.anontunnel.cache import CircuitRequestCache, CreatedRequestCache
 from Tribler.community.anontunnel.conversion import CustomProxyConversion, ProxyConversion
 from Tribler.community.anontunnel.globals import (MESSAGE_EXTEND, MESSAGE_CREATE, MESSAGE_CREATED, MESSAGE_DATA,
                                                   MESSAGE_EXTENDED, MESSAGE_PING, MESSAGE_PONG, MESSAGE_TYPE_STRING,
@@ -35,7 +35,6 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_react
 
 
 __author__ = 'chris'
-
 
 
 class ProxySettings:
@@ -106,11 +105,15 @@ class ProxyCommunity(Community):
         self.circuit_pools = []
         ''' :type : list[CircuitPool] '''
 
-    def initialize(self, tribler_session=None, settings=None):
+        self.rawserver = None
+
+    def initialize(self, tribler_session=None, settings=None, rawserver=None):
         super(ProxyCommunity, self).initialize()
 
         self.settings = settings if settings else ProxySettings()
         self._tribler_session = tribler_session
+
+        self.rawserver = rawserver if rawserver else tribler_session.lm.rawserver
 
         # Attach message handlers
         self._initiate_message_handlers()
@@ -128,7 +131,7 @@ class ProxyCommunity(Community):
         try:
             self._dispersy.endpoint.listen_to(self.__packet_prefix, self.__handle_packet)
         except AttributeError:
-            self._logger.error("Cannot listen to our prefix, are you sure that you are using the DispersyBypassEndpoint?")
+            self._logger.exception("Cannot listen to our prefix, are you sure that you are using the DispersyBypassEndpoint?")
 
         if self._tribler_session:
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -141,9 +144,8 @@ class ProxyCommunity(Community):
         self._pending_tasks["discover"] = lc = LoopingCall(self.__discover)
         lc.start(5, now=True)
 
-        self._pending_tasks["ping circuits"] = lc = LoopingCall(self.__ping_circuits)
+        self._pending_tasks["ping circuits"] = lc = LoopingCall(self.ping_circuits)
         lc.start(PING_INTERVAL)
-
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -163,13 +165,7 @@ class ProxyCommunity(Community):
         # jHMFkPhQq5McVzLVqdVzp/4fncipIBvDy2OrGCyeSF0I/0rClPCeFtOSWTCUb4fp
         # HvnEC7tBifnFr2aW9X7sO48vd+erVv2NbWM=
         #-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004" \
-                     "0460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7" \
-                     "b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de" \
-                     "57bb1ac5dec351d172fe692555898ac944b68c730590f850ab93" \
-                     "1c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff" \
-                     "4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696" \
-                     "f57eec3b8f2f77e7ab56fd8d6d63".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405662ec9541ebbf77bc5d47e6ea5d7d60b9bb1ff95caed305a6bb681a229387fb4e9d5f19f6183d93c221ad7e6cd0feb68e87189f76bb46c0c129b5b4373349416ae5683a2b26d6007c744db70648d806266b7728c382df9d9bed99c61246918b980669d8199f64eff7d63be594ace13fd1290a71c5dde239892b200800939c74fd1923cf5be150e3326e5a818b0454f".decode("HEX")
 
         master = dispersy.get_member(public_key=master_key)
         return [master]
@@ -186,6 +182,8 @@ class ProxyCommunity(Community):
         return self.settings.crypto
 
     def __discover(self):
+        self._logger.error("The %d pools want %d circuits", len(self.circuit_pools), sum(pool.lacking for pool in self.circuit_pools))
+
         circuits_needed = lambda: max(
             sum(pool.lacking for pool in self.circuit_pools),
             self.settings.max_circuits - len(self.circuits)
@@ -198,7 +196,7 @@ class ProxyCommunity(Community):
 
                 if goal_hops == 0:
                     circuit_id = self._generate_circuit_id()
-                    self.circuits[circuit_id] = Circuit(circuit_id, self)
+                    self.circuits[circuit_id] = Circuit(circuit_id,proxy=self)
 
                     first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
                     if first_pool:
@@ -307,7 +305,8 @@ class ProxyCommunity(Community):
         data = self.packet_crypto.handle_incoming_packet(sock_addr, circuit_id, data)
 
         if not data:
-            self._logger.error("Circuit ID {0} doesn't talk crypto language, dropping packet".format(circuit_id))
+            self._logger.error("Circuit ID %d sent undecryptable packet. Might be an old session key."
+            , circuit_id)
             return False
 
         # Try to parse the packet
@@ -316,7 +315,7 @@ class ProxyCommunity(Community):
             _, payload = self.proxy_conversion.decode(data)
         except KeyError as e:
             self._logger.warning("Cannot decode payload, probably orphaned session")
-            return False;
+            return False
 
         packet_type = self.proxy_conversion.get_type(data)
         str_type = MESSAGE_TYPE_STRING.get(packet_type)
@@ -384,7 +383,7 @@ class ProxyCommunity(Community):
             relayed=True
         )
 
-        self.__dict_inc(u"success", str_type + '-relayed')
+        self.__dict_inc(u"success", 'relayed')
 
         return True
 
@@ -610,7 +609,7 @@ class ProxyCommunity(Community):
 
         @blocking_call_on_reactor_thread
         def _get_cache():
-            return self.request_cache.get(CircuitRequestCache.PREFIX, CircuitRequestCache.create_identifier(circuit))
+            return self.request_cache.pop(CircuitRequestCache.PREFIX, CircuitRequestCache.create_identifier(circuit))
 
         request = _get_cache()
         candidate_list = message.candidate_list
@@ -639,8 +638,6 @@ class ProxyCommunity(Community):
                 return False
 
         elif circuit.state == CIRCUIT_STATE_READY:
-            reactor.callFromThread(request.on_success)
-
             first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
             if first_pool:
                 first_pool.fill(circuit)
@@ -652,11 +649,9 @@ class ProxyCommunity(Community):
                 NTFY_CREATED, NTFY_EXTENDED
 
             if len(circuit.hops) == 1:
-                self.notifier.notify(
-                    NTFY_ANONTUNNEL, NTFY_CREATED, circuit)
+                self.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, circuit)
             else:
-                self.notifier.notify(
-                    NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit)
+                self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit)
 
         return True
 
@@ -780,27 +775,6 @@ class ProxyCommunity(Community):
         circuit = self.circuits[circuit_id]
         return self._ours_on_created_extended(circuit, message)
 
-    def create_ping(self, sock_addr, circuit):
-        """
-        Creates, sends and keeps track of a PING message to given candidate on
-        the specified circuit.
-
-        @param (string, int) sock_addr: the candidate to which we want to sent a
-            ping
-        @param Circuit circuit: the circuit id to sent the ping over
-        """
-        circuit_id = circuit.circuit_id
-        @call_on_reactor_thread
-        def _create_ping():
-            if not self._request_cache.has(PingRequestCache.PREFIX, circuit_id):
-                cache = PingRequestCache(self, circuit)
-                self._request_cache.add(cache)
-
-        _create_ping()
-        self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit_id))
-
-        self.send_message(sock_addr, circuit_id, MESSAGE_PING, PingMessage())
-
     def on_ping(self, circuit_id, sock_addr, message):
         """
         Upon reception of a PING message we respond with a PONG message
@@ -829,25 +803,15 @@ class ProxyCommunity(Community):
 
         @return: whether the message could be handled correctly
         """
-
-        @blocking_call_on_reactor_thread
-        def pop_cache():
-            return self._request_cache.pop(PingRequestCache.PREFIX, circuit_id)
-
-        request = pop_cache()
-
-        if request:
-            request.on_pong(message)
-            return True
-        return False
+        return True
 
     def _generate_circuit_id(self, neighbour=None):
-        circuit_id = random.randint(1, 255000)
+        circuit_id = random.getrandbits(32)
 
         # prevent collisions
         while circuit_id in self.circuits or \
                 (neighbour and (neighbour, circuit_id) in self.relay_from_to):
-            circuit_id = random.randint(1, 255000)
+            circuit_id = random.getrandbits(32)
 
         return circuit_id
 
@@ -911,27 +875,33 @@ class ProxyCommunity(Community):
                 for circuit_id, circuit in self.circuits.items()
                 if circuit.state == CIRCUIT_STATE_READY)
 
-    def __ping_circuits(self):
-        try:
-            to_be_removed = [
+    def ping_circuits(self):
+        def _ping_circuits():
+            circuits = [c for c in self.active_circuits.values() if c.goal_hops > 0]
+
+            dead_relays = [
                 self.remove_relay(relay_key, 'no activity')
                 for relay_key, relay in self.relay_from_to.items()
-                if relay.ping_time_remaining == 0]
+                if relay.last_incoming < time.time() - 60.0]
 
-            self._logger.info("removed %d relays", len(to_be_removed))
-            assert all(to_be_removed)
+            self._logger.info("removed %d relays", len(dead_relays))
+            assert all(dead_relays)
 
-            to_be_pinged = [
-                circuit for circuit in self.circuits.values()
-                if circuit.ping_time_remaining < PING_INTERVAL
-                and circuit.first_hop]
+            pinged = 0
+            broken = 0
 
-            # self._logger.info("pinging %d circuits", len(to_be_pinged))
-            for circuit in to_be_pinged:
-                self.create_ping(circuit.first_hop, circuit)
-        except Exception:
-            self._logger.error("Ping error")
-            raise
+            for circuit in circuits:
+                if circuit.last_incoming < time.time() - 3.5 * PING_INTERVAL:
+                    self.remove_circuit(circuit.circuit_id, 'ping timeout')
+                    broken += 1
+                else:
+                    self._logger.debug("SEND PING TO CIRCUIT %d", circuit.circuit_id)
+                    self.send_message(circuit.first_hop, circuit.circuit_id, MESSAGE_PING, PingMessage())
+                    pinged += 1
+
+            self._logger.error("Pinged %d circuits, removed %d", pinged, broken)
+
+        self.rawserver.add_task(_ping_circuits)
 
     def tunnel_data_to_end(self, ultimate_destination, payload, circuit):
         """
@@ -963,7 +933,7 @@ class ProxyCommunity(Community):
         Tunnel data to originator
 
         @param int circuit_id: The circuit's id to return data over
-        @param Candidate sock_addr: The relay to return data over
+        @param (str, int) sock_addr: The relay to return data over
         @param (str, int) source_address: The source outside the tunnel
             community
         @param str payload: The raw payload to return to the originator
