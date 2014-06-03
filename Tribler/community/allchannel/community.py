@@ -144,12 +144,11 @@ class AllChannelCommunity(Community):
             self._votecast_db = VoteCastDBStub(self._dispersy)
             self._peer_db = PeerDBStub(self._dispersy)
 
-        # TODO(emilon): Have a generic superclass for classes that keep track of tasks
-        self._pending_tasks["channelcast"] = lc = LoopingCall(self.create_channelcast)
-        lc.start(CHANNELCAST_FIRST_MESSAGE, now=True)
+        self.register_task("channelcast",
+                           LoopingCall(self.create_channelcast)).start(CHANNELCAST_FIRST_MESSAGE, now=True)
 
-        self._pending_tasks["unload preview"] = dc = LoopingCall(self.unload_preview)
-        dc.start(UNLOAD_COMMUNITY_INTERVAL, now=False)
+        self.register_task("unload preview",
+                           LoopingCall(self.unload_preview)).start(UNLOAD_COMMUNITY_INTERVAL, now=False)
 
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]

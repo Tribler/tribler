@@ -17,6 +17,7 @@ from twisted.python.threadable import isInIOThread
 from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException, SenderNoWx
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.dispersy.taskmanager import TaskManager
 
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
@@ -26,7 +27,7 @@ DEFAULT_PRI_DISPERSY = 0
 logger = logging.getLogger(__name__)
 
 
-class GUIDBProducer():
+class GUIDBProducer(TaskManager):
     # Code to make this a singleton
     __single = None
     __singleton_lock = RLock()
@@ -35,9 +36,10 @@ class GUIDBProducer():
         if GUIDBProducer.__single:
             raise RuntimeError("GuiDBProducer is singleton")
 
+        super(GUIDBProducer, self).__init__()
+
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self._pending_tasks = {}
         self.guitaskqueue = GUITaskQueue.getInstance()
 
         # Lets get a reference to utility
@@ -53,6 +55,8 @@ class GUIDBProducer():
 
         self.nrCallbacks = {}
 
+        self._auto_counter = 0
+
     @classmethod
     def getInstance(cls, *args, **kw):
         with cls.__singleton_lock:
@@ -62,6 +66,7 @@ class GUIDBProducer():
 
     @classmethod
     def delInstance(cls, *args, **kw):
+        cls.__single.cancel_all_pending_tasks()
         GUIDBProducer.__single = None
 
     @classmethod
@@ -118,6 +123,7 @@ class GUIDBProducer():
                 self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) - 1
                 self.uIdsLock.release()
 
+            # Call the actual function
             try:
                 t2 = time()
                 result = workerFn(*args, **kwargs)
@@ -156,9 +162,12 @@ class GUIDBProducer():
 
         if not self.onSameThread(workerType) or delay:
             if workerType == "dbThread":
-                dc = reactor.callFromThread(reactor.callLater, delay, wrapper)
-                if uId:
-                    self._pending_tasks[uId] = dc
+                task_name = uId
+                if not task_name:
+                    self._auto_counter += 1
+                    task_name = "guidbhandler %d" % self._auto_counter
+
+                reactor.callFromThread(lambda: self.register_task(task_name, reactor.callLater(delay, wrapper)))
             elif workerType == "guiTaskQueue":
                 self.guitaskqueue.add_task(wrapper, t=delay, id=uId)
         else:
@@ -179,9 +188,7 @@ class GUIDBProducer():
             finally:
                 self.uIdsLock.release()
 
-            task = self._pending_tasks.pop(uId, None)
-            if task and task.active():
-                task.cancel()
+            self.cancel_pending_task(uId)
             self.guitaskqueue.remove_task(uId)
 
 # Wrapping Senders for new delayedResult impl

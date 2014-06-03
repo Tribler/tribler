@@ -20,6 +20,7 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
 
+from Tribler.dispersy.taskmanager import TaskManager
 
 # support_version = (3,5,9)
 # support_version = (3,3,13)
@@ -138,10 +139,12 @@ class safe_dict(dict):
             self.lock.release()
 
 
-class SQLiteCacheDBBase:
+class SQLiteCacheDBBase(TaskManager):
     lock = threading.RLock()
 
     def __init__(self, db_exception_handler=None):
+        super(SQLiteCacheDBBase, self).__init__()
+
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.exception_handler = db_exception_handler
@@ -1619,7 +1622,7 @@ CREATE TABLE MetadataData (
 
                                     if len(to_be_removed) > 0:
                                         self.executemany("DELETE FROM ChannelCast WHERE infohash = ?", to_be_removed)
-                                    self._pending_tasks.append(reactor.callLater(INSERT_MY_TORRENTS_INTERVAL, insert_my_torrents))
+                                    self.replace_task("insert my torrents", reactor.callLater(INSERT_MY_TORRENTS_INTERVAL, insert_my_torrents))
 
                                 else:  # done
                                     drop_channelcast = "DROP TABLE ChannelCast"
@@ -1628,12 +1631,12 @@ CREATE TABLE MetadataData (
                                     drop_votecast = "DROP TABLE VoteCast"
                                     self.execute_write(drop_votecast)
                             else:
-                                self._pending_tasks.append(reactor.callLater(SUCCESIVE_UPGRADE_PAUSE, insert_my_torrents))
+                                self.register_task("insert my torrents", reactor.callLater(SUCCESIVE_UPGRADE_PAUSE, insert_my_torrents))
 
                         from Tribler.community.channel.community import ChannelCommunity
                         from Tribler.Core.TorrentDef import TorrentDef
 
-                        self._pending_tasks.append(reactor.callLater(INITIAL_UPGRADE_PAUSE, create_my_channel))
+                        self.register_task(time(), reactor.callLater(INITIAL_UPGRADE_PAUSE, create_my_channel))
                         session.remove_observer(dispersy_started)
 
                     session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
@@ -2388,7 +2391,6 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
         if self.__single != None:
             raise RuntimeError("SQLiteCacheDB is singleton")
         SQLiteNoCacheDB.__init__(self, *args, **kargs)
-        self._pending_tasks = []
 
     @classmethod
     def getInstance(cls, *args, **kw):
@@ -2405,15 +2407,9 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
 
     @classmethod
     def delInstance(cls, *args, **kw):
-        for task in cls.__single._pending_tasks:
-            if task.active():
-                task.cancel()
+        cls.__single.cancel_all_pending_tasks()
         cls.__single = None
 
     @classmethod
     def hasInstance(cls, *args, **kw):
         return cls.__single != None
-
-    @forceDBThread
-    def schedule_task(self, task, delay=0.0):
-        self._pending_tasks.append(reactor.callLater(delay, task))

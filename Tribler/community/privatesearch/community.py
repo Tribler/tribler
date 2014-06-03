@@ -74,7 +74,7 @@ class TTLSearchCommunity(Community):
             self._notifier = Notifier.getInstance()
 
             # fast connecting
-            self._pending_tasks["fast walker"] = reactor.callLater(0, self.fast_walker)
+            self.register_task("fast walker", reactor.callLater(0, self.fast_walker))
         else:
             self._torrent_db = self._channelcast_db = Das4DBStub(self._dispersy)
             self._notifier = None

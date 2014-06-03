@@ -241,9 +241,9 @@ class ForwardCommunity():
                         print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? yes adding to list"
 
                     self.taste_buddies.append(new_taste_buddy)
-                    if "send_ping_requests" not in self._pending_tasks:
-                        self._pending_tasks["send_ping_requests"] = lc = LoopingCall(self.create_ping_requests)
-                        lc.start(PING_INTERVAL)
+                    if not self.is_pending_task_active("send_ping_requests"):
+                        self.register_task("send_ping_requests",
+                                           LoopingCall(self.create_ping_requests)).start(PING_INTERVAL)
 
                 elif DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: new taste buddy? no smaller than", new_taste_buddy, self.taste_buddies[-1]

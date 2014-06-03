@@ -141,11 +141,10 @@ class ProxyCommunity(Community):
         else:
             self.notifier = None
 
-        self._pending_tasks["discover"] = lc = LoopingCall(self.__discover)
-        lc.start(5, now=True)
+        self.register_task("discover", LoopingCall(self.__discover)).start(5, now=True)
 
-        self._pending_tasks["ping circuits"] = lc = LoopingCall(self.ping_circuits)
-        lc.start(PING_INTERVAL)
+        self.register_task("ping circuits", LoopingCall(self.ping_circuits)).start(PING_INTERVAL)
+
 
     @classmethod
     def get_master_members(cls, dispersy):
