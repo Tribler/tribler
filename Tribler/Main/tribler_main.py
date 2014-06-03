@@ -349,7 +349,6 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
 
-        self.dispersy.attach_progress_handler(self.frame.progressHandler)
         # TODO(emilon): Use the LogObserver I already implemented
         #self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
 
@@ -464,6 +463,8 @@ class ABCApp():
             self._logger.info("tribler: Preparing communities...")
             now = time()
 
+            dispersy.attach_progress_handler(self.progressHandler)
+
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True)
             dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True)
@@ -545,6 +546,10 @@ class ABCApp():
 
             manager = self.frame.librarylist.GetManager()
             manager.downloadStarted(objectID)
+
+    def progressHandler(self, title, message, maximum):
+        from Tribler.Main.Dialogs.ThreadSafeProgressDialog import ThreadSafeProgressDialog
+        return ThreadSafeProgressDialog(title, message, maximum, None, wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_ESTIMATED_TIME | wx.PD_REMAINING_TIME | wx.PD_AUTO_HIDE)
 
     def set_reputation(self):
         def do_db():

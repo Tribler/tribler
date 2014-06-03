@@ -48,7 +48,6 @@ from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.Dialogs.SaveAs import SaveAs
-from Tribler.Main.Dialogs.ThreadSafeProgressDialog import ThreadSafeProgressDialog
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
@@ -1137,9 +1136,6 @@ class MainFrame(wx.Frame):
                 win.Show()
 
         wx.CallAfter(do_gui)
-
-    def progressHandler(self, title, message, maximum):
-        return ThreadSafeProgressDialog(title, message, maximum, self, wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_ESTIMATED_TIME | wx.PD_REMAINING_TIME | wx.PD_AUTO_HIDE)
 
     def onUPnPError(self, upnp_type, listenport, error_type, exc=None, listenproto='TCP'):
 
