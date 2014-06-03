@@ -106,7 +106,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, None), load=True)[0]
+                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, None, session.lm.rawserver), load=True)[0]
                 exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
                 proxy_community.observers.append(exit_strategy)
 
