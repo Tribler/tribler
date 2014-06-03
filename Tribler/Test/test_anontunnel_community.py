@@ -114,7 +114,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
             return blockingCallFromThread(reactor, load_community, session)
 
-        TestGuiAsServer.startTest(self, setup_proxies)
+        TestGuiAsServer.startTest(self, setup_proxies, force_is_unit_testing=False)
 
     def setupSeeder(self):
         from Tribler.Core.Session import Session

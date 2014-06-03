@@ -144,7 +144,7 @@ class AnonTunnel():
 
         member = self.dispersy.get_new_member(u"NID_secp160k1")
         self.community = self.dispersy.define_auto_load(ProxyCommunity, member,
-                                                   (False, self.settings),
+                                                   (False, self.settings, self.raw_server),
                                                    load=True)[0]
         ''' @type: ProxyCommunity '''
 

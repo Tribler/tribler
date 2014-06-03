@@ -105,11 +105,15 @@ class ProxyCommunity(Community):
         self.circuit_pools = []
         ''' :type : list[CircuitPool] '''
 
-    def initialize(self, tribler_session=None, settings=None):
+        self.rawserver = None
+
+    def initialize(self, tribler_session=None, settings=None, rawserver=None):
         super(ProxyCommunity, self).initialize()
 
         self.settings = settings if settings else ProxySettings()
         self._tribler_session = tribler_session
+
+        self.rawserver = rawserver if rawserver else tribler_session.lm.rawserver
 
         # Attach message handlers
         self._initiate_message_handlers()
@@ -140,9 +144,8 @@ class ProxyCommunity(Community):
         self._pending_tasks["discover"] = lc = LoopingCall(self.__discover)
         lc.start(5, now=True)
 
-        self._pending_tasks["ping circuits"] = lc = LoopingCall(self.__ping_circuits)
+        self._pending_tasks["ping circuits"] = lc = LoopingCall(self.ping_circuits)
         lc.start(PING_INTERVAL)
-
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -872,34 +875,33 @@ class ProxyCommunity(Community):
                 for circuit_id, circuit in self.circuits.items()
                 if circuit.state == CIRCUIT_STATE_READY)
 
-    def __ping_circuits(self):
-        try:
+    def ping_circuits(self):
+        def _ping_circuits():
             circuits = [c for c in self.active_circuits.values() if c.goal_hops > 0]
 
-            to_be_removed = [
+            dead_relays = [
                 self.remove_relay(relay_key, 'no activity')
                 for relay_key, relay in self.relay_from_to.items()
                 if relay.last_incoming < time.time() - 60.0]
 
-            self._logger.info("removed %d relays", len(to_be_removed))
-            assert all(to_be_removed)
+            self._logger.info("removed %d relays", len(dead_relays))
+            assert all(dead_relays)
 
-            circuits_to_be_removed = [
-                self.remove_circuit(circuit.circuit_id, 'ping timeout')
-                for circuit in circuits
-                if circuit.last_incoming < time.time() - 3.5 * PING_INTERVAL]
+            pinged = 0
+            broken = 0
 
-            self._logger.error("broke %d circuits", len(circuits_to_be_removed))
-            assert all(circuits_to_be_removed)
-
-            self._logger.error("pinging %d circuits", len(circuits))
             for circuit in circuits:
-                self._logger.debug("SEND PING TO CIRCUIT {0}".format(circuit.circuit_id))
-                self.send_message(circuit.first_hop, circuit.circuit_id, MESSAGE_PING, PingMessage())
+                if circuit.last_incoming < time.time() - 3.5 * PING_INTERVAL:
+                    self.remove_circuit(circuit.circuit_id, 'ping timeout')
+                    broken += 1
+                else:
+                    self._logger.debug("SEND PING TO CIRCUIT %d", circuit.circuit_id)
+                    self.send_message(circuit.first_hop, circuit.circuit_id, MESSAGE_PING, PingMessage())
+                    pinged += 1
 
-        except Exception:
-            self._logger.exception("Ping error")
-            raise
+            self._logger.error("Pinged %d circuits, removed %d", pinged, broken)
+
+        self.rawserver.add_task(_ping_circuits)
 
     def tunnel_data_to_end(self, ultimate_destination, payload, circuit):
         """

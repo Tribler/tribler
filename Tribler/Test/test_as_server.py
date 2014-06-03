@@ -253,7 +253,7 @@ class TestGuiAsServer(TestAsServer):
             if do_assert:
                 assert boolean, reason
 
-    def startTest(self, callback, min_timeout=5):
+    def startTest(self, callback, min_timeout=5, force_is_unit_testing=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
         tribler_main.ALLOW_MULTIPLE = True
@@ -295,7 +295,7 @@ class TestGuiAsServer(TestAsServer):
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
-        tribler_main.run()
+        tribler_main.run(is_unit_testing=force_is_unit_testing)
 
         assert self.hadSession, 'Did not even create a session'
 
