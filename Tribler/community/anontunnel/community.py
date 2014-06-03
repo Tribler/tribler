@@ -300,7 +300,8 @@ class ProxyCommunity(Community):
         data = self.packet_crypto.handle_incoming_packet(sock_addr, circuit_id, data)
 
         if not data:
-            self._logger.error("Circuit ID {0} doesn't talk crypto language, dropping packet".format(circuit_id))
+            self._logger.error("Circuit ID %d sent undecryptable packet. Might be an old session key."
+            , circuit_id)
             return False
 
         # Try to parse the packet
