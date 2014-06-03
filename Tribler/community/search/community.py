@@ -201,7 +201,7 @@ class SearchCommunity(Community):
         candidates = set(candidate for _, _, candidate in self.taste_buddies)
         sock_addresses = set(candidate.sock_addr for _, _, candidate in self.taste_buddies)
 
-        for candidate in self.dispersy_yield_candidates():
+        for candidate in self.dispersy_yield_verified_candidates():
             if candidate.sock_addr not in sock_addresses:
                 candidates.add(candidate)
                 sock_addresses.add(candidate.sock_addr)
