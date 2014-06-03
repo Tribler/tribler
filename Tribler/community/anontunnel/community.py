@@ -127,7 +127,7 @@ class ProxyCommunity(Community):
         try:
             self._dispersy.endpoint.listen_to(self.__packet_prefix, self.__handle_packet)
         except AttributeError:
-            self._logger.error("Cannot listen to our prefix, are you sure that you are using the DispersyBypassEndpoint?")
+            self._logger.exception("Cannot listen to our prefix, are you sure that you are using the DispersyBypassEndpoint?")
 
         if self._tribler_session:
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -162,13 +162,7 @@ class ProxyCommunity(Community):
         # jHMFkPhQq5McVzLVqdVzp/4fncipIBvDy2OrGCyeSF0I/0rClPCeFtOSWTCUb4fp
         # HvnEC7tBifnFr2aW9X7sO48vd+erVv2NbWM=
         #-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004" \
-                     "0460829f9bb72f0cb094904aa6f885ff70e1e98651e81119b1e7" \
-                     "b42402f3c5cfa183d8d96738c40ffd909a70020488e3b59b67de" \
-                     "57bb1ac5dec351d172fe692555898ac944b68c730590f850ab93" \
-                     "1c5732d5a9d573a7fe1f9dc8a9201bc3cb63ab182c9e485d08ff" \
-                     "4ac294f09e16d3925930946f87e91ef9c40bbb4189f9c5af6696" \
-                     "f57eec3b8f2f77e7ab56fd8d6d63".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405662ec9541ebbf77bc5d47e6ea5d7d60b9bb1ff95caed305a6bb681a229387fb4e9d5f19f6183d93c221ad7e6cd0feb68e87189f76bb46c0c129b5b4373349416ae5683a2b26d6007c744db70648d806266b7728c382df9d9bed99c61246918b980669d8199f64eff7d63be594ace13fd1290a71c5dde239892b200800939c74fd1923cf5be150e3326e5a818b0454f".decode("HEX")
 
         master = dispersy.get_member(public_key=master_key)
         return [master]
@@ -651,11 +645,9 @@ class ProxyCommunity(Community):
                 NTFY_CREATED, NTFY_EXTENDED
 
             if len(circuit.hops) == 1:
-                self.notifier.notify(
-                    NTFY_ANONTUNNEL, NTFY_CREATED, circuit)
+                self.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED, circuit)
             else:
-                self.notifier.notify(
-                    NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit)
+                self.notifier.notify(NTFY_ANONTUNNEL, NTFY_EXTENDED, circuit)
 
         return True
 
@@ -905,7 +897,7 @@ class ProxyCommunity(Community):
                 self.send_message(circuit.first_hop, circuit.circuit_id, MESSAGE_PING, PingMessage())
 
         except Exception:
-            self._logger.error("Ping error")
+            self._logger.exception("Ping error")
             raise
 
     def tunnel_data_to_end(self, ultimate_destination, payload, circuit):
