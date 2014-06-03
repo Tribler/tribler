@@ -40,19 +40,6 @@ class CircuitRequestCache(NumberCache):
     def timeout_delay(self):
         return 10.0
 
-    def on_success(self):
-        """
-        Mark the Request as successful, cancelling the timeout
-        """
-
-        # TODO(emilon): Is there a reason to import these here instead of at the beggining?
-        from Tribler.community.anontunnel.globals \
-            import CIRCUIT_STATE_READY
-
-        if self.circuit.state == CIRCUIT_STATE_READY:
-            self._logger.info("Circuit %d is ready", self.number)
-            self.community.request_cache.pop(self.prefix, self.number)
-
     def on_timeout(self):
         from Tribler.community.anontunnel.globals \
             import CIRCUIT_STATE_READY

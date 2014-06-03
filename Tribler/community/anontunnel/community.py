@@ -182,6 +182,8 @@ class ProxyCommunity(Community):
         return self.settings.crypto
 
     def __discover(self):
+        self._logger.error("The %d pools want %d circuits", len(self.circuit_pools), sum(pool.lacking for pool in self.circuit_pools))
+
         circuits_needed = lambda: max(
             sum(pool.lacking for pool in self.circuit_pools),
             self.settings.max_circuits - len(self.circuits)
@@ -607,7 +609,7 @@ class ProxyCommunity(Community):
 
         @blocking_call_on_reactor_thread
         def _get_cache():
-            return self.request_cache.get(CircuitRequestCache.PREFIX, CircuitRequestCache.create_identifier(circuit))
+            return self.request_cache.pop(CircuitRequestCache.PREFIX, CircuitRequestCache.create_identifier(circuit))
 
         request = _get_cache()
         candidate_list = message.candidate_list
@@ -636,8 +638,6 @@ class ProxyCommunity(Community):
                 return False
 
         elif circuit.state == CIRCUIT_STATE_READY:
-            reactor.callFromThread(request.on_success)
-
             first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
             if first_pool:
                 first_pool.fill(circuit)
