@@ -20,6 +20,7 @@ from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException, OperationNotEnabledByConfigurationException
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
@@ -27,9 +28,6 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
 from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
-
-if not 'ANDROID_HOST' in os.environ:
-    from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 
 try:
