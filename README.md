@@ -14,7 +14,12 @@ sudo apt-get install scons build-essential libevent-dev \
 ```
 
 ### Fedora
-You'll need to have the [rpmfusion] repos installed for vlc. only the rpmfusion-free repo is needed.
+You'll need to have the [rpmfusion] repos installed for vlc. only the rpmfusion-free repo is needed. This can be done by running the following command:
+```sh
+su -c 'yum localinstall --nogpgcheck http://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm -y'
+```
+
+The following packages are needed to run tribler on Fedora:
 ```sh
 sudo yum group install "Development Tools" -y
 sudo yum install scons libevent-devel python-apsw \
