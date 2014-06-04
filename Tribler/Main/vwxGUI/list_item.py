@@ -337,7 +337,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
     def __init__(self, *args, **kwargs):
         DoubleLineListItem.__init__(self, *args, **kwargs)
         self.SetThumbnailIcon()
-        self.dlbutton = None
 
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows=True)
@@ -349,8 +348,16 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 break
 
         if do_add:
+            self.plbutton = self.AddButton("Stream", lambda evt: self.guiutility.library_manager.playTorrent(self.original_data.infohash))
             self.dlbutton = self.AddButton("Download", lambda evt: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
             self.dlbutton.Enable('completed' not in self.original_data.state and 'active' not in self.original_data.state)
+        else:
+            self.plbutton = None
+            self.dlbutton = None
+
+    def SetCollectedTorrent(self, coltorrent):
+        if self.plbutton:
+            self.plbutton.Enable(coltorrent.isPlayable() if coltorrent else True)
 
     @warnWxThread
     def GetIcons(self):

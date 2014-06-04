@@ -210,7 +210,13 @@ class TorrentDetails(AbstractDetails):
             return
 
         if isinstance(torrent, CollectedTorrent):
-            GUIUtility.getInstance().frame.top_bg.AddCollectedTorrent(torrent)
+            self.guiutility.frame.top_bg.AddCollectedTorrent(torrent)
+
+            def update():
+                for infohash, item in self.guiutility.GetSelectedPage().GetExpandedItems():
+                    if infohash == torrent.infohash:
+                        item.SetCollectedTorrent(torrent)
+            wx.CallLater(1, update)
 
         self.state = -1
         self.torrent = torrent

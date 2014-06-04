@@ -420,21 +420,12 @@ class TopSearchPanel(FancyPanel):
         if not torrent:
             return
 
-        play_executed = False
+        self.guiutility.library_manager.playTorrent(torrent.infohash)
 
-        if self.guiutility.frame.videoparentpanel:
-            self.guiutility.library_manager.playTorrent(torrent.infohash)
-            play_executed = True
-
+        if not self.guiutility.frame.searchlist.IsShownOnScreen():
+            self.LogEvent(message="Torrent: torrent play from channel", type=2)
         else:
-            self.guiutility.library_manager.playTorrent(torrent.infohash)
-            play_executed = True
-
-        if play_executed:
-            if not self.guiutility.frame.searchlist.IsShownOnScreen():
-                self.LogEvent(message="Torrent: torrent play from channel", type=2)
-            else:
-                self.LogEvent(message="Torrent: torrent play from other", type=2)
+            self.LogEvent(message="Torrent: torrent play from other", type=2)
 
         button = event.GetEventObject()
         button.Enable(False)
