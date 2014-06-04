@@ -1382,7 +1382,7 @@ class SearchList(GenericSearchList):
         self.keywords = None
         self.xxx_keywords = False
 
-        columns = [{'name': 'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not self.guiutility.ReadGuiSetting('hide_buttons', True)},
+        columns = [{'name': 'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not self.guiutility.ReadGuiSetting('hide_buttons', False)},
                    {'name': 'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format},
                    {'name': 'File type', 'width': '24em', 'sortAsc': True},
                    {'name': 'Seeders', 'width': '14em', 'fmt': lambda x: '?' if x < 0 else str(x)},
