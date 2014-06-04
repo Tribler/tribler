@@ -379,7 +379,7 @@ class AllChannelCommunity(Community):
         if latest_dispersy_id:
             message = self._dispersy.load_message_by_packetid(self, latest_dispersy_id)
             if message:
-                self._dispersy.create_undo(self, message)
+                self.create_undo(message)
 
         # create new vote message
         meta = self.get_meta_message(u"votecast")
