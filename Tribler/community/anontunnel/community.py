@@ -386,13 +386,12 @@ class ProxyCommunity(Community):
 
         return True
 
-    def __handle_packet(self, sock_addr, orig_packet):
+    def __handle_packet(self, sock_addr, packet):
         """
         @param (str, int) sock_addr: socket address in tuple format
         @param orig_packet:
         @return:
         """
-        packet = orig_packet[len(self.__packet_prefix):]
         circuit_id, data = self.proxy_conversion.get_circuit_and_data(packet)
         relay_key = (sock_addr, circuit_id)
 
@@ -856,8 +855,8 @@ class ProxyCommunity(Community):
             message_type, "unknown-type-" + str(ord(message_type)))
 
         # we need to make sure that this endpoint is thread safe
-        return self.dispersy._send_packets([Candidate(destination, False)], [self.__packet_prefix + packet],
-            self, '-caused by %s-' % (str_type + ('-relayed' if relayed else '')))
+        return self.dispersy.endpoint.send_packet(Candidate(destination, False), packet, self.__packet_prefix)
+            #self, '-caused by %s-' % (str_type + ('-relayed' if relayed else '')))
 
     def __dict_inc(self, statistics_dict, key, inc=1):
         key = u"anontunnel-" + key

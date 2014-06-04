@@ -26,7 +26,7 @@ from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP)
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
+from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint, DispersyTunnelBypassEndpoint
 from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 
 
@@ -119,7 +119,7 @@ class TriblerLaunchMany(Thread):
 
                 # set communication endpoint
                 if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
-                    endpoint = TunnelEndpoint(self.swift_process)
+                    endpoint = DispersyTunnelBypassEndpoint(self.swift_process)
                 else:
                     endpoint = DispersyBypassEndpoint(self.rawserver, self.session.get_dispersy_port())
 
