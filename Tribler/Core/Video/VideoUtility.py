@@ -1,6 +1,5 @@
 # Written by Egbert Bouman
 import os
-import wx
 import sys
 import tempfile
 import subprocess
@@ -8,8 +7,7 @@ import subprocess
 from re import search
 from math import sqrt
 
-from Tribler.Main.vwxGUI import forceAndReturnWxThread
-
+from Tribler.Core.osutils import is_android
 
 def get_thumbnail(videofile, thumbfile, resolution, ffmpeg, timecode):
     startupinfo = None
@@ -88,9 +86,24 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
         outputfile = os.path.join(dest_dir, 'tn%d.jpg' % timecode)
         get_thumbnail(videofile, outputfile, sample_res, ffmpeg, timecode)
         if os.path.exists(outputfile):
-            @forceAndReturnWxThread
-            def GetImageData():
-                return wx.Bitmap(outputfile, wx.BITMAP_TYPE_ANY).ConvertToImage().GetData()
+            # Android doesn't have wx, use PIL instead
+            if is_android():
+                def GetImageData():
+                    import Image  #PIL
+
+                    im = Image.open(outputfile)
+                    return list(im.getdata())
+            else:
+                import wx
+                from Tribler.Main.vwxGUI import forceAndReturnWxThread
+
+                @forceAndReturnWxThread
+                def GetImageData():
+                    pxls = []
+                    wxstr = wx.Bitmap(outputfile, wx.BITMAP_TYPE_ANY).ConvertToImage().GetData()
+                    for index in range(0, len(wxstr), 3):
+                        pxls.append(tuple(map(ord, wxstr[index:index + 3])))
+                    return pxls
             results.append((colourfulness(GetImageData()), timecode))
             os.remove(outputfile)
 
@@ -104,8 +117,8 @@ def colourfulness(image_data):
     rg_values = []
     yb_values = []
 
-    for index in range(0, len(image_data), 3):
-        r, g, b = map(ord, image_data[index:index + 3])
+    for pxl in image_data:
+        r, g, b = pxl
         rg = r - g
         yb = 0.5 * (r + g) - b
         rg_values.append(rg)

@@ -24,6 +24,7 @@ from Tribler.Core.Base import Copyable, Serializable
 from Tribler.Core.RawServer.RawServer import autodetect_socket_style
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.osutils import is_android
 
 
 class SessionConfigInterface(object):
@@ -68,6 +69,8 @@ class SessionConfigInterface(object):
         if ffmpegpath is None:
             if sys.platform == 'darwin':
                 self.sessconfig.set(u'general', u'videoanalyserpath', u"vlc/ffmpeg")
+            elif is_android(strict=True):
+                self.sessconfig.set(u'general', u'videoanalyserpath', os.path.join(os.environ['ANDROID_PRIVATE'], 'ffmpeg'))
             else:
                 self.sessconfig.set(u'general', u'videoanalyserpath', ffmpegname)
         else:
