@@ -115,6 +115,7 @@ class SwiftProcess:
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
         self.fastconn = None
+        self.tunnels = {}
 
         # callbacks for when swift detect a channel close
         self._channel_close_callbacks = defaultdict(list)
@@ -159,7 +160,7 @@ class SwiftProcess:
             ic.buffer = ic.buffer[length:]
 
             try:
-                self.roothash2dl["dispersy-endpoint"].i2ithread_data_came_in(session, (host, port), data)
+                self.tunnels[session](session, (host, port), data)
             except KeyError:
                 if self._warn_missing_endpoint:
                     self._warn_missing_endpoint = False
@@ -239,6 +240,35 @@ class SwiftProcess:
     #
     # Swift Mgmt interface
     #
+
+    def register_tunnel(self, prefix, callback):
+        self.splock.acquire()
+        try:
+            if not self.tunnels.has_key(prefix):
+                # register new channel prefix
+                self.tunnels[prefix] = callback
+                self.send_tunnel_subscribe(prefix)
+            else:
+                raise RuntimeError("Tunnel already registered by another module")
+
+        finally:
+            self.splock.release()
+
+
+    def unregister_tunnel(self, prefix):
+        self.splock.acquire()
+        try:
+            if self.tunnels.has_key(prefix):
+                # unregister channel prefix
+                del self.tunnels[prefix]
+                self.send_tunnel_unsubscribe(prefix)
+            else:
+                self._logger.info("sp: unregister_tunnel: Error, no tunnel has been registered with perfix: %s" % prefix)
+
+        finally:
+            self.splock.release()
+
+
     def start_download(self, d):
         self.splock.acquire()
         try:
@@ -423,6 +453,7 @@ class SwiftProcess:
         if self.fastconn:
             self.fastconn.stop()
 
+
     #
     # Internal methods
     #
@@ -465,6 +496,18 @@ class SwiftProcess:
         cmd += str(float(speed)) + '\r\n'
 
         self.write(cmd)
+
+    def send_tunnel_subscribe(self, prefix):
+        # assume splock is held to avoid concurrency on socket
+        self._logger.debug("sp: send_tunnel_subcribe to prefix:" + prefix.encode("HEX"))
+
+        self.write("TUNNELSUBSCRIBE %s\r\n" % (prefix.encode("HEX")))
+
+    def send_tunnel_unsubscribe(self, prefix):
+        # assume splock is held to avoid concurrency on socket
+        self._logger.debug("sp: send_tunnel_unsubcribe prefix:" + prefix.encode("HEX"))
+
+        self.write("TUNNELUNSUBSCRIBE %s\r\n" % (prefix.encode("HEX")))
 
     def send_tunnel(self, session, address, data):
         # assume splock is held to avoid concurrency on socket
