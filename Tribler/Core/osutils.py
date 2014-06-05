@@ -288,3 +288,27 @@ def startfile(filepath):
         subprocess.call(('xdg-open', filepath))
     elif hasattr(os, "startfile"):
         os.startfile(filepath)
+
+def is_android(strict=False):
+    """
+    This functions checks whether Tribler is running on Android or not, using the ANDROID_HOST environment variable.
+    When Tribler is launched on Android, this variable is set to "ANDROID-99" where 99 is the current SDK version.
+
+    :param strict: Check if ANDROID_HOST actually starts with "ANDROID". This can be useful for code that must
+    absolutely only run on Android, and not on a computer testing the Android specific code.
+    :return: Whether this is Android or not.
+    """
+
+    # This is not an Android device at all
+    if not 'ANDROID_HOST' in os.environ:
+        return False
+
+    # No strict mode: always return true when ANDROID_HOST is defined
+    if not strict:
+        return True
+    # Strict mode: actually check whether the variable starts with "ANDROID"
+    elif os.environ['ANDROID_HOST'].startswith("ANDROID"):
+        return True
+    # Strict mode, but the variable doesn't start with "ANDROID"
+    else:
+        return False

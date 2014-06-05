@@ -13,10 +13,9 @@ from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING,
                                      DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA)
-from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM, data2wxBitmap
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Core.osutils import is_android
 
 
 logger = logging.getLogger(__name__)
@@ -462,6 +461,10 @@ class CollectedTorrent(Helper):
 
     @cacheProperty
     def subtitlefiles(self):
+        if is_android():
+            return []
+
+        from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES
         subtitles = []
         for filename, length in self.files:
             prefix, ext = os.path.splitext(filename)
@@ -535,6 +538,10 @@ class ChannelTorrent(Torrent):
 
     @cacheProperty
     def getPlaylist(self):
+        if is_android():
+            return
+
+        from Tribler.Main.vwxGUI import PLAYLIST_REQ_COLUMNS
         self._logger.debug("ChannelTorrent: fetching getPlaylistForTorrent from DB %s", self)
 
         playlist = self.channelcast_db.getPlaylistForTorrent(self.channeltorrent_id, PLAYLIST_REQ_COLUMNS)
@@ -705,6 +712,10 @@ class Comment(Helper):
 
     @cacheProperty
     def avantar(self):
+        if is_android():
+            return None
+
+        from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM, data2wxBitmap
         gui_image_manager = GuiImageManager.getInstance()
 
         if self.peer_id == None:

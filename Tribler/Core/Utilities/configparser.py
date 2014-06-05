@@ -5,7 +5,7 @@ import ast
 import codecs
 
 from ConfigParser import RawConfigParser
-from multiprocessing.synchronize import RLock
+from threading import RLock
 
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 

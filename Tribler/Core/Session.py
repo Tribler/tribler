@@ -13,7 +13,7 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
-from Tribler.Core.osutils import get_appstate_dir
+from Tribler.Core.osutils import get_appstate_dir, is_android
 from Tribler.Core.simpledefs import (STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS,
                                      NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE,
@@ -102,6 +102,8 @@ class Session(SessionConfigInterface):
         if scfg.get_swift_path() is None:
             if sys.platform == "win32":
                 scfg.set_swift_path(os.path.join(scfg.get_install_dir(), "swift.exe"))
+            elif is_android(strict=True):
+                scfg.set_swift_path(os.path.join(os.environ['ANDROID_PRIVATE'], 'swift'))
             else:
                 scfg.set_swift_path(os.path.join(scfg.get_install_dir(), "swift"))
 
