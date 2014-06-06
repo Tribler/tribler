@@ -709,7 +709,7 @@ class ABCApp():
                 saveas = pstate.get('downloadconfig', 'saveas')
                 if saveas:
                     destdir = os.path.basename(saveas)
-                    if destdir == coldir:
+                    if destdir == coldir or destdir == os.path.join(self.utility.session.get_state_dir(), "anon_test"):
                         os.remove(file)
             except:
                 pass
