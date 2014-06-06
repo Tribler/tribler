@@ -61,6 +61,14 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         if normal_packets:
             super(DispersyBypassEndpoint, self).data_came_in(normal_packets, cache)
 
+    def send(self, candidates, packet, prefix=None):
+        super(DispersyBypassEndpoint, self).send(
+            candidates, packet if not prefix else prefix + packet)
+
+    def send_packet(self, candidate, packet, prefix=None):
+        super(DispersyBypassEndpoint, self).send_packet(
+            candidate, packet if not prefix else prefix+packet)
+
 
 class DispersyTunnelBypassEndpoint(TunnelEndpoint):
     def __init__(self, swift_process):
