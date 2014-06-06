@@ -361,7 +361,7 @@ class SelectedChannelList(GenericSearchList):
         self.display_grid = enable
 
         new_raw_data = []
-        for data in self.list.raw_data:
+        for data in (self.list.raw_data or []):
             if enable and (len(data) < 4 or data[3] == TorrentListItem):
                 new_raw_data.append(list(data[:3]) + [ThumbnailListItem])
             elif not enable and data[3] == ThumbnailListItem:

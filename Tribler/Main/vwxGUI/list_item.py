@@ -929,7 +929,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
         self.list_expanded = list_expanded
         self.list_selected_and_expanded = list_selected_and_expanded
 
-        self.highlightTimer = self.expandedPanel = self.dlbutton = None
+        self.highlightTimer = self.expandedPanel = self.dlbutton = self.plbutton = None
         self.selected = self.expanded = False
         self.SetBackgroundColour(self.list_deselected)
 
