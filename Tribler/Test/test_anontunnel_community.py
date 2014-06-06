@@ -92,9 +92,9 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             config = self.config.copy()
             config.set_dispersy(True)
             config.set_state_dir(self.getStateDir(index))
+            config.set_dispersy_tunnel_over_swift(True)
 
             session = Session(config, ignore_singleton=True)
-            session.set_dispersy_tunnel_over_swift(True)
             session.start()
             self.sessions.append(session)
 
