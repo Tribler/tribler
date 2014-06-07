@@ -5,7 +5,7 @@ try:
     from gmpy import mpz, rand, invert
 
 except ImportError:
-    logger.warning('Using fallback for gmpy, not recommended as it hurts performance and is less tested')
+    logger.error('Using fallback for gmpy, not recommended as it hurts performance and is less tested')
 
     def mpz(a):
         return a
