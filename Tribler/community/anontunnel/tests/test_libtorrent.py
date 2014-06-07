@@ -107,7 +107,7 @@ class LibtorrentTest(TunnelObserver):
             self._logger.warning("Skipping Anon Test since it has been run before")
             return False
 
-        destination_dir = self.tribler_session.get_state_dir() + "/anon_test/"
+        destination_dir = os.path.join(self.tribler_session.get_state_dir(), "anon_test")
 
         try:
             shutil.rmtree(destination_dir)
