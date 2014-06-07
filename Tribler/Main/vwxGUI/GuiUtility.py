@@ -419,7 +419,7 @@ class GUIUtility:
             return
         self.frame.top_bg.searchField.SetValue(input)
 
-        if input.startswith("http://"):
+        if input.startswith("http://") or input.startswith("https://"):
             if self.frame.startDownloadFromUrl(str(input)):
                 self.frame.top_bg.searchField.Clear()
                 self.ShowPage('my_files')

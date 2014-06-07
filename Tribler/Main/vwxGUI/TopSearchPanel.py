@@ -19,6 +19,7 @@ from Tribler.Main.vwxGUI.widgets import ActionButton, FancyPanel, \
     TextCtrlAutoComplete, ProgressButton
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
+from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 
 
 class TopSearchPanelStub():
@@ -236,6 +237,11 @@ class TopSearchPanel(FancyPanel):
         self.Thaw()
 
     def complete(self, term):
+        ignore_list = ["http://", "https://","magnet:", SWIFT_URL_SCHEME, "ppsp://"]
+        for ignore in ignore_list:
+            if term.startswith(ignore):
+                return []
+        
         """autocompletes term."""
         if len(term) > 1:
             if self.tdb == None:
