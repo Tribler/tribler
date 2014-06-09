@@ -1,22 +1,16 @@
 # Written by Niels Zeilemaker
-import threading
 import wx
 import sys
 import os
 import copy
+import datetime
+import threading
 
-import wx
-import igraph
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.community.anontunnel.community import ProxyCommunity
-import datetime
 from Tribler.community.anontunnel.routing import Hop
 
-try:
-    import igraph.vendor.texttable
-except:
-    pass
 import random
 import logging
 import binascii
@@ -25,7 +19,6 @@ from collections import defaultdict
 from traceback import print_exc
 
 from Tribler.Category.Category import Category
-from Tribler.Core.Tag.Extraction import TermExtraction
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, \
     NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, \
     NTFY_EXTENDED_FOR
@@ -571,7 +564,7 @@ class ActivityPanel(NewTorrentPanel):
             self.list.DeleteItem(size - 1)
 
 
-class Anonymity(wx.Panel):
+class OLDAnonymity(wx.Panel):
     def __init__(self, parent, fullscreen=True):
         wx.Panel.__init__(self, parent, -1)
 
@@ -1036,6 +1029,307 @@ class Anonymity(wx.Panel):
             self.vertices[vertexid][t] = (x, y)
         else:
             self.vertices[vertexid] = {t: (x, y)}
+
+    def ResetSearchBox(self):
+        pass
+
+
+class Anonymity(wx.Panel):
+    def __init__(self, parent, fullscreen=True):
+        wx.Panel.__init__(self, parent, -1)
+
+        self.SetBackgroundColour(wx.WHITE)
+        self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
+        self.session = self.utility.session
+
+        self.circuits = None
+        self.circuits_old = None
+        self.hop_to_colour = {}
+        self.colours = [wx.RED, wx.Colour(156, 18, 18), wx.Colour(183, 83, 83), wx.Colour(254, 134, 134), wx.Colour(254, 190, 190)]
+
+        self.selected_circuit = None
+        self.hop_hover_evt = None
+        self.hop_hover = None
+        self.hop_active_evt = None
+        self.hop_active = None
+
+        self.repaint = True
+        self.fps = 20
+        self.fullscreen = fullscreen
+        self.radius = 20 if self.fullscreen else 12
+        self.line_width = 2 if self.fullscreen else 1
+        self.margin_x = self.margin_y = self.radius
+        self.swarm_size = wx.Size(180, 60)
+
+        self.AddComponents()
+
+        self.try_proxy()
+
+    def try_proxy(self):
+        dispersy = self.utility.session.lm.dispersy
+        try:
+            proxy_community = (c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
+            self.found_proxy(proxy_community)
+        except:
+            wx.CallLater(1000, self.try_proxy)
+
+    def found_proxy(self, proxy_community):
+        self.proxy_community = proxy_community
+
+        self.my_address = Hop(self.proxy_community.my_member._ec.pub())
+        self.my_address.address = ('127.0.0.1', "SELF")
+
+        self.refresh_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, lambda evt: self.graph_panel.Refresh(), self.refresh_timer)
+        self.refresh_timer.Start(1000.0 / self.fps)
+
+        self.circuit_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnUpdateCircuits, self.circuit_timer)
+        self.circuit_timer.Start(5000)
+
+        self.taskqueue = GUITaskQueue.getInstance()
+
+        self.lock = threading.RLock()
+
+        self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
+        self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
+        self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
+        self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
+
+    def AddComponents(self):
+        self.graph_panel = wx.Panel(self, -1)
+        self.graph_panel.Bind(wx.EVT_MOTION, self.OnMouse)
+        self.graph_panel.Bind(wx.EVT_LEFT_UP, self.OnMouse)
+        self.graph_panel.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.graph_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.graph_panel.Bind(wx.EVT_SIZE, self.OnSize)
+
+        self.circuit_list = SelectableListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SIMPLE)
+        self.circuit_list.InsertColumn(0, 'Circuit', wx.LIST_FORMAT_LEFT, 30)
+        self.circuit_list.InsertColumn(1, 'Online', wx.LIST_FORMAT_RIGHT, 50)
+        self.circuit_list.InsertColumn(2, 'Hops', wx.LIST_FORMAT_RIGHT, 45)
+        self.circuit_list.InsertColumn(3, 'Bytes up', wx.LIST_FORMAT_RIGHT, 65)
+        self.circuit_list.InsertColumn(4, 'Bytes down', wx.LIST_FORMAT_RIGHT, 65)
+        self.circuit_list.setResizeColumn(0)
+        self.circuit_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
+        self.circuit_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemSelected)
+        self.circuit_to_listindex = {}
+
+        self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
+        self.log_text.SetEditable(False)
+        self.log_text.Show(self.fullscreen)
+
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20 if self.fullscreen else 0)
+        self.vSizer.Add(self.log_text, 1, wx.EXPAND)
+        self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 20 if self.fullscreen else 0)
+        self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 20 if self.fullscreen else 0)
+        self.SetSizer(self.main_sizer)
+
+    def OnItemSelected(self, event):
+        selected = []
+        item = self.circuit_list.GetFirstSelected()
+        while item != -1:
+            selected.append(item)
+            item = self.circuit_list.GetNextSelected(item)
+
+        for item in selected:
+            for circuit_id, listindex in self.circuit_to_listindex.iteritems():
+                if listindex == item:
+                    self.selected_circuit = self.circuits.get(circuit_id, None)
+                    self.repaint = True
+
+    def OnUpdateCircuits(self, event):
+        new_circuits = dict(self.proxy_community.circuits)
+        self.repaint = self.circuits != new_circuits
+        self.circuits = new_circuits
+        stats = self.proxy_community.global_stats.circuit_stats
+
+        # Add new circuits & update existing circuits
+        for circuit_id, circuit in self.circuits.iteritems():
+            if circuit_id not in self.circuit_to_listindex:
+                pos = self.circuit_list.InsertStringItem(sys.maxsize, str(circuit_id))
+                self.circuit_to_listindex[circuit_id] = pos
+            else:
+                pos = self.circuit_to_listindex[circuit_id]
+            self.circuit_list.SetStringItem(pos, 1, str(circuit.state))
+            self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)) + "/" + str(circuit.goal_hops))
+
+            bytes_uploaded = stats[circuit_id].bytes_uploaded
+            bytes_downloaded = stats[circuit_id].bytes_downloaded
+
+            self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(bytes_uploaded))
+            self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(bytes_downloaded))
+
+        # Remove old circuits
+        old_circuits = [circuit_id for circuit_id in self.circuit_to_listindex if circuit_id not in self.circuits]
+        for circuit_id in old_circuits:
+            listindex = self.circuit_to_listindex[circuit_id]
+            self.circuit_list.DeleteItem(listindex)
+            self.circuit_to_listindex.pop(circuit_id)
+            for k, v in self.circuit_to_listindex.items():
+                if v > listindex:
+                    self.circuit_to_listindex[k] = v - 1
+
+    def AppendToLog(self, msg):
+        self.log_text.AppendText('[%s]: %s' % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
+
+    @forceWxThread
+    def OnExtended(self, subject, changeType, circuit):
+        if changeType == NTFY_CREATED:
+            self.AppendToLog("Created circuit %s\n" % (circuit.circuit_id))
+        if changeType == NTFY_EXTENDED:
+            self.AppendToLog("Extended circuit %s\n" % (circuit.circuit_id))
+        if changeType == NTFY_BROKEN:
+            self.AppendToLog("Circuit %d has been broken\n" % circuit)
+
+    @forceWxThread
+    def OnSelect(self, subject, changeType, circuit, address):
+        self.AppendToLog("Circuit %d has been selected for destination %s\n" % (circuit, address))
+
+    @forceWxThread
+    def OnJoined(self, subject, changeType, address, circuit_id):
+        self.AppendToLog("Joined an external circuit %d with %s:%d\n" % (circuit_id, address[0], address[1]))
+
+    @forceWxThread
+    def OnExtendedFor(self, subject, changeType, extended_for, extended_with):
+        self.AppendToLog("Extended an external circuit (%s:%d, %d) with (%s:%d, %d)\n" % (
+            extended_for[0].sock_addr[0], extended_for[0].sock_addr[1], extended_for[1], extended_with[0].sock_addr[0],
+            extended_with[0].sock_addr[1], extended_with[1]))
+
+    def OnMouse(self, event):
+        if event.Moving():
+            self.hop_hover_evt = event.GetPosition()
+            self.repaint = True
+        elif event.LeftUp():
+            self.hop_active_evt = event.GetPosition()
+            self.repaint = True
+
+    def OnSize(self, evt):
+        size = min(*evt.GetEventObject().GetSize())
+        x = min(size + self.margin_x * 2 + self.swarm_size.x, self.GetSize().x - self.circuit_list.GetSize().x)
+        y = size + self.margin_y * 2
+        self.graph_panel.SetSize((x, y))
+        self.repaint = True
+
+    def OnEraseBackground(self, event):
+        pass
+
+    def OnPaint(self, event):
+        if self.repaint:
+            eo = event.GetEventObject()
+            dc = wx.BufferedPaintDC(eo)
+            dc.Clear()
+            gc = wx.GraphicsContext.Create(dc)
+
+            w = eo.GetSize().x - 2 * self.margin_x - 1 - self.swarm_size.x
+            h = eo.GetSize().y - 2 * self.margin_y - 1
+
+            swarm_pos = (eo.GetSize().x - self.swarm_size.x - 11, h / 2 - self.swarm_size.y / 2)
+            swarm_center = (eo.GetSize().x - self.swarm_size.x / 2, h / 2)
+
+            num_circuits = len(self.circuits)
+            circuit_points = {}
+
+            for c_index, circuit in enumerate(self.circuits.values()):
+                circuit_points[circuit] = [(self.margin_x, h / 2)]
+                for h_index, hop in enumerate(circuit.hops):
+                    circuit_points[circuit].append((w * (float(h_index + 1) / (circuit.goal_hops + 1)) + self.margin_x, \
+                                                    h * (float(c_index + 0.5) / num_circuits)))
+
+            # Draw edges
+            for circuit, points in circuit_points.iteritems():
+                for point1, point2 in zip(points[0::1], points[1::1]):
+                    if circuit == self.selected_circuit:
+                        gc.SetPen(wx.Pen(wx.BLUE, self.line_width))
+                    else:
+                        gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
+                    gc.DrawLines([point1, point2])
+
+                if not self.fullscreen:
+                    # If exit node, draw edge to bittorrent swarm
+                    if circuit.goal_hops == len(circuit.hops):
+                        gc.DrawLines([points[-1], swarm_center])
+
+            # Draw vertices
+            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
+            for circuit, points in circuit_points.iteritems():
+                for index, point in enumerate(points):
+                    hop = (circuit, index)
+                    colour = self.hop_to_colour.get(hop, None)
+                    if not colour:
+                        self.hop_to_colour[hop] = colour = random.choice(self.colours[1:]) if index > 0 else self.colours[0]
+
+                    x, y = point
+                    gc.SetBrush(wx.Brush(colour))
+                    gc.DrawEllipse(x - self.radius / 2, y - self.radius / 2, self.radius, self.radius)
+
+            # Draw swarm
+            if not self.fullscreen:
+                gc.SetPen(wx.Pen(wx.Colour(210, 210, 210)))
+                gc.SetBrush(wx.Brush(wx.Colour(240, 240, 240)))
+                gc.DrawRoundedRectangle(swarm_pos[0], swarm_pos[1], self.swarm_size.x, self.swarm_size.y, 10)
+                dc.SetTextForeground(wx.Colour(100, 100, 100))
+                dc.DrawLabel("Bittorrent swarm", wx.Rect(*(swarm_pos + self.swarm_size.Get())), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+
+            # Draw circle around active vertex
+            gc.SetBrush(wx.TRANSPARENT_BRUSH)
+
+            if self.hop_hover_evt:
+                self.hop_hover = self.PositionToCircuit(self.hop_hover_evt, circuit_points)
+                self.hop_hover_evt = None
+
+            if self.hop_hover:
+                circuit, hop = self.hop_hover
+                x, y = circuit_points[circuit][hop]
+                pen = wx.Pen(wx.Colour(229, 229, 229), 1, wx.USER_DASH)
+                pen.SetDashes([8, 4])
+                gc.SetPen(pen)
+                gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+
+            if self.hop_active_evt:
+                self.hop_active = self.PositionToCircuit(self.hop_active_evt, circuit_points)
+                self.hop_active_evt = None
+
+            if self.hop_active and self.hop_active[0] in circuit_points and self.hop_active[1] <= len(self.hop_active[0].hops):
+                circuit, hop = self.hop_active
+                x, y = circuit_points[circuit][hop]
+                pen = wx.Pen(self.hop_to_colour.get(self.hop_active, wx.BLACK), 1, wx.USER_DASH)
+                pen.SetDashes([8, 4])
+                gc.SetPen(pen)
+                gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+
+                if 'UNKNOWN HOST' not in circuit.hops[hop - 1].host:
+                    text_height = dc.GetTextExtent('gG')[1]
+                    box_height = text_height + 3
+
+                    # Draw status box
+                    x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
+                    y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
+                    gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
+                    gc.SetPen(wx.Pen(LIST_BLUE))
+                    gc.DrawRectangle(x, y, 150, box_height)
+
+                    # Draw status text
+                    dc.SetFont(self.GetFont())
+                    for index, text in enumerate(['IP %s:%s' % (circuit.hops[hop - 1].host, circuit.hops[hop - 1].port)]):
+                        dc.DrawText(text, x + 5, y + index * text_height + 5)
+
+            if self.fullscreen:
+                # Draw vertex count
+                gc.SetFont(self.GetFont())
+                gc.DrawText("|V| = %d" % sum([len(points) for points in circuit_points.values()]), w - 50, h - 20)
+
+            self.repaint = False
+
+    def PositionToCircuit(self, position, circuit_points):
+        for circuit, points in circuit_points.iteritems():
+            for index, point in enumerate(points):
+                if (position[0] - point[0]) ** 2 + (position[1] - point[1]) ** 2 < self.radius ** 2:
+                    return (circuit, index)
+        return None
 
     def ResetSearchBox(self):
         pass
