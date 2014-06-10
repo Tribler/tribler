@@ -6,7 +6,7 @@ import os
 from pyasn1.type import univ, namedtype, tag
 from pyasn1.codec.der import decoder
 
-from Tribler import LIBRARYNAME
+from Tribler import LIBRARYPATH
 from Tribler.dispersy.crypto import ECCrypto
 from Tribler.community.privatesemantic.conversion import long_to_bytes, \
     bytes_to_long
@@ -213,7 +213,7 @@ class OpenSSLCurves():
         self.curve_dict = defaultdict(lambda: ["", "", ""])
 
         implicit = True
-        f = open(os.path.join(LIBRARYNAME, 'community', 'privatesemantic', 'crypto', 'curves.ec'), 'r')
+        f = open(os.path.join(LIBRARYPATH, 'community', 'privatesemantic', 'crypto', 'curves.ec'), 'r')
         for line in f:
             line = line.strip()
 
