@@ -238,10 +238,10 @@ class GUIUtility:
             elif self.guiPage == 'stats':
                 self.frame.stats.Show(False)
 
-            if page == 'anonymity':
-                self.frame.anonymity.Show()
-            elif self.guiPage == 'anonymity':
-                self.frame.anonymity.Show(False)
+            if page == 'networkgraph':
+                self.frame.networkgraph.Show()
+            elif self.guiPage == 'networkgraph':
+                self.frame.networkgraph.Show(False)
 
             if self.frame.videoparentpanel:
                 if page == 'videoplayer':
