@@ -3,7 +3,7 @@
 
 import os
 
-from Tribler import LIBRARYNAME
+from Tribler import LIBRARYPATH
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Tag.StopwordsFilter import StopwordsFilter
 
@@ -40,7 +40,7 @@ class TermExtraction:
             raise RuntimeError("TermExtraction is singleton")
         TermExtraction.__single = self
 
-        filterfn = os.path.join(install_dir, LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
+        filterfn = os.path.join(LIBRARYPATH, 'Core', 'Tag', 'stop_snowball.filter')
         self.stopwords_filter = StopwordsFilter(stopwordsfilename=filterfn)
 
         self.containsdigits_filter = re.compile(r'\d', re.UNICODE)
