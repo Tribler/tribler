@@ -30,13 +30,13 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-from Tribler.Main.Utility.arflayout import ArfLayout, CubicHermiteInterpolate
 from Tribler.Main.vwxGUI.list_header import DetailHeader
 from Tribler.Main.vwxGUI.list_body import ListBody
 from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, LinkStaticText
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 
 
 class Home(wx.Panel):
@@ -572,8 +572,9 @@ class NetworkGraphPanel(wx.Panel):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.session = self.utility.session
+        self.swarm = GuiImageManager.getInstance().getImage(u"cloud.png")
 
-        self.circuits = None
+        self.circuits = {}
         self.circuits_old = None
         self.hop_to_colour = {}
         self.colours = [wx.RED, wx.Colour(156, 18, 18), wx.Colour(183, 83, 83), wx.Colour(254, 134, 134), wx.Colour(254, 190, 190)]
@@ -584,8 +585,7 @@ class NetworkGraphPanel(wx.Panel):
         self.hop_active_evt = None
         self.hop_active = None
 
-        self.repaint = True
-        self.fps = 20
+        self.tunnels = True
         self.fullscreen = fullscreen
         self.radius = 20 if self.fullscreen else 12
         self.line_width = 2 if self.fullscreen else 1
@@ -610,17 +610,9 @@ class NetworkGraphPanel(wx.Panel):
         self.my_address = Hop(self.proxy_community.my_member._ec.pub())
         self.my_address.address = ('127.0.0.1', "SELF")
 
-        self.refresh_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, lambda evt: self.graph_panel.Refresh(), self.refresh_timer)
-        self.refresh_timer.Start(1000.0 / self.fps)
-
         self.circuit_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnUpdateCircuits, self.circuit_timer)
         self.circuit_timer.Start(5000)
-
-        self.taskqueue = GUITaskQueue.getInstance()
-
-        self.lock = threading.RLock()
 
         self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
         self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
@@ -633,7 +625,6 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Bind(wx.EVT_LEFT_UP, self.OnMouse)
         self.graph_panel.Bind(wx.EVT_PAINT, self.OnPaint)
         self.graph_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-        self.graph_panel.Bind(wx.EVT_SIZE, self.OnSize)
 
         self.circuit_list = SelectableListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SIMPLE)
         self.circuit_list.InsertColumn(0, 'Circuit', wx.LIST_FORMAT_LEFT, 30)
@@ -651,12 +642,17 @@ class NetworkGraphPanel(wx.Panel):
         self.log_text.Show(self.fullscreen)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20 if self.fullscreen else 0)
+        self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 0)
         self.vSizer.Add(self.log_text, 1, wx.EXPAND)
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 20 if self.fullscreen else 0)
-        self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 20 if self.fullscreen else 0)
+        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
+        self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(self.main_sizer)
+
+    def ShowTunnels(self, enable):
+        self.circuit_list.Show(enable)
+        self.tunnels = enable
+        self.graph_panel.Refresh()
 
     def OnItemSelected(self, event):
         selected = []
@@ -665,15 +661,15 @@ class NetworkGraphPanel(wx.Panel):
             selected.append(item)
             item = self.circuit_list.GetNextSelected(item)
 
+        self.selected_circuit = None
         for item in selected:
             for circuit_id, listindex in self.circuit_to_listindex.iteritems():
-                if listindex == item:
-                    self.selected_circuit = self.circuits.get(circuit_id, None)
-                    self.repaint = True
+                if listindex == item and circuit_id in self.circuits:
+                    self.selected_circuit = self.circuits[circuit_id]
+        self.graph_panel.Refresh()
 
     def OnUpdateCircuits(self, event):
         new_circuits = dict(self.proxy_community.circuits)
-        self.repaint = self.circuits != new_circuits
         self.circuits = new_circuits
         stats = self.proxy_community.global_stats.circuit_stats
 
@@ -732,127 +728,120 @@ class NetworkGraphPanel(wx.Panel):
     def OnMouse(self, event):
         if event.Moving():
             self.hop_hover_evt = event.GetPosition()
-            self.repaint = True
+            self.graph_panel.Refresh()
         elif event.LeftUp():
             self.hop_active_evt = event.GetPosition()
-            self.repaint = True
+            self.graph_panel.Refresh()
 
     def OnSize(self, evt):
         size = min(*evt.GetEventObject().GetSize())
-        x = min(size + self.margin_x * 2 + self.swarm_size.x, self.GetSize().x - self.circuit_list.GetSize().x)
+        x = min(size + self.margin_x * 2 + self.swarm.GetSize().x, self.GetSize().x - self.circuit_list.GetSize().x)
         y = size + self.margin_y * 2
         self.graph_panel.SetSize((x, y))
-        self.repaint = True
 
     def OnEraseBackground(self, event):
         pass
 
     def OnPaint(self, event):
-        if self.repaint:
-            eo = event.GetEventObject()
-            dc = wx.BufferedPaintDC(eo)
-            dc.Clear()
-            gc = wx.GraphicsContext.Create(dc)
+        eo = event.GetEventObject()
+        dc = wx.BufferedPaintDC(eo)
+        dc.Clear()
+        gc = wx.GraphicsContext.Create(dc)
 
-            w = eo.GetSize().x - 2 * self.margin_x - 1 - self.swarm_size.x
-            h = eo.GetSize().y - 2 * self.margin_y - 1
+        swarm_size = self.swarm.GetSize()
 
-            swarm_pos = (eo.GetSize().x - self.swarm_size.x - 11, h / 2 - self.swarm_size.y / 2)
-            swarm_center = (eo.GetSize().x - self.swarm_size.x / 2, h / 2)
+        w = eo.GetSize().x - 2 * self.margin_x - 1 - swarm_size.x
+        h = eo.GetSize().y - 2 * self.margin_y - 1
 
+        swarm_pos = (eo.GetSize().x - swarm_size.x - 11, h / 2 - swarm_size.y / 2 + 11)
+        swarm_center = (eo.GetSize().x - swarm_size.x / 2, h / 2 + self.margin_y)
+
+        circuit_points = {}
+
+        if self.tunnels:
             num_circuits = len(self.circuits)
-            circuit_points = {}
-
-            for c_index, circuit in enumerate(self.circuits.values()):
-                circuit_points[circuit] = [(self.margin_x, h / 2)]
+            for c_index, circuit in enumerate(sorted(self.circuits.values(), key=lambda c:c.circuit_id)):
+                circuit_points[circuit] = [(self.margin_x, h / 2 + self.margin_y)]
                 for h_index, hop in enumerate(circuit.hops):
                     circuit_points[circuit].append((w * (float(h_index + 1) / (circuit.goal_hops + 1)) + self.margin_x, \
-                                                    h * (float(c_index + 0.5) / num_circuits)))
-
-            # Draw edges
-            for circuit, points in circuit_points.iteritems():
-                for point1, point2 in zip(points[0::1], points[1::1]):
-                    if circuit == self.selected_circuit:
-                        gc.SetPen(wx.Pen(wx.BLUE, self.line_width))
-                    else:
-                        gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
-                    gc.DrawLines([point1, point2])
-
-                if not self.fullscreen:
-                    # If exit node, draw edge to bittorrent swarm
-                    if circuit.goal_hops == len(circuit.hops):
-                        gc.DrawLines([points[-1], swarm_center])
-
-            # Draw vertices
+                                                    h * (float(c_index + 0.5) / num_circuits) + self.margin_y))
+        else:
+            circuit_points[None] = [(self.margin_x, h / 2 + self.margin_y)]
             gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
-            for circuit, points in circuit_points.iteritems():
-                for index, point in enumerate(points):
-                    hop = (circuit, index)
-                    colour = self.hop_to_colour.get(hop, None)
-                    if not colour:
-                        self.hop_to_colour[hop] = colour = random.choice(self.colours[1:]) if index > 0 else self.colours[0]
 
-                    x, y = point
-                    gc.SetBrush(wx.Brush(colour))
-                    gc.DrawEllipse(x - self.radius / 2, y - self.radius / 2, self.radius, self.radius)
+        # Draw edges
+        for circuit, points in circuit_points.iteritems():
+            for point1, point2 in zip(points[0::1], points[1::1]):
+                if circuit == self.selected_circuit:
+                    gc.SetPen(wx.Pen(wx.BLUE, self.line_width))
+                else:
+                    gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
+                gc.DrawLines([point1, point2])
 
-            # Draw swarm
-            if not self.fullscreen:
-                gc.SetPen(wx.Pen(wx.Colour(210, 210, 210)))
-                gc.SetBrush(wx.Brush(wx.Colour(240, 240, 240)))
-                gc.DrawRoundedRectangle(swarm_pos[0], swarm_pos[1], self.swarm_size.x, self.swarm_size.y, 10)
-                dc.SetTextForeground(wx.Colour(100, 100, 100))
-                dc.DrawLabel("Bittorrent swarm", wx.Rect(*(swarm_pos + self.swarm_size.Get())), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+            # If exit node, draw edge to bittorrent swarm
+            if not circuit or circuit.goal_hops == len(circuit.hops):
+                gc.DrawLines([points[-1], swarm_center])
 
-            # Draw circle around active vertex
-            gc.SetBrush(wx.TRANSPARENT_BRUSH)
+        # Draw vertices
+        gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
+        for circuit, points in circuit_points.iteritems():
+            for index, point in enumerate(points):
+                hop = (circuit, index)
+                colour = self.hop_to_colour.get(hop, None)
+                if not colour:
+                    self.hop_to_colour[hop] = colour = random.choice(self.colours[1:]) if index > 0 else self.colours[0]
 
-            if self.hop_hover_evt:
-                self.hop_hover = self.PositionToCircuit(self.hop_hover_evt, circuit_points)
-                self.hop_hover_evt = None
+                x, y = point
+                gc.SetBrush(wx.Brush(colour))
+                gc.DrawEllipse(x - self.radius / 2, y - self.radius / 2, self.radius, self.radius)
 
-            if self.hop_hover:
-                circuit, hop = self.hop_hover
-                x, y = circuit_points[circuit][hop]
-                pen = wx.Pen(wx.Colour(229, 229, 229), 1, wx.USER_DASH)
-                pen.SetDashes([8, 4])
-                gc.SetPen(pen)
-                gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+        # Draw swarm
+        gc.DrawBitmap(self.swarm, swarm_pos[0], swarm_pos[1], *swarm_size)
+        dc.SetTextForeground(wx.BLACK)
+        dc.DrawLabel("Bittorrent swarm", wx.Rect(*(swarm_pos + swarm_size.Get())), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
-            if self.hop_active_evt:
-                self.hop_active = self.PositionToCircuit(self.hop_active_evt, circuit_points)
-                self.hop_active_evt = None
+        # Draw circle around active vertex
+        gc.SetBrush(wx.TRANSPARENT_BRUSH)
 
-            if self.hop_active and self.hop_active[0] in circuit_points and self.hop_active[1] <= len(self.hop_active[0].hops):
-                circuit, hop = self.hop_active
-                x, y = circuit_points[circuit][hop]
-                pen = wx.Pen(self.hop_to_colour.get(self.hop_active, wx.BLACK), 1, wx.USER_DASH)
-                pen.SetDashes([8, 4])
-                gc.SetPen(pen)
-                gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+        if self.hop_hover_evt:
+            self.hop_hover = self.PositionToCircuit(self.hop_hover_evt, circuit_points)
+            self.hop_hover_evt = None
 
-                if 'UNKNOWN HOST' not in circuit.hops[hop - 1].host:
-                    text_height = dc.GetTextExtent('gG')[1]
-                    box_height = text_height + 3
+        if self.hop_hover:
+            circuit, hop = self.hop_hover
+            x, y = circuit_points[circuit][hop]
+            pen = wx.Pen(wx.Colour(229, 229, 229), 1, wx.USER_DASH)
+            pen.SetDashes([8, 4])
+            gc.SetPen(pen)
+            gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
-                    # Draw status box
-                    x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
-                    y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
-                    gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
-                    gc.SetPen(wx.Pen(LIST_BLUE))
-                    gc.DrawRectangle(x, y, 150, box_height)
+        if self.hop_active_evt:
+            self.hop_active = self.PositionToCircuit(self.hop_active_evt, circuit_points)
+            self.hop_active_evt = None
 
-                    # Draw status text
-                    dc.SetFont(self.GetFont())
-                    for index, text in enumerate(['IP %s:%s' % (circuit.hops[hop - 1].host, circuit.hops[hop - 1].port)]):
-                        dc.DrawText(text, x + 5, y + index * text_height + 5)
+        if self.hop_active and self.hop_active[0] in circuit_points and self.hop_active[1] <= len(self.hop_active[0].hops):
+            circuit, hop = self.hop_active
+            x, y = circuit_points[circuit][hop]
+            pen = wx.Pen(self.hop_to_colour.get(self.hop_active, wx.BLACK), 1, wx.USER_DASH)
+            pen.SetDashes([8, 4])
+            gc.SetPen(pen)
+            gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
-            if self.fullscreen:
-                # Draw vertex count
-                gc.SetFont(self.GetFont())
-                gc.DrawText("|V| = %d" % sum([len(points) for points in circuit_points.values()]), w - 50, h - 20)
+            if 'UNKNOWN HOST' not in circuit.hops[hop - 1].host:
+                text_height = dc.GetTextExtent('gG')[1]
+                box_height = text_height + 3
 
-            self.repaint = False
+                # Draw status box
+                x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
+                y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
+                gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
+                gc.SetPen(wx.Pen(LIST_BLUE))
+                gc.DrawRectangle(x, y, 150, box_height)
+
+                # Draw status text
+                dc.SetFont(self.GetFont())
+                for index, text in enumerate(['IP %s:%s' % (circuit.hops[hop - 1].host, circuit.hops[hop - 1].port)]):
+                    dc.DrawText(text, x + 5, y + index * text_height + 5)
 
     def PositionToCircuit(self, position, circuit_points):
         for circuit, points in circuit_points.iteritems():
