@@ -15,7 +15,7 @@ from twisted.internet import reactor
 from twisted.python.threadable import isInIOThread
 from twisted.internet.threads import blockingCallFromThread
 
-from Tribler import LIBRARYNAME
+from Tribler import LIBRARYPATH
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
@@ -52,7 +52,7 @@ CURRENT_MAIN_DB_VERSION = 22
 config_dir = None
 CREATE_SQL_FILE = None
 
-CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT_MAIN_DB_VERSION) + '.sql')
+CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYPATH, 'schema_sdb_v' + str(CURRENT_MAIN_DB_VERSION) + '.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'  # db file path = DB_DIR_NAME/DB_FILE_NAME
 DEFAULT_BUSY_TIMEOUT = 10000
