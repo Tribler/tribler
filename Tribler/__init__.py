@@ -1,6 +1,6 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-import os, intent
+import os
 
 LIBRARYNAME = 'Tribler'
-LIBRARYPATH = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+LIBRARYPATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
