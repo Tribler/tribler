@@ -12,6 +12,7 @@ from twisted.internet.task import LoopingCall
 from Tribler.community.anontunnel.crypto import NoCrypto
 from Tribler.community.anontunnel.events import TunnelObserver
 from Tribler.dispersy.database import Database
+from Tribler.dispersy.taskmanager import TaskManager
 
 
 __author__ = 'chris'
@@ -19,7 +20,9 @@ __author__ = 'chris'
 sqlite3.register_converter('GUID', lambda b: uuid.UUID(bytes_le=b))
 sqlite3.register_adapter(uuid.UUID, lambda u: buffer(u.bytes_le))
 
+
 class CircuitStats:
+
     def __init__(self):
         self.timestamp = None
         self.times = []
@@ -42,6 +45,7 @@ class CircuitStats:
 
 
 class RelayStats:
+
     def __init__(self):
         self.timestamp = None
 
@@ -51,18 +55,17 @@ class RelayStats:
         self.speed = 0
 
 
-class StatsCollector(TunnelObserver):
+class StatsCollector(TunnelObserver, TaskManager):
+
     def __init__(self, proxy, name):
         """
         @type proxy: Tribler.community.anontunnel.community.ProxyCommunity
         """
 
-        TunnelObserver.__init__(self)
+        super(StatsCollector, self).__init__()
 
         self._logger = logging.getLogger(__name__)
         self.name = name
-
-        self._pending_tasks = {}
 
         self.stats = {
             'bytes_returned': 0,
@@ -81,28 +84,16 @@ class StatsCollector(TunnelObserver):
         self._circuit_cache = {}
         ''':type : dict[int, Circuit] '''
 
-    def cancel_pending_task(self, key):
-        task = self._pending_tasks.pop(key)
-        if isinstance(task, Deferred) and not task.called:
-            # Have in mind that any deferred in the pending tasks list should have been constructed with a
-            # canceller function.
-            task.cancel()
-        elif isinstance(task, DelayedCall) and task.active():
-            task.cancel()
-        elif isinstance(task, LoopingCall) and task.running:
-            task.stop()
-
     def pause(self):
         """
         Pause stats collecting
         """
+
         self._logger.info("Removed StatsCollector %s as observer", self.name)
         self.running = False
         self.proxy.observers.remove(self)
 
-        # cancel all pending tasks
-        for key in self._pending_tasks.keys():
-            self.cancel_pending_task(key)
+        self.cancel_all_pending_tasks()
 
     def clear(self):
         """
@@ -123,8 +114,7 @@ class StatsCollector(TunnelObserver):
         self._logger.info("Resuming stats collector {0}!".format(self.name))
         self.running = True
         self.proxy.observers.append(self)
-        self._pending_tasks["calc speeds"] = lc = LoopingCall(self.__calc_speeds)
-        lc.start(1, now=True)
+        self.register_task("calc speeds", LoopingCall(self.__calc_speeds)).start(1, now=True)
 
     def on_break_circuit(self, circuit):
         if len(circuit.hops) == circuit.goal_hops:
@@ -381,6 +371,7 @@ class StatsDatabase(Database):
 
 
 class StatsCrawler(TunnelObserver):
+
     """
     Stores incoming stats in a SQLite database
     @param RawServer raw_server: the RawServer instance to queue database tasks

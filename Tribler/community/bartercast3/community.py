@@ -183,7 +183,7 @@ class BarterCommunity(Community):
         self._has_been_killed = False
 
         # wait till next time we can create records with the candidates on our slope
-        self._pending_tasks["periodically create records"] = reactor.callLater(0, self._periodically_create_records)
+        self.register_task("periodically create records", reactor.callLater(0, self._periodically_create_records))
 
     @property
     def database(self):

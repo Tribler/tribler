@@ -94,8 +94,9 @@ class SearchCommunity(Community):
 
         self.torrent_cache = None
 
-        self._pending_tasks["create torrent collect requests"] = lc = LoopingCall(self.create_torrent_collect_requests)
-        lc.start(CREATE_TORRENT_COLLECT_INTERVAL, now=True)
+        self.register_task("create torrent collect requests",
+                           LoopingCall(self.create_torrent_collect_requests)).start(CREATE_TORRENT_COLLECT_INTERVAL,
+                                                                                    now=True)
 
     @property
     def dispersy_enable_fast_candidate_walker(self):

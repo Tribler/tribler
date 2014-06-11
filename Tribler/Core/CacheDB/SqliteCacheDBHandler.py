@@ -32,6 +32,7 @@ from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, N
                                      NTFY_MODIFIED, NTFY_TRACKERINFO, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS,
                                      NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS,
                                      NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_STATE)
+from Tribler.dispersy.taskmanager import TaskManager
 
 
 try:
@@ -46,6 +47,8 @@ except NameError:
     WindowsError = Exception
 
 SHOW_ERROR = False
+
+VOTECAST_FLUSH_DB_INTERVAL = 15
 
 MAX_KEYWORDS_STORED = 5
 MAX_KEYWORD_LENGTH = 50
@@ -69,18 +72,18 @@ class LimitedOrderedDict(OrderedDict):
             self.popitem(last=False)
 
 
-class BasicDBHandler:
+class BasicDBHandler(TaskManager):
     _singleton_lock = RLock()
     _single = None
 
     def __init__(self, db, table_name):  # # self, table_name
+        super(BasicDBHandler, self).__init__()
+
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._db = db  # # SQLiteCacheDB.getInstance()
         self.table_name = table_name
         self.notifier = Notifier.getInstance()
-
-        self._pending_tasks = {}
 
     @classmethod
     def getInstance(cls, *args, **kargs):
@@ -93,9 +96,8 @@ class BasicDBHandler:
     def delInstance(cls):
         if cls._single:
             # cancel all pending tasks
-            for key in cls._single._pending_tasks.keys():
-                cls._single.cancel_pending_task(key)
-                cls._single._pending_tasks.clear()
+            cls._single.cancel_all_pending_tasks()
+
         with cls._singleton_lock:
             cls._single = None
 
@@ -104,27 +106,13 @@ class BasicDBHandler:
         return cls._single != None
 
     def close(self):
-        # cancel all pending tasks
-        for key in self._pending_tasks.keys():
-            self.cancel_pending_task(key)
-        self._pending_tasks.clear()
+        self.cancel_all_pending_tasks()
 
         try:
             self._db.close()
         except:
             if SHOW_ERROR:
                 print_exc()
-
-    def cancel_pending_task(self, key):
-        task = self._pending_tasks.pop(key)
-        if isinstance(task, Deferred) and not task.called:
-            # Have in mind that any deferred in the pending tasks list should have been constructed with a
-            # canceller function.
-            task.cancel()
-        elif isinstance(task, DelayedCall) and task.active():
-            task.cancel()
-        elif isinstance(task, LoopingCall) and task.running:
-            task.stop()
 
     def size(self):
         return self._db.size(self.table_name)
@@ -1879,7 +1867,7 @@ class VoteCastDBHandler(BasicDBHandler):
 
         self.voteLock = Lock()
         self.updatedChannels = set()
-        db.schedule_task(self._flush_to_database, delay=5.0)
+        db.register_task("flush to database", LoopingCall(self._flush_to_database)).start(VOTECAST_FLUSH_DB_INTERVAL, now=False)
 
     def registerSession(self, session):
         self.session = session
@@ -1912,29 +1900,26 @@ class VoteCastDBHandler(BasicDBHandler):
             self.updatedChannels.add(channel_id)
 
     def _flush_to_database(self):
-        while True:
-            with self.voteLock:
-                channel_ids = list(self.updatedChannels)
-                self.updatedChannels.clear()
+        with self.voteLock:
+            channel_ids = list(self.updatedChannels)
+            self.updatedChannels.clear()
 
-            if channel_ids:
-                parameters = ",".join("?" * len(channel_ids))
-                sql = "Select channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
-                positive_votes = {}
-                negative_votes = {}
-                for channel_id, vote in self._db.fetchall(sql, channel_ids):
-                    if vote == 2:
-                        positive_votes[channel_id] = positive_votes.get(channel_id, 0) + 1
-                    elif vote == -1:
-                        negative_votes[channel_id] = negative_votes.get(channel_id, 0) + 1
+        if channel_ids:
+            parameters = ",".join("?" * len(channel_ids))
+            sql = "Select channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
+            positive_votes = {}
+            negative_votes = {}
+            for channel_id, vote in self._db.fetchall(sql, channel_ids):
+                if vote == 2:
+                    positive_votes[channel_id] = positive_votes.get(channel_id, 0) + 1
+                elif vote == -1:
+                    negative_votes[channel_id] = negative_votes.get(channel_id, 0) + 1
 
-                updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
-                self._db.executemany("UPDATE OR IGNORE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
+            updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
+            self._db.executemany("UPDATE OR IGNORE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates)
 
-                for channel_id in channel_ids:
-                    self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)
-
-            yield 15.0
+            for channel_id in channel_ids:
+                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)
 
     def get_latest_vote_dispersy_id(self, channel_id, voter_id):
         if voter_id:
@@ -2023,8 +2008,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
             self._db.executemany(update, rows)
 
-        self._pending_tasks["updateNrTorrents"] = lc = LoopingCall(updateNrTorrents)
-        lc.start(300, now=False)
+        self.register_task("updateNrTorrents", LoopingCall(updateNrTorrents)).start(300, now=False)
 
     # dispersy helper functions
     def _get_my_dispersy_cid(self):

@@ -1,12 +1,15 @@
 # Written by Niels Zeilemaker
 import sys
-
-from conversion import SocialConversion
-from payload import TextPayload
 from collections import defaultdict
+from random import sample, choice
 from time import time
-from random import sample, shuffle
 
+from twisted.internet.task import LoopingCall
+
+from Tribler.community.privatesemantic.community import (PoliForwardCommunity, HForwardCommunity, PForwardCommunity,
+                                                         TasteBuddy, PSI_CARDINALITY)
+from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
+from Tribler.community.privatesocial.payload import EncryptedPayload
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -14,13 +17,10 @@ from Tribler.dispersy.destination import CommunityDestination
 from Tribler.dispersy.distribution import FullSyncDistribution
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.community.privatesocial.payload import EncryptedPayload
-from Tribler.community.privatesemantic.community import PoliForwardCommunity, \
-    HForwardCommunity, PForwardCommunity, TasteBuddy, PSI_CARDINALITY
-
-from random import choice
+from conversion import SocialConversion
 from database import FriendDatabase
-from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
+from payload import TextPayload
+
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -73,8 +73,8 @@ class SocialCommunity(Community):
 
     def new_taste_buddy(self, tb):
         if tb.overlap:
-            self._pending_tasks[tb] = lc = LoopingCall(self._sync_with_friend, tb)
-            lc.start(SYNC_WITH_TASTE_BUDDIES_INTERVAL, now=True)
+            self.register_task(tb, LoopingCall(self._sync_with_friend, tb)).start(SYNC_WITH_TASTE_BUDDIES_INTERVAL,
+                                                                                  now=True)
 
     def _get_packets_for_bloomfilters(self, requests, include_inactive=True):
         for message, time_low, time_high, offset, modulo in requests:

@@ -16,9 +16,7 @@ from time import sleep, time
 from traceback import print_exc
 
 from twisted.internet import reactor
-from twisted.internet.base import DelayedCall
-from twisted.internet.defer import inlineCallbacks, Deferred
-from twisted.internet.task import deferLater, LoopingCall
+from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -27,6 +25,7 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.exceptions import DuplicateDownloadException, OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
 
@@ -35,11 +34,13 @@ TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 # TODO(emilon): This is not a constant
 LOW_PRIO_COLLECTING = 2
 
-class RemoteTorrentHandler:
+class RemoteTorrentHandler(TaskManager):
 
     __single = None
 
     def __init__(self):
+        super(RemoteTorrentHandler, self).__init__()
+
         RemoteTorrentHandler.__single = self
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -55,8 +56,6 @@ class RemoteTorrentHandler:
         self.metadata_requester = None
 
         self.num_torrents = 0
-
-        self._pending_tasks = {}
 
     def getInstance(*args, **kw):
         if RemoteTorrentHandler.__single is None:
@@ -92,21 +91,8 @@ class RemoteTorrentHandler:
     def is_registered(self):
         return self.registered
 
-    def cancel_pending_task(self, key):
-        task = self._pending_tasks.pop(key)
-        if isinstance(task, Deferred) and not task.called:
-            # Have in mind that any deferred in the pending tasks list should have been constructed with a
-            # canceller function.
-            task.cancel()
-        elif isinstance(task, DelayedCall) and task.active():
-            task.cancel()
-        elif isinstance(task, LoopingCall) and task.running:
-            task.stop()
-
     def shutdown(self):
-        # TODO(emilon): have a superclass for classes that keep a pending task dictionary
-        for key in self._pending_tasks.keys():
-            self.cancel_pending_task(key)
+        self.cancel_all_pending_tasks()
 
         if self.registered:
             self.tqueue.shutdown(True)
@@ -153,8 +139,8 @@ class RemoteTorrentHandler:
 
             self._logger.debug("rtorrent: setting low_prio_collection to one .torrent every %.1f seconds", LOW_PRIO_COLLECTING * .5)
 
-        self._pending_tasks["torrent overflow check"] = lc = LoopingCall(torrent_overflow_check)
-        lc.start(TORRENT_OVERFLOW_CHECKING_INTERVAL, now=True)
+        self.register_task("torrent overflow check",
+                           LoopingCall(torrent_overflow_check)).start(TORRENT_OVERFLOW_CHECKING_INTERVAL, now=True)
 
     @property
     @blocking_call_on_reactor_thread

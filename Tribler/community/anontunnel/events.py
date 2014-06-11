@@ -7,16 +7,14 @@ Can be safely imported as it does not import any dependencies in the global
 
 __author__ = 'chris'
 
+from Tribler.dispersy.taskmanager import TaskManager
 
-class TunnelObserver(object):
+class TunnelObserver(TaskManager):
     """
     The TunnelObserver class is being notified by the ProxyCommunity in case
     a circuit / relay breaks, the global state changes or when data is being
     sent and received
     """
-
-    def __init__(self):
-        pass
 
     def on_break_circuit(self, circuit):
         """
