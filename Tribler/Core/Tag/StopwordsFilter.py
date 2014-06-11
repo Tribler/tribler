@@ -6,8 +6,8 @@ This module contains a class to read stopwords from files in the Snowball format
 
 import os
 
-from Tribler import LIBRARYNAME
-DEFAULT_STOPWORDS_FILE = os.path.join(LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
+from Tribler import LIBRARYPATH
+DEFAULT_STOPWORDS_FILE = os.path.join(LIBRARYPATH, 'Core', 'Tag', 'stop_snowball.filter')
 
 
 class StopwordsFilter:
