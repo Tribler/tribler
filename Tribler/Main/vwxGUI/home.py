@@ -37,6 +37,7 @@ from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, LinkStaticText
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 
 class Home(wx.Panel):
@@ -572,7 +573,10 @@ class NetworkGraphPanel(wx.Panel):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.session = self.utility.session
+        self.dispersy = self.utility.session.lm.dispersy
+
         self.swarm = GuiImageManager.getInstance().getImage(u"cloud.png")
+        self.font = self.GetFont()
 
         self.circuits = {}
         self.circuits_old = None
@@ -597,9 +601,8 @@ class NetworkGraphPanel(wx.Panel):
         self.try_proxy()
 
     def try_proxy(self):
-        dispersy = self.utility.session.lm.dispersy
         try:
-            proxy_community = (c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
+            proxy_community = (c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
             self.found_proxy(proxy_community)
         except:
             wx.CallLater(1000, self.try_proxy)
@@ -800,7 +803,9 @@ class NetworkGraphPanel(wx.Panel):
         dc.SetTextForeground(wx.BLACK)
         dc.DrawLabel("Bittorrent swarm", wx.Rect(*(swarm_pos + swarm_size.Get())), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
-        # Draw circle around active vertex
+        self.DrawHoverAndInfo(gc, circuit_points)
+
+    def DrawHoverAndInfo(self, gc, circuit_points):
         gc.SetBrush(wx.TRANSPARENT_BRUSH)
 
         if self.hop_hover_evt:
@@ -808,8 +813,8 @@ class NetworkGraphPanel(wx.Panel):
             self.hop_hover_evt = None
 
         if self.hop_hover:
-            circuit, hop = self.hop_hover
-            x, y = circuit_points[circuit][hop]
+            circuit, hop_index = self.hop_hover
+            x, y = circuit_points[circuit][hop_index]
             pen = wx.Pen(wx.Colour(229, 229, 229), 1, wx.USER_DASH)
             pen.SetDashes([8, 4])
             gc.SetPen(pen)
@@ -819,29 +824,37 @@ class NetworkGraphPanel(wx.Panel):
             self.hop_active = self.PositionToCircuit(self.hop_active_evt, circuit_points)
             self.hop_active_evt = None
 
-        if self.hop_active and self.hop_active[0] in circuit_points and self.hop_active[1] <= len(self.hop_active[0].hops):
-            circuit, hop = self.hop_active
-            x, y = circuit_points[circuit][hop]
+        if self.hop_active and self.hop_active[0] in circuit_points and \
+           (not self.hop_active[0] or self.hop_active[1] <= len(self.hop_active[0].hops)):
+            circuit, hop_index = self.hop_active
+            hop = circuit.hops[hop_index - 1] if hop_index and circuit else None
+            x, y = circuit_points[circuit][hop_index]
+
+            # Draw cicle around node
             pen = wx.Pen(self.hop_to_colour.get(self.hop_active, wx.BLACK), 1, wx.USER_DASH)
             pen.SetDashes([8, 4])
             gc.SetPen(pen)
             gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
-            if 'UNKNOWN HOST' not in circuit.hops[hop - 1].host:
-                text_height = dc.GetTextExtent('gG')[1]
-                box_height = text_height + 3
+            # Determine text
+            gc.SetFont(self.GetFont())
+            if not hop:
+                text = 'You'
+            elif 'UNKNOWN HOST' not in hop.host:
+                text = 'IP %s:%s' % (hop.host, hop.port)
+            else:
+                text = 'PERMID ' + bin2str(self.dispersy.crypto.key_to_hash(hop.public_key))[:10]
 
-                # Draw status box
-                x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
-                y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
-                gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
-                gc.SetPen(wx.Pen(LIST_BLUE))
-                gc.DrawRectangle(x, y, 150, box_height)
-
-                # Draw status text
-                dc.SetFont(self.GetFont())
-                for index, text in enumerate(['IP %s:%s' % (circuit.hops[hop - 1].host, circuit.hops[hop - 1].port)]):
-                    dc.DrawText(text, x + 5, y + index * text_height + 5)
+            # Draw info box + text
+            box_width, box_height = gc.GetTextExtent(text)
+            box_width += 9
+            box_height += 9
+            x = x - box_width - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
+            y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
+            gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
+            gc.SetPen(wx.Pen(LIST_BLUE))
+            gc.DrawRectangle(x, y, box_width, box_height)
+            gc.DrawText(text, x + 5, y + 5)
 
     def PositionToCircuit(self, position, circuit_points):
         for circuit, points in circuit_points.iteritems():
