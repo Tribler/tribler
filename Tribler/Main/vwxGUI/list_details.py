@@ -213,9 +213,11 @@ class TorrentDetails(AbstractDetails):
             self.guiutility.frame.top_bg.AddCollectedTorrent(torrent)
 
             def update():
-                for infohash, item in self.guiutility.GetSelectedPage().GetExpandedItems():
-                    if infohash == torrent.infohash:
-                        item.SetCollectedTorrent(torrent)
+                page = self.guiutility.GetSelectedPage()
+                if page and hasattr(page, 'GetExpandedItems'):
+                    for infohash, item in page.GetExpandedItems():
+                        if infohash == torrent.infohash:
+                            item.SetCollectedTorrent(torrent)
             wx.CallLater(1, update)
 
         self.state = -1
@@ -1102,7 +1104,7 @@ class LibraryDetails(TorrentDetails):
         self.createTrackersTab()
         self.createPeersTab()
         self.createSpeedTab()
-        self.createAnonymityTab()
+        self.createNetworkGraphTab()
         self.Thaw()
         self.Layout()
 
@@ -1171,14 +1173,10 @@ class LibraryDetails(TorrentDetails):
         self.speedPanel.AddGraph(wx.Colour(163, 73, 164), [bw[0] for bw in self.bw_history], "Upload speed")
         self.notebook.AddPage(self.speedPanel, "Speed")
 
-    def createAnonymityTab(self):
-        self.anonymityTab, self.anonymitySizer = self._create_tab(self.notebook, "Anonymity", border=10)
-        self.anonymityTab.SetBackgroundColour(wx.WHITE)
-
-        from Tribler.Main.vwxGUI.home import Anonymity
-        self.anonymityPanel = Anonymity(self.anonymityTab)
-        self.anonymityPanel.SetFullScreenMode(False)
-        self.anonymitySizer.Add(self.anonymityPanel, 1, wx.EXPAND)
+    def createNetworkGraphTab(self):
+        from Tribler.Main.vwxGUI.home import NetworkGraphPanel
+        self.networkgraphPanel = NetworkGraphPanel(self.notebook, fullscreen=False)
+        self.notebook.AddPage(self.networkgraphPanel, "Network graph")
 
     def updateAllTabs(self):
         self.updateDetailsTab()
@@ -1189,6 +1187,7 @@ class LibraryDetails(TorrentDetails):
         self.updateTrackersTab()
         self.updatePeersTab()
         self.updateSpeedTab()
+        self.updateNetworkGraphTab()
 
     def updateFilesTab(self):
         self.filesList.DeleteAllItems()
@@ -1242,6 +1241,9 @@ class LibraryDetails(TorrentDetails):
         if self.bw_history:
             self.speedPanel.SetData(0, [bw[1] for bw in self.bw_history])
             self.speedPanel.SetData(1, [bw[0] for bw in self.bw_history])
+
+    def updateNetworkGraphTab(self):
+        self.networkgraphPanel.ShowTunnels(self.torrent.ds.get_download().get_anon_mode() if self.torrent.ds else False)
 
     @warnWxThread
     def ShowPanel(self, newState=None):

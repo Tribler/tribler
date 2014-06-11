@@ -1,22 +1,16 @@
 # Written by Niels Zeilemaker
-import threading
 import wx
 import sys
 import os
 import copy
+import datetime
+import threading
 
-import wx
-import igraph
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.community.anontunnel.community import ProxyCommunity
-import datetime
 from Tribler.community.anontunnel.routing import Hop
 
-try:
-    import igraph.vendor.texttable
-except:
-    pass
 import random
 import logging
 import binascii
@@ -25,7 +19,6 @@ from collections import defaultdict
 from traceback import print_exc
 
 from Tribler.Category.Category import Category
-from Tribler.Core.Tag.Extraction import TermExtraction
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, \
     NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, \
     NTFY_EXTENDED_FOR
@@ -43,13 +36,8 @@ from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, LinkStaticText
-
-try:
-    # C(ython) module
-    import arflayout
-except ImportError, e:
-    # Python fallback module
-    import arflayout_fb as arflayout
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 
 class Home(wx.Panel):
@@ -577,51 +565,44 @@ class ActivityPanel(NewTorrentPanel):
             self.list.DeleteItem(size - 1)
 
 
-class Anonymity(wx.Panel):
-    def __init__(self, parent):
+class NetworkGraphPanel(wx.Panel):
+    def __init__(self, parent, fullscreen=True):
         wx.Panel.__init__(self, parent, -1)
 
         self.SetBackgroundColour(wx.WHITE)
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.session = self.utility.session
+        self.dispersy = self.utility.session.lm.dispersy
 
-        self.AddComponents()
+        self.swarm = GuiImageManager.getInstance().getImage(u"cloud.png")
+        self.font = self.GetFont()
 
-        self.vertices = {}
-        self.edges = []
-
-        self.selected_edges = []
-
-        self.vertex_active = -1
-        self.vertex_hover = -1
-        self.vertex_hover_evt = None
-        self.vertex_active_evt = None
-
-        self.vertex_to_colour = {}
+        self.circuits = {}
+        self.circuits_old = None
+        self.hop_to_colour = {}
         self.colours = [wx.RED, wx.Colour(156, 18, 18), wx.Colour(183, 83, 83), wx.Colour(254, 134, 134), wx.Colour(254, 190, 190)]
 
-        self.step = 0
-        self.fps = 20
+        self.selected_circuit = None
+        self.hop_hover_evt = None
+        self.hop_hover = None
+        self.hop_active_evt = None
+        self.hop_active = None
 
-        self.last_keyframe = 0
-        self.time_step = 5.0
-        self.radius = 32
-        self.line_width = 4
-        self.margin_x = self.margin_y = 0
+        self.tunnels = True
+        self.fullscreen = fullscreen
+        self.radius = 20 if self.fullscreen else 12
+        self.line_width = 2 if self.fullscreen else 1
+        self.margin_x = self.margin_y = self.radius
+        self.swarm_size = wx.Size(180, 60)
 
-        self.layout_busy = False
-        self.new_data = False
-
-        self.peers = []
-        self.toInsert = set()
+        self.AddComponents()
 
         self.try_proxy()
 
     def try_proxy(self):
-        dispersy = self.utility.session.lm.dispersy
         try:
-            proxy_community = (c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
+            proxy_community = (c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
             self.found_proxy(proxy_community)
         except:
             wx.CallLater(1000, self.try_proxy)
@@ -632,33 +613,14 @@ class Anonymity(wx.Panel):
         self.my_address = Hop(self.proxy_community.my_member._ec.pub())
         self.my_address.address = ('127.0.0.1', "SELF")
 
-        self.refresh_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, lambda evt: self.graph_panel.Refresh(), self.refresh_timer)
-        self.refresh_timer.Start(1000.0 / self.fps)
-
         self.circuit_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnUpdateCircuits, self.circuit_timer)
         self.circuit_timer.Start(5000)
-
-        self.taskqueue = GUITaskQueue.getInstance()
-
-        self.lock = threading.RLock()
 
         self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
         self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
         self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
         self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
-
-    def SetFullScreenMode(self, enable):
-        self.fullscreen = enable
-        self.log_text.Show(enable)
-        self.radius = 20 if enable else 12
-        self.line_width = 2 if enable else 1
-        self.vSizer.GetChildren()[0].SetBorder(20 if enable else 0)
-        self.main_sizer.GetChildren()[0].SetBorder(20 if enable else 0)
-        self.main_sizer.GetChildren()[1].SetBorder(20 if enable else 0)
-        self.margin_x = 0 if enable else 50
-        self.Layout()
 
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
@@ -666,7 +628,6 @@ class Anonymity(wx.Panel):
         self.graph_panel.Bind(wx.EVT_LEFT_UP, self.OnMouse)
         self.graph_panel.Bind(wx.EVT_PAINT, self.OnPaint)
         self.graph_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-        self.graph_panel.Bind(wx.EVT_SIZE, self.OnSize)
 
         self.circuit_list = SelectableListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SIMPLE)
         self.circuit_list.InsertColumn(0, 'Circuit', wx.LIST_FORMAT_LEFT, 30)
@@ -681,14 +642,20 @@ class Anonymity(wx.Panel):
 
         self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
         self.log_text.SetEditable(False)
+        self.log_text.Show(self.fullscreen)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.BOTTOM, 20)
+        self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 0)
         self.vSizer.Add(self.log_text, 1, wx.EXPAND)
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.ALL, 20)
-        self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 20)
+        self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
+        self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(self.main_sizer)
+
+    def ShowTunnels(self, enable):
+        self.circuit_list.Show(enable)
+        self.tunnels = enable
+        self.graph_panel.Refresh()
 
     def OnItemSelected(self, event):
         selected = []
@@ -697,24 +664,16 @@ class Anonymity(wx.Panel):
             selected.append(item)
             item = self.circuit_list.GetNextSelected(item)
 
-        selected_edges = []
+        self.selected_circuit = None
         for item in selected:
             for circuit_id, listindex in self.circuit_to_listindex.iteritems():
-                if listindex == item:
-                    circuit = self.circuits.get(circuit_id, None)
-
-                    if circuit:
-                        hops = [self.my_address] + list(copy.copy(circuit.hops))
-                        for index in range(len(hops) - 1):
-                            vertexid1 = self.peers.index(hops[index]) if hops[index] in self.peers else None
-                            vertexid2 = self.peers.index(hops[index + 1]) if hops[index + 1] in self.peers else None
-                            edge = set([vertexid1, vertexid2])
-                            selected_edges.append(edge)
-
-        self.selected_edges = selected_edges
+                if listindex == item and circuit_id in self.circuits:
+                    self.selected_circuit = self.circuits[circuit_id]
+        self.graph_panel.Refresh()
 
     def OnUpdateCircuits(self, event):
-        self.circuits = dict(self.proxy_community.circuits)
+        new_circuits = dict(self.proxy_community.circuits)
+        self.circuits = new_circuits
         stats = self.proxy_community.global_stats.circuit_stats
 
         # Add new circuits & update existing circuits
@@ -743,27 +702,6 @@ class Anonymity(wx.Panel):
                 if v > listindex:
                     self.circuit_to_listindex[k] = v - 1
 
-        # Update graph
-        old_edges = getattr(self, 'old_edges', [])
-        new_edges = []
-
-        for circuit in self.circuits.values():
-            hops = [self.my_address] + list(circuit.hops)
-            for index in range(len(hops) - 1):
-                edge = set([hops[index], hops[index + 1]])
-                if edge not in new_edges:
-                    new_edges.append(edge)
-
-        for edge in new_edges:
-            if edge not in old_edges:
-                self.AddEdge(*edge)
-
-        for edge in old_edges:
-            if edge not in new_edges:
-                self.RemoveEdge(*edge)
-
-        self.old_edges = new_edges
-
     def AppendToLog(self, msg):
         self.log_text.AppendText('[%s]: %s' % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
 
@@ -790,107 +728,17 @@ class Anonymity(wx.Panel):
             extended_for[0].sock_addr[0], extended_for[0].sock_addr[1], extended_for[1], extended_with[0].sock_addr[0],
             extended_with[0].sock_addr[1], extended_with[1]))
 
-    def AddEdge(self, from_addr, to_addr):
-        with self.lock:
-            # Convert from_addr/to_addr to from_id/to_id
-            if from_addr not in self.peers:
-                self.peers.append(from_addr)
-            from_id = self.peers.index(from_addr)
-            if to_addr not in self.peers:
-                self.peers.append(to_addr)
-            to_id = self.peers.index(to_addr)
-
-            # Add id's to graph
-            for peer_id in (from_id, to_id):
-                if peer_id not in self.vertices:
-                    self.toInsert.add(peer_id)
-                    self.vertices[peer_id] = {}
-            self.edges.append([to_id, from_id])
-            self.new_data = True
-
-    def RemoveEdge(self, from_addr, to_addr):
-        with self.lock:
-            if from_addr in self.peers and to_addr in self.peers:
-                from_id = self.peers.index(from_addr)
-                to_id = self.peers.index(to_addr)
-                if [to_id, from_id] in self.edges:
-                    self.edges.remove([to_id, from_id])
-                if [from_id, to_id] in self.edges:
-                    self.edges.remove([from_id, to_id])
-                self.RemoveUnconnectedVertices()
-                self.new_data = True
-
-    def RemoveUnconnectedVertices(self):
-        # Build a list of vertices and their number of neighbors, and delete the unconnected ones.
-        for vertex_id, num_neighbors in self.CountNeighbors().iteritems():
-            if num_neighbors == 0:
-                self.RemoveVertex(vertex_id)
-
-    def CountNeighbors(self):
-        with self.lock:
-            num_neighbors = dict([(k, 0) for k in self.vertices])
-            for edge in self.edges:
-                for vertexid in edge:
-                    num_neighbors[vertexid] = num_neighbors.get(vertexid, 0) + 1
-            return num_neighbors
-
-    def RemoveVertex(self, toremove_id):
-        with self.lock:
-            if toremove_id in self.vertices:
-                self.vertices.pop(toremove_id)
-            if toremove_id in self.vertex_to_colour:
-                self.vertex_to_colour.pop(toremove_id)
-            if toremove_id < len(self.peers):
-                self.peers.pop(toremove_id)
-            self.edges = [edge for edge in self.edges if toremove_id not in edge]
-            self.toInsert = set([id - 1 if id > toremove_id else id for id in self.toInsert if id != toremove_id])
-            self.vertex_active = self.vertex_active - 1 if self.vertex_active > toremove_id else self.vertex_active
-            self.vertex_hover = self.vertex_hover - 1 if self.vertex_hover > toremove_id else self.vertex_hover
-
-            # We want the vertex id's to be 0, 1, 2 etc., so we need to correct for the vertex that we just removed.
-            vertices = {}
-            for index, vertexid in enumerate(sorted(self.vertices)):
-                vertices[index] = self.vertices[vertexid]
-            self.vertices = vertices
-            vertex_to_colour = {}
-            for index, vertexid in enumerate(sorted(self.vertex_to_colour)):
-                vertex_to_colour[index] = self.vertex_to_colour[vertexid]
-            self.vertex_to_colour = vertex_to_colour
-            for edge in self.edges:
-                if edge[0] >= toremove_id:
-                    edge[0] -= 1
-                if edge[1] >= toremove_id:
-                    edge[1] -= 1
-
-            # The arflayout module keeps the vertex positions from the latest iteration in memory. So we need to notify arflayout.
-            arflayout.arf_remove([toremove_id])
-
-    def CalculateLayout(self):
-        with self.lock:
-            edges = copy.copy(self.edges)
-            toInsert = self.toInsert
-            self.toInsert = set()
-
-        graph = igraph.Graph(edges, directed=False)
-        positions = arflayout.arf_layout(toInsert, graph)
-
-        with self.lock:
-            self.step += 1
-            for vertexid, pos in positions.iteritems():
-                self.SetVertexPosition(vertexid, self.step, *pos)
-            self.time_step = 5 + max(0, len(self.vertices) - 75) / 9
-            self.last_keyframe = time()
-            self.layout_busy = False
-
     def OnMouse(self, event):
         if event.Moving():
-            self.vertex_hover_evt = event.GetPosition()
+            self.hop_hover_evt = event.GetPosition()
+            self.graph_panel.Refresh()
         elif event.LeftUp():
-            self.vertex_active_evt = event.GetPosition()
+            self.hop_active_evt = event.GetPosition()
+            self.graph_panel.Refresh()
 
     def OnSize(self, evt):
         size = min(*evt.GetEventObject().GetSize())
-        x = min(size + self.margin_x * 2, self.GetSize().x - self.circuit_list.GetSize().x)
+        x = min(size + self.margin_x * 2 + self.swarm.GetSize().x, self.GetSize().x - self.circuit_list.GetSize().x)
         y = size + self.margin_y * 2
         self.graph_panel.SetSize((x, y))
 
@@ -903,132 +751,117 @@ class Anonymity(wx.Panel):
         dc.Clear()
         gc = wx.GraphicsContext.Create(dc)
 
-        w, h = eo.GetSize().x - 2 * self.radius - 2 * self.margin_x - 1, eo.GetSize().y - 2 * self.radius - 2 * self.margin_y - 1
+        swarm_size = self.swarm.GetSize()
 
-        schedule_layout = not self.layout_busy and self.new_data and time() - self.last_keyframe >= self.time_step
-        if schedule_layout:
-            task = lambda : self.CalculateLayout()
-            self.taskqueue.add_task(task)
-            self.new_data = False
-            self.layout_busy = True
+        w = eo.GetSize().x - 2 * self.margin_x - 1 - swarm_size.x
+        h = eo.GetSize().y - 2 * self.margin_y - 1
 
-        if len(self.vertices) > 0:
+        swarm_pos = (eo.GetSize().x - swarm_size.x - 11, h / 2 - swarm_size.y / 2 + 11)
+        swarm_center = (eo.GetSize().x - swarm_size.x / 2, h / 2 + self.margin_y)
 
-            int_points = {}
+        circuit_points = {}
 
-            with self.lock:
-
-                # Get current vertex positions using interpolation
-                for vertexid in self.vertices.iterkeys():
-                    if self.GetVertexPosition(vertexid, self.step):
-                        if self.GetVertexPosition(vertexid, self.step - 1):
-                            scaled_x, scaled_y = self.InterpolateVertexPosition(vertexid, self.step - 1, self.step)
-                        else:
-                            scaled_x, scaled_y = self.GetVertexPosition(vertexid, self.step)
-                        int_points[vertexid] = (scaled_x * w + self.radius + self.margin_x, scaled_y * h + self.radius + self.margin_y)
-
-                # Draw edges
-                for vertexid1, vertexid2 in self.edges:
-                    if int_points.has_key(vertexid1) and int_points.has_key(vertexid2):
-                        if set([vertexid1, vertexid2]) in self.selected_edges:
-                            gc.SetPen(wx.Pen(wx.BLUE, self.line_width))
-                        else:
-                            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
-                        x1, y1 = int_points[vertexid1]
-                        x2, y2 = int_points[vertexid2]
-                        gc.DrawLines([(x1, y1), (x2, y2)])
-
-                # Draw vertices
-                gc.SetPen(wx.TRANSPARENT_PEN)
-                for vertexid in self.vertices.iterkeys():
-                    colour = self.vertex_to_colour.get(vertexid, None)
-                    if not colour:
-                        colour = self.colours[0] if self.peers[vertexid] == self.my_address else random.choice(self.colours[1:])
-                        self.vertex_to_colour[vertexid] = colour
-                    gc.SetBrush(wx.Brush(colour))
-
-                    if int_points.has_key(vertexid):
-                        x, y = int_points[vertexid]
-                        gc.DrawEllipse(x - self.radius / 2, y - self.radius / 2, self.radius, self.radius)
-
-                        if len(self.vertices.get(vertexid, {})) <= 2:
-                            gc.SetBrush(wx.WHITE_BRUSH)
-                            gc.DrawEllipse(x - self.radius / 4, y - self.radius / 4, self.radius / 2, self.radius / 2)
-
-                # Draw circle around active vertex
-                gc.SetBrush(wx.TRANSPARENT_BRUSH)
-
-                if self.vertex_hover_evt:
-                    self.vertex_hover = self.PositionToVertex(self.vertex_hover_evt, int_points)
-                    self.vertex_hover_evt = None
-
-                if self.vertex_hover >= 0:
-                    x, y = int_points[self.vertex_hover]
-                    pen = wx.Pen(wx.Colour(229, 229, 229), 1, wx.USER_DASH)
-                    pen.SetDashes([8, 4])
-                    gc.SetPen(pen)
-                    gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
-
-                if self.vertex_active_evt:
-                    self.vertex_active = self.PositionToVertex(self.vertex_active_evt, int_points)
-                    self.vertex_active_evt = None
-
-                if self.vertex_active in int_points:
-                    x, y = int_points[self.vertex_active]
-                    pen = wx.Pen(self.vertex_to_colour.get(self.vertex_active, wx.BLACK), 1, wx.USER_DASH)
-                    pen.SetDashes([8, 4])
-                    gc.SetPen(pen)
-                    gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
-
-                    if 'UNKNOWN HOST' not in self.peers[self.vertex_active].host:
-                        text_height = dc.GetTextExtent('gG')[1]
-                        box_height = text_height + 3
-
-                        # Draw status box
-                        x = x - 150 - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
-                        y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
-                        gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
-                        gc.SetPen(wx.Pen(LIST_BLUE))
-                        gc.DrawRectangle(x, y, 150, box_height)
-
-                        # Draw status text
-                        dc.SetFont(self.GetFont())
-                        for index, text in enumerate(['IP %s:%s' % (self.peers[self.vertex_active].host, self.peers[self.vertex_active].port)]):
-                            dc.DrawText(text, x + 5, y + index * text_height + 5)
-
-            if self.fullscreen:
-                # Draw vertex count
-                gc.SetFont(self.GetFont())
-                gc.DrawText("|V| = %d" % len(int_points), w - 50, h - 20)
-
-    def PositionToVertex(self, position, key_to_position):
-        for vertexid, vposition in key_to_position.iteritems():
-            if (position[0] - vposition[0]) ** 2 + (position[1] - vposition[1]) ** 2 < self.radius ** 2:
-                return vertexid
-        return -1
-
-    def InterpolateVertexPosition(self, vertexid, s1, s2):
-        x0, y0 = self.GetVertexPosition(vertexid, s1)
-        x1, y1 = self.GetVertexPosition(vertexid, s2)
-
-        t = min(time() - self.last_keyframe, self.time_step)
-        t1 = 1.0 / 5 * self.time_step
-        t2 = 3.0 / 5 * self.time_step
-        t3 = 1.0 / 5 * self.time_step
-        x = arflayout.CubicHermiteInterpolate(t1, t2, t3, x0, x1, t)
-        y = arflayout.CubicHermiteInterpolate(t1, t2, t3, y0, y1, t)
-        return (x, y)
-
-    def GetVertexPosition(self, vertexid, t):
-        if self.vertices.has_key(vertexid):
-            return self.vertices[vertexid].get(t, None)
-        return None
-
-    def SetVertexPosition(self, vertexid, t, x, y):
-        if self.vertices.has_key(vertexid):
-            self.vertices[vertexid][t] = (x, y)
+        if self.tunnels:
+            num_circuits = len(self.circuits)
+            for c_index, circuit in enumerate(sorted(self.circuits.values(), key=lambda c:c.circuit_id)):
+                circuit_points[circuit] = [(self.margin_x, h / 2 + self.margin_y)]
+                for h_index, hop in enumerate(circuit.hops):
+                    circuit_points[circuit].append((w * (float(h_index + 1) / (circuit.goal_hops + 1)) + self.margin_x, \
+                                                    h * (float(c_index + 0.5) / num_circuits) + self.margin_y))
         else:
-            self.vertices[vertexid] = {t: (x, y)}
+            circuit_points[None] = [(self.margin_x, h / 2 + self.margin_y)]
+            gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
+
+        # Draw edges
+        for circuit, points in circuit_points.iteritems():
+            for point1, point2 in zip(points[0::1], points[1::1]):
+                if circuit == self.selected_circuit:
+                    gc.SetPen(wx.Pen(wx.BLUE, self.line_width))
+                else:
+                    gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
+                gc.DrawLines([point1, point2])
+
+            # If exit node, draw edge to bittorrent swarm
+            if not circuit or circuit.goal_hops == len(circuit.hops):
+                gc.DrawLines([points[-1], swarm_center])
+
+        # Draw vertices
+        gc.SetPen(wx.Pen(wx.Colour(229, 229, 229), self.line_width))
+        for circuit, points in circuit_points.iteritems():
+            for index, point in enumerate(points):
+                hop = (circuit, index)
+                colour = self.hop_to_colour.get(hop, None)
+                if not colour:
+                    self.hop_to_colour[hop] = colour = random.choice(self.colours[1:]) if index > 0 else self.colours[0]
+
+                x, y = point
+                gc.SetBrush(wx.Brush(colour))
+                gc.DrawEllipse(x - self.radius / 2, y - self.radius / 2, self.radius, self.radius)
+
+        # Draw swarm
+        gc.DrawBitmap(self.swarm, swarm_pos[0], swarm_pos[1], *swarm_size)
+        dc.SetTextForeground(wx.BLACK)
+        dc.DrawLabel("Bittorrent swarm", wx.Rect(*(swarm_pos + swarm_size.Get())), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+
+        self.DrawHoverAndInfo(gc, circuit_points)
+
+    def DrawHoverAndInfo(self, gc, circuit_points):
+        gc.SetBrush(wx.TRANSPARENT_BRUSH)
+
+        if self.hop_hover_evt:
+            self.hop_hover = self.PositionToCircuit(self.hop_hover_evt, circuit_points)
+            self.hop_hover_evt = None
+
+        if self.hop_hover:
+            circuit, hop_index = self.hop_hover
+            x, y = circuit_points[circuit][hop_index]
+            pen = wx.Pen(wx.Colour(229, 229, 229), 1, wx.USER_DASH)
+            pen.SetDashes([8, 4])
+            gc.SetPen(pen)
+            gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+
+        if self.hop_active_evt:
+            self.hop_active = self.PositionToCircuit(self.hop_active_evt, circuit_points)
+            self.hop_active_evt = None
+
+        if self.hop_active and self.hop_active[0] in circuit_points and \
+           (not self.hop_active[0] or self.hop_active[1] <= len(self.hop_active[0].hops)):
+            circuit, hop_index = self.hop_active
+            hop = circuit.hops[hop_index - 1] if hop_index and circuit else None
+            x, y = circuit_points[circuit][hop_index]
+
+            # Draw cicle around node
+            pen = wx.Pen(self.hop_to_colour.get(self.hop_active, wx.BLACK), 1, wx.USER_DASH)
+            pen.SetDashes([8, 4])
+            gc.SetPen(pen)
+            gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
+
+            # Determine text
+            gc.SetFont(self.GetFont())
+            if not hop:
+                text = 'You'
+            elif 'UNKNOWN HOST' not in hop.host:
+                text = 'IP %s:%s' % (hop.host, hop.port)
+            else:
+                text = 'PERMID ' + bin2str(self.dispersy.crypto.key_to_hash(hop.public_key))[:10]
+
+            # Draw info box + text
+            box_width, box_height = gc.GetTextExtent(text)
+            box_width += 9
+            box_height += 9
+            x = x - box_width - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
+            y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
+            gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
+            gc.SetPen(wx.Pen(LIST_BLUE))
+            gc.DrawRectangle(x, y, box_width, box_height)
+            gc.DrawText(text, x + 5, y + 5)
+
+    def PositionToCircuit(self, position, circuit_points):
+        for circuit, points in circuit_points.iteritems():
+            for index, point in enumerate(points):
+                if (position[0] - point[0]) ** 2 + (position[1] - point[1]) ** 2 < self.radius ** 2:
+                    return (circuit, index)
+        return None
 
     def ResetSearchBox(self):
         pass
