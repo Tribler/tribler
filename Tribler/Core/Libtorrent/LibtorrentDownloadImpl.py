@@ -912,7 +912,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             else:
                 return self.dlruntimeconfig['max_desired_download_rate']
 
-    @checkHandleAndSynchronize()
+    @checkHandleAndSynchronize([])
     def get_dest_files(self, exts=None):
         """
         You can give a list of extensions to return. If None: return all dest_files

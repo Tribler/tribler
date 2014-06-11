@@ -141,7 +141,7 @@ class GUIUtility:
                 self.SetTopSplitterWindow(self.frame.searchlist)
                 items = self.frame.searchlist.GetExpandedItems()
                 if items:
-                    self.frame.searchlist.Select(items[0][0])
+                    self.frame.searchlist.Select(items[0][0], force=True)
                 else:
                     self.frame.searchlist.ResetBottomWindow()
             elif self.guiPage == 'search_results':
@@ -152,7 +152,7 @@ class GUIUtility:
                 self.SetTopSplitterWindow(self.frame.channellist)
                 items = self.frame.channellist.GetExpandedItems()
                 if items:
-                    self.frame.channellist.Select(items[0][0])
+                    self.frame.channellist.Select(items[0][0], force=True)
                 else:
                     self.frame.channellist.ResetBottomWindow()
 
@@ -177,7 +177,7 @@ class GUIUtility:
                 self.SetTopSplitterWindow(self.frame.selectedchannellist)
                 items = self.frame.selectedchannellist.GetExpandedItems()
                 if items:
-                    self.frame.selectedchannellist.Select(items[0][0])
+                    self.frame.selectedchannellist.Select(items[0][0], force=True)
                 else:
                     self.frame.selectedchannellist.ResetBottomWindow()
                 channelmenu = self.frame.actlist.GetItem(3)
@@ -214,14 +214,9 @@ class GUIUtility:
                 else:
                     items = self.frame.librarylist.GetExpandedItems()
                     if items:
-                        items[0][1].expanded = False
-                        self.frame.librarylist.Select(items[0][0])
+                        self.frame.librarylist.Select(items[0][0], force=True)
                     else:
                         self.frame.librarylist.ResetBottomWindow()
-
-                # Open infohash
-                if args:
-                    self.frame.librarylist.GetManager().refresh_or_expand(args[0])
 
             elif self.guiPage == 'my_files':
                 # Hide list
@@ -297,8 +292,6 @@ class GUIUtility:
         while self.frame.splitter_top.GetChildren():
             self.frame.splitter_top.Detach(0)
 
-        from Tribler.Main.vwxGUI.list_details import ChannelInfoPanel
-        self.SetBottomSplitterWindow(ChannelInfoPanel)
         if window:
             self.frame.splitter_top.Add(window, 1, wx.EXPAND)
             window.Show(show)
