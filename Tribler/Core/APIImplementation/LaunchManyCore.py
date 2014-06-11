@@ -315,11 +315,11 @@ class TriblerLaunchMany(Thread):
         def do_db(torrent_db, mypref_db, hash):
             torrent_id = self.torrent_db.getTorrentID(hash)
             if torrent_id:
-                self.mypref_db.updateDestDir(torrent_id, "")
+                self.mypref_db.deletePreference(torrent_id)
 
             torrent_id = self.torrent_db.getTorrentIDRoot(hash)
             if torrent_id:
-                self.mypref_db.updateDestDir(torrent_id, "")
+                self.mypref_db.deletePreference(torrent_id)
 
         if self.session.get_megacache():
             do_db(self.torrent_db, self.mypref_db, hash)
@@ -871,7 +871,7 @@ class TriblerLaunchMany(Thread):
             torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
 
             if torrent_id:
-                self.mypref_db.updateDestDir(torrent_id, "")
+                self.mypref_db.deletePreference(torrent_id)
 
         if not hidden and self.session.get_megacache():
             do_db(self.torrent_db, self.mypref_db, roothash)

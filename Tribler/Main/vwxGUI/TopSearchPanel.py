@@ -455,15 +455,6 @@ class TopSearchPanel(FancyPanel):
         if buttonId in [wx.ID_DEFAULT, wx.ID_DELETE]:
             for torrent in torrents:
                 self.guiutility.library_manager.deleteTorrent(torrent, buttonId == wx.ID_DELETE)
-                self.guiutility.frame.librarylist.RemoveItem(torrent.infohash)
-
-            self.guiutility.frame.librarylist.GetManager().refresh()
-            if self.guiutility.frame.librarylist.IsShownOnScreen():
-                self.ClearButtonHandlers()
-                self.guiutility.frame.librarylist.ResetBottomWindow()
-
-        if self.guiutility.frame.librarylist.list.IsEmpty():
-            self.guiutility.frame.librarylist.SetData([])
 
         if not silent:
             if dlg.newName:

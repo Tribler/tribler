@@ -44,23 +44,9 @@ class LibtorrentTest(TunnelObserver):
     def stop(self, delay=0.0):
         if self.download:
             def remove_download():
-                infohash = self.download.get_def().get_id()
-
                 self.tribler_session.remove_download(self.download, True, True)
                 self.download = None
                 self._logger.error("Removed test download")
-
-                from Tribler.Main.vwxGUI import forceWxThread
-                from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-
-                @forceWxThread
-                def remove_listitem():
-                    guiutility = GUIUtility.getInstance()
-                    guiutility.frame.librarylist.RemoveItem(infohash)
-                    if guiutility.frame.librarylist.IsShownOnScreen():
-                        guiutility.frame.top_bg.ClearButtonHandlers()
-                        guiutility.frame.librarylist.ResetBottomWindow()
-                remove_listitem()
 
             self.tribler_session.lm.rawserver.add_task(remove_download, delay=delay)
 

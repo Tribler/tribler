@@ -340,7 +340,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_activities, NTFY_ACTIVITIES, [NTFY_INSERT], cache=10)
         s.add_observer(self.sesscb_ntfy_channelupdates, NTFY_CHANNELCAST, [NTFY_INSERT, NTFY_UPDATE, NTFY_CREATE, NTFY_STATE, NTFY_MODIFIED], cache=10)
         s.add_observer(self.sesscb_ntfy_channelupdates, NTFY_VOTECAST, [NTFY_UPDATE], cache=10)
-        s.add_observer(self.sesscb_ntfy_myprefupdates, NTFY_MYPREFERENCES, [NTFY_INSERT, NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_myprefupdates, NTFY_MYPREFERENCES, [NTFY_INSERT, NTFY_UPDATE, NTFY_DELETE])
         s.add_observer(self.sesscb_ntfy_torrentupdates, NTFY_TORRENTS, [NTFY_UPDATE, NTFY_INSERT], cache=10)
         s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT, NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT, NTFY_DELETE])
@@ -540,16 +540,24 @@ class ABCApp():
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
-            if changeType == NTFY_INSERT:
-                if self.frame.searchlist:
-                    manager = self.frame.searchlist.GetManager()
+            if changeType in [NTFY_INSERT, NTFY_UPDATE]:
+                if changeType == NTFY_INSERT:
+                    if self.frame.searchlist:
+                        manager = self.frame.searchlist.GetManager()
+                        manager.downloadStarted(objectID)
+
+                    manager = self.frame.selectedchannellist.GetManager()
                     manager.downloadStarted(objectID)
 
-                manager = self.frame.selectedchannellist.GetManager()
+                manager = self.frame.librarylist.GetManager()
                 manager.downloadStarted(objectID)
-
-            manager = self.frame.librarylist.GetManager()
-            manager.downloadStarted(objectID)
+            elif changeType == NTFY_DELETE:
+                self.guiUtility.frame.librarylist.RemoveItem(objectID)
+                if self.guiUtility.frame.librarylist.IsShownOnScreen():
+                    self.guiUtility.frame.top_bg.ClearButtonHandlers()
+                    self.guiUtility.frame.librarylist.ResetBottomWindow()
+                if self.guiUtility.frame.librarylist.list.IsEmpty():
+                    self.guiUtility.frame.librarylist.SetData([])
 
     def progressHandler(self, title, message, maximum):
         from Tribler.Main.Dialogs.ThreadSafeProgressDialog import ThreadSafeProgressDialog
