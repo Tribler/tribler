@@ -99,6 +99,7 @@ class SwiftProcess:
         # However, windows does not support non-files in the select command, hence we cannot integrate
         # these streams into the FastI2I thread
         # A proper solution would be to switch to twisted for the communication with the swift binary
+        print >> sys.stderr, "!!!!!!!!! args: [%s]" % args
         self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         swift_rnd_addr = "0.0.0.0"
