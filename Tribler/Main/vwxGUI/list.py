@@ -728,10 +728,10 @@ class List(wx.BoxSizer):
             self.list.DeselectAll()
 
     @warnWxThread
-    def Select(self, key, raise_event=True):
+    def Select(self, key, raise_event=True, force=False):
         assert getattr(self, 'list', False), "List not ready"
         if self.isReady:
-            self.list.Select(key, raise_event)
+            self.list.Select(key, raise_event, force=force)
 
     def ShouldGuiUpdate(self):
         if not self.IsShownOnScreen():

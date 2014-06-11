@@ -439,8 +439,8 @@ class ListItem(wx.Panel):
         event.Skip()  # Allow windows to paint button hover
 
     @warnWxThread
-    def OnClick(self, event=None):
-        if not self.expanded:
+    def OnClick(self, event=None, force=False):
+        if not self.expanded or force:
             if self.parent_list.OnExpand(self):
                 self.expanded = True
                 self.ShowSelected()
@@ -1232,15 +1232,15 @@ class AbstractListBody():
         return [(key, item) for key, item in self.items.iteritems() if item and item.expanded]
 
     @warnWxThread
-    def Select(self, key, raise_event=True):
+    def Select(self, key, raise_event=True, force=False):
         # check if we need to create this item on the spot
         if self.CreateItem(key):
-            if not self.items[key].expanded:
+            if not self.items[key].expanded or force:
                 if self.singleExpanded:
                     self.DeselectAll()
 
                 if raise_event:
-                    self.items[key].OnClick(None)
+                    self.items[key].OnClick(None, force=force)
                 else:
                     self.items[key].expanded = True
                     self.cur_expanded = self.items[key]
