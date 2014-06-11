@@ -101,6 +101,8 @@ class SwiftProcess:
         # A proper solution would be to switch to twisted for the communication with the swift binary
         self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+        swift_rnd_addr = "0.0.0.0"
+        swift_rnd_port = self.listenport
         def read_and_print(socket):
             prefix = currentThread().getName() + ":"
             while True:
@@ -109,6 +111,13 @@ class SwiftProcess:
                     self._logger.info("%s readline returned nothing quitting", prefix)
                     break
                 self._logger.info("%s %s", prefix, line.rstrip())
+                words = line.strip()
+                if words[0] == 'LISTEN_ADDR':
+                    swift_rnd_addr = words[1]
+                    swift_rnd_port = int(words[2])
+
+                    self.listenport = swift_rnd_port
+                    self._logger.info("Swift binded on address %s:%s", swift_rnd_addr, self.listenport)
         self.popen_outputthreads = [Thread(target=read_and_print, args=(self.popen.stdout,), name="SwiftProcess_%d_stdout" % self.listenport), Thread(target=read_and_print, args=(self.popen.stderr,), name="SwiftProcess_%d_stderr" % self.listenport)]
         [thread.start() for thread in self.popen_outputthreads]
 
@@ -234,6 +243,10 @@ class SwiftProcess:
                 jsondata = cmd[len("MOREINFO ") + 40 + 1:]
                 midict = json.loads(jsondata)
                 d.i2ithread_moreinfo_callback(midict)
+            elif words[0] == "LISTEN_ADDR":
+                tokens = cmd[len("LISTEN_ADDR "):].split(':')
+                ipaddr = tokens[0]
+                port = int(tokens[1])
             elif words[0] == "ERROR":
                 d.i2ithread_info_callback(DLSTATUS_STOPPED_ON_ERROR, 0.0, 0, 0.0, 0.0, 0, 0, 0, 0)
 
@@ -481,6 +494,10 @@ class SwiftProcess:
     def send_checkpoint(self, roothash_hex):
         # assume splock is held to avoid concurrency on socket
         self.write('CHECKPOINT ' + roothash_hex + '\r\n')
+
+    def send_getlistenaddr(self):
+        # assume splock is held to avoid concurrency on socket
+        self.write('GET_LISTEN_ADDR\r\n')
 
     def send_shutdown(self):
         # assume splock is held to avoid concurrency on socket
