@@ -553,9 +553,13 @@ class ABCApp():
                 manager.downloadStarted(objectID)
             elif changeType == NTFY_DELETE:
                 self.guiUtility.frame.librarylist.RemoveItem(objectID)
-                if self.guiUtility.frame.librarylist.IsShownOnScreen():
-                    self.guiUtility.frame.top_bg.ClearButtonHandlers()
+
+                if self.guiUtility.frame.librarylist.IsShownOnScreen() and \
+                   self.guiUtility.frame.librarydetailspanel.torrent and \
+                   self.guiUtility.frame.librarydetailspanel.torrent.infohash == objectID:
                     self.guiUtility.frame.librarylist.ResetBottomWindow()
+                    self.guiUtility.frame.top_bg.ClearButtonHandlers()
+
                 if self.guiUtility.frame.librarylist.list.IsEmpty():
                     self.guiUtility.frame.librarylist.SetData([])
 

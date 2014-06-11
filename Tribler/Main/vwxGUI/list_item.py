@@ -391,7 +391,12 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             self.AddEvents(self.snapshot)
             self.titleSizer.Add(self.snapshot, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_LEFT | wx.LEFT, 10)
             self.Layout()
-            wx.CallAfter(self.Refresh)
+
+            # Avoid errors related to PyDeadObject
+            def refresh():
+                if self:
+                    self.Refresh()
+            wx.CallAfter(refresh)
 
     @warnWxThread
     def GetContextMenu(self):
