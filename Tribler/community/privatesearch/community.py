@@ -43,8 +43,6 @@ class TTLSearchCommunity(Community):
         return [master]
 
     def initialize(self, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True):
-        super(TTLSearchCommunity, self).initialize()
-
         self.integrate_with_tribler = integrate_with_tribler
         self.ttl = ttl
         self.neighbors = neighbors
@@ -63,6 +61,8 @@ class TTLSearchCommunity(Community):
         self.search_megacachesize = 0
         self.search_no_candidates_remain = 0
 
+        super(TTLSearchCommunity, self).initialize()
+
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler, MiscDBHandler
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -73,28 +73,9 @@ class TTLSearchCommunity(Community):
             self._torrent_db = TorrentDBHandler.getInstance()
             self._notifier = Notifier.getInstance()
 
-            # fast connecting
-            self.register_task("fast walker", reactor.callLater(0, self.fast_walker))
         else:
             self._torrent_db = self._channelcast_db = Das4DBStub(self._dispersy)
             self._notifier = None
-
-    # TODO(emilon): Replace this with the new dispersy property
-    @inlineCallbacks
-    def fast_walker(self):
-        for cycle in xrange(10):
-            if cycle < 2:
-                # poke bootstrap peers
-                for candidate in self._dispersy._bootstrap_candidates.itervalues():
-                    self.create_introduction_request(candidate, allow_sync=False)
-
-            # request -everyone- that is eligible
-            candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once=True) if candidate]
-            for candidate in candidates:
-                self.create_introduction_request(candidate, allow_sync=False)
-
-            # wait for NAT hole punching
-            yield deferLater(reactor, 1, lambda: None)
 
     def initiate_meta_messages(self):
         return super(SearchCommunity, self).initiate_meta_messages() + [
@@ -136,14 +117,19 @@ class TTLSearchCommunity(Community):
         return [DefaultConversion(self), SearchConversion(self)]
 
     @property
+    def dispersy_enable_fast_candidate_walker(self):
+        return self.integrate_with_tribler
+
+    @property
     def dispersy_auto_download_master_member(self):
         # there is no dispersy-identity for the master member, so don't try to download
         return False
 
     @property
-    def dispersy_sync_bloom_filter_strategy(self):
-        # disable sync bloom filter
-        return lambda: None
+    def dispersy_enable_bloom_filter_sync(self):
+        # 1. disable bloom filter sync in walker
+        # 2. accept messages in any global time range
+        return False
 
     class SearchRequest(object):
         def __init__(self, community, number, keywords, ttl, callback, results=[], return_candidate=None, requested_candidates=[]):
