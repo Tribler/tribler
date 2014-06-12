@@ -181,7 +181,7 @@ class ProxyCommunity(Community):
         return self.settings.crypto
 
     def __discover(self):
-        self._logger.error("The %d pools want %d circuits", len(self.circuit_pools), sum(pool.lacking for pool in self.circuit_pools))
+        self._logger.debug("The %d pools want %d circuits", len(self.circuit_pools), sum(pool.lacking for pool in self.circuit_pools))
 
         circuits_needed = lambda: max(
             sum(pool.lacking for pool in self.circuit_pools),
@@ -195,7 +195,7 @@ class ProxyCommunity(Community):
 
                 if goal_hops == 0:
                     circuit_id = self._generate_circuit_id()
-                    self.circuits[circuit_id] = Circuit(circuit_id,proxy=self)
+                    self.circuits[circuit_id] = Circuit(circuit_id, proxy=self)
 
                     first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
                     if first_pool:
@@ -856,7 +856,7 @@ class ProxyCommunity(Community):
 
         # we need to make sure that this endpoint is thread safe
         return self.dispersy.endpoint.send_packet(Candidate(destination, False), packet, self.__packet_prefix)
-            #self, '-caused by %s-' % (str_type + ('-relayed' if relayed else '')))
+            # self, '-caused by %s-' % (str_type + ('-relayed' if relayed else '')))
 
     def __dict_inc(self, statistics_dict, key, inc=1):
         key = u"anontunnel-" + key
@@ -897,7 +897,7 @@ class ProxyCommunity(Community):
                     self.send_message(circuit.first_hop, circuit.circuit_id, MESSAGE_PING, PingMessage())
                     pinged += 1
 
-            self._logger.error("Pinged %d circuits, removed %d", pinged, broken)
+            self._logger.debug("Pinged %d circuits, removed %d", pinged, broken)
 
         self.rawserver.add_task(_ping_circuits)
 
