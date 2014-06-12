@@ -102,27 +102,20 @@ class SessionConfigInterface(object):
 
         if in_selected_ports or settings_port == -1:
             if not in_selected_ports:
-                random_port = 0
-
                 while True:
-                    s = socket.socket()
+                    random_port = random.randint(5000, 60000)
+
+                    udps = socket.socket(socket.SOCK_DGRAM)
                     try:
-                        s.bind(('', random_port))
-                        random_port = s.getsockname()[1]
-                        if random_port in self.selected_ports.values():
-                            raise Exception(u"port already in random-list.")
-                        else:
-                            # get unique port
-                            self.selected_ports[path] = random_port
-                            break
+                        udps.bind(('', random_port))
+                        self.selected_ports[path] = random_port
+                        break
+
                     except:
                         self._logger.exception(u"Unable to bind port %d", random_port)
 
-                        random_port += 1
-                        if random_port < 1000 or random_port > 65535:
-                            random_port = random.uniform(5000, 60000)
                     finally:
-                        s.close()
+                        udps.close()
 
                 self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
             return self.selected_ports[path]

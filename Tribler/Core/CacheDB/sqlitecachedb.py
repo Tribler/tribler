@@ -1636,7 +1636,7 @@ CREATE TABLE MetadataData (
                         from Tribler.community.channel.community import ChannelCommunity
                         from Tribler.Core.TorrentDef import TorrentDef
 
-                        self.register_task(time(), reactor.callLater(INITIAL_UPGRADE_PAUSE, create_my_channel))
+                        self.register_task("create my channel", reactor.callLater(INITIAL_UPGRADE_PAUSE, create_my_channel))
                         session.remove_observer(dispersy_started)
 
                     session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
