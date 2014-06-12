@@ -60,13 +60,13 @@ class SearchCommunity(Community):
         return [master]
 
     def initialize(self, integrate_with_tribler=True, log_incomming_searches=False):
-        super(SearchCommunity, self).initialize()
-
-        self._logger = logging.getLogger(self.__class__.__name__)
-
         self.integrate_with_tribler = integrate_with_tribler
         self.log_incomming_searches = log_incomming_searches
         self.taste_buddies = []
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+        super(SearchCommunity, self).initialize()
         # To always connect to a peer uncomment/modify the following line
         # self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
 
@@ -98,10 +98,6 @@ class SearchCommunity(Community):
                            LoopingCall(self.create_torrent_collect_requests)).start(CREATE_TORRENT_COLLECT_INTERVAL,
                                                                                     now=True)
 
-    @property
-    def dispersy_enable_fast_candidate_walker(self):
-        return True
-
     def initiate_meta_messages(self):
         return super(SearchCommunity, self).initiate_meta_messages() + [
             Message(self, u"search-request",
@@ -110,7 +106,7 @@ class SearchCommunity(Community):
                     DirectDistribution(),
                     CandidateDestination(),
                     SearchRequestPayload(),
-                    self.check_search,
+                    self._generic_timeline_check,
                     self.on_search),
             Message(self, u"search-response",
                     MemberAuthentication(),
@@ -118,7 +114,7 @@ class SearchCommunity(Community):
                     DirectDistribution(),
                     CandidateDestination(),
                     SearchResponsePayload(),
-                    self.check_search_response,
+                    self._generic_timeline_check,
                     self.on_search_response),
             Message(self, u"torrent-request",
                     MemberAuthentication(),
@@ -126,7 +122,7 @@ class SearchCommunity(Community):
                     DirectDistribution(),
                     CandidateDestination(),
                     TorrentRequestPayload(),
-                    self.check_torrent_request,
+                    self._generic_timeline_check,
                     self.on_torrent_request),
             Message(self, u"torrent-collect-request",
                     MemberAuthentication(),
@@ -134,7 +130,7 @@ class SearchCommunity(Community):
                     DirectDistribution(),
                     CandidateDestination(),
                     TorrentCollectRequestPayload(),
-                    self.check_torrent_collect_request,
+                    self._generic_timeline_check,
                     self.on_torrent_collect_request),
             Message(self, u"torrent-collect-response",
                     MemberAuthentication(),
@@ -142,7 +138,7 @@ class SearchCommunity(Community):
                     DirectDistribution(),
                     CandidateDestination(),
                     TorrentCollectResponsePayload(),
-                    self.check_torrent_collect_response,
+                    self._generic_timeline_check,
                     self.on_torrent_collect_response),
             Message(self, u"torrent",
                     MemberAuthentication(),
@@ -150,7 +146,7 @@ class SearchCommunity(Community):
                     FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128),
                     CommunityDestination(node_count=0),
                     TorrentPayload(),
-                    self.check_torrent,
+                    self._generic_timeline_check,
                     self.on_torrent),
         ]
 
@@ -163,6 +159,10 @@ class SearchCommunity(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SearchConversion(self)]
+
+    @property
+    def dispersy_enable_fast_candidate_walker(self):
+        return self.integrate_with_tribler
 
     @property
     def dispersy_auto_download_master_member(self):
@@ -192,7 +192,7 @@ class SearchCommunity(Community):
 
         # Send ping to all new candidates
         if len(new_taste_buddies) > 0:
-            self._create_torrent_collect_requests([tb_tuple[-1] for tb_tuple in new_taste_buddies])
+            self.create_torrent_collect_requests([tb_tuple[-1] for tb_tuple in new_taste_buddies])
 
     def get_nr_connections(self):
         return len(self.get_connections())
@@ -322,9 +322,6 @@ class SearchCommunity(Community):
 
         return len(candidates)
 
-    def check_search(self, messages):
-        return messages
-
     def on_search(self, messages):
         for message in messages:
             keywords = message.payload.keywords
@@ -373,9 +370,6 @@ class SearchCommunity(Community):
         if DEBUG:
             self._logger.debug("SearchCommunity: returning %s results to %s", len(results), candidate)
 
-    def check_search_response(self, messages):
-        return messages
-
     def on_search_response(self, messages):
         # _get_channel_community could cause multiple commits, using this with clause this is reduced to only one.
         with self._dispersy.database:
@@ -423,9 +417,6 @@ class SearchCommunity(Community):
             nr_requests = sum([len(cid_torrents) for cid_torrents in torrentdict.values()])
             self._logger.debug("SearchCommunity: requesting %s TorrentMessages from %s", nr_requests, candidate)
 
-    def check_torrent_request(self, messages):
-        return messages
-
     def on_torrent_request(self, messages):
         for message in messages:
             requested_packets = []
@@ -450,7 +441,6 @@ class SearchCommunity(Community):
 
         @property
         def timeout_delay(self):
-            # we will accept the response at most 10.5 seconds after our request
             return 10.5
 
         def on_timeout(self):
@@ -466,49 +456,34 @@ class SearchCommunity(Community):
                 self._logger.debug("SearchCommunity: no response on ping, removing from taste_buddies %s", self.candidate)
                 self.community.taste_buddies.remove(remove)
 
-    def create_torrent_collect_requests(self):
-        refreshIf = time() - CANDIDATE_WALK_LIFETIME
-        # determine to which peers we need to send a ping
-        candidates = [candidate for _, prev, candidate in self.taste_buddies if prev < refreshIf]
-        self._create_torrent_collect_requests(candidates)
+    def create_torrent_collect_requests(self, candidates=None):
+        if candidates == None:
+            refreshIf = time() - CANDIDATE_WALK_LIFETIME
+            # determine to which peers we need to send a ping
+            candidates = [candidate for _, prev, candidate in self.taste_buddies if prev < refreshIf]
 
-
-
-
-    def _create_torrent_collect_requests(self, candidates):
         if len(candidates) > 0:
             self._create_pingpong(u"torrent-collect-request", candidates)
 
-    def check_torrent_collect_request(self, messages):
-        logger.debug("%d messages received", len(messages))
-        return messages
-
     def on_torrent_collect_request(self, messages):
-        logger.debug("%d messages received", len(messages))
         candidates = [message.candidate for message in messages]
         identifiers = [message.payload.identifier for message in messages]
 
         self._create_pingpong(u"torrent-collect-response", candidates, identifiers)
-        self.on_torrent_collect_response(messages, verifyRequest=False)
-
-    def check_torrent_collect_response(self, messages):
-        logger.debug("%d messages received", len(messages))
-        return messages
+        self._process_collect_request_response(messages)
 
     def on_torrent_collect_response(self, messages, verifyRequest=True):
-        logger.debug("%d messages received", len(messages))
+        self._process_collect_request_response(messages)
+
+        for message in messages:
+            self.request_cache.pop(u"ping", message.payload.identifier)
+
+    def _process_collect_request_response(self, messages):
         toInsert = {}
         toCollect = {}
         toPopularity = {}
         for message in messages:
-            if verifyRequest:
-                pong_request = self._request_cache.pop(u"ping", message.payload.identifier)
-                logger.debug("pop %s", pong_request.candidate if pong_request else "unknown")
-            else:
-                logger.debug("no-pop")
-                pong_request = True
-
-            if pong_request and message.payload.hashtype == SWIFT_INFOHASHES:
+            if message.payload.hashtype == SWIFT_INFOHASHES:
                 for swift_torrent_hash, infohash, seeders, leechers, ago in message.payload.torrents:
                     toInsert[infohash] = [infohash, swift_torrent_hash]
                     toPopularity[infohash] = [seeders, leechers, time() - (ago * 60)]
@@ -533,11 +508,14 @@ class SearchCommunity(Community):
                     from Tribler.Core.RemoteTorrentHandler import LOW_PRIO_COLLECTING
                     self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio=LOW_PRIO_COLLECTING, timeout=CANDIDATE_WALK_LIFETIME)
 
+        sock_addrs = [message.candidate.sock_addr for message in messages]
+        for taste_buddy in self.taste_buddies:
+            if taste_buddy[2].sock_addr in sock_addrs:
+                taste_buddy[1] = time()
+
     def _create_pingpong(self, meta_name, candidates, identifiers=None):
         max_len = self.dispersy_sync_bloom_filter_bits / 8
-        limit = int(max_len / 44)
-
-        torrents = self.__get_torrents(limit)
+        torrents = self.__get_torrents(int(max_len / 44))
         for index, candidate in enumerate(candidates):
             if identifiers:
                 identifier = identifiers[index]
@@ -552,11 +530,6 @@ class SearchCommunity(Community):
 
             self._dispersy._forward([message])
             self._logger.debug("SearchCommunity: send %s to %s", meta_name, candidate)
-
-        addresses = [candidate.sock_addr for candidate in candidates]
-        for taste_buddy in self.taste_buddies:
-            if taste_buddy[2].sock_addr in addresses:
-                taste_buddy[1] = time()
 
     def __get_torrents(self, limit):
         cache_timeout = CANDIDATE_WALK_LIFETIME
@@ -598,25 +571,21 @@ class SearchCommunity(Community):
                 torrentdef = TorrentDef.load(filename)
                 files = torrentdef.get_files_as_unicode_with_length()
 
-                return self._disp_create_torrent(torrentdef.get_infohash(), long(time()), torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple(), store, update, forward)
+                meta = self.get_meta_message(u"torrent")
+                message = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.claim_global_time(),),
+                            payload=(torrentdef.get_infohash(), long(time()), torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple()))
+
+                self._dispersy.store_update_forward([message], store, update, forward)
+                self._torrent_db.updateTorrent(torrentdef.get_infohash(), notify=False, dispersy_id=message.packet_id)
+
+                return message
             except ValueError:
                 pass
             except:
                 print_exc()
         return False
 
-    def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
-        meta = self.get_meta_message(u"torrent")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
-                            payload=(infohash, timestamp, name, files, trackers))
-
-        self._dispersy.store_update_forward([message], store, update, forward)
-        self._torrent_db.updateTorrent(infohash, notify=False, dispersy_id=message.packet_id)
-        return message
-
-    def check_torrent(self, messages):
-        return messages
 
     def on_torrent(self, messages):
         for message in messages:
@@ -686,7 +655,7 @@ class SearchCommunity(Community):
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
-            packet, packet_id = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+            packet, _ = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
 
