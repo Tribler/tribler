@@ -50,9 +50,10 @@ class FastI2IConnection(Thread):
             prctl.set_name("Tribler" + currentThread().getName())
 
         try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect(("127.0.0.1", self.port))
-            self.sock_connected.set()
+            with self.lock:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.connect(("127.0.0.1", self.port))
+                self.sock_connected.set()
             while True:
                 data = self.sock.recv(10240)
                 if len(data) == 0:
