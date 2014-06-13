@@ -2266,7 +2266,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def __init__(self, *args, **kargs):
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
 
-    @forceDBThread
+    @forceAndReturnDBThread
     def initialBegin(self):
         global _shouldCommit
         try:
