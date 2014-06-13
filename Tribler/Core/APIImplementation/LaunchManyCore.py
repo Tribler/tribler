@@ -132,7 +132,7 @@ class TriblerLaunchMany(Thread):
                 # However, for now we must start self.dispersy.callback before running
                 # try_register(nocachedb, self.database_thread)!
 
-                success = blockingCallFromThread(reactor, self.dispersy.start)
+                success = self.dispersy.start()
 
                 # for debugging purpose
                 # from Tribler.dispersy.endpoint import NullEndpoint
@@ -170,9 +170,7 @@ class TriblerLaunchMany(Thread):
 
                 nocachedb = cachedb.init(self.session.get_state_dir(), self.session.get_install_dir(), self.rawserver_fatalerrorfunc)
 
-                # TODO(emilon): have a function on the new twistified database module that does this on the right thread
-                # (we will have a dedicated DB thread again soon)
-                blockingCallFromThread(reactor, nocachedb.initialBegin)
+                nocachedb.initialBegin()
 
                 self.cat = Category.getInstance(self.session.get_install_dir())
                 self.term = TermExtraction.getInstance(self.session.get_install_dir())
@@ -672,7 +670,7 @@ class TriblerLaunchMany(Thread):
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
             now = timemod.time()
-            success = blockingCallFromThread(reactor, self.dispersy.stop, 666.666)
+            success = self.dispersy.stop()
             diff = timemod.time() - now
             if success:
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
