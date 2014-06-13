@@ -351,7 +351,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
 
         # TODO(emilon): Use the LogObserver I already implemented
-        #self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
+        # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
 
         startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="guiTaskQueue")
 
@@ -972,7 +972,7 @@ class ABCApp():
             except:
                 print_exc()
 
-            self._logger.info("main: ONEXIT deleting instances")
+        print >> sys.stderr, "ONEXIT deleting instances"
 
         Session.del_instance()
         GUIUtility.delInstance()
