@@ -454,13 +454,13 @@ class RemoteTorrentHandler(TaskManager):
             for requester in requesters.itervalues():
                 if requester.requests_success >= 0:
                     print_value = True
-                    sum_requests += requester.requests_made
+                    sum_requests += (requester.requests_made - requester.requests_on_disk)
                     sum_success += requester.requests_success
                     sum_fail += requester.requests_fail
                     sum_on_disk += requester.requests_on_disk
 
             if print_value:
-                return "%s: %d/%d" % (qname, sum_success, sum_requests), "%s: success %d, pending %d, on disk %d, failed %d" % (qname, sum_success, sum_requests - sum_success - sum_fail - sum_on_disk, sum_on_disk, sum_fail)
+                return "%s: %d/%d" % (qname, sum_success, sum_requests), "%s: success %d, pending %d, on disk %d, failed %d" % (qname, sum_success, sum_requests - sum_success - sum_fail, sum_on_disk, sum_fail)
             return '', ''
         return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TQueue", self.trequesters), getQueueSuccess("DQueue", self.drequesters), getQueueSuccess("MQueue", self.mrequesters)] if qstring]
 
