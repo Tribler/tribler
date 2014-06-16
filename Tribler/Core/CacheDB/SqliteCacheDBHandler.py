@@ -717,7 +717,16 @@ class TorrentDBHandler(BasicDBHandler):
         else:  # infohash in db
             del database_dict["infohash"]  # no need for infohash, its already stored
             where = "torrent_id = %d" % torrent_id
-            self._db.update('Torrent', where=where, **database_dict)
+            try:
+                self._db.update('Torrent', where=where, **database_dict)
+            except:
+                self._logger.error("--------- Failed to update existing torrent ---------")
+                self._logger.error("- infohash: %s", binascii.hexlify(infohash))
+                self._logger.error("- swarmname: %s", swarmname)
+                self._logger.error("- database:")
+                for k, v in database_dict.iteritems():
+                    self._logger.error("->>> [%s]: [%s]", k, v)
+                self._logger.error("--------- --------------------------------- ---------")
 
         if not torrentdef.is_multifile_torrent():
             swarmname, _ = os.path.splitext(swarmname)
