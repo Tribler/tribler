@@ -183,47 +183,48 @@ class RemoteTorrentHandler(TaskManager):
             self.scheduletask(raw_lambda)
 
     def _download_torrent(self, candidate, infohash, roothash, usercallback, prio, timeout):
-        if self.registered:
-            assert infohash or roothash, "We need either the info or roothash"
+        if not self.registered:
+            return
 
-            hashes = (infohash, roothash)
+        assert infohash or roothash, "We need either the infohash or roothash"
+        hashes = (infohash, roothash)
 
-            doSwiftCollect = candidate and roothash
-            if doSwiftCollect:
-                requesters = self.trequesters
+        doSwiftCollect = candidate and roothash
+        if doSwiftCollect:
+            requesters = self.trequesters
 
-            elif infohash:
-                requesters = self.drequesters
+        elif infohash:
+            requesters = self.drequesters
 
-                # fix prio levels to 1 and 0
-                prio = min(prio, 1)
-            else:
-                return
+            # fix prio levels to 1 and 0
+            prio = min(prio, 1)
+        else:
+            return
 
-            # look for lowest prio requester, which already has this infohash scheduled
-            requester = None
-            for i in range(0, prio + 1):
-                if i in requesters and requesters[i].is_being_requested(hash):
-                    requester = requesters[i]
-                    break
+        # look for lowest prio requester, which already has this infohash scheduled
+        requester = None
+        for i in range(0, prio + 1):
+            if i in requesters and requesters[i].is_being_requested(hash):
+                requester = requesters[i]
+                break
 
-            # if not found, then used/create this requester
-            if not requester:
-                if prio not in requesters:
-                    if doSwiftCollect:
-                        requesters[prio] = TorrentRequester(self, self.drequesters.get(1, None), self.session, prio)
-                    elif self.session.get_dht_torrent_collecting():
-                        requesters[prio] = MagnetRequester(self, prio)
+        # if not found, then used/create this requester
+        if not requester:
+            if prio not in requesters:
+                if doSwiftCollect:
+                    requesters[prio] = TorrentRequester(self, self.drequesters.get(1, None), self.session, prio)
+                elif self.session.get_dht_torrent_collecting():
+                    requesters[prio] = MagnetRequester(self, prio)
 
-                requester = requesters[prio]
+            requester = requesters[prio]
 
-            # make request
-            if requester:
-                if usercallback:
-                    self.callbacks.setdefault(hashes, set()).add(usercallback)
+        # make request
+        if requester:
+            if usercallback:
+                self.callbacks.setdefault(hashes, set()).add(usercallback)
 
-                requester.add_request(hashes, candidate, timeout)
-                self._logger.info('rtorrent: adding torrent request: %s %s %s %s', bin2str(infohash or ''), bin2str(roothash or ''), candidate, prio)
+            requester.add_request(hashes, candidate, timeout)
+            self._logger.info('rtorrent: adding torrent request: %s %s %s %s', bin2str(infohash or ''), bin2str(roothash or ''), candidate, prio)
 
     def download_torrentmessage(self, candidate, infohash, usercallback=None, prio=1):
         if self.registered:
