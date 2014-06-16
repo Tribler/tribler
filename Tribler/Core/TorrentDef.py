@@ -140,8 +140,9 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         TorrentDef is provided through CALLBACK.
 
         Returns True when attempting to obtain the TorrentDef, in this
-        case CALLBACK will always be called.  Otherwise False is
-        returned, in this case CALLBACK will not be called.
+        case CALLBACK will ONLY be called if the TorrentDef has been
+        obtained successfully.  Otherwise False is returned, in this
+        case CALLBACK will not be called.
 
         The thread making the callback should be used very briefly.
         """
@@ -155,16 +156,13 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             except UnicodeDecodeError:
                 if not silent:
                     raise
-            callback(tdef)
+                return
+            if tdef:
+                callback(tdef)
         if LibtorrentMgr.hasInstance():
             LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
             return True
         return False
-
-    @staticmethod
-    def retrieve_from_magnet_infohash(infohash, callback, timeout=30.0, max_connections=30.0):
-        magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
-        return TorrentDef.retrieve_from_magnet(magnetlink, callback, timeout, max_connections)
 
     @staticmethod
     def load_from_url(url):
