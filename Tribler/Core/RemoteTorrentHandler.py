@@ -474,10 +474,11 @@ class RemoteTorrentHandler(TaskManager):
             return ''
         return ", ".join([qstring for qstring in [getQueueBW("TQueue", self.trequesters), getQueueBW("DQueue", self.drequesters)] if qstring])
 
-class Requester:
+class Requester(object):
     REQUEST_INTERVAL = 0.5
 
     def __init__(self, scheduletask, prio):
+        super(Requester, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.scheduletask = scheduletask
@@ -575,7 +576,7 @@ class TorrentRequester(Requester):
     SWIFT_CANCEL = 30.0
 
     def __init__(self, remote_th, magnet_requester, session, prio):
-        Requester.__init__(self, remote_th.scheduletask, prio)
+        super(TorrentRequester, self).__init__(remote_th.scheduletask, prio)
 
         self.remote_th = remote_th
         self.magnet_requester = magnet_requester
@@ -702,11 +703,11 @@ class TorrentRequester(Requester):
 class TorrentMessageRequester(Requester):
 
     def __init__(self, remote_th, searchcommunity, prio):
+        super(TorrentMessageRequester, self).__init__(remote_th.scheduletask, prio)
         if sys.platform == 'darwin':
             # Arno, 2012-07-25: Mac has just 256 fds per process, be less aggressive
             self.REQUEST_INTERVAL = 1.0
 
-        Requester.__init__(self, remote_th.scheduletask, prio)
         self.searchcommunity = searchcommunity
         self.requests_success = -1
 
@@ -729,11 +730,10 @@ class MagnetRequester(Requester):
     MAGNET_RETRIEVE_TIMEOUT = 30.0
 
     def __init__(self, remote_th, prio):
+        super(MagnetRequester, self).__init__(remote_th.scheduletask, prio)
         if sys.platform == 'darwin':
             # mac has severe problems with closing connections, add additional time to allow it to close connections
             self.REQUEST_INTERVAL = 15.0
-
-        Requester.__init__(self, remote_th.scheduletask, prio)
 
         self.remote_th = remote_th
         self.requestedInfohashes = set()
@@ -803,7 +803,7 @@ class MetadataRequester(Requester):
     SWIFT_CANCEL = 30.0
 
     def __init__(self, remote_th, session):
-        Requester.__init__(self, remote_th.scheduletask, 0)
+        super(MetadataRequester, self).__init__(remote_th.scheduletask, 0)
 
         self.remote_th = remote_th
         self.session = session
