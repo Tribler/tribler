@@ -162,11 +162,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         return False
 
     @staticmethod
-    def retrieve_from_magnet_infohash(infohash, callback, timeout=30.0, max_connections=30.0):
-        magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
-        return TorrentDef.retrieve_from_magnet(magnetlink, callback, timeout, max_connections)
-
-    @staticmethod
     def load_from_url(url):
         """
         If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
