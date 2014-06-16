@@ -155,7 +155,9 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             except UnicodeDecodeError:
                 if not silent:
                     raise
-            callback(tdef)
+                return
+            if tdef:
+                callback(tdef)
         if LibtorrentMgr.hasInstance():
             LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
             return True
