@@ -140,8 +140,9 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         TorrentDef is provided through CALLBACK.
 
         Returns True when attempting to obtain the TorrentDef, in this
-        case CALLBACK will always be called.  Otherwise False is
-        returned, in this case CALLBACK will not be called.
+        case CALLBACK will ONLY be called if the TorrentDef has been
+        obtained successfully.  Otherwise False is returned, in this
+        case CALLBACK will not be called.
 
         The thread making the callback should be used very briefly.
         """
