@@ -229,7 +229,8 @@ class SwiftDef(ContentDefinition):
         argument.
         @param destdir OS path of where to store temporary files.
         @param removetemp Boolean, remove temporary files or not
-        @return filename of multi-spec definition or None (single-file)
+        @return filename of multi-spec definition or True (single-file)
+        @return False if finalize failed
         """
         if userprogresscallback is not None:
             userprogresscallback(0.0)
@@ -326,7 +327,7 @@ class SwiftDef(ContentDefinition):
         if url is None or len(url) == 0:
             self.roothash = None
             self._logger.error("swift: finalize: Error calculating roothash")
-            return None
+            return False
 
         if userprogresscallback is not None:
             userprogresscallback(0.9)
@@ -355,7 +356,7 @@ class SwiftDef(ContentDefinition):
         if userprogresscallback is not None:
             userprogresscallback(1.0)
 
-        return specpn
+        return specpn or True
 
     def save_multifilespec(self, filename):
         """
