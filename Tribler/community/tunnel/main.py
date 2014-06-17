@@ -72,6 +72,7 @@ class AnonTunnel():
         config.set_swift_tunnel_listen_port(-1)
         self.session = Session(config)
         self.session.start()
+        print >> sys.stderr, "Using ports %d for dispersy and %d for swift tunnel" % (self.session.get_dispersy_port(), self.session.get_swift_tunnel_listen_port())
 
     def __calc_diff(self, then, bytes_exit0, bytes_enter0, bytes_relay0):
         now = time.time()
@@ -153,10 +154,10 @@ class AnonTunnel():
             self.session.shutdown()
             while not self.session.has_shutdown():
                 diff = time.time() - session_shutdown_start
-                assert diff < waittime, "test_as_server: took too long for Session to shutdown"
-                print >> sys.stderr, "test_as_server: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
+                assert diff < waittime, "Took too long for Session to shutdown"
+                print >> sys.stderr, "ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
                 time.sleep(1)
-            print >> sys.stderr, "test_as_server: Session is shutdown"
+            print >> sys.stderr, "Session is shutdown"
             Session.del_instance()
 
 

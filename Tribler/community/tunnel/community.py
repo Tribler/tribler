@@ -461,7 +461,7 @@ class TunnelCommunity(Community):
             logger.info("TunnelCommunity: extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
 
             destination_key = extend_candidate.get_member()._ec
-            self.send_message([candidate], u"create", (new_circuit_id, message.payload.key, self.my_member.public_key, destination_key))
+            self.send_message([extend_candidate], u"create", (new_circuit_id, message.payload.key, self.my_member.public_key, destination_key))
 
     @preprocess_messages
     def on_extended(self, messages):
