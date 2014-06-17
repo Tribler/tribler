@@ -416,7 +416,8 @@ class TunnelCommunity(Community):
                 logger.debug("TunnelCommunity: got CREATED message forward as EXTENDED to origin.")
 
                 forwarding_relay = self.relay_from_to[circuit_id]
-                self.send_message([candidate], u"extended", (forwarding_relay.circuit_id, message.payload.key, message.payload.candidate_list))
+                self.send_message([Candidate(forwarding_relay.sock_addr, False)], u"extended", \
+                                  (forwarding_relay.circuit_id, message.payload.key, message.payload.candidate_list))
 
             # Circuit is ours.
             if circuit_id in self.circuits:
