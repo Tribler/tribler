@@ -175,3 +175,11 @@ class TunnelConversion(BinaryConversion):
         except:
             pass
         return result
+
+    @staticmethod
+    def swap_circuit_id(packet, old_circuit_id, new_circuit_id):
+        circuit_id_pos = 97
+        circuit_id, = unpack_from('!I', packet, circuit_id_pos)
+        assert circuit_id == old_circuit_id, circuit_id
+        packet = packet[:circuit_id_pos] + pack('!I', new_circuit_id) + packet[circuit_id_pos + 4:]
+        return packet

@@ -307,6 +307,7 @@ class TunnelCommunity(Community):
                 for observer in self.observers:
                     observer.on_relay(next_relay.circuit_id, circuit_id, direction, packet)
 
+            packet = TunnelConversion.swap_circuit_id(packet, circuit_id, next_relay.circuit_id)
             self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet)
             return True
         return False
