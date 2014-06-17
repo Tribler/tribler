@@ -59,7 +59,7 @@ class TestTorrentCollecting(TestAsServer):
         tdef.save(torrentfn)
 
         sdef, swiftpath = session.lm.rtorrent_handler._move_to_collected(torrentfn)
-        return tdef.get_id() if tdef else None, sdef.get_id()
+        return tdef.get_id(), sdef.get_id()
 
     def test_torrent_collecting(self):
         infohash, roothash = self._create_and_save_torrent(self.session, 'video2.avi')

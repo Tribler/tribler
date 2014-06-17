@@ -21,7 +21,7 @@ class SwiftDef(ContentDefinition):
     """ Definition of a swift swarm, that is, the root hash (video-on-demand)
     and any optional peer-address sources. """
 
-    def __init__(self, roothash=None, tracker=None, chunksize=None,duration=None):
+    def __init__(self, roothash=None, tracker=None, chunksize=None, duration=None):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.readonly = False
@@ -215,7 +215,7 @@ class SwiftDef(ContentDefinition):
             return None
 
 
-    def finalize(self, binpath, userprogresscallback=None, destdir='.',removetemp=False):
+    def finalize(self, binpath, userprogresscallback=None, destdir='.', removetemp=False):
         """
         Calculate root hash (time consuming).
 
@@ -229,7 +229,8 @@ class SwiftDef(ContentDefinition):
         argument.
         @param destdir OS path of where to store temporary files.
         @param removetemp Boolean, remove temporary files or not
-        @return filename of multi-spec definition or None (single-file)
+        @return filename of multi-spec definition or True (single-file)
+        @return False if finalize failed
         """
         if userprogresscallback is not None:
             userprogresscallback(0.0)
@@ -242,7 +243,7 @@ class SwiftDef(ContentDefinition):
             if userprogresscallback is not None:
                 userprogresscallback(0.2)
 
-            specfn = "multifilespec-p" + str(os.getpid()) +"-r"+str(random.random())+".txt"
+            specfn = "multifilespec-p" + str(os.getpid()) + "-r" + str(random.random()) + ".txt"
             specpn = os.path.join(destdir, specfn)
 
             f = open(specpn, "wb")
@@ -253,7 +254,7 @@ class SwiftDef(ContentDefinition):
         else:
             filename = self.files[0]['inpath']
 
-        urlfn = "swifturl-p" + str(os.getpid()) +"-r"+str(random.random())+".txt"
+        urlfn = "swifturl-p" + str(os.getpid()) + "-r" + str(random.random()) + ".txt"
         urlpn = os.path.join(destdir, urlfn)
 
         args = []
@@ -324,9 +325,9 @@ class SwiftDef(ContentDefinition):
             pass
 
         if url is None or len(url) == 0:
-            self.roothash = '0' * 20
-            self._logger.info("swift: finalize: Error calculating roothash")
-            return None
+            self.roothash = None
+            self._logger.error("swift: finalize: Error calculating roothash")
+            return False
 
         if userprogresscallback is not None:
             userprogresscallback(0.9)
@@ -355,7 +356,7 @@ class SwiftDef(ContentDefinition):
         if userprogresscallback is not None:
             userprogresscallback(1.0)
 
-        return specpn
+        return specpn or True
 
     def save_multifilespec(self, filename):
         """
