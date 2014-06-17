@@ -348,26 +348,25 @@ class RemoteTorrentHandler(TaskManager):
             # calculate root-hash
             sdef = SwiftDef()
             sdef.add_content(filename)
-            sdef.finalize(self.session.get_swift_path(), destdir=self.session.get_torrent_collecting_dir())
+            if sdef.finalize(self.session.get_swift_path(), destdir=self.session.get_torrent_collecting_dir()):
+                mfpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
+                if not os.path.exists(mfpath):
+                    download = self.session.get_download(sdef.get_roothash())
+                    if download:
+                        self.session.remove_download(download, removestate=True)
+                        sleep(1)
+                    elif os.path.exists(mfpath + ".mhash"):  # indicating failed swift download
+                        os.remove(mfpath + ".mhash")
 
-            mfpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
-            if not os.path.exists(mfpath):
-                download = self.session.get_download(sdef.get_roothash())
-                if download:
-                    self.session.remove_download(download, removestate=True)
-                    sleep(1)
-                elif os.path.exists(mfpath + ".mhash"):  # indicating failed swift download
-                    os.remove(mfpath + ".mhash")
+                    try:
+                        shutil.move(filename, mfpath)
+                        shutil.move(filename + '.mhash', mfpath + '.mhash')
+                        shutil.move(filename + '.mbinmap', mfpath + '.mbinmap')
 
-                try:
-                    shutil.move(filename, mfpath)
-                    shutil.move(filename + '.mhash', mfpath + '.mhash')
-                    shutil.move(filename + '.mbinmap', mfpath + '.mbinmap')
+                    except:
+                        print_exc()
 
-                except:
-                    print_exc()
-
-            return sdef, mfpath
+                return sdef, mfpath
 
         tdef = TorrentDef.load(filename)
         mfpath = os.path.join(self.session.get_torrent_collecting_dir(), get_collected_torrent_filename(tdef.get_infohash()))
