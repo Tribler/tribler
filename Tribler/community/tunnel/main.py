@@ -195,15 +195,15 @@ class LineHandler(LineReceiver):
                 print >> sys.stderr, "Profiling disabled!"
 
         elif line == 'c':
-            stats = anon_tunnel.community.global_stats.circuit_stats
+            # stats = anon_tunnel.community.global_stats.circuit_stats
 
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
             for circuit_id, circuit in anon_tunnel.community.circuits.items():
                 print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (circuit.circuit_id, circuit.first_hop[0],
                                                              circuit.first_hop[1], circuit.goal_hops,
-                                                             len(circuit.hops), stats[circuit_id].
-                                                             bytes_downloaded / 1024.0 / 1024.0,
-                                                             stats[circuit_id].bytes_uploaded / 1024.0 / 1024.0)
+                                                             len(circuit.hops),
+                                                             - 1,  # stats[circuit_id].bytes_downloaded / 1024.0 / 1024.0,
+                                                             - 1)  # stats[circuit_id].bytes_uploaded / 1024.0 / 1024.0)
         elif line == 'q':
             anon_tunnel.stop()
             os._exit(0)

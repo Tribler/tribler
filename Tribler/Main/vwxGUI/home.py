@@ -8,8 +8,8 @@ import threading
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
-from Tribler.community.anontunnel.community import ProxyCommunity
-from Tribler.community.anontunnel.routing import Hop
+from Tribler.community.tunnel.community import TunnelCommunity
+from Tribler.community.tunnel.routing import Hop
 
 import random
 import logging
@@ -602,7 +602,7 @@ class NetworkGraphPanel(wx.Panel):
 
     def try_proxy(self):
         try:
-            proxy_community = (c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
+            proxy_community = (c for c in self.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
             self.found_proxy(proxy_community)
         except:
             wx.CallLater(1000, self.try_proxy)
@@ -674,7 +674,7 @@ class NetworkGraphPanel(wx.Panel):
     def OnUpdateCircuits(self, event):
         new_circuits = dict(self.proxy_community.circuits)
         self.circuits = new_circuits
-        stats = self.proxy_community.global_stats.circuit_stats
+        # stats = self.proxy_community.global_stats.circuit_stats
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -686,8 +686,8 @@ class NetworkGraphPanel(wx.Panel):
             self.circuit_list.SetStringItem(pos, 1, str(circuit.state))
             self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)) + "/" + str(circuit.goal_hops))
 
-            bytes_uploaded = stats[circuit_id].bytes_uploaded
-            bytes_downloaded = stats[circuit_id].bytes_downloaded
+            bytes_uploaded = -1  # stats[circuit_id].bytes_uploaded
+            bytes_downloaded = -1  # stats[circuit_id].bytes_downloaded
 
             self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(bytes_uploaded))
             self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(bytes_downloaded))

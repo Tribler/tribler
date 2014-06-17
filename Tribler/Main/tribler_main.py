@@ -454,9 +454,9 @@ class ABCApp():
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
-            from Tribler.community.anontunnel.community import ProxyCommunity
-            from Tribler.community.anontunnel import exitstrategies
-            from Tribler.community.anontunnel.Socks5.server import Socks5Server
+            from Tribler.community.tunnel.community import TunnelCommunity
+            from Tribler.community.tunnel import exitstrategies
+            from Tribler.community.tunnel.Socks5.server import Socks5Server
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -483,7 +483,7 @@ class ABCApp():
                     private_key=dispersy.crypto.key_to_bin(keypair),
                 )
 
-                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, load=True,
+                proxy_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
                                                         kargs={'tribler_session': session})[0]
 
                 socks_server = Socks5Server(proxy_community, session.lm.rawserver, session.get_proxy_community_socks5_listen_port())
