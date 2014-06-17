@@ -82,7 +82,7 @@ class NeighbourSubset(ExtendStrategy):
                 hashed_public_key, self.circuit.circuit_id)
 
             self.proxy.send_message([Candidate(self.circuit.first_hop, False)], u"extend",
-                                    (self.circuit.circuit_id, '', extend_hop_public_bin), authentication=True)
+                                    (self.circuit.circuit_id, '', extend_hop_public_bin))
         except BaseException:
             self._logger.exception("Encryption error")
             return False

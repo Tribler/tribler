@@ -12,7 +12,7 @@ from Tribler.community.tunnel.payload import CreatePayload, CreatedPayload, Exte
                                              PongPayload, PingPayload, DataPayload
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
-from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
+from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -30,6 +30,7 @@ logger.setLevel(logging.DEBUG)
 
 def preprocess_messages(func):
     def wrap(self, messages):
+        # Work on a copy, or dispersy will get upset.
         messages = messages[:]
         for i in range(len(messages) - 1, -1, -1):
             message = messages[i]
@@ -167,10 +168,10 @@ class TunnelCommunity(Community):
 
     def initiate_meta_messages(self):
         return super(TunnelCommunity, self).initiate_meta_messages() + \
-               [Message(self, u"create", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatePayload(), self.check_create, self.on_create),
-                Message(self, u"created", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatedPayload(), self.check_created, self.on_created),
-                Message(self, u"extend", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendPayload(), self.check_extend, self.on_extend),
-                Message(self, u"extended", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendedPayload(), self.check_extended, self.on_extended),
+               [Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatePayload(), self.check_create, self.on_create),
+                Message(self, u"created", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatedPayload(), self.check_created, self.on_created),
+                Message(self, u"extend", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendPayload(), self.check_extend, self.on_extend),
+                Message(self, u"extended", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendedPayload(), self.check_extended, self.on_extended),
                 Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._generic_timeline_check, self.on_ping),
                 Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
 
@@ -245,7 +246,7 @@ class TunnelCommunity(Community):
         self.waiting_for.add(circuit_id)
 
         destination_key = first_hop.get_member()._ec
-        self.send_message([Candidate(first_hop.sock_addr, False)], u"create", (circuit_id, "", self.my_member.public_key, destination_key), authentication=True)
+        self.send_message([Candidate(first_hop.sock_addr, False)], u"create", (circuit_id, "", self.my_member.public_key, destination_key))
         return circuit
 
     def remove_circuit(self, circuit_id, additional_info=''):
@@ -281,9 +282,9 @@ class TunnelCommunity(Community):
     def active_circuits(self):
         return {cid: c for cid, c in self.circuits.iteritems() if c.state == CIRCUIT_STATE_READY}
 
-    def send_message(self, candidates, message_type, payload, authentication=True, prefix=None):
+    def send_message(self, candidates, message_type, payload, prefix=None):
         meta = self.get_meta_message(message_type)
-        message = meta.impl(authentication=(self._my_member,) if authentication else (), distribution=(self.global_time,), payload=payload)
+        message = meta.impl(distribution=(self.global_time,), payload=payload)
         self.send_packet(candidates, message_type, message.packet, prefix=prefix)
 
     def send_packet(self, candidates, message_type, packet, prefix=None):
@@ -330,9 +331,9 @@ class TunnelCommunity(Community):
 
     def check_pong(self, messages):
         for message in messages:
-            request = self._request_cache.get(u"ping", message.payload.identifier)
+            request = self._request_cache.get(u"ping", message.payload.circuit_id)
             if not request:
-                yield DropMessage(message, "invalid response identifier")
+                yield DropMessage(message, "invalid response circuit_id")
                 continue
 
             if not request.did_request(message.candidate):
@@ -492,7 +493,7 @@ class TunnelCommunity(Community):
     @preprocess_messages
     def on_ping(self, messages):
         for message in messages:
-            self.send_message([message.candidate], u"pong", (message.payload.circuit_id,), authentication=False)
+            self.send_message([message.candidate], u"pong", (message.payload.circuit_id,))
             logger.debug("TunnelCommunity: got ping from %s", message.candidate)
 
     @preprocess_messages
@@ -512,7 +513,7 @@ class TunnelCommunity(Community):
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
         circuits_to_ping = {Candidate(c.first_hop, False): c for c in self.active_circuits.values() if c.goal_hops > 0}
         cache = self._request_cache.add(PingRequestCache(self, circuits_to_ping))
-        self.send_message(circuits_to_ping.keys(), u"ping", (cache.number,), authentication=False)
+        self.send_message(circuits_to_ping.keys(), u"ping", (cache.number,))
 
     def tunnel_data_to_end(self, ultimate_destination, payload, circuit):
         if circuit.goal_hops == 0:
