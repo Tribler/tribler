@@ -68,6 +68,8 @@ class AnonTunnel():
         config.set_libtorrent(True)
         config.set_dht_torrent_collecting(False)
         config.set_videoplayer(False)
+        config.set_dispersy_port(-1)  # select random port
+        config.set_swift_tunnel_listen_port(-1)
         self.session = Session(config)
         self.session.start()
 

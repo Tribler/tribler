@@ -63,9 +63,11 @@ class SwiftProcessMgr:
                     # 2012-05-23: connection_lost() will attempt another
                     # connect when the first fails, so not timing dependent,
                     # just ensures no send_()s get lost. Executed by NetworkThread.
-                    if sys.platform == "linux2" or sys.platform == "darwin":
-                        self._logger.info("spm: Need to sleep 1 second for swift to start on Linux?! FIXME")
-                        time.sleep(1)
+                    # 2014-06-16: Having the same issues on Windows with multiple
+                    # swift processes. Now always sleep, no matter which
+                    # platform we're using.
+                    self._logger.info("spm: Need to sleep 1 second for swift to start?! FIXME")
+                    time.sleep(1)
 
                     sp.start_cmd_connection()
 
