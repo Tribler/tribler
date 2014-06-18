@@ -135,109 +135,118 @@ class SwiftProcess:
         else:
             self._logger.error("sp: start_cmd_connection: Process dead? returncode %s pid %s", self.popen.returncode, self.popen.pid)
 
-    def i2ithread_readlinecallback(self, ic, cmd):
-        # if DEBUG:
-        # print >>sys.stderr,"sp: Got command #"+cmd+"#"
-
+    def i2ithread_readlinecallback(self, buffer):
         if self.donestate != DONE_STATE_WORKING:
-            return
+            return ''
 
-        words = cmd.split()
-        assert all(isinstance(word, str) for word in words)
+        while buffer:
+            # print >> sys.stderr, "sp: Got command", buffer
 
-        if words[0] == "TUNNELRECV":
-            address, session = words[1].split("/")
-            host, port = address.split(":")
-            port = int(port)
-            session = session.decode("HEX")
-            length = int(words[2])
+            swift_cmd, swift_body = buffer.split(" ", 1)
+            assert swift_cmd in ["TUNNELRECV", "ERROR", "CLOSE_EVENT", "INFO", "PLAY", "MOREINFO"], swift_cmd
 
-            # require LENGTH bytes
-            if len(ic.buffer) < length:
-                return length - len(ic.buffer)
+            if swift_cmd == "TUNNELRECV":
+                header, _, payload = swift_body.partition("\r\n")
+                if payload:
+                    from_session, length = header.split(" ", 1)
+                    address, session = from_session.split("/")
+                    host, port = address.split(":")
+                    port = int(port)
+                    session = session.decode("HEX")
+                    length = int(length)
 
-            data = ic.buffer[:length]
-            ic.buffer = ic.buffer[length:]
+                    if len(payload) >= length:
+                        try:
+                            self.tunnels[session](session, (host, port), payload[:length])
+                        except KeyError:
+                            if self._warn_missing_endpoint:
+                                self._warn_missing_endpoint = False
+                                self._logger.error("sp: Dispersy endpoint is not available")
 
-            try:
-                self.tunnels[session](session, (host, port), data)
-            except KeyError:
-                if self._warn_missing_endpoint:
-                    self._warn_missing_endpoint = False
-                    self._logger.error("sp: Dispersy endpoint is not available")
+                        buffer = payload[length:]
+                        continue
 
-        else:
-            roothash = binascii.unhexlify(words[1])
+                return buffer
 
-            if words[0] == "ERROR":
-                self._logger.info("sp: i2ithread_readlinecallback: %s" % cmd)
+            else:
+                if swift_body.find('\r\n') == -1:  # incomplete command
+                    return buffer
 
-            elif words[0] == "CLOSE_EVENT":
-                roothash_hex = words[1]
-                address = words[2].split(":")
-                address = (address[0], int(address[1]))
-                raw_bytes_up = int(words[3])
-                raw_bytes_down = int(words[4])
-                cooked_bytes_up = int(words[5])
-                cooked_bytes_down = int(words[6])
+                swift_body, _, buffer = swift_body.partition("\r\n")
+                # print >> sys.stderr, "sp: Got command", swift_cmd, swift_body
 
-                if roothash_hex in self._channel_close_callbacks:
-                    for callback in self._channel_close_callbacks[roothash_hex]:
+                roothash_hex = swift_body.split(" ", 1)[0]
+                roothash = binascii.unhexlify(roothash_hex)
+
+                if swift_cmd == "CLOSE_EVENT":
+                    _, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down = swift_body.split(" ", 5)
+                    address = address.split(":")
+                    address = (address[0], int(address[1]))
+                    raw_bytes_up = int(raw_bytes_up)
+                    raw_bytes_down = int(raw_bytes_down)
+                    cooked_bytes_up = int(cooked_bytes_up)
+                    cooked_bytes_down = int(cooked_bytes_down)
+
+                    if roothash_hex in self._channel_close_callbacks:
+                        for callback in self._channel_close_callbacks[roothash_hex]:
+                            try:
+                                callback(roothash_hex, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down)
+                            except:
+                                pass
+
+                    for callback in self._channel_close_callbacks["ALL"]:
                         try:
                             callback(roothash_hex, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down)
                         except:
                             pass
-                for callback in self._channel_close_callbacks["ALL"]:
-                    try:
-                        callback(roothash_hex, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down)
-                    except:
-                        pass
 
-            self.splock.acquire()
-            try:
-                if roothash not in self.roothash2dl.keys():
-                    self._logger.debug("sp: i2ithread_readlinecallback: unknown roothash %s", words[1])
-                    return
-
-                d = self.roothash2dl[roothash]
-            except:
-                # print >>sys.stderr,"GOT", words
-                # print >>sys.stderr,"HAVE", [key.encode("HEX") for key in self.roothash2dl.keys()]
-                raise
-            finally:
-                self.splock.release()
-
-            # Hide NSSA interface for SwiftDownloadImpl
-            if words[0] == "INFO":  # INFO HASH status dl/total
-                dlstatus = int(words[2])
-                pargs = words[3].split("/")
-                dynasize = int(pargs[1])
-                if dynasize == 0:
-                    progress = 0.0
                 else:
-                    progress = float(pargs[0]) / float(pargs[1])
-                dlspeed = float(words[4])
-                ulspeed = float(words[5])
-                numleech = int(words[6])
-                numseeds = int(words[7])
-                contentdl = 0  # bytes
-                contentul = 0  # bytes
-                if len(words) > 8:
-                    contentdl = int(words[8])
-                    contentul = int(words[9])
-                d.i2ithread_info_callback(dlstatus, progress, dynasize, dlspeed, ulspeed, numleech, numseeds, contentdl, contentul)
-            elif words[0] == "PLAY":
-                # print >>sys.stderr,"sp: i2ithread_readlinecallback: Got PLAY",cmd
-                httpurl = words[2]
-                d.i2ithread_vod_event_callback(httpurl)
-            elif words[0] == "MOREINFO":
-                jsondata = cmd[len("MOREINFO ") + 40 + 1:]
-                midict = json.loads(jsondata)
-                d.i2ithread_moreinfo_callback(midict)
-            elif words[0] == "ERROR":
-                d.i2ithread_info_callback(DLSTATUS_STOPPED_ON_ERROR, 0.0, 0, 0.0, 0.0, 0, 0, 0, 0)
+                    with self.splock:
+                        if roothash not in self.roothash2dl:
+                            self._logger.debug("sp: i2ithread_readlinecallback: unknown roothash %s", roothash)
+                            continue
 
-    #
+                        d = self.roothash2dl[roothash]
+
+                    # Hide NSSA interface for SwiftDownloadImpl
+                    if swift_cmd == "INFO":  # INFO HASH status dl/total
+                        words = swift_body.split()
+                        if len(words) > 8:
+                            _, dlstatus, pargs, dlspeed, ulspeed, numleech, numseeds, contentdl, contentul = words
+                        else:
+                            _, dlstatus, pargs, dlspeed, ulspeed, numleech, numseeds = words
+                            contentdl, contentul = 0, 0
+
+                        dlstatus = int(dlstatus)
+                        pargs = pargs.split("/")
+                        dynasize = int(pargs[1])
+                        if dynasize == 0:
+                            progress = 0.0
+                        else:
+                            progress = float(pargs[0]) / float(pargs[1])
+                        dlspeed = float(dlspeed)
+                        ulspeed = float(ulspeed)
+                        numleech = int(numleech)
+                        numseeds = int(numseeds)
+                        contentdl = int(contentdl)
+                        contentul = int(contentul)
+
+                        d.i2ithread_info_callback(dlstatus, progress, dynasize, dlspeed, ulspeed, numleech, numseeds, contentdl, contentul)
+
+                    elif swift_cmd == "PLAY":
+                        httpurl = swift_body.split(" ", 1)[1]
+                        d.i2ithread_vod_event_callback(httpurl)
+
+                    elif swift_cmd == "MOREINFO":
+                        jsondata = swift_body[40:]
+                        midict = json.loads(jsondata)
+                        d.i2ithread_moreinfo_callback(midict)
+
+                    elif swift_cmd == "ERROR":
+                        d.i2ithread_info_callback(DLSTATUS_STOPPED_ON_ERROR, 0.0, 0, 0.0, 0.0, 0, 0, 0, 0)
+
+        return buffer
+
     # Swift Mgmt interface
     #
 
