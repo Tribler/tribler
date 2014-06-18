@@ -49,6 +49,7 @@ class FastI2IConnection(Thread):
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
 
+        data = None
         try:
             with self.lock:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,6 +62,8 @@ class FastI2IConnection(Thread):
                 self.data_came_in(data)
 
         except:
+            import sys
+            print >> sys.stderr, "Error while parsing, (%s)" % data or ''
             print_exc()
             self.close()
 

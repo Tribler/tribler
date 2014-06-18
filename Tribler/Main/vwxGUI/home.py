@@ -891,6 +891,9 @@ class ArtworkPanel(wx.Panel):
         self.SetSizer(vSizer)
         self.Layout()
 
+        self.refreshNow()
+
+    def refreshNow(self):
         startWorker(self.SetData, self.GetData)
 
     def GetData(self):
@@ -902,6 +905,11 @@ class ArtworkPanel(wx.Panel):
             if os.path.isdir(thumb_path):
                 data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
 
+        if len(torrents) == 0:
+            non_torrents = self.guiutility.torrentsearch_manager.getNotCollectedThumbnailTorrents(limit=self.max_torrents)
+            for torrent in non_torrents:
+                self.guiutility.torrentsearch_manager.getTorrent(torrent, lambda _: self.refreshNow(), prio=2)
+
         return data
 
     @forceWxThread
@@ -912,8 +920,8 @@ class ArtworkPanel(wx.Panel):
         self.list.SetupScrolling()
 
         if len(data) < self.max_torrents:
-            interval = self.update_interval / 2
+            interval = self.update_interval / 4
         else:
             interval = self.update_interval
 
-        startWorker(self.SetData, self.GetData, delay=interval)
+        startWorker(self.SetData, self.GetData, delay=interval, uId=u"ArtworkPanel_refresh")

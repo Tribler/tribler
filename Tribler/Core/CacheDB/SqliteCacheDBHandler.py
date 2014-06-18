@@ -300,7 +300,14 @@ class MetadataDBHandler(BasicDBHandler):
         return result
 
     def getThumbnailTorrents(self, keys, limit=20):
-        sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs' AND Torrent.name <> '' AND Torrent.name IS NOT NULL " + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " ORDER BY this_global_time DESC LIMIT ?"
+        sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs' AND Torrent.name <> '' AND Torrent.name IS NOT NULL " + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
+        return self._getThumbnailTorrents(sql, keys, limit)
+
+    def getNotCollectedThumbnailTorrents(self, keys, limit=20):
+        sql = "SELECT " + ", ".join(keys) + " FROM MetadataData, MetadataMessage LEFT JOIN Torrent on MetadataMessage.infohash = Torrent.infohash WHERE MetadataData.message_id = MetadataMessage.message_id AND data_key='swift-thumbs' AND Torrent.name = '' OR Torrent.name IS NULL GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
+        return self._getThumbnailTorrents(sql, keys, limit)
+
+    def _getThumbnailTorrents(self, sql, keys, limit=20):
         results = self._db.fetchall(sql, (limit,)) or []
         for key_index, key in enumerate(keys):
             if key.endswith('hash'):
@@ -1836,7 +1843,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
     def deletePreference(self, torrent_id):
         # Preferences are never actually deleted from the database, only their destdirs get reset.
-        #self._db.delete(self.table_name, **{'torrent_id': torrent_id})
+        # self._db.delete(self.table_name, **{'torrent_id': torrent_id})
         self.updateDestDir(torrent_id, "")
 
         infohash = self._torrent_db.getInfohash(torrent_id)
