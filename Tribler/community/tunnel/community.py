@@ -103,7 +103,7 @@ class PingRequestCache(RandomNumberCache):
                 self.community.remove_circuit(circuit.circuit_id, 'ping timeout')
 
 
-class ProxySettings:
+class TunnelSettings:
 
     def __init__(self):
         self.extend_strategy = extendstrategies.NeighbourSubset
@@ -125,7 +125,7 @@ class TunnelCommunity(Community):
         self.destination_circuit = {}
         self.circuit_pools = []
         self.notifier = None
-        self.settings = settings if settings else ProxySettings()
+        self.settings = settings if settings else TunnelSettings()
         self.settings.crypto.set_proxy(self)
 
         self._dispersy.endpoint.listen_to(self.__packet_prefix, self.on_data)
