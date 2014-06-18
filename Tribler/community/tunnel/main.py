@@ -15,14 +15,12 @@ from Tribler.community.tunnel import exitstrategies
 from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.community import TunnelCommunity, ProxySettings
 from Tribler.community.tunnel.extendstrategies import TrustThyNeighbour, NeighbourSubset
-from Tribler.community.tunnel.lengthstrategies import RandomCircuitLengthStrategy, ConstantCircuitLength
-from Tribler.community.tunnel.selectionstrategies import RandomSelectionStrategy, LengthSelectionStrategy
 from Tribler.community.tunnel.stats import StatsCrawler
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
 
-logger = logging.getLogger(__name__)
+logger = logging
 
 try:
     import yappi
@@ -202,7 +200,7 @@ class LineHandler(LineReceiver):
                 print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (circuit.circuit_id, circuit.first_hop[0],
                                                              circuit.first_hop[1], circuit.goal_hops,
                                                              len(circuit.hops),
-                                                             - 1,  # stats[circuit_id].bytes_downloaded / 1024.0 / 1024.0,
+                                                             - 1, # stats[circuit_id].bytes_downloaded / 1024.0 / 1024.0,
                                                              - 1)  # stats[circuit_id].bytes_uploaded / 1024.0 / 1024.0)
         elif line == 'q':
             anon_tunnel.stop()
@@ -225,8 +223,6 @@ def main(argv):
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-y', '--yappi', help="Profiling mode, either 'wall' or 'cpu'")
-        parser.add_argument('-l', '--length-strategy', default=[], nargs='*', help='Circuit length strategy')
-        parser.add_argument('-s', '--select-strategy', default=[], nargs='*', help='Circuit selection strategy')
         parser.add_argument('-e', '--extend-strategy', default='subset', help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_argument('--crawl', default=False, help='Record stats from others in results.db')
@@ -266,28 +262,6 @@ def main(argv):
         proxy_settings.extend_strategy = NeighbourSubset
     else:
         raise ValueError("extend_strategy must be either random or delegate")
-
-    # Circuit length strategy
-    if args.length_strategy[:1] == ['random']:
-        strategy = RandomCircuitLengthStrategy(*args.length_strategy[1:])
-        proxy_settings.length_strategy = strategy
-        logger.error("Using RandomCircuitLengthStrategy with arguments %s", ', '.join(args.length_strategy[1:]))
-
-    elif args.length_strategy[:1] == ['constant']:
-        strategy = ConstantCircuitLength(*args.length_strategy[1:])
-        proxy_settings.length_strategy = strategy
-        logger.error("Using ConstantCircuitLength with arguments %s", ', '.join(args.length_strategy[1:]))
-
-    # Circuit selection strategies
-    if args.select_strategy[:1] == ['random']:
-        strategy = RandomSelectionStrategy(*args.select_strategy[1:])
-        proxy_settings.selection_strategy = strategy
-        logger.error("Using RandomCircuitLengthStrategy with arguments %s", ', '.join(args.select_strategy[1:]))
-
-    elif args.select_strategy[:1] == ['length']:
-        strategy = LengthSelectionStrategy(*args.select_strategy[1:])
-        proxy_settings.selection_strategy = strategy
-        logger.error("Using LengthSelectionStrategy with arguments %s", ', '.join(args.select_strategy[1:]))
 
     anon_tunnel = AnonTunnel(socks5_port, proxy_settings, crawl)
     StandardIO(LineHandler(anon_tunnel, profile))

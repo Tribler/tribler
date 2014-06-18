@@ -4,7 +4,7 @@ import random
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
-from Tribler.community.tunnel import crypto, extendstrategies, selectionstrategies, lengthstrategies
+from Tribler.community.tunnel import crypto, extendstrategies
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
                                              PING_INTERVAL, ENDPOINT
@@ -79,6 +79,7 @@ class PingRequestCache(RandomNumberCache):
         super(PingRequestCache, self).__init__(community._request_cache, u"ping")
         self.requested_candidates = requested_candidates
         self.received_candidates = set()
+        self.community = community
 
     def on_success(self, candidate):
         if self.did_request(candidate):
@@ -99,15 +100,14 @@ class PingRequestCache(RandomNumberCache):
         for candidate, circuit in self.requested_candidates.iteritems():
             if candidate not in self.received_candidates:
                 logger.debug("ForwardCommunity: no response on ping, removing from taste_buddies %s", candidate)
-                self.remove_circuit(circuit.circuit_id, 'ping timeout')
+                self.community.remove_circuit(circuit.circuit_id, 'ping timeout')
 
 
 class ProxySettings:
 
     def __init__(self):
         self.extend_strategy = extendstrategies.NeighbourSubset
-        self.select_strategy = selectionstrategies.RoundRobin()
-        self.length_strategy = lengthstrategies.ConstantCircuitLength(3)
+        self.circuit_length = 3
         self.crypto = crypto.DefaultCrypto()
 
 
@@ -202,7 +202,7 @@ class TunnelCommunity(Community):
 
         for _ in range(0, circuits_needed()):
             logger.debug("Need %d new circuits!", circuits_needed())
-            goal_hops = self.settings.length_strategy.circuit_length()
+            goal_hops = self.settings.circuit_length
 
             if goal_hops == 0:
                 circuit_id = self._generate_circuit_id()
