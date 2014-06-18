@@ -59,6 +59,7 @@ class FastI2IConnection(Thread):
                 if len(data) == 0:
                     break
                 self.data_came_in(data)
+
         except:
             print_exc()
             self.close()
@@ -73,34 +74,9 @@ class FastI2IConnection(Thread):
             pass
 
     def data_came_in(self, data):
-        """ Read \r\n ended lines from data and call readlinecallback(self,line) """
-        # data may come in in parts, not lines! Or multiple lines at same time
-
         self._logger.debug("fasti2i: data_came_in %s %s", repr(data), len(data))
-
-        if len(self.buffer) == 0:
-            self.buffer = data
-        else:
-            self.buffer = self.buffer + data
-        self.read_lines()
-
-    def read_lines(self):
-        while True:
-            cmd, separator, self.buffer = self.buffer.partition("\r\n")
-            if separator:
-                if self.readlinecallback(self, cmd):
-                    # 01/05/12 Boudewijn: when a positive value is returned we immediately return to
-                    # allow more bytes to be pushed into the buffer
-                    self.buffer = "".join((cmd, separator, self.buffer))
-
-                    # 06/05/13 Boudewijn: we must return to read the remainder of the data.  note
-                    # that the remainder (all bytes behind the first separator) must be removed from
-                    # self.buffer during the readlinecallback call
-                    break
-
-            else:
-                self.buffer = cmd
-                break
+        self.buffer = self.readlinecallback(self.buffer + data)
+        assert self.buffer is not None, data
 
     def write(self, data):
         """ Called by any thread """
