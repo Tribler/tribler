@@ -1,10 +1,10 @@
-from Tribler.community.anontunnel.events import TunnelObserver
+from Tribler.community.tunnel.events import TunnelObserver
 
 import logging
 import socket
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
-from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY
-from Tribler.community.anontunnel.routing import CircuitPool
+from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY
+from Tribler.community.tunnel.routing import CircuitPool
 from .session import Socks5Session
 from .connection import Socks5Connection
 

@@ -9,7 +9,7 @@ from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
                                              PING_INTERVAL, ENDPOINT
 from Tribler.community.tunnel.payload import CreatePayload, CreatedPayload, ExtendPayload, ExtendedPayload, \
-                                             PongPayload, PingPayload, DataPayload
+                                             PongPayload, PingPayload
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.dispersy.authentication import NoAuthentication
@@ -116,7 +116,7 @@ class TunnelCommunity(Community):
     def initialize(self, tribler_session=None, settings=None, rawserver=None):
         super(TunnelCommunity, self).initialize()
 
-        self.__packet_prefix = "fffffffe".decode("HEX")
+        self.data_prefix = "fffffffe".decode("HEX")
         self.observers = []
         self.circuits = {}
         self.directions = {}
@@ -128,7 +128,7 @@ class TunnelCommunity(Community):
         self.settings = settings if settings else TunnelSettings()
         self.settings.crypto.set_proxy(self)
 
-        self._dispersy.endpoint.listen_to(self.__packet_prefix, self.on_data)
+        self._dispersy.endpoint.listen_to(self.data_prefix, self.on_data)
 
         self._pending_tasks["do_circuits"] = lc = LoopingCall(self.do_circuits)
         lc.start(5, now=True)
@@ -139,7 +139,7 @@ class TunnelCommunity(Community):
         if tribler_session:
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.notifier = Notifier.getInstance()
-            reactor.callLater(0, lambda: LibtorrentTest(self, tribler_session, 300))
+            reactor.callLater(0, lambda: LibtorrentTest(self, tribler_session, 60))
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -282,14 +282,14 @@ class TunnelCommunity(Community):
     def active_circuits(self):
         return {cid: c for cid, c in self.circuits.iteritems() if c.state == CIRCUIT_STATE_READY}
 
-    def send_message(self, candidates, message_type, payload, prefix=None):
+    def send_message(self, candidates, message_type, payload):
         meta = self.get_meta_message(message_type)
         message = meta.impl(distribution=(self.global_time,), payload=payload)
-        self.send_packet(candidates, message_type, message.packet, prefix=prefix)
+        self.send_packet(candidates, message_type, message.packet)
 
-    def send_packet(self, candidates, message_type, packet, prefix=None):
+    def send_packet(self, candidates, message_type, packet):
         # TODO: add crypto
-        self.dispersy._endpoint.send(candidates, [packet], prefix=prefix)
+        self.dispersy._endpoint.send(candidates, [packet], prefix=self.data_prefix if message_type == u"data" else None)
         self.statistics.increase_msg_count(u"outgoing", message_type, len(candidates))
         logger.debug("TunnelCommunity: send %s to %s candidates: %s", message_type, len(candidates), map(str, candidates))
 
@@ -308,7 +308,7 @@ class TunnelCommunity(Community):
                 for observer in self.observers:
                     observer.on_relay(next_relay.circuit_id, circuit_id, direction, packet)
 
-            packet = TunnelConversion.swap_circuit_id(packet, circuit_id, next_relay.circuit_id)
+            packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
             self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet)
             return True
         return False
@@ -477,18 +477,22 @@ class TunnelCommunity(Community):
         # If its our circuit, the messenger is the candidate assigned to that circuit and the DATA's destination
         # is set to the zero-address then the packet is from the outside world and addressed to us from.
 
-        circuit_id, _ = self.proxy_conversion.get_circuit_and_data(packet)
+        circuit_id, origin, destination, data = TunnelConversion.decode_data(packet)
+
+        logger.debug("TunnelCommunity: got data (%d) from %s", circuit_id, sock_addr)
 
         if not self.relay_packet(circuit_id, u'data', packet):
-            if circuit_id in self.circuits and message.origin and sock_addr == self.circuits[circuit_id].first_hop:
+            if circuit_id in self.circuits and origin and sock_addr == self.circuits[circuit_id].first_hop:
                 self.circuits[circuit_id].beat_heart()
                 for observer in self.observers:
-                    observer.on_incoming_from_tunnel(self, self.circuits[circuit_id], message.origin, message.data)
+                    observer.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data)
 
-            # It is not our circuit so we got it from a relay, we need to EXIT it!
-            elif message.destination != ('0.0.0.0', 0):
+        # It is not our circuit so we got it from a relay, we need to EXIT it!
+        else:
+            logger.debug("TunnelCommunity: data for circuit %d exiting tunnel (%s)", circuit_id, destination)
+            if destination != ('0.0.0.0', 0):
                 for observer in self.observers:
-                    observer.on_exiting_from_tunnel(circuit_id, sock_addr, message.destination, message.data)
+                    observer.on_exiting_from_tunnel(circuit_id, sock_addr, destination, data)
 
     @preprocess_messages
     def on_ping(self, messages):
@@ -512,25 +516,24 @@ class TunnelCommunity(Community):
 
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
         circuits_to_ping = {Candidate(c.first_hop, False): c for c in self.active_circuits.values() if c.goal_hops > 0}
-        cache = self._request_cache.add(PingRequestCache(self, circuits_to_ping))
-        self.send_message(circuits_to_ping.keys(), u"ping", (cache.number,))
+        if circuits_to_ping:
+            cache = self._request_cache.add(PingRequestCache(self, circuits_to_ping))
+            self.send_message(circuits_to_ping.keys(), u"ping", (cache.number,))
 
-    def tunnel_data_to_end(self, ultimate_destination, payload, circuit):
+    def tunnel_data_to_end(self, ultimate_destination, data, circuit):
         if circuit.goal_hops == 0:
             for observer in self.observers:
-                observer.on_exiting_from_tunnel(circuit.circuit_id, None, ultimate_destination, payload)
+                observer.on_exiting_from_tunnel(circuit.circuit_id, None, ultimate_destination, data)
         else:
-            self.send_message([Candidate(circuit.first_hop, False)], u'data', (ultimate_destination, payload, None))
+            packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
+            self.send_packet([Candidate(circuit.first_hop, False)], u'data', packet)
 
             for observer in self.observers:
-                observer.on_send_data(circuit.circuit_id, circuit.first_hop, ultimate_destination, payload)
+                observer.on_send_data(circuit.circuit_id, circuit.first_hop, ultimate_destination, data)
 
-    def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, payload):
-        result = self.send_message([Candidate(sock_addr, False)], u'data', (None, payload, source_address))
+    def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, data):
+        packet = TunnelConversion.encode_data(circuit_id, ('0.0.0.0', 0), source_address, data)
+        self.send_packet([Candidate(sock_addr, False)], u'data', packet)
 
-        if result:
-            for observer in self.observers:
-                observer.on_enter_tunnel(circuit_id, sock_addr, source_address, payload)
-
-        return result
-
+        for observer in self.observers:
+            observer.on_enter_tunnel(circuit_id, sock_addr, source_address, data)

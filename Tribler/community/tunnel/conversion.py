@@ -1,4 +1,5 @@
 from struct import pack, unpack_from
+from socket import inet_ntoa, inet_aton
 
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
@@ -177,9 +178,28 @@ class TunnelConversion(BinaryConversion):
         return result
 
     @staticmethod
-    def swap_circuit_id(packet, old_circuit_id, new_circuit_id):
-        circuit_id_pos = 31
+    def swap_circuit_id(packet, message_type, old_circuit_id, new_circuit_id):
+        circuit_id_pos = 0 if message_type == u"data" else 31
         circuit_id, = unpack_from('!I', packet, circuit_id_pos)
         assert circuit_id == old_circuit_id, circuit_id
         packet = packet[:circuit_id_pos] + pack('!I', new_circuit_id) + packet[circuit_id_pos + 4:]
         return packet
+
+    @staticmethod
+    def encode_data(circuit_id, dest_address, org_address, data):
+        return pack("!I4sH4sH", circuit_id, inet_aton(dest_address[0]), dest_address[1],
+                                            inet_aton(org_address[0]), org_address[1]) + data
+
+    @staticmethod
+    def decode_data(packet):
+        circuit_id, = unpack_from("!I", packet)
+
+        dest_ip, dest_port = unpack_from('!4sH', packet, 4)
+        dest_address = (inet_ntoa(dest_ip), dest_port)
+
+        org_ip, org_port = unpack_from('!4sH', packet, 10)
+        org_address = (inet_ntoa(org_ip), org_port)
+
+        data = packet[16:]
+
+        return circuit_id, dest_address, org_address, data

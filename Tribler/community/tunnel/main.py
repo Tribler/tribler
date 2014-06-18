@@ -13,7 +13,7 @@ from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.community.tunnel import exitstrategies
 from Tribler.community.tunnel.Socks5.server import Socks5Server
-from Tribler.community.tunnel.community import TunnelCommunity, ProxySettings
+from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
 from Tribler.community.tunnel.extendstrategies import TrustThyNeighbour, NeighbourSubset
 from Tribler.community.tunnel.stats import StatsCrawler
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -37,7 +37,7 @@ class AnonTunnel():
 
     @param int socks5_port: the SOCKS5 port to listen on, or None to disable
     the SOCKS5 server
-    @param ProxySettings settings: the settings to pass to the ProxyCommunity
+    @param TunnelSettings settings: the settings to pass to the ProxyCommunity
     @param bool crawl: whether to store incoming Stats messages using the
     StatsCrawler
     """
@@ -251,7 +251,7 @@ def main(argv):
         print "Profiling using %s time" % yappi.get_clock_type()['type']
 
     crawl = True if args.crawl else False
-    proxy_settings = ProxySettings()
+    proxy_settings = TunnelSettings()
 
     # Set extend strategy
     if args.extend_strategy == 'delegate':

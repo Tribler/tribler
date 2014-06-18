@@ -1,7 +1,6 @@
 import logging
-from Tribler.community.anontunnel.globals import CIRCUIT_STATE_EXTENDING, MESSAGE_EXTEND
-from Tribler.community.anontunnel.payload import ExtendMessage
-from Tribler.community.anontunnel.routing import Hop
+from Tribler.community.tunnel.globals import CIRCUIT_STATE_EXTENDING
+from Tribler.community.tunnel.routing import Hop
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'chris'
@@ -25,7 +24,7 @@ class ExtendStrategy:
 class TrustThyNeighbour(ExtendStrategy):
     def __init__(self, proxy, circuit):
         """
-        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
+        :type proxy: Tribler.community.tunnel.community.ProxyCommunity
         :param circuit:
         """
         ExtendStrategy.__init__(self)
@@ -50,7 +49,7 @@ class TrustThyNeighbour(ExtendStrategy):
 class NeighbourSubset(ExtendStrategy):
     def __init__(self, proxy, circuit):
         """
-        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
+        :type proxy: Tribler.community.tunnel.community.ProxyCommunity
         :param circuit:
         """
         ExtendStrategy.__init__(self)

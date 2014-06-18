@@ -5,7 +5,7 @@ Created on 3 jun. 2013
 """
 import logging
 from socket import socket
-from Tribler.community.anontunnel.Socks5 import conversion
+from Tribler.community.tunnel.Socks5 import conversion
 
 
 class ConnectionState:
@@ -52,6 +52,7 @@ class Socks5Connection(object):
     def __init__(self, single_socket, socks5_server):
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
         self._logger = logging.getLogger(__name__)
+        self._logger.setLevel(logging.DEBUG)
 
         self.observers = []
         ''' :type : list[Socks5ConnectionObserver] '''
@@ -285,7 +286,7 @@ class Socks5Connection(object):
 
             if self.state != guessed_state:
                 self._logger.error("GUESSING SOCKS5 state %s should be %s!", guessed_state, self.state)
-                
+
             return guessed_state
 
         has_valid_command = ord(data[1]) in [0x01, 0x02, 0x03]

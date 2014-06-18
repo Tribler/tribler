@@ -5,10 +5,10 @@ import hashlib
 import logging
 from Tribler.Core.Utilities import encoding
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.community.anontunnel.events import TunnelObserver
+from Tribler.community.tunnel.events import TunnelObserver
 
 
-from Tribler.community.anontunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
+from Tribler.community.tunnel.globals import MESSAGE_CREATED, ORIGINATOR, \
     ENDPOINT, MESSAGE_CREATE, MESSAGE_EXTEND, MESSAGE_EXTENDED, \
     DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_MODULUS_SIZE, \
     DIFFIE_HELLMAN_GENERATOR

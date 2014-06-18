@@ -1,8 +1,6 @@
-from Tribler.community.anontunnel.payload import DataMessage
+import logging
 
 __author__ = 'Chris'
-
-import logging
 
 
 class TunnelExitSocket(object):
@@ -20,7 +18,7 @@ class TunnelExitSocket(object):
             tunnel proxy
         :param destination_address: the first hop of the circuit
 
-        :type proxy: Tribler.community.anontunnel.community.ProxyCommunity
+        :type proxy: Tribler.community.tunnel.community.ProxyCommunity
 
         """
 

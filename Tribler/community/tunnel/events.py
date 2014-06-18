@@ -39,7 +39,7 @@ class TunnelObserver(object):
         """
         Called when we are receiving data from our circuit
 
-        @type community: Tribler.community.anontunnel.community.ProxyCommunity
+        @type community: Tribler.community.tunnel.community.ProxyCommunity
         @param Circuit circuit: the circuit the data was received on
         @param (str, int) origin: the origin of the packet in sock_addr format
         @param str data: the data received
@@ -63,7 +63,7 @@ class TunnelObserver(object):
         """
         Called when a STATS message has been received
         @param Member member: member according to authentication
-        @type community: Tribler.community.anontunnel.community.ProxyCommunity
+        @type community: Tribler.community.tunnel.community.ProxyCommunity
         @type candidate: Candidate
         @type stats: dict
         """

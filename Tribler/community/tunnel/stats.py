@@ -9,8 +9,8 @@ from twisted.internet.base import DelayedCall
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
 
-from Tribler.community.anontunnel.crypto import NoCrypto
-from Tribler.community.anontunnel.events import TunnelObserver
+from Tribler.community.tunnel.crypto import NoCrypto
+from Tribler.community.tunnel.events import TunnelObserver
 from Tribler.dispersy.database import Database
 
 
@@ -54,7 +54,7 @@ class RelayStats:
 class StatsCollector(TunnelObserver):
     def __init__(self, proxy, name):
         """
-        @type proxy: Tribler.community.anontunnel.community.ProxyCommunity
+        @type proxy: Tribler.community.tunnel.community.ProxyCommunity
         """
 
         TunnelObserver.__init__(self)

@@ -4,8 +4,8 @@ import threading
 import time
 from M2Crypto.EC import EC_pub
 
-from Tribler.community.anontunnel.events import TunnelObserver
-from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY, \
+from Tribler.community.tunnel.events import TunnelObserver
+from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY, \
     CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, PING_INTERVAL
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, Candidate
 

@@ -55,19 +55,18 @@ class DispersyBypassEndpoint(RawserverEndpoint):
                 else:
                     normal_packets.append(packet)
         except Full:
-            self._logger.warning(
-                "DispersyBypassEndpoint cant keep up with incoming packets!")
+            self._logger.warning("DispersyBypassEndpoint cant keep up with incoming packets!")
 
         if normal_packets:
             super(DispersyBypassEndpoint, self).data_came_in(normal_packets, cache)
 
-    def send(self, candidates, packet, prefix=None):
-        super(DispersyBypassEndpoint, self).send(
-            candidates, packet if not prefix else prefix + packet)
+    def send(self, candidates, packets, prefix=None):
+        prefix = prefix or ''
+        super(DispersyBypassEndpoint, self).send(candidates, [prefix + packet for packet in packets])
 
     def send_packet(self, candidate, packet, prefix=None):
-        super(DispersyBypassEndpoint, self).send_packet(
-            candidate, packet if not prefix else prefix+packet)
+        prefix = prefix or ''
+        super(DispersyBypassEndpoint, self).send_packet(candidate, prefix + packet)
 
 
 class DispersyTunnelBypassEndpoint(TunnelEndpoint):
