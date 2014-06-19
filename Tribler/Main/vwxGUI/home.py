@@ -674,7 +674,6 @@ class NetworkGraphPanel(wx.Panel):
     def OnUpdateCircuits(self, event):
         new_circuits = dict(self.proxy_community.circuits)
         self.circuits = new_circuits
-        # stats = self.proxy_community.global_stats.circuit_stats
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -686,8 +685,8 @@ class NetworkGraphPanel(wx.Panel):
             self.circuit_list.SetStringItem(pos, 1, str(circuit.state))
             self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)) + "/" + str(circuit.goal_hops))
 
-            bytes_uploaded = -1  # stats[circuit_id].bytes_uploaded
-            bytes_downloaded = -1  # stats[circuit_id].bytes_downloaded
+            bytes_uploaded = circuit.bytes_up
+            bytes_downloaded = circuit.bytes_down
 
             self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(bytes_uploaded))
             self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(bytes_downloaded))

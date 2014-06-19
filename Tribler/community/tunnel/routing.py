@@ -1,13 +1,11 @@
-import hashlib
+import time
 import logging
 import threading
-import time
+
 from M2Crypto.EC import EC_pub
 
 from Tribler.community.tunnel.events import TunnelObserver
-from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY, \
-    CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, PING_INTERVAL
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, Candidate
+from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
 
 __author__ = 'chris'
 
@@ -37,13 +35,11 @@ class Circuit:
         self.circuit_id = circuit_id
         self.first_hop = first_hop
         self.goal_hops = goal_hops
-        self.extend_strategy = None
         self.last_incoming = time.time()
+        self.unverified_hop = None
+        self.bytes_up = self.bytes_down = 0
 
         self.proxy = proxy
-
-        self.unverified_hop = None
-        ''' :type : Hop '''
 
     @property
     def hops(self):

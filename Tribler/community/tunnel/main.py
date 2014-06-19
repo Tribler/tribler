@@ -14,8 +14,6 @@ from twisted.internet.threads import blockingCallFromThread
 from Tribler.community.tunnel import exitstrategies
 from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
-from Tribler.community.tunnel.extendstrategies import TrustThyNeighbour, NeighbourSubset
-from Tribler.community.tunnel.stats import StatsCrawler
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
@@ -38,12 +36,9 @@ class AnonTunnel():
     @param int socks5_port: the SOCKS5 port to listen on, or None to disable
     the SOCKS5 server
     @param TunnelSettings settings: the settings to pass to the ProxyCommunity
-    @param bool crawl: whether to store incoming Stats messages using the
-    StatsCrawler
     """
 
-    def __init__(self, socks5_port, settings=None, crawl=False):
-        self.crawl = crawl
+    def __init__(self, socks5_port, settings=None):
         self.settings = settings
         self.socks5_port = socks5_port or random.randint(1000, 65535)
         self.socks5_server = None
@@ -72,57 +67,6 @@ class AnonTunnel():
         self.session.start()
         print >> sys.stderr, "Using ports %d for dispersy and %d for swift tunnel" % (self.session.get_dispersy_port(), self.session.get_swift_tunnel_listen_port())
 
-    def __calc_diff(self, then, bytes_exit0, bytes_enter0, bytes_relay0):
-        now = time.time()
-
-        if not self.community or not then:
-            return now, 0, 0, 0, 0, 0, 0
-
-        diff = now - then
-
-        stats = self.community.global_stats.stats
-        relay_stats = self.community.global_stats.relay_stats
-
-        speed_exit = (stats['bytes_exit'] - bytes_exit0) / diff if then else 0
-        bytes_exit = stats['bytes_exit']
-
-        speed_enter = (stats['bytes_enter'] - bytes_enter0) / diff if then else 0
-        bytes_enter = stats['bytes_enter']
-
-        relay_2 = sum([r.bytes[1] for r in relay_stats.values()])
-
-        speed_relay = (relay_2 - bytes_relay0) / diff if then else 0
-        bytes_relay = relay_2
-
-        return now, speed_exit, speed_enter, speed_relay, bytes_exit, bytes_enter, bytes_relay
-
-    def __speed_stats(self):
-        tmp = dict()
-        tmp['time'] = None
-        tmp['bytes_exit'] = 0
-        tmp['bytes_enter'] = 0
-        tmp['bytes_relay'] = 0
-
-        def speed_stats_lc():
-            stats = self.__calc_diff(tmp['time'], tmp['bytes_exit'], tmp['bytes_enter'], tmp['bytes_relay'])
-            time, speed_exit, speed_enter, speed_relay, bytes_exit, bytes_enter, bytes_relay = stats
-
-            tmp['time'] = time
-            tmp['bytes_exit'] = bytes_exit
-            tmp['bytes_enter'] = bytes_enter
-            tmp['bytes_relay'] = bytes_relay
-
-            active_circuits = len(self.community.circuits)
-            num_routes = len(self.community.relay_from_to) / 2
-
-            print "CIRCUITS %d RELAYS %d EXIT %.2f KB/s ENTER %.2f KB/s RELAY %.2f KB/s\n" % (
-                active_circuits, num_routes, speed_exit / 1024.0,
-                speed_enter / 1024.0, speed_relay / 1024.0),
-
-        # TODO: re-enable the stats
-        # lc = LoopingCall(speed_stats_lc)
-        # lc.start(3, now=True)
-
     def run(self):
         def start_community():
             member = self.dispersy.get_new_member(u"NID_secp160k1")
@@ -138,10 +82,6 @@ class AnonTunnel():
         exit_strategy = exitstrategies.DefaultExitStrategy(self.raw_server, self.community)
         self.community.observers.append(exit_strategy)
 
-        if self.crawl:
-            self.community.observers.append(StatsCrawler(self.dispersy, self.raw_server))
-
-        self.__speed_stats()
         raw_server_thread = Thread(target=self.raw_server.listen_forever, args=(None,))
         raw_server_thread.start()
 
@@ -193,15 +133,13 @@ class LineHandler(LineReceiver):
                 print >> sys.stderr, "Profiling disabled!"
 
         elif line == 'c':
-            # stats = anon_tunnel.community.global_stats.circuit_stats
-
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
             for circuit_id, circuit in anon_tunnel.community.circuits.items():
-                print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (circuit.circuit_id, circuit.first_hop[0],
+                print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (circuit_id, circuit.first_hop[0],
                                                              circuit.first_hop[1], circuit.goal_hops,
                                                              len(circuit.hops),
-                                                             - 1, # stats[circuit_id].bytes_downloaded / 1024.0 / 1024.0,
-                                                             - 1)  # stats[circuit_id].bytes_uploaded / 1024.0 / 1024.0)
+                                                             circuit.bytes_down / 1024.0 / 1024.0,
+                                                             circuit.bytes_up / 1024.0 / 1024.0)
         elif line == 'q':
             anon_tunnel.stop()
             os._exit(0)
@@ -223,9 +161,7 @@ def main(argv):
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-y', '--yappi', help="Profiling mode, either 'wall' or 'cpu'")
-        parser.add_argument('-e', '--extend-strategy', default='subset', help='Circuit extend strategy')
         parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
-        parser.add_argument('--crawl', default=False, help='Record stats from others in results.db')
         parser.add_help = True
         args = parser.parse_args(sys.argv[1:])
 
@@ -250,20 +186,7 @@ def main(argv):
         yappi.start(builtins=True)
         print "Profiling using %s time" % yappi.get_clock_type()['type']
 
-    crawl = True if args.crawl else False
-    proxy_settings = TunnelSettings()
-
-    # Set extend strategy
-    if args.extend_strategy == 'delegate':
-        logger.error("EXTEND STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
-        proxy_settings.extend_strategy = TrustThyNeighbour
-    elif args.extend_strategy == 'subset':
-        logger.error("SUBSET STRATEGY DELEGATE: We delegate the selection of hops to the rest of the circuit")
-        proxy_settings.extend_strategy = NeighbourSubset
-    else:
-        raise ValueError("extend_strategy must be either random or delegate")
-
-    anon_tunnel = AnonTunnel(socks5_port, proxy_settings, crawl)
+    anon_tunnel = AnonTunnel(socks5_port, TunnelSettings())
     StandardIO(LineHandler(anon_tunnel, profile))
     anon_tunnel.run()
 
