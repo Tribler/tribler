@@ -2,12 +2,12 @@
 Contains the DispersyBypassEndpoint to be used as Dispersy endpoint when the
 ProxyCommunity is being used
 """
-
-
-from Queue import Queue, Full
-from threading import Thread
-from Tribler.dispersy.endpoint import RawserverEndpoint
 import logging
+from Queue import Queue, Full
+
+from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
+
+
 __author__ = 'chris'
 
 
@@ -50,12 +50,41 @@ class DispersyBypassEndpoint(RawserverEndpoint):
                 prefix = next((p for p in self.packet_handlers if
                                packet[1].startswith(p)), None)
                 if prefix:
-                    self.packet_handlers[prefix](*packet)
+                    sock_addr, data = packet
+                    self.packet_handlers[prefix](sock_addr, data[len(prefix):])
                 else:
                     normal_packets.append(packet)
         except Full:
-            self._logger.warning(
-                "DispersyBypassEndpoint cant keep up with incoming packets!")
+            self._logger.warning("DispersyBypassEndpoint cant keep up with incoming packets!")
 
         if normal_packets:
             super(DispersyBypassEndpoint, self).data_came_in(normal_packets, cache)
+
+    def send(self, candidates, packets, prefix=None):
+        prefix = prefix or ''
+        super(DispersyBypassEndpoint, self).send(candidates, [prefix + packet for packet in packets])
+
+    def send_packet(self, candidate, packet, prefix=None):
+        prefix = prefix or ''
+        super(DispersyBypassEndpoint, self).send_packet(candidate, prefix + packet)
+
+
+class DispersyTunnelBypassEndpoint(TunnelEndpoint):
+    def __init__(self, swift_process):
+        super(DispersyTunnelBypassEndpoint, self).__init__(swift_process)
+
+        self._logger = logging.getLogger(__name__)
+
+    def listen_to(self, prefix, handler):
+        """
+        Register a prefix to a handler
+
+        @param str prefix: the prefix of a packet to register to the handler
+        @param ((str, int), str) -> None handler: the handler that will be
+        called for packets starting with the set prefix
+        """
+        def handler_wrapper(session, sock_addr, data):
+            handler(sock_addr, data)
+            self._dispersy.statistics.total_down += len(data)
+
+        self._swift.register_tunnel(prefix, handler_wrapper)

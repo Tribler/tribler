@@ -7,16 +7,16 @@ from twisted.internet import reactor
 from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.community.anontunnel import exitstrategies
-from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
-from Tribler.community.anontunnel.crypto import NoCrypto
-from Tribler.community.anontunnel.events import TunnelObserver
-from Tribler.community.anontunnel.globals import (MESSAGE_CREATED, MESSAGE_CREATE, CIRCUIT_STATE_READY,
-                                                  CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_BROKEN,
-                                                  MESSAGE_EXTEND, MESSAGE_PONG)
-from Tribler.community.anontunnel.payload import (CreateMessage, CreatedMessage, ExtendedMessage, ExtendMessage,
-                                                  DataMessage, PingMessage, PongMessage)
-from Tribler.community.anontunnel.routing import Circuit
+from Tribler.community.tunnel import exitstrategies
+from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+from Tribler.community.tunnel.crypto import NoCrypto
+from Tribler.community.tunnel.events import TunnelObserver
+from Tribler.community.tunnel import (MESSAGE_CREATED, MESSAGE_CREATE, CIRCUIT_STATE_READY,
+                                          CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_BROKEN,
+                                          MESSAGE_EXTEND, MESSAGE_PONG)
+from Tribler.community.tunnel.payload import (CreateMessage, CreatedMessage, ExtendedMessage, ExtendMessage,
+                                              DataMessage, PingMessage, PongMessage)
+from Tribler.community.tunnel.routing import Circuit
 from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
 from Tribler.dispersy.endpoint import NullEndpoint
 from Tribler.dispersy.util import call_on_reactor_thread
@@ -45,10 +45,10 @@ class TestProxyCommunity(TestAsServer):
         keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
         dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-        settings = ProxySettings()
+        settings = TunnelSettings()
         settings.crypto = NoCrypto()
 
-        self.community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (settings, None), load=True)[0]
+        self.community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (settings, None), load=True)[0]
         exit_strategy = exitstrategies.DefaultExitStrategy(self.session.lm.rawserver, self.community)
         self.community.observers.append(exit_strategy)
 

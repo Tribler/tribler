@@ -25,12 +25,12 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.Call(1, take_second_screenshot)
 
         def on_fail(expected, reason, do_assert):
-            from Tribler.community.anontunnel.community import ProxyCommunity
+            from Tribler.community.tunnel.community import TunnelCommunity
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
             dispersy = self.session.lm.dispersy
             ''' :type : Dispersy '''
-            proxy_community = next(c for c in dispersy.get_communities() if isinstance(c, ProxyCommunity))
+            proxy_community = next(c for c in dispersy.get_communities() if isinstance(c, TunnelCommunity))
 
             self.guiUtility.ShowPage('networkgraph')
 
@@ -61,7 +61,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
     def startTest(self, callback, min_timeout=5):
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
 
-        from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
+        from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
         def setup_proxies():
             proxy_communities = []
             for i in range(3, 11):
@@ -70,7 +70,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
-                if isinstance(community, ProxyCommunity):
+                if isinstance(community, TunnelCommunity):
                     proxy_communities.append(community)
 
             candidates = []
@@ -87,7 +87,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
         def create_proxy(index):
             from Tribler.Core.Session import Session
-            from Tribler.community.anontunnel import exitstrategies, crypto
+            from Tribler.community.tunnel import exitstrategies, crypto
 
             self.setUpPreSession()
             config = self.config.copy()
@@ -108,7 +108,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, (None, None, session.lm.rawserver), load=True)[0]
+                proxy_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (None, None, session.lm.rawserver), load=True)[0]
                 exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
                 proxy_community.observers.append(exit_strategy)
 

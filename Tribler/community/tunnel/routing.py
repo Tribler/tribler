@@ -5,7 +5,7 @@ import threading
 from M2Crypto.EC import EC_pub
 
 from Tribler.community.tunnel.events import TunnelObserver
-from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
+from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
 
 __author__ = 'chris'
 

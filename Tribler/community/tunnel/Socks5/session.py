@@ -2,7 +2,7 @@ import logging
 from Tribler.community.tunnel.Socks5 import conversion
 from Tribler.community.tunnel.Socks5.connection import Socks5ConnectionObserver
 from Tribler.community.tunnel.events import TunnelObserver, CircuitPoolObserver
-from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY
+from Tribler.community.tunnel import CIRCUIT_STATE_READY
 from Tribler.community.tunnel.routing import NotEnoughCircuitsException
 from Tribler.community.anontunnel.selectionstrategies import RoundRobin
 

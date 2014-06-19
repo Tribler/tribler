@@ -4,10 +4,9 @@ import random
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
-from Tribler.community.tunnel import crypto
+from Tribler.community.tunnel import crypto, CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
+                                     PING_INTERVAL, ENDPOINT
 from Tribler.community.tunnel.conversion import TunnelConversion
-from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
-                                             PING_INTERVAL, ENDPOINT
 from Tribler.community.tunnel.payload import CreatePayload, CreatedPayload, ExtendPayload, ExtendedPayload, \
                                              PongPayload, PingPayload
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute

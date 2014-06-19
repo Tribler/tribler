@@ -3,7 +3,7 @@ from Tribler.community.tunnel.events import TunnelObserver
 import logging
 import socket
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
-from Tribler.community.tunnel.globals import CIRCUIT_STATE_READY
+from Tribler.community.tunnel import CIRCUIT_STATE_READY
 from Tribler.community.tunnel.routing import CircuitPool
 from .session import Socks5Session
 from .connection import Socks5Connection
