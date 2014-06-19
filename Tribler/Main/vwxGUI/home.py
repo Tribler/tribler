@@ -617,10 +617,11 @@ class NetworkGraphPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.OnUpdateCircuits, self.circuit_timer)
         self.circuit_timer.Start(5000)
 
-        self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
-        self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
-        self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
-        self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
+        if self.fullscreen:
+            self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
+            self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
+            self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
+            self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
 
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
@@ -640,13 +641,15 @@ class NetworkGraphPanel(wx.Panel):
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemSelected)
         self.circuit_to_listindex = {}
 
-        self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
-        self.log_text.SetEditable(False)
-        self.log_text.Show(self.fullscreen)
+        if self.fullscreen:
+            self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
+            self.log_text.SetEditable(False)
+            self.log_text.Show(self.fullscreen)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 0)
-        self.vSizer.Add(self.log_text, 1, wx.EXPAND)
+        if self.fullscreen:
+            self.vSizer.Add(self.log_text, 1, wx.EXPAND | wx.TOP, 10)
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
         self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 10)
