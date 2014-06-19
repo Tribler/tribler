@@ -139,16 +139,16 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(circuit_id, destination, payload, origin)
 
     def _encode_ping(self, message):
-        return pack('!I', message.payload.circuit_id),
+        return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
     def _decode_ping(self, placeholder, offset, data):
-        if len(data) < offset + 2:
+        if len(data) < offset + 6:
             raise DropPacket("Insufficient packet size")
 
-        circuit_id, = unpack_from('!I', data, offset)
-        offset += 4
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
-        return offset, placeholder.meta.payload.implement(circuit_id)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     def _encode_pong(self, message):
         return self._encode_ping(message)

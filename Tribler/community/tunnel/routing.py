@@ -154,10 +154,6 @@ class RelayRoute(object):
         self.online = False
         self.last_incoming = time.time()
 
-    @property
-    def timed_out(self):
-        return self.last_incoming < time.time() - 60.0
-
 
 class CircuitPool(TunnelObserver):
     def __init__(self, size, name):

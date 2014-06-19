@@ -114,15 +114,21 @@ class ExtendedPayload(Payload):
 
 class PingPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id):
+        def __init__(self, meta, circuit_id, identifier):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
+            assert isinstance(identifier, int), type(identifier)
 
             super(PingPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
+            self._identifier = identifier
 
         @property
         def circuit_id(self):
             return self._circuit_id
+
+        @property
+        def identifier(self):
+            return self._identifier
 
 
 class PongPayload(PingPayload):

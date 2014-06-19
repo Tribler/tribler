@@ -75,32 +75,19 @@ class CreatedRequestCache(NumberCache):
 
 class PingRequestCache(RandomNumberCache):
 
-    def __init__(self, community, requested_candidates):
+    def __init__(self, community, circuit):
         super(PingRequestCache, self).__init__(community._request_cache, u"ping")
-        self.requested_candidates = requested_candidates
-        self.received_candidates = set()
+        self.circuit = circuit
         self.community = community
-
-    def on_success(self, candidate):
-        if self.did_request(candidate):
-            self.received_candidates.add(candidate)
-        return self.is_complete()
-
-    def is_complete(self):
-        return len(self.received_candidates) == len(self.requested_candidates)
-
-    def did_request(self, candidate):
-        return candidate.sock_addr in [rcandidate.sock_addr for rcandidate in self.requested_candidates]
 
     @property
     def timeout_delay(self):
         return 3.5 * PING_INTERVAL
 
     def on_timeout(self):
-        for candidate, circuit in self.requested_candidates.iteritems():
-            if candidate not in self.received_candidates:
-                logger.debug("ForwardCommunity: no response on ping, removing from taste_buddies %s", candidate)
-                self.community.remove_circuit(circuit.circuit_id, 'ping timeout')
+        if self.circuit.last_incoming < time.time() - self.timeout_delay:
+            logger.debug("ForwardCommunity: no response on ping, circuit %d timed out", self.circuit.circuit_id)
+            self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout')
 
 
 class TunnelSettings:
@@ -331,16 +318,13 @@ class TunnelCommunity(Community):
 
     def check_pong(self, messages):
         for message in messages:
-            request = self._request_cache.get(u"ping", message.payload.circuit_id)
-            if not request:
-                yield DropMessage(message, "invalid response circuit_id")
-                continue
-
-            if not request.did_request(message.candidate):
-                logger.debug("did not send request to %s %s", message.candidate.sock_addr,
-                             [rcandidate.sock_addr for rcandidate in request.requested_candidates])
-                yield DropMessage(message, "did not send ping to this candidate")
-                continue
+            circuit_id = message.payload.circuit_id
+            relay = circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for
+            if not relay:
+                request = self._request_cache.get(u"ping", message.payload.identifier)
+                if not request:
+                    yield DropMessage(message, "invalid response identifier")
+                    continue
 
             yield message
 
@@ -503,28 +487,27 @@ class TunnelCommunity(Community):
     @preprocess_messages
     def on_ping(self, messages):
         for message in messages:
-            self.send_message([message.candidate], u"pong", (message.payload.circuit_id,))
+            self.send_message([message.candidate], u"pong", (message.payload.circuit_id, message.payload.identifier))
             logger.debug("TunnelCommunity: got ping from %s", message.candidate)
 
     @preprocess_messages
     def on_pong(self, messages):
         for message in messages:
-            request = self._request_cache.get(u"ping", message.payload.circuit_id)
-            if request.on_success(message.candidate):
-                self._request_cache.pop(u"ping", message.payload.circuit_id)
+            self._request_cache.pop(u"ping", message.payload.identifier)
             logger.debug("TunnelCommunity: got pong from %s", message.candidate)
 
     def do_ping(self):
         # Remove inactive relays.
-        dead_relays = [self.remove_relay(relay_key, 'no activity') for relay_key, relay in self.relay_from_to.items() if relay.timed_out]
+        dead_relays = [self.remove_relay(key, 'no activity') for key, relay in self.relay_from_to.items() \
+                       if relay.last_incoming < time.time() - 60.0]
         logger.info("TunnelCommunity: removed %d relays", len(dead_relays))
         assert all(dead_relays)
 
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
-        circuits_to_ping = {Candidate(c.first_hop, False): c for c in self.active_circuits.values() if c.goal_hops > 0}
-        if circuits_to_ping:
-            cache = self._request_cache.add(PingRequestCache(self, circuits_to_ping))
-            self.send_message(circuits_to_ping.keys(), u"ping", (cache.number,))
+        for circuit in self.active_circuits.values():
+            if circuit.goal_hops > 0:
+                cache = self._request_cache.add(PingRequestCache(self, circuit))
+                circuit.bytes_up += self.send_message([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number))
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
         if circuit.goal_hops == 0:
