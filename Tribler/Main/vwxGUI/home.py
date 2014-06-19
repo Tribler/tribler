@@ -701,6 +701,8 @@ class NetworkGraphPanel(wx.Panel):
                 if v > listindex:
                     self.circuit_to_listindex[k] = v - 1
 
+        self.graph_panel.Refresh()
+
     def AppendToLog(self, msg):
         self.log_text.AppendText('[%s]: %s' % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
 
