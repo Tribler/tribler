@@ -12,34 +12,10 @@ from Tribler.community.privatesemantic.crypto.optional_crypto import mpz
 ORIGINATOR = "originator"
 ENDPOINT = "endpoint"
 
-ANON_DOWNLOAD_DELAY = 300
-
 CIRCUIT_STATE_READY = 'READY'
 CIRCUIT_STATE_EXTENDING = 'EXTENDING'
 CIRCUIT_STATE_TO_BE_EXTENDED = 'TO_BE_EXTENDED'
 CIRCUIT_STATE_BROKEN = 'BROKEN'
-
-MESSAGE_CREATE = chr(1)
-MESSAGE_CREATED = chr(2)
-MESSAGE_EXTEND = chr(3)
-MESSAGE_EXTENDED = chr(4)
-MESSAGE_DATA = chr(5)
-MESSAGE_PING = chr(6)
-MESSAGE_PONG = chr(7)
-MESSAGE_STATS = chr(10)
-
-AES_KEY_SIZE = 16
-
-MESSAGE_TYPE_STRING = {
-    MESSAGE_CREATE: u'create',
-    MESSAGE_CREATED: u'created',
-    MESSAGE_EXTEND: u'extend',
-    MESSAGE_EXTENDED: u'extended',
-    MESSAGE_DATA: u'data',
-    MESSAGE_PING: u'ping',
-    MESSAGE_PONG: u'pong',
-    MESSAGE_STATS: u'stats'
-}
 
 PING_INTERVAL = 5.0
 # we use group 14 of the IETF rfc3526 with a 2048 bit modulus

@@ -8,9 +8,7 @@ from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.tunnel.events import TunnelObserver
 
 
-from Tribler.community.tunnel import MESSAGE_CREATED, ORIGINATOR, \
-    ENDPOINT, MESSAGE_CREATE, MESSAGE_EXTEND, MESSAGE_EXTENDED, \
-    DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_GENERATOR
+from Tribler.community.tunnel import DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_GENERATOR
 from Tribler.dispersy.util import attach_runtime_statistics
 
 
@@ -225,14 +223,14 @@ class DefaultCrypto(Crypto):
         self._logger = logging.getLogger(__name__)
         self._received_secrets = {}
         self.session_keys = {}
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATE] = self._encrypt_create_content
-        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] = self._encrypt_created_content
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND] = self._encrypt_extend_content
-        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED] = self._encrypt_extended_content
-        self.decrypt_incoming_packet_content[MESSAGE_CREATE] = self._decrypt_create_content
-        self.decrypt_incoming_packet_content[MESSAGE_CREATED] = self._decrypt_created_content
-        self.decrypt_incoming_packet_content[MESSAGE_EXTEND] = self._decrypt_extend_content
-        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
+#        self.encrypt_outgoing_packet_content[MESSAGE_CREATE] = self._encrypt_create_content
+#        self.encrypt_outgoing_packet_content[MESSAGE_CREATED] = self._encrypt_created_content
+#        self.encrypt_outgoing_packet_content[MESSAGE_EXTEND] = self._encrypt_extend_content
+#        self.encrypt_outgoing_packet_content[MESSAGE_EXTENDED] = self._encrypt_extended_content
+#        self.decrypt_incoming_packet_content[MESSAGE_CREATE] = self._decrypt_create_content
+#        self.decrypt_incoming_packet_content[MESSAGE_CREATED] = self._decrypt_created_content
+#        self.decrypt_incoming_packet_content[MESSAGE_EXTEND] = self._decrypt_extend_content
+#        self.decrypt_incoming_packet_content[MESSAGE_EXTENDED] = self._decrypt_extended_content
 
     def is_key_compatible(self, key):
         his_curve = self.proxy.crypto.get_curve(key)

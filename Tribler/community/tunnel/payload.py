@@ -127,10 +127,3 @@ class PingPayload(Payload):
 
 class PongPayload(PingPayload):
     pass
-
-
-class StatsPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, stats):
-            super(StatsPayload.Implementation, self).__init__(meta)
-            self.stats = stats

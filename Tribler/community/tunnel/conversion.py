@@ -16,7 +16,6 @@ class TunnelConversion(BinaryConversion):
         self.define_meta_message(chr(4), community.get_meta_message(u"extended"), lambda message: self._encode_decode(self._encode_extended, self._decode_extended, message), self._decode_extended)
         self.define_meta_message(chr(5), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
         self.define_meta_message(chr(6), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
-        # self.define_meta_message(chr(7), community.get_meta_message(u"stats"), lambda message: self._encode_decode(self._encode_stats, self._decode_stats, message), self._decode_stats)
 
     def _encode_create(self, message):
         payload = message.payload
@@ -156,13 +155,6 @@ class TunnelConversion(BinaryConversion):
 
     def _decode_pong(self, placeholder, offset, data):
         return self._decode_ping(placeholder, offset, data)
-
-    def _encode_stats(self, message):
-        return encode(message.payload.stats),
-
-    def _decode_stats(self, placeholder, offset, data):
-        offset, stats = decode(data, offset)
-        return offset, placeholder.meta.payload.implement(stats)
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)
