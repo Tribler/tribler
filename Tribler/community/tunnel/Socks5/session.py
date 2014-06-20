@@ -1,13 +1,13 @@
 import logging
 from Tribler.community.tunnel.Socks5 import conversion
 from Tribler.community.tunnel.Socks5.connection import Socks5ConnectionObserver
-from Tribler.community.tunnel.events import TunnelObserver, CircuitPoolObserver
+from Tribler.community.tunnel.events import CircuitPoolObserver
 from Tribler.community.tunnel import CIRCUIT_STATE_READY
 from Tribler.community.tunnel.routing import NotEnoughCircuitsException
 from Tribler.community.anontunnel.selectionstrategies import RoundRobin
 
 
-class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
+class Socks5Session(Socks5ConnectionObserver):
     """
     A SOCKS5 session, composed by a TCP connection, an UDP proxy port and a
     list of circuits where data can be tunneled over
@@ -18,7 +18,6 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
     @param CircuitPool circuit_pool:  the circuit pool
     """
     def __init__(self, raw_server, connection, server, circuit_pool, min_circuits=4):
-        TunnelObserver.__init__(self)
         self.raw_server = raw_server
         self._logger = logging.getLogger(__name__)
         self.connection = connection

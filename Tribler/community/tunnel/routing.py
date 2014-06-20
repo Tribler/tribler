@@ -4,7 +4,6 @@ import threading
 
 from M2Crypto.EC import EC_pub
 
-from Tribler.community.tunnel.events import TunnelObserver
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
 
 __author__ = 'chris'
@@ -155,7 +154,7 @@ class RelayRoute(object):
         self.last_incoming = time.time()
 
 
-class CircuitPool(TunnelObserver):
+class CircuitPool(object):
     def __init__(self, size, name):
         super(CircuitPool, self).__init__()
 

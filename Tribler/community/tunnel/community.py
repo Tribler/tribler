@@ -8,7 +8,6 @@ from twisted.internet.task import LoopingCall
 from Tribler.community.tunnel import crypto, CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
                                      PING_INTERVAL, ENDPOINT
 from Tribler.community.tunnel.conversion import TunnelConversion
-from Tribler.community.tunnel.exitsocket import ShortCircuitExitSocket, TunnelExitSocket
 from Tribler.community.tunnel.payload import CreatePayload, CreatedPayload, ExtendPayload, ExtendedPayload, \
                                              PongPayload, PingPayload
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
@@ -90,6 +89,24 @@ class PingRequestCache(RandomNumberCache):
         if self.circuit.last_incoming < time.time() - self.timeout_delay:
             logger.debug("ForwardCommunity: no response on ping, circuit %d timed out", self.circuit.circuit_id)
             self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout')
+
+
+class TunnelExitSocket(object):
+
+    def __init__(self, circuit_id, destination, community):
+        self.socket = community.raw_server.create_udpsocket(0, "0.0.0.0")
+        community.raw_server.start_listening_udp(self.socket, self)
+
+        self.destination = destination
+        self.circuit_id = circuit_id
+        self.community = community
+
+    def sendto(self, data, destination):
+        self.socket.sendto(data, destination)
+
+    def data_came_in(self, packets):
+        for source, packet in packets:
+            self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, packet)
 
 
 class TunnelSettings:
@@ -190,15 +207,9 @@ class TunnelCommunity(Community):
 
         for _ in range(0, circuits_needed()):
             logger.debug("Need %d new circuits!", circuits_needed())
-            goal_hops = self.settings.circuit_length
 
-            if goal_hops == 0:
-                circuit_id = self._generate_circuit_id()
-                self.circuits[circuit_id] = Circuit(circuit_id, proxy=self)
-
-                first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
-                if first_pool:
-                    first_pool.fill(self.circuits[circuit_id])
+            if self.settings.circuit_length == 0:
+                logger.error("TunnelCommunity: unable to create 0-hop tunnels")
 
             else:
                 candidate = None
@@ -210,7 +221,7 @@ class TunnelCommunity(Community):
 
                 if candidate != None:
                     try:
-                        self.create_circuit(candidate, goal_hops)
+                        self.create_circuit(candidate, self.settings.circuit_length)
                     except:
                         logger.exception("Error creating circuit while running __discover")
 
@@ -504,11 +515,8 @@ class TunnelCommunity(Community):
                 circuit.bytes_up += self.send_message([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number))
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
-        if circuit.goal_hops == 0:
-            self.exit_data(circuit, None, ultimate_destination, data)
-        else:
-            packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
-            circuit.bytes_up += self.send_packet([Candidate(circuit.first_hop, False)], u'data', packet)
+        packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
+        circuit.bytes_up += self.send_packet([Candidate(circuit.first_hop, False)], u'data', packet)
 
     def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, data):
         packet = TunnelConversion.encode_data(circuit_id, ('0.0.0.0', 0), source_address, data)
@@ -516,10 +524,7 @@ class TunnelCommunity(Community):
 
     def exit_data(self, circuit_id, sock_addr, destination, data):
         if not (circuit_id in self.exit_sockets):
-            if sock_addr == None:
-                self.exit_sockets[circuit_id] = ShortCircuitExitSocket(self.raw_server, self, circuit_id, None)
-            else:
-                self.exit_sockets[circuit_id] = TunnelExitSocket(self.raw_server, self, circuit_id, sock_addr)
+            self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, sock_addr, self)
         try:
             self.exit_sockets[circuit_id].sendto(data, destination)
         except:

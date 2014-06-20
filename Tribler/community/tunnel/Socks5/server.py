@@ -1,8 +1,6 @@
-from Tribler.community.tunnel.events import TunnelObserver
-
 import logging
 import socket
-from Tribler.Core.RawServer.SocketHandler import SingleSocket
+
 from Tribler.community.tunnel import CIRCUIT_STATE_READY
 from Tribler.community.tunnel.routing import CircuitPool
 from .session import Socks5Session
@@ -11,7 +9,7 @@ from .connection import Socks5Connection
 __author__ = 'chris'
 
 
-class Socks5Server(TunnelObserver):
+class Socks5Server(object):
     """
     The SOCKS5 server which allows clients to proxy UDP over Circuits in the
     ProxyCommunity
@@ -21,7 +19,6 @@ class Socks5Server(TunnelObserver):
     @param int socks5_port: the port to listen on
     """
     def __init__(self, tunnel, raw_server, socks5_port=1080, num_circuits=4, min_circuits=4, min_session_circuits=4):
-        super(Socks5Server, self).__init__()
         self._logger = logging.getLogger(__name__)
 
         self.tunnel = tunnel

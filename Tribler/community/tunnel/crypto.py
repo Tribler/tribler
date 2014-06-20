@@ -5,7 +5,6 @@ import hashlib
 import logging
 from Tribler.Core.Utilities import encoding
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.community.tunnel.events import TunnelObserver
 
 
 from Tribler.community.tunnel import DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_GENERATOR
@@ -16,10 +15,9 @@ class CryptoError(Exception):
     pass
 
 
-class Crypto(TunnelObserver):
+class Crypto(object):
 
     def __init__(self):
-        TunnelObserver.__init__(self)
         self.encrypt_outgoing_packet_content = defaultdict()
         self.decrypt_incoming_packet_content = defaultdict()
         self._logger = logging.getLogger(__name__)
