@@ -25,7 +25,7 @@ from Tribler.dispersy.logger import get_logger
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 
 logger = get_logger(__name__)
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 
 def preprocess_messages(func):
@@ -113,6 +113,7 @@ class TunnelSettings:
 
     def __init__(self):
         self.circuit_length = 3
+        self.circuit_pool = 4
         self.crypto = crypto.DefaultCrypto()
         self.socks_listen_port = 1080
 
@@ -129,7 +130,6 @@ class TunnelCommunity(Community):
         self.relay_from_to = {}
         self.waiting_for = set()
         self.exit_sockets = {}
-        self.circuit_pools = []
         self.notifier = None
         self.settings = settings if settings else TunnelSettings()
         self.settings.crypto.set_proxy(self)
@@ -201,12 +201,10 @@ class TunnelCommunity(Community):
         return circuit_id
 
     def do_circuits(self):
-        logger.error("TunnelCommunity: the %d pools want %d circuits", len(self.circuit_pools), sum(pool.lacking for pool in self.circuit_pools))
+        circuit_needed = self.settings.circuit_pool - len(self.circuits)
+        logger.error("TunnelCommunity: want %d circuits", circuit_needed)
 
-        circuits_needed = lambda: sum(pool.lacking for pool in self.circuit_pools)
-
-        for _ in range(0, circuits_needed()):
-            logger.debug("Need %d new circuits!", circuits_needed())
+        for _ in range(circuit_needed):
 
             if self.settings.circuit_length == 0:
                 logger.error("TunnelCommunity: unable to create 0-hop tunnels")
@@ -257,9 +255,7 @@ class TunnelCommunity(Community):
             circuit = self.circuits.pop(circuit_id)
             circuit.destroy()
 
-            self.socks_server.on_break_circuit(circuit)
-            for cp in self.circuit_pools:
-                cp.on_break_circuit(circuit)
+            self.socks_server.circuit_dead(circuit)
 
             return True
         return False
@@ -365,9 +361,7 @@ class TunnelCommunity(Community):
                 self.remove_circuit(circuit.circuit_id, "no candidates (with key) to extend, bailing out.")
 
         elif circuit.state == CIRCUIT_STATE_READY:
-            first_pool = next((pool for pool in self.circuit_pools if pool.lacking), None)
-            if first_pool:
-                first_pool.fill(circuit)
+            self.socks_server.circuit_ready(circuit)
         else:
             return
 
@@ -523,7 +517,7 @@ class TunnelCommunity(Community):
         self.send_packet([Candidate(sock_addr, False)], u'data', packet)
 
     def exit_data(self, circuit_id, sock_addr, destination, data):
-        if not (circuit_id in self.exit_sockets):
+        if circuit_id not in self.exit_sockets:
             self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, sock_addr, self)
         try:
             self.exit_sockets[circuit_id].sendto(data, destination)

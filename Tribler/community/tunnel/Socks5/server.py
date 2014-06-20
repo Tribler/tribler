@@ -1,8 +1,6 @@
 import logging
 import socket
 
-from Tribler.community.tunnel import CIRCUIT_STATE_READY
-from Tribler.community.tunnel.routing import CircuitPool
 from .session import Socks5Session
 from .connection import Socks5Connection
 
@@ -14,27 +12,19 @@ class Socks5Server(object):
     The SOCKS5 server which allows clients to proxy UDP over Circuits in the
     ProxyCommunity
 
-    @param ProxyCommunity tunnel: the ProxyCommunity to request circuits from
+    @param ProxyCommunity community: the ProxyCommunity to request circuits from
     @param RawServer raw_server: the RawServer instance to bind on
     @param int socks5_port: the port to listen on
     """
-    def __init__(self, tunnel, raw_server, socks5_port=1080, num_circuits=4, min_circuits=4, min_session_circuits=4):
+    def __init__(self, community, raw_server, socks5_port=1080, num_circuits=4, min_circuits=4, min_session_circuits=4):
         self._logger = logging.getLogger(__name__)
 
-        self.tunnel = tunnel
+        self.community = community
         self.socks5_port = socks5_port
         self.raw_server = raw_server
-        ''' @type : RawServer '''
         self.reserved_circuits = []
-        ''' @type : list[Circuit] '''
         self.awaiting_circuits = 0
-        ''' @type : int '''
         self.tcp2session = {}
-        ''' @type : dict[Socks5Connection, Socks5Session] '''
-
-        self.circuit_pool = CircuitPool(num_circuits, "SOCKS5(master)")
-        self.tunnel.circuit_pools.append(self.circuit_pool)
-
         self.min_circuits = min_circuits
         self.min_session_circuits = min_session_circuits
 
@@ -43,7 +33,7 @@ class Socks5Server(object):
     def __start_anon_session(self):
         made_session = False
 
-        if len(self.circuit_pool.available_circuits) >= self.min_circuits:
+        if len(self.community.circuits) >= self.min_circuits:
             try:
                 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
                 if LibtorrentMgr.hasInstance():
@@ -64,10 +54,8 @@ class Socks5Server(object):
             self.raw_server.bind(self.socks5_port, reuse=True, handler=self)
             self._logger.info("SOCKS5 listening on port %d", self.socks5_port)
         except socket.error:
-            self._logger.error(
-                "Cannot listen on SOCK5 port %s:%d, perhaps another "
-                "instance is running?",
-                "0.0.0.0", self.socks5_port)
+            self._logger.error("Cannot listen on SOCK5 port %s:%d, perhaps another instance is running?",
+                               "0.0.0.0", self.socks5_port)
         except:
             self._logger.exception("Exception trying to reserve circuits")
 
@@ -81,10 +69,7 @@ class Socks5Server(object):
         s5con = Socks5Connection(single_socket, self)
 
         try:
-            session_pool = CircuitPool(4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
-            session = Socks5Session(self.raw_server, s5con, self, session_pool, min_circuits=self.min_session_circuits)
-            self.tunnel.circuit_pools.insert(0, session_pool)
-
+            session = Socks5Session(self.raw_server, s5con, self, self.community, min_circuits=self.min_session_circuits)
             self.tcp2session[single_socket] = session
         except:
             self._logger.exception("Error while accepting SOCKS5 connection")
@@ -100,19 +85,6 @@ class Socks5Server(object):
             return
 
         session = self.tcp2session[single_socket]
-        self.tunnel.circuit_pools.remove(session.circuit_pool)
-
-        # Reclaim good circuits
-        good_circuits = [circuit for circuit in session.circuit_pool.available_circuits if circuit.state == CIRCUIT_STATE_READY]
-
-        self._logger.warning(
-            "Reclaiming %d good circuits due to %s:%d",
-            len(good_circuits),
-            single_socket.get_ip(), single_socket.get_port())
-
-        for circuit in good_circuits:
-            self.circuit_pool.fill(circuit)
-
         s5con = session.connection
         del self.tcp2session[single_socket]
 
@@ -136,12 +108,16 @@ class Socks5Server(object):
         except:
             self._logger.exception("Error while handling incoming TCP data")
 
-    def on_break_circuit(self, circuit):
+    def circuit_ready(self, circuit):
+        for session in self.tcp2session.values():
+            session.circuit_ready(circuit)
+
+    def circuit_dead(self, circuit):
         if circuit in self.reserved_circuits:
             self.reserved_circuits.remove(circuit)
 
         for session in self.tcp2session.values():
-            session.on_break_circuit(circuit)
+            session.circuit_dead(circuit)
 
     def on_incoming_from_tunnel(self, community, circuit, origin, data):
         for session in self.tcp2session.values():
