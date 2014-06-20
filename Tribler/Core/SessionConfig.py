@@ -173,11 +173,11 @@ class SessionConfigInterface(object):
         """
         self.selected_ports['~'.join(('general', 'minport'))] = port
 
-    def set_proxy_community_socks5_listen_port(self, port):
-        self.sessconfig.set(u'proxy_community', u'socks5_listen_port', port)
+    def set_tunnel_community_socks5_listen_port(self, port):
+        self.sessconfig.set(u'tunnel_community', u'socks5_listen_port', port)
 
-    def get_proxy_community_socks5_listen_port(self):
-        return self._obtain_port(u'proxy_community', u'socks5_listen_port')
+    def get_tunnel_community_socks5_listen_port(self):
+        return self._obtain_port(u'tunnel_community', u'socks5_listen_port')
 
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.

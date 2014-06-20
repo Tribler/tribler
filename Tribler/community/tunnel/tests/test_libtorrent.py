@@ -54,7 +54,6 @@ class LibtorrentTest(TunnelObserver):
         return os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
 
     def start(self):
-        from Tribler.community.anontunnel.stats import StatsCollector
         import wx
         from Tribler.Core.TorrentDef import TorrentDef
         from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
@@ -69,8 +68,6 @@ class LibtorrentTest(TunnelObserver):
             wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
         def state_call():
-            stats_collector = StatsCollector(self.proxy, "AnonTest")
-
             def _callback(ds):
                 if self.stopping:
                     return 1.0, False
@@ -78,22 +75,9 @@ class LibtorrentTest(TunnelObserver):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
                     if not self.download_started_at:
                         self.download_started_at = time.time()
-                        stats_collector.start()
-
-                    stats_collector.download_stats = {
-                        'size': ds.get_progress() * ds.get_length(),
-                        'download_time': time.time() - self.download_started_at
-                    }
 
                 elif ds.get_status() == DLSTATUS_SEEDING and self.download_started_at and not self.download_finished_at:
                     self.download_finished_at = time.time()
-                    stats_collector.download_stats = {
-                        'size': ds.get_length(),
-                        'download_time': self.download_finished_at - self.download_started_at
-                    }
-
-                    stats_collector.share_stats()
-                    stats_collector.stop()
                     self.stop(5.0)
 
                     self._mark_test_completed()

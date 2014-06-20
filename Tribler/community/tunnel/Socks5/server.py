@@ -36,7 +36,6 @@ class Socks5Server(TunnelObserver):
         ''' @type : dict[Socks5Connection, Socks5Session] '''
 
         self.circuit_pool = CircuitPool(num_circuits, "SOCKS5(master)")
-        self.tunnel.observers.append(self.circuit_pool)
         self.tunnel.circuit_pools.append(self.circuit_pool)
 
         self.min_circuits = min_circuits
@@ -67,7 +66,6 @@ class Socks5Server(TunnelObserver):
         try:
             self.raw_server.bind(self.socks5_port, reuse=True, handler=self)
             self._logger.info("SOCKS5 listening on port %d", self.socks5_port)
-            self.tunnel.observers.append(self)
         except socket.error:
             self._logger.error(
                 "Cannot listen on SOCK5 port %s:%d, perhaps another "
@@ -88,8 +86,6 @@ class Socks5Server(TunnelObserver):
         try:
             session_pool = CircuitPool(4, "SOCKS5(%s:%d)" % (single_socket.get_ip(), single_socket.get_port()))
             session = Socks5Session(self.raw_server, s5con, self, session_pool, min_circuits=self.min_session_circuits)
-            self.tunnel.observers.append(session)
-            self.tunnel.observers.append(session_pool)
             self.tunnel.circuit_pools.insert(0, session_pool)
 
             self.tcp2session[single_socket] = session
@@ -107,7 +103,6 @@ class Socks5Server(TunnelObserver):
             return
 
         session = self.tcp2session[single_socket]
-        self.tunnel.observers.remove(session)
         self.tunnel.circuit_pools.remove(session.circuit_pool)
 
         # Reclaim good circuits
@@ -147,3 +142,10 @@ class Socks5Server(TunnelObserver):
     def on_break_circuit(self, circuit):
         if circuit in self.reserved_circuits:
             self.reserved_circuits.remove(circuit)
+
+        for session in self.tcp2session.values():
+            session.on_break_circuit(circuit)
+
+    def on_incoming_from_tunnel(self, community, circuit, origin, data):
+        for session in self.tcp2session.values():
+            session.on_incoming_from_tunnel(community, circuit, origin, data)

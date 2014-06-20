@@ -75,10 +75,7 @@ class AnonTunnel():
                                                             load=True)[0]
         blockingCallFromThread(reactor, start_community)
 
-        if not self.socks5_server:
-            self.socks5_server = Socks5Server(self.community, self.raw_server, self.socks5_port)
-            self.socks5_server.start()
-
+        self.socks5_server = self.community.socks_server
         raw_server_thread = Thread(target=self.raw_server.listen_forever, args=(None,))
         raw_server_thread.start()
 

@@ -13,6 +13,7 @@ from Tribler.community.tunnel.payload import CreatePayload, CreatedPayload, Exte
                                              PongPayload, PingPayload
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
+from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
@@ -96,16 +97,16 @@ class TunnelSettings:
     def __init__(self):
         self.circuit_length = 3
         self.crypto = crypto.DefaultCrypto()
+        self.socks_listen_port = 1080
 
 
 class TunnelCommunity(Community):
 
-    def initialize(self, raw_server, tribler_session=None, settings=None):
+    def initialize(self, raw_server, session=None, settings=None):
         super(TunnelCommunity, self).initialize()
 
         self.raw_server = raw_server
         self.data_prefix = "fffffffe".decode("HEX")
-        self.observers = []
         self.circuits = {}
         self.directions = {}
         self.relay_from_to = {}
@@ -124,10 +125,14 @@ class TunnelCommunity(Community):
         self._pending_tasks["do_ping"] = lc = LoopingCall(self.do_ping)
         lc.start(PING_INTERVAL)
 
-        if tribler_session:
+        if session:
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.notifier = Notifier.getInstance()
-            reactor.callLater(0, lambda: LibtorrentTest(self, tribler_session, 60))
+            reactor.callLater(0, lambda: LibtorrentTest(self, session, 60))
+
+        self.socks_server = Socks5Server(self, self.raw_server, session.get_tunnel_community_socks5_listen_port() \
+                                                                if session else self.settings.socks_listen_port)
+        self.socks_server.start()
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -241,8 +246,9 @@ class TunnelCommunity(Community):
             circuit = self.circuits.pop(circuit_id)
             circuit.destroy()
 
-            for observer in self.observers:
-                observer.on_break_circuit(circuit)
+            self.socks_server.on_break_circuit(circuit)
+            for cp in self.circuit_pools:
+                cp.on_break_circuit(circuit)
 
             return True
         return False
@@ -254,9 +260,6 @@ class TunnelCommunity(Community):
             # Only remove one side of the relay, this isn't as pretty but both sides have separate incoming timer,
             # hence after removing one side the other will follow.
             del self.relay_from_to[relay_key]
-
-            for observer in self.observers:
-                observer.on_break_relay(relay_key)
 
             return True
         return False
@@ -467,8 +470,7 @@ class TunnelCommunity(Community):
             if circuit_id in self.circuits and origin and sock_addr == self.circuits[circuit_id].first_hop:
                 self.circuits[circuit_id].beat_heart()
                 self.circuits[circuit_id].bytes_down += len(packet)
-                for observer in self.observers:
-                    observer.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data)
+                self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data)
 
             # It is not our circuit so we got it from a relay, we need to EXIT it!
             else:

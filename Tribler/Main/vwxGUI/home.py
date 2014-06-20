@@ -598,19 +598,19 @@ class NetworkGraphPanel(wx.Panel):
 
         self.AddComponents()
 
-        self.try_proxy()
+        self.try_community()
 
-    def try_proxy(self):
+    def try_community(self):
         try:
-            proxy_community = (c for c in self.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
-            self.found_proxy(proxy_community)
+            tunnel_community = (c for c in self.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
+            self.found_community(tunnel_community)
         except:
-            wx.CallLater(1000, self.try_proxy)
+            wx.CallLater(1000, self.try_community)
 
-    def found_proxy(self, proxy_community):
-        self.proxy_community = proxy_community
+    def found_community(self, tunnel_community):
+        self.tunnel_community = tunnel_community
 
-        self.my_address = Hop(self.proxy_community.my_member._ec.pub())
+        self.my_address = Hop(self.tunnel_community.my_member._ec.pub())
         self.my_address.address = ('127.0.0.1', "SELF")
 
         self.circuit_timer = wx.Timer(self)
@@ -675,7 +675,7 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Refresh()
 
     def OnUpdateCircuits(self, event):
-        new_circuits = dict(self.proxy_community.circuits)
+        new_circuits = dict(self.tunnel_community.circuits)
         self.circuits = new_circuits
 
         # Add new circuits & update existing circuits

@@ -892,7 +892,7 @@ class TriblerLaunchMany(Thread):
                                                    'anon_proxyserver', 'anon_proxytype', 'anon_proxyauth',
                                                    'anon_listen_port']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
-             (section == 'proxy_community' and name in ['socks5_listen_port']) or \
+             (section == 'tunnel_community' and name in ['socks5_listen_port']) or \
              (section == 'swift' and name in ['swiftmetadir']):
             return True
         else:

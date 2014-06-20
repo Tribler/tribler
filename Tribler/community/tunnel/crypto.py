@@ -257,7 +257,7 @@ class DefaultCrypto(Crypto):
          object is coupled
         """
         self.proxy = proxy
-        proxy.observers.append(self)
+#        proxy.observers.append(self)
 
         self.my_curve = self.proxy.crypto.get_curve(self.proxy.my_member._ec)
 
@@ -450,6 +450,7 @@ class DefaultCrypto(Crypto):
         m = hashlib.sha256()
         m.update(str(session_key))
         key = m.digest()[0:16]
+        key2 = m.digest()[16:32]
         unverified_hop.session_key = key
         try:
             encoded_dict = aes_decrypt_str(unverified_hop.session_key, message.candidate_list)

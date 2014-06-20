@@ -30,13 +30,13 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
             dispersy = self.session.lm.dispersy
             ''' :type : Dispersy '''
-            proxy_community = next(c for c in dispersy.get_communities() if isinstance(c, TunnelCommunity))
+            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, TunnelCommunity))
 
             self.guiUtility.ShowPage('networkgraph')
 
             def do_asserts():
                 self.assert_(LibtorrentMgr.getInstance().ltsession_anon is not None, "Anon session should have been created", False)
-                self.assert_(len(proxy_community.circuits) >= 4, "At least 4 circuits should have been created", False)
+                self.assert_(len(tunnel_community.circuits) >= 4, "At least 4 circuits should have been created", False)
                 self.assert_(expected, reason, do_assert)
 
             self.Call(1, do_asserts)
@@ -61,24 +61,24 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
     def startTest(self, callback, min_timeout=5):
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
 
-        from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+        from Tribler.community.tunnel.community import TunnelCommunity
         def setup_proxies():
-            proxy_communities = []
+            tunnel_communities = []
             for i in range(3, 11):
-                proxy_communities.append(create_proxy(i))
+                tunnel_communities.append(create_proxy(i))
 
 
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
                 if isinstance(community, TunnelCommunity):
-                    proxy_communities.append(community)
+                    tunnel_communities.append(community)
 
             candidates = []
             for session in self.sessions:
                 dispersy = session.get_dispersy_instance()
                 candidates.append(Candidate(dispersy.lan_address, tunnel=False))
 
-            for community in proxy_communities:
+            for community in tunnel_communities:
                 for candidate in candidates:
                     # We are letting dispersy deal with addins the community's candidate to itself.
                     community.add_discovered_candidate(candidate)
@@ -87,7 +87,6 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
         def create_proxy(index):
             from Tribler.Core.Session import Session
-            from Tribler.community.tunnel import crypto
 
             self.setUpPreSession()
             config = self.config.copy()
@@ -108,9 +107,9 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                proxy_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (None, None, session.lm.rawserver), load=True)[0]
+                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (None, None, session.lm.rawserver), load=True)[0]
 
-                return proxy_community
+                return tunnel_community
 
             return blockingCallFromThread(reactor, load_community, session)
 

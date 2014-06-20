@@ -482,13 +482,10 @@ class ABCApp():
                     private_key=dispersy.crypto.key_to_bin(keypair),
                 )
 
-                proxy_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
-                                                        args=(session.lm.rawserver,), kargs={'tribler_session': session})[0]
+                dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
+                                          args=(session.lm.rawserver,), kargs={'session': session})[0]
 
-                socks_server = Socks5Server(proxy_community, session.lm.rawserver, session.get_proxy_community_socks5_listen_port())
-                socks_server.start()
-
-                session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_proxy_community_socks5_listen_port()))
+                session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_port()))
 
 
             diff = time() - now
