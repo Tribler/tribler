@@ -87,7 +87,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
         def create_proxy(index):
             from Tribler.Core.Session import Session
-            from Tribler.community.tunnel import exitstrategies, crypto
+            from Tribler.community.tunnel import crypto
 
             self.setUpPreSession()
             config = self.config.copy()
@@ -109,8 +109,6 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
                 proxy_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (None, None, session.lm.rawserver), load=True)[0]
-                exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
-                proxy_community.observers.append(exit_strategy)
 
                 return proxy_community
 

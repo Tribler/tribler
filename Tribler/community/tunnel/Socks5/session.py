@@ -132,17 +132,14 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
             selected_circuit = self.selection_strategy.select(self.circuit_pool.available_circuits)
             self.destinations[destination] = selected_circuit
 
-            self._logger.warning("SELECT circuit {0} for {1}".format(
-                self.destinations[destination].circuit_id,
-                destination
-            ))
+            self._logger.warning("SELECT circuit {0} for {1}".format(self.destinations[destination].circuit_id, \
+                                                                     destination))
 
         return self.destinations[destination]
 
     def data_came_in(self, packets):
         for source_address, packet in packets:
-            if self.remote_udp_address and \
-                    self.remote_udp_address != source_address:
+            if self.remote_udp_address and self.remote_udp_address != source_address:
                 self.close_session('invalid source_address!')
                 return
 
@@ -167,10 +164,8 @@ class Socks5Session(TunnelObserver, Socks5ConnectionObserver):
 
         self.destinations[origin] = circuit
 
-        socks5_udp = conversion.encode_udp_packet(
-            0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
+        socks5_udp = conversion.encode_udp_packet(0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
 
-        bytes_written = self._udp_socket.sendto(socks5_udp,
-                                                self.remote_udp_address)
+        bytes_written = self._udp_socket.sendto(socks5_udp, self.remote_udp_address)
         if bytes_written < len(socks5_udp):
             self._logger.error("Packet drop on return!")

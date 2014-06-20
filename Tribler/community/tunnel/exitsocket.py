@@ -47,11 +47,7 @@ class TunnelExitSocket(object):
         """
 
         for source_address, packet in packets:
-            self.proxy.tunnel_data_to_origin(
-                circuit_id=self.circuit_id,
-                sock_addr=self.destination_address,
-                source_address=source_address,
-                payload=packet)
+            self.proxy.tunnel_data_to_origin(self.circuit_id, self.destination_address, source_address, packet)
 
 
 class ShortCircuitExitSocket(object):

@@ -455,7 +455,6 @@ class ABCApp():
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
             from Tribler.community.tunnel.community import TunnelCommunity
-            from Tribler.community.tunnel import exitstrategies
             from Tribler.community.tunnel.Socks5.server import Socks5Server
 
             # make sure this is only called once
@@ -484,12 +483,10 @@ class ABCApp():
                 )
 
                 proxy_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
-                                                        kargs={'tribler_session': session})[0]
+                                                        args=(session.lm.rawserver,), kargs={'tribler_session': session})[0]
 
                 socks_server = Socks5Server(proxy_community, session.lm.rawserver, session.get_proxy_community_socks5_listen_port())
                 socks_server.start()
-                exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
-                proxy_community.observers.append(exit_strategy)
 
                 session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_proxy_community_socks5_listen_port()))
 

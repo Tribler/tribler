@@ -1,5 +1,6 @@
 import time
 import random
+import logging
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -7,6 +8,7 @@ from twisted.internet.task import LoopingCall
 from Tribler.community.tunnel import crypto, CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
                                      PING_INTERVAL, ENDPOINT
 from Tribler.community.tunnel.conversion import TunnelConversion
+from Tribler.community.tunnel.exitsocket import ShortCircuitExitSocket, TunnelExitSocket
 from Tribler.community.tunnel.payload import CreatePayload, CreatedPayload, ExtendPayload, ExtendedPayload, \
                                              PongPayload, PingPayload
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
@@ -22,7 +24,6 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.logger import get_logger
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 
-import logging
 logger = get_logger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -99,16 +100,17 @@ class TunnelSettings:
 
 class TunnelCommunity(Community):
 
-    def initialize(self, tribler_session=None, settings=None, rawserver=None):
+    def initialize(self, raw_server, tribler_session=None, settings=None):
         super(TunnelCommunity, self).initialize()
 
+        self.raw_server = raw_server
         self.data_prefix = "fffffffe".decode("HEX")
         self.observers = []
         self.circuits = {}
         self.directions = {}
         self.relay_from_to = {}
         self.waiting_for = set()
-        self.destination_circuit = {}
+        self.exit_sockets = {}
         self.circuit_pools = []
         self.notifier = None
         self.settings = settings if settings else TunnelSettings()
@@ -146,11 +148,6 @@ class TunnelCommunity(Community):
         master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040380695ccdb2f64d6fc21f070cf151f3bd3e159609a642aaa023b3620d3f452a4d6114a9031c1f1155fdc6c3d89689c02ec7205e306a1ea397d59a8e0056702d704d97d68a70a9b000e2b902d2ffb92107125d24d91cb771f11cea88b157c8d6421eaecc1ddb9d6dad4a907373f08b3f1eb12438d290f282fe2a5cec9f2deb71b23a77e74a787caf9faf2a202adbf728".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
-
-    def unload_community(self):
-        for observer in self.observers:
-            observer.on_unload()
-        Community.unload_community(self)
 
     def initiate_meta_messages(self):
         return super(TunnelCommunity, self).initiate_meta_messages() + \
@@ -285,15 +282,11 @@ class TunnelCommunity(Community):
 
     def relay_packet(self, circuit_id, message_type, packet):
         if circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for:
-            direction = self.directions[circuit_id]
             next_relay = self.relay_from_to[circuit_id]
 
             if next_relay.circuit_id in self.relay_from_to:
                 this_relay = self.relay_from_to[next_relay.circuit_id]
                 this_relay.last_incoming = time.time()
-
-                for observer in self.observers:
-                    observer.on_relay(next_relay.circuit_id, circuit_id, direction, packet)
 
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
             self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet)
@@ -466,7 +459,7 @@ class TunnelCommunity(Community):
         # If its our circuit, the messenger is the candidate assigned to that circuit and the DATA's destination
         # is set to the zero-address then the packet is from the outside world and addressed to us from.
 
-        circuit_id, origin, destination, data = TunnelConversion.decode_data(packet)
+        circuit_id, destination, origin, data = TunnelConversion.decode_data(packet)
 
         logger.debug("TunnelCommunity: got data (%d) from %s", circuit_id, sock_addr)
 
@@ -481,8 +474,7 @@ class TunnelCommunity(Community):
             else:
                 logger.debug("TunnelCommunity: data for circuit %d exiting tunnel (%s)", circuit_id, destination)
                 if destination != ('0.0.0.0', 0):
-                    for observer in self.observers:
-                        observer.on_exiting_from_tunnel(circuit_id, sock_addr, destination, data)
+                    self.exit_data(circuit_id, sock_addr, destination, data)
 
     @preprocess_messages
     def on_ping(self, messages):
@@ -511,18 +503,22 @@ class TunnelCommunity(Community):
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
         if circuit.goal_hops == 0:
-            for observer in self.observers:
-                observer.on_exiting_from_tunnel(circuit.circuit_id, None, ultimate_destination, data)
+            self.exit_data(circuit, None, ultimate_destination, data)
         else:
             packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
             circuit.bytes_up += self.send_packet([Candidate(circuit.first_hop, False)], u'data', packet)
-
-            for observer in self.observers:
-                observer.on_send_data(circuit.circuit_id, circuit.first_hop, ultimate_destination, data)
 
     def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, data):
         packet = TunnelConversion.encode_data(circuit_id, ('0.0.0.0', 0), source_address, data)
         self.send_packet([Candidate(sock_addr, False)], u'data', packet)
 
-        for observer in self.observers:
-            observer.on_enter_tunnel(circuit_id, sock_addr, source_address, data)
+    def exit_data(self, circuit_id, sock_addr, destination, data):
+        if not (circuit_id in self.exit_sockets):
+            if sock_addr == None:
+                self.exit_sockets[circuit_id] = ShortCircuitExitSocket(self.raw_server, self, circuit_id, None)
+            else:
+                self.exit_sockets[circuit_id] = TunnelExitSocket(self.raw_server, self, circuit_id, sock_addr)
+        try:
+            self.exit_sockets[circuit_id].sendto(data, destination)
+        except:
+            logger.error("TunnelCommunity: dropping packets while EXITing data")

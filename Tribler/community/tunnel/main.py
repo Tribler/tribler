@@ -10,15 +10,15 @@ from threading import Thread
 from twisted.internet.stdio import StandardIO
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.threads import blockingCallFromThread
-
-from Tribler.community.tunnel import exitstrategies
+from Tribler.dispersy.logger import get_logger
 from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
 
-logger = logging
+logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
+logger = get_logger(__name__)
 
 try:
     import yappi
@@ -71,16 +71,13 @@ class AnonTunnel():
         def start_community():
             member = self.dispersy.get_new_member(u"NID_secp160k1")
             self.community = self.dispersy.define_auto_load(TunnelCommunity, member,
-                                                            (False, self.settings, self.raw_server),
+                                                            (self.raw_server, False, self.settings),
                                                             load=True)[0]
         blockingCallFromThread(reactor, start_community)
 
         if not self.socks5_server:
             self.socks5_server = Socks5Server(self.community, self.raw_server, self.socks5_port)
             self.socks5_server.start()
-
-        exit_strategy = exitstrategies.DefaultExitStrategy(self.raw_server, self.community)
-        self.community.observers.append(exit_strategy)
 
         raw_server_thread = Thread(target=self.raw_server.listen_forever, args=(None,))
         raw_server_thread.start()
