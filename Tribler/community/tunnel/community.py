@@ -77,7 +77,7 @@ class CreatedRequestCache(NumberCache):
 class PingRequestCache(RandomNumberCache):
 
     def __init__(self, community, circuit):
-        super(PingRequestCache, self).__init__(community._request_cache, u"ping")
+        super(PingRequestCache, self).__init__(community.request_cache, u"ping")
         self.circuit = circuit
         self.community = community
 
@@ -173,10 +173,10 @@ class TunnelCommunity(Community):
 
     def initiate_meta_messages(self):
         return super(TunnelCommunity, self).initiate_meta_messages() + \
-               [Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatePayload(), self.check_create, self.on_create),
-                Message(self, u"created", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatedPayload(), self.check_created, self.on_created),
+               [Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatePayload(), self._generic_timeline_check, self.on_create),
+                Message(self, u"created", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatedPayload(), self.check_created_extended, self.on_created),
                 Message(self, u"extend", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendPayload(), self.check_extend, self.on_extend),
-                Message(self, u"extended", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendedPayload(), self.check_extended, self.on_extended),
+                Message(self, u"extended", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendedPayload(), self.check_created_extended, self.on_extended),
                 Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._generic_timeline_check, self.on_ping),
                 Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
 
@@ -230,7 +230,7 @@ class TunnelCommunity(Community):
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
         circuit = Circuit(circuit_id=circuit_id, goal_hops=goal_hops, first_hop=first_hop.sock_addr, proxy=self)
 
-        self._request_cache.add(CircuitRequestCache(self, circuit))
+        self.request_cache.add(CircuitRequestCache(self, circuit))
 
         circuit.unverified_hop = Hop(first_hop.get_member()._ec)
         circuit.unverified_hop.address = first_hop.sock_addr
@@ -275,6 +275,9 @@ class TunnelCommunity(Community):
     def active_circuits(self):
         return {cid: c for cid, c in self.circuits.iteritems() if c.state == CIRCUIT_STATE_READY}
 
+    def is_relay(self, circuit_id):
+        return circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for
+
     def send_message(self, candidates, message_type, payload):
         meta = self.get_meta_message(message_type)
         message = meta.impl(distribution=(self.global_time,), payload=payload)
@@ -291,7 +294,7 @@ class TunnelCommunity(Community):
         return self.relay_packet(circuit_id, message_type, message.packet)
 
     def relay_packet(self, circuit_id, message_type, packet):
-        if circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for:
+        if self.is_relay(circuit_id):
             next_relay = self.relay_from_to[circuit_id]
 
             if next_relay.circuit_id in self.relay_from_to:
@@ -303,37 +306,34 @@ class TunnelCommunity(Community):
             return True
         return False
 
-    def check_create(self, messages):
-        for message in messages:
-            yield message
-
-    def check_created(self, messages):
-        for message in messages:
-            yield message
-
     def check_extend(self, messages):
         for message in messages:
+            if not self.is_relay(message.payload.circuit_id):
+                request = self.request_cache.get(u"anon-created", message.payload.circuit_id)
+                if not request:
+                    yield DropMessage(message, "invalid response circuit_id")
+                    continue
             yield message
 
-    def check_extended(self, messages):
+    def check_created_extended(self, messages):
         for message in messages:
+            if not self.is_relay(message.payload.circuit_id):
+                request = self.request_cache.get(u"anon-circuit", message.payload.circuit_id)
+                if not request:
+                    yield DropMessage(message, "invalid response circuit_id")
+                    continue
             yield message
 
     def check_pong(self, messages):
         for message in messages:
-            circuit_id = message.payload.circuit_id
-            relay = circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for
-            if not relay:
-                request = self._request_cache.get(u"ping", message.payload.identifier)
+            if not self.is_relay(message.payload.circuit_id):
+                request = self.request_cache.get(u"ping", message.payload.identifier)
                 if not request:
                     yield DropMessage(message, "invalid response identifier")
                     continue
-
             yield message
 
     def _ours_on_created_extended(self, circuit, message):
-        self.request_cache.pop(u"anon-circuit", circuit.circuit_id)
-
         candidate_list = message.payload.candidate_list
         circuit.add_hop(circuit.unverified_hop)
         circuit.unverified_hop = None
@@ -361,6 +361,7 @@ class TunnelCommunity(Community):
                 self.remove_circuit(circuit.circuit_id, "no candidates (with key) to extend, bailing out.")
 
         elif circuit.state == CIRCUIT_STATE_READY:
+            self.request_cache.pop(u"anon-circuit", circuit.circuit_id)
             self.socks_server.circuit_ready(circuit)
         else:
             return
@@ -384,7 +385,7 @@ class TunnelCommunity(Community):
                     if len(candidates) >= 4:
                         break
 
-            self._request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
+            self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -423,10 +424,6 @@ class TunnelCommunity(Community):
                 candidate = message.candidate
                 circuit_id = message.payload.circuit_id
                 cache = self.request_cache.pop(u"anon-created", circuit_id)
-
-                if not cache:
-                    logger.warning("TunnelCommunity: cannot find created cache for circuit %d", circuit_id)
-                    continue
 
                 extend_candidate = cache.candidates[message.payload.extend_with]
                 logger.warning("TunnelCommunity: on_extend send CREATE for circuit (%s, %d) to %s:%d!", candidate.sock_addr,
@@ -492,7 +489,7 @@ class TunnelCommunity(Community):
     @preprocess_messages
     def on_pong(self, messages):
         for message in messages:
-            self._request_cache.pop(u"ping", message.payload.identifier)
+            self.request_cache.pop(u"ping", message.payload.identifier)
             logger.debug("TunnelCommunity: got pong from %s", message.candidate)
 
     def do_ping(self):
@@ -505,7 +502,7 @@ class TunnelCommunity(Community):
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
         for circuit in self.active_circuits.values():
             if circuit.goal_hops > 0:
-                cache = self._request_cache.add(PingRequestCache(self, circuit))
+                cache = self.request_cache.add(PingRequestCache(self, circuit))
                 circuit.bytes_up += self.send_message([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number))
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
