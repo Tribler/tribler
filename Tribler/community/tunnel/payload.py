@@ -1,6 +1,31 @@
 from Tribler.dispersy.payload import Payload
 
 
+class CellPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, circuit_id, message_type, encrypted_message=""):
+            assert isinstance(circuit_id, (int, long)), type(circuit_id)
+            assert isinstance(message_type, basestring)
+            assert isinstance(encrypted_message, basestring)
+
+            super(CellPayload.Implementation, self).__init__(meta)
+            self._circuit_id = circuit_id
+            self._message_type = message_type
+            self._encrypted_message = encrypted_message
+
+        @property
+        def circuit_id(self):
+            return self._circuit_id
+
+        @property
+        def message_type(self):
+            return self._message_type
+
+        @property
+        def encrypted_message(self):
+            return self._encrypted_message
+
+
 class CreatePayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, circuit_id, key="\0"*336, public_key="", destination_key=""):

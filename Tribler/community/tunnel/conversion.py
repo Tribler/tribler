@@ -10,12 +10,32 @@ class TunnelConversion(BinaryConversion):
     def __init__(self, community):
         super(TunnelConversion, self).__init__(community, "\x02")
 
-        self.define_meta_message(chr(1), community.get_meta_message(u"create"), lambda message: self._encode_decode(self._encode_create, self._decode_create, message), self._decode_create)
-        self.define_meta_message(chr(2), community.get_meta_message(u"created"), lambda message: self._encode_decode(self._encode_created, self._decode_created, message), self._decode_created)
-        self.define_meta_message(chr(3), community.get_meta_message(u"extend"), lambda message: self._encode_decode(self._encode_extend, self._decode_extend, message), self._decode_extend)
-        self.define_meta_message(chr(4), community.get_meta_message(u"extended"), lambda message: self._encode_decode(self._encode_extended, self._decode_extended, message), self._decode_extended)
-        self.define_meta_message(chr(5), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
-        self.define_meta_message(chr(6), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
+        self.define_meta_message(chr(1), community.get_meta_message(u"cell"), lambda message: self._encode_decode(self._encode_cell, self._decode_cell, message), self._decode_cell)
+        self.define_meta_message(chr(2), community.get_meta_message(u"create"), lambda message: self._encode_decode(self._encode_create, self._decode_create, message), self._decode_create)
+        self.define_meta_message(chr(3), community.get_meta_message(u"created"), lambda message: self._encode_decode(self._encode_created, self._decode_created, message), self._decode_created)
+        self.define_meta_message(chr(4), community.get_meta_message(u"extend"), lambda message: self._encode_decode(self._encode_extend, self._decode_extend, message), self._decode_extend)
+        self.define_meta_message(chr(5), community.get_meta_message(u"extended"), lambda message: self._encode_decode(self._encode_extended, self._decode_extended, message), self._decode_extended)
+        self.define_meta_message(chr(6), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
+        self.define_meta_message(chr(7), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
+
+    def _encode_cell(self, message):
+        payload = message.payload
+        packet = pack("!IB", payload.circuit_id, self._encode_message_map[payload.message_type].byte) + payload.encrypted_message
+        return packet,
+
+    def _decode_cell(self, placeholder, offset, data):
+        circuit_id, = unpack_from('!I', data, offset)
+        offset += 4
+
+        if not self._decode_message_map.has_key(data[offset]):
+            raise DropPacket("Invalid message")
+        message_type = self._decode_message_map[data[offset]].meta.name
+        offset += 1
+
+        encrypted_message = data[offset:]
+        offset += len(encrypted_message)
+
+        return offset, placeholder.meta.payload.implement(circuit_id, message_type, encrypted_message)
 
     def _encode_create(self, message):
         payload = message.payload
@@ -195,3 +215,13 @@ class TunnelConversion(BinaryConversion):
         data = packet[16:]
 
         return circuit_id, dest_address, org_address, data
+
+    @staticmethod
+    def convert_from_cell(packet):
+        header = packet[:22] + packet[35] + packet[23:31]
+        return header + packet[31:35] + packet[36:]
+
+    @staticmethod
+    def convert_to_cell(packet):
+        header = packet[:22] + '\x01' + packet[23:31]
+        return header + packet[31:35] + packet[22] + packet[35:]
