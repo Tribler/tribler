@@ -1922,7 +1922,7 @@ class LibraryList(SizeList):
             if self.bw_history_counter % 5 == 0:
                 ds = item.original_data.ds
                 self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
-                self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') if ds else 0, ds.get_current_speed('down') if ds else 0))
+                self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') / 1024 if ds else 0, ds.get_current_speed('down') / 1024 if ds else 0))
                 self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
 
 
