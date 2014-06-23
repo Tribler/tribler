@@ -1,3 +1,7 @@
+from Tribler.Utilities.X11 import init_X11
+init_X11()
+
+
 import logging.config
 
 
