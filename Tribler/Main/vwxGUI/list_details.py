@@ -1256,8 +1256,8 @@ class LibraryDetails(TorrentDetails):
 
         self.refresh_counter += 1
         if self.refresh_counter % 5 == 0:
-            self.speedPanel.AppendData(0, self.torrent.ds.get_current_speed(DOWNLOAD) if self.torrent.ds else 0)
-            self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) if self.torrent.ds else 0)
+            self.speedPanel.AppendData(0, self.torrent.ds.get_current_speed(DOWNLOAD) / 1024 if self.torrent.ds else 0)
+            self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) / 1024 if self.torrent.ds else 0)
 
         # register callback for peerlist update
         self.peerList.Freeze()
