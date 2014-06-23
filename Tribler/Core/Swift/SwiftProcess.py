@@ -135,15 +135,15 @@ class SwiftProcess:
         else:
             self._logger.error("sp: start_cmd_connection: Process dead? returncode %s pid %s", self.popen.returncode, self.popen.pid)
 
-    def i2ithread_readlinecallback(self, buffer):
+    def i2ithread_readlinecallback(self, cmd_buffer):
         if self.donestate != DONE_STATE_WORKING:
             return ''
 
-        while buffer:
-            # print >> sys.stderr, "sp: Got command", buffer
-
-            swift_cmd, swift_body = buffer.split(" ", 1)
+        while cmd_buffer:
+            swift_cmd, swift_body = cmd_buffer.split(" ", 1)
             assert swift_cmd in ["TUNNELRECV", "ERROR", "CLOSE_EVENT", "INFO", "PLAY", "MOREINFO"], swift_cmd
+
+            self._logger.debug("sp: Got command %s, buffer size %d", swift_cmd, len(cmd_buffer))
 
             if swift_cmd == "TUNNELRECV":
                 header, _, payload = swift_body.partition("\r\n")
@@ -158,21 +158,22 @@ class SwiftProcess:
                     if len(payload) >= length:
                         try:
                             self.tunnels[session](session, (host, port), payload[:length])
+
                         except KeyError:
                             if self._warn_missing_endpoint:
                                 self._warn_missing_endpoint = False
                                 self._logger.error("sp: Dispersy endpoint is not available")
 
-                        buffer = payload[length:]
+                        cmd_buffer = payload[length:]
                         continue
 
-                return buffer
+                return cmd_buffer
 
             else:
                 if swift_body.find('\r\n') == -1:  # incomplete command
-                    return buffer
+                    return cmd_buffer
 
-                swift_body, _, buffer = swift_body.partition("\r\n")
+                swift_body, _, cmd_buffer = swift_body.partition("\r\n")
                 # print >> sys.stderr, "sp: Got command", swift_cmd, swift_body
 
                 roothash_hex = swift_body.split(" ", 1)[0]
@@ -224,6 +225,7 @@ class SwiftProcess:
                             progress = 0.0
                         else:
                             progress = float(pargs[0]) / float(pargs[1])
+
                         dlspeed = float(dlspeed)
                         ulspeed = float(ulspeed)
                         numleech = int(numleech)
@@ -245,7 +247,10 @@ class SwiftProcess:
                     elif swift_cmd == "ERROR":
                         d.i2ithread_info_callback(DLSTATUS_STOPPED_ON_ERROR, 0.0, 0, 0.0, 0.0, 0, 0, 0, 0)
 
-        return buffer
+                    else:
+                        self._logger.debug("sp: unknown command %s", swift_cmd)
+
+        return cmd_buffer
 
     # Swift Mgmt interface
     #
