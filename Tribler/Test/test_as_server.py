@@ -2,6 +2,9 @@
 # Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
+from Tribler.Utilities.X11 import init_X11
+init_X11()
+
 import unittest
 
 import os
