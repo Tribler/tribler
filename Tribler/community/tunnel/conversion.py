@@ -118,46 +118,6 @@ class TunnelConversion(BinaryConversion):
 
         return offset, placeholder.meta.payload.implement(circuit_id, key, candidate_list)
 
-    def _encode_data(self, message):
-        host, port = ("0.0.0.0", 0) if message.destination is None else message.destination
-        origin = ("0.0.0.0", 0) if message.origin is None else message.origin
-        packet = pack("!IHHHHL", message.payload.circuit_id, len(host), port, len(origin[0]), origin[1], len(message.data)) + \
-                 host + origin[0] + message.data
-        return packet,
-
-    def _decode_data(self, placeholder, offset, data):
-        circuit_id, host_length, port, origin_host_length, origin_port, payload_length = unpack_from("!IHHHHL", data, offset)
-        offset += 16
-
-        if len(data) < offset + host_length:
-            raise ValueError("Cannot unpack Host, insufficient packet size")
-        host = data[offset:offset + host_length]
-        offset += host_length
-
-        destination = (host, port)
-
-        if len(data) < offset + origin_host_length:
-            raise ValueError("Cannot unpack Origin Host, insufficient packet size")
-        origin_host = data[offset:offset + origin_host_length]
-        offset += origin_host_length
-
-        origin = (origin_host, origin_port)
-
-        if origin == ("0.0.0.0", 0):
-            origin = None
-
-        if destination == ("0.0.0.0", 0):
-            destination = None
-
-        if payload_length == 0:
-            payload = None
-        else:
-            if len(data) < offset + payload_length:
-                raise ValueError("Cannot unpack Data, insufficient packet size")
-            payload = data[offset:offset + payload_length]
-
-        return offset, placeholder.meta.payload.implement(circuit_id, destination, payload, origin)
-
     def _encode_ping(self, message):
         return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
@@ -196,6 +156,17 @@ class TunnelConversion(BinaryConversion):
         assert circuit_id == old_circuit_id, circuit_id
         packet = packet[:circuit_id_pos] + pack('!I', new_circuit_id) + packet[circuit_id_pos + 4:]
         return packet
+
+    @staticmethod
+    def get_circuit_id(packet, message_type):
+        circuit_id_pos = 0 if message_type == u"data" else 31
+        circuit_id, = unpack_from('!I', packet, circuit_id_pos)
+        return circuit_id
+
+    @staticmethod
+    def split_encrypted_packet(packet, message_type):
+        encryped_pos = 4 if message_type == u"data" else 36
+        return packet[:encryped_pos], packet[encryped_pos:]
 
     @staticmethod
     def encode_data(circuit_id, dest_address, org_address, data):

@@ -28,7 +28,7 @@ class CellPayload(Payload):
 
 class CreatePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, key="\0"*336, public_key="", destination_key=""):
+        def __init__(self, meta, circuit_id, key="\0"*336, public_key=""):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(key, basestring), type(key)
             assert isinstance(public_key, basestring)
@@ -37,7 +37,6 @@ class CreatePayload(Payload):
             self._circuit_id = circuit_id
             self._key = key
             self._public_key = public_key
-            self._destination_key = destination_key
 
         @property
         def circuit_id(self):
@@ -50,10 +49,6 @@ class CreatePayload(Payload):
         @property
         def public_key(self):
             return self._public_key
-
-        @property
-        def destination_key(self):
-            return self._destination_key
 
 
 class CreatedPayload(Payload):
