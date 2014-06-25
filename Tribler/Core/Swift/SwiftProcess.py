@@ -87,6 +87,9 @@ class SwiftProcess:
             args.append("180")  # seconds
         # args.append("-B")  # Enable debugging on swift
 
+        # make swift quiet
+        args.append("-q")
+
         self._logger.debug("SwiftProcess: __init__: Running %s workdir %s", args, workdir)
 
         if sys.platform == "win32":
