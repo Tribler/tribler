@@ -110,7 +110,7 @@ class Hop:
 
         assert public_key is None or isinstance(public_key, EC_pub)
 
-        self.session_key = None
+        self.session_keys = None
         self.dh_first_part = None
         self.dh_secret = None
         self.address = None

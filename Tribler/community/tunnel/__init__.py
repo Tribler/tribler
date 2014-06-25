@@ -9,8 +9,8 @@ forth
 
 from Tribler.community.privatesemantic.crypto.optional_crypto import mpz
 
-ORIGINATOR = "originator"
-ENDPOINT = "endpoint"
+ORIGINATOR = 0
+ENDPOINT = 1
 
 CIRCUIT_STATE_READY = 'READY'
 CIRCUIT_STATE_EXTENDING = 'EXTENDING'

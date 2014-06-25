@@ -29,11 +29,12 @@ class DefaultCrypto(object):
         dh_first_part = mpz(pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS))
         return dh_secret, dh_first_part
 
-    def generate_session_key(self, dh_secret, dh_received):
+    def generate_session_keys(self, dh_secret, dh_received):
         key = pow(dh_received, dh_secret, DIFFIE_HELLMAN_MODULUS)
         m = hashlib.sha256()
         m.update(str(key))
-        return m.digest()[0:16]
+        digest = m.digest()
+        return digest[0:16], digest[16:32]
 
     def encrypt_str(self, key, content):
         return aes_encrypt_str(key, content)

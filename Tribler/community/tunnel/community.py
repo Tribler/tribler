@@ -29,7 +29,7 @@ from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 
 
 logger = get_logger(__name__)
-# logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
 
 
 class CircuitRequestCache(NumberCache):
@@ -187,7 +187,7 @@ class TunnelCommunity(Community):
 
     def do_circuits(self):
         circuit_needed = self.settings.circuit_pool - len(self.circuits)
-        logger.error("TunnelCommunity: want %d circuits", circuit_needed)
+        logger.debug("TunnelCommunity: want %d circuits", circuit_needed)
 
         for _ in range(circuit_needed):
 
@@ -348,7 +348,7 @@ class TunnelCommunity(Community):
 
     def _ours_on_created_extended(self, circuit, message):
         hop = circuit.unverified_hop
-        hop.session_key = self.packet_crypto.generate_session_key(hop.dh_secret, bytes_to_long(message.payload.key))
+        hop.session_keys = self.packet_crypto.generate_session_keys(hop.dh_secret, bytes_to_long(message.payload.key))
 
         circuit.add_hop(hop)
         circuit.unverified_hop = None
@@ -429,7 +429,7 @@ class TunnelCommunity(Community):
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
 
             dh_secret, dh_first_part = self.packet_crypto.generate_diffie_secret()
-            self.relay_session_keys[circuit_id] = self.packet_crypto.generate_session_key(dh_secret, bytes_to_long(message.payload.key))
+            self.relay_session_keys[circuit_id] = self.packet_crypto.generate_session_keys(dh_secret, bytes_to_long(message.payload.key))
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -570,9 +570,9 @@ class TunnelCommunity(Community):
     def crypto_out(self, circuit_id, content):
         if circuit_id in self.circuits:
             for hop in reversed(self.circuits[circuit_id].hops):
-                content = self.packet_crypto.encrypt_str(hop.session_key, content)
+                content = self.packet_crypto.encrypt_str(hop.session_keys[ENDPOINT], content)
         elif circuit_id in self.relay_session_keys:
-            content = self.packet_crypto.encrypt_str(self.relay_session_keys[circuit_id], content)
+            content = self.packet_crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
         else:
             raise Exception("Don't know how to encrypt outgoing message")
         return content
@@ -580,9 +580,9 @@ class TunnelCommunity(Community):
     def crypto_in(self, circuit_id, content):
         if circuit_id in self.circuits and len(self.circuits[circuit_id].hops) > 0:
             for hop in self.circuits[circuit_id].hops:
-                content = self.packet_crypto.decrypt_str(hop.session_key, content)
+                content = self.packet_crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
         elif circuit_id in self.relay_session_keys:
-            content = self.packet_crypto.decrypt_str(self.relay_session_keys[circuit_id], content)
+            content = self.packet_crypto.decrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], content)
         else:
             raise Exception("Don't know how to decrypt incoming message")
         return content
@@ -590,9 +590,9 @@ class TunnelCommunity(Community):
     def crypto_relay(self, circuit_id, content):
         direction = self.directions[circuit_id]
         if direction == ORIGINATOR:
-            content = self.packet_crypto.encrypt_str(self.relay_session_keys[circuit_id], content)
+            content = self.packet_crypto.encrypt_str(self.relay_session_keys[circuit_id][direction], content)
         elif direction == ENDPOINT:
-            content = self.packet_crypto.decrypt_str(self.relay_session_keys[circuit_id], content)
+            content = self.packet_crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
         else:
             raise Exception("Direction must be either ORIGINATOR or ENDPOINT")
         return content
