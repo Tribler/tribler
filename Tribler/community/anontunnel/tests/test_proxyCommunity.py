@@ -4,7 +4,6 @@ import time
 
 from mock import Mock
 from twisted.internet import reactor
-from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.anontunnel import exitstrategies
@@ -19,7 +18,7 @@ from Tribler.community.anontunnel.payload import (CreateMessage, CreatedMessage,
 from Tribler.community.anontunnel.routing import Circuit
 from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
 from Tribler.dispersy.endpoint import NullEndpoint
-from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.dispersy.util import call_on_reactor_thread, blockingCallFromThread
 
 
 __author__ = 'Chris'

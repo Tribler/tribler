@@ -6,7 +6,6 @@ from time import time
 from unittest.case import skip
 
 from twisted.internet import reactor
-from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler,
                                                        PeerDBHandler, MiscDBHandler)
@@ -15,7 +14,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.bak_tribler_sdb import FILES_DIR, init_bak_tribler_sdb
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
