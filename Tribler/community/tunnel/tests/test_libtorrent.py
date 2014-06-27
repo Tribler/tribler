@@ -1,11 +1,10 @@
 import logging
 import os
 import time
-from Tribler.community.anontunnel.events import TunnelObserver
 import shutil
 
 
-class LibtorrentTest(TunnelObserver):
+class LibtorrentTest(object):
     """
     @param ProxyCommunity proxy : The proxy community instance
     @param Tribler.Core.Session.Session tribler_session: The Tribler Session
@@ -30,7 +29,7 @@ class LibtorrentTest(TunnelObserver):
         self.tribler_session.lm.rawserver.add_task(self.start, self.delay)
 
     def _mark_test_completed(self):
-        filename = self.tribler_session.get_state_dir() + "/anon_test.txt"
+        filename = os.path.join(self.tribler_session.get_state_dir(), "anon_test.txt")
         handle = open(filename, "w")
 
         try:
@@ -51,7 +50,7 @@ class LibtorrentTest(TunnelObserver):
             self.tribler_session.lm.rawserver.add_task(remove_download, delay=delay)
 
     def _has_completed_before(self):
-        return os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
+        return os.path.isfile(os.path.join(self.tribler_session.get_state_dir(), "anon_test.txt"))
 
     def start(self):
         import wx
@@ -91,7 +90,7 @@ class LibtorrentTest(TunnelObserver):
             self._logger.warning("Skipping Anon Test since it has been run before")
             return False
 
-        destination_dir = self.tribler_session.get_state_dir() + "/anon_test/"
+        destination_dir = os.path.join(self.tribler_session.get_state_dir(), "anon_test")
 
         try:
             shutil.rmtree(destination_dir)

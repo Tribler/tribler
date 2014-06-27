@@ -1,6 +1,6 @@
 from unittest import TestCase
 from mock import Mock
-from Tribler.community.anontunnel.exitsocket import TunnelExitSocket
+from Tribler.community.tunnel.exitsocket import TunnelExitSocket
 
 __author__ = 'Chris'
 

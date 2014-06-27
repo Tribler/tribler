@@ -52,7 +52,6 @@ class Socks5Connection(object):
     def __init__(self, single_socket, socks5_server):
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
         self._logger = logging.getLogger(__name__)
-        self._logger.setLevel(logging.DEBUG)
 
         self.observers = []
         ''' :type : list[Socks5ConnectionObserver] '''

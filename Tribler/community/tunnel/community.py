@@ -1,6 +1,5 @@
 import time
 import random
-import logging
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -29,7 +28,6 @@ from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 
 
 logger = get_logger(__name__)
-#logger.setLevel(logging.DEBUG)
 
 
 class CircuitRequestCache(NumberCache):
@@ -115,8 +113,13 @@ class TunnelCommunity(Community):
         self.waiting_for = set()
         self.exit_sockets = {}
         self.notifier = None
+
         self.settings = settings if settings else TunnelSettings()
-        self.packet_crypto.initialize(self)
+
+        assert isinstance(self.settings.crypto, DefaultCrypto)
+        assert self.settings.circuit_length > 0
+
+        self.crypto.initialize(self)
 
         self._dispersy.endpoint.listen_to(self.data_prefix, self.on_data)
 
@@ -170,10 +173,6 @@ class TunnelCommunity(Community):
 
     @property
     def crypto(self):
-        return self.dispersy.crypto
-
-    @property
-    def packet_crypto(self):
         return self.settings.crypto
 
     def _generate_circuit_id(self, neighbour=None):
@@ -190,23 +189,18 @@ class TunnelCommunity(Community):
         logger.debug("TunnelCommunity: want %d circuits", circuit_needed)
 
         for _ in range(circuit_needed):
+            candidate = None
+            hops = set([c.first_hop for c in self.circuits.values()])
+            for c in self.dispersy_yield_verified_candidates():
+                if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec):
+                    candidate = c
+                    break
 
-            if self.settings.circuit_length == 0:
-                logger.error("TunnelCommunity: unable to create 0-hop tunnels")
-
-            else:
-                candidate = None
-                hops = set([c.first_hop for c in self.circuits.values()])
-                for c in self.dispersy_yield_verified_candidates():
-                    if (c.sock_addr not in hops) and self.packet_crypto.is_key_compatible(c.get_member()._ec):
-                        candidate = c
-                        break
-
-                if candidate != None:
-                    try:
-                        self.create_circuit(candidate, self.settings.circuit_length)
-                    except:
-                        logger.exception("Error creating circuit while running __discover")
+            if candidate != None:
+                try:
+                    self.create_circuit(candidate, self.settings.circuit_length)
+                except:
+                    logger.exception("Error creating circuit while running __discover")
 
     def create_circuit(self, first_hop, goal_hops):
         if not (goal_hops > 0):
@@ -219,7 +213,7 @@ class TunnelCommunity(Community):
 
         circuit.unverified_hop = Hop(first_hop.get_member()._ec)
         circuit.unverified_hop.address = first_hop.sock_addr
-        circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.packet_crypto.generate_diffie_secret()
+        circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
         logger.warning("TunnelCommunity: creating circuit %d of %d hops. First hop: %s:%d", circuit_id,
                        circuit.goal_hops, first_hop.sock_addr[0], first_hop.sock_addr[1])
@@ -315,7 +309,7 @@ class TunnelCommunity(Community):
             if not self.is_relay(message.payload.circuit_id):
                 request = self.request_cache.get(u"anon-created", message.payload.circuit_id)
                 if not request:
-                    yield DropMessage(message, "invalid response circuit_id")
+                    yield DropMessage(message, "invalid extend request circuit_id")
                     continue
             yield message
 
@@ -324,7 +318,7 @@ class TunnelCommunity(Community):
             if not self.is_relay(message.payload.circuit_id) and message.payload.circuit_id in self.circuits:
                 request = self.request_cache.get(u"anon-circuit", message.payload.circuit_id)
                 if not request:
-                    yield DropMessage(message, "invalid response circuit_id")
+                    yield DropMessage(message, "invalid created response circuit_id")
                     continue
             yield message
 
@@ -333,7 +327,7 @@ class TunnelCommunity(Community):
             if not self.is_relay(message.payload.circuit_id):
                 request = self.request_cache.get(u"anon-circuit", message.payload.circuit_id)
                 if not request:
-                    yield DropMessage(message, "invalid response circuit_id")
+                    yield DropMessage(message, "invalid extended response circuit_id")
                     continue
             yield message
 
@@ -342,13 +336,13 @@ class TunnelCommunity(Community):
             if not self.is_relay(message.payload.circuit_id):
                 request = self.request_cache.get(u"ping", message.payload.identifier)
                 if not request:
-                    yield DropMessage(message, "invalid response identifier")
+                    yield DropMessage(message, "invalid ping identifier")
                     continue
             yield message
 
     def _ours_on_created_extended(self, circuit, message):
         hop = circuit.unverified_hop
-        hop.session_keys = self.packet_crypto.generate_session_keys(hop.dh_secret, bytes_to_long(message.payload.key))
+        hop.session_keys = self.crypto.generate_session_keys(hop.dh_secret, bytes_to_long(message.payload.key))
 
         circuit.add_hop(hop)
         circuit.unverified_hop = None
@@ -362,7 +356,7 @@ class TunnelCommunity(Community):
 
             for i in range(len(candidate_list) - 1, -1, -1):
                 public_key = self.crypto.key_from_public_bin(candidate_list[i])
-                if not self.packet_crypto.is_key_compatible(public_key):
+                if not self.crypto.is_key_compatible(public_key):
                     candidate_list.pop(i)
 
             extend_hop_public_bin = next(iter(candidate_list), None)
@@ -370,7 +364,7 @@ class TunnelCommunity(Community):
                 extend_hop_public_key = self.dispersy.crypto.key_from_public_bin(extend_hop_public_bin)
                 hashed_public_key = self.dispersy.crypto.key_to_hash(extend_hop_public_key)
                 circuit.unverified_hop = Hop(extend_hop_public_key)
-                circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.packet_crypto.generate_diffie_secret()
+                circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
                 logger.info("TunnelCommunity: extending circuit %d with %s", circuit.circuit_id, hashed_public_key)
                 circuit.bytes_up += self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
@@ -421,15 +415,15 @@ class TunnelCommunity(Community):
 
             candidates = {}
             for c in self.dispersy_yield_verified_candidates():
-                if self.packet_crypto.is_candidate_compatible(c):
+                if self.crypto.is_candidate_compatible(c):
                     candidates[c.get_member().public_key] = c
                     if len(candidates) >= 4:
                         break
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
 
-            dh_secret, dh_first_part = self.packet_crypto.generate_diffie_secret()
-            self.relay_session_keys[circuit_id] = self.packet_crypto.generate_session_keys(dh_secret, bytes_to_long(message.payload.key))
+            dh_secret, dh_first_part = self.crypto.generate_diffie_secret()
+            self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(dh_secret, bytes_to_long(message.payload.key))
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -570,9 +564,9 @@ class TunnelCommunity(Community):
     def crypto_out(self, circuit_id, content):
         if circuit_id in self.circuits:
             for hop in reversed(self.circuits[circuit_id].hops):
-                content = self.packet_crypto.encrypt_str(hop.session_keys[ENDPOINT], content)
+                content = self.crypto.encrypt_str(hop.session_keys[ENDPOINT], content)
         elif circuit_id in self.relay_session_keys:
-            content = self.packet_crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
+            content = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
         else:
             raise Exception("Don't know how to encrypt outgoing message")
         return content
@@ -580,9 +574,9 @@ class TunnelCommunity(Community):
     def crypto_in(self, circuit_id, content):
         if circuit_id in self.circuits and len(self.circuits[circuit_id].hops) > 0:
             for hop in self.circuits[circuit_id].hops:
-                content = self.packet_crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
+                content = self.crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
         elif circuit_id in self.relay_session_keys:
-            content = self.packet_crypto.decrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], content)
+            content = self.crypto.decrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], content)
         else:
             raise Exception("Don't know how to decrypt incoming message")
         return content
@@ -590,9 +584,9 @@ class TunnelCommunity(Community):
     def crypto_relay(self, circuit_id, content):
         direction = self.directions[circuit_id]
         if direction == ORIGINATOR:
-            content = self.packet_crypto.encrypt_str(self.relay_session_keys[circuit_id][direction], content)
+            content = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][direction], content)
         elif direction == ENDPOINT:
-            content = self.packet_crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
+            content = self.crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
         else:
             raise Exception("Direction must be either ORIGINATOR or ENDPOINT")
         return content

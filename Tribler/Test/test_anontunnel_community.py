@@ -90,6 +90,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
             self.setUpPreSession()
             config = self.config.copy()
+            config.set_swift_proc(True)
             config.set_dispersy(True)
             config.set_state_dir(self.getStateDir(index))
             config.set_dispersy_tunnel_over_swift(True)
@@ -107,7 +108,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (None, None, session.lm.rawserver), load=True)[0]
+                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session.lm.rawserver, None, None), load=True)[0]
 
                 return tunnel_community
 
