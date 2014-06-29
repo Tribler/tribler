@@ -67,6 +67,7 @@ class FastI2IConnection(Thread):
             import sys
             print >> sys.stderr, "Error while parsing, (%s)" % data or ''
 
+        finally:
             self.close()
 
     def stop(self):
