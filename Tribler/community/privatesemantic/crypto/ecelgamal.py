@@ -11,6 +11,8 @@ from time import time
 from optional_crypto import rand, StrongRandom, aes_encrypt_str, aes_decrypt_str
 from ecutils import Point, EllipticCurve, \
     OpenSSLCurves, ECElgamalKey_Pub, ECElgamalKey
+from Tribler.community.privatesemantic.conversion import bytes_to_long, \
+    long_to_bytes
 
 def ecelgamal_init(bits=192, curve=None):
     if curve == None:
@@ -90,6 +92,21 @@ def encrypt_str(key, plain_str):
 
     return R + S + enc_str
 
+def hybrid_encrypt_str(key, plain_str):
+    # only encrypt the last 128 bits
+    encrypted_part = bytes_to_long(plain_str[-16:], 16)
+    R, S = ecelgamal_encrypt(key, key.ec.convert_to_point(encrypted_part))
+    R = Point.to_bytes(R, key.size)
+    S = Point.to_bytes(S, key.size)
+
+    assert len(R) == key.size * 2, "converted point is not as expected %d vs %d" % (len(R), key.size * 2)
+    assert len(S) == key.size * 2, "converted point is not as expected %d vs %d" % (len(S), key.size * 2)
+
+    enc_keylength = len(R) + len(S)
+    assert enc_keylength == key.encsize, ("encrypted keylength is not as expected %d vs %d" % (enc_keylength, key.encsize))
+
+    return R + S + plain_str[:-16]
+
 def decrypt_str(key, encr_str):
     assert not isinstance(key, ECElgamalKey_Pub)
     enc_aes_key = encr_str[:key.encsize]
@@ -103,6 +120,21 @@ def decrypt_str(key, encr_str):
 
     plain_str = aes_decrypt_str(aes_key, encr_str[key.encsize:])
     return plain_str
+
+def hybrid_decrypt_str(key, encr_str):
+    assert not isinstance(key, ECElgamalKey_Pub)
+    enc_aes_key = encr_str[:key.encsize]
+    R = enc_aes_key[:len(enc_aes_key) / 2]
+    S = enc_aes_key[len(enc_aes_key) / 2:]
+
+    R = key.ec.from_bytes(R, key.size)
+    S = key.ec.from_bytes(S, key.size)
+    M = ecelgamal_decrypt(key, (R, S))
+    decrypted_part = key.ec.convert_to_long(M)
+
+    plain_str = encr_str[key.encsize:] + long_to_bytes(decrypted_part)
+    return plain_str
+
 
 if __name__ == "__main__":
     # lets check if this ecelgamal thing works
@@ -130,6 +162,14 @@ if __name__ == "__main__":
     random_large_string = ''.join(choice(ascii_uppercase + digits) for _ in range(100001))
     encrypted_str = encrypt_str(key, random_large_string)
     assert random_large_string == decrypt_str(key, encrypted_str)
+
+    encrypted_str = hybrid_encrypt_str(key, random_large_string)
+    assert encrypted_str != random_large_string
+    assert random_large_string == hybrid_decrypt_str(key, encrypted_str)
+
+    encrypted_str = hybrid_encrypt_str(key, 'abc')
+    assert encrypted_str != 'abc'
+    assert 'abc' == hybrid_decrypt_str(key, encrypted_str)
 
     # performance
     def do_perf():
