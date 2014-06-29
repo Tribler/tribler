@@ -101,15 +101,26 @@ class SwiftProcess:
         # A proper solution would be to switch to twisted for the communication with the swift binary
         self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        def read_and_print(socket):
-            prefix = currentThread().getName() + ":"
-            while True:
-                line = socket.readline()
-                if not line:
-                    self._logger.info("%s readline returned nothing quitting", prefix)
-                    break
-                self._logger.info("%s %s", prefix, line.rstrip())
-        self.popen_outputthreads = [Thread(target=read_and_print, args=(self.popen.stdout,), name="SwiftProcess_%d_stdout" % self.listenport), Thread(target=read_and_print, args=(self.popen.stderr,), name="SwiftProcess_%d_stderr" % self.listenport)]
+        class ReadAndPrintThread(Thread):
+            def __init__(self, sp, name, socket):
+                super(ReadAndPrintThread, self).__init__(name=name)
+                self.sp = sp
+                self.socket = socket
+                self.last_line = ''
+
+            def run(self):
+                prefix = currentThread().getName() + ":"
+                while True:
+                    self.last_line = self.socket.readline()
+                    if not self.last_line:
+                        self.sp._logger.info("%s readline returned nothing quitting", prefix)
+                        break
+                    self.sp._logger.debug("%s %s", prefix, self.last_line.rstrip())
+
+            def get_last_line(self):
+                return self.last_line
+
+        self.popen_outputthreads = [ReadAndPrintThread(self, "SwiftProcess_%d_stdout" % self.listenport, self.popen.stdout), ReadAndPrintThread(self, "SwiftProcess_%d_stderr" % self.listenport, self.popen.stderr)]
         [thread.start() for thread in self.popen_outputthreads]
 
         self.roothash2dl = {}
@@ -132,8 +143,11 @@ class SwiftProcess:
 
         if self.is_alive():
             self.fastconn = FastI2IConnection(self.cmdport, self.i2ithread_readlinecallback, self.connection_lost)
+
         else:
             self._logger.error("sp: start_cmd_connection: Process dead? returncode %s pid %s", self.popen.returncode, self.popen.pid)
+            for thread in self.popen_outputthreads:
+                self._logger.error("sp popenthread %s last line %s", thread.getName(), thread.get_last_line())
 
     def i2ithread_readlinecallback(self, cmd_buffer):
         if self.donestate != DONE_STATE_WORKING:

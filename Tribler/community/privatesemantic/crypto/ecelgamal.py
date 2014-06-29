@@ -167,6 +167,10 @@ if __name__ == "__main__":
     assert encrypted_str != random_large_string
     assert random_large_string == hybrid_decrypt_str(key, encrypted_str)
 
+    encrypted_str = hybrid_encrypt_str(key, 'abc')
+    assert encrypted_str != 'abc'
+    assert 'abc' == hybrid_decrypt_str(key, encrypted_str)
+
     # performance
     def do_perf():
         t1 = time()
