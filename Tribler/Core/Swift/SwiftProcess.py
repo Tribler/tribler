@@ -153,7 +153,7 @@ class SwiftProcess:
         if self.donestate != DONE_STATE_WORKING:
             return ''
 
-        while cmd_buffer:
+        while cmd_buffer.find(" ") >= 0:
             swift_cmd, swift_body = cmd_buffer.split(" ", 1)
             assert swift_cmd in ["TUNNELRECV", "ERROR", "CLOSE_EVENT", "INFO", "PLAY", "MOREINFO"], swift_cmd
 
