@@ -14,7 +14,7 @@ from Tribler.community.tunnel.payload import CellPayload, CreatePayload, Created
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
-from Tribler.community.tunnel.crypto import DefaultCrypto
+from Tribler.community.tunnel.crypto import TunnelCrypto
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
@@ -95,7 +95,7 @@ class TunnelSettings:
     def __init__(self):
         self.circuit_length = 3
         self.circuit_pool = 4
-        self.crypto = DefaultCrypto()
+        self.crypto = TunnelCrypto()
         self.socks_listen_port = 1080
 
 
@@ -116,7 +116,7 @@ class TunnelCommunity(Community):
 
         self.settings = settings if settings else TunnelSettings()
 
-        assert isinstance(self.settings.crypto, DefaultCrypto)
+        assert isinstance(self.settings.crypto, TunnelCrypto)
         assert self.settings.circuit_length > 0
 
         self.crypto.initialize(self)
@@ -221,8 +221,8 @@ class TunnelCommunity(Community):
         self.circuits[circuit_id] = circuit
         self.waiting_for.add(circuit_id)
 
-        circuit.bytes_up += self.send_cell([Candidate(first_hop.sock_addr, False)], u"create", \
-                                           (circuit_id, long_to_bytes(circuit.unverified_hop.dh_first_part), self.my_member.public_key))
+        dh_first_part_enc = self.crypto.hybrid_encrypt_str(first_hop.get_member()._ec, long_to_bytes(circuit.unverified_hop.dh_first_part))
+        circuit.bytes_up += self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc))
         return circuit
 
     def remove_circuit(self, circuit_id, additional_info=''):
@@ -264,7 +264,7 @@ class TunnelCommunity(Community):
 
         plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, u'cell')
         if message_type not in [u'create', u'created']:
-            encrypted = self.crypto_out(payload[0], encrypted)
+            encrypted = self.crypto_out(message.payload.circuit_id, encrypted)
         packet = plaintext + encrypted
 
         return self.send_packet(candidates, message_type, packet)
@@ -367,8 +367,9 @@ class TunnelCommunity(Community):
                 circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
                 logger.info("TunnelCommunity: extending circuit %d with %s", circuit.circuit_id, hashed_public_key)
+                dh_first_part_enc = self.crypto.hybrid_encrypt_str(extend_hop_public_key, long_to_bytes(circuit.unverified_hop.dh_first_part))
                 circuit.bytes_up += self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
-                                                   (circuit.circuit_id, long_to_bytes(circuit.unverified_hop.dh_first_part), extend_hop_public_bin))
+                                                   (circuit.circuit_id, dh_first_part_enc, extend_hop_public_bin))
             else:
                 self.remove_circuit(circuit.circuit_id, "no candidates (with key) to extend, bailing out.")
 
@@ -415,21 +416,21 @@ class TunnelCommunity(Community):
 
             candidates = {}
             for c in self.dispersy_yield_verified_candidates():
-                if self.crypto.is_candidate_compatible(c):
-                    candidates[c.get_member().public_key] = c
-                    if len(candidates) >= 4:
-                        break
+                candidates[c.get_member().public_key] = c
+                if len(candidates) >= 4:
+                    break
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
 
             dh_secret, dh_first_part = self.crypto.generate_diffie_secret()
-            self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(dh_secret, bytes_to_long(message.payload.key))
+            dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
+            self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(dh_secret, bytes_to_long(dh_second_part))
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
                 self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-            self.send_cell([candidate], u"created", (circuit_id, long_to_bytes(dh_first_part), candidates.keys(), message))
+            self.send_cell([candidate], u"created", (circuit_id, long_to_bytes(dh_first_part), candidates.keys()))
 
     def on_created(self, messages):
         for message in messages:
@@ -488,7 +489,7 @@ class TunnelCommunity(Community):
 
             logger.info("TunnelCommunity: extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
 
-            self.send_cell([extend_candidate], u"create", (new_circuit_id, message.payload.key, self.my_member.public_key))
+            self.send_cell([extend_candidate], u"create", (new_circuit_id, message.payload.key))
 
     def on_extended(self, messages):
         for message in messages:

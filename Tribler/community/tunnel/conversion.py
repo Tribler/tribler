@@ -39,23 +39,20 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_create(self, message):
         payload = message.payload
-        packet = pack("!IHH", payload.circuit_id, len(payload.key), len(payload.public_key)) + payload.key + payload.public_key
+        packet = pack("!IH", payload.circuit_id, len(payload.key)) + payload.key
         return packet,
 
     def _decode_create(self, placeholder, offset, data):
         circuit_id, = unpack_from('!I', data, offset)
         offset += 4
 
-        len_key, len_pub_key = unpack_from("!HH", data, offset)
-        offset += 4
+        len_key, = unpack_from("!H", data, offset)
+        offset += 2
 
         key = data[offset:offset + len_key]
         offset += len_key
 
-        public_key = data[offset:offset + len_pub_key]
-        offset += len_pub_key
-
-        return offset, placeholder.meta.payload.implement(circuit_id, key, public_key)
+        return offset, placeholder.meta.payload.implement(circuit_id, key)
 
     def _encode_created(self, message):
         payload = message.payload

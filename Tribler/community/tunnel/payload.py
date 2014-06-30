@@ -28,15 +28,13 @@ class CellPayload(Payload):
 
 class CreatePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, key="\0"*336, public_key=""):
+        def __init__(self, meta, circuit_id, key="\0"*336):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(key, basestring), type(key)
-            assert isinstance(public_key, basestring)
 
             super(CreatePayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._key = key
-            self._public_key = public_key
 
         @property
         def circuit_id(self):
@@ -46,24 +44,18 @@ class CreatePayload(Payload):
         def key(self):
             return self._key
 
-        @property
-        def public_key(self):
-            return self._public_key
-
 
 class CreatedPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, key, candidate_list, reply_to=None):
+        def __init__(self, meta, circuit_id, key, candidate_list):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(key, basestring), type(key)
             assert all(isinstance(key, basestring) for key in candidate_list)
-            assert reply_to is None or isinstance(reply_to.payload, CreatePayload.Implementation), type(reply_to)
 
             super(CreatedPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._key = key
             self._candidate_list = candidate_list
-            self._reply_to = reply_to
 
         @property
         def circuit_id(self):
@@ -76,10 +68,6 @@ class CreatedPayload(Payload):
         @property
         def candidate_list(self):
             return self._candidate_list
-
-        @property
-        def reply_to(self):
-            return self._reply_to
 
 
 class ExtendPayload(Payload):
