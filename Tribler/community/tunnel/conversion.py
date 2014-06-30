@@ -1,7 +1,6 @@
 from struct import pack, unpack_from
 from socket import inet_ntoa, inet_aton
 
-from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 
@@ -56,7 +55,7 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_created(self, message):
         payload = message.payload
-        packet = pack("!IH", payload.circuit_id, len(payload.key)) + payload.key + encode(payload.candidate_list)
+        packet = pack("!IH", payload.circuit_id, len(payload.key)) + payload.key + payload.candidate_list
         return packet,
 
     def _decode_created(self, placeholder, offset, data):
@@ -69,9 +68,8 @@ class TunnelConversion(BinaryConversion):
         key = data[offset:offset + len_key]
         offset += len_key
 
-        encoded_candidate_list = data[offset:]
-        offset += len(encoded_candidate_list)
-        _, candidate_list = decode(encoded_candidate_list)
+        candidate_list = data[offset:]
+        offset += len(candidate_list)
 
         return offset, placeholder.meta.payload.implement(circuit_id, key, candidate_list)
 
@@ -97,7 +95,7 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_extended(self, message):
         payload = message.payload
-        return pack("!IH", payload.circuit_id, len(payload.key)) + payload.key + encode(payload.candidate_list),
+        return pack("!IH", payload.circuit_id, len(payload.key)) + payload.key + payload.candidate_list,
 
     def _decode_extended(self, placeholder, offset, data):
         circuit_id, = unpack_from('!I', data, offset)
@@ -109,9 +107,8 @@ class TunnelConversion(BinaryConversion):
         key = data[offset:offset + key_length]
         offset += key_length
 
-        encoded_candidate_list = data[offset:]
-        offset += len(encoded_candidate_list)
-        _, candidate_list = decode(encoded_candidate_list)
+        candidate_list = data[offset:]
+        offset += len(candidate_list)
 
         return offset, placeholder.meta.payload.implement(circuit_id, key, candidate_list)
 

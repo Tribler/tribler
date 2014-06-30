@@ -6,6 +6,7 @@ from twisted.internet.task import LoopingCall
 
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
                                      PING_INTERVAL, ENDPOINT
 from Tribler.community.tunnel.conversion import TunnelConversion
@@ -348,7 +349,8 @@ class TunnelCommunity(Community):
         circuit.unverified_hop = None
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
-            candidate_list = message.payload.candidate_list
+            candidate_list_enc = message.payload.candidate_list
+            _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[ENDPOINT], candidate_list_enc))
 
             for ignore_candidate in [self.my_member.public_key] + [hop.public_key for hop in circuit.hops]:
                 if ignore_candidate in candidate_list:
@@ -430,7 +432,8 @@ class TunnelCommunity(Community):
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
                 self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-            self.send_cell([candidate], u"created", (circuit_id, long_to_bytes(dh_first_part), candidates.keys()))
+            candidate_list_enc = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], encode(candidates.keys()))
+            self.send_cell([candidate], u"created", (circuit_id, long_to_bytes(dh_first_part), candidate_list_enc))
 
     def on_created(self, messages):
         for message in messages:

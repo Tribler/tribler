@@ -64,7 +64,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         from Tribler.community.tunnel.community import TunnelCommunity
         def setup_proxies():
             tunnel_communities = []
-            for i in range(3, 11):
+            for i in range(3, 7):
                 tunnel_communities.append(create_proxy(i))
 
 
@@ -108,7 +108,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session.lm.rawserver, None, None), load=True)[0]
+                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session.lm.rawserver, session, None), load=True)[0]
 
                 return tunnel_community
 
