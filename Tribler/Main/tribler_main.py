@@ -1150,6 +1150,16 @@ def run(params=None, is_unit_testing=False):
             logger.info("Client shutting down. Detected another instance.")
         else:
 
+            if sys.platform == 'linux2':
+                try:
+                    import ctypes
+                    x11 = ctypes.cdll.LoadLibrary('libX11.so')
+                    x11.XInitThreads()
+                except OSError as e:
+                    logger.debug("Failed to call XInitThreads '%s'", str(e))
+                except:
+                    logger.exception('Failed to call xInitThreads')
+
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:
