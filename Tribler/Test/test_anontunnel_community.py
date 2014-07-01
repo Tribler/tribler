@@ -12,6 +12,10 @@ from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 
 
+from Tribler.community.tunnel.community import TunnelCommunity
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from threading import Event
+
 class TestAnonTunnelCommunity(TestGuiAsServer):
 
     def test_anon_download(self):
@@ -25,9 +29,6 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.Call(1, take_second_screenshot)
 
         def on_fail(expected, reason, do_assert):
-            from Tribler.community.tunnel.community import TunnelCommunity
-            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-
             dispersy = self.session.lm.dispersy
             ''' :type : Dispersy '''
             tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, TunnelCommunity))
@@ -41,7 +42,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
             self.Call(1, do_asserts)
 
-        def do_create_local_torrent():
+        def do_create_local_torrent(_):
             torrentfilename = self.setupSeeder()
             start_time = time.time()
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir(), anon_mode=True)
@@ -58,6 +59,45 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
         self.startTest(do_create_local_torrent)
 
+    def test_anon_tunnel(self):
+        got_data = Event()
+        this = self
+
+        class FakeSocks():
+            def circuit_ready(self, circuit_id):
+                pass
+            def circuit_dead(self, circuit_id):
+                pass
+            def on_incoming_from_tunnel(self, community, circuit, origin, data):
+                this.assert_(data == "4242", "Data is not 4242, it is '%s'" % data)
+                this.assert_(origin == ("127.0.0.1", 12345), "Origin is not 127.0.0.1:12345, it is '%s:%d'" % (origin[0], origin[1]))
+                got_data.set()
+
+        fakesocks = FakeSocks()
+
+        def exit_data(community, circuit_id, sock_addr, destination, data):
+            self.assert_(data == "42", "Data is not 42, it is '%s'" % data)
+            self.assert_(destination == ("127.0.0.1", 12345), "Destination is not 127.0.0.1:12345, it is '%s:%d'" % (destination[0], destination[1]))
+
+            community.tunnel_data_to_origin(circuit_id, sock_addr, ("127.0.0.1", 12345), "4242")
+
+        def start_test(tunnel_communities):
+            # assuming that the last tunnel community is that loaded by the tribler gui
+            tunnel_community = tunnel_communities[-1]
+            first_circuit = tunnel_community.active_circuits.values()[0]
+            first_circuit.tunnel_data(("127.0.0.1", 12345), "42")
+
+            self.CallConditional(30, lambda: got_data.is_set(), self.quit)
+
+        def replace_socks(tunnel_communities):
+            for tunnel_community in tunnel_communities:
+                tunnel_community.socks_server = fakesocks
+                tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
+
+            self.CallConditional(150, lambda: LibtorrentMgr.getInstance().ltsession_anon is not None, lambda: start_test(tunnel_communities), 'no session created within 150 seconds')
+
+        self.startTest(replace_socks)
+
     def startTest(self, callback, min_timeout=5):
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
 
@@ -66,7 +106,6 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             tunnel_communities = []
             for i in range(3, 7):
                 tunnel_communities.append(create_proxy(i))
-
 
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
@@ -83,7 +122,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                     # We are letting dispersy deal with addins the community's candidate to itself.
                     community.add_discovered_candidate(candidate)
 
-            callback()
+            callback(tunnel_communities)
 
         def create_proxy(index):
             from Tribler.Core.Session import Session
