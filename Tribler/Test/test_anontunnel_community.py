@@ -5,11 +5,12 @@ import sys
 import time
 
 from twisted.internet import reactor
-from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.util import blockingCallFromThread
+
 
 class TestAnonTunnelCommunity(TestGuiAsServer):
 

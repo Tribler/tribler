@@ -5,22 +5,23 @@ import logging
 import os
 import threading
 from base64 import encodestring, decodestring
-from threading import currentThread, RLock
+from threading import RLock
 from time import time
-from traceback import print_exc, print_stack
+from traceback import print_exc
 
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
 from twisted.internet import reactor
 from twisted.python.threadable import isInIOThread
-from twisted.internet.threads import blockingCallFromThread
 
 from Tribler import LIBRARYNAME
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
-
 from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.dispersy.util import call_on_reactor_thread, blockingCallFromThread
+
+
 
 # support_version = (3,5,9)
 # support_version = (3,3,13)

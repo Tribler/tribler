@@ -11,7 +11,6 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from traceback import print_exc
 
 from twisted.internet import reactor
-from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -28,6 +27,7 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint, DispersyTunnelBypassEndpoint
 from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
+from Tribler.dispersy.util import blockingCallFromThread
 
 
 try:
