@@ -560,6 +560,12 @@ class Session(SessionConfigInterface):
 
         return self.lm.swift_process
 
+    def get_libtorrent_process(self):
+        if not self.get_libtorrent():
+            raise OperationNotEnabledByConfigurationException()
+
+        return self.lm.ltmgr
+
     #
     # Internal persistence methods
     #
