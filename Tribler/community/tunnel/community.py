@@ -151,7 +151,7 @@ class TunnelCommunity(Community):
         if session:
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.notifier = Notifier.getInstance()
-            # reactor.callLater(0, lambda: LibtorrentTest(self, session, 60))
+            reactor.callLater(0, lambda: LibtorrentTest(self, session, 60))
 
         self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_port() \
                                                                 if session else self.settings.socks_listen_port)
