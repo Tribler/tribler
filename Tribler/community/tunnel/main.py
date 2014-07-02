@@ -38,18 +38,15 @@ class AnonTunnel():
     @param TunnelSettings settings: the settings to pass to the ProxyCommunity
     """
 
-    def __init__(self, socks5_port, settings=None):
+    def __init__(self, settings):
         self.settings = settings
-        self.socks5_port = socks5_port or random.randint(1000, 65535)
-        self.socks5_server = None
-
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
 
     def start_tribler(self):
         config = SessionStartupConfig()
-        config.set_state_dir(os.path.join(BASE_DIR, ".Tribler-%d") % self.socks5_port)
+        config.set_state_dir(os.path.join(BASE_DIR, ".Tribler-%d") % self.settings.socks_listen_port)
         config.set_torrent_checking(False)
         config.set_multicast_local_peer_discovery(False)
         config.set_megacache(False)
@@ -71,13 +68,9 @@ class AnonTunnel():
         def start_community():
             member = self.dispersy.get_new_member(u"NID_secp160k1")
             self.community = self.dispersy.define_auto_load(TunnelCommunity, member,
-                                                            (self.raw_server, False, self.settings),
+                                                            (None, self.settings),
                                                             load=True)[0]
         blockingCallFromThread(reactor, start_community)
-
-        self.socks5_server = self.community.socks_server
-        raw_server_thread = Thread(target=self.raw_server.listen_forever, args=(None,))
-        raw_server_thread.start()
 
     def stop(self):
         if self.session:
@@ -180,7 +173,9 @@ def main(argv):
         yappi.start(builtins=True)
         print "Profiling using %s time" % yappi.get_clock_type()['type']
 
-    anon_tunnel = AnonTunnel(socks5_port, TunnelSettings())
+    settings = TunnelSettings()
+    settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
+    anon_tunnel = AnonTunnel(settings)
     StandardIO(LineHandler(anon_tunnel, profile))
     anon_tunnel.run()
 
