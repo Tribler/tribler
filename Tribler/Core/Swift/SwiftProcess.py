@@ -173,13 +173,12 @@ class SwiftProcess:
                     length = int(length)
 
                     if len(payload) >= length:
-                        try:
-                            self.tunnels[session](session, (host, port), payload[:length])
-
-                        except KeyError:
+                        if session not in self.tunnels:
                             if self._warn_missing_endpoint:
                                 self._warn_missing_endpoint = False
-                                self._logger.error("sp: Dispersy endpoint is not available")
+                                self._logger.error("missing endpoint for tunnel %s, listening on port %d", session, self.get_listen_port())
+                        else:
+                            self.tunnels[session](session, (host, port), payload[:length])
 
                         cmd_buffer = payload[length:]
                         continue
