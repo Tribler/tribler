@@ -1083,6 +1083,12 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         return int(self.metainfo['info'].get('private', 0)) == 1
 
+    def set_private(self, private=True):
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['private'] = 1 if private else 0
+
     def get_url(self):
         """ Returns the URL representation of this TorrentDef. The TorrentDef
         must be a Merkle or live torrent and must be set to URL-compatible

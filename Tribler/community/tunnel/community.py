@@ -2,6 +2,7 @@ import time
 import random
 
 from twisted.internet import reactor
+from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
 
 from Crypto.Util.number import bytes_to_long, long_to_bytes
@@ -16,6 +17,7 @@ from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.crypto import TunnelCrypto
+
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
@@ -26,6 +28,7 @@ from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.logger import get_logger
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 
 
 logger = get_logger(__name__)
@@ -73,22 +76,20 @@ class PingRequestCache(RandomNumberCache):
             self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout')
 
 
-class TunnelExitSocket(object):
+class TunnelExitSocket(DatagramProtocol):
 
     def __init__(self, circuit_id, destination, community):
-        self.socket = community.raw_server.create_udpsocket(0, "0.0.0.0")
-        community.raw_server.start_listening_udp(self.socket, self)
+        reactor.listenUDP(0, self)
 
         self.destination = destination
         self.circuit_id = circuit_id
         self.community = community
 
     def sendto(self, data, destination):
-        self.socket.sendto(data, destination)
+        self.transport.write(data, destination)
 
-    def data_came_in(self, packets):
-        for source, packet in packets:
-            self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, packet)
+    def datagramReceived(self, data, source):
+        self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
 
 
 class TunnelSettings:
@@ -99,13 +100,28 @@ class TunnelSettings:
         self.crypto = TunnelCrypto()
         self.socks_listen_port = 1080
 
+class RoundRobin(object):
+
+    def __init__(self, community):
+        self.community = community
+        self.index = -1
+
+    def has_options(self):
+        return len(self.community.active_circuits) > 0
+
+    def select(self):
+        circuit_ids = sorted(self.community.active_circuits.keys())
+
+        self.index = (self.index + 1) % len(circuit_ids)
+        circuit_id = circuit_ids[self.index]
+        return self.community.active_circuits[circuit_id]
 
 class TunnelCommunity(Community):
 
-    def initialize(self, raw_server, session=None, settings=None):
+    def initialize(self, session=None, settings=None):
         super(TunnelCommunity, self).initialize()
 
-        self.raw_server = raw_server
+        self.tribler_session = session
         self.data_prefix = "fffffffe".decode("HEX")
         self.circuits = {}
         self.directions = {}
@@ -114,6 +130,8 @@ class TunnelCommunity(Community):
         self.waiting_for = set()
         self.exit_sockets = {}
         self.notifier = None
+        self.made_anon_session = False
+        self.selection_strategy = RoundRobin(self)
 
         self.settings = settings if settings else TunnelSettings()
 
@@ -133,9 +151,9 @@ class TunnelCommunity(Community):
         if session:
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.notifier = Notifier.getInstance()
-            reactor.callLater(0, lambda: LibtorrentTest(self, session, 60))
+            # reactor.callLater(0, lambda: LibtorrentTest(self, session, 60))
 
-        self.socks_server = Socks5Server(self, self.raw_server, session.get_tunnel_community_socks5_listen_port() \
+        self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_port() \
                                                                 if session else self.settings.socks_listen_port)
         self.socks_server.start()
 
@@ -172,6 +190,10 @@ class TunnelCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), TunnelConversion(self)]
 
+    def unload_community(self):
+        self.socks_server.stop()
+        super(TunnelCommunity, self).unload_community()
+
     @property
     def crypto(self):
         return self.settings.crypto
@@ -203,10 +225,15 @@ class TunnelCommunity(Community):
                 except:
                     logger.exception("Error creating circuit while running __discover")
 
-    def create_circuit(self, first_hop, goal_hops):
-        if not (goal_hops > 0):
-            raise ValueError("We can only create circuits with more than 0 hops using create_circuit()!")
+        if circuit_needed == 0 and self.tribler_session and not self.made_anon_session:
+            try:
+                ltmgr = self.tribler_session.get_libtorrent_process()
+                ltmgr.create_anonymous_session()
+            except OperationNotEnabledByConfigurationException:
+                pass
+            self.made_anon_session = True
 
+    def create_circuit(self, first_hop, goal_hops):
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
         circuit = Circuit(circuit_id=circuit_id, goal_hops=goal_hops, first_hop=first_hop.sock_addr, proxy=self)
 
@@ -216,7 +243,7 @@ class TunnelCommunity(Community):
         circuit.unverified_hop.address = first_hop.sock_addr
         circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
-        logger.warning("TunnelCommunity: creating circuit %d of %d hops. First hop: %s:%d", circuit_id,
+        logger.info("TunnelCommunity: creating circuit %d of %d hops. First hop: %s:%d", circuit_id,
                        circuit.goal_hops, first_hop.sock_addr[0], first_hop.sock_addr[1])
 
         self.circuits[circuit_id] = circuit
@@ -235,7 +262,17 @@ class TunnelCommunity(Community):
             circuit = self.circuits.pop(circuit_id)
             circuit.destroy()
 
-            self.socks_server.circuit_dead(circuit)
+            affected_peers = self.socks_server.circuit_dead(circuit)
+            #     affected_torrents = dict((download, affected_destinations.intersection(peer.ip for peer in download.handle.get_peer_info()))
+#                              for (download, session) in mgr.torrents.values() if session == anon_session)
+#
+#         for download, peers in affected_torrents:
+#             if download not in self.torrents:
+#                 self.torrents[download] = peers
+#             elif peers - self.torrents[download]:
+#                 self.torrents[download] = peers | self.torrents[download]
+#
+#         self._logger.warning("Waiting for new circuits before re-adding peers")
 
             return True
         return False
@@ -373,11 +410,10 @@ class TunnelCommunity(Community):
                 circuit.bytes_up += self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
                                                    (circuit.circuit_id, dh_first_part_enc, extend_hop_public_bin))
             else:
-                self.remove_circuit(circuit.circuit_id, "no candidates (with key) to extend, bailing out.")
+                self.remove_circuit(circuit.circuit_id, "no candidates to extend, bailing out.")
 
         elif circuit.state == CIRCUIT_STATE_READY:
             self.request_cache.pop(u"anon-circuit", circuit.circuit_id)
-            self.socks_server.circuit_ready(circuit)
         else:
             return
 
@@ -466,7 +502,7 @@ class TunnelCommunity(Community):
                 request = self.request_cache.pop(u"anon-created", circuit_id)
 
                 extend_candidate = request.candidates[message.payload.extend_with]
-                logger.warning("TunnelCommunity: on_extend send CREATE for circuit (%s, %d) to %s:%d!", candidate.sock_addr,
+                logger.info("TunnelCommunity: on_extend send CREATE for circuit (%s, %d) to %s:%d!", candidate.sock_addr,
                                 circuit_id, extend_candidate.sock_addr[0], extend_candidate.sock_addr[1])
             else:
                 logger.error("TunnelCommunity: cancelling EXTEND, no candidate!")
@@ -518,6 +554,7 @@ class TunnelCommunity(Community):
             if circuit_id in self.circuits and origin and sock_addr == self.circuits[circuit_id].first_hop:
                 self.circuits[circuit_id].beat_heart()
                 self.circuits[circuit_id].bytes_down += len(packet)
+
                 self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data)
 
             # It is not our circuit so we got it from a relay, we need to EXIT it!
@@ -525,6 +562,8 @@ class TunnelCommunity(Community):
                 logger.debug("TunnelCommunity: data for circuit %d exiting tunnel (%s)", circuit_id, destination)
                 if destination != ('0.0.0.0', 0):
                     self.exit_data(circuit_id, sock_addr, destination, data)
+                else:
+                    logger.error("cannot exit data, destination is 0.0.0.0:0")
 
     def on_ping(self, messages):
         for message in messages:

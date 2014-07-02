@@ -30,7 +30,6 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
         def on_fail(expected, reason, do_assert):
             dispersy = self.session.lm.dispersy
-            ''' :type : Dispersy '''
             tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, TunnelCommunity))
 
             self.guiUtility.ShowPage('networkgraph')
@@ -48,9 +47,8 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir(), anon_mode=True)
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.CallConditional(
-                150,
+            self.Call(5, lambda : download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.CallConditional(150,
                 lambda: download.get_progress() == 1.0,
                 lambda: take_screenshot(time.time() - start_time),
                 'Anonymous download should be finished in 150 seconds',
@@ -64,9 +62,9 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         this = self
 
         class FakeSocks():
-            def circuit_ready(self, circuit_id):
-                pass
             def circuit_dead(self, circuit_id):
+                pass
+            def stop(self):
                 pass
             def on_incoming_from_tunnel(self, community, circuit, origin, data):
                 this.assert_(data == "4242", "Data is not 4242, it is '%s'" % data)
@@ -147,7 +145,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session.lm.rawserver, session, None), load=True)[0]
+                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session, None), load=True)[0]
 
                 return tunnel_community
 
@@ -171,6 +169,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         tdef = TorrentDef()
         tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
         tdef.set_tracker("http://fake.net/announce")
+        tdef.set_private()  # disable dht
         tdef.finalize()
         torrentfn = os.path.join(self.session2.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)

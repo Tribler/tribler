@@ -164,6 +164,8 @@ class TunnelConversion(BinaryConversion):
 
     @staticmethod
     def encode_data(circuit_id, dest_address, org_address, data):
+        assert org_address
+
         return pack("!I4sH4sH", circuit_id, inet_aton(dest_address[0]), dest_address[1],
                                             inet_aton(org_address[0]), org_address[1]) + data
 

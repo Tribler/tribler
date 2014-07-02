@@ -483,7 +483,7 @@ class ABCApp():
                 )
 
                 dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
-                                          args=(session.lm.rawserver,), kargs={'session': session})[0]
+                                          kargs={'session': session})[0]
 
                 session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_port()))
 

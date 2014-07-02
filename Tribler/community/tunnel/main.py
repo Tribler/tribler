@@ -45,7 +45,6 @@ class AnonTunnel():
 
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
-        self.raw_server = self.session.lm.rawserver
         self.community = None
 
     def start_tribler(self):

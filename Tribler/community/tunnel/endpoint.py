@@ -23,7 +23,6 @@ class DispersyBypassEndpoint(RawserverEndpoint):
     def __init__(self, raw_server, port, ip="0.0.0.0"):
         super(DispersyBypassEndpoint, self).__init__(raw_server, port, ip)
         self.packet_handlers = {}
-        self.queue = Queue()
 
         self._logger = logging.getLogger(__name__)
 
@@ -44,18 +43,15 @@ class DispersyBypassEndpoint(RawserverEndpoint):
         @return:
         """
         normal_packets = []
-        try:
-            for packet in packets:
+        for packet in packets:
 
-                prefix = next((p for p in self.packet_handlers if
-                               packet[1].startswith(p)), None)
-                if prefix:
-                    sock_addr, data = packet
-                    self.packet_handlers[prefix](sock_addr, data[len(prefix):])
-                else:
-                    normal_packets.append(packet)
-        except Full:
-            self._logger.warning("DispersyBypassEndpoint cant keep up with incoming packets!")
+            prefix = next((p for p in self.packet_handlers if
+                           packet[1].startswith(p)), None)
+            if prefix:
+                sock_addr, data = packet
+                self.packet_handlers[prefix](sock_addr, data[len(prefix):])
+            else:
+                normal_packets.append(packet)
 
         if normal_packets:
             super(DispersyBypassEndpoint, self).data_came_in(normal_packets, cache)
