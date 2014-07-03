@@ -30,7 +30,7 @@ class SocksUDPConnection(DatagramProtocol):
         self.listen_port = reactor.listenUDP(0, self)
 
     def get_listen_port(self):
-        return "127.0.0.1", self.listen_port.getHost().port
+        return self.listen_port.getHost().port
 
     def sendDatagram(self, data):
         self.transport.write(data, self.remote_udp_address)
@@ -198,7 +198,8 @@ class Socks5Connection(Protocol):
             # to use to send UDP datagrams on for the association.  The server MAY use this information
             # to limit access to the association.
             self._udp_socket = SocksUDPConnection(self, request.destination)
-            ip, port = self._udp_socket.get_listen_port()
+            ip = self.transport.getHost().host
+            port = self._udp_socket.get_listen_port()
 
             self._logger.info("Accepting UDP ASSOCIATE request to %s:%d", ip, port)
 

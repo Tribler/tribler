@@ -83,7 +83,7 @@ class GUIUtility:
 
     def delInstance():
         with GUIUtility.__single_lock:
-            if GUIUtility.__single and GUIUtility.registered:
+            if GUIUtility.__single and GUIUtility.__single.registered:
                 GUIUtility.__single.listicon.delInstance()
                 GUIUtility.__single.library_manager.delInstance()
                 GUIUtility.__single.channelsearch_manager.delInstance()
