@@ -318,7 +318,6 @@ class TestGuiAsServer(TestAsServer):
                 for item in wx.GetTopLevelWindows():
                     if isinstance(item, wx.Dialog):
                         item.Destroy()
-                    item.Close()
 
             def do_quit():
                 self.app.ExitMainLoop()
