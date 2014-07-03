@@ -2269,17 +2269,17 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         elif vacuum:
             self._execute("VACUUM;")
 
+    @forceAndReturnDBThread
     def execute_write(self, sql, args=None):
         global _shouldCommit
-        if not _shouldCommit:
-            _shouldCommit = True
+        _shouldCommit = True
 
         self._execute(sql, args)
 
+    @forceAndReturnDBThread
     def executemany(self, sql, args):
         global _shouldCommit
-        if not _shouldCommit:
-            _shouldCommit = True
+        _shouldCommit = True
 
         return self._executemany(sql, args)
 
