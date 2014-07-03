@@ -327,9 +327,6 @@ class PeerDBHandler(BasicDBHandler):
 
         self.permid_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
 
-    def __len__(self):
-        return self.size()
-
     def getPeerID(self, permid):
         return self.getPeerIDS([permid, ])[0]
 
