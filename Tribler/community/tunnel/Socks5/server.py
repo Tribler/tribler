@@ -25,7 +25,11 @@ class SocksUDPConnection(DatagramProtocol):
     def __init__(self, socksconnection, remote_udp_address):
         self._logger = logging.getLogger(__name__)
         self.socksconnection = socksconnection
-        self.remote_udp_address = remote_udp_address
+
+        if remote_udp_address != ("0.0.0.0", 0):
+            self.remote_udp_address = remote_udp_address
+        else:
+            self.remote_udp_address = None
 
         self.listen_port = reactor.listenUDP(0, self)
 
@@ -33,9 +37,16 @@ class SocksUDPConnection(DatagramProtocol):
         return self.listen_port.getHost().port
 
     def sendDatagram(self, data):
-        self.transport.write(data, self.remote_udp_address)
+        if self.remote_udp_address:
+            self.transport.write(data, self.remote_udp_address)
+        else:
+            self._logger.error("cannot send data, no clue where to send it to")
 
     def datagramReceived(self, data, source):
+        # if remote_address was not set before, use first one
+        if self.remote_udp_address == None:
+            self.remote_udp_address = source
+
         if self.remote_udp_address == source:
             request = conversion.decode_udp_packet(data)
             if request.frag == 0:
