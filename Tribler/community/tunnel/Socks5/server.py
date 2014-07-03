@@ -248,11 +248,11 @@ class Socks5Connection(Protocol):
 
     def on_incoming_from_tunnel(self, community, circuit, origin, data):
         if circuit in self.destinations.values():
-
             self.destinations[origin] = circuit
 
-            socks5_data = conversion.encode_udp_packet(0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
-            self._udp_socket.sendDatagram(socks5_data)
+            if self._udp_socket:
+                socks5_data = conversion.encode_udp_packet(0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
+                self._udp_socket.sendDatagram(socks5_data)
             return True
         return False
 
