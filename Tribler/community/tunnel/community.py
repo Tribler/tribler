@@ -146,12 +146,8 @@ class TunnelCommunity(Community):
         self.crypto.initialize(self)
 
         self._dispersy.endpoint.listen_to(self.data_prefix, self.on_data)
-
-        self._pending_tasks["do_circuits"] = lc = LoopingCall(self.do_circuits)
-        lc.start(5, now=True)
-
-        self._pending_tasks["do_ping"] = lc = LoopingCall(self.do_ping)
-        lc.start(PING_INTERVAL)
+        self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
+        self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
         if session:
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -161,7 +157,7 @@ class TunnelCommunity(Community):
                 self.libtorrent_test = LibtorrentTest(self, session)
                 if not self.libtorrent_test.has_completed_before():
                     logger.debug("Scheduling Anonymous LibTorrent download")
-                    reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start))
+                    self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
 
         self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_port() \
                                                                 if session else self.settings.socks_listen_port)
