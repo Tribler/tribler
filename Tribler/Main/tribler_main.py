@@ -176,7 +176,7 @@ class ABCApp():
         self.utility = None
 
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
-
+        self.splash = None
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
@@ -328,6 +328,9 @@ class ABCApp():
             self.ready = True
 
         except Exception as e:
+            if self.splash:
+                self.splash.Destroy()
+
             self.onError(e)
 
     def PostInit2(self):
