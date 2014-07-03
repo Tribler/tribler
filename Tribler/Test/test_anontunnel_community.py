@@ -201,6 +201,18 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         self.sessions = []
         self.session2 = None
 
+    def quit(self):
+        if self.session2:
+            self._shutdown_session(self.session2)
+
+        for session in self.sessions:
+            self._shutdown_session(session)
+
+        self.session2 = None
+        self.sessions = []
+
+        TestGuiAsServer.quit(self)
+
     def tearDown(self):
         if self.session2:
             self._shutdown_session(self.session2)
