@@ -284,6 +284,7 @@ class Socks5Server(Factory):
         if self.twisted_port:
             for session in self.sessions:
                 session.close('stopping')
+            self.sessions = []
 
             self.twisted_port.stopListening()
             self.twisted_port = None
