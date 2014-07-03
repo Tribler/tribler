@@ -26,10 +26,12 @@ from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
+from threading import Lock
 
 
 class GUIUtility:
     __single = None
+    __single_lock = Lock()
 
     def __init__(self, utility=None, params=None, app=None):
         if GUIUtility.__single:
@@ -80,14 +82,15 @@ class GUIUtility:
     hasInstance = staticmethod(hasInstance)
 
     def delInstance():
-        if GUIUtility.__single:
-            GUIUtility.__single.listicon.delInstance()
-            GUIUtility.__single.library_manager.delInstance()
-            GUIUtility.__single.channelsearch_manager.delInstance()
-            GUIUtility.__single.torrentsearch_manager.delInstance()
-            GUIUtility.__single.torrentstate_manager.delInstance()
+        with GUIUtility.__single_lock:
+            if GUIUtility.__single and GUIUtility.registered:
+                GUIUtility.__single.listicon.delInstance()
+                GUIUtility.__single.library_manager.delInstance()
+                GUIUtility.__single.channelsearch_manager.delInstance()
+                GUIUtility.__single.torrentsearch_manager.delInstance()
+                GUIUtility.__single.torrentstate_manager.delInstance()
 
-        GUIUtility.__single = None
+            GUIUtility.__single = None
     delInstance = staticmethod(delInstance)
 
     def register(self):
