@@ -314,17 +314,19 @@ class TestGuiAsServer(TestAsServer):
             self.frame.OnCloseWindow()
 
         else:
-            for item in wx.GetTopLevelWindows():
-                if isinstance(item, wx.Dialog):
-                    item.Destroy()
-                item.Close()
+            def close_dialogs():
+                for item in wx.GetTopLevelWindows():
+                    if isinstance(item, wx.Dialog):
+                        item.Destroy()
+                    item.Close()
 
             def do_quit():
                 self.app.ExitMainLoop()
                 wx.WakeUpMainThread()
 
-            self.Call(1, do_quit)
-            self.Call(2.5, self.app.Exit)
+            self.Call(1, close_dialogs)
+            self.Call(2, do_quit)
+            self.Call(3, self.app.Exit)
 
         self.quitting = True
 
