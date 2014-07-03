@@ -161,7 +161,7 @@ class TunnelCommunity(Community):
                 self.libtorrent_test = LibtorrentTest(self, session)
                 if not self.libtorrent_test.has_completed_before():
                     logger.debug("Scheduling Anonymous LibTorrent download")
-                    reactor.callLater(60, self.libtorrent_test.start)
+                    reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start))
 
         self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_port() \
                                                                 if session else self.settings.socks_listen_port)
