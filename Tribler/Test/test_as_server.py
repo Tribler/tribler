@@ -219,6 +219,7 @@ class TestAsServer(AbstractServer):
     def quit(self):
         self.quitting = True
 
+
 class TestGuiAsServer(TestAsServer):
 
     """
@@ -311,7 +312,13 @@ class TestGuiAsServer(TestAsServer):
     def quit(self):
         if self.frame:
             self.frame.OnCloseWindow()
+
         else:
+            for item in wx.GetTopLevelWindows():
+                if isinstance(item, wx.Dialog):
+                    item.Destroy()
+                item.Close()
+
             def do_quit():
                 self.app.ExitMainLoop()
                 wx.WakeUpMainThread()
