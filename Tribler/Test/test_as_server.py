@@ -317,7 +317,12 @@ class TestGuiAsServer(TestAsServer):
             def close_dialogs():
                 for item in wx.GetTopLevelWindows():
                     if isinstance(item, wx.Dialog):
-                        item.Destroy()
+                        if item.IsModal():
+                            item.EndModal(wx.ID_CANCEL)
+                        else:
+                            item.Destroy()
+                    else:
+                        item.Close()
 
             def do_quit():
                 self.app.ExitMainLoop()
