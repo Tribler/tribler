@@ -35,11 +35,18 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.guiUtility.ShowPage('networkgraph')
 
             def do_asserts():
-                self.assert_(LibtorrentMgr.getInstance().ltsession_anon is not None, "Anon session should have been created", False)
                 self.assert_(len(tunnel_community.circuits) >= 4, "At least 4 circuits should have been created", False)
                 self.assert_(expected, reason, do_assert)
 
             self.Call(1, do_asserts)
+
+        def do_progress(download, start_time):
+            self.CallConditional(60,
+                lambda: download.get_progress() == 1.0,
+                lambda: take_screenshot(time.time() - start_time),
+                'Anonymous download should be finished in 150 seconds',
+                on_fail
+            )
 
         def do_create_local_torrent(_):
             torrentfilename = self.setupSeeder()
@@ -48,10 +55,10 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda : download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.CallConditional(150,
-                lambda: download.get_progress() == 1.0,
-                lambda: take_screenshot(time.time() - start_time),
-                'Anonymous download should be finished in 150 seconds',
+            self.CallConditional(60,
+                lambda: LibtorrentMgr.getInstance().ltsession_anon is not None,
+                lambda: do_progress(download, start_time),
+                'Anonymous session not created within 60s',
                 on_fail
             )
 

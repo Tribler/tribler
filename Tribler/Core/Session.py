@@ -224,10 +224,16 @@ class Session(SessionConfigInterface):
         """
         # locking by lm
         if cdef.get_def_type() == "torrent":
-            return self.lm.add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+            if self.get_libtorrent():
+                return self.lm.add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+            raise OperationNotEnabledByConfigurationException()
+
         else:
             # SWIFTPROC
-            return self.lm.swift_add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+            if self.get_swift_proc():
+                return self.lm.swift_add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+
+            raise OperationNotEnabledByConfigurationException()
 
     def resume_download_from_file(self, filename):
         """

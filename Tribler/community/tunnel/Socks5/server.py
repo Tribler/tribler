@@ -27,10 +27,10 @@ class SocksUDPConnection(DatagramProtocol):
         self.socksconnection = socksconnection
         self.remote_udp_address = remote_udp_address
 
-        self.listen_port = reactor.listenUDP(0, self).getHost().port
+        self.listen_port = reactor.listenUDP(0, self)
 
     def get_listen_port(self):
-        return "127.0.0.1", self.listen_port
+        return "127.0.0.1", self.listen_port.getHost().port
 
     def sendDatagram(self, data):
         self.transport.write(data, self.remote_udp_address)
@@ -51,6 +51,11 @@ class SocksUDPConnection(DatagramProtocol):
         else:
             self._logger.debug("Ignoring data from %s:%d, is not %s:%d", source[0], source[1], self.remote_udp_address[0], self.remote_udp_address[1])
 
+    def close(self):
+        if self.listen_port:
+            self.listen_port.stopListening()
+            self.listen_port = None
+
 class Socks5Connection(Protocol):
     """
     SOCKS5 TCP Connection handler
@@ -64,6 +69,7 @@ class Socks5Connection(Protocol):
         self.socksserver = socksserver
         self.selection_strategy = selection_strategy
 
+        self._udp_socket = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
         self.buffer = ''
 
@@ -243,6 +249,10 @@ class Socks5Connection(Protocol):
 
     def close(self, reason='unspecified'):
         self._logger.error("Closing session, reason %s", reason)
+        if self._udp_socket:
+            self._udp_socket.close()
+            self._udp_socket = None
+
         self.transport.loseConnection()
 
 class Socks5Server(Factory):
@@ -252,13 +262,19 @@ class Socks5Server(Factory):
 
         self.community = community
         self.socks5_port = socks5_port
+        self.twisted_port = None
         self.sessions = []
 
     def start(self):
-        reactor.listenTCP(self.socks5_port, self)
+        self.twisted_port = reactor.listenTCP(self.socks5_port, self)
 
     def stop(self):
-        self.stopFactory()
+        if self.twisted_port:
+            for session in self.sessions:
+                session.close('stopping')
+
+            self.twisted_port.stopListening()
+            self.twisted_port = None
 
     def buildProtocol(self, addr):
         socks5connection = Socks5Connection(self, self.community.selection_strategy)

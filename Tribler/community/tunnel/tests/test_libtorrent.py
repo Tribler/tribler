@@ -10,23 +10,17 @@ class LibtorrentTest(object):
     @param Tribler.Core.Session.Session tribler_session: The Tribler Session
     """
 
-    def __init__(self, proxy, tribler_session, delay):
+    def __init__(self, proxy, tribler_session):
         super(LibtorrentTest, self).__init__()
 
         self._logger = logging.getLogger(__name__)
         self.proxy = proxy
         self.tribler_session = tribler_session
-        self.delay = delay
-        self.tribler_session.lm.rawserver.add_task(self.schedule)
         self.download = None
         self.stopping = False
 
         self.download_started_at = None
         self.download_finished_at = None
-
-    def schedule(self):
-        self._logger.debug("Scheduling Anonymous LibTorrent download")
-        self.tribler_session.lm.rawserver.add_task(self.start, self.delay)
 
     def _mark_test_completed(self):
         filename = os.path.join(self.tribler_session.get_state_dir(), "anon_test.txt")
@@ -49,7 +43,7 @@ class LibtorrentTest(object):
 
             self.tribler_session.lm.rawserver.add_task(remove_download, delay=delay)
 
-    def _has_completed_before(self):
+    def has_completed_before(self):
         return os.path.isfile(os.path.join(self.tribler_session.get_state_dir(), "anon_test.txt"))
 
     def start(self):
@@ -86,7 +80,7 @@ class LibtorrentTest(object):
 
             return _callback
 
-        if self._has_completed_before():
+        if self.has_completed_before():
             self._logger.warning("Skipping Anon Test since it has been run before")
             return False
 
