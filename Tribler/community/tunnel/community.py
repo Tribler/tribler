@@ -79,7 +79,7 @@ class PingRequestCache(RandomNumberCache):
 class TunnelExitSocket(DatagramProtocol):
 
     def __init__(self, circuit_id, destination, community):
-        reactor.listenUDP(0, self)
+        self.port = reactor.listenUDP(0, self)
 
         self.destination = destination
         self.circuit_id = circuit_id
@@ -90,6 +90,11 @@ class TunnelExitSocket(DatagramProtocol):
 
     def datagramReceived(self, data, source):
         self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
+
+    def close(self):
+        if self.port:
+            self.port.stopListening()
+            self.port = None
 
 
 class TunnelSettings:
@@ -197,6 +202,9 @@ class TunnelCommunity(Community):
 
     def unload_community(self):
         self.socks_server.stop()
+        for exit_socket in self.exit_sockets.itervalues():
+            exit_socket.close()
+
         super(TunnelCommunity, self).unload_community()
 
     @property

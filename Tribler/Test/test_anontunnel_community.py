@@ -44,7 +44,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.CallConditional(60,
                 lambda: download.get_progress() == 1.0,
                 lambda: take_screenshot(time.time() - start_time),
-                'Anonymous download should be finished in 150 seconds',
+                'Anonymous download should be finished in 60 seconds',
                 on_fail
             )
 
@@ -58,7 +58,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.CallConditional(60,
                 lambda: LibtorrentMgr.getInstance().ltsession_anon is not None,
                 lambda: do_progress(download, start_time),
-                'Anonymous session not created within 60s',
+                'Anonymous session not created within 60 seconds',
                 on_fail
             )
 
