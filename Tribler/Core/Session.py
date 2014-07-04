@@ -150,7 +150,7 @@ class Session(SessionConfigInterface):
         self.get_swift_dht_listen_port()
 
         self.get_anon_listen_port()
-        self.get_proxy_community_socks5_listen_port()
+        self.get_tunnel_community_socks5_listen_port()
 
         # Create handler for calling back the user via separate threads
         self.uch = UserCallbackHandler(self)
