@@ -458,6 +458,9 @@ class ABCApp():
             from Tribler.community.anontunnel import exitstrategies
             from Tribler.community.anontunnel.Socks5.server import Socks5Server
 
+            # make sure this is only called once
+            session.remove_observer(define_communities)
+
             dispersy = session.get_dispersy_instance()
 
             self._logger.info("tribler: Preparing communities...")
