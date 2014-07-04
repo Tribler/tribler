@@ -89,76 +89,6 @@ class TriblerLaunchMany(Thread):
 
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
 
-            # SWIFTPROC
-            swift_exists = self.session.get_swift_proc() and (os.path.exists(self.session.get_swift_path()) or os.path.exists(self.session.get_swift_path() + '.exe'))
-            if swift_exists:
-                from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
-
-                self.spm = SwiftProcessMgr(self.session.get_swift_path(), self.session.get_swift_tunnel_cmdgw_listen_port(), self.session.get_swift_downloads_per_process(), self.session.get_swift_tunnel_listen_port(), self.sesslock)
-                try:
-                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
-                    self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
-
-                except OSError, (ErrorNumber, ErrorMessage):
-                    # could not find/run swift
-                    self._logger.error("lmc: could not start a swift process (Err#%s: %s)" % (ErrorNumber, ErrorMessage))
-
-            else:
-                self.spm = None
-                self.swift_process = None
-
-            # Dispersy
-            self.session.dispersy_member = None
-            if self.session.get_dispersy():
-                from Tribler.dispersy.dispersy import Dispersy
-                from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
-                from Tribler.dispersy.community import HardKilledCommunity
-
-                self._logger.info("lmc: Starting Dispersy...")
-                now = timemod.time()
-
-                # set communication endpoint
-                if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
-                    endpoint = DispersyTunnelBypassEndpoint(self.swift_process)
-                else:
-                    endpoint = DispersyBypassEndpoint(self.rawserver, self.session.get_dispersy_port())
-
-                working_directory = unicode(self.session.get_state_dir())
-
-                self.dispersy = Dispersy(endpoint, working_directory, crypto=ElgamalCrypto())
-
-                # TODO(emilon): move this to init() now that we use the reactor
-                # TODO: see if we can postpone dispersy.start to improve GUI responsiveness.
-                # However, for now we must start self.dispersy.callback before running
-                # try_register(nocachedb, self.database_thread)!
-
-                success = self.dispersy.start()
-
-                # for debugging purpose
-                # from Tribler.dispersy.endpoint import NullEndpoint
-                # self.dispersy._endpoint = NullEndpoint()
-                # self.dispersy._endpoint.open(self.dispersy)
-
-                diff = timemod.time() - now
-                if success:
-                    self._logger.info("lmc: Dispersy started successfully in %.2f seconds [port: %d]", diff, self.dispersy.wan_address[1])
-                else:
-                    self._logger.info("lmc: Dispersy failed to start in %.2f seconds", diff)
-
-                self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
-
-
-                from Tribler.Core.permid import read_keypair
-                keypair = read_keypair(self.session.get_permid_keypair_filename())
-                self.session.dispersy_member = blockingCallFromThread(reactor, self.dispersy.get_member,
-                                             private_key=self.dispersy.crypto.key_to_bin(keypair))
-
-                blockingCallFromThread(reactor, self.dispersy.define_auto_load, HardKilledCommunity,
-                                       self.session.dispersy_member, load=True)
-
-                # notify dispersy finished loading
-                self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
-
             # TODO(emilon): move this to a megacache component or smth
             if self.session.get_megacache():
                 import Tribler.Core.CacheDB.sqlitecachedb as cachedb
@@ -201,11 +131,71 @@ class TriblerLaunchMany(Thread):
             if self.session.get_videoplayer():
                 self.videoplayer = VideoPlayer(self.session)
 
+            # SWIFTPROC
+            swift_exists = self.session.get_swift_proc() and (os.path.exists(self.session.get_swift_path()) or os.path.exists(self.session.get_swift_path() + '.exe'))
+            if swift_exists:
+                from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
+
+                self.spm = SwiftProcessMgr(self.session.get_swift_path(), self.session.get_swift_tunnel_cmdgw_listen_port(), self.session.get_swift_downloads_per_process(), self.session.get_swift_tunnel_listen_port(), self.sesslock)
+                try:
+                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
+                    self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
+
+                except OSError, (ErrorNumber, ErrorMessage):
+                    # could not find/run swift
+                    self._logger.error("lmc: could not start a swift process (Err#%s: %s)" % (ErrorNumber, ErrorMessage))
+
+            else:
+                self.spm = None
+                self.swift_process = None
+
+            # Dispersy
+            self.session.dispersy_member = None
+            if self.session.get_dispersy():
+                from Tribler.dispersy.dispersy import Dispersy
+
+                # set communication endpoint
+                if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
+                    endpoint = DispersyTunnelBypassEndpoint(self.swift_process)
+                else:
+                    endpoint = DispersyBypassEndpoint(self.rawserver, self.session.get_dispersy_port())
+
+                working_directory = unicode(self.session.get_state_dir())
+                self.dispersy = Dispersy(endpoint, working_directory, crypto=ElgamalCrypto())
+
             self.mainline_dht = None
             self.ltmgr = None
             self.torrent_checking = None
 
     def init(self):
+        if self.dispersy:
+            from Tribler.dispersy.community import HardKilledCommunity
+
+            self._logger.info("lmc: Starting Dispersy...")
+
+            now = timemod.time()
+            success = self.dispersy.start()
+
+            diff = timemod.time() - now
+            if success:
+                self._logger.info("lmc: Dispersy started successfully in %.2f seconds [port: %d]", diff, self.dispersy.wan_address[1])
+            else:
+                self._logger.info("lmc: Dispersy failed to start in %.2f seconds", diff)
+
+            self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
+
+
+            from Tribler.Core.permid import read_keypair
+            keypair = read_keypair(self.session.get_permid_keypair_filename())
+            self.session.dispersy_member = blockingCallFromThread(reactor, self.dispersy.get_member,
+                                         private_key=self.dispersy.crypto.key_to_bin(keypair))
+
+            blockingCallFromThread(reactor, self.dispersy.define_auto_load, HardKilledCommunity,
+                                   self.session.dispersy_member, load=True)
+
+            # notify dispersy finished loading
+            self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
+
         if self.spm:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             try:
