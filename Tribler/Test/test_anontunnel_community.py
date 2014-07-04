@@ -116,6 +116,8 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             for community in self.lm.dispersy.get_communities():
                 if isinstance(community, TunnelCommunity):
                     tunnel_communities.append(community)
+                    # Cancel 50 MB test download
+                    community.cancel_pending_task("start_test")
 
             candidates = []
             for session in self.sessions:
