@@ -96,7 +96,7 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT
     STATEDIR_SWIFTRESEED_DIR, \
     dlstatus_strings, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, \
-    DLSTATUS_SEEDING, DLSTATUS_STOPPED
+    DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -442,12 +442,12 @@ class ABCApp():
         if not self.sconfig.get_swift_meta_dir():
             self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
+
         progress('Creating session/Checking database (may take a minute)')
         session = Session(self.sconfig)
-        session.start()
 
         @call_on_reactor_thread
-        def define_communities(dispersy):
+        def define_communities(*args):
             assert isInIOThread()
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
@@ -457,6 +457,8 @@ class ABCApp():
             from Tribler.community.anontunnel.community import ProxyCommunity
             from Tribler.community.anontunnel import exitstrategies
             from Tribler.community.anontunnel.Socks5.server import Socks5Server
+
+            dispersy = session.get_dispersy_instance()
 
             self._logger.info("tribler: Preparing communities...")
             now = time()
@@ -469,16 +471,6 @@ class ABCApp():
 
             # load metadata community
             dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True)
-
-            # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
-            # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
-            # their version before enabling it again.
-            # if swift_process:
-            #     dispersy.define_auto_load(BarterCommunity,
-            #                               s.dispersy_member,
-            #                               (swift_process,),
-            #                               load=True)
-
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member)
 
@@ -502,10 +494,9 @@ class ABCApp():
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
+        session.add_observer(define_communities, NTFY_DISPERSY, [NTFY_STARTED])
+        session.start()
 
-        swift_process = session.get_swift_proc() and session.get_swift_process()
-        dispersy = session.get_dispersy_instance()
-        define_communities(session.get_dispersy_instance())
         return session
 
     @staticmethod

@@ -136,6 +136,25 @@ class Session(SessionConfigInterface):
 
         self.selected_ports = scfg.selected_ports
 
+        # Claim all random ports
+        self.get_listen_port()
+        self.get_dispersy_port()
+        self.get_mainline_dht_listen_port()
+        self.get_videoplayer_port()
+
+        self.get_swift_tunnel_listen_port()
+        self.get_swift_tunnel_cmdgw_listen_port()
+        self.get_swift_tunnel_httpgw_listen_port()
+
+        self.get_swift_cmd_listen_port()
+        self.get_swift_dht_listen_port()
+
+        self.get_anon_listen_port()
+        self.get_proxy_community_socks5_listen_port()
+
+        # Create handler for calling back the user via separate threads
+        self.uch = UserCallbackHandler(self)
+
         # Checkpoint startup config
         self.save_pstate_sessconfig()
 
@@ -438,9 +457,6 @@ class Session(SessionConfigInterface):
 
     def start(self):
         """ Create the LaunchManyCore instance and start it"""
-
-        # Create handler for calling back the user via separate threads
-        self.uch = UserCallbackHandler(self)
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany()
