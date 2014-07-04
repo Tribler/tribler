@@ -660,7 +660,12 @@ class TriblerLaunchMany(Thread):
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
             now = timemod.time()
-            success = self.dispersy.stop()
+            try:
+                success = self.dispersy.stop()
+            except:
+                print_exc()
+                success = False
+                
             diff = timemod.time() - now
             if success:
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
