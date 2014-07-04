@@ -154,6 +154,7 @@ class Session(SessionConfigInterface):
 
         # Create handler for calling back the user via separate threads
         self.uch = UserCallbackHandler(self)
+        self.lm = None
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
