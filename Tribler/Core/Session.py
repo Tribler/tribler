@@ -150,7 +150,7 @@ class Session(SessionConfigInterface):
         self.get_swift_dht_listen_port()
 
         self.get_anon_listen_port()
-        self.get_proxy_community_socks5_listen_port()
+        self.get_tunnel_community_socks5_listen_port()
 
         # Create handler for calling back the user via separate threads
         self.uch = UserCallbackHandler(self)
@@ -224,10 +224,16 @@ class Session(SessionConfigInterface):
         """
         # locking by lm
         if cdef.get_def_type() == "torrent":
-            return self.lm.add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+            if self.get_libtorrent():
+                return self.lm.add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+            raise OperationNotEnabledByConfigurationException()
+
         else:
             # SWIFTPROC
-            return self.lm.swift_add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+            if self.get_swift_proc():
+                return self.lm.swift_add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+
+            raise OperationNotEnabledByConfigurationException()
 
     def resume_download_from_file(self, filename):
         """
@@ -559,6 +565,12 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         return self.lm.swift_process
+
+    def get_libtorrent_process(self):
+        if not self.get_libtorrent():
+            raise OperationNotEnabledByConfigurationException()
+
+        return self.lm.ltmgr
 
     #
     # Internal persistence methods

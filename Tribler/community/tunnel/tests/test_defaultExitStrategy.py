@@ -2,10 +2,10 @@ from threading import Event
 from unittest import TestCase
 from mock import Mock
 from Tribler.Core.RawServer.RawServer import RawServer
-from Tribler.community.anontunnel.exitsocket import ShortCircuitExitSocket, TunnelExitSocket
-from Tribler.community.anontunnel.exitstrategies import DefaultExitStrategy
-from Tribler.community.anontunnel.payload import DataMessage
-from Tribler.community.anontunnel.routing import Circuit, Hop
+from Tribler.community.tunnel.exitsocket import ShortCircuitExitSocket, TunnelExitSocket
+from Tribler.community.tunnel.exitstrategies import DefaultExitStrategy
+from Tribler.community.tunnel.payload import DataMessage
+from Tribler.community.tunnel.routing import Circuit, Hop
 
 __author__ = 'Chris'
 

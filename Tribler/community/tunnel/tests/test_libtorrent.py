@@ -1,36 +1,29 @@
 import logging
 import os
 import time
-from Tribler.community.anontunnel.events import TunnelObserver
 import shutil
 
 
-class LibtorrentTest(TunnelObserver):
+class LibtorrentTest(object):
     """
     @param ProxyCommunity proxy : The proxy community instance
     @param Tribler.Core.Session.Session tribler_session: The Tribler Session
     """
 
-    def __init__(self, proxy, tribler_session, delay):
+    def __init__(self, proxy, tribler_session):
         super(LibtorrentTest, self).__init__()
 
         self._logger = logging.getLogger(__name__)
         self.proxy = proxy
         self.tribler_session = tribler_session
-        self.delay = delay
-        self.tribler_session.lm.rawserver.add_task(self.schedule)
         self.download = None
         self.stopping = False
 
         self.download_started_at = None
         self.download_finished_at = None
 
-    def schedule(self):
-        self._logger.debug("Scheduling Anonymous LibTorrent download")
-        self.tribler_session.lm.rawserver.add_task(self.start, self.delay)
-
     def _mark_test_completed(self):
-        filename = self.tribler_session.get_state_dir() + "/anon_test.txt"
+        filename = os.path.join(self.tribler_session.get_state_dir(), "anon_test.txt")
         handle = open(filename, "w")
 
         try:
@@ -50,11 +43,10 @@ class LibtorrentTest(TunnelObserver):
 
             self.tribler_session.lm.rawserver.add_task(remove_download, delay=delay)
 
-    def _has_completed_before(self):
-        return os.path.isfile(self.tribler_session.get_state_dir() + "/anon_test.txt")
+    def has_completed_before(self):
+        return os.path.isfile(os.path.join(self.tribler_session.get_state_dir(), "anon_test.txt"))
 
     def start(self):
-        from Tribler.community.anontunnel.stats import StatsCollector
         import wx
         from Tribler.Core.TorrentDef import TorrentDef
         from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
@@ -69,8 +61,6 @@ class LibtorrentTest(TunnelObserver):
             wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
         def state_call():
-            stats_collector = StatsCollector(self.proxy, "AnonTest")
-
             def _callback(ds):
                 if self.stopping:
                     return 1.0, False
@@ -78,22 +68,9 @@ class LibtorrentTest(TunnelObserver):
                 if ds.get_status() == DLSTATUS_DOWNLOADING:
                     if not self.download_started_at:
                         self.download_started_at = time.time()
-                        stats_collector.start()
-
-                    stats_collector.download_stats = {
-                        'size': ds.get_progress() * ds.get_length(),
-                        'download_time': time.time() - self.download_started_at
-                    }
 
                 elif ds.get_status() == DLSTATUS_SEEDING and self.download_started_at and not self.download_finished_at:
                     self.download_finished_at = time.time()
-                    stats_collector.download_stats = {
-                        'size': ds.get_length(),
-                        'download_time': self.download_finished_at - self.download_started_at
-                    }
-
-                    stats_collector.share_stats()
-                    stats_collector.stop()
                     self.stop(5.0)
 
                     self._mark_test_completed()
@@ -103,7 +80,7 @@ class LibtorrentTest(TunnelObserver):
 
             return _callback
 
-        if self._has_completed_before():
+        if self.has_completed_before():
             self._logger.warning("Skipping Anon Test since it has been run before")
             return False
 

@@ -57,9 +57,9 @@ sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
 sessdefaults['general']['live_aux_seeders'] = []
 
-# Proxy community section
-sessdefaults['proxy_community'] = OrderedDict()
-sessdefaults['proxy_community']['socks5_listen_port'] = -1
+# Tunnel community section
+sessdefaults['tunnel_community'] = OrderedDict()
+sessdefaults['tunnel_community']['socks5_listen_port'] = -1
 
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()

@@ -19,9 +19,8 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
 from Tribler.dispersy.taskmanager import TaskManager
-from Tribler.dispersy.util import call_on_reactor_thread, blockingCallFromThread
-
-
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, \
+    call_on_reactor_thread
 
 # support_version = (3,5,9)
 # support_version = (3,3,13)
@@ -2221,46 +2220,9 @@ CREATE TABLE MetadataData (
 
 _shouldCommit = False
 
-def onDBThread():
-    return isInIOThread()
-
-
-def forceDBThread(func):
-    def invoke_func(*args, **kwargs):
-        if not onDBThread():
-            if TRHEADING_DEBUG:
-                stack = inspect.stack()
-                callerstr = ""
-                for i in range(1, min(10, len(stack))):
-                    caller = stack[i]
-                    callerstr += "%s %s:%s " % (caller[3], caller[1], caller[2])
-                logger.info("%d SWITCHING TO DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-
-            reactor.callFromThread(func, *args, **kwargs)
-        else:
-            func(*args, **kwargs)
-
-    invoke_func.__name__ = func.__name__
-    return invoke_func
-
-def forceAndReturnDBThread(func):
-    def invoke_func(*args, **kwargs):
-        if not onDBThread():
-            if TRHEADING_DEBUG:
-                stack = inspect.stack()
-                callerstr = ""
-                for i in range(1, min(10, len(stack))):
-                    caller = stack[i]
-                    callerstr += "%s %s:%s" % (caller[3], caller[1], caller[2])
-                logger.error("%d BLOCKING ON DBTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-
-            return blockingCallFromThread(reactor, func, *args, **kwargs)
-        else:
-            return func(*args, **kwargs)
-
-    invoke_func.__name__ = func.__name__
-    return invoke_func
-
+onDBThread = isInIOThread
+forceDBThread = call_on_reactor_thread
+forceAndReturnDBThread = blocking_call_on_reactor_thread
 
 class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
@@ -2307,17 +2269,17 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         elif vacuum:
             self._execute("VACUUM;")
 
+    @forceAndReturnDBThread
     def execute_write(self, sql, args=None):
         global _shouldCommit
-        if not _shouldCommit:
-            _shouldCommit = True
+        _shouldCommit = True
 
         self._execute(sql, args)
 
+    @forceAndReturnDBThread
     def executemany(self, sql, args):
         global _shouldCommit
-        if not _shouldCommit:
-            _shouldCommit = True
+        _shouldCommit = True
 
         return self._executemany(sql, args)
 

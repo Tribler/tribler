@@ -8,8 +8,8 @@ import threading
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
-from Tribler.community.anontunnel.community import ProxyCommunity
-from Tribler.community.anontunnel.routing import Hop
+from Tribler.community.tunnel.community import TunnelCommunity
+from Tribler.community.tunnel.routing import Hop
 
 import random
 import logging
@@ -598,29 +598,30 @@ class NetworkGraphPanel(wx.Panel):
 
         self.AddComponents()
 
-        self.try_proxy()
+        self.try_community()
 
-    def try_proxy(self):
+    def try_community(self):
         try:
-            proxy_community = (c for c in self.dispersy.get_communities() if isinstance(c, ProxyCommunity)).next()
-            self.found_proxy(proxy_community)
+            tunnel_community = (c for c in self.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
+            self.found_community(tunnel_community)
         except:
-            wx.CallLater(1000, self.try_proxy)
+            wx.CallLater(1000, self.try_community)
 
-    def found_proxy(self, proxy_community):
-        self.proxy_community = proxy_community
+    def found_community(self, tunnel_community):
+        self.tunnel_community = tunnel_community
 
-        self.my_address = Hop(self.proxy_community.my_member._ec.pub())
+        self.my_address = Hop(self.tunnel_community.my_member._ec.pub())
         self.my_address.address = ('127.0.0.1', "SELF")
 
         self.circuit_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnUpdateCircuits, self.circuit_timer)
         self.circuit_timer.Start(5000)
 
-        self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
-        self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
-        self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
-        self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
+        if self.fullscreen:
+            self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
+            self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
+            self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
+            self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
 
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
@@ -640,13 +641,15 @@ class NetworkGraphPanel(wx.Panel):
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemSelected)
         self.circuit_to_listindex = {}
 
-        self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
-        self.log_text.SetEditable(False)
-        self.log_text.Show(self.fullscreen)
+        if self.fullscreen:
+            self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
+            self.log_text.SetEditable(False)
+            self.log_text.Show(self.fullscreen)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 0)
-        self.vSizer.Add(self.log_text, 1, wx.EXPAND)
+        if self.fullscreen:
+            self.vSizer.Add(self.log_text, 1, wx.EXPAND | wx.TOP, 10)
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
         self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 10)
@@ -672,9 +675,8 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Refresh()
 
     def OnUpdateCircuits(self, event):
-        new_circuits = dict(self.proxy_community.circuits)
+        new_circuits = dict(self.tunnel_community.circuits)
         self.circuits = new_circuits
-        stats = self.proxy_community.global_stats.circuit_stats
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -686,8 +688,8 @@ class NetworkGraphPanel(wx.Panel):
             self.circuit_list.SetStringItem(pos, 1, str(circuit.state))
             self.circuit_list.SetStringItem(pos, 2, str(len(circuit.hops)) + "/" + str(circuit.goal_hops))
 
-            bytes_uploaded = stats[circuit_id].bytes_uploaded
-            bytes_downloaded = stats[circuit_id].bytes_downloaded
+            bytes_uploaded = circuit.bytes_up
+            bytes_downloaded = circuit.bytes_down
 
             self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(bytes_uploaded))
             self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(bytes_downloaded))
@@ -701,6 +703,8 @@ class NetworkGraphPanel(wx.Panel):
             for k, v in self.circuit_to_listindex.items():
                 if v > listindex:
                     self.circuit_to_listindex[k] = v - 1
+
+        self.graph_panel.Refresh()
 
     def AppendToLog(self, msg):
         self.log_text.AppendText('[%s]: %s' % (datetime.datetime.now().strftime("%H:%M:%S"), msg))

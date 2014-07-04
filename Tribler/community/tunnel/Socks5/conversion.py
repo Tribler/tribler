@@ -89,7 +89,7 @@ def decode_methods_request(offset, data):
     if len(data) - offset < 2:
         return offset, None
 
-    (version, number_of_methods) = struct.unpack_from("BB", data, offset)
+    (version, number_of_methods) = struct.unpack_from("!BB", data, offset)
 
     # We only know how to handle Socks5 protocol
     if not version == SOCKS_VERSION:
@@ -99,7 +99,7 @@ def decode_methods_request(offset, data):
 
     methods = set([])
     for i in range(number_of_methods):
-        method, = struct.unpack_from("B", data, offset)
+        method, = struct.unpack_from("!B", data, offset)
         methods.add(method)
         offset += 1
 
@@ -114,7 +114,7 @@ def encode_method_selection_message(version, method):
     @return: the serialised format
     @rtype: str
     """
-    return struct.pack("BB", version, method)
+    return struct.pack("!BB", version, method)
 
 
 def __encode_address(address_type, address):
@@ -123,7 +123,7 @@ def __encode_address(address_type, address):
     elif address_type == ADDRESS_TYP_IPV6:
         raise ValueError("IPv6 not implemented")
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
-        data = struct.pack("B", len(address)) + address
+        data = struct.pack("!B", len(address)) + address
     else:
         raise ValueError(
             "address_type must be either IPv4, IPv6 or a domain name")
@@ -136,7 +136,7 @@ def __decode_address(address_type, offset, data):
         destination_address = socket.inet_ntoa(data[offset:offset + 4])
         offset += 4
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
-        domain_length, = struct.unpack_from("B", data, offset)
+        domain_length, = struct.unpack_from("!B", data, offset)
         offset += 1
         destination_address = data[offset:offset + domain_length]
         offset += domain_length
@@ -162,10 +162,10 @@ def decode_request(orig_offset, data):
     if len(data) - offset < 4:
         return orig_offset, None
 
-    version, cmd, rsv, address_type = struct.unpack_from("BBBB", data, offset)
+    version, cmd, rsv, address_type = struct.unpack_from("!BBBB", data, offset)
     offset += 4
 
-    assert version == SOCKS_VERSION
+    assert version == SOCKS_VERSION, (version, SOCKS_VERSION)
     assert rsv == 0
 
     offset, destination_address = __decode_address(address_type, offset, data)

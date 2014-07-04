@@ -176,7 +176,7 @@ class ABCApp():
         self.utility = None
 
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
-
+        self.splash = None
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
@@ -328,6 +328,9 @@ class ABCApp():
             self.ready = True
 
         except Exception as e:
+            if self.splash:
+                self.splash.Destroy()
+
             self.onError(e)
 
     def PostInit2(self):
@@ -454,9 +457,8 @@ class ABCApp():
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
-            from Tribler.community.anontunnel.community import ProxyCommunity
-            from Tribler.community.anontunnel import exitstrategies
-            from Tribler.community.anontunnel.Socks5.server import Socks5Server
+            from Tribler.community.tunnel.community import TunnelCommunity
+            from Tribler.community.tunnel.Socks5.server import Socks5Server
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -483,15 +485,10 @@ class ABCApp():
                     private_key=dispersy.crypto.key_to_bin(keypair),
                 )
 
-                proxy_community = dispersy.define_auto_load(ProxyCommunity, dispersy_member, load=True,
-                                                        kargs={'tribler_session': session})[0]
+                dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
+                                          kargs={'session': session})[0]
 
-                socks_server = Socks5Server(proxy_community, session.lm.rawserver, session.get_proxy_community_socks5_listen_port())
-                socks_server.start()
-                exit_strategy = exitstrategies.DefaultExitStrategy(session.lm.rawserver, proxy_community)
-                proxy_community.observers.append(exit_strategy)
-
-                session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_proxy_community_socks5_listen_port()))
+                session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_port()))
 
 
             diff = time() - now

@@ -96,6 +96,8 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
 
     if 'url-compat' in input:
         metainfo['info']['url-compat'] = input['url-compat']
+    if 'private' in input:
+        metainfo['info']['private'] = input['private']
 
     # Arno, 2010-03-02:
     # Theoretically should go into 'info' field, to get infohash protection

@@ -1,7 +1,7 @@
 import threading
 from unittest import TestCase
 from Tribler.Core.RawServer.RawServer import RawServer
-from Tribler.community.anontunnel.endpoint import DispersyBypassEndpoint
+from Tribler.community.tunnel.endpoint import DispersyBypassEndpoint
 
 __author__ = 'chris'
 

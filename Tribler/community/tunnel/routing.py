@@ -1,13 +1,10 @@
-import hashlib
+import time
 import logging
 import threading
-import time
+
 from M2Crypto.EC import EC_pub
 
-from Tribler.community.anontunnel.events import TunnelObserver
-from Tribler.community.anontunnel.globals import CIRCUIT_STATE_READY, \
-    CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, PING_INTERVAL
-from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, Candidate
+from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
 
 __author__ = 'chris'
 
@@ -18,16 +15,16 @@ class Circuit:
     def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None):
         """
         Instantiate a new Circuit data structure
-        :type proxy: ProxyCommunity
+        :type proxy: TunnelCommunity
         :param int circuit_id: the id of the candidate circuit
         :param (str, int) first_hop: the first hop of the circuit
         :return: Circuit
         """
 
-        from Tribler.community.anontunnel.community import ProxyCommunity
+        from Tribler.community.tunnel.community import TunnelCommunity
         assert isinstance(circuit_id, long)
         assert isinstance(goal_hops, int)
-        assert proxy is None or isinstance(proxy, ProxyCommunity)
+        assert proxy is None or isinstance(proxy, TunnelCommunity)
         assert first_hop is None or isinstance(first_hop, tuple) and isinstance(first_hop[0], basestring) and isinstance(first_hop[1], int)
 
         self._broken = False
@@ -37,13 +34,11 @@ class Circuit:
         self.circuit_id = circuit_id
         self.first_hop = first_hop
         self.goal_hops = goal_hops
-        self.extend_strategy = None
         self.last_incoming = time.time()
+        self.unverified_hop = None
+        self.bytes_up = self.bytes_down = 0
 
         self.proxy = proxy
-
-        self.unverified_hop = None
-        ''' :type : Hop '''
 
     @property
     def hops(self):
@@ -115,7 +110,7 @@ class Hop:
 
         assert public_key is None or isinstance(public_key, EC_pub)
 
-        self.session_key = None
+        self.session_keys = None
         self.dh_first_part = None
         self.dh_secret = None
         self.address = None
@@ -157,75 +152,3 @@ class RelayRoute(object):
         self.circuit_id = circuit_id
         self.online = False
         self.last_incoming = time.time()
-
-
-class CircuitPool(TunnelObserver):
-    def __init__(self, size, name):
-        super(CircuitPool, self).__init__()
-
-        self._logger = logging.getLogger(__name__)
-        self._logger.warning("Creating a circuit pool of size %d with name '%s'", size, name)
-
-        self.lock = threading.RLock()
-        self.size = size
-        self.circuits = set()
-        self.allocated_circuits = set()
-        self.name = name
-
-        self.observers = []
-
-    def on_break_circuit(self, circuit):
-        if circuit in self.circuits:
-            self.remove_circuit(circuit)
-
-    @property
-    def lacking(self):
-        return max(0, self.size - len(self.circuits))
-
-    @property
-    def available_circuits(self):
-        return [circuit
-                for circuit in self.circuits
-                if circuit not in self.allocated_circuits]
-
-    def remove_circuit(self, circuit):
-        self._logger.warning("Removing circuit %d from pool '%s'", circuit.circuit_id, self.name)
-        with self.lock:
-            if circuit in self.allocated_circuits:
-                self.allocated_circuits.remove(circuit)
-
-            self.circuits.remove(circuit)
-
-    def fill(self, circuit):
-        self._logger.warning("Adding circuit %d to pool '%s'", circuit.circuit_id, self.name)
-
-        with self.lock:
-            self.circuits.add(circuit)
-            for observer in self.observers:
-                observer.on_circuit_added(self, circuit)
-
-    def deallocate(self, circuit):
-        self._logger.warning("Deallocate circuit %d from pool '%s'", circuit.circuit_id, self.name)
-
-        with self.lock:
-            self.allocated_circuits.remove(circuit)
-
-    def allocate(self):
-        with self.lock:
-            try:
-                circuit = next((c for c in self.circuits if c not in self.allocated_circuits))
-                self.allocated_circuits.add(circuit)
-                self._logger.warning("Allocate circuit %d from pool %s", circuit.circuit_id, self.name)
-
-                return circuit
-
-            except StopIteration:
-                if not self.lacking:
-                    self._logger.warning("Growing size of pool %s from %d to %d", self.name, self.size, self.size*2)
-                    self.size *= 2
-
-                raise NotEnoughCircuitsException()
-
-
-class NotEnoughCircuitsException(Exception):
-    pass

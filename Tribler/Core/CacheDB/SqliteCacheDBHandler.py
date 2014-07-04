@@ -94,12 +94,11 @@ class BasicDBHandler(TaskManager):
 
     @classmethod
     def delInstance(cls):
-        if cls._single:
-            # cancel all pending tasks
-            cls._single.cancel_all_pending_tasks()
-
         with cls._singleton_lock:
-            cls._single = None
+            if cls._single:
+                # cancel all pending tasks
+                cls._single.cancel_all_pending_tasks()
+                cls._single = None
 
     @classmethod
     def hasInstance(cls):
@@ -327,9 +326,6 @@ class PeerDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, db, 'Peer')
 
         self.permid_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
-
-    def __len__(self):
-        return self.size()
 
     def getPeerID(self, permid):
         return self.getPeerIDS([permid, ])[0]

@@ -89,7 +89,7 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
             # Android doesn't have wx, use PIL instead
             if is_android():
                 def GetImageData():
-                    import Image  #PIL
+                    import Image  # PIL
 
                     im = Image.open(outputfile)
                     return list(im.getdata())
@@ -104,9 +104,12 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
                     for index in range(0, len(wxstr), 3):
                         pxls.append(tuple(map(ord, wxstr[index:index + 3])))
                     return pxls
-            results.append((colourfulness(GetImageData()), timecode))
-            if os.path.exists(outputfile):
-                os.remove(outputfile)
+
+            this_colour = colourfulness(GetImageData())
+            if this_colour != None:
+                results.append((this_colour, timecode))
+                if os.path.exists(outputfile):
+                    os.remove(outputfile)
 
     results.sort()
     results.reverse()
@@ -115,23 +118,24 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
 
 
 def colourfulness(image_data):
-    rg_values = []
-    yb_values = []
+    if image_data:
+        rg_values = []
+        yb_values = []
 
-    for pxl in image_data:
-        r, g, b = pxl
-        rg = r - g
-        yb = 0.5 * (r + g) - b
-        rg_values.append(rg)
-        yb_values.append(yb)
+        for pxl in image_data:
+            r, g, b = pxl
+            rg = r - g
+            yb = 0.5 * (r + g) - b
+            rg_values.append(rg)
+            yb_values.append(yb)
 
-    s_rg, m_rg = meanstdv(rg_values)
-    s_yb, m_yb = meanstdv(yb_values)
+        s_rg, m_rg = meanstdv(rg_values)
+        s_yb, m_yb = meanstdv(yb_values)
 
-    s_rgyb = sqrt(s_rg ** 2 + s_yb ** 2)
-    m_rgyb = sqrt(m_rg ** 2 + m_yb ** 2)
+        s_rgyb = sqrt(s_rg ** 2 + s_yb ** 2)
+        m_rgyb = sqrt(m_rg ** 2 + m_yb ** 2)
 
-    return s_rgyb + 0.3 * m_rgyb
+        return s_rgyb + 0.3 * m_rgyb
 
 
 # Source: http://www.physics.rutgers.edu/~masud/computing/WPark_recipes_in_python.html

@@ -1,19 +1,19 @@
 import logging.config
 import os
 import random
-import time
-
 from mock import Mock
-
+import time
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.community.anontunnel import exitstrategies
-from Tribler.community.anontunnel.community import ProxyCommunity, ProxySettings
-from Tribler.community.anontunnel.crypto import DefaultCrypto
-from Tribler.community.anontunnel.payload import CreateMessage, ExtendMessage, CreatedMessage
-from Tribler.community.anontunnel.routing import Circuit, Hop
+from Tribler.community.tunnel import exitstrategies
+from Tribler.community.tunnel.community import ProxyCommunity, ProxySettings
+from Tribler.community.tunnel.crypto import NoCrypto, DefaultCrypto
+from Tribler.community.tunnel.payload import CreateMessage, ExtendMessage, CreatedMessage
+from Tribler.community.tunnel.routing import Circuit, Hop
+from Tribler.community.privatesemantic.conversion import long_to_bytes
 from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
 from Tribler.dispersy.endpoint import NullEndpoint
 
+from twisted.internet.threads import blockingCallFromThread
 
 logging.config.fileConfig(
     os.path.dirname(os.path.realpath(__file__)) + "/../logger.conf")

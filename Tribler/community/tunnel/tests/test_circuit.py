@@ -1,8 +1,9 @@
-from unittest import TestCase
 import time
-from Tribler.community.anontunnel.globals import CIRCUIT_STATE_EXTENDING, \
-    CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN
-from Tribler.community.anontunnel.routing import Circuit, Hop
+
+from unittest import TestCase
+
+from Tribler.community.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN
+from Tribler.community.tunnel.routing import Circuit, Hop
 from Tribler.dispersy.candidate import Candidate
 
 __author__ = 'chris'
