@@ -89,9 +89,6 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
     def _fillRequiredSection(self, st):
         # Version and other miscellaneous information
         try:
-            guiUtility = GUIUtility.getInstance()
-            utility = guiUtility.utility
-
             self.text.AppendText('%s version: %s\n' % ('Tribler', version_id))
         except:
             pass
