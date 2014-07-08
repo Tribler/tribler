@@ -675,7 +675,7 @@ class SelectedChannelList(GenericSearchList):
         self.GetManager().do_or_schedule_refresh()
 
     @warnWxThread
-    def Select(self, key, raise_event=True):
+    def Select(self, key, raise_event=True, force=False):
         if isinstance(key, Torrent):
             torrent = key
             key = torrent.infohash
@@ -685,7 +685,7 @@ class SelectedChannelList(GenericSearchList):
                 wx.CallLater(0, self.guiutility.frame.playlist.Select, key)
                 return
 
-        GenericSearchList.Select(self, key, raise_event)
+        GenericSearchList.Select(self, key, raise_event, force)
 
         if self.notebook.GetPageCount() > 0:
             self.notebook.SetSelection(0)
