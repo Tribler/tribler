@@ -2214,7 +2214,7 @@ class ActivitiesList(List):
         self.ResizeListItems()
         self.DisableItem(2)
         if not self.guiutility.frame.videoparentpanel:
-            self.DisableItem(6)
+            self.DisableItem(5)
         self.DisableCollapse()
         self.selectTab('home')
 
