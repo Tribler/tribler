@@ -117,6 +117,9 @@ class RoundRobin(object):
     def select(self):
         circuit_ids = sorted(self.community.active_circuits.keys())
 
+        if not circuit_ids:
+            return None
+
         self.index = (self.index + 1) % len(circuit_ids)
         circuit_id = circuit_ids[self.index]
         return self.community.active_circuits[circuit_id]
