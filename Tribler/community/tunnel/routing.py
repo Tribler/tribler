@@ -34,6 +34,7 @@ class Circuit:
         self.circuit_id = circuit_id
         self.first_hop = first_hop
         self.goal_hops = goal_hops
+        self.creation_time = time.time()
         self.last_incoming = time.time()
         self.unverified_hop = None
         self.bytes_up = self.bytes_down = 0
@@ -151,4 +152,6 @@ class RelayRoute(object):
         self.sock_addr = sock_addr
         self.circuit_id = circuit_id
         self.online = False
+        self.creation_time = time.time()
         self.last_incoming = time.time()
+        self.bytes_relayed = 0
