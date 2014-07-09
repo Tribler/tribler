@@ -152,10 +152,6 @@ class Session(SessionConfigInterface):
         self.get_anon_listen_port()
         self.get_tunnel_community_socks5_listen_port()
 
-        # Create handler for calling back the user via separate threads
-        self.uch = UserCallbackHandler(self)
-        self.lm = None
-
         # Checkpoint startup config
         self.save_pstate_sessconfig()
 
@@ -464,6 +460,9 @@ class Session(SessionConfigInterface):
 
     def start(self):
         """ Create the LaunchManyCore instance and start it"""
+
+        # Create handler for calling back the user via separate threads
+        self.uch = UserCallbackHandler(self)
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany()

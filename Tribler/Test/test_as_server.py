@@ -282,14 +282,14 @@ class TestGuiAsServer(TestAsServer):
 
         def wait_for_guiutility():
             print >> sys.stderr, "tgs: waiting for guiutility instance"
-            self.lm = self.session.lm
             self.CallConditional(30, lambda: GUIUtility.hasInstance(), wait_for_init)
 
         def wait_for_instance():
             print >> sys.stderr, "tgs: found instance, staring to wait for lm to be initcomplete"
             self.session = Session.get_instance()
+            self.lm = self.session.lm
             self.hadSession = True
-            self.CallConditional(30, lambda: self.session.lm and self.session.lm.initComplete, wait_for_guiutility)
+            self.CallConditional(30, lambda: self.lm.initComplete, wait_for_guiutility)
 
         print >> sys.stderr, "tgs: waiting for session instance"
         self.CallConditional(30, Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_instance))
