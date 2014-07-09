@@ -448,9 +448,10 @@ class ABCApp():
 
         progress('Creating session/Checking database (may take a minute)')
         session = Session(self.sconfig)
+        session.start()
 
         @call_on_reactor_thread
-        def define_communities(*args):
+        def define_communities(dispersy):
             assert isInIOThread()
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
@@ -458,12 +459,6 @@ class ABCApp():
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
             from Tribler.community.tunnel.community import TunnelCommunity
-            from Tribler.community.tunnel.Socks5.server import Socks5Server
-
-            # make sure this is only called once
-            session.remove_observer(define_communities)
-
-            dispersy = session.get_dispersy_instance()
 
             self._logger.info("tribler: Preparing communities...")
             now = time()
@@ -494,9 +489,8 @@ class ABCApp():
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
-        session.add_observer(define_communities, NTFY_DISPERSY, [NTFY_STARTED])
-        session.start()
-
+        swift_process = session.get_swift_proc() and session.get_swift_process()
+        define_communities(session.get_dispersy_instance())
         return session
 
     @staticmethod
