@@ -202,7 +202,7 @@ class Socks5Connection(Protocol):
         response = conversion.encode_reply(0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
             conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
 
-        self.write(response)
+        self.transport.write(response)
         self._logger.error("DENYING SOCKS5 request")
 
     def on_udp_associate_request(self, connection, request):
