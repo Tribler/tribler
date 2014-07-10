@@ -631,11 +631,12 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
         self.circuit_list = SelectableListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SIMPLE)
-        self.circuit_list.InsertColumn(0, 'Circuit', wx.LIST_FORMAT_LEFT, 30)
+        self.circuit_list.InsertColumn(0, 'ID', wx.LIST_FORMAT_LEFT, 30)
         self.circuit_list.InsertColumn(1, 'Online', wx.LIST_FORMAT_RIGHT, 50)
         self.circuit_list.InsertColumn(2, 'Hops', wx.LIST_FORMAT_RIGHT, 45)
-        self.circuit_list.InsertColumn(3, 'Bytes up', wx.LIST_FORMAT_RIGHT, 65)
-        self.circuit_list.InsertColumn(4, 'Bytes down', wx.LIST_FORMAT_RIGHT, 65)
+        self.circuit_list.InsertColumn(3, u'Bytes \u2191', wx.LIST_FORMAT_RIGHT, 60)
+        self.circuit_list.InsertColumn(4, u'Bytes \u2193', wx.LIST_FORMAT_RIGHT, 60)
+        self.circuit_list.InsertColumn(5, 'Uptime', wx.LIST_FORMAT_RIGHT, 55)
         self.circuit_list.setResizeColumn(0)
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemSelected)
@@ -693,6 +694,7 @@ class NetworkGraphPanel(wx.Panel):
 
             self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(bytes_uploaded))
             self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(bytes_downloaded))
+            self.circuit_list.SetStringItem(pos, 5, "%d" % (time() - circuit.creation_time))
 
         # Remove old circuits
         old_circuits = [circuit_id for circuit_id in self.circuit_to_listindex if circuit_id not in self.circuits]
@@ -843,16 +845,16 @@ class NetworkGraphPanel(wx.Panel):
             # Determine text
             gc.SetFont(self.GetFont())
             if not hop:
-                text = 'You'
-            elif 'UNKNOWN HOST' not in hop.host:
-                text = 'IP %s:%s' % (hop.host, hop.port)
+                text = 'You\nPERMID ' + bin2str(self.tunnel_community.my_member.public_key)[:10]
             else:
                 text = 'PERMID ' + bin2str(self.dispersy.crypto.key_to_hash(hop.public_key))[:10]
+                if 'UNKNOWN HOST' not in hop.host:
+                    text = 'IP %s:%s\n' % (hop.host, hop.port) + text
 
             # Draw info box + text
             box_width, box_height = gc.GetTextExtent(text)
             box_width += 9
-            box_height += 9
+            box_height += 9 + text.count('\n') * box_height
             x = x - box_width - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
             y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
             gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))

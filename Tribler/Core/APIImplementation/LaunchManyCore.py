@@ -119,8 +119,9 @@ class TriblerLaunchMany(Thread):
                 self.channelcast_db.registerSession(self.session)
                 self.ue_db = UserEventLogDBHandler.getInstance()
 
-                if self.dispersy:
+                def attach_commit_callback(*args):
                     self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
+                self.session.add_observer(attach_commit_callback, NTFY_DISPERSY, [NTFY_STARTED])
 
             self.rtorrent_handler = None
             if self.session.get_torrent_collecting():
@@ -665,7 +666,7 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc()
                 success = False
-                
+
             diff = timemod.time() - now
             if success:
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)

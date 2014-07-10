@@ -52,7 +52,9 @@ class SocksUDPConnection(DatagramProtocol):
             if request.frag == 0:
                 circuit = self.socksconnection.select(request.destination)
 
-                if circuit.state != CIRCUIT_STATE_READY:
+                if not circuit:
+                    self._logger.error("No circuits available, dropping %d bytes to %s", len(request.payload), request.destination)
+                elif circuit.state != CIRCUIT_STATE_READY:
                     self._logger.error("Circuit is not ready, dropping %d bytes to %s", len(request.payload), request.destination)
                 else:
                     self._logger.debug("Sending data over circuit destined for %s:%d", *request.destination)
@@ -200,7 +202,7 @@ class Socks5Connection(Protocol):
         response = conversion.encode_reply(0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
             conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
 
-        self.write(response)
+        self.transport.write(response)
         self._logger.error("DENYING SOCKS5 request")
 
     def on_udp_associate_request(self, connection, request):
@@ -224,8 +226,10 @@ class Socks5Connection(Protocol):
     def select(self, destination):
         if not destination in self.destinations:
             selected_circuit = self.selection_strategy.select()
-            self.destinations[destination] = selected_circuit
+            if not selected_circuit:
+                return None
 
+            self.destinations[destination] = selected_circuit
             self._logger.info("SELECT circuit {0} for {1}".format(self.destinations[destination].circuit_id, \
                                                                      destination))
         return self.destinations[destination]

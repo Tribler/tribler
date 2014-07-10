@@ -27,6 +27,7 @@ from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.logger import get_logger
+from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 
@@ -116,6 +117,9 @@ class RoundRobin(object):
 
     def select(self):
         circuit_ids = sorted(self.community.active_circuits.keys())
+
+        if not circuit_ids:
+            return None
 
         self.index = (self.index + 1) % len(circuit_ids)
         circuit_id = circuit_ids[self.index]
@@ -553,6 +557,7 @@ class TunnelCommunity(Community):
             circuit = self.circuits[circuit_id]
             self._ours_on_created_extended(circuit, message)
 
+    @call_on_reactor_thread
     def on_data(self, sock_addr, packet):
         # If its our circuit, the messenger is the candidate assigned to that circuit and the DATA's destination
         # is set to the zero-address then the packet is from the outside world and addressed to us from.
