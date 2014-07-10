@@ -128,8 +128,8 @@ rm -f dist/temp/rw.dmg
 
 # add EULA
 hdiutil unflatten dist/$APPNAME.dmg
-/Developer/Tools/DeRez -useDF $LIBRARYNAME/Main/Build/Mac/SLAResources.rsrc > dist/temp/sla.r
-/Developer/Tools/Rez -a dist/temp/sla.r -o dist/$APPNAME.dmg
+DeRez -useDF $LIBRARYNAME/Main/Build/Mac/SLAResources.rsrc > dist/temp/sla.r
+Rez -a dist/temp/sla.r -o dist/$APPNAME.dmg
 hdiutil flatten dist/$APPNAME.dmg
 
 if [ ! -z "$DMGNAME" ]; then
