@@ -92,6 +92,7 @@ class LibtorrentTest(object):
             pass
 
         tdef = TorrentDef.load("anon_test.torrent")
+        tdef.set_private()  # disable dht
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
         ''' :type : DefaultDownloadStartupConfig '''
