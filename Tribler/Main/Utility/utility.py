@@ -102,15 +102,6 @@ class Utility:
     def getPath(self):
         return self.abcpath
 
-    def get_free_random_port(self, option, section='Tribler'):
-        key = (option, section)
-        if key not in self.randomly_selected_ports:
-            s = socket.socket()
-            s.bind(('', 0))
-            self.randomly_selected_ports[key] = s.getsockname()[1]
-            s.close()
-        return self.randomly_selected_ports[key]
-
     def read_config(self, option, section='Tribler', literal_eval=True):
         if not self.config.has_option(section, option):
             return self.defaults.get(section, {}).get(option, None)
