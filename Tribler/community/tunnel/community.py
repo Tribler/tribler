@@ -323,7 +323,11 @@ class TunnelCommunity(Community):
 
         plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, u'cell')
         if message_type not in [u'create', u'created']:
-            encrypted = self.crypto_out(message.payload.circuit_id, encrypted)
+            try:
+                encrypted = self.crypto_out(message.payload.circuit_id, encrypted)
+            except Exception, e:
+                logger.error(str(e))
+                return 0
         packet = plaintext + encrypted
 
         return self.send_packet(candidates, message_type, packet)
@@ -332,7 +336,11 @@ class TunnelCommunity(Community):
         circuit_id, _, _, _ = TunnelConversion.decode_data(packet)
 
         plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
-        encrypted = self.crypto_out(circuit_id, encrypted)
+        try:
+            encrypted = self.crypto_out(circuit_id, encrypted)
+        except Exception, e:
+            logger.error(str(e))
+            return 0
         packet = plaintext + encrypted
 
         return self.send_packet(candidates, u'data', packet)
@@ -355,7 +363,11 @@ class TunnelCommunity(Community):
                 this_relay.last_incoming = time.time()
 
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
-            encrypted = self.crypto_relay(circuit_id, encrypted)
+            try:
+                encrypted = self.crypto_relay(circuit_id, encrypted)
+            except Exception, e:
+                logger.error(str(e))
+                return False
             packet = plaintext + encrypted
 
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
@@ -454,7 +466,12 @@ class TunnelCommunity(Community):
 
                 plaintext, encrypted = TunnelConversion.split_encrypted_packet(message.packet, message.name)
                 if message.payload.message_type not in [u'create', u'created']:
-                    encrypted = self.crypto_in(circuit_id, encrypted)
+                    try:
+                        encrypted = self.crypto_in(circuit_id, encrypted)
+                    except Exception, e:
+                        logger.error(str(e))
+                        continue
+
                 packet = plaintext + encrypted
 
                 decrypted_packets.append((message.candidate, TunnelConversion.convert_from_cell(packet)))
@@ -473,6 +490,16 @@ class TunnelCommunity(Community):
             self.directions[circuit_id] = ENDPOINT
             logger.info('TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
 
+            try:
+                dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
+            except Exception, e:
+                logger.error(str(e))
+                continue
+
+            dh_secret, dh_first_part = self.crypto.generate_diffie_secret()
+
+            self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(dh_secret, bytes_to_long(dh_second_part))
+
             candidates = {}
             for c in self.dispersy_yield_verified_candidates():
                 candidates[c.get_member().public_key] = c
@@ -480,10 +507,6 @@ class TunnelCommunity(Community):
                     break
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
-
-            dh_secret, dh_first_part = self.crypto.generate_diffie_secret()
-            dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
-            self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(dh_secret, bytes_to_long(dh_second_part))
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -569,7 +592,13 @@ class TunnelCommunity(Community):
 
         if not self.relay_packet(circuit_id, message_type, packet):
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
-            encrypted = self.crypto_in(circuit_id, encrypted)
+
+            try:
+                encrypted = self.crypto_in(circuit_id, encrypted)
+            except Exception, e:
+                logger.error(str(e))
+                return
+
             packet = plaintext + encrypted
             circuit_id, destination, origin, data = TunnelConversion.decode_data(packet)
 
@@ -630,28 +659,24 @@ class TunnelCommunity(Community):
         if circuit_id in self.circuits:
             for hop in reversed(self.circuits[circuit_id].hops):
                 content = self.crypto.encrypt_str(hop.session_keys[ENDPOINT], content)
+            return content
         elif circuit_id in self.relay_session_keys:
-            content = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
-        else:
-            raise Exception("Don't know how to encrypt outgoing message")
-        return content
+            return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
+        raise Exception("Don't know how to encrypt outgoing message for circuit_id %d" % circuit_id)
 
     def crypto_in(self, circuit_id, content):
         if circuit_id in self.circuits and len(self.circuits[circuit_id].hops) > 0:
             for hop in self.circuits[circuit_id].hops:
                 content = self.crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
+            return content
         elif circuit_id in self.relay_session_keys:
-            content = self.crypto.decrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], content)
-        else:
-            raise Exception("Don't know how to decrypt incoming message")
-        return content
+            return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], content)
+        raise Exception("Don't know how to decrypt incoming message for circuit_id %d" % circuit_id)
 
     def crypto_relay(self, circuit_id, content):
         direction = self.directions[circuit_id]
         if direction == ORIGINATOR:
-            content = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][direction], content)
+            return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][direction], content)
         elif direction == ENDPOINT:
-            content = self.crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
-        else:
-            raise Exception("Direction must be either ORIGINATOR or ENDPOINT")
-        return content
+            return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
+        raise Exception("Direction must be either ORIGINATOR or ENDPOINT")
