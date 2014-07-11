@@ -119,10 +119,6 @@ class TriblerLaunchMany(Thread):
                 self.channelcast_db.registerSession(self.session)
                 self.ue_db = UserEventLogDBHandler.getInstance()
 
-                def attach_commit_callback(*args):
-                    self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
-                self.session.add_observer(attach_commit_callback, NTFY_DISPERSY, [NTFY_STARTED])
-
             self.rtorrent_handler = None
             if self.session.get_torrent_collecting():
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
@@ -193,6 +189,9 @@ class TriblerLaunchMany(Thread):
 
             blockingCallFromThread(reactor, self.dispersy.define_auto_load, HardKilledCommunity,
                                    self.session.dispersy_member, load=True)
+
+            if self.session.get_megacache():
+                self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
 
             # notify dispersy finished loading
             self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
