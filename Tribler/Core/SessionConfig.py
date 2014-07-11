@@ -24,6 +24,7 @@ from Tribler.Core.Base import Copyable, Serializable
 from Tribler.Core.RawServer.RawServer import autodetect_socket_style
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.osutils import is_android
 
 
@@ -102,20 +103,7 @@ class SessionConfigInterface(object):
 
         if in_selected_ports or settings_port == -1:
             if not in_selected_ports:
-                while True:
-                    random_port = random.randint(5000, 60000)
-
-                    udps = socket.socket(socket.SOCK_DGRAM)
-                    try:
-                        udps.bind(('', random_port))
-                        self.selected_ports[path] = random_port
-                        break
-
-                    except:
-                        self._logger.exception(u"Unable to bind port %d", random_port)
-
-                    finally:
-                        udps.close()
+                self.selected_ports[path] = get_random_port()
 
                 self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
             return self.selected_ports[path]
