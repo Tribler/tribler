@@ -80,14 +80,6 @@ def _test_port(family, sock_type, port):
         s = socket.socket(family, sock_type)
         if sock_type == socket.SOCK_STREAM:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
-    except socket.error as e:
-        logger.error("Could not create socket or set LINGER_TIME (family=%s, type=%s): %s",
-                     family, sock_type, e)
-        if s:
-            s.close()
-        return False
-
-    try:
         s.bind(('', port))
         is_port_working = True
     except socket.error as e:
@@ -95,5 +87,6 @@ def _test_port(family, sock_type, port):
                      port, family, sock_type, e)
         is_port_working = False
     finally:
-        s.close()
+        if s:
+            s.close()
     return is_port_working
