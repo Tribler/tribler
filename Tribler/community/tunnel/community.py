@@ -69,7 +69,7 @@ class PingRequestCache(RandomNumberCache):
 
     @property
     def timeout_delay(self):
-        return 3.5 * PING_INTERVAL
+        return PING_INTERVAL + 5
 
     def on_timeout(self):
         if self.circuit.last_incoming < time.time() - self.timeout_delay:
@@ -85,12 +85,16 @@ class TunnelExitSocket(DatagramProtocol):
         self.destination = destination
         self.circuit_id = circuit_id
         self.community = community
+        self.bytes_up = self.bytes_down = 0
+        self.creation_time = time.time()
 
     def sendto(self, data, destination):
         self.transport.write(data, destination)
+        self.bytes_up += len(data)
 
     def datagramReceived(self, data, source):
         self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
+        self.bytes_down += len(data)
 
     def close(self):
         if self.port:
@@ -102,9 +106,15 @@ class TunnelSettings:
 
     def __init__(self):
         self.circuit_length = 3
-        self.circuit_pool = 4
         self.crypto = TunnelCrypto()
         self.socks_listen_port = 1080
+
+        self.max_circuits = 8
+        self.max_relays_or_exits = 24
+
+        self.max_time = 10 * 60
+        self.max_time_inactive = 20
+        self.max_traffic = 10 * 1024 * 1024
 
 class RoundRobin(object):
 
@@ -229,7 +239,7 @@ class TunnelCommunity(Community):
         return circuit_id
 
     def do_circuits(self):
-        circuit_needed = self.settings.circuit_pool - len(self.circuits)
+        circuit_needed = self.settings.max_circuits - len(self.circuits)
         logger.debug("TunnelCommunity: want %d circuits", circuit_needed)
 
         for _ in range(circuit_needed):
@@ -253,6 +263,34 @@ class TunnelCommunity(Community):
             except OperationNotEnabledByConfigurationException:
                 pass
             self.made_anon_session = True
+
+        self.do_break()
+
+    def do_break(self):
+        # Remove circuits that are inactive / are too old / have transferred too many bytes.
+        for key, circuit in self.circuits.items():
+            if circuit.last_incoming < time.time() - self.settings.max_time_inactive:
+                self.remove_circuit(key, 'no activity')
+            elif circuit.creation_time < time.time() - self.settings.max_time:
+                self.remove_circuit(key, 'too old')
+            elif circuit.bytes_up + circuit.bytes_down > self.settings.max_traffic:
+                self.remove_circuit(key, 'traffic limit exceeded')
+
+        # Remove relays that are inactive / are too old / have transferred too many bytes.
+        for key, relay in self.relay_from_to.items():
+            if relay.last_incoming < time.time() - self.settings.max_time_inactive:
+                self.remove_relay(key, 'no activity')
+            elif relay.creation_time < time.time() - self.settings.max_time:
+                self.remove_relay(key, 'too old')
+            elif relay.bytes_relayed > self.settings.max_traffic:
+                self.remove_relay(key, 'traffic limit exceeded')
+
+        # Remove exit sockets that are too old / have transferred too many bytes.
+        for circuit_id, exit_socket in self.exit_sockets.items():
+            if exit_socket and exit_socket.creation_time < time.time() - self.settings.max_time:
+                self.remove_exit_socket(circuit_id, 'too old')
+            elif exit_socket and exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
+                self.remove_exit_socket(circuit_id, 'traffic limit exceeded')
 
     def create_circuit(self, first_hop, goal_hops):
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
@@ -283,9 +321,9 @@ class TunnelCommunity(Community):
             circuit = self.circuits.pop(circuit_id)
             circuit.destroy()
 
-            affected_peers = self.socks_server.circuit_dead(circuit)
-            #     affected_torrents = dict((download, affected_destinations.intersection(peer.ip for peer in download.handle.get_peer_info()))
-#                              for (download, session) in mgr.torrents.values() if session == anon_session)
+#         affected_peers = self.socks_server.circuit_dead(circuit)
+#         affected_torrents = dict((download, affected_destinations.intersection(peer.ip for peer in download.handle.get_peer_info()))
+#                                  for (download, session) in mgr.torrents.values() if session == anon_session)
 #
 #         for download, peers in affected_torrents:
 #             if download not in self.torrents:
@@ -301,13 +339,21 @@ class TunnelCommunity(Community):
     def remove_relay(self, circuit_id, additional_info=''):
         if circuit_id in self.relay_from_to:
             logger.error(("TunnelCommunity: breaking relay %d " + additional_info) % circuit_id)
-
             # Only remove one side of the relay, this isn't as pretty but both sides have separate incoming timer,
             # hence after removing one side the other will follow.
             del self.relay_from_to[circuit_id]
+            return
 
-            return True
-        return False
+        logger.error(("TunnelCommunity: could not break relay %d " + additional_info) % circuit_id)
+
+    def remove_exit_socket(self, circuit_id, additional_info=''):
+        if circuit_id in self.exit_sockets:
+            exit_socket = self.exit_sockets.pop(circuit_id)
+            if exit_socket:
+                logger.error(("TunnelCommunity: removed exit socket %d " + additional_info) % circuit_id)
+                exit_socket.close()
+            return
+        logger.error(("TunnelCommunity: could not remove exit socket %d " + additional_info) % circuit_id)
 
     @property
     def active_circuits(self):
@@ -358,10 +404,6 @@ class TunnelCommunity(Community):
         if self.is_relay(circuit_id):
             next_relay = self.relay_from_to[circuit_id]
 
-            if next_relay.circuit_id in self.relay_from_to:
-                this_relay = self.relay_from_to[next_relay.circuit_id]
-                this_relay.last_incoming = time.time()
-
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
             try:
                 encrypted = self.crypto_relay(circuit_id, encrypted)
@@ -371,7 +413,13 @@ class TunnelCommunity(Community):
             packet = plaintext + encrypted
 
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
-            self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet)
+            bytes_relayed = self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet)
+
+            if next_relay.circuit_id in self.relay_from_to:
+                this_relay = self.relay_from_to[next_relay.circuit_id]
+                this_relay.last_incoming = time.time()
+                this_relay.bytes_relayed = bytes_relayed
+
             return True
         return False
 
@@ -487,8 +535,10 @@ class TunnelCommunity(Community):
         for message in messages:
             candidate = message.candidate
             circuit_id = message.payload.circuit_id
-            self.directions[circuit_id] = ENDPOINT
-            logger.info('TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
+
+            if self.settings.max_relays_or_exits <= len(self.relay_from_to) + len(self.exit_sockets):
+                logger.info('TunnelCommunity: ignoring create for circuit %d from %s (too many relays)', circuit_id, candidate.sock_addr)
+                continue
 
             try:
                 dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
@@ -496,6 +546,8 @@ class TunnelCommunity(Community):
                 logger.error(str(e))
                 continue
 
+            self.directions[circuit_id] = ENDPOINT
+            logger.info('TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
             dh_secret, dh_first_part = self.crypto.generate_diffie_secret()
 
             self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(dh_secret, bytes_to_long(dh_second_part))
@@ -507,6 +559,8 @@ class TunnelCommunity(Community):
                     break
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
+
+            self.exit_sockets[circuit_id] = None
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -570,6 +624,9 @@ class TunnelCommunity(Community):
             self.directions[new_circuit_id] = ORIGINATOR
             self.directions[circuit_id] = ENDPOINT
 
+            if circuit_id in self.exit_sockets:
+                self.remove_exit_socket(circuit_id)
+
             logger.info("TunnelCommunity: extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
 
             self.send_cell([extend_candidate], u"create", (new_circuit_id, message.payload.key))
@@ -618,8 +675,11 @@ class TunnelCommunity(Community):
 
     def on_ping(self, messages):
         for message in messages:
-            self.send_cell([message.candidate], u"pong", (message.payload.circuit_id, message.payload.identifier))
-            logger.debug("TunnelCommunity: got ping from %s", message.candidate)
+            if message.payload.circuit_id in self.exit_sockets:
+                self.send_cell([message.candidate], u"pong", (message.payload.circuit_id, message.payload.identifier))
+                logger.debug("TunnelCommunity: got ping from %s", message.candidate)
+            else:
+                logger.error("TunnelCommunity: got ping from %s (not responding)", message.candidate)
 
     def on_pong(self, messages):
         for message in messages:
@@ -627,12 +687,6 @@ class TunnelCommunity(Community):
             logger.debug("TunnelCommunity: got pong from %s", message.candidate)
 
     def do_ping(self):
-        # Remove inactive relays.
-        dead_relays = [self.remove_relay(key, 'no activity') for key, relay in self.relay_from_to.items() \
-                       if relay.last_incoming < time.time() - 60.0]
-        logger.info("TunnelCommunity: removed %d relays", len(dead_relays))
-        assert all(dead_relays)
-
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
         for circuit in self.active_circuits.values():
             if circuit.goal_hops > 0:
@@ -648,12 +702,15 @@ class TunnelCommunity(Community):
         self.send_data([Candidate(sock_addr, False)], u'data', packet)
 
     def exit_data(self, circuit_id, sock_addr, destination, data):
-        if circuit_id not in self.exit_sockets:
-            self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, sock_addr, self)
-        try:
-            self.exit_sockets[circuit_id].sendto(data, destination)
-        except:
-            logger.error("TunnelCommunity: dropping packets while EXITing data")
+        if circuit_id in self.exit_sockets:
+            if not self.exit_sockets[circuit_id]:
+                self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, sock_addr, self)
+            try:
+                self.exit_sockets[circuit_id].sendto(data, destination)
+            except:
+                logger.error("TunnelCommunity: dropping data packets while EXITing")
+        else:
+            logger.error("TunnelCommunity: dropping data packets with unknown circuit_id")
 
     def crypto_out(self, circuit_id, content):
         if circuit_id in self.circuits:
