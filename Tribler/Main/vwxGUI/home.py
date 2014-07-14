@@ -631,12 +631,12 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
         self.circuit_list = SelectableListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SIMPLE)
-        self.circuit_list.InsertColumn(0, 'ID', wx.LIST_FORMAT_LEFT, 30)
+        self.circuit_list.InsertColumn(0, 'ID', wx.LIST_FORMAT_LEFT, 25)
         self.circuit_list.InsertColumn(1, 'Online', wx.LIST_FORMAT_RIGHT, 50)
         self.circuit_list.InsertColumn(2, 'Hops', wx.LIST_FORMAT_RIGHT, 45)
-        self.circuit_list.InsertColumn(3, u'Bytes \u2191', wx.LIST_FORMAT_RIGHT, 60)
-        self.circuit_list.InsertColumn(4, u'Bytes \u2193', wx.LIST_FORMAT_RIGHT, 60)
-        self.circuit_list.InsertColumn(5, 'Uptime', wx.LIST_FORMAT_RIGHT, 55)
+        self.circuit_list.InsertColumn(3, u'Bytes \u2191', wx.LIST_FORMAT_RIGHT, 63)
+        self.circuit_list.InsertColumn(4, u'Bytes \u2193', wx.LIST_FORMAT_RIGHT, 63)
+        self.circuit_list.InsertColumn(5, 'Uptime', wx.LIST_FORMAT_RIGHT, 54)
         self.circuit_list.setResizeColumn(0)
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemSelected)
@@ -818,7 +818,7 @@ class NetworkGraphPanel(wx.Panel):
             self.hop_hover = self.PositionToCircuit(self.hop_hover_evt, circuit_points)
             self.hop_hover_evt = None
 
-        if self.hop_hover:
+        if self.hop_hover and self.hop_hover[0] in circuit_points:
             circuit, hop_index = self.hop_hover
             x, y = circuit_points[circuit][hop_index]
             pen = wx.Pen(wx.Colour(229, 229, 229), 1, wx.USER_DASH)
