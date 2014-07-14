@@ -192,3 +192,16 @@ class TunnelConversion(BinaryConversion):
     def convert_to_cell(packet):
         header = packet[:22] + '\x01' + packet[23:31]
         return header + packet[31:35] + packet[22] + packet[35:]
+
+    @staticmethod
+    def could_be_utp(data):
+        if len(data) < 20:
+            return False
+        byte1, byte2 = unpack_from('!BB', data)
+        # Type should be 0..4, Ver should be 1
+        if not (0 <= (byte1 >> 4) <= 4 and (byte1 & 15) == 1):
+            return False
+        # Extension should be 0..2
+        if not (0 <= byte2 <= 2):
+            return False
+        return True

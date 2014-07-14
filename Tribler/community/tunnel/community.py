@@ -89,12 +89,18 @@ class TunnelExitSocket(DatagramProtocol):
         self.creation_time = time.time()
 
     def sendto(self, data, destination):
-        self.transport.write(data, destination)
-        self.bytes_up += len(data)
+        if TunnelConversion.could_be_utp(data):
+            self.transport.write(data, destination)
+            self.bytes_up += len(data)
+        else:
+            logger.error("TunnelCommunity: dropping non-utp packets from exit socket with circuit_id %d", self.circuit_id)
 
     def datagramReceived(self, data, source):
-        self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
-        self.bytes_down += len(data)
+        if TunnelConversion.could_be_utp(data):
+            self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
+            self.bytes_down += len(data)
+        else:
+            logger.error("TunnelCommunity: dropping non-utp packets to exit socket with circuit_id %d", self.circuit_id)
 
     def close(self):
         if self.port:
@@ -108,6 +114,7 @@ class TunnelSettings:
         self.circuit_length = 3
         self.crypto = TunnelCrypto()
         self.socks_listen_port = 1080
+        self.min_circuits_for_session = 4
 
         self.max_circuits = 8
         self.max_relays_or_exits = 24
@@ -256,7 +263,7 @@ class TunnelCommunity(Community):
                 except:
                     logger.exception("Error creating circuit while running __discover")
 
-        if circuit_needed == 0 and self.tribler_session and not self.made_anon_session:
+        if self.tribler_session and not self.made_anon_session and len(self.active_circuits) >= self.settings.min_circuits_for_session:
             try:
                 ltmgr = self.tribler_session.get_libtorrent_process()
                 ltmgr.create_anonymous_session()
