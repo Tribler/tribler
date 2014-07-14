@@ -328,7 +328,8 @@ class TunnelCommunity(Community):
             circuit = self.circuits.pop(circuit_id)
             circuit.destroy()
 
-#         affected_peers = self.socks_server.circuit_dead(circuit)
+            affected_peers = self.socks_server.circuit_dead(circuit)
+
 #         affected_torrents = dict((download, affected_destinations.intersection(peer.ip for peer in download.handle.get_peer_info()))
 #                                  for (download, session) in mgr.torrents.values() if session == anon_session)
 #
