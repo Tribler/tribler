@@ -765,6 +765,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             peer_infos = self.handle.get_peer_info()
         for peer_info in peer_infos:
+
+            # Only consider fully connected peers.
+            if peer_info.flags & peer_info.connecting or peer_info.flags & peer_info.handshake:
+                continue
+
             peer_dict = {}
             peer_dict['id'] = peer_info.pid
             peer_dict['extended_version'] = peer_info.client
@@ -787,6 +792,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             peer_dict['have'] = peer_info.pieces
             peer_dict['speed'] = peer_info.remote_dl_rate
             peer_dict['country'] = peer_info.country
+            peer_dict['connection_type'] = peer_info.connection_type
             plist.append(peer_dict)
 
         return plist
