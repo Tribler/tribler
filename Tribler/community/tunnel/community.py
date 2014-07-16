@@ -220,7 +220,8 @@ class TunnelCommunity(Community):
     def unload_community(self):
         self.socks_server.stop()
         for exit_socket in self.exit_sockets.itervalues():
-            exit_socket.close()
+            if exit_socket:
+                exit_socket.close()
 
         super(TunnelCommunity, self).unload_community()
 
