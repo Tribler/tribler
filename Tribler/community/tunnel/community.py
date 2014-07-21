@@ -1,6 +1,8 @@
 import time
 import random
 
+from collections import defaultdict
+
 from twisted.internet import reactor
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
@@ -85,20 +87,31 @@ class TunnelExitSocket(DatagramProtocol):
         self.destination = destination
         self.circuit_id = circuit_id
         self.community = community
+        self.ips = defaultdict(int)
         self.bytes_up = self.bytes_down = 0
         self.creation_time = time.time()
 
     def sendto(self, data, destination):
+        if self.ips[destination] >= 3:
+            self.community.remove_exit_socket(self)
+            return
+        self.ips[destination] += 1
+
+        self.bytes_up += len(data)
         if TunnelConversion.could_be_utp(data):
             self.transport.write(data, destination)
-            self.bytes_up += len(data)
         else:
             logger.error("TunnelCommunity: dropping non-utp packets from exit socket with circuit_id %d", self.circuit_id)
 
     def datagramReceived(self, data, source):
+        if self.ips[source] > 3:
+            self.community.remove_exit_socket(self)
+            return
+        del self.ips[source]
+
+        self.bytes_down += len(data)
         if TunnelConversion.could_be_utp(data):
             self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
-            self.bytes_down += len(data)
         else:
             logger.error("TunnelCommunity: dropping non-utp packets to exit socket with circuit_id %d", self.circuit_id)
 
