@@ -256,7 +256,7 @@ class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
         @param filename  An absolute Unicode filename
         """
         # Called by any thread
-        self.sessconfig.write_file(filename)
+        self.dlconfig.write_file(filename)
 
     #
     # Copyable interface
