@@ -145,20 +145,9 @@ class AddTorrent(wx.Dialog):
             warning.Destroy()
 
         if not cancel:
-            destdir = self.defaultDLConfig.get_dest_dir()
-            if self.choose and self.choose.IsChecked():
-                torrentfilename = None
-                if len(filenames) == 1:
-                    torrentfilename = filenames[0]
-                destdir, anon_mode, selected_files = self._GetDestPath(torrentfilename)
-                if not destdir:
-                    return
-
-            if getattr(self.frame, 'startDownloads', False):
-                self.frame.startDownloads(filenames, fixtorrent=True, destdir=destdir)
-            else:
-                for filename in filenames:
-                    self.frame.startDownload(filename, fixtorrent=True, destdir=destdir, selectedFiles=selected_files, anon_mode=anon_mode)
+            destdir = None if (self.choose and self.choose.IsChecked()) or len(filenames) > 1 else self.defaultDLConfig.get_dest_dir()
+            for filename in filenames:
+                self.frame.startDownload(filename, fixtorrent=True, destdir=destdir)
 
     def OnBrowse(self, event):
         dlg = wx.FileDialog(None, "Please select the .torrent file(s).", wildcard="torrent (*.torrent)|*.torrent", style=wx.FD_OPEN | wx.FD_MULTIPLE)
