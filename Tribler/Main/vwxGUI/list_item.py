@@ -523,7 +523,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             trackers = self.guiutility.channelsearch_manager.torrent_db.getTrackerListByTorrentID(torrent.torrent_id)
             if trackers:
                 for tracker in trackers:
-                    magnetlink += "&tr=" + urllib.quote_plus(tracker)
+                    if tracker != 'DHT':
+                        magnetlink += "&tr=" + urllib.quote_plus(tracker)
             magnetlinks += magnetlink + '\n'
 
         if wx.TheClipboard.Open():
