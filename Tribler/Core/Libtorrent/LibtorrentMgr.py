@@ -47,7 +47,8 @@ class LibtorrentMgr:
                                       lt.alert.category_t.error_notification |
                                       lt.alert.category_t.status_notification |
                                       lt.alert.category_t.storage_notification |
-                                      lt.alert.category_t.performance_warning)
+                                      lt.alert.category_t.performance_warning |
+                                      lt.alert.category_t.tracker_notification)
 
         listen_port = self.trsession.get_listen_port()
         self.ltsession.listen_on(listen_port, listen_port + 10)
@@ -133,13 +134,13 @@ class LibtorrentMgr:
                                  lt.alert.category_t.status_notification |
                                  lt.alert.category_t.storage_notification |
                                  lt.alert.category_t.performance_warning |
-                                 lt.alert.category_t.debug_notification)
+                                 lt.alert.category_t.tracker_notification)
 
 
         self.set_proxy_settings(ltsession, *self.trsession.get_anon_proxy_settings())
         self.ltsession_anon = ltsession
 
-        ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port()+10)
+        ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 10)
         self._logger.info("Started ANON LibTorrent session on port %d", ltsession.listen_port())
 
     def shutdown(self):

@@ -1067,6 +1067,7 @@ class LibraryDetails(TorrentDetails):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.old_progress = -1
+        self.old_tracker_status = {}
         self.refresh_counter = 0
         self.bw_history = []
 
@@ -1165,6 +1166,22 @@ class LibraryDetails(TorrentDetails):
         self.peersTab.SetSizer(self.peersSizer)
         self.notebook.InsertPage(2, self.peersTab, "Peers")
 
+    def createTrackersTab(self):
+        self.trackersTab = wx.Panel(self.notebook)
+        self.trackersTab.SetBackgroundColour(DEFAULT_BACKGROUND)
+        self.trackersSizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.trackersList = SelectableListCtrl(self.trackersTab, tooltip=False)
+        self.trackersList.InsertColumn(0, 'Name')
+        self.trackersList.InsertColumn(1, 'Status', wx.LIST_FORMAT_LEFT, 300)
+        self.trackersList.InsertColumn(2, 'Peers', wx.LIST_FORMAT_RIGHT, 100)
+        self.trackersList.setResizeColumn(0)
+
+        self.trackersSizer.Add(self.trackersList, 1, wx.EXPAND)
+
+        self.trackersTab.SetSizer(self.trackersSizer)
+        self.notebook.AddPage(self.trackersTab, "Trackers")
+
     def createSpeedTab(self):
         self.speedPanel = Graph(self.notebook)
         self.speedPanel.SetAxisLabels('Time (5 second update interval)', 'kB/s')
@@ -1236,6 +1253,18 @@ class LibraryDetails(TorrentDetails):
         ds = self.torrent.ds if self.torrent else None
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
         self.availability_vSizer.ShowItems(not finished)
+
+    def updateTrackersTab(self):
+        ds = self.torrent.ds if self.torrent else None
+        self.trackersList.DeleteAllItems()
+        if not ds:
+            collected_trackers = hasattr(self.torrent, 'trackers')
+            notcollected_trackers = hasattr(self.torrent, 'torrent') and hasattr(self.torrent.torrent, 'trackers')
+
+            if collected_trackers or notcollected_trackers:
+                for tracker in (self.torrent.trackers if collected_trackers else self.torrent.torrent.trackers):
+                    if isinstance(tracker, basestring):
+                        self.trackersList.Append([tracker, 'Not contacted yet', 0])
 
     def updateSpeedTab(self):
         if self.bw_history:
@@ -1378,6 +1407,31 @@ class LibraryDetails(TorrentDetails):
         self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
         self.peerList._doResize()
         self.peerList.Thaw()
+
+        # Tracker status
+        ds = self.torrent.ds if self.torrent else None
+        if ds:
+            new_tracker_status = ds.get_tracker_status()
+            if self.old_tracker_status != new_tracker_status:
+                items = [self.trackersList.GetItem(i, 0).GetText() for i in range(self.trackersList.GetItemCount())]
+                self.trackersList.Freeze()
+
+                # Update list
+                for url, info in sorted(ds.get_tracker_status().items()):
+                    num_peers, status = info
+                    if url in items:
+                        self.trackersList.SetStringItem(items.index(url), 1, status)
+                        self.trackersList.SetStringItem(items.index(url), 2, str(num_peers))
+                    else:
+                        self.trackersList.Append([url, status, num_peers])
+
+                # Remove items that aren't in the tracker_status dict
+                for index, item in enumerate(items):
+                    if item not in new_tracker_status:
+                        self.trackersList.DeleteItem(index)
+
+                self.trackersList.Thaw()
+                self.old_tracker_status = new_tracker_status
 
     def __del__(self):
         TorrentDetails.__del__(self)

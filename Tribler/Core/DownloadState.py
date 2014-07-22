@@ -490,3 +490,9 @@ class DownloadState(Serializable):
             return []
         else:
             return self.stats['spew']
+
+    def get_tracker_status(self):
+        if self.stats is None or 'tracker_status' not in self.stats or self.stats['tracker_status'] is None:
+            return {}
+        else:
+            return self.stats['tracker_status']
