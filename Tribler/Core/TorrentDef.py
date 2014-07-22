@@ -1162,6 +1162,9 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
     def get_files(self, exts=None):
         return []
 
+    def get_files_as_unicode(self, exts=None):
+        return []
+
     def get_trackers_as_single_tuple(self):
         if self.url and self.url.startswith('magnet:'):
             _, _, trs = parse_magnetlink(self.url)
