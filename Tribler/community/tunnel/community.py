@@ -130,7 +130,7 @@ class TunnelSettings:
         self.min_circuits_for_session = 4
 
         self.max_circuits = 8
-        self.max_relays_or_exits = 24
+        self.max_relays_or_exits = 100
 
         self.max_time = 10 * 60
         self.max_time_inactive = 20
@@ -425,6 +425,10 @@ class TunnelCommunity(Community):
     def relay_packet(self, circuit_id, message_type, packet):
         if self.is_relay(circuit_id):
             next_relay = self.relay_from_to[circuit_id]
+            this_relay = self.relay_from_to.get(next_relay.circuit_id, None)
+
+            if this_relay:
+                this_relay.last_incoming = time.time()
 
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
             try:
@@ -437,9 +441,7 @@ class TunnelCommunity(Community):
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
             bytes_relayed = self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet)
 
-            if next_relay.circuit_id in self.relay_from_to:
-                this_relay = self.relay_from_to[next_relay.circuit_id]
-                this_relay.last_incoming = time.time()
+            if this_relay:
                 this_relay.bytes_relayed = bytes_relayed
 
             return True
@@ -559,7 +561,7 @@ class TunnelCommunity(Community):
             circuit_id = message.payload.circuit_id
 
             if self.settings.max_relays_or_exits <= len(self.relay_from_to) + len(self.exit_sockets):
-                logger.info('TunnelCommunity: ignoring create for circuit %d from %s (too many relays)', circuit_id, candidate.sock_addr)
+                logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d/%d)', circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets), self.settings.max_relays_or_exits)
                 continue
 
             try:
