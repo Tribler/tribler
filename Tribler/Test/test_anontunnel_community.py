@@ -44,7 +44,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             self.CallConditional(60,
                 lambda: download.get_progress() == 1.0,
                 lambda: take_screenshot(time.time() - start_time),
-                'Anonymous download should be finished in 60 seconds',
+                'Anonymous download should be finished in 60 seconds (%.1f%% downloaded)' % (download.get_progress() * 100),
                 on_fail
             )
 

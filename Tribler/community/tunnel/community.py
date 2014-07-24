@@ -1,6 +1,7 @@
 import time
 import random
 
+from traceback import print_exc
 from collections import defaultdict
 
 from twisted.internet import reactor
@@ -32,7 +33,6 @@ from Tribler.dispersy.logger import get_logger
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
-
 
 logger = get_logger(__name__)
 
@@ -92,33 +92,40 @@ class TunnelExitSocket(DatagramProtocol):
         self.creation_time = time.time()
 
     def sendto(self, data, destination):
-        if self.ips[destination] >= 3:
-            self.community.remove_exit_socket(self)
-            return
-        self.ips[destination] += 1
-
-        self.bytes_up += len(data)
-        if TunnelConversion.could_be_utp(data):
-            self.transport.write(data, destination)
-        else:
-            logger.error("TunnelCommunity: dropping non-utp packets from exit socket with circuit_id %d", self.circuit_id)
+        if self.check_num_packets(destination, False):
+            self.bytes_up += len(data)
+            if TunnelConversion.could_be_utp(data):
+                self.transport.write(data, destination)
+            else:
+                logger.error("TunnelCommunity: dropping non-utp packets from exit socket with circuit_id %d", self.circuit_id)
 
     def datagramReceived(self, data, source):
-        if self.ips[source] > 3:
-            self.community.remove_exit_socket(self)
-            return
-        del self.ips[source]
-
-        self.bytes_down += len(data)
-        if TunnelConversion.could_be_utp(data):
-            self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
-        else:
-            logger.error("TunnelCommunity: dropping non-utp packets to exit socket with circuit_id %d", self.circuit_id)
+        if self.check_num_packets(source, True):
+            self.bytes_down += len(data)
+            if TunnelConversion.could_be_utp(data):
+                self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
+            else:
+                logger.error("TunnelCommunity: dropping non-utp packets to exit socket with circuit_id %d", self.circuit_id)
 
     def close(self):
         if self.port:
             self.port.stopListening()
             self.port = None
+
+    def check_num_packets(self, ip, incoming):
+        max_packets_without_reply = self.community.settings.max_packets_without_reply
+        if self.ips[ip] >= (max_packets_without_reply + 1 if incoming else max_packets_without_reply):
+            self.community.remove_exit_socket(self.circuit_id)
+            logger.error("TunnelCommunity: too many packets to a destination without a reply, " \
+                         "removing exit socket with circuit_id %d", self.circuit_id)
+            return False
+
+        if incoming:
+            del self.ips[ip]
+        else:
+            self.ips[ip] += 1
+
+        return True
 
 
 class TunnelSettings:
@@ -135,6 +142,8 @@ class TunnelSettings:
         self.max_time = 10 * 60
         self.max_time_inactive = 20
         self.max_traffic = 10 * 1024 * 1024
+
+        self.max_packets_without_reply = 100
 
 class RoundRobin(object):
 
@@ -733,6 +742,7 @@ class TunnelCommunity(Community):
                 self.exit_sockets[circuit_id].sendto(data, destination)
             except:
                 logger.error("TunnelCommunity: dropping data packets while EXITing")
+                print_exc()
         else:
             logger.error("TunnelCommunity: dropping data packets with unknown circuit_id")
 
