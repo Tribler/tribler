@@ -11,7 +11,7 @@ from Tribler.Core.Utilities.encoding import encode, decode
 class MetadataConversion(BinaryConversion):
 
     def __init__(self, community):
-        super(MetadataConversion, self).__init__(community, "\x01")
+        super(MetadataConversion, self).__init__(community, "\x02")
         self.__logger = logging.getLogger(self.__class__.__name__)
         self.define_meta_message(chr(1), community.get_meta_message(u"metadata"), lambda message: self._encode_decode(self._encode_metadata, self._decode_metadata, message), self._decode_metadata)
 
