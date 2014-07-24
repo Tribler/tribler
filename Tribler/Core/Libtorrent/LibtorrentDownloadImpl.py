@@ -198,7 +198,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.done = False
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
-        self.queue_position = -1
+        self.tracker_status = {}  # {url: [num_peers, status_str]}
 
         self.prebuffsize = 5 * 1024 * 1024
         self.endbuffsize = 0
@@ -462,18 +462,35 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
             self._logger.debug("LibtorrentDownloadImpl: alert %s with message %s", alert_type, alert)
 
-        if alert_type == 'metadata_received_alert':
-            self.on_metadata_received_alert(alert)
-        elif alert_type == 'file_renamed_alert':
-            self.on_file_renamed_alert(alert)
-        elif alert_type == 'performance_alert':
-            self.on_performance_alert(alert)
-        elif alert_type == 'torrent_checked_alert':
-            self.on_torrent_checked_alert(alert)
-        elif alert_type == "torrent_finished_alert":
-            self.on_torrent_finished_alert(alert)
+        alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert', \
+                       'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert')
+
+        if alert_type in alert_types:
+            getattr(self, 'on_' + alert_type)(alert)
         else:
             self.update_lt_stats()
+
+    def on_tracker_reply_alert(self, alert):
+        self.tracker_status[alert.url] = [alert.num_peers, 'Working']
+
+    def on_tracker_error_alert(self, alert):
+        peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
+        if alert.msg:
+            status = 'Error: ' + alert.msg
+        elif alert.status_code > 0:
+            status = 'HTTP status code %d' % alert.status_code
+        elif alert.status_code == 0:
+            status = 'Timeout'
+        else:
+            status = 'Not working'
+
+        self.tracker_status[alert.url] = [peers, status]
+
+    def on_tracker_warning_alert(self, alert):
+        peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
+        status = 'Warning: ' + alert.message
+
+        self.tracker_status[alert.url] = [peers, status]
 
     def on_metadata_received_alert(self, alert):
         self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
@@ -694,6 +711,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
         stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist or self.askmoreinfo else None
+        stats['tracker_status'] = self.network_tracker_status() if getpeerlist or self.askmoreinfo else None
 
         seeding_stats = {}
         seeding_stats['total_up'] = self.all_time_upload
@@ -702,7 +720,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
         logmsgs = []
 
-        self._logger.debug("Torrent %s PROGRESS %s QUEUEPOS %s DLSTATE %s SEEDTIME %s", self.handle.name(), self.progress, self.queue_position, self.dlstate, self.finished_time)
+        self._logger.debug("Torrent %s PROGRESS %s DLSTATE %s SEEDTIME %s", self.handle.name(), self.progress, self.dlstate, self.finished_time)
 
         return (self.dlstate, stats, seeding_stats, logmsgs)
 
@@ -790,6 +808,29 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             plist.append(peer_dict)
 
         return plist
+
+    @checkHandleAndSynchronize()
+    def network_tracker_status(self):
+        # Make sure all trackers are in the tracker_status dict
+        for announce_entry in self.handle.trackers():
+            if announce_entry['url'] not in self.tracker_status:
+                self.tracker_status[announce_entry['url']] = [0, 'Not contacted yet']
+
+        # Count DHT and PeX peers
+        dht_peers = pex_peers = 0
+        for peer_info in self.handle.get_peer_info():
+            if peer_info.source & peer_info.dht:
+                dht_peers += 1
+            if peer_info.source & peer_info.pex:
+                pex_peers += 1
+
+        session = self.ltmgr.ltsession if not self.get_anon_mode() else self.ltmgr.ltsession_anon
+        public = self.tdef and not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.tdef.is_private()
+
+        result = self.tracker_status.copy()
+        result['[DHT]'] = [dht_peers, 'Working' if session.is_dht_running() and public else 'Disabled']
+        result['[PeX]'] = [pex_peers, 'Working']
+        return result
 
     def set_state_callback(self, usercallback, getpeerlist=False, delay=0.0):
         """ Called by any thread """
