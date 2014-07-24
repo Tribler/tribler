@@ -462,22 +462,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
             self._logger.debug("LibtorrentDownloadImpl: alert %s with message %s", alert_type, alert)
 
-        if alert_type == 'tracker_reply_alert':
-            self.on_tracker_reply_alert(alert)
-        elif alert_type == 'tracker_error_alert':
-            self.on_tracker_error_alert(alert)
-        elif alert_type == 'tracker_warning_alert':
-            self.on_tracker_warning_alert(alert)
-        elif alert_type == 'metadata_received_alert':
-            self.on_metadata_received_alert(alert)
-        elif alert_type == 'file_renamed_alert':
-            self.on_file_renamed_alert(alert)
-        elif alert_type == 'performance_alert':
-            self.on_performance_alert(alert)
-        elif alert_type == 'torrent_checked_alert':
-            self.on_torrent_checked_alert(alert)
-        elif alert_type == "torrent_finished_alert":
-            self.on_torrent_finished_alert(alert)
+        alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert', \
+                       'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert')
+
+        if alert_type in alert_types:
+            getattr(self, 'on_' + alert_type)(alert)
         else:
             self.update_lt_stats()
 
