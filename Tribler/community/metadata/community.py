@@ -11,6 +11,7 @@ from Tribler.dispersy.distribution import LastSyncDistribution
 from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
+
 from conversion import MetadataConversion
 from payload import MetadataPayload
 
@@ -18,8 +19,6 @@ from payload import MetadataPayload
 class MetadataCommunity(Community):
 
     def initialize(self, integrate_with_tribler=True):
-        super(MetadataCommunity, self).initialize()
-
         self._logger = logging.getLogger(self.__class__.__name__)
         self._integrate_with_tribler = integrate_with_tribler
 
@@ -30,6 +29,8 @@ class MetadataCommunity(Community):
             self._torrent_db = TorrentDBHandler.getInstance()
         else:
             self._metadata_db = MetadataDBStub(self._dispersy)
+
+        super(MetadataCommunity, self).initialize()
 
     @classmethod
     def get_master_members(cls, dispersy):
