@@ -2,13 +2,10 @@
 # see LICENSE.txt for license information
 import os
 import sys
-import socket
 import logging
-import codecs
 from random import gauss
 
 from Tribler.Core.version import version_id
-from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 
@@ -32,8 +29,6 @@ class Utility:
 
         # Find the directory to save config files, etc.
         self.dir_root = configpath
-
-        self.randomly_selected_ports = {}
 
         self.setupConfig()
 

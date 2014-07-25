@@ -1134,9 +1134,10 @@ class LibraryDetails(TorrentDetails):
 
         self.peerList = SelectableListCtrl(self.peersTab, tooltip=False)
         self.peerList.InsertColumn(0, 'IP-address')
-        self.peerList.InsertColumn(1, 'Traffic', wx.LIST_FORMAT_RIGHT)
-        self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
-        self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(1, 'Progress', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(2, 'Traffic', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(3, 'State', wx.LIST_FORMAT_RIGHT)
+        self.peerList.InsertColumn(4, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
         tt_string = "States:" + (" "*75 if sys.platform == 'win32' else "")
         tt_string += "\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\t\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\toutgoing connection\nR\t\tincoming connection"
@@ -1303,16 +1304,27 @@ class LibraryDetails(TorrentDetails):
             peers.sort(downsort, reverse=True)
 
             for peer_dict in peers:
-                peer_name = peer_dict['ip'] + ':%d @ %d%%' % (peer_dict['port'], peer_dict.get('completed', 0) * 100.0)
+                peer_name = peer_dict['ip'] + ':%d' % peer_dict['port']
+
+                connection_type = peer_dict.get('connection_type', 0)
+                if connection_type == 1:
+                    peer_name += ' [WebSeed]'
+                elif connection_type == 2:
+                    peer_name += ' [HTTP Seed]'
+                elif connection_type == 3:
+                    peer_name += ' [uTP]'
+
                 if index < self.peerList.GetItemCount():
                     self.peerList.SetStringItem(index, 0, peer_name)
                 else:
                     self.peerList.InsertStringItem(index, peer_name)
 
+                self.peerList.SetStringItem(index, 1, '%d%%' % (peer_dict.get('completed', 0) * 100.0))
+
                 traffic = ""
                 traffic += self.guiutility.utility.speed_format(peer_dict.get('downrate', 0)) + u"\u2193 "
                 traffic += self.guiutility.utility.speed_format(peer_dict.get('uprate', 0)) + u"\u2191"
-                self.peerList.SetStringItem(index, 1, traffic.strip())
+                self.peerList.SetStringItem(index, 2, traffic.strip())
 
                 state = ""
                 if peer_dict.get('optimistic'):
@@ -1334,21 +1346,21 @@ class LibraryDetails(TorrentDetails):
                 if peer_dict.get('snubbed'):
                     state += "S,"
                 state += peer_dict.get('direction', '')
-                self.peerList.SetStringItem(index, 2, state)
+                self.peerList.SetStringItem(index, 3, state)
 
                 image_index = self.country_to_index.get(peer_dict.get('country', '00').lower(), -1)
                 self.peerList.SetItemColumnImage(index, 0, image_index)
 
                 if 'extended_version' in peer_dict:
                     try:
-                        self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('ascii'))
+                        self.peerList.SetStringItem(index, 4, peer_dict['extended_version'].decode('ascii'))
                     except:
                         try:
-                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8', 'ignore'))
+                            self.peerList.SetStringItem(index, 4, peer_dict['extended_version'].decode('utf-8', 'ignore'))
                         except:
                             self._logger.error("Could not format peer client version")
                 else:
-                    self.peerList.SetStringItem(index, 3, '')
+                    self.peerList.SetStringItem(index, 4, '')
 
                 index += 1
 
@@ -1405,6 +1417,7 @@ class LibraryDetails(TorrentDetails):
         self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
         self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+        self.peerList.SetColumnWidth(4, wx.LIST_AUTOSIZE)
         self.peerList._doResize()
         self.peerList.Thaw()
 

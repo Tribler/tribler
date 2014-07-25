@@ -80,7 +80,7 @@ class FastI2IConnection(Thread):
             pass
 
     def data_came_in(self, data):
-        self._logger.debug("fasti2i: data_came_in %s %s", repr(data), len(data))
+        self._logger.debug("fasti2i: data_came_in %s %s", repr(data[:40]), len(data))
         self.buffer = self.readlinecallback(self.buffer + data)
         assert self.buffer is not None, data
 
