@@ -143,7 +143,7 @@ class TunnelSettings:
         self.max_time_inactive = 20
         self.max_traffic = 10 * 1024 * 1024
 
-        self.max_packets_without_reply = 100
+        self.max_packets_without_reply = 50
 
 class RoundRobin(object):
 
