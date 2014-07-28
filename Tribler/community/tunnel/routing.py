@@ -151,4 +151,4 @@ class RelayRoute(object):
         self.online = False
         self.creation_time = time.time()
         self.last_incoming = time.time()
-        self.bytes_relayed = 0
+        self.bytes_up = self.bytes_down = 0

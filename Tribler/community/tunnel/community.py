@@ -91,15 +91,15 @@ class TunnelExitSocket(DatagramProtocol):
 
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
-            self.bytes_up += len(data)
             if TunnelConversion.could_be_utp(data):
                 self.transport.write(data, destination)
+                self.community.increase_bytes_sent(self, len(data))
             else:
                 self._logger.error("TunnelCommunity: dropping non-utp packets from exit socket with circuit_id %d", self.circuit_id)
 
     def datagramReceived(self, data, source):
+        self.community.increase_bytes_received(self, len(data))
         if self.check_num_packets(source, True):
-            self.bytes_down += len(data)
             if TunnelConversion.could_be_utp(data):
                 self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
             else:
@@ -180,6 +180,7 @@ class TunnelCommunity(Community):
         self.notifier = None
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
+        self.stats = defaultdict(int)
 
         self.settings = settings if settings else TunnelSettings()
 
@@ -312,7 +313,7 @@ class TunnelCommunity(Community):
                 self.remove_relay(key, 'no activity')
             elif relay.creation_time < time.time() - self.settings.max_time:
                 self.remove_relay(key, 'too old')
-            elif relay.bytes_relayed > self.settings.max_traffic:
+            elif relay.bytes_up + relay.bytes_down > self.settings.max_traffic:
                 self.remove_relay(key, 'traffic limit exceeded')
 
         # Remove exit sockets that are too old / have transferred too many bytes.
@@ -339,7 +340,7 @@ class TunnelCommunity(Community):
         self.waiting_for.add(circuit_id)
 
         dh_first_part_enc = self.crypto.hybrid_encrypt_str(first_hop.get_member()._ec, long_to_bytes(circuit.unverified_hop.dh_first_part))
-        circuit.bytes_up += self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc))
+        self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc)))
         return circuit
 
     def remove_circuit(self, circuit_id, additional_info=''):
@@ -438,6 +439,7 @@ class TunnelCommunity(Community):
 
             if this_relay:
                 this_relay.last_incoming = time.time()
+                self.increase_bytes_received(this_relay, len(packet))
 
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
             try:
@@ -448,10 +450,7 @@ class TunnelCommunity(Community):
             packet = plaintext + encrypted
 
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
-            bytes_relayed = self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet)
-
-            if this_relay:
-                this_relay.bytes_relayed = bytes_relayed
+            self.increase_bytes_sent(next_relay, self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet))
 
             return True
         return False
@@ -521,8 +520,8 @@ class TunnelCommunity(Community):
 
                 self._logger.info("TunnelCommunity: extending circuit %d with %s", circuit.circuit_id, hashed_public_key)
                 dh_first_part_enc = self.crypto.hybrid_encrypt_str(extend_hop_public_key, long_to_bytes(circuit.unverified_hop.dh_first_part))
-                circuit.bytes_up += self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
-                                                   (circuit.circuit_id, dh_first_part_enc, extend_hop_public_bin))
+                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
+                                                                 (circuit.circuit_id, dh_first_part_enc, extend_hop_public_bin)))
             else:
                 self.remove_circuit(circuit.circuit_id, "no candidates to extend, bailing out.")
 
@@ -559,7 +558,7 @@ class TunnelCommunity(Community):
 
                 if circuit_id in self.circuits:
                     self.circuits[circuit_id].beat_heart()
-                    self.circuits[circuit_id].bytes_down += len(message.packet)
+                    self.increase_bytes_received(self.circuits[circuit_id], len(message.packet))
 
         if decrypted_packets:
             self._dispersy.on_incoming_packets(decrypted_packets, cache=False)
@@ -694,7 +693,7 @@ class TunnelCommunity(Community):
 
             if circuit_id in self.circuits and origin and sock_addr == self.circuits[circuit_id].first_hop:
                 self.circuits[circuit_id].beat_heart()
-                self.circuits[circuit_id].bytes_down += len(packet)
+                self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
                 self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data)
 
@@ -724,11 +723,11 @@ class TunnelCommunity(Community):
         for circuit in self.active_circuits.values():
             if circuit.goal_hops > 0:
                 cache = self.request_cache.add(PingRequestCache(self, circuit))
-                circuit.bytes_up += self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number))
+                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
         packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
-        circuit.bytes_up += self.send_data([Candidate(circuit.first_hop, False)], u'data', packet)
+        self.increase_bytes_sent(circuit, self.send_data([Candidate(circuit.first_hop, False)], u'data', packet))
 
     def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, data):
         packet = TunnelConversion.encode_data(circuit_id, ('0.0.0.0', 0), source_address, data)
@@ -771,3 +770,25 @@ class TunnelCommunity(Community):
         elif direction == ENDPOINT:
             return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
         raise CryptoException("Direction must be either ORIGINATOR or ENDPOINT")
+
+    def increase_bytes_sent(self, obj, num_bytes):
+        if isinstance(obj, Circuit):
+            obj.bytes_up += num_bytes
+            self.stats['bytes_up'] += num_bytes
+        elif isinstance(obj, RelayRoute):
+            obj.bytes_up += num_bytes
+            self.stats['bytes_relay_up'] += num_bytes
+        elif isinstance(obj, TunnelExitSocket):
+            obj.bytes_up += num_bytes
+            self.stats['bytes_enter'] += num_bytes
+
+    def increase_bytes_received(self, obj, num_bytes):
+        if isinstance(obj, Circuit):
+            obj.bytes_down += num_bytes
+            self.stats['bytes_down'] += num_bytes
+        elif isinstance(obj, RelayRoute):
+            obj.bytes_down += num_bytes
+            self.stats['bytes_relay_down'] += num_bytes
+        elif isinstance(obj, TunnelExitSocket):
+            obj.bytes_down += num_bytes
+            self.stats['bytes_exit'] += num_bytes
