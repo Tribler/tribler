@@ -785,8 +785,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         for peer_info in peer_infos:
 
             # Only consider fully connected peers.
-            if peer_info.flags & peer_info.connecting or peer_info.flags & peer_info.handshake:
-                continue
+            # if peer_info.flags & peer_info.connecting or peer_info.flags & peer_info.handshake:
+            #     continue
 
             peer_dict = {}
             peer_dict['id'] = peer_info.pid
