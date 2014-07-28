@@ -46,8 +46,8 @@ class Utility:
                             'window_width': 1024,
                             'window_height': 670,
                             'sash_position':-185,
-                            't4t_option': 0,  # Seeding items added by Boxun
-                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
+                            't4t_option': 0, # Seeding items added by Boxun
+                            't4t_ratio': 100, # T4T seeding ratio added by Niels
                             't4t_hours': 0,
                             't4t_mins': 30,
                             'g2g_option': 1,
@@ -66,7 +66,8 @@ class Utility:
                             'showsaveas': 1,
                             'i2ilistenport': 57891,
                             'mintray': 2 if sys.platform == 'win32' else 0,
-                            'free_space_threshold': 100 * 1024 * 1024}
+                            'free_space_threshold': 100 * 1024 * 1024,
+                            'version_info': {}}
 
         self.defaults = {'Tribler': tribler_defaults}
         self.configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")

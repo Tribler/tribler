@@ -201,6 +201,13 @@ class ABCApp():
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
+            version_info = self.utility.read_config('version_info')
+            if version_info.get('version_id', None) != version_id:
+                # First run of a different version
+                version_info['first_run'] = int(time())
+                version_info['version_id'] = version_id
+                self.utility.write_config('version_info', version_info)
+
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
             UserDownloadChoice.get_singleton().set_utility(self.utility)
@@ -479,7 +486,7 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member)
 
-            if not self.is_unit_testing:
+            if not self.is_unit_testing and time() < self.utility.read_config('version_info').get('first_run', 0) + 1209600:
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(
                     private_key=dispersy.crypto.key_to_bin(keypair),
