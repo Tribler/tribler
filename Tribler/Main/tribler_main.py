@@ -709,7 +709,7 @@ class ABCApp():
                 saveas = pstate.get('downloadconfig', 'saveas')
                 if saveas:
                     destdir = os.path.basename(saveas)
-                    if destdir == coldir or destdir == "anon_test":
+                    if destdir == coldir:
                         os.remove(file)
             except:
                 pass
@@ -915,6 +915,11 @@ class ABCApp():
         self._logger.info("main: ONEXIT")
         self.ready = False
         self.done = True
+
+        # Remove anonymous test download
+        for download in self.utility.session.get_downloads():
+            if download.get_anon_mode() and os.path.basename(download.get_dest_dir()) == "anon_test":
+                self.utility.session.remove_download(download)
 
         # write all persistent data to disk
         if self.i2is:
