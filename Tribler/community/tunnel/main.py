@@ -5,12 +5,13 @@ import random
 import argparse
 import threading
 
+from collections import defaultdict
+
 from twisted.internet.stdio import StandardIO
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
-
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
@@ -33,8 +34,10 @@ class AnonTunnel(object):
     @param TunnelSettings settings: the settings to pass to the ProxyCommunity
     """
 
-    def __init__(self, settings):
+    def __init__(self, settings, crawl_filename=None):
         self.settings = settings
+        self.crawl_filename = crawl_filename
+        self.crawl_data = defaultdict(lambda: {})
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
@@ -62,9 +65,21 @@ class AnonTunnel(object):
     def run(self):
         def start_community():
             member = self.dispersy.get_new_member(u"NID_secp160k1")
-            self.community = self.dispersy.define_auto_load(TunnelCommunity, member,
-                                                            (None, self.settings),
-                                                            load=True)[0]
+            self.community = self.dispersy.define_auto_load(TunnelCommunity, member, (None, self.settings), load=True)[0]
+
+            if self.crawl_filename:
+
+                def on_introduction_response(messages):
+                    self.community.on_introduction_response(messages)
+                    for message in messages:
+                        def stats_handler(candidate, stats):
+                            print stats
+                            self.crawl_data[candidate][time.time()] = stats
+                        self.community.do_stats(message.candidate, stats_handler)
+                        print "Sent stats request to %s:%d" % message.candidate.sock_addr
+
+                self.community.get_meta_message(u"dispersy-introduction-response")._handle_callback = on_introduction_response
+
         blockingCallFromThread(reactor, start_community)
 
     def stop(self):
@@ -143,8 +158,8 @@ def main(argv):
 
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
+        parser.add_argument('-c', '--crawl', help='Enable crawler and output data to the given file')
         parser.add_argument('-y', '--yappi', help="Profiling mode, either 'wall' or 'cpu'")
-        parser.add_argument('--max-circuits', nargs=1, default=10, help='Maximum number of circuits to create')
         parser.add_help = True
         args = parser.parse_args(sys.argv[1:])
 
@@ -152,17 +167,9 @@ def main(argv):
         parser.print_help()
         sys.exit(2)
 
-    socks5_port = None
-
-    if args.yappi == 'wall':
-        profile = "wall"
-    elif args.yappi == 'cpu':
-        profile = "cpu"
-    else:
-        profile = None
-
-    if args.socks5:
-        socks5_port = int(args.socks5)
+    socks5_port = int(args.socks5) if args.socks5 else None
+    crawl_filename = args.crawl if args.crawl and (not os.path.dirname(args.crawl) or os.path.exists(os.path.dirname(args.crawl))) else None
+    profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
 
     if profile:
         yappi.set_clock_type(profile)
@@ -171,7 +178,7 @@ def main(argv):
 
     settings = TunnelSettings()
     settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
-    anon_tunnel = AnonTunnel(settings)
+    anon_tunnel = AnonTunnel(settings, crawl_filename)
     StandardIO(LineHandler(anon_tunnel, profile))
     anon_tunnel.run()
 

@@ -181,6 +181,7 @@ class TunnelCommunity(Community):
     def initialize(self, session=None, settings=None):
         super(TunnelCommunity, self).initialize()
 
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.tribler_session = session
         self.data_prefix = "fffffffe".decode("HEX")
         self.circuits = {}
@@ -249,8 +250,8 @@ class TunnelCommunity(Community):
                 Message(self, u"extended", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendedPayload(), self.check_extended, self.on_extended),
                 Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._generic_timeline_check, self.on_ping),
                 Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong),
-                Message(self, u"stats_request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), StatsRequestPayload(), self._generic_timeline_check, self.on_stats_request),
-                Message(self, u"stats_response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), StatsResponsePayload(), self._generic_timeline_check, self.on_stats_response)]
+                Message(self, u"stats-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), StatsRequestPayload(), self._generic_timeline_check, self.on_stats_request),
+                Message(self, u"stats-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), StatsResponsePayload(), self._generic_timeline_check, self.on_stats_response)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), TunnelConversion(self)]
@@ -743,27 +744,27 @@ class TunnelCommunity(Community):
     def on_stats_request(self, messages):
         for request in messages:
             # TODO: check if candidate mid is an authorized crawler
-            meta = self.get_meta_message(u"stats_response")
+            meta = self.get_meta_message(u"stats-response")
             stats = dict(self.stats)
             stats['uptime'] = time.time() - self.creation_time
             response = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(request.payload.identifier, stats))
-            self.send_packet([request.candidate], u"stats_response", response.packet)
+            self.send_packet([request.candidate], u"stats-response", response.packet)
 
     def on_stats_response(self, messages):
         for message in messages:
             request = self.request_cache.get(u"stats", message.payload.identifier)
             if not request:
-                logger.error("TunnelCommunity: got unexpected stats response from %s", message.candidate.sock_addr)
+                self._logger.error("TunnelCommunity: got unexpected stats response from %s", message.candidate.sock_addr)
                 continue
 
             request.handler(message.candidate, message.payload.stats)
-            logger.info("TunnelCommunity: received stats response %s", message.payload.stats)
+            self._logger.info("TunnelCommunity: received stats response %s", message.payload.stats)
 
     def do_stats(self, candidate, handler):
         cache = self.request_cache.add(StatsRequestCache(self, handler))
-        meta = self.get_meta_message(u"stats_request")
+        meta = self.get_meta_message(u"stats-request")
         request = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(cache.number,))
-        self.send_packet([candidate], u"stats_request", request.packet)
+        self.send_packet([candidate], u"stats-request", request.packet)
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
         packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
