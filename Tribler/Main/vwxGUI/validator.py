@@ -2,6 +2,7 @@ import wx
 import string
 import os
 
+
 class BaseValidator(wx.PyValidator):
 
     def __init__(self):
@@ -85,7 +86,7 @@ class NumberValidator(BaseValidator):
 
         if not value:
             wx.MessageBox("Empty text", "Error",
-                wx.OK | wx.ICON_ERROR, edit_text.GetParent())
+                          wx.OK | wx.ICON_ERROR, edit_text.GetParent())
             edit_text.SetValue(edit_text.original_text)
             return False
         for ch in value:
@@ -95,13 +96,13 @@ class NumberValidator(BaseValidator):
         new_value = int(value)
         if self._min is not None and new_value < self._min:
             wx.MessageBox("Number too small (%d < %d)" % (new_value, self._min), "Error",
-                wx.OK | wx.ICON_ERROR, edit_text.GetParent())
+                          wx.OK | wx.ICON_ERROR, edit_text.GetParent())
             edit_text.SetValue(edit_text.original_text)
             return False
 
         if self._max is not None and new_value > self._max:
             wx.MessageBox("Number too big (%d > %d)" % (new_value, self._max), "Error",
-                wx.OK | wx.ICON_ERROR, edit_text.GetParent())
+                          wx.OK | wx.ICON_ERROR, edit_text.GetParent())
             edit_text.SetValue(edit_text.original_text)
             return False
 
@@ -140,7 +141,7 @@ class DirectoryValidator(BaseValidator):
         is_valid = os.path.isdir(value)
         if not is_valid:
             wx.MessageBox("Invalid path [%s]" % value, "Error",
-                wx.OK | wx.ICON_ERROR, edit_text.GetParent())
+                          wx.OK | wx.ICON_ERROR, edit_text.GetParent())
             edit_text.SetValue(edit_text.original_text)
         return is_valid
 
@@ -161,7 +162,7 @@ class NetworkSpeedValidator(BaseValidator):
             return True
         if not value or any(ch not in string.digits for ch in value):
             wx.MessageBox("Empty network speed [%s]" % value, "Error",
-                wx.OK | wx.ICON_ERROR, edit_text.GetParent())
+                          wx.OK | wx.ICON_ERROR, edit_text.GetParent())
             edit_text.SetValue(edit_text.original_text)
             return False
         return True

@@ -34,6 +34,7 @@ TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 # TODO(emilon): This is not a constant
 LOW_PRIO_COLLECTING = 2
 
+
 class RemoteTorrentHandler(TaskManager):
 
     __single = None
