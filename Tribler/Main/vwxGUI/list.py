@@ -102,7 +102,7 @@ class BaseManager(object):
 class RemoteSearchManager(BaseManager):
 
     def __init__(self, list):
-        super(BaseManager, self).__init__(list)
+        super(RemoteSearchManager, self).__init__(list)
         self.oldkeywords = ''
 
         self.guiserver = self.guiutility.frame.guiserver
@@ -224,7 +224,7 @@ class RemoteSearchManager(BaseManager):
 class LocalSearchManager(BaseManager):
 
     def __init__(self, list):
-        super(BaseManager, self).__init__(list)
+        super(LocalSearchManager, self).__init__(list)
 
         self.library_manager = self.guiutility.library_manager
         self.prev_refresh_if = 0
@@ -286,7 +286,7 @@ class LocalSearchManager(BaseManager):
 class ChannelSearchManager(BaseManager):
 
     def __init__(self, list):
-        super(BaseManager, self).__init__(list)
+        super(ChannelSearchManager, self).__init__(list)
         self.category = ''
 
         self.channelsearch_manager = self.guiutility.channelsearch_manager

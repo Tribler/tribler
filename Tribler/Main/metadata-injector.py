@@ -36,7 +36,6 @@ from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 logger = logging.getLogger(__name__)
 
 
-#@call_on_reactor_thread
 def define_communities(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
     from Tribler.community.channel.community import ChannelCommunity
