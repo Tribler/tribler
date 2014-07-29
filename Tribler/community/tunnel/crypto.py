@@ -5,6 +5,10 @@ from Tribler.community.privatesemantic.crypto.optional_crypto import mpz, rand, 
 from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 
 
+class CryptoException(Exception):
+    pass
+
+
 class TunnelCrypto(ElgamalCrypto):
 
     def initialize(self, community):
@@ -42,10 +46,16 @@ class TunnelCrypto(ElgamalCrypto):
         return aes_decrypt_str(key, content)
 
     def hybrid_encrypt_str(self, pub_key, content):
-        return self.encrypt(pub_key, content)
+        try:
+            return self.encrypt(pub_key, content)
+        except Exception, e:
+            raise CryptoException(str(e))
 
     def hybrid_decrypt_str(self, pub_key, content):
-        return self.decrypt(pub_key, content)
+        try:
+            return self.decrypt(pub_key, content)
+        except Exception, e:
+            raise CryptoException(str(e))
 
 
 class NoTunnelCrypto(TunnelCrypto):
