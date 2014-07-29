@@ -193,6 +193,7 @@ class TunnelCommunity(Community):
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
         self.stats = defaultdict(int)
+        self.creation_time = time.time()
 
         self.settings = settings if settings else TunnelSettings()
 
@@ -743,7 +744,9 @@ class TunnelCommunity(Community):
         for request in messages:
             # TODO: check if candidate mid is an authorized crawler
             meta = self.get_meta_message(u"stats_response")
-            response = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(request.payload.identifier, dict(self.stats)))
+            stats = dict(self.stats)
+            stats['uptime'] = time.time() - self.creation_time
+            response = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(request.payload.identifier, stats))
             self.send_packet([request.candidate], u"stats_response", response.packet)
 
     def on_stats_response(self, messages):
