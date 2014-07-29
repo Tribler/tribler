@@ -141,3 +141,35 @@ class PingPayload(Payload):
 
 class PongPayload(PingPayload):
     pass
+
+
+class StatsRequestPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier):
+            assert isinstance(identifier, int), type(identifier)
+
+            super(StatsRequestPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+
+class StatsResponsePayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, stats):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(stats, dict), type(stats)
+
+            super(StatsResponsePayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._stats = stats
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def stats(self):
+            return self._stats
