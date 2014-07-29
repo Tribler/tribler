@@ -575,7 +575,7 @@ class TunnelCommunity(Community):
 
             try:
                 dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
-            except Exception, e:
+            except CryptoException, e:
                 logger.error(str(e))
                 continue
 

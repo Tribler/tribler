@@ -785,6 +785,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         for peer_info in peer_infos:
 
             # Only consider fully connected peers.
+            # Disabling for now, to avoid presenting the user with conflicting information
+            # (partially connected peers are included in seeder/leecher stats).
             # if peer_info.flags & peer_info.connecting or peer_info.flags & peer_info.handshake:
             #     continue
 
