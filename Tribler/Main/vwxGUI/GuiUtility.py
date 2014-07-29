@@ -100,7 +100,7 @@ class GUIUtility:
             self.torrentsearch_manager = TorrentManager.getInstance(self)
             self.channelsearch_manager = ChannelManager.getInstance()
             self.library_manager = LibraryManager.getInstance(self)
-            self.torrentstate_manager = TorrentStateManager.getInstance(self)
+            self.torrentstate_manager = TorrentStateManager.getInstance()
 
             self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
