@@ -2,19 +2,15 @@
 import sys
 import logging
 from math import log
-from time import time
-from colorsys import hsv_to_rgb, rgb_to_hsv
 import re
 import copy
 
 import wx
 from wx.lib.wordwrap import wordwrap
 from time import time
-from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from Tribler.Category.Category import Category
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 from Tribler.Core.simpledefs import NTFY_MISC, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
@@ -52,9 +48,10 @@ DEBUG_RELEVANCE = False
 MAX_REFRESH_PARTIAL = 5
 
 
-class BaseManager:
+class BaseManager(object):
 
     def __init__(self, list):
+        super(BaseManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.list = list
@@ -105,7 +102,7 @@ class BaseManager:
 class RemoteSearchManager(BaseManager):
 
     def __init__(self, list):
-        BaseManager.__init__(self, list)
+        super(RemoteSearchManager, self).__init__(list)
         self.oldkeywords = ''
 
         self.guiserver = self.guiutility.frame.guiserver
@@ -227,7 +224,7 @@ class RemoteSearchManager(BaseManager):
 class LocalSearchManager(BaseManager):
 
     def __init__(self, list):
-        BaseManager.__init__(self, list)
+        super(LocalSearchManager, self).__init__(list)
 
         self.library_manager = self.guiutility.library_manager
         self.prev_refresh_if = 0
@@ -289,7 +286,7 @@ class LocalSearchManager(BaseManager):
 class ChannelSearchManager(BaseManager):
 
     def __init__(self, list):
-        BaseManager.__init__(self, list)
+        super(ChannelSearchManager, self).__init__(list)
         self.category = ''
 
         self.channelsearch_manager = self.guiutility.channelsearch_manager

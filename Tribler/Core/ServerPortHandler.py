@@ -14,6 +14,7 @@ except:
 
 default_task_id = []
 
+
 class SingleRawServer:
 
     def __init__(self, info_hash, multihandler, doneflag, protocol):

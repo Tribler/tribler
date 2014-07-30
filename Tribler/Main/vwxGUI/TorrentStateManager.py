@@ -18,15 +18,16 @@ from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, 
     limit_resolution, get_thumbnail
 
 
-class TorrentStateManager:
+class TorrentStateManager(object):
     # Code to make this a singleton
     __single = None
 
-    def __init__(self, guiUtility):
+    def __init__(self):
         if TorrentStateManager.__single:
             raise RuntimeError("TorrentStateManager is singleton")
         TorrentStateManager.__single = self
 
+        super(TorrentStateManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def getInstance(*args, **kw):
@@ -125,7 +126,6 @@ class TorrentStateManager:
             self._logger.exception(u"Failed to move swift files: specpn=%s, swift_filename=%s", specpn, swift_filename)
 
         return hex_roothash, contenthash_hex
-
 
     def _create_and_seed_metadata(self, videofile, torrent):
         if prctlimported:

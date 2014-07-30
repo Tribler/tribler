@@ -2,12 +2,8 @@
 import wx
 import sys
 import os
-import copy
 import datetime
-import threading
 
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.community.tunnel.community import TunnelCommunity
 from Tribler.community.tunnel.routing import Hop
 
@@ -15,7 +11,6 @@ import random
 import logging
 import binascii
 from time import strftime, time
-from collections import defaultdict
 from traceback import print_exc
 
 from Tribler.Category.Category import Category

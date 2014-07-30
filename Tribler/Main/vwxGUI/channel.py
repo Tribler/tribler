@@ -12,7 +12,6 @@ from traceback import print_exc
 import re
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, \
     EditText, BetterText
 
@@ -51,9 +50,7 @@ from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 class ChannelManager(BaseManager):
 
     def __init__(self, list):
-        BaseManager.__init__(self, list)
-
-        self._logger = logging.getLogger(self.__class__.__name__)
+        super(ChannelManager, self).__init__(list)
 
         self.channelsearch_manager = self.guiutility.channelsearch_manager
         self.library_manager = self.guiutility.library_manager

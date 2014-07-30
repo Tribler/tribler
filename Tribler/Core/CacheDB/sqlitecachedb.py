@@ -1,6 +1,5 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
-import inspect
 import logging
 import os
 import threading

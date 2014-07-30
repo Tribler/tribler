@@ -22,7 +22,6 @@ import httplib
 from urllib import urlencode
 
 from Tribler.Core.version import version_id
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import AutoWidthListCtrl
 
 

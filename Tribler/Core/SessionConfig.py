@@ -15,8 +15,6 @@
 
 import sys
 import os.path
-import socket
-import random
 import logging
 
 from Tribler.Core.defaults import sessdefaults

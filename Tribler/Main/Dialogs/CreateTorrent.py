@@ -18,6 +18,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 logger = logging.getLogger(__name__)
 
+
 class CreateTorrent(wx.Dialog):
 
     def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel=False):

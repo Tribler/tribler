@@ -5,7 +5,6 @@ import sys
 import os
 import logging
 from types import StringType, ListType, IntType, LongType
-from binascii import hexlify
 from urllib2 import URLError
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, P2PURL_SCHEME

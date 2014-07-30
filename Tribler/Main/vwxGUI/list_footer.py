@@ -2,7 +2,6 @@
 import wx
 
 from Tribler.Main.vwxGUI import LIST_RADIUS, LIST_HIGHTLIGHT
-from Tribler.Main.vwxGUI.list_details import AbstractDetails
 from Tribler.Main.vwxGUI.widgets import TextCtrl
 
 
