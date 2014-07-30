@@ -112,12 +112,22 @@ class AnonTunnel(object):
             Session.del_instance()
 
     def get_current_data(self):
+        # Calculate the latest statistics from all peers combined
         result = defaultdict(int)
+        keys_to_from = {'bytes_orig': ('bytes_up', 'bytes_down'),
+                        'bytes_exit': ('bytes_enter', 'bytes_exit'),
+                        'bytes_relay': ('bytes_relay_up', 'bytes_relay_down')}
         for data_list in self.crawl_data.itervalues():
             data = data_list[-1]
+            # Leave out old data (> 60 sec)
             if time.time() < data['time'] + 60:
-                result['bytes_orig'] += int((data['bytes_up'] + data['bytes_down']) / data['uptime'])
-        result['bytes_orig'] = result['bytes_orig'] / 1024
+                for key_to, key_from in keys_to_from.iteritems():
+                    result[key_to] += int(sum([data.get(k, 0) for k in key_from]) / data['uptime'])
+
+        # Convert to KiB
+        for k, v in result.iteritems():
+            result[k] = v / 1024
+
         return result
 
     def index(self, *args, **kwargs):
