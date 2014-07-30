@@ -952,7 +952,11 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         self.bitmap, self.bitmap_hover = self.CreateBitmaps()
 
-        self.thumbnail = wx.BitmapButton(self, -1, self.bitmap, style=wx.NO_BORDER)
+        if sys.platform == 'darwin':
+            # on Mac OS X (10.8), NO_BORDER will make the bitmap distorted
+            self.thumbnail = wx.BitmapButton(self, -1, self.bitmap)
+        else:
+            self.thumbnail = wx.BitmapButton(self, -1, self.bitmap, style=wx.NO_BORDER)
         self.thumbnail.SetBitmapHover(self.bitmap_hover)
         self.thumbnail.Bind(wx.EVT_BUTTON, self.OnThumbnailClick)
         self.hSizer.Add(self.thumbnail, 1, wx.EXPAND | wx.ALL, 15)
