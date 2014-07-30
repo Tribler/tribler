@@ -116,7 +116,8 @@ class AnonTunnel(object):
         for data_list in self.crawl_data.itervalues():
             data = data_list[-1]
             if time.time() < data['time'] + 60:
-                result['bytes_orig'] += int(data['bytes_up'] + data['bytes_down'] / data['uptime']) / 1024
+                result['bytes_orig'] += int((data['bytes_up'] + data['bytes_down']) / data['uptime'])
+        result['bytes_orig'] = result['bytes_orig'] / 1024
         return result
 
     def index(self, *args, **kwargs):
@@ -214,6 +215,7 @@ def main(argv):
     anon_tunnel.run()
 
     if crawl_filename:
+        cherrypy.config.update({'server.socket_host': '127.0.0.1', 'server.socket_port': 7070})
         cherrypy.quickstart(anon_tunnel)
 
 if __name__ == "__main__":
