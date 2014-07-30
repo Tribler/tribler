@@ -78,15 +78,18 @@ class AnonTunnel(object):
                             print "Received stats from %s:%d" % candidate.sock_addr, stats
 
                             candidate_mid = candidate.get_member().mid
+                            stats_old = self.crawl_message.get(candidate_mid, None)
+
+                            self.crawl_message[candidate_mid] = stats
+
+                            if stats_old == None:
+                                return
 
                             stats_dif = {'time': time.time()}
-                            stats_old = self.crawl_message.get(candidate_mid, {})
 
                             for key in set(stats.keys() + stats_old.keys()):
                                 stats_dif[key] = stats.get(key, 0) - stats_old.get(key, 0)
                             self.crawl_data[candidate_mid].append(stats_dif)
-
-                            self.crawl_message[candidate_mid] = stats
 
                         self.community.do_stats(message.candidate, stats_handler)
                         print "Sent stats request to %s:%d" % message.candidate.sock_addr
@@ -111,9 +114,9 @@ class AnonTunnel(object):
     def get_current_data(self):
         result = defaultdict(int)
         for data_list in self.crawl_data.itervalues():
-            for data in data_list:
-                if time.time() < data['time'] + 60:
-                    result['bytes_up'] += int(data['bytes_up'] / data['uptime']) / 1024
+            data = data_list[-1]
+            if time.time() < data['time'] + 60:
+                result['bytes_orig'] += int(data['bytes_up'] + data['bytes_down'] / data['uptime']) / 1024
         return result
 
     def index(self, *args, **kwargs):
@@ -209,7 +212,9 @@ def main(argv):
     anon_tunnel = AnonTunnel(settings, crawl_filename)
     StandardIO(LineHandler(anon_tunnel, profile))
     anon_tunnel.run()
-    cherrypy.quickstart(anon_tunnel)
+
+    if crawl_filename:
+        cherrypy.quickstart(anon_tunnel)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
