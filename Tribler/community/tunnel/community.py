@@ -530,11 +530,10 @@ class TunnelCommunity(Community):
             extend_hop_public_bin = next(iter(candidate_list), None)
             if extend_hop_public_bin:
                 extend_hop_public_key = self.dispersy.crypto.key_from_public_bin(extend_hop_public_bin)
-                hashed_public_key = self.dispersy.crypto.key_to_hash(extend_hop_public_key)
                 circuit.unverified_hop = Hop(extend_hop_public_key)
                 circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
-                self._logger.info("TunnelCommunity: extending circuit %d with %s", circuit.circuit_id, hashed_public_key)
+                self._logger.info("TunnelCommunity: extending circuit %d with %s", circuit.circuit_id, extend_hop_public_bin[:20].encode('hex'))
                 dh_first_part_enc = self.crypto.hybrid_encrypt_str(extend_hop_public_key, long_to_bytes(circuit.unverified_hop.dh_first_part))
                 self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
                                                                  (circuit.circuit_id, dh_first_part_enc, extend_hop_public_bin)))
