@@ -1,9 +1,11 @@
 import os
 import sys
+import json
 import time
 import random
 import argparse
 import threading
+import cherrypy
 
 from collections import defaultdict
 
@@ -37,7 +39,8 @@ class AnonTunnel(object):
     def __init__(self, settings, crawl_filename=None):
         self.settings = settings
         self.crawl_filename = crawl_filename
-        self.crawl_data = defaultdict(lambda: {})
+        self.crawl_data = defaultdict(lambda: [])
+        self.crawl_message = {}
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
@@ -68,13 +71,23 @@ class AnonTunnel(object):
             self.community = self.dispersy.define_auto_load(TunnelCommunity, member, (None, self.settings), load=True)[0]
 
             if self.crawl_filename:
-
                 def on_introduction_response(messages):
                     self.community.on_introduction_response(messages)
                     for message in messages:
                         def stats_handler(candidate, stats):
-                            print stats
-                            self.crawl_data[candidate][time.time()] = stats
+                            print "Received stats from %s:%d" % candidate.sock_addr, stats
+
+                            candidate_mid = candidate.get_member().mid
+
+                            stats_dif = {'time': time.time()}
+                            stats_old = self.crawl_message.get(candidate_mid, {})
+
+                            for key in set(stats.keys() + stats_old.keys()):
+                                stats_dif[key] = stats.get(key, 0) - stats_old.get(key, 0)
+                            self.crawl_data[candidate_mid].append(stats_dif)
+
+                            self.crawl_message[candidate_mid] = stats
+
                         self.community.do_stats(message.candidate, stats_handler)
                         print "Sent stats request to %s:%d" % message.candidate.sock_addr
 
@@ -94,6 +107,21 @@ class AnonTunnel(object):
                 time.sleep(1)
             print >> sys.stderr, "Session is shutdown"
             Session.del_instance()
+
+    def get_current_data(self):
+        result = defaultdict(int)
+        for data_list in self.crawl_data.itervalues():
+            for data in data_list:
+                if time.time() < data['time'] + 60:
+                    result['bytes_up'] += int(data['bytes_up'] / data['uptime']) / 1024
+        return result
+
+    def index(self, *args, **kwargs):
+        if 'callback' in kwargs:
+            return kwargs['callback'] + '(' + json.dumps(self.get_current_data()) + ');'
+        else:
+            return json.dumps(self.get_current_data())
+    index.exposed = True
 
 
 class LineHandler(LineReceiver):
@@ -181,6 +209,7 @@ def main(argv):
     anon_tunnel = AnonTunnel(settings, crawl_filename)
     StandardIO(LineHandler(anon_tunnel, profile))
     anon_tunnel.run()
+    cherrypy.quickstart(anon_tunnel)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
