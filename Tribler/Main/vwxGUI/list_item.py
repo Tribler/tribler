@@ -380,7 +380,15 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
         if has_thumbnails and not getattr(self, 'snapshot', None):
             # Override the settings flags set by AddComponents
-            self.controls[0].SetMinSize(self.controls[0].GetBestSize())
+            if sys.platform == 'darwin':
+                # on Mac OS X (10.8), the GetBestSize() returns a very small size that is
+                # not suitable for the title text, so we get the size through ClientDC
+                cdc = wx.ClientDC(self.controls[0])
+                cdc.SetFont(self.controls[0].GetFont())
+                w, _ = cdc.GetTextExtent(self.controls[0].GetLabel())
+                self.controls[0].SetMinSize((w, -1))
+            else:
+                self.controls[0].SetMinSize(self.controls[0].GetBestSize())
             self.titleSizer.Detach(self.controls[0])
             self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
 
