@@ -3,8 +3,8 @@ from struct import pack, unpack_from
 
 from Tribler.dispersy.conversion import NoDefBinaryConversion
 from Tribler.dispersy.message import DropPacket
-from Tribler.community.privatesemantic.conversion import long_to_bytes, \
-    bytes_to_long
+from Tribler.community.privatesemantic.conversion import long_to_bytes, bytes_to_long
+
 
 class SocialConversion(NoDefBinaryConversion):
 

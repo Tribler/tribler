@@ -6,12 +6,10 @@ from random import sample, randint, shuffle, random
 from time import time
 
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.privatesemantic.community import PForwardCommunity, HForwardCommunity, PoliForwardCommunity
 from Tribler.dispersy.authentication import MemberAuthentication
-from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
@@ -31,6 +29,7 @@ NEIGHBORS = 5
 FNEIGHBORS = 1
 FPROB = 0.5
 ENCRYPTION = True
+
 
 class TTLSearchCommunity(Community):
     """

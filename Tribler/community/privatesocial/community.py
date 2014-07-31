@@ -28,6 +28,7 @@ ENCRYPTION = True
 
 SYNC_WITH_TASTE_BUDDIES_INTERVAL = 300
 
+
 class SocialCommunity(Community):
 
     def initialize(self, integrate_with_tribler=True, encryption=ENCRYPTION, log_text=None):

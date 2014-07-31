@@ -30,6 +30,7 @@ CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
 INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_VERSION) + """');
 """
 
+
 class FriendDatabase(Database):
     if __debug__:
         __doc__ = schema

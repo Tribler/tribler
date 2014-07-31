@@ -1,7 +1,7 @@
 from struct import pack, unpack_from
 from Tribler.dispersy.message import DropPacket
-from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.community.privatesearch.conversion import SearchConversion
+
 
 class OneSwarmConversion(SearchConversion):
     def __init__(self, community):

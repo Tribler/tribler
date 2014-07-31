@@ -1,8 +1,9 @@
-from Tribler.dispersy.payload import Payload, IntroductionRequestPayload
+from Tribler.dispersy.payload import Payload
 from Tribler.dispersy.bloomfilter import BloomFilter
 
 MAXLONG128 = (1 << 1024) - 1
 MAXLONG256 = (1 << 2048) - 1
+
 
 # Search stuffs
 class SearchRequestPayload(Payload):

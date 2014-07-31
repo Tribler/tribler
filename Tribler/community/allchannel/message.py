@@ -1,6 +1,7 @@
 from Tribler.dispersy.message import DelayMessage
 from Tribler.community.channel.community import ChannelCommunity
 
+
 class DelayMessageReqChannelMessage(DelayMessage):
 
     """

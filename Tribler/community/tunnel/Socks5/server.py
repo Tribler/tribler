@@ -6,12 +6,11 @@ from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone
     Factory
 from Tribler.community.tunnel import CIRCUIT_STATE_READY
 
-class ConnectionState:
+
+class ConnectionState(object):
     """
     Enumeration of possible SOCKS5 connection states
     """
-    def __init__(self):
-        pass
 
     BEFORE_METHOD_REQUEST = 'BEFORE_METHOD_REQUEST'
     METHOD_REQUESTED = 'METHOD_REQUESTED'
@@ -20,10 +19,11 @@ class ConnectionState:
     PROXY_REQUEST_ACCEPTED = 'PROXY_REQUEST_ACCEPTED'
     TCP_RELAY = 'TCP_RELAY'
 
+
 class SocksUDPConnection(DatagramProtocol):
 
     def __init__(self, socksconnection, remote_udp_address):
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.socksconnection = socksconnection
 
         if remote_udp_address != ("0.0.0.0", 0):
@@ -69,6 +69,7 @@ class SocksUDPConnection(DatagramProtocol):
             self.listen_port.stopListening()
             self.listen_port = None
 
+
 class Socks5Connection(Protocol):
     """
     SOCKS5 TCP Connection handler
@@ -78,7 +79,7 @@ class Socks5Connection(Protocol):
     """
 
     def __init__(self, socksserver, selection_strategy):
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.socksserver = socksserver
         self.selection_strategy = selection_strategy
 
@@ -271,10 +272,11 @@ class Socks5Connection(Protocol):
 
         self.transport.loseConnection()
 
+
 class Socks5Server(Factory):
 
     def __init__(self, community, socks5_port=1080):
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         self.community = community
         self.socks5_port = socks5_port

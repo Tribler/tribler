@@ -32,6 +32,7 @@ mMAX_DELAY_LINK_LATENCY = 2
 
 mMaxSearchResponsesBeforeCancel = 40
 
+
 class SearchManager:
 
     def __init__(self, community, overlayManager, cancel_after=None):
@@ -296,6 +297,7 @@ class SearchManager:
             latencyDelay = randint(mMIN_DELAY_LINK_LATENCY, mMAX_DELAY_LINK_LATENCY)
             return float(searchDelay + latencyDelay)
 
+
 class DelayedSearchResponse:
     def __init__(self, msg, result, search_manager, community):
         self.msg = msg
@@ -311,6 +313,7 @@ class DelayedSearchResponse:
             if DEBUG:
                 print >> sys.stderr, "DelayedSearchResponse, sending search response", self.msg.getSearchID(), self.result
             self.community.send_response(self.msg, self.result)
+
 
 class ForwardedSearch:
     def __init__(self, source, search):
@@ -341,6 +344,7 @@ class ForwardedSearch:
     def isTimedOut(self):
         return self.getAge() > MAX_SEARCH_AGE;
 
+
 class SentSearch:
     def __init__(self, search, callback):
         self.search = search
@@ -362,6 +366,7 @@ class SentSearch:
 
     def isTimedOut(self):
         return self.getAge() > MAX_SEARCH_AGE
+
 
 class DelayedSearchQueue:
     def __init__(self, searchManager, delay):
@@ -442,6 +447,7 @@ class DelayedSearchQueue:
     def isQueued(self, search):
         return search.getSearchID() in self.queuedSearches
 
+
 class DelayedSearchQueueThread(Thread):
     def __init__(self, searchManager, queue, queuedSearches, searchesPerFriend):
         Thread.__init__(self)
@@ -488,12 +494,14 @@ class DelayedSearchQueueThread(Thread):
             except:
                 print_exc()
 
+
 class DelayedSearchQueueEntry:
     def __init__(self, search, source, dontSendBefore):
         self.insertionTime = time()
         self.search = search
         self.source = source
         self.dontSendBefore = dontSendBefore
+
 
 class MutableInteger:
     def __init__(self):

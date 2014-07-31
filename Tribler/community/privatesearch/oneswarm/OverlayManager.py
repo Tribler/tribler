@@ -11,6 +11,7 @@ mForwardSearchProbability = 0.5
 MAX_OUTGOING_SEARCH_RATE = 300
 MAX_INCOMING_SEARCH_RATE = 1000 * 1.5
 
+
 class OverlayManager:
     def __init__(self, community):
         self.community = community
@@ -110,6 +111,7 @@ class OverlayManager:
         self.receivedSearches[(message.getSearchID(), connection.getRemotePublicKeyHash())] = time()
         return callback(connection, message)
 
+
 class RandomnessManager:
     def __init__(self, secretBytes=None):
         if not secretBytes:
@@ -134,6 +136,7 @@ class RandomnessManager:
 
     def getSecretBytes(self):
         return self.secretBytes
+
 
 class Average:
     # refreshrate in ms, period in seconds

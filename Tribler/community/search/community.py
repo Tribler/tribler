@@ -1,5 +1,4 @@
 # Written by Niels Zeilemaker
-import logging
 from os import path
 from random import shuffle
 from time import time
@@ -30,12 +29,10 @@ from Tribler.dispersy.requestcache import RandomNumberCache, IntroductionRequest
 from Tribler.dispersy.resolution import PublicResolution
 
 
-logger = logging.getLogger(__name__)
-
-
 DEBUG = False
 SWIFT_INFOHASHES = 0
 CREATE_TORRENT_COLLECT_INTERVAL = 5
+
 
 class SearchCommunity(Community):
 
@@ -63,8 +60,6 @@ class SearchCommunity(Community):
         self.integrate_with_tribler = integrate_with_tribler
         self.log_incomming_searches = log_incomming_searches
         self.taste_buddies = []
-
-        self._logger = logging.getLogger(self.__class__.__name__)
 
         super(SearchCommunity, self).initialize()
         # To always connect to a peer uncomment/modify the following line
@@ -258,7 +253,7 @@ class SearchCommunity(Community):
                                 destination=(destination,),
                                 payload=payload)
 
-        logger.debug("%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
+        self._logger.debug("%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
 
         self._dispersy._forward([request])
         return request
@@ -435,7 +430,6 @@ class SearchCommunity(Community):
         def __init__(self, community, candidate):
             super(SearchCommunity.PingRequestCache, self).__init__(community._request_cache, u"ping")
 
-            self._logger = logging.getLogger(self.__class__.__name__)
             self.community = community
             self.candidate = candidate
 
@@ -613,7 +607,7 @@ class SearchCommunity(Community):
         try:
             return self._dispersy.get_community(cid, True)
         except CommunityNotFoundException:
-            logger.debug("join preview community %s", cid.encode("HEX"))
+            self._logger.debug("join preview community %s", cid.encode("HEX"))
             return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
@@ -662,7 +656,7 @@ class SearchCommunity(Community):
         return str(packet)
 
 
-class ChannelCastDBStub():
+class ChannelCastDBStub(object):
 
     def __init__(self, dispersy):
         self._dispersy = dispersy

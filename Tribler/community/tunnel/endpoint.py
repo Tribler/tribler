@@ -2,9 +2,6 @@
 Contains the DispersyBypassEndpoint to be used as Dispersy endpoint when the
 ProxyCommunity is being used
 """
-import logging
-from Queue import Queue, Full
-
 from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
 
 
@@ -23,8 +20,6 @@ class DispersyBypassEndpoint(RawserverEndpoint):
     def __init__(self, raw_server, port, ip="0.0.0.0"):
         super(DispersyBypassEndpoint, self).__init__(raw_server, port, ip)
         self.packet_handlers = {}
-
-        self._logger = logging.getLogger(__name__)
 
     def listen_to(self, prefix, handler):
         """
@@ -68,8 +63,6 @@ class DispersyBypassEndpoint(RawserverEndpoint):
 class DispersyTunnelBypassEndpoint(TunnelEndpoint):
     def __init__(self, swift_process):
         super(DispersyTunnelBypassEndpoint, self).__init__(swift_process)
-
-        self._logger = logging.getLogger(__name__)
 
     def listen_to(self, prefix, handler):
         """
