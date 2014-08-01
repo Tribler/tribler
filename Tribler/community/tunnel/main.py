@@ -80,8 +80,6 @@ class AnonTunnel(object):
                     self.community.on_introduction_response(messages)
                     for message in messages:
                         def stats_handler(candidate, stats):
-                            print "Received stats from %s:%d" % candidate.sock_addr, stats
-
                             candidate_mid = candidate.get_member().mid
                             stats_old = self.crawl_message.get(candidate_mid, None)
 
@@ -90,14 +88,16 @@ class AnonTunnel(object):
                             if stats_old == None:
                                 return
 
-                            stats_dif = {'time': time.time()}
+                            now = time.time()
+                            stats_dif = {'time': now}
 
                             for key in set(stats.keys() + stats_old.keys()):
                                 stats_dif[key] = stats.get(key, 0) - stats_old.get(key, 0)
                             self.crawl_data[candidate_mid].append(stats_dif)
 
+                            print '@%d' % int(now), message.candidate.get_member().mid.encode('hex'), json.dumps(stats)
+
                         self.community.do_stats(message.candidate, stats_handler)
-                        print "Sent stats request to %s:%d" % message.candidate.sock_addr
 
                 self.community.get_meta_message(u"dispersy-introduction-response")._handle_callback = on_introduction_response
 
