@@ -206,6 +206,7 @@ def main(argv):
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
+        parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number (only available if the crawler is enabled)', type=int)
         parser.add_argument('-y', '--yappi', help="Profiling mode, either 'wall' or 'cpu'")
         parser.add_help = True
         args = parser.parse_args(sys.argv[1:])
@@ -229,8 +230,8 @@ def main(argv):
     StandardIO(LineHandler(anon_tunnel, profile))
     anon_tunnel.run()
 
-    if crawl_keypair_filename:
-        cherrypy.config.update({'server.socket_host': '127.0.0.1', 'server.socket_port': 7070})
+    if crawl_keypair_filename and args.json > 0:
+        cherrypy.config.update({'server.socket_host': '127.0.0.1', 'server.socket_port': args.json})
         cherrypy.quickstart(anon_tunnel)
 
 if __name__ == "__main__":
