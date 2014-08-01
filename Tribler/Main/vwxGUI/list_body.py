@@ -1357,7 +1357,10 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         self.Bind(wx.EVT_MENU, lambda event: self.parent_list.OnDeleteKey(event) if getattr(self.parent_list, 'OnDeleteKey', False) else None, id=deleteId)
         self.Bind(wx.EVT_MENU, lambda event: self.OnBack(event), id=backId)
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnChildFocus)
-        wx.GetTopLevelParent(self).Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
+        if sys.platform == 'darwin':
+            wx.GetApp().Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
+        else:
+            wx.GetTopLevelParent(self).Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
 
         accelerators = [(wx.ACCEL_NORMAL, wx.WXK_HOME, homeId)]
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_END, endId))
@@ -1389,7 +1392,10 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
                 return
             self.processingMousewheel = True
             if self.IsShownOnScreen() and self.GetScreenRect().Contains(wx.GetMousePosition()):
-                self.GetEventHandler().ProcessEvent(event)
+                if sys.platform == 'darwin':
+                    self.Scroll(-1,self.GetViewStart()[1]-event.WheelRotation)
+                else:
+                    self.GetEventHandler().ProcessEvent(event)
                 self.processingMousewheel = False
             else:
                 self.processingMousewheel = False
