@@ -1,10 +1,13 @@
 import logging
 import os
-import time
 import shutil
+import time
+from os import path
+from platform import system
 
 
 class LibtorrentTest(object):
+
     """
     @param ProxyCommunity proxy : The proxy community instance
     @param Tribler.Core.Session.Session tribler_session: The Tribler Session
@@ -58,7 +61,7 @@ class LibtorrentTest(object):
         @forceWxThread
         def thank_you(file_size, start_time, end_time):
             avg_speed_KBps = 1.0 * file_size / (end_time - start_time) / 1024.0
-            wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps) , 'Download Completed', wx.OK | wx.ICON_INFORMATION)
+            wx.MessageBox('Your average speed was %.2f KB/s' % (avg_speed_KBps), 'Download Completed', wx.OK | wx.ICON_INFORMATION)
 
         def state_call():
             def _callback(ds):
@@ -86,12 +89,14 @@ class LibtorrentTest(object):
 
         destination_dir = os.path.join(self.tribler_session.get_state_dir(), "anon_test")
 
-        try:
-            shutil.rmtree(destination_dir)
-        except:
-            pass
+        shutil.rmtree(destination_dir, ignore_errors=True)
 
-        tdef = TorrentDef.load("anon_test.torrent")
+        torrent_path = "anon_test.torrent"
+        if system() == "Linux" and path.exists("/usr/share/tribler/anon_test.torrent"):
+            torrent_path = "/usr/share/tribler/anon_test.torrent"
+
+        assert path.exists(torrent_path), torrent_path
+        tdef = TorrentDef.load(torrent_path)
         tdef.set_private()  # disable dht
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
