@@ -825,7 +825,7 @@ class TunnelCommunity(Community):
             self.stats['bytes_relay_up'] += num_bytes
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_up += num_bytes
-            self.stats['bytes_enter'] += num_bytes
+            self.stats['bytes_exit'] += num_bytes
 
     def increase_bytes_received(self, obj, num_bytes):
         if isinstance(obj, Circuit):
@@ -836,4 +836,4 @@ class TunnelCommunity(Community):
             self.stats['bytes_relay_down'] += num_bytes
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_down += num_bytes
-            self.stats['bytes_exit'] += num_bytes
+            self.stats['bytes_enter'] += num_bytes
