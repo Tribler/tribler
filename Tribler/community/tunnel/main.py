@@ -2,33 +2,28 @@ import os
 import sys
 import time
 import random
-import logging
 import argparse
 import threading
 
-from threading import Thread
 from twisted.internet.stdio import StandardIO
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.threads import blockingCallFromThread
-from Tribler.dispersy.logger import get_logger
-from Tribler.community.tunnel.Socks5.server import Socks5Server
+
 from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
 
-logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
-logger = get_logger(__name__)
-
 try:
     import yappi
 except ImportError:
-    logger.warning("Yappi not installed, profiling options won't be available")
+    print >> sys.stderr, "Yappi not installed, profiling options won't be available"
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
 
-class AnonTunnel():
+class AnonTunnel(object):
     """
     The standalone AnonTunnel application. Does not depend on Tribler Session
     or LaunchManyCore but creates all dependencies by itself.
@@ -141,6 +136,7 @@ class LineHandler(LineReceiver):
 
                 print "%s-->\t%s\t\t%.2f" % ((key[0], key[1]), (relay.sock_addr, relay.circuit_id),
                                              relay.bytes[1] / 1024.0 / 1024.0,)
+
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Anonymous Tunnel CLI interface')

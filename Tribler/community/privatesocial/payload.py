@@ -1,6 +1,7 @@
 # Written by Niels Zeilemaker
 from Tribler.dispersy.payload import Payload
 
+
 class TextPayload(Payload):
 
     class Implementation(Payload.Implementation):
@@ -14,6 +15,7 @@ class TextPayload(Payload):
         @property
         def text(self):
             return self._text
+
 
 class EncryptedPayload(Payload):
 

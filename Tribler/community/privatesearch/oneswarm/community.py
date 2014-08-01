@@ -3,19 +3,18 @@ from Tribler.community.privatesemantic.community import PoliForwardCommunity
 from Tribler.community.privatesearch.oneswarm.SearchManager import SearchManager
 from Tribler.community.privatesearch.oneswarm.OverlayManager import OverlayManager
 
-from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.community.privatesearch.oneswarm.payload import SearchCancelPayload
 from Tribler.community.privatesearch.oneswarm.conversion import OneSwarmConversion
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.requestcache import RandomNumberCache
 
 ENCRYPTION = True
+
 
 class OneSwarmCommunity(TTLSearchCommunity):
 
@@ -111,6 +110,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
         self.dispersy._send([connection.dispersy_source], [message.dispersy_msg])
 
+
 class MessageWrapper:
     def __init__(self, dispersy_msg, mine=False):
         self.dispersy_msg = dispersy_msg
@@ -138,6 +138,7 @@ class MessageWrapper:
     def __str__(self):
         return str(self.dispersy_msg)
 
+
 class SourceWrapper:
     def __init__(self, community, dispersy_source):
         self.community = community
@@ -160,6 +161,7 @@ class SourceWrapper:
 
     def __str__(self):
         return str(self.dispersy_source)
+
 
 class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
 

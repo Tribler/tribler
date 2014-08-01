@@ -1,6 +1,4 @@
 import time
-import logging
-import threading
 
 from M2Crypto.EC import EC_pub
 
@@ -9,7 +7,7 @@ from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, 
 __author__ = 'chris'
 
 
-class Circuit:
+class Circuit(object):
     """ Circuit data structure storing the id, state and hops """
 
     def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None):
@@ -29,7 +27,6 @@ class Circuit:
 
         self._broken = False
         self._hops = []
-        self._logger = logging.getLogger(__name__)
 
         self.circuit_id = circuit_id
         self.first_hop = first_hop
@@ -98,7 +95,7 @@ class Circuit:
         self._broken = True
 
 
-class Hop:
+class Hop(object):
     """
     Circuit Hop containing the address, its public key and the first part of
     the Diffie-Hellman handshake

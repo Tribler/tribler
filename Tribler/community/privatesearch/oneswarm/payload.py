@@ -1,5 +1,6 @@
 from Tribler.dispersy.payload import Payload
 
+
 class SearchCancelPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier):

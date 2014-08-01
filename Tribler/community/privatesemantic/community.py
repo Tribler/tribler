@@ -21,6 +21,7 @@ from .payload import *
 from Tribler.community.privatesemantic.conversion import bytes_to_long, long_to_bytes
 from Tribler.community.privatesemantic.database import SemanticDatabase
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
+# TODO: BootstrapCandidate are gone
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -40,6 +41,7 @@ PING_TIMEOUT = CANDIDATE_WALK_LIFETIME / 2
 TIME_BETWEEN_CONNECTION_ATTEMPTS = 10.0
 
 PSI_CARDINALITY, PSI_OVERLAP, PSI_AES = range(3)
+
 
 class TasteBuddy():
     def __init__(self, overlap, sock_addr):
@@ -82,6 +84,7 @@ class TasteBuddy():
     def __hash__(self):
         return hash(self.sock_addr)
 
+
 class ActualTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate):
         assert isinstance(candidate, WalkCandidate), type(candidate)
@@ -117,6 +120,7 @@ class ActualTasteBuddy(TasteBuddy):
             overlap = len(overlap)
         return "ATB_%d_%s_%s" % (self.timestamp, overlap, self.candidate)
 
+
 class PossibleTasteBuddy(TasteBuddy):
     def __init__(self, overlap, timestamp, candidate_mid, received_from):
         assert isinstance(timestamp, (long, float)), type(timestamp)
@@ -145,6 +149,7 @@ class PossibleTasteBuddy(TasteBuddy):
 
     def __hash__(self):
         return hash(self.candidate_mid)
+
 
 class ForwardCommunity():
 

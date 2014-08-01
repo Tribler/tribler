@@ -1,6 +1,5 @@
 import binascii
 import json
-import logging
 
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
@@ -19,7 +18,6 @@ from payload import MetadataPayload
 class MetadataCommunity(Community):
 
     def initialize(self, integrate_with_tribler=True):
-        self._logger = logging.getLogger(self.__class__.__name__)
         self._integrate_with_tribler = integrate_with_tribler
 
         if self._integrate_with_tribler:
@@ -60,7 +58,6 @@ class MetadataCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), MetadataConversion(self)]
 
-
     def initiate_meta_messages(self):
         custom_callback = (self.custom_callback_check, self.custom_callback_store)
         return super(MetadataCommunity, self).initiate_meta_messages() + [
@@ -75,7 +72,6 @@ class MetadataCommunity(Community):
                     self.check_metadata,
                     self.on_metadata),
         ]
-
 
     def create_metadata_message(self, infohash, roothash, data_list):
         columns = ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "message_id")
@@ -115,7 +111,6 @@ class MetadataCommunity(Community):
                                 prev_mid, prev_global_time))
         self.__log(-1, message)
         self._dispersy.store_update_forward([message], True, True, True)
-
 
     def check_metadata(self, messages):
         for message in messages:
@@ -160,7 +155,6 @@ class MetadataCommunity(Community):
                     continue
 
             yield message
-
 
     def on_metadata(self, messages):
         # DO NOTHING
@@ -281,7 +275,6 @@ class MetadataCommunity(Community):
             self.__log(0, message)
             return message
 
-
     def custom_callback_store(self, messages):
         """
         Store everything into MetadataMessage table and MetadataData table.
@@ -334,8 +327,6 @@ class MetadataCommunity(Community):
 class MetadataDBStub(object):
 
     def __init__(self, dispersy):
-        self._logger = logging.getLogger(self.__class__.__name__)
-
         self._dispersy = dispersy
 
         # the dirty way: simulate the database with lists
@@ -343,10 +334,8 @@ class MetadataDBStub(object):
         self._metadata_message_db_list = []
         self._metadata_data_db_list = []
 
-
     def getAllMetadataMessage(self):
         return self._metadata_message_db_list
-
 
     def getMetadataMessageList(self, infohash, roothash, columns):
         message_list = []
@@ -361,7 +350,6 @@ class MetadataDBStub(object):
             message_list.append(tuple(message))
 
         return message_list
-
 
     def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
             infohash, roothash, prev_mid=None, prev_global_time=None):
@@ -380,7 +368,6 @@ class MetadataDBStub(object):
 
         return this_message_id
 
-
     def addMetadataDataInBatch(self, value_tuple_list):
         for value_tuple in value_tuple_list:
             data = {"message_id": value_tuple[0],
@@ -389,14 +376,12 @@ class MetadataDBStub(object):
             }
             self._metadata_data_db_list.append(data)
 
-
     def deleteMetadataMessage(self, dispersy_id):
         new_metadata_message_db_list = []
         for data in self._metadata_message_db_list:
             if data["dispersy_id"] != dispersy_id:
                 new_metadata_message_db_list.append(data)
         self._metadata_message_db_list = new_metadata_message_db_list
-
 
     def getMetadataData(self, message_id):
         data_list = []

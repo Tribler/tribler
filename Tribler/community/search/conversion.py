@@ -2,7 +2,6 @@
 from struct import pack, unpack_from
 from random import choice, sample
 from math import ceil
-import logging
 import zlib
 
 from Tribler.Core.Utilities.encoding import encode, decode
@@ -14,8 +13,6 @@ from Tribler.dispersy.bloomfilter import BloomFilter
 class SearchConversion(BinaryConversion):
 
     def __init__(self, community):
-        self._logger = logging.getLogger(self.__class__.__name__)
-
         super(SearchConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"search-request"), lambda message: self._encode_decode(self._encode_search_request, self._decode_search_request, message), self._decode_search_request)
         self.define_meta_message(chr(2), community.get_meta_message(u"search-response"), lambda message: self._encode_decode(self._encode_search_response, self._decode_search_response, message), self._decode_search_response)

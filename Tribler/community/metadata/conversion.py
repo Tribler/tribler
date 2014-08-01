@@ -1,5 +1,4 @@
 import zlib
-import logging
 from random import sample
 
 from Tribler.dispersy.conversion import BinaryConversion
@@ -12,21 +11,17 @@ class MetadataConversion(BinaryConversion):
 
     def __init__(self, community):
         super(MetadataConversion, self).__init__(community, "\x02")
-        self.__logger = logging.getLogger(self.__class__.__name__)
         self.define_meta_message(chr(1), community.get_meta_message(u"metadata"), lambda message: self._encode_decode(self._encode_metadata, self._decode_metadata, message), self._decode_metadata)
-
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)
         try:
             decode(None, 0, result[0])
-
         except DropPacket:
             raise
         except:
             pass
         return result
-
 
     def _encode_metadata(self, message):
         """
@@ -58,7 +53,6 @@ class MetadataConversion(BinaryConversion):
 
             compressed_msg = create_msg()
         return compressed_msg,
-
 
     def _decode_metadata(self, placeholder, offset, data):
         """

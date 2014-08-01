@@ -1,7 +1,5 @@
-import logging
 from random import sample
 from time import time
-from traceback import print_exc
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -21,12 +19,6 @@ from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistributi
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.message import Message, BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
-
-
-if __debug__:
-    from Tribler.dispersy.tool.lencoder import log
-
-logger = logging.getLogger(__name__)
 
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
@@ -122,8 +114,6 @@ class AllChannelCommunity(Community):
 
     def initialize(self, integrate_with_tribler=True, auto_join_channel=False):
         super(AllChannelCommunity, self).initialize()
-
-        self._logger = logging.getLogger(self.__class__.__name__)
 
         self._blocklist = {}
         self._searchCallbacks = {}
@@ -411,7 +401,7 @@ class AllChannelCommunity(Community):
                         except StopIteration:
                             pass
 
-                    logger.debug("Did not receive channel, requesting channel message '%s' from %s", community.cid.encode("HEX"), message.candidate.sock_addr)
+                    self._logger.debug("Did not receive channel, requesting channel message '%s' from %s", community.cid.encode("HEX"), message.candidate.sock_addr)
                     yield DelayMessageReqChannelMessage(message, community, includeSnapshot=message.payload.vote > 0)  # request torrents if positive vote
 
                 else:
@@ -475,16 +465,16 @@ class AllChannelCommunity(Community):
             return self._dispersy.get_community(cid, True)
         except CommunityNotFoundException:
             if self.auto_join_channel:
-                logger.info("join channel community %s", cid.encode("HEX"))
+                self._logger.info("join channel community %s", cid.encode("HEX"))
                 return ChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
             else:
-                logger.info("join preview community %s", cid.encode("HEX"))
+                self._logger.info("join preview community %s", cid.encode("HEX"))
                 return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
 
     def unload_preview(self):
         cleanpoint = time() - 300
         inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
-        logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
+        self._logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
 
         for community in inactive:
             community.unload_community()
