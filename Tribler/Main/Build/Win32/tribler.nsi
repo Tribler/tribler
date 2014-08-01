@@ -115,6 +115,7 @@ Section "!Main EXE" SecMain
  File *.dll
  Delete "$INSTDIR\*.zip"
  File *.zip
+ File anon_test.torrent
  CreateDirectory "$INSTDIR\Tribler"
  SetOutPath "$INSTDIR\Tribler"
  File Tribler\*.sql
