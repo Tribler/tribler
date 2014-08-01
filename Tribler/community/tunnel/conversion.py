@@ -143,17 +143,24 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(identifier)
 
     def _encode_stats_response(self, message):
-        return pack('!H', message.payload.identifier) + encode(message.payload.stats),
+        stats_list = []
+        for key in ['uptime', 'bytes_up', 'bytes_down', 'bytes_relay_up', 'bytes_relay_down', 'bytes_enter', 'bytes_exit']:
+            stats_list.append(message.payload.stats.get(key, 0))
+
+        return pack('!HIQQQQQQ', *([message.payload.identifier] + stats_list)),
 
     def _decode_stats_response(self, placeholder, offset, data):
         identifier, = unpack_from('!H', data, offset)
         offset += 2
 
-        enc_stats = data[offset:]
-        _, stats = decode(enc_stats)
-        offset += len(enc_stats)
+        stats_list = unpack_from('!IQQQQQQ', data, offset)
+        offset += 52
+        stats_dict = dict(zip(['uptime', 'bytes_up', 'bytes_down', 'bytes_relay_up', 'bytes_relay_down', 'bytes_enter', 'bytes_exit'], stats_list))
 
-        return offset, placeholder.meta.payload.implement(identifier, stats)
+        # Ignore the rest
+        offset += len(data[offset:])
+
+        return offset, placeholder.meta.payload.implement(identifier, stats_dict)
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)
