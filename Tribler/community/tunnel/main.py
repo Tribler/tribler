@@ -64,7 +64,8 @@ class AnonTunnel(object):
         config.set_swift_tunnel_listen_port(-1)
         self.session = Session(config)
         self.session.start()
-        print >> sys.stderr, "Using ports %d for dispersy and %d for swift tunnel" % (self.session.get_dispersy_port(), self.session.get_swift_tunnel_listen_port())
+        print >> sys.stderr, "Using ports %d for dispersy and %d for swift tunnel" % \
+                             (self.session.get_dispersy_port(), self.session.get_swift_tunnel_listen_port())
 
     def run(self):
         def start_community():
@@ -73,7 +74,8 @@ class AnonTunnel(object):
                 member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
             else:
                 member = self.dispersy.get_new_member(u"NID_secp160k1")
-            self.community = self.dispersy.define_auto_load(TunnelCommunity, member, (None, self.settings), load=True)[0]
+            self.community = self.dispersy.define_auto_load(TunnelCommunity, member, (None, self.settings),
+                                                            load=True)[0]
 
             if self.crawl_keypair_filename:
                 def on_introduction_response(messages):
@@ -99,7 +101,8 @@ class AnonTunnel(object):
 
                         self.community.do_stats(message.candidate, stats_handler)
 
-                self.community.get_meta_message(u"dispersy-introduction-response")._handle_callback = on_introduction_response
+                meta_message = self.community.get_meta_message(u"dispersy-introduction-response")
+                meta_message._handle_callback = on_introduction_response
 
         blockingCallFromThread(reactor, start_community)
 
@@ -111,7 +114,7 @@ class AnonTunnel(object):
             while not self.session.has_shutdown():
                 diff = time.time() - session_shutdown_start
                 assert diff < waittime, "Took too long for Session to shutdown"
-                print >> sys.stderr, "ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
+                print >> sys.stderr, "ONEXIT Waiting for Session to shutdown, will wait for %d more seconds" % (waittime - diff)
                 time.sleep(1)
             print >> sys.stderr, "Session is shutdown"
             Session.del_instance()
@@ -206,7 +209,8 @@ def main(argv):
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
-        parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number (only available if the crawler is enabled)', type=int)
+        parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number ' +
+                                                 '(only available if the crawler is enabled)', type=int)
         parser.add_argument('-y', '--yappi', help="Profiling mode, either 'wall' or 'cpu'")
         parser.add_help = True
         args = parser.parse_args(sys.argv[1:])
