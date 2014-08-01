@@ -17,6 +17,7 @@ from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.permid import read_keypair
 
 try:
     import yappi
@@ -36,9 +37,9 @@ class AnonTunnel(object):
     @param TunnelSettings settings: the settings to pass to the ProxyCommunity
     """
 
-    def __init__(self, settings, crawl_filename=None):
+    def __init__(self, settings, crawl_keypair_filename=None):
         self.settings = settings
-        self.crawl_filename = crawl_filename
+        self.crawl_keypair_filename = crawl_keypair_filename
         self.crawl_data = defaultdict(lambda: [])
         self.crawl_message = {}
         self.start_tribler()
@@ -67,10 +68,14 @@ class AnonTunnel(object):
 
     def run(self):
         def start_community():
-            member = self.dispersy.get_new_member(u"NID_secp160k1")
+            if self.crawl_keypair_filename:
+                keypair = read_keypair(self.crawl_keypair_filename)
+                member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
+            else:
+                member = self.dispersy.get_new_member(u"NID_secp160k1")
             self.community = self.dispersy.define_auto_load(TunnelCommunity, member, (None, self.settings), load=True)[0]
 
-            if self.crawl_filename:
+            if self.crawl_keypair_filename:
                 def on_introduction_response(messages):
                     self.community.on_introduction_response(messages)
                     for message in messages:
@@ -200,7 +205,7 @@ def main(argv):
 
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
-        parser.add_argument('-c', '--crawl', help='Enable crawler and output data to the given file')
+        parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
         parser.add_argument('-y', '--yappi', help="Profiling mode, either 'wall' or 'cpu'")
         parser.add_help = True
         args = parser.parse_args(sys.argv[1:])
@@ -210,7 +215,7 @@ def main(argv):
         sys.exit(2)
 
     socks5_port = int(args.socks5) if args.socks5 else None
-    crawl_filename = args.crawl if args.crawl and (not os.path.dirname(args.crawl) or os.path.exists(os.path.dirname(args.crawl))) else None
+    crawl_keypair_filename = args.crawl if args.crawl and os.path.exists(args.crawl) else None
     profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
 
     if profile:
@@ -220,11 +225,11 @@ def main(argv):
 
     settings = TunnelSettings()
     settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
-    anon_tunnel = AnonTunnel(settings, crawl_filename)
+    anon_tunnel = AnonTunnel(settings, crawl_keypair_filename)
     StandardIO(LineHandler(anon_tunnel, profile))
     anon_tunnel.run()
 
-    if crawl_filename:
+    if crawl_keypair_filename:
         cherrypy.config.update({'server.socket_host': '127.0.0.1', 'server.socket_port': 7070})
         cherrypy.quickstart(anon_tunnel)
 

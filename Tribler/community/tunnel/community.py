@@ -195,6 +195,9 @@ class TunnelCommunity(Community):
         self.selection_strategy = RoundRobin(self)
         self.stats = defaultdict(int)
         self.creation_time = time.time()
+        self.crawler_mids = ['69f50fcb57f7fc7aea882927edac672abc5a07d9'.decode('hex'),
+                             '7931d888d4a1602d87aa1241ba4584713a27071f'.decode('hex'),
+                             'cf782693df96186d714436075a6d0cef432ed984'.decode('hex')]
 
         self.settings = settings if settings else TunnelSettings()
 
@@ -742,12 +745,14 @@ class TunnelCommunity(Community):
 
     def on_stats_request(self, messages):
         for request in messages:
-            # TODO: check if candidate mid is an authorized crawler
-            meta = self.get_meta_message(u"stats-response")
-            stats = dict(self.stats)
-            stats['uptime'] = time.time() - self.creation_time
-            response = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(request.payload.identifier, stats))
-            self.send_packet([request.candidate], u"stats-response", response.packet)
+            if request.candidate.get_member().mid in self.crawler_mids:
+                meta = self.get_meta_message(u"stats-response")
+                stats = dict(self.stats)
+                stats['uptime'] = time.time() - self.creation_time
+                response = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(request.payload.identifier, stats))
+                self.send_packet([request.candidate], u"stats-response", response.packet)
+            else:
+                logger.error("TunnelCommunity: got stats request from unknown crawler %s", request.candidate.sock_addr)
 
     def on_stats_response(self, messages):
         for message in messages:
