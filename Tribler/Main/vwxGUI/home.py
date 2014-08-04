@@ -675,9 +675,10 @@ class NetworkGraphPanel(wx.Panel):
 
     def OnUpdateCircuits(self, event):
         if self.fullscreen:
-            self.num_circuits_label.SetLabel("You have %d circuit(s); %d relay(s); %d exit socket(s)" % (len(self.tunnel_community.circuits),
-                                                                                                         len(self.tunnel_community.relay_from_to),
-                                                                                                         len(self.tunnel_community.exit_sockets)))
+            self.num_circuits_label.SetLabel("You have %d circuit(s); %d relay(s); %d exit socket(s)" %
+                                             (len(self.tunnel_community.circuits),
+                                              len(self.tunnel_community.relay_from_to),
+                                              len(self.tunnel_community.exit_sockets)))
 
         new_circuits = dict(self.tunnel_community.circuits)
         self.circuits = new_circuits

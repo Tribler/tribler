@@ -11,12 +11,12 @@ from twisted.internet.task import LoopingCall
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
-                                     PING_INTERVAL, ENDPOINT
+from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
+                                      PING_INTERVAL, ENDPOINT)
 from Tribler.community.tunnel.conversion import TunnelConversion
-from Tribler.community.tunnel.payload import CellPayload, CreatePayload, CreatedPayload, ExtendPayload, \
-                                             ExtendedPayload, PongPayload, PingPayload, StatsRequestPayload, \
-                                             StatsResponsePayload
+from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
+                                              ExtendedPayload, PongPayload, PingPayload, StatsRequestPayload,
+                                              StatsResponsePayload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -108,7 +108,7 @@ class TunnelExitSocket(DatagramProtocol):
 
     @property
     def enabled(self):
-        return self.port != None
+        return self.port is not None
 
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
@@ -187,11 +187,9 @@ class RoundRobin(object):
 
 class TunnelCommunity(Community):
 
-    def initialize(self, session=None, settings=None):
-        super(TunnelCommunity, self).initialize()
+    def __init__(self, *args, **kwargs):
+        super(TunnelCommunity, self).__init__(*args, **kwargs)
 
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self.tribler_session = session
         self.data_prefix = "fffffffe".decode("HEX")
         self.circuits = {}
         self.directions = {}
@@ -208,6 +206,10 @@ class TunnelCommunity(Community):
                              '43e8807e6f86ef2f0a784fbc8fa21f8bc49a82ae'.decode('hex'),
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
 
+    def initialize(self, session=None, settings=None):
+        super(TunnelCommunity, self).initialize()
+
+        self.tribler_session = session
         self.settings = settings if settings else TunnelSettings()
 
         assert isinstance(self.settings.crypto, TunnelCrypto)
@@ -263,15 +265,26 @@ class TunnelCommunity(Community):
 
     def initiate_meta_messages(self):
         return super(TunnelCommunity, self).initiate_meta_messages() + \
-               [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
-                Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatePayload(), self._generic_timeline_check, self.on_create),
-                Message(self, u"created", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatedPayload(), self.check_created, self.on_created),
-                Message(self, u"extend", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendPayload(), self.check_extend, self.on_extend),
-                Message(self, u"extended", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendedPayload(), self.check_extended, self.on_extended),
-                Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._generic_timeline_check, self.on_ping),
-                Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong),
-                Message(self, u"stats-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), StatsRequestPayload(), self._generic_timeline_check, self.on_stats_request),
-                Message(self, u"stats-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), StatsResponsePayload(), self._generic_timeline_check, self.on_stats_response)]
+               [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
+                Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), CreatePayload(), self._generic_timeline_check, self.on_create),
+                Message(self, u"created", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), CreatedPayload(), self.check_created, self.on_created),
+                Message(self, u"extend", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), ExtendPayload(), self.check_extend, self.on_extend),
+                Message(self, u"extended", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), ExtendedPayload(), self.check_extended, self.on_extended),
+                Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), PingPayload(), self._generic_timeline_check, self.on_ping),
+                Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), PongPayload(), self.check_pong, self.on_pong),
+                Message(self, u"stats-request", MemberAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), StatsRequestPayload(), self._generic_timeline_check,
+                        self.on_stats_request),
+                Message(self, u"stats-response", MemberAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), StatsResponsePayload(), self._generic_timeline_check,
+                        self.on_stats_response)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), TunnelConversion(self)]
