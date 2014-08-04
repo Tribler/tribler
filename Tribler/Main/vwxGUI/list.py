@@ -51,7 +51,6 @@ MAX_REFRESH_PARTIAL = 5
 class BaseManager(object):
 
     def __init__(self, list):
-        super(BaseManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.list = list
@@ -112,7 +111,7 @@ class RemoteSearchManager(BaseManager):
         self.Reset()
 
     def Reset(self):
-        BaseManager.Reset(self)
+        super(RemoteSearchManager, self).Reset()
 
         if self.oldkeywords:
             cancelWorker(u"RemoteSearchManager_refresh_%s" % self.oldkeywords)
@@ -293,7 +292,7 @@ class ChannelSearchManager(BaseManager):
         self.Reset()
 
     def Reset(self):
-        BaseManager.Reset(self)
+        super(ChannelSearchManager, self).Reset()
         if self.category:
             cancelWorker(u"ChannelSearchManager_refresh_%s" % self.category)
 

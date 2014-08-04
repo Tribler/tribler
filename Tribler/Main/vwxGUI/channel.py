@@ -58,7 +58,7 @@ class ChannelManager(BaseManager):
         self.Reset()
 
     def Reset(self):
-        BaseManager.Reset(self)
+        super(ChannelManager, self).Reset()
         if self.list.channel:
             cancelWorker("ChannelManager_refresh_list_%d" % self.list.channel.id)
 

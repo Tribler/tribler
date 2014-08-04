@@ -3,6 +3,7 @@ from socket import inet_ntoa, inet_aton
 
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
+from Tribler.Core.Utilities.encoding import encode, decode
 
 
 class TunnelConversion(BinaryConversion):
@@ -16,6 +17,8 @@ class TunnelConversion(BinaryConversion):
         self.define_meta_message(chr(5), community.get_meta_message(u"extended"), lambda message: self._encode_decode(self._encode_extended, self._decode_extended, message), self._decode_extended)
         self.define_meta_message(chr(6), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
         self.define_meta_message(chr(7), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
+        self.define_meta_message(chr(8), community.get_meta_message(u"stats-request"), lambda message: self._encode_decode(self._encode_stats_request, self._decode_stats_request, message), self._decode_stats_request)
+        self.define_meta_message(chr(9), community.get_meta_message(u"stats-response"), lambda message: self._encode_decode(self._encode_stats_response, self._decode_stats_response, message), self._decode_stats_response)
 
     def _encode_cell(self, message):
         payload = message.payload
@@ -129,6 +132,35 @@ class TunnelConversion(BinaryConversion):
 
     def _decode_pong(self, placeholder, offset, data):
         return self._decode_ping(placeholder, offset, data)
+
+    def _encode_stats_request(self, message):
+        return pack('!H', message.payload.identifier),
+
+    def _decode_stats_request(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(identifier)
+
+    def _encode_stats_response(self, message):
+        stats_list = []
+        for key in ['uptime', 'bytes_up', 'bytes_down', 'bytes_relay_up', 'bytes_relay_down', 'bytes_enter', 'bytes_exit']:
+            stats_list.append(message.payload.stats.get(key, 0))
+
+        return pack('!HIQQQQQQ', *([message.payload.identifier] + stats_list)),
+
+    def _decode_stats_response(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+
+        stats_list = unpack_from('!IQQQQQQ', data, offset)
+        offset += 52
+        stats_dict = dict(zip(['uptime', 'bytes_up', 'bytes_down', 'bytes_relay_up', 'bytes_relay_down', 'bytes_enter', 'bytes_exit'], stats_list))
+
+        # Ignore the rest
+        offset += len(data[offset:])
+
+        return offset, placeholder.meta.payload.implement(identifier, stats_dict)
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)

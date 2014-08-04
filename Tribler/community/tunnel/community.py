@@ -11,17 +11,18 @@ from twisted.internet.task import LoopingCall
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR, \
-                                     PING_INTERVAL, ENDPOINT
+from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
+                                      PING_INTERVAL, ENDPOINT)
 from Tribler.community.tunnel.conversion import TunnelConversion
-from Tribler.community.tunnel.payload import CellPayload, CreatePayload, CreatedPayload, ExtendPayload, \
-                                             ExtendedPayload, PongPayload, PingPayload
+from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
+                                              ExtendedPayload, PongPayload, PingPayload, StatsRequestPayload,
+                                              StatsResponsePayload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.crypto import TunnelCrypto, CryptoException
 
-from Tribler.dispersy.authentication import NoAuthentication
+from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -76,37 +77,57 @@ class PingRequestCache(RandomNumberCache):
             self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout')
 
 
+class StatsRequestCache(RandomNumberCache):
+
+    def __init__(self, community, handler):
+        super(StatsRequestCache, self).__init__(community.request_cache, u"stats")
+        self.handler = handler
+        self.community = community
+
+    def on_timeout(self):
+        pass
+
+
 class TunnelExitSocket(DatagramProtocol):
 
-    def __init__(self, circuit_id, destination, community):
+    def __init__(self, circuit_id, community):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.port = reactor.listenUDP(0, self)
 
-        self.destination = destination
+        self.port = None
+        self.destination = None
         self.circuit_id = circuit_id
         self.community = community
         self.ips = defaultdict(int)
         self.bytes_up = self.bytes_down = 0
         self.creation_time = time.time()
 
+    def enable(self, destination):
+        if not self.enabled:
+            self.port = reactor.listenUDP(0, self)
+            self.destination = destination
+
+    @property
+    def enabled(self):
+        return self.port is not None
+
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
-            self.bytes_up += len(data)
             if TunnelConversion.could_be_utp(data):
                 self.transport.write(data, destination)
+                self.community.increase_bytes_sent(self, len(data))
             else:
                 self._logger.error("TunnelCommunity: dropping non-utp packets from exit socket with circuit_id %d", self.circuit_id)
 
     def datagramReceived(self, data, source):
+        self.community.increase_bytes_received(self, len(data))
         if self.check_num_packets(source, True):
-            self.bytes_down += len(data)
             if TunnelConversion.could_be_utp(data):
                 self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
             else:
                 self._logger.error("TunnelCommunity: dropping non-utp packets to exit socket with circuit_id %d", self.circuit_id)
 
     def close(self):
-        if self.port:
+        if self.enabled:
             self.port.stopListening()
             self.port = None
 
@@ -166,10 +187,9 @@ class RoundRobin(object):
 
 class TunnelCommunity(Community):
 
-    def initialize(self, session=None, settings=None):
-        super(TunnelCommunity, self).initialize()
+    def __init__(self, *args, **kwargs):
+        super(TunnelCommunity, self).__init__(*args, **kwargs)
 
-        self.tribler_session = session
         self.data_prefix = "fffffffe".decode("HEX")
         self.circuits = {}
         self.directions = {}
@@ -180,7 +200,16 @@ class TunnelCommunity(Community):
         self.notifier = None
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
+        self.stats = defaultdict(int)
+        self.creation_time = time.time()
+        self.crawler_mids = ['5e02620cfabea2d2d3bfdc2032f6307136a35e69'.decode('hex'),
+                             '43e8807e6f86ef2f0a784fbc8fa21f8bc49a82ae'.decode('hex'),
+                             'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
 
+    def initialize(self, session=None, settings=None):
+        super(TunnelCommunity, self).initialize()
+
+        self.tribler_session = session
         self.settings = settings if settings else TunnelSettings()
 
         assert isinstance(self.settings.crypto, TunnelCrypto)
@@ -189,22 +218,30 @@ class TunnelCommunity(Community):
         self.crypto.initialize(self)
 
         self._dispersy.endpoint.listen_to(self.data_prefix, self.on_data)
+
+        self.start_download_test()
+
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
-
-        if session:
-            from Tribler.Core.CacheDB.Notifier import Notifier
-            self.notifier = Notifier.getInstance()
-
-            if session.get_libtorrent():
-                self.libtorrent_test = LibtorrentTest(self, session)
-                if not self.libtorrent_test.has_completed_before():
-                    self._logger.debug("Scheduling Anonymous LibTorrent download")
-                    self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
 
         self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_port()
                                          if session else self.settings.socks_listen_port)
         self.socks_server.start()
+
+    def start_download_test(self):
+        if self.tribler_session:
+            from Tribler.Core.CacheDB.Notifier import Notifier
+            self.notifier = Notifier.getInstance()
+
+            if self.tribler_session.get_libtorrent():
+                self.libtorrent_test = LibtorrentTest(self, self.tribler_session)
+                if not self.libtorrent_test.has_completed_before():
+                    self._logger.debug("Scheduling Anonymous LibTorrent download")
+                    self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
+                    return True
+
+        self.settings.max_circuits = 0
+        return False
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -228,13 +265,26 @@ class TunnelCommunity(Community):
 
     def initiate_meta_messages(self):
         return super(TunnelCommunity, self).initiate_meta_messages() + \
-               [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
-                Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatePayload(), self._generic_timeline_check, self.on_create),
-                Message(self, u"created", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), CreatedPayload(), self.check_created, self.on_created),
-                Message(self, u"extend", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendPayload(), self.check_extend, self.on_extend),
-                Message(self, u"extended", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), ExtendedPayload(), self.check_extended, self.on_extended),
-                Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._generic_timeline_check, self.on_ping),
-                Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
+               [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
+                Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), CreatePayload(), self._generic_timeline_check, self.on_create),
+                Message(self, u"created", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), CreatedPayload(), self.check_created, self.on_created),
+                Message(self, u"extend", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), ExtendPayload(), self.check_extend, self.on_extend),
+                Message(self, u"extended", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), ExtendedPayload(), self.check_extended, self.on_extended),
+                Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), PingPayload(), self._generic_timeline_check, self.on_ping),
+                Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), PongPayload(), self.check_pong, self.on_pong),
+                Message(self, u"stats-request", MemberAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), StatsRequestPayload(), self._generic_timeline_check,
+                        self.on_stats_request),
+                Message(self, u"stats-response", MemberAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), StatsResponsePayload(), self._generic_timeline_check,
+                        self.on_stats_response)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), TunnelConversion(self)]
@@ -242,8 +292,7 @@ class TunnelCommunity(Community):
     def unload_community(self):
         self.socks_server.stop()
         for exit_socket in self.exit_sockets.itervalues():
-            if exit_socket:
-                exit_socket.close()
+            exit_socket.close()
 
         super(TunnelCommunity, self).unload_community()
 
@@ -312,14 +361,14 @@ class TunnelCommunity(Community):
                 self.remove_relay(key, 'no activity')
             elif relay.creation_time < time.time() - self.settings.max_time:
                 self.remove_relay(key, 'too old')
-            elif relay.bytes_relayed > self.settings.max_traffic:
+            elif relay.bytes_up + relay.bytes_down > self.settings.max_traffic:
                 self.remove_relay(key, 'traffic limit exceeded')
 
         # Remove exit sockets that are too old / have transferred too many bytes.
         for circuit_id, exit_socket in self.exit_sockets.items():
-            if exit_socket and exit_socket.creation_time < time.time() - self.settings.max_time:
+            if exit_socket.creation_time < time.time() - self.settings.max_time:
                 self.remove_exit_socket(circuit_id, 'too old')
-            elif exit_socket and exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
+            elif exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
                 self.remove_exit_socket(circuit_id, 'traffic limit exceeded')
 
     def create_circuit(self, first_hop, goal_hops):
@@ -339,7 +388,7 @@ class TunnelCommunity(Community):
         self.waiting_for.add(circuit_id)
 
         dh_first_part_enc = self.crypto.hybrid_encrypt_str(first_hop.get_member()._ec, long_to_bytes(circuit.unverified_hop.dh_first_part))
-        circuit.bytes_up += self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc))
+        self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc)))
         return circuit
 
     def remove_circuit(self, circuit_id, additional_info=''):
@@ -380,8 +429,8 @@ class TunnelCommunity(Community):
     def remove_exit_socket(self, circuit_id, additional_info=''):
         if circuit_id in self.exit_sockets:
             exit_socket = self.exit_sockets.pop(circuit_id)
-            if exit_socket:
-                self._logger.error(("TunnelCommunity: removed exit socket %d " + additional_info) % circuit_id)
+            if exit_socket.enabled:
+                self._logger.error(("TunnelCommunity: closing exit socket %d " + additional_info) % circuit_id)
                 exit_socket.close()
             return
         self._logger.error(("TunnelCommunity: could not remove exit socket %d " + additional_info) % circuit_id)
@@ -438,6 +487,7 @@ class TunnelCommunity(Community):
 
             if this_relay:
                 this_relay.last_incoming = time.time()
+                self.increase_bytes_received(this_relay, len(packet))
 
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
             try:
@@ -448,10 +498,7 @@ class TunnelCommunity(Community):
             packet = plaintext + encrypted
 
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
-            bytes_relayed = self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet)
-
-            if this_relay:
-                this_relay.bytes_relayed = bytes_relayed
+            self.increase_bytes_sent(next_relay, self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet))
 
             return True
         return False
@@ -515,14 +562,13 @@ class TunnelCommunity(Community):
             extend_hop_public_bin = next(iter(candidate_list), None)
             if extend_hop_public_bin:
                 extend_hop_public_key = self.dispersy.crypto.key_from_public_bin(extend_hop_public_bin)
-                hashed_public_key = self.dispersy.crypto.key_to_hash(extend_hop_public_key)
                 circuit.unverified_hop = Hop(extend_hop_public_key)
                 circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
-                self._logger.info("TunnelCommunity: extending circuit %d with %s", circuit.circuit_id, hashed_public_key)
+                self._logger.info("TunnelCommunity: extending circuit %d with %s", circuit.circuit_id, extend_hop_public_bin[:20].encode('hex'))
                 dh_first_part_enc = self.crypto.hybrid_encrypt_str(extend_hop_public_key, long_to_bytes(circuit.unverified_hop.dh_first_part))
-                circuit.bytes_up += self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
-                                                   (circuit.circuit_id, dh_first_part_enc, extend_hop_public_bin))
+                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
+                                                                 (circuit.circuit_id, dh_first_part_enc, extend_hop_public_bin)))
             else:
                 self.remove_circuit(circuit.circuit_id, "no candidates to extend, bailing out.")
 
@@ -559,7 +605,7 @@ class TunnelCommunity(Community):
 
                 if circuit_id in self.circuits:
                     self.circuits[circuit_id].beat_heart()
-                    self.circuits[circuit_id].bytes_down += len(message.packet)
+                    self.increase_bytes_received(self.circuits[circuit_id], len(message.packet))
 
         if decrypted_packets:
             self._dispersy.on_incoming_packets(decrypted_packets, cache=False)
@@ -570,7 +616,7 @@ class TunnelCommunity(Community):
             circuit_id = message.payload.circuit_id
 
             if self.settings.max_relays_or_exits <= len(self.relay_from_to) + len(self.exit_sockets):
-                self._logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d/%d)', circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets), self.settings.max_relays_or_exits)
+                self._logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d)', circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets))
                 continue
 
             try:
@@ -593,7 +639,7 @@ class TunnelCommunity(Community):
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
 
-            self.exit_sockets[circuit_id] = None
+            self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self)
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -657,8 +703,7 @@ class TunnelCommunity(Community):
             self.directions[new_circuit_id] = ORIGINATOR
             self.directions[circuit_id] = ENDPOINT
 
-            if circuit_id in self.exit_sockets:
-                self.remove_exit_socket(circuit_id)
+            self.remove_exit_socket(circuit_id)
 
             self._logger.info("TunnelCommunity: extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
 
@@ -694,7 +739,7 @@ class TunnelCommunity(Community):
 
             if circuit_id in self.circuits and origin and sock_addr == self.circuits[circuit_id].first_hop:
                 self.circuits[circuit_id].beat_heart()
-                self.circuits[circuit_id].bytes_down += len(packet)
+                self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
                 self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data)
 
@@ -724,11 +769,38 @@ class TunnelCommunity(Community):
         for circuit in self.active_circuits.values():
             if circuit.goal_hops > 0:
                 cache = self.request_cache.add(PingRequestCache(self, circuit))
-                circuit.bytes_up += self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number))
+                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
+
+    def on_stats_request(self, messages):
+        for request in messages:
+            if request.candidate.get_member().mid in self.crawler_mids:
+                meta = self.get_meta_message(u"stats-response")
+                stats = dict(self.stats)
+                stats['uptime'] = time.time() - self.creation_time
+                response = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(request.payload.identifier, stats))
+                self.send_packet([request.candidate], u"stats-response", response.packet)
+            else:
+                self._logger.error("TunnelCommunity: got stats request from unknown crawler %s", request.candidate.sock_addr)
+
+    def on_stats_response(self, messages):
+        for message in messages:
+            request = self.request_cache.get(u"stats", message.payload.identifier)
+            if not request:
+                self._logger.error("TunnelCommunity: got unexpected stats response from %s", message.candidate.sock_addr)
+                continue
+
+            request.handler(message.candidate, message.payload.stats)
+            self._logger.info("TunnelCommunity: received stats response %s", message.payload.stats)
+
+    def do_stats(self, candidate, handler):
+        cache = self.request_cache.add(StatsRequestCache(self, handler))
+        meta = self.get_meta_message(u"stats-request")
+        request = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(cache.number,))
+        self.send_packet([candidate], u"stats-request", request.packet)
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
         packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
-        circuit.bytes_up += self.send_data([Candidate(circuit.first_hop, False)], u'data', packet)
+        self.increase_bytes_sent(circuit, self.send_data([Candidate(circuit.first_hop, False)], u'data', packet))
 
     def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, data):
         packet = TunnelConversion.encode_data(circuit_id, ('0.0.0.0', 0), source_address, data)
@@ -736,8 +808,8 @@ class TunnelCommunity(Community):
 
     def exit_data(self, circuit_id, sock_addr, destination, data):
         if circuit_id in self.exit_sockets:
-            if not self.exit_sockets[circuit_id]:
-                self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, sock_addr, self)
+            if not self.exit_sockets[circuit_id].enabled:
+                self.exit_sockets[circuit_id].enable(sock_addr)
             try:
                 self.exit_sockets[circuit_id].sendto(data, destination)
             except:
@@ -771,3 +843,25 @@ class TunnelCommunity(Community):
         elif direction == ENDPOINT:
             return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
         raise CryptoException("Direction must be either ORIGINATOR or ENDPOINT")
+
+    def increase_bytes_sent(self, obj, num_bytes):
+        if isinstance(obj, Circuit):
+            obj.bytes_up += num_bytes
+            self.stats['bytes_up'] += num_bytes
+        elif isinstance(obj, RelayRoute):
+            obj.bytes_up += num_bytes
+            self.stats['bytes_relay_up'] += num_bytes
+        elif isinstance(obj, TunnelExitSocket):
+            obj.bytes_up += num_bytes
+            self.stats['bytes_exit'] += num_bytes
+
+    def increase_bytes_received(self, obj, num_bytes):
+        if isinstance(obj, Circuit):
+            obj.bytes_down += num_bytes
+            self.stats['bytes_down'] += num_bytes
+        elif isinstance(obj, RelayRoute):
+            obj.bytes_down += num_bytes
+            self.stats['bytes_relay_down'] += num_bytes
+        elif isinstance(obj, TunnelExitSocket):
+            obj.bytes_down += num_bytes
+            self.stats['bytes_enter'] += num_bytes
