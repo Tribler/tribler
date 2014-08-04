@@ -242,7 +242,7 @@ def main(argv):
     anon_tunnel.run()
 
     if crawl_keypair_filename and args.json > 0:
-        cherrypy.config.update({'server.socket_host': '127.0.0.1', 'server.socket_port': args.json})
+        cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': args.json})
         cherrypy.quickstart(anon_tunnel)
 
 if __name__ == "__main__":

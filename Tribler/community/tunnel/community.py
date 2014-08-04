@@ -216,22 +216,30 @@ class TunnelCommunity(Community):
         self.crypto.initialize(self)
 
         self._dispersy.endpoint.listen_to(self.data_prefix, self.on_data)
+
+        self.start_download_test()
+
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
-
-        if session:
-            from Tribler.Core.CacheDB.Notifier import Notifier
-            self.notifier = Notifier.getInstance()
-
-            if session.get_libtorrent():
-                self.libtorrent_test = LibtorrentTest(self, session)
-                if not self.libtorrent_test.has_completed_before():
-                    self._logger.debug("Scheduling Anonymous LibTorrent download")
-                    self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
 
         self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_port()
                                          if session else self.settings.socks_listen_port)
         self.socks_server.start()
+
+    def start_download_test(self):
+        if self.tribler_session:
+            from Tribler.Core.CacheDB.Notifier import Notifier
+            self.notifier = Notifier.getInstance()
+
+            if self.tribler_session.get_libtorrent():
+                self.libtorrent_test = LibtorrentTest(self, self.tribler_session)
+                if not self.libtorrent_test.has_completed_before():
+                    self._logger.debug("Scheduling Anonymous LibTorrent download")
+                    self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
+                    return True
+
+        self.settings.max_circuits = 0
+        return False
 
     @classmethod
     def get_master_members(cls, dispersy):
