@@ -9,6 +9,7 @@ import cherrypy
 
 from collections import defaultdict
 
+from twisted.internet.task import LoopingCall
 from twisted.internet.stdio import StandardIO
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.threads import blockingCallFromThread
@@ -42,9 +43,17 @@ class AnonTunnel(object):
         self.crawl_keypair_filename = crawl_keypair_filename
         self.crawl_data = defaultdict(lambda: [])
         self.crawl_message = {}
+        self.current_stats = defaultdict(int)
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
+        self.clean_messages_lc = LoopingCall(self.clean_messages).start(1800)
+
+    def clean_messages(self):
+        now = int(time.time())
+        for k in self.crawl_message.keys():
+            if now - 3600 > self.crawl_message[k]['time']:
+                self.crawl_message.pop(k)
 
     def start_tribler(self):
         config = SessionStartupConfig()
@@ -82,22 +91,24 @@ class AnonTunnel(object):
                     self.community.on_introduction_response(messages)
                     for message in messages:
                         def stats_handler(candidate, stats):
-                            candidate_mid = candidate.get_member().mid
-                            stats_old = self.crawl_message.get(candidate_mid, None)
 
+                            now = int(time.time())
+                            print '@%d' % now, message.candidate.get_member().mid.encode('hex'), json.dumps(stats)
+
+                            candidate_mid = candidate.get_member().mid
+                            stats = self.preprocess_stats(stats)
+                            stats['time'] = now
+                            stats_old = self.crawl_message.get(candidate_mid, None)
                             self.crawl_message[candidate_mid] = stats
 
                             if stats_old == None:
                                 return
 
-                            now = time.time()
-                            stats_dif = {'time': now}
-
-                            for key in set(stats.keys() + stats_old.keys()):
-                                stats_dif[key] = stats.get(key, 0) - stats_old.get(key, 0)
-                            self.crawl_data[candidate_mid].append(stats_dif)
-
-                            print '@%d' % int(now), message.candidate.get_member().mid.encode('hex'), json.dumps(stats)
+                            time_dif = float(stats['uptime'] - stats_old['uptime'])
+                            if time_dif > 0:
+                                for key in ['bytes_orig', 'bytes_relay', 'bytes_exit']:
+                                    self.current_stats[key] = self.current_stats[key] * 0.875 + \
+                                                              (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
 
                         self.community.do_stats(message.candidate, stats_handler)
 
@@ -107,6 +118,10 @@ class AnonTunnel(object):
         blockingCallFromThread(reactor, start_community)
 
     def stop(self):
+        if self.clean_messages_lc:
+            self.clean_messages_lc.stop()
+            self.clean_messages_lc = None
+
         if self.session:
             session_shutdown_start = time.time()
             waittime = 60
@@ -119,30 +134,22 @@ class AnonTunnel(object):
             print >> sys.stderr, "Session is shutdown"
             Session.del_instance()
 
-    def get_current_data(self):
-        # Calculate the latest statistics from all peers combined
+    def preprocess_stats(self, stats):
         result = defaultdict(int)
+        result['uptime'] = stats['uptime']
         keys_to_from = {'bytes_orig': ('bytes_up', 'bytes_down'),
                         'bytes_exit': ('bytes_enter', 'bytes_exit'),
                         'bytes_relay': ('bytes_relay_up', 'bytes_relay_down')}
-        for data_list in self.crawl_data.itervalues():
-            data = data_list[-1]
-            # Leave out old data (> 60 sec)
-            if time.time() < data['time'] + 60:
-                for key_to, key_from in keys_to_from.iteritems():
-                    result[key_to] += int(sum([data.get(k, 0) for k in key_from]) / data['uptime'])
-
-        # Convert to KiB
-        for k, v in result.iteritems():
-            result[k] = v / 1024
-
+        for key_to, key_from in keys_to_from.iteritems():
+            result[key_to] = sum([stats.get(k, 0) for k in key_from])
         return result
 
     def index(self, *args, **kwargs):
+        # Return average statistics estimate.
         if 'callback' in kwargs:
-            return kwargs['callback'] + '(' + json.dumps(self.get_current_data()) + ');'
+            return kwargs['callback'] + '(' + json.dumps(self.current_stats) + ');'
         else:
-            return json.dumps(self.get_current_data())
+            return json.dumps(self.current_stats)
     index.exposed = True
 
 
