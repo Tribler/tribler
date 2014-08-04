@@ -90,16 +90,25 @@ class StatsRequestCache(RandomNumberCache):
 
 class TunnelExitSocket(DatagramProtocol):
 
-    def __init__(self, circuit_id, destination, community):
+    def __init__(self, circuit_id, community):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.port = reactor.listenUDP(0, self)
 
-        self.destination = destination
+        self.port = None
+        self.destination = None
         self.circuit_id = circuit_id
         self.community = community
         self.ips = defaultdict(int)
         self.bytes_up = self.bytes_down = 0
         self.creation_time = time.time()
+
+    def enable(self, destination):
+        if not self.enabled:
+            self.port = reactor.listenUDP(0, self)
+            self.destination = destination
+
+    @property
+    def enabled(self):
+        return self.port != None
 
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
@@ -118,7 +127,7 @@ class TunnelExitSocket(DatagramProtocol):
                 self._logger.error("TunnelCommunity: dropping non-utp packets to exit socket with circuit_id %d", self.circuit_id)
 
     def close(self):
-        if self.port:
+        if self.enabled:
             self.port.stopListening()
             self.port = None
 
@@ -262,8 +271,7 @@ class TunnelCommunity(Community):
     def unload_community(self):
         self.socks_server.stop()
         for exit_socket in self.exit_sockets.itervalues():
-            if exit_socket:
-                exit_socket.close()
+            exit_socket.close()
 
         super(TunnelCommunity, self).unload_community()
 
@@ -337,9 +345,9 @@ class TunnelCommunity(Community):
 
         # Remove exit sockets that are too old / have transferred too many bytes.
         for circuit_id, exit_socket in self.exit_sockets.items():
-            if exit_socket and exit_socket.creation_time < time.time() - self.settings.max_time:
+            if exit_socket.creation_time < time.time() - self.settings.max_time:
                 self.remove_exit_socket(circuit_id, 'too old')
-            elif exit_socket and exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
+            elif exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
                 self.remove_exit_socket(circuit_id, 'traffic limit exceeded')
 
     def create_circuit(self, first_hop, goal_hops):
@@ -400,8 +408,8 @@ class TunnelCommunity(Community):
     def remove_exit_socket(self, circuit_id, additional_info=''):
         if circuit_id in self.exit_sockets:
             exit_socket = self.exit_sockets.pop(circuit_id)
-            if exit_socket:
-                self._logger.error(("TunnelCommunity: removed exit socket %d " + additional_info) % circuit_id)
+            if exit_socket.enabled:
+                self._logger.error(("TunnelCommunity: closing exit socket %d " + additional_info) % circuit_id)
                 exit_socket.close()
             return
         self._logger.error(("TunnelCommunity: could not remove exit socket %d " + additional_info) % circuit_id)
@@ -587,7 +595,7 @@ class TunnelCommunity(Community):
             circuit_id = message.payload.circuit_id
 
             if self.settings.max_relays_or_exits <= len(self.relay_from_to) + len(self.exit_sockets):
-                self._logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d/%d)', circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets), self.settings.max_relays_or_exits)
+                self._logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d)', circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets))
                 continue
 
             try:
@@ -610,7 +618,7 @@ class TunnelCommunity(Community):
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
 
-            self.exit_sockets[circuit_id] = None
+            self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self)
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -674,8 +682,7 @@ class TunnelCommunity(Community):
             self.directions[new_circuit_id] = ORIGINATOR
             self.directions[circuit_id] = ENDPOINT
 
-            if circuit_id in self.exit_sockets:
-                self.remove_exit_socket(circuit_id)
+            self.remove_exit_socket(circuit_id)
 
             self._logger.info("TunnelCommunity: extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
 
@@ -752,7 +759,7 @@ class TunnelCommunity(Community):
                 response = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(request.payload.identifier, stats))
                 self.send_packet([request.candidate], u"stats-response", response.packet)
             else:
-                logger.error("TunnelCommunity: got stats request from unknown crawler %s", request.candidate.sock_addr)
+                self._logger.error("TunnelCommunity: got stats request from unknown crawler %s", request.candidate.sock_addr)
 
     def on_stats_response(self, messages):
         for message in messages:
@@ -780,8 +787,8 @@ class TunnelCommunity(Community):
 
     def exit_data(self, circuit_id, sock_addr, destination, data):
         if circuit_id in self.exit_sockets:
-            if not self.exit_sockets[circuit_id]:
-                self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, sock_addr, self)
+            if not self.exit_sockets[circuit_id].enabled:
+                self.exit_sockets[circuit_id].enable(sock_addr)
             try:
                 self.exit_sockets[circuit_id].sendto(data, destination)
             except:
