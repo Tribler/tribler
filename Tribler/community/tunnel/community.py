@@ -204,9 +204,9 @@ class TunnelCommunity(Community):
         self.selection_strategy = RoundRobin(self)
         self.stats = defaultdict(int)
         self.creation_time = time.time()
-        self.crawler_mids = ['69f50fcb57f7fc7aea882927edac672abc5a07d9'.decode('hex'),
-                             '7931d888d4a1602d87aa1241ba4584713a27071f'.decode('hex'),
-                             'cf782693df96186d714436075a6d0cef432ed984'.decode('hex')]
+        self.crawler_mids = ['5e02620cfabea2d2d3bfdc2032f6307136a35e69'.decode('hex'),
+                             '43e8807e6f86ef2f0a784fbc8fa21f8bc49a82ae'.decode('hex'),
+                             'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
 
         self.settings = settings if settings else TunnelSettings()
 
