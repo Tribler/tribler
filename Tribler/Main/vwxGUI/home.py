@@ -641,11 +641,14 @@ class NetworkGraphPanel(wx.Panel):
             self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
             self.log_text.SetEditable(False)
             self.log_text.Show(self.fullscreen)
+            self.num_circuits_label = wx.StaticText(self, -1, "You have 0 circuit(s); 0 relay(s); 0 exit socket(s)")
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 0)
         if self.fullscreen:
             self.vSizer.Add(self.log_text, 1, wx.EXPAND | wx.TOP, 10)
+            self.vSizer.Add(self.num_circuits_label, 0, wx.EXPAND | wx.TOP, 10)
+
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.main_sizer.Add(self.graph_panel, 3, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
         self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 10)
@@ -671,6 +674,11 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Refresh()
 
     def OnUpdateCircuits(self, event):
+        if self.fullscreen:
+            self.num_circuits_label.SetLabel("You have %d circuit(s); %d relay(s); %d exit socket(s)" % (len(self.tunnel_community.circuits),
+                                                                                                         len(self.tunnel_community.relay_from_to),
+                                                                                                         len(self.tunnel_community.exit_sockets)))
+
         new_circuits = dict(self.tunnel_community.circuits)
         self.circuits = new_circuits
 
