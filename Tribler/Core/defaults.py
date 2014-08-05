@@ -144,6 +144,7 @@ dldefaults['downloadconfig']['max_upload_rate'] = 0
 dldefaults['downloadconfig']['max_download_rate'] = 0
 dldefaults['downloadconfig']['super_seeder'] = 0
 dldefaults['downloadconfig']['mode'] = 0
+dldefaults['downloadconfig']['anon_mode'] = False
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
 dldefaults['downloadconfig']['swiftlistenport'] = None
