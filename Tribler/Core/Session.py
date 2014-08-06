@@ -99,7 +99,7 @@ class Session(SessionConfigInterface):
             scfg.set_nickname(socket.gethostname())
 
         # SWIFTPROC
-        if scfg.get_swift_path() is None:
+        if scfg.get_swift_path() is None or not os.path.exists(scfg.get_swift_path()):
             if sys.platform == "win32":
                 scfg.set_swift_path(os.path.join(scfg.get_install_dir(), "swift.exe"))
             elif is_android(strict=True):
