@@ -2,13 +2,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def _a_encode_int(value, mapping):
     """
     42 --> ('2', 'i', '42')
     """
     assert isinstance(value, int), "VALUE has invalid type: %s" % type(value)
     value = str(value).encode("UTF-8")
-    return (str(len(value)).encode("UTF-8"), "i", value)
+    return str(len(value)).encode("UTF-8"), "i", value
 
 
 def _a_encode_long(value, mapping):
@@ -17,7 +18,7 @@ def _a_encode_long(value, mapping):
     """
     assert isinstance(value, long), "VALUE has invalid type: %s" % type(value)
     value = str(value).encode("UTF-8")
-    return (str(len(value)).encode("UTF-8"), "J", value)
+    return str(len(value)).encode("UTF-8"), "J", value
 
 
 def _a_encode_float(value, mapping):
@@ -26,7 +27,7 @@ def _a_encode_float(value, mapping):
     """
     assert isinstance(value, float), "VALUE has invalid type: %s" % type(value)
     value = str(value).encode("UTF-8")
-    return (str(len(value)).encode("UTF-8"), "f", value)
+    return str(len(value)).encode("UTF-8"), "f", value
 
 
 def _a_encode_unicode(value, mapping):
@@ -35,7 +36,7 @@ def _a_encode_unicode(value, mapping):
     """
     assert isinstance(value, unicode), "VALUE has invalid type: %s" % type(value)
     value = value.encode("UTF-8")
-    return (str(len(value)).encode("UTF-8"), "s", value)
+    return str(len(value)).encode("UTF-8"), "s", value
 
 
 def _a_encode_bytes(value, mapping):
@@ -43,7 +44,7 @@ def _a_encode_bytes(value, mapping):
     'foo-bar' --> ('7', 'b', 'foo-bar')
     """
     assert isinstance(value, bytes), "VALUE has invalid type: %s" % type(value)
-    return (str(len(value)).encode("UTF-8"), "b", value)
+    return str(len(value)).encode("UTF-8"), "b", value
 
 
 def _a_encode_list(values, mapping):
@@ -443,7 +444,7 @@ def decode(stream, offset=0):
         index = offset + 1
         while 48 <= ord(stream[index]) <= 57:
             index += 1
-        return _a_decode_mapping[stream[index]](stream, index + 1, int(stream[offset +1:index]), _a_decode_mapping)
+        return _a_decode_mapping[stream[index]](stream, index + 1, int(stream[offset + 1:index]), _a_decode_mapping)
 
     raise ValueError("Unknown version found")
 

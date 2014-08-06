@@ -11,6 +11,7 @@ from Tribler.Category.FamilyFilter import XXXFilter
 
 CATEGORY_CONFIG_FILE = "category.conf"
 
+
 class Category:
 
     # Code to make this a singleton

@@ -9,8 +9,8 @@ from urllib2 import URLError
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, P2PURL_SCHEME
 from Tribler.Core.defaults import TDEF_DEFAULTS
-from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException, \
-    TorrentDefNotFinalizedException, NotYetImplementedException
+from Tribler.Core.exceptions import (OperationNotPossibleAtRuntimeException, TorrentDefNotFinalizedException,
+                                     NotYetImplementedException)
 from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent

@@ -289,6 +289,7 @@ def startfile(filepath):
     elif hasattr(os, "startfile"):
         os.startfile(filepath)
 
+
 def is_android(strict=False):
     """
     This functions checks whether Tribler is running on Android or not, using the ANDROID_HOST environment variable.

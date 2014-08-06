@@ -500,6 +500,7 @@ class NotCollectedTorrent(CollectedTorrent):
         if self.torrent_id <= 0:
             raise RuntimeError("self.torrent_id is too low, %d %s" % (self.torrent_id, self.torrent_file_name))
 
+
 class LibraryTorrent(Torrent):
     __slots__ = ()
 

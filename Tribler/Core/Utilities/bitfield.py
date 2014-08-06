@@ -34,7 +34,7 @@ for i in xrange(256):
 
 class Bitfield:
 
-    def __init__(self, length=None, bitstring = None, copyfrom = None, fromarray = None, calcactiveranges=False):
+    def __init__(self, length=None, bitstring=None, copyfrom=None, fromarray=None, calcactiveranges=False):
         """
         STBSPEED
         @param calcactivetanges   Calculate which parts of the piece-space

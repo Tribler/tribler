@@ -9,6 +9,7 @@ from math import sqrt
 
 from Tribler.Core.osutils import is_android
 
+
 def get_thumbnail(videofile, thumbfile, resolution, ffmpeg, timecode):
     startupinfo = None
     if sys.platform == "win32":

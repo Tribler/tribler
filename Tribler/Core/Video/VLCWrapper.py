@@ -7,8 +7,7 @@ import logging
 from traceback import print_exc, print_stack
 from threading import currentThread
 
-from Tribler.Core.Video.defs import MEDIASTATE_ENDED, MEDIASTATE_STOPPED, \
-    MEDIASTATE_PLAYING, MEDIASTATE_PAUSED
+from Tribler.Core.Video.defs import MEDIASTATE_ENDED, MEDIASTATE_STOPPED, MEDIASTATE_PLAYING, MEDIASTATE_PAUSED
 
 VLC_MAXVOLUME = 200  # Also for 0.3
 
@@ -24,6 +23,7 @@ def check_threading(func):
 
     invoke_func.__name__ = func.__name__
     return invoke_func
+
 
 class VLCWrapper:
 
