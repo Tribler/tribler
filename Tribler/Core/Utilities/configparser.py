@@ -4,7 +4,7 @@
 import ast
 import codecs
 
-from ConfigParser import RawConfigParser
+from ConfigParser import RawConfigParser, DEFAULTSECT
 from threading import RLock
 
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
