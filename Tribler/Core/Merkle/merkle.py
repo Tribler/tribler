@@ -6,8 +6,9 @@ standardized in http://www.bittorrent.org/beps/bep_0030.html (yay!)
 """
 
 from math import log, floor
-from Tribler.Core.Utilities.Crypto import sha
 import logging
+
+from Tribler.Core.Utilities.Crypto import sha
 
 logger = logging.getLogger(__name__)
 

@@ -4,9 +4,8 @@
 """ Contains a snapshot of the state of the Download at a specific point in time. """
 import logging
 
-from Tribler.Core.simpledefs import UPLOAD, DLSTATUS_STOPPED_ON_ERROR, \
-    DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_WAITING4HASHCHECK, \
-    DLSTATUS_STOPPED
+from Tribler.Core.simpledefs import (UPLOAD, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING,
+                                     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_STOPPED)
 from Tribler.Core.Base import Serializable
 
 

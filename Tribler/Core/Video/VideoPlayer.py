@@ -15,7 +15,8 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_STARTED, DLMODE_NORMAL, NTFY_VIDEO_BUFFERING
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 
-from Tribler.Core.Video.utils import win32_retrieve_video_play_command, quote_program_path, escape_path, return_feasible_playback_modes
+from Tribler.Core.Video.utils import (win32_retrieve_video_play_command, quote_program_path, escape_path,
+                                      return_feasible_playback_modes)
 from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME
 from Tribler.Core.Video.VideoUtility import get_videoinfo
 from Tribler.Core.Video.VideoServer import VideoServer

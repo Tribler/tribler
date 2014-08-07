@@ -22,6 +22,7 @@ DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
 METAINFO_TMPDIR = 'metadata_tmpdir'
 
+
 class LibtorrentMgr:
     # Code to make this a singleton
     __single = None
@@ -422,6 +423,7 @@ class LibtorrentMgr:
             self.metainfo_cache[infohash] = (time.time(), metainfo)
         else:
             self.metainfo_cache[infohash][1] = metainfo
+
 
 def encode_atp(atp):
     for k, v in atp.iteritems():

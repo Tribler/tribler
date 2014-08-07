@@ -28,6 +28,7 @@ ignore = []  # Arno: was ['core', 'CVS']
 
 logger = logging.getLogger(__name__)
 
+
 def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: None):
     """ Create a torrent file from the supplied input.
 

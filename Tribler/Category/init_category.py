@@ -5,6 +5,7 @@
 
 import ConfigParser
 
+
 def __split_list(string):
     the_list = []
     for word in string.split(","):
@@ -34,6 +35,7 @@ def __get_default():
     category["minfilesize"] = 0
     category["maxfilesize"] = -1
     return category
+
 
 def getCategoryInfo(filename):
     config = ConfigParser.ConfigParser()

@@ -475,6 +475,7 @@ class RemoteTorrentHandler(TaskManager):
             return ''
         return ", ".join([qstring for qstring in [getQueueBW("TQueue", self.trequesters), getQueueBW("DQueue", self.drequesters)] if qstring])
 
+
 class Requester(object):
     REQUEST_INTERVAL = 0.5
 
@@ -799,6 +800,7 @@ class MagnetRequester(Requester):
             self.requestedInfohashes.remove(infohash)
 
             self.requests_fail += 1
+
 
 class MetadataRequester(Requester):
     SWIFT_CANCEL = 30.0

@@ -13,6 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def urlOpenTimeout(url, timeout=30, referer='', *data):
     class TimeoutHTTPConnection(httplib.HTTPConnection):
 

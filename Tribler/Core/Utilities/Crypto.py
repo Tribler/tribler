@@ -23,6 +23,7 @@ from hashlib import sha1 as sha
 # disable the offloading to OpenSSL for all platforms.
 #
 
+
 def RSA_keypair_to_pub_key_in_der(keypair):
     # Cannot use rsapubkey.save_key_der_bio(bio). It calls
     # i2d_RSAPrivateKey_bio() and appears to write just the

@@ -10,6 +10,8 @@ from Tribler.Core.Search.SearchManager import split_into_keywords
 # Flags
 USE_PSYCO = False  # Enables Psyco optimization for the Levenshtein algorithm
 DEBUG = False  # Enables debug print messages to stderr
+
+
 class HitsGroup(object):
 
     """

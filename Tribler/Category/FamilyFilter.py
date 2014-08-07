@@ -9,6 +9,7 @@ from Tribler import LIBRARYNAME
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 
+
 class XXXFilter(object):
 
     def __init__(self, install_dir):

@@ -18,8 +18,7 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
 from Tribler.dispersy.taskmanager import TaskManager
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, \
-    call_on_reactor_thread
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 # support_version = (3,5,9)
 # support_version = (3,3,13)

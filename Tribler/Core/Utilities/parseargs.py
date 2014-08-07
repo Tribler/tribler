@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def splitLine(line, COLS=80, indent=10):
     indent = " " * indent
     width = COLS - (len(indent) + 1)

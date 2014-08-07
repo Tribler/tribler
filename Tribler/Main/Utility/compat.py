@@ -98,6 +98,7 @@ def convertMainConfig(state_dir, oldfilename, newfilename):
         config.write(f)
     os.remove(oldfilename)
 
+
 def convertDefaultDownloadConfig(oldfilename, newfilename):
     # Convert tribler <= 6.2 default download config file to tribler 6.3
 
@@ -117,6 +118,7 @@ def convertDefaultDownloadConfig(oldfilename, newfilename):
     ddsconfig.save(newfilename)
     os.remove(oldfilename)
     return ddsconfig
+
 
 def convertDownloadCheckpoints(checkpoint_dir):
     # Convert tribler <= 6.2 download checkpoints to tribler 6.3

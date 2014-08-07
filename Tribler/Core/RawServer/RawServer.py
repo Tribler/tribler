@@ -9,7 +9,7 @@ from thread import get_ident
 from threading import Event, RLock
 from traceback import print_exc
 
-from SocketHandler import SocketHandler
+from Tribler.Core.RawServer.SocketHandler import SocketHandler
 from Tribler.Core.Utilities.clock import clock
 from Tribler.dispersy.util import attach_profiler
 

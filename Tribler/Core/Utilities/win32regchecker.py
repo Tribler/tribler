@@ -4,7 +4,7 @@
 import sys
 import logging
 
-if (sys.platform == 'win32'):
+if sys.platform == 'win32':
     import _winreg
 
     # short for PyHKEY from "_winreg" module
@@ -28,7 +28,7 @@ class Win32RegChecker:
         return self.readKey(HKCR, key_name, value_name)
 
     def readKey(self, hkey, key_name, value_name=""):
-        if (sys.platform != 'win32'):
+        if sys.platform != 'win32':
             return None
 
         try:
@@ -48,7 +48,6 @@ class Win32RegChecker:
             # error, test failed, key don't exist
             # (could also indicate a unicode error)
             return None
-
 
     def readKeyRecursively(self, hkey, key_name, value_name=""):
         if (sys.platform != 'win32'):
