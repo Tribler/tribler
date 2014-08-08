@@ -177,6 +177,15 @@ class SaveAs(wx.Dialog):
         hsizer.Clear(deleteWindows=True)
         vSizer.Remove(hsizer)
         self.AddFileList(tdef, None, vSizer, len(vSizer.GetChildren()) - 1)
+
+        items = self.dirTextCtrl.GetItems()
+        lastUsed = self.filehistory[0] if self.filehistory else self.defaultdir
+        path = os.path.join(lastUsed, tdef.get_name_as_unicode())
+        if path not in items:
+            items.insert(0, path)
+            self.dirTextCtrl.SetItems(items)
+        self.dirTextCtrl.SetStringSelection(path)
+
         self.Layout()
         self.Refresh()
         self.Thaw()
@@ -200,7 +209,7 @@ class SaveAs(wx.Dialog):
         return None
 
     def GetAnonMode(self):
-        return False # self.anon_check.GetValue()
+        return False  # self.anon_check.GetValue()
 
     def OnOk(self, event=None):
         if self.listCtrl:
