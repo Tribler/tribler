@@ -30,9 +30,9 @@ class SwiftProcessMgr:
     def get_or_create_sp(self, workdir, zerostatedir, listenport, httpgwport, cmdgwport):
         """ Download needs a process """
         self.sesslock.acquire()
-        if not self.done:
-            # print >>sys.stderr,"spm: get_or_create_sp"
-            try:
+        try:
+            if not self.done:
+                # print >>sys.stderr,"spm: get_or_create_sp"
                 self.clean_sps()
 
                 sp = None
@@ -72,8 +72,8 @@ class SwiftProcessMgr:
                     sp.start_cmd_connection()
 
                 return sp
-            finally:
-                self.sesslock.release()
+        finally:
+            self.sesslock.release()
 
     def release_sp(self, sp):
         """ Download no longer needs process. Apply process-cleanup policy """
