@@ -89,13 +89,6 @@ class AddTorrent(wx.Dialog):
             create.Bind(wx.EVT_BUTTON, self.OnCreate)
             vSizer.Add(create, 0, wx.ALIGN_RIGHT | wx.BOTTOM, 3)
 
-            self.choose = None
-
-        else:
-            self.choose = wx.CheckBox(self, -1, "Let me choose a downloadlocation for these torrents")
-            self.choose.SetValue(self.guiutility.utility.read_config('showsaveas'))
-            vSizer.Add(self.choose, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 3)
-
         sizer = wx.BoxSizer()
         sizer.Add(vSizer, 1, wx.EXPAND | wx.ALL, 10)
         self.SetSizerAndFit(sizer)
@@ -103,23 +96,11 @@ class AddTorrent(wx.Dialog):
     def OnAdd(self, event):
         input = self.magnet.GetValue().strip()
         if input.startswith("http://"):
-            destdir = self.defaultDLConfig.get_dest_dir()
-            if self.choose and self.choose.IsChecked():
-                destdir, anon_mode, selected_files = self._GetDestPath(torrenturl=input)
-                if not destdir:
-                    return
-
-            if self.frame.startDownloadFromUrl(str(input), destdir, selectedFiles=selected_files, anon_mode=anon_mode):
+            if self.frame.startDownloadFromUrl(str(input)):
                 self.EndModal(wx.ID_OK)
 
         elif input.startswith("magnet:"):
-            destdir = self.defaultDLConfig.get_dest_dir()
-            if self.choose and self.choose.IsChecked():
-                destdir, anon_mode, selected_files = self._GetDestPath(magneturl=input)
-                if not destdir:
-                    return
-
-            if self.frame.startDownloadFromMagnet(str(input), destdir, selectedFiles=selected_files, anon_mode=anon_mode):
+            if self.frame.startDownloadFromMagnet(str(input)):
                 self.EndModal(wx.ID_OK)
 
     def OnLibrary(self, event):
@@ -145,9 +126,8 @@ class AddTorrent(wx.Dialog):
             warning.Destroy()
 
         if not cancel:
-            destdir = None if (self.choose and self.choose.IsChecked()) or len(filenames) > 1 else self.defaultDLConfig.get_dest_dir()
             for filename in filenames:
-                self.frame.startDownload(filename, fixtorrent=True, destdir=destdir)
+                self.frame.startDownload(filename, fixtorrent=True)
 
     def OnBrowse(self, event):
         dlg = wx.FileDialog(None, "Please select the .torrent file(s).", wildcard="torrent (*.torrent)|*.torrent", style=wx.FD_OPEN | wx.FD_MULTIPLE)
@@ -194,27 +174,3 @@ class AddTorrent(wx.Dialog):
             self.EndModal(wx.ID_OK)
 
         dlg.Destroy()
-
-    def _GetDestPath(self, torrentfilename=None, torrenturl=None, magneturl=None):
-        destdir = None
-        anon_mode = False
-        selected_files = None
-        tdef = None
-        if torrentfilename:
-            tdef = TorrentDef.load(torrentfilename)
-        if torrenturl:
-            tdef = TorrentDef.load_from_url(torrenturl)
-        if magneturl:
-            name, infohash, _ = parse_magnetlink(magneturl)
-            tdef = TorrentDefNoMetainfo(infohash, name, url=magneturl)
-
-        if tdef:
-            dlg = SaveAs(None, tdef, self.defaultDLConfig.get_dest_dir(), None)
-            id = dlg.ShowModal()
-
-            if id == wx.ID_OK:
-                destdir = dlg.GetPath()
-                anon_mode = dlg.GetAnonMode()
-                selected_files = dlg.GetSelectedFiles()
-            dlg.Destroy()
-        return (destdir, anon_mode, selected_files)
