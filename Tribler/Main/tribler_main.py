@@ -180,7 +180,7 @@ class ABCApp():
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
-            self.splash.setTicks(12)
+            self.splash.setTicks(13)
             self.splash.Show()
 
             self._logger.info('Client Starting Up.')
@@ -191,13 +191,15 @@ class ABCApp():
 
             self._logger.info("Tribler is expecting swift in %s", self.sconfig.get_swift_path())
 
-            self.dispersy = s.lm.dispersy
-
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
+
+            self.splash.tick('Starting session and upgrading database (it may take a while)')
+            s.start()
+            self.dispersy = s.lm.dispersy
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
@@ -502,7 +504,6 @@ class ABCApp():
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
         session.add_observer(define_communities, NTFY_DISPERSY, [NTFY_STARTED])
-        session.start()
 
         return session
 
