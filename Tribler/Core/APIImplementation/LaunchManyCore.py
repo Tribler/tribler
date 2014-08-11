@@ -165,6 +165,9 @@ class TriblerLaunchMany(Thread):
             self.ltmgr = None
             self.torrent_checking = None
 
+        if not self.initComplete:
+            self.init()
+
     def init(self):
         if self.dispersy:
             from Tribler.dispersy.community import HardKilledCommunity
@@ -749,9 +752,6 @@ class TriblerLaunchMany(Thread):
     def run(self):
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
-
-        if not self.initComplete:
-            self.init()
 
         if PROFILE:
             fname = "profile-%s" % self.getName()
