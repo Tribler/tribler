@@ -1426,10 +1426,15 @@ class LibraryDetails(TorrentDetails):
         if ds:
             new_tracker_status = ds.get_tracker_status()
             if self.old_tracker_status != new_tracker_status:
-                items = [self.trackersList.GetItem(i, 0).GetText() for i in range(self.trackersList.GetItemCount())]
                 self.trackersList.Freeze()
 
+                # Remove items that aren't in the tracker_status dict
+                for i in range(self.trackersList.GetItemCount() - 1, -1, -1):
+                    if self.trackersList.GetItem(i, 0).GetText() not in new_tracker_status:
+                        self.trackersList.DeleteItem(i)
+
                 # Update list
+                items = [self.trackersList.GetItem(i, 0).GetText() for i in range(self.trackersList.GetItemCount())]
                 for url, info in sorted(ds.get_tracker_status().items()):
                     num_peers, status = info
                     if url in items:
@@ -1437,11 +1442,6 @@ class LibraryDetails(TorrentDetails):
                         self.trackersList.SetStringItem(items.index(url), 2, str(num_peers))
                     else:
                         self.trackersList.Append([url, status, num_peers])
-
-                # Remove items that aren't in the tracker_status dict
-                for index, item in enumerate(items):
-                    if item not in new_tracker_status:
-                        self.trackersList.DeleteItem(index)
 
                 self.trackersList.Thaw()
                 self.old_tracker_status = new_tracker_status
