@@ -224,7 +224,7 @@ def main():
     metadata_injector = MetadataInjector(opt)
     metadata_injector.initialize()
 
-    print >> sys.stderr, "Type Q followed by <ENTER> to stop the metadata-injector"
+    print >> sys.stderr, "Type CTRL-C to stop the metadata-injector"
 
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
