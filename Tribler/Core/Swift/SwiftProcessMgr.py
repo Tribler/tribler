@@ -54,6 +54,7 @@ class SwiftProcessMgr(object):
                 if sp is None:
                     # Create new process
                     sp = SwiftProcess(self.binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, self)
+                    sp.start_process()
                     self._logger.debug("spm: get_or_create_sp: Creating new %s", sp.get_pid())
                     self.sps.append(sp)
 

@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
+import time
 import subprocess
 import random
 import binascii
@@ -56,87 +57,91 @@ class SwiftProcess(object):
         else:
             self.httpport = httpgwport
 
-        # Security: only accept commands from localhost, enable HTTP gw,
-        # no stats/webUI web server
-        args = []
-        # Arno, 2012-07-09: Unicode problems with popen
-        args.append(self.binpath.encode(sys.getfilesystemencoding()))
-
-        # Arno, 2012-05-29: Hack. Win32 getopt code eats first arg when Windows app
-        # instead of CONSOLE app.
-        args.append("-j")
-        args.append("-l")  # listen port
-        args.append("0.0.0.0:" + str(self.listenport))
-        args.append("-c")  # command port
-        args.append("127.0.0.1:" + str(self.cmdport))
-        args.append("-g")  # HTTP gateway port
-        args.append("127.0.0.1:" + str(self.httpport))
-
-        if zerostatedir is not None:
-            if sys.platform == "win32":
-                # Swift on Windows expects command line arguments as UTF-16.
-                # popen doesn't allow us to pass params in UTF-16, hence workaround.
-                # Format = hex encoded UTF-8
-                args.append("-3")
-                zssafe = binascii.hexlify(zerostatedir.encode("UTF-8"))
-                args.append(zssafe)  # encoding that swift expects
-            else:
-                args.append("-e")
-                args.append(zerostatedir)
-            args.append("-T")  # zero state connection timeout
-            args.append("180")  # seconds
-        # args.append("-B")  # Enable debugging on swift
-
-        # make swift quiet
-        args.append("-q")
-
-        self._logger.debug("SwiftProcess: __init__: Running %s workdir %s", args, workdir)
-
-        if sys.platform == "win32":
-            creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
-        else:
-            creationflags = 0
-
-        # See also SwiftDef::finalize popen
-        # We would really like to get the stdout and stderr without creating a new thread for them.
-        # However, windows does not support non-files in the select command, hence we cannot integrate
-        # these streams into the FastI2I thread
-        # A proper solution would be to switch to twisted for the communication with the swift binary
-        self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        class ReadAndPrintThread(Thread):
-            def __init__(self, sp, name, socket):
-                super(ReadAndPrintThread, self).__init__(name=name)
-                self.sp = sp
-                self.socket = socket
-                self.last_line = ''
-
-            def run(self):
-                prefix = currentThread().getName() + ":"
-                while True:
-                    self.last_line = self.socket.readline()
-                    if not self.last_line:
-                        self.sp._logger.info("%s readline returned nothing quitting", prefix)
-                        break
-                    self.sp._logger.debug("%s %s", prefix, self.last_line.rstrip())
-
-            def get_last_line(self):
-                return self.last_line
-
-        self.popen_outputthreads = [ReadAndPrintThread(self, "SwiftProcess_%d_stdout" % self.listenport, self.popen.stdout), ReadAndPrintThread(self, "SwiftProcess_%d_stderr" % self.listenport, self.popen.stderr)]
-        [thread.start() for thread in self.popen_outputthreads]
-
-        self.roothash2dl = {}
-        self.donestate = DONE_STATE_WORKING  # shutting down
-        self.fastconn = None
-        self.tunnels = {}
+        self.popen = None
+        self.popen_outputthreads = None
 
         # callbacks for when swift detect a channel close
         self._channel_close_callbacks = defaultdict(list)
 
+        self.roothash2dl = dict()
+        self.donestate = DONE_STATE_WORKING  # shutting down
+        self.fastconn = None
+        self.tunnels = dict()
+
         # Only warn once when TUNNELRECV messages are received without us having a Dispersy endpoint.  This occurs after
         # Dispersy shutdown
         self._warn_missing_endpoint = True
+
+    def start_process(self):
+        with self.splock:
+            # Security: only accept commands from localhost, enable HTTP gw,
+            # no stats/webUI web server
+            args = list()
+            # Arno, 2012-07-09: Unicode problems with popen
+            args.append(self.binpath.encode(sys.getfilesystemencoding()))
+
+            # Arno, 2012-05-29: Hack. Win32 getopt code eats first arg when Windows app
+            # instead of CONSOLE app.
+            args.append("-j")
+            args.append("-l")  # listen port
+            args.append("0.0.0.0:" + str(self.listenport))
+            args.append("-c")  # command port
+            args.append("127.0.0.1:" + str(self.cmdport))
+            args.append("-g")  # HTTP gateway port
+            args.append("127.0.0.1:" + str(self.httpport))
+
+            if self.zerostatedir is not None:
+                if sys.platform == "win32":
+                    # Swift on Windows expects command line arguments as UTF-16.
+                    # popen doesn't allow us to pass params in UTF-16, hence workaround.
+                    # Format = hex encoded UTF-8
+                    args.append("-3")
+                    zssafe = binascii.hexlify(self.zerostatedir.encode("UTF-8"))
+                    args.append(zssafe)  # encoding that swift expects
+                else:
+                    args.append("-e")
+                    args.append(self.zerostatedir)
+                args.append("-T")  # zero state connection timeout
+                args.append("180")  # seconds
+            # args.append("-B")  # Enable debugging on swift
+
+            # make swift quiet
+            args.append("-q")
+
+            if sys.platform == "win32":
+                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+            else:
+                creationflags = 0
+
+            # See also SwiftDef::finalize popen
+            # We would really like to get the stdout and stderr without creating a new thread for them.
+            # However, windows does not support non-files in the select command, hence we cannot integrate
+            # these streams into the FastI2I thread
+            # A proper solution would be to switch to twisted for the communication with the swift binary
+            self.popen = subprocess.Popen(args, cwd=self.workdir, creationflags=creationflags,
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            class ReadAndPrintThread(Thread):
+                def __init__(self, sp, name, socket):
+                    super(ReadAndPrintThread, self).__init__(name=name)
+                    self.sp = sp
+                    self.socket = socket
+                    self.last_line = ''
+
+                def run(self):
+                    prefix = currentThread().getName() + ":"
+                    while True:
+                        self.last_line = self.socket.readline()
+                        if not self.last_line:
+                            self.sp._logger.info("%s readline returned nothing quitting", prefix)
+                            break
+                        self.sp._logger.debug("%s %s", prefix, self.last_line.rstrip())
+
+                def get_last_line(self):
+                    return self.last_line
+
+            self.popen_outputthreads = [ReadAndPrintThread(self, "SwiftProcess_%d_stdout" % self.listenport, self.popen.stdout), ReadAndPrintThread(self, "SwiftProcess_%d_stderr" % self.listenport, self.popen.stderr)]
+            [thread.start() for thread in self.popen_outputthreads]
 
     #
     # Instance2Instance
@@ -148,9 +153,37 @@ class SwiftProcess(object):
             self.fastconn = FastI2IConnection(self.cmdport, self.i2ithread_readlinecallback, self.connection_lost)
 
         else:
-            self._logger.error("sp: start_cmd_connection: Process dead? returncode %s pid %s", self.popen.returncode, self.popen.pid)
+            self._logger.error("sp: start_cmd_connection: Process dead? returncode %s pid %s",
+                               self.popen.returncode, self.popen.pid)
             for thread in self.popen_outputthreads:
                 self._logger.error("sp popenthread %s last line %s", thread.getName(), thread.get_last_line())
+            # restart process
+            self.start_process()
+
+            self.donestate = DONE_STATE_WORKING  # shutting down
+            self.tunnels = dict()
+
+            # Only warn once when TUNNELRECV messages are received without us having a Dispersy endpoint.  This occurs after
+            # Dispersy shutdown
+            self._warn_missing_endpoint = True
+
+            # Arno, 2011-10-13: On Linux swift is slow to start and
+            # allocate the cmd listen socket?!
+            # 2012-05-23: connection_lost() will attempt another
+            # connect when the first fails, so not timing dependent,
+            # just ensures no send_()s get lost. Executed by NetworkThread.
+            # 2014-06-16: Having the same issues on Windows with multiple
+            # swift processes. Now always sleep, no matter which
+            # platform we're using.
+            self._logger.warn("spm: Need to sleep 1 second for swift to start?! FIXME")
+            time.sleep(1)
+
+            self.fastconn = FastI2IConnection(self.cmdport, self.i2ithread_readlinecallback, self.connection_lost)
+
+            # start the swift downloads again
+            with self.splock:
+                for _, swift_download in self.roothash2dl.items():
+                    self.start_download(swift_download)
 
     def i2ithread_readlinecallback(self, cmd_buffer):
         if self.donestate != DONE_STATE_WORKING:
@@ -439,7 +472,6 @@ class SwiftProcess(object):
         if self.fastconn:
             self.fastconn.stop()
 
-
     #
     # Internal methods
     #
@@ -530,4 +562,5 @@ class SwiftProcess(object):
         return self.cmdport
 
     def connection_lost(self, port):
+        self._logger.warn("Connection lost for port %s", port)
         self.spmgr.connection_lost(port)
