@@ -10,7 +10,7 @@ import logging
 from Tribler.Core.Swift.SwiftProcess import SwiftProcess
 
 
-class SwiftProcessMgr:
+class SwiftProcessMgr(object):
 
     """ Class that manages a number of SwiftProcesses """
 
@@ -55,6 +55,7 @@ class SwiftProcessMgr:
                 if sp is None:
                     # Create new process
                     sp = SwiftProcess(self.binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, self)
+                    sp.start_process()
                     self._logger.debug("spm: get_or_create_sp: Creating new %s", sp.get_pid())
                     self.sps.append(sp)
 
