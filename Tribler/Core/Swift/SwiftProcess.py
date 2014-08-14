@@ -31,7 +31,7 @@ class SwiftProcess(object):
     """ Representation of an operating-system process running the C++ swift engine.
     A swift engine can participate in one or more swarms."""
 
-    def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr):
+    def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr, extra_subprocess_flags):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         # Called by any thread, assume sessionlock is held
@@ -40,6 +40,7 @@ class SwiftProcess(object):
         self.workdir = workdir
         self.zerostatedir = zerostatedir
         self.spmgr = spmgr
+        self.extra_subprocess_flags = extra_subprocess_flags
 
         # Main UDP listen socket
         if listenport is None:
@@ -112,6 +113,7 @@ class SwiftProcess(object):
                 creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
             else:
                 creationflags = 0
+            creationflags |= self.extra_subprocess_flags
 
             # See also SwiftDef::finalize popen
             # We would really like to get the stdout and stderr without creating a new thread for them.
