@@ -21,7 +21,7 @@ from Tribler.dispersy.util import attach_profiler
 class FastI2IConnection(Thread):
 
     def __init__(self, port, readlinecallback, closecallback):
-        Thread.__init__(self)
+        super(FastI2IConnection, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 

@@ -10,7 +10,7 @@ import logging
 from Tribler.Core.Swift.SwiftProcess import SwiftProcess
 
 
-class SwiftProcessMgr:
+class SwiftProcessMgr(object):
 
     """ Class that manages a number of SwiftProcesses """
 

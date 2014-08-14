@@ -25,7 +25,7 @@ DONE_STATE_EARLY_SHUTDOWN = 1
 DONE_STATE_SHUTDOWN = 2
 
 
-class SwiftProcess:
+class SwiftProcess(object):
 
     """ Representation of an operating-system process running the C++ swift engine.
     A swift engine can participate in one or more swarms."""
