@@ -39,13 +39,14 @@ class FastI2IConnection(Thread):
         self.buffer = ''
         # write lock on socket
         self.lock = Lock()
+        # event that indicates if the thread is blocking on socket.recv()
+        self._to_stop = False
 
         self.start()
         assert self.sock_connected.wait(60) or self.sock_connected.is_set(), 'Did not connect to socket within 60s.'
 
     @attach_profiler
     def run(self):
-
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
 
@@ -55,7 +56,7 @@ class FastI2IConnection(Thread):
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.sock.connect(("127.0.0.1", self.port))
                 self.sock_connected.set()
-            while True:
+            while not self._to_stop:
                 data = self.sock.recv(10240)
                 if len(data) == 0:
                     break
@@ -68,7 +69,11 @@ class FastI2IConnection(Thread):
             print >> sys.stderr, "Error while parsing, (%s)" % data or ''
 
         finally:
-            self.close()
+            with self.lock:
+                self.sock.close()
+                self.sock = None
+                self.closecallback(self.port)
+                self.sock_connected.clear()
 
     def stop(self):
         try:
@@ -86,16 +91,11 @@ class FastI2IConnection(Thread):
 
     def write(self, data):
         """ Called by any thread """
-        self.lock.acquire()
-        try:
+        with self.lock:
             if self.sock is not None:
                 self.sock.send(data)
-        finally:
-            self.lock.release()
 
     def close(self):
         if self.sock is not None:
-            self.sock.close()
-            self.closecallback(self.port)
-            self.sock = None
-            self.sock_connected.clear()
+            self.stop()
+        self.join()

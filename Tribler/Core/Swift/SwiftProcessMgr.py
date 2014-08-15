@@ -10,7 +10,7 @@ import logging
 from Tribler.Core.Swift.SwiftProcess import SwiftProcess
 
 
-class SwiftProcessMgr:
+class SwiftProcessMgr(object):
 
     """ Class that manages a number of SwiftProcesses """
 
@@ -26,6 +26,14 @@ class SwiftProcessMgr:
         self.done = False
 
         self.sps = []
+
+        self.extra_subprocess_flags = 0
+        if sys.platform == 'win32' and not __debug__:
+            import ctypes
+            SEM_NOGPFAULTERRORBOX = 0x0002 # from MSDN
+            ctypes.windll.kernel32.SetErrorMode(SEM_NOGPFAULTERRORBOX)
+            CREATE_NO_WINDOW = 0x08000000
+            self.extra_subprocess_flags = CREATE_NO_WINDOW
 
     def get_or_create_sp(self, workdir, zerostatedir, listenport, httpgwport, cmdgwport):
         """ Download needs a process """
@@ -54,7 +62,9 @@ class SwiftProcessMgr:
 
                 if sp is None:
                     # Create new process
-                    sp = SwiftProcess(self.binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, self)
+                    sp = SwiftProcess(self.binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, self,
+                                      self.extra_subprocess_flags)
+                    sp.start_process()
                     self._logger.debug("spm: get_or_create_sp: Creating new %s", sp.get_pid())
                     self.sps.append(sp)
 
