@@ -150,42 +150,51 @@ class SwiftProcess(object):
     #
     def start_cmd_connection(self):
         # Called by any thread, assume sessionlock is held
+        with self.splock:
+            if self.is_alive():
+                self.fastconn = FastI2IConnection(self.cmdport, self.i2ithread_readlinecallback, self.connection_lost)
 
-        if self.is_alive():
-            self.fastconn = FastI2IConnection(self.cmdport, self.i2ithread_readlinecallback, self.connection_lost)
+            else:
+                self._logger.error("sp: start_cmd_connection: Process dead? returncode %s pid %s",
+                                   self.popen.returncode, self.popen.pid)
+                for thread in self.popen_outputthreads:
+                    self._logger.error("sp popenthread %s last line %s", thread.getName(), thread.get_last_line())
+                # restart process
+                self.start_process()
 
-        else:
-            self._logger.error("sp: start_cmd_connection: Process dead? returncode %s pid %s",
-                               self.popen.returncode, self.popen.pid)
-            for thread in self.popen_outputthreads:
-                self._logger.error("sp popenthread %s last line %s", thread.getName(), thread.get_last_line())
-            # restart process
-            self.start_process()
+                self.donestate = DONE_STATE_WORKING  # shutting down
 
-            self.donestate = DONE_STATE_WORKING  # shutting down
-            self.tunnels = dict()
+                old_tunnels = self.tunnels
+                self.tunnels = dict()
 
-            # Only warn once when TUNNELRECV messages are received without us having a Dispersy endpoint.  This occurs after
-            # Dispersy shutdown
-            self._warn_missing_endpoint = True
 
-            # Arno, 2011-10-13: On Linux swift is slow to start and
-            # allocate the cmd listen socket?!
-            # 2012-05-23: connection_lost() will attempt another
-            # connect when the first fails, so not timing dependent,
-            # just ensures no send_()s get lost. Executed by NetworkThread.
-            # 2014-06-16: Having the same issues on Windows with multiple
-            # swift processes. Now always sleep, no matter which
-            # platform we're using.
-            self._logger.warn("spm: Need to sleep 1 second for swift to start?! FIXME")
-            time.sleep(1)
+                # Only warn once when TUNNELRECV messages are received without us having a Dispersy endpoint.  This occurs after
+                # Dispersy shutdown
+                self._warn_missing_endpoint = True
 
-            self.fastconn = FastI2IConnection(self.cmdport, self.i2ithread_readlinecallback, self.connection_lost)
+                # Arno, 2011-10-13: On Linux swift is slow to start and
+                # allocate the cmd listen socket?!
+                # 2012-05-23: connection_lost() will attempt another
+                # connect when the first fails, so not timing dependent,
+                # just ensures no send_()s get lost. Executed by NetworkThread.
+                # 2014-06-16: Having the same issues on Windows with multiple
+                # swift processes. Now always sleep, no matter which
+                # platform we're using.
+                self._logger.warn("spm: Need to sleep 1 second for swift to start?! FIXME")
+                time.sleep(1)
 
-            # start the swift downloads again
-            with self.splock:
+                self.fastconn = FastI2IConnection(self.cmdport, self.i2ithread_readlinecallback, self.connection_lost)
+
+                # start the swift downloads again
                 for _, swift_download in self.roothash2dl.items():
                     self.start_download(swift_download)
+
+
+                # In case swift died and we are recovering from that, reregister all
+                # the tunnels that existed in the previous session.
+                for tunnel, callback in old_tunnels.iteritems():
+                    self._logger.info("Reregistering tunnel from crashed swfit: %s %s", tunnel, callback)
+                    self.register_tunnel(tunnel, callback)
 
     def i2ithread_readlinecallback(self, cmd_buffer):
         if self.donestate != DONE_STATE_WORKING:
