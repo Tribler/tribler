@@ -72,7 +72,8 @@ class FastI2IConnection(Thread):
             with self.lock:
                 self.sock.close()
                 self.sock = None
-                self.closecallback(self.port)
+                if not self._to_stop:
+                    self.closecallback(self.port)
                 self.sock_connected.clear()
 
     def stop(self):
