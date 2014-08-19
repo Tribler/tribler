@@ -101,11 +101,13 @@ class Session(SessionConfigInterface):
         # SWIFTPROC
         if scfg.get_swift_path() is None or not os.path.exists(scfg.get_swift_path()):
             if sys.platform == "win32":
-                scfg.set_swift_path(os.path.join(scfg.get_install_dir(), "swift.exe"))
+                swift_path = os.path.join(scfg.get_install_dir(), "swift.exe")
             elif is_android(strict=True):
-                scfg.set_swift_path(os.path.join(os.environ['ANDROID_PRIVATE'], 'swift'))
+                swift_path = os.path.join(os.environ['ANDROID_PRIVATE'], 'swift')
             else:
-                scfg.set_swift_path(os.path.join(scfg.get_install_dir(), "swift"))
+                swift_path = os.path.join(scfg.get_install_dir(), "swift")
+            self._logger.info("Changing swift_path config var from '%s' to '%s'", str(scfg.get_swift_path()), swift_path)
+            scfg.set_swift_path(swift_path)
 
         if GOTM2CRYPTO:
             permidmod.init()
