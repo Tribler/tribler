@@ -39,7 +39,6 @@ class FastI2IConnection(Thread):
         self.buffer = ''
         # write lock on socket
         self.lock = Lock()
-        # event that indicates if the thread is blocking on socket.recv()
         self._to_stop = False
 
         self.start()
@@ -78,6 +77,7 @@ class FastI2IConnection(Thread):
 
     def stop(self):
         try:
+            self._to_stop = True
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect(('127.0.0.1', self.port))
             s.send('')
