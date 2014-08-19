@@ -137,7 +137,7 @@ class ChannelCommunity(Community):
                     CommunityDestination(node_count=10),
                     ModificationPayload(),
                     self._disp_check_modification,
-                    self._disp_on_moderation,
+                    self._disp_on_modification,
                     self._disp_undo_modification,
                     batch=BatchConfiguration(max_window=batch_delay)),
             Message(self, u"playlist_torrent",
