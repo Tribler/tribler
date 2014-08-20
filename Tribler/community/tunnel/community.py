@@ -160,7 +160,7 @@ class TunnelSettings(object):
 
         self.max_time = 10 * 60
         self.max_time_inactive = 20
-        self.max_traffic = 10 * 1024 * 1024
+        self.max_traffic = 55 * 1024 * 1024
 
         self.max_packets_without_reply = 50
 
