@@ -223,20 +223,23 @@ class TorrentDetails(AbstractDetails):
         self.state = -1
         self.torrent = torrent
 
+        self.canEdit = False
+        self.canComment = False
+        self.canMark = False
+
         isChannelTorrent = isinstance(self.torrent, ChannelTorrent) or (isinstance(self.torrent, CollectedTorrent) and isinstance(self.torrent.torrent, ChannelTorrent))
         if isChannelTorrent and self.torrent.hasChannel():
             # This is a db call
-            state, iamModerator = self.torrent.channel.getState()
+            channel_state = self.torrent.channel.getState()
 
-            if isinstance(self, LibraryDetails):
-                self.canMark = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
-            else:
-                self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
-                self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
-        else:
-            self.canEdit = False
-            self.canComment = False
-            self.canMark = False
+            if channel_state:
+                state, _ = channel_state
+
+                if isinstance(self, LibraryDetails):
+                    self.canMark = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
+                else:
+                    self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
+                    self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
 
         self.updateAllTabs()
 
