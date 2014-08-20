@@ -1081,8 +1081,10 @@ class LibraryManager:
 
     def stopPlayback(self):
         if self.guiUtility.frame.videoframe:
-            self.guiUtility.frame.videoframe.get_videopanel().Reset()
+            # Recreate the VLC window first, then reset. Otherwise VLC sometimes crashes.
             self.guiUtility.frame.videoframe.recreate_vlc_window()
+            self.guiUtility.frame.videoframe.get_videopanel().Reset()
+
         videoplayer = self._get_videoplayer()
         videoplayer.set_vod_download(None)
 
