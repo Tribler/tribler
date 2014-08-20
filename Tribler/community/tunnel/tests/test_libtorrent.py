@@ -56,7 +56,7 @@ class LibtorrentTest(object):
         from Tribler.Main.globals import DefaultDownloadStartupConfig
         from Tribler.Main.vwxGUI import forceWxThread
 
-        hosts = [("94.23.38.156", 51413), ("95.211.198.147", 51413), ("95.211.198.142", 51413), ("95.211.198.140", 51413), ("95.211.198.141", 51413)]
+        hosts = [("95.211.198.147", 51413), ("95.211.198.142", 51413), ("95.211.198.140", 51413), ("95.211.198.141", 51413)]
 
         @forceWxThread
         def thank_you(file_size, start_time, end_time):
