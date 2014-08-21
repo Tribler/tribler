@@ -1062,7 +1062,7 @@ class ChannelCommunity(Community):
             for dispersy_id, prev_global_time in list:
                 if prev_global_time >= max_global_time:
                     try:
-                        message = self._dispersy.load_message_by_packetid(dispersy_id)
+                        message = self._dispersy.load_message_by_packetid(self, dispersy_id)
                         if message:
                             message = message.load_message()
                             conflicting_messages.append(message)
