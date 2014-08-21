@@ -78,7 +78,7 @@ class SRstatusbar(wx.StatusBar):
         if space >= 0:
             space_str = self.utility.size_format(space, truncate=1)
             space_label = space_str.replace(' ', '')
-            space_tooltip = 'You current have %s of disk space available on your default download location.' % space_str
+            space_tooltip = 'You currently have %s of disk space available on your default download location.' % space_str
             self.free_space.SetLabel(space_label)
             self.free_space.SetToolTipString(space_tooltip)
             self.free_space.Show(True)
