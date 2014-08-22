@@ -414,7 +414,7 @@ class RemoteTorrentHandler(TaskManager):
                 self.scheduletask(handle_lambda)
 
     def _handleCallback(self, key, actualTorrentFileName=None):
-        self._logger.debug('rtorrent: got torrent for: %s', key)
+        self._logger.debug('rtorrent: got torrent for: %s', (hexlify(key) if isinstance(key, basestring) else key))
 
         if key in self.callbacks:
             for usercallback in self.callbacks[key]:
