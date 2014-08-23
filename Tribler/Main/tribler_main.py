@@ -209,6 +209,13 @@ class ABCApp():
                 version_info['first_run'] = int(time())
                 version_info['version_id'] = version_id
                 self.utility.write_config('version_info', version_info)
+                # Ensure that we redo the anonymous download test
+                anon_file = os.path.join(s.get_state_dir(), 'anon_test.txt')
+                if os.path.exists(anon_file):
+                    try:
+                        os.remove(anon_file)
+                    except:
+                        self._logger.error('Failed to remove %s', anon_file)
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
