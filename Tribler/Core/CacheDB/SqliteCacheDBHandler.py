@@ -1893,9 +1893,11 @@ class VoteCastDBHandler(BasicDBHandler):
         insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.executemany(insert_vote, votes)
 
-        for channel_id, voter_id, _, _, _ in votes:
+        for channel_id, voter_id, _, vote, _ in votes:
             if voter_id == None:
                 self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id == None)
+                if self.my_votes != None:
+                    self.my_votes[channel_id] = vote
             self._scheduleUpdateChannelVotes(channel_id)
 
     def on_remove_votes_from_dispersy(self, votes, contains_my_vote):
