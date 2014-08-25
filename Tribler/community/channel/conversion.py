@@ -1,11 +1,12 @@
-from struct import pack, unpack_from
-from random import sample
 import zlib
+from random import sample
+from struct import pack, unpack_from
 
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.dispersy.message import DropPacket, Packet, \
-    DelayPacketByMissingMessage, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import BinaryConversion
+from Tribler.dispersy.member import DummyMember
+from Tribler.dispersy.message import DropPacket, Packet, DelayPacketByMissingMessage, DelayPacketByMissingMember
+
 
 DEBUG = False
 
@@ -353,7 +354,7 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
             modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except DropPacket:
-            member = self._community.dispersy.get_member(mid=modification_on_mid)
+            member = self._community.get_member(mid=modification_on_mid)
             if not member:
                 raise DelayPacketByMissingMember(self._community, modification_on_mid)
             raise DelayPacketByMissingMessage(self._community, member, modification_on_global_time)
