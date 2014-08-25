@@ -7,7 +7,7 @@ import argparse
 import threading
 import cherrypy
 
-from collections import defaultdict
+from collections import defaultdict, deque
 
 from twisted.internet.task import LoopingCall
 from twisted.internet.stdio import StandardIO
@@ -44,16 +44,21 @@ class AnonTunnel(object):
         self.crawl_data = defaultdict(lambda: [])
         self.crawl_message = {}
         self.current_stats = defaultdict(int)
+        self.history_stats = deque(maxlen=100)
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages).start(1800)
+        self.build_history_lc = LoopingCall(self.build_history).start(60, now=True)
 
     def clean_messages(self):
         now = int(time.time())
         for k in self.crawl_message.keys():
             if now - 3600 > self.crawl_message[k]['time']:
                 self.crawl_message.pop(k)
+
+    def build_history(self):
+        self.history_stats.append(self.current_stats.copy())
 
     def start_tribler(self):
         config = SessionStartupConfig()
@@ -65,7 +70,7 @@ class AnonTunnel(object):
         config.set_swift_proc(True)
         config.set_mainline_dht(False)
         config.set_torrent_collecting(False)
-        config.set_libtorrent(True)
+        config.set_libtorrent(False)
         config.set_dht_torrent_collecting(False)
         config.set_videoplayer(False)
         config.set_dispersy_tunnel_over_swift(True)
@@ -144,13 +149,21 @@ class AnonTunnel(object):
             result[key_to] = sum([stats.get(k, 0) for k in key_from])
         return result
 
+    @cherrypy.expose
     def index(self, *args, **kwargs):
         # Return average statistics estimate.
         if 'callback' in kwargs:
             return kwargs['callback'] + '(' + json.dumps(self.current_stats) + ');'
         else:
             return json.dumps(self.current_stats)
-    index.exposed = True
+
+    @cherrypy.expose
+    def history(self, *args, **kwargs):
+        # Return history of average statistics estimate.
+        if 'callback' in kwargs:
+            return kwargs['callback'] + '(' + json.dumps(list(self.history_stats)) + ');'
+        else:
+            return json.dumps(list(self.history_stats))
 
 
 class LineHandler(LineReceiver):
@@ -227,13 +240,17 @@ def main(argv):
         sys.exit(2)
 
     socks5_port = int(args.socks5) if args.socks5 else None
-    crawl_keypair_filename = args.crawl if args.crawl and os.path.exists(args.crawl) else None
+    crawl_keypair_filename = args.crawl
     profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
 
     if profile:
         yappi.set_clock_type(profile)
         yappi.start(builtins=True)
         print "Profiling using %s time" % yappi.get_clock_type()['type']
+
+    if crawl_keypair_filename and not os.path.exists(crawl_keypair_filename):
+        print "Could not find keypair filename", crawl_keypair_filename
+        sys.exit(1)
 
     settings = TunnelSettings()
     settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
@@ -247,3 +264,4 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
