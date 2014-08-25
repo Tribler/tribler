@@ -354,8 +354,8 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
             modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except DropPacket:
-            member = self._community.dispersy.get_member(mid=modification_on_mid)
-            if not member or isinstance(member, DummyMember):
+            member = self._community.get_member(mid=modification_on_mid)
+            if not member:
                 raise DelayPacketByMissingMember(self._community, modification_on_mid)
             raise DelayPacketByMissingMessage(self._community, member, modification_on_global_time)
 
