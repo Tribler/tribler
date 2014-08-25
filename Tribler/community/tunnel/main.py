@@ -227,13 +227,17 @@ def main(argv):
         sys.exit(2)
 
     socks5_port = int(args.socks5) if args.socks5 else None
-    crawl_keypair_filename = args.crawl if args.crawl and os.path.exists(args.crawl) else None
+    crawl_keypair_filename = args.crawl
     profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
 
     if profile:
         yappi.set_clock_type(profile)
         yappi.start(builtins=True)
         print "Profiling using %s time" % yappi.get_clock_type()['type']
+
+    if crawl_keypair_filename and not os.path.exists(crawl_keypair_filename):
+        print "Could not find keypair filename", crawl_keypair_filename
+        sys.exit(1)
 
     settings = TunnelSettings()
     settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
@@ -247,3 +251,4 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
