@@ -65,7 +65,7 @@ class AnonTunnel(object):
         config.set_swift_proc(True)
         config.set_mainline_dht(False)
         config.set_torrent_collecting(False)
-        config.set_libtorrent(True)
+        config.set_libtorrent(False)
         config.set_dht_torrent_collecting(False)
         config.set_videoplayer(False)
         config.set_dispersy_tunnel_over_swift(True)
