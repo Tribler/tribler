@@ -7,7 +7,7 @@ import argparse
 import threading
 import cherrypy
 
-from collections import defaultdict
+from collections import defaultdict, deque
 
 from twisted.internet.task import LoopingCall
 from twisted.internet.stdio import StandardIO
@@ -44,16 +44,21 @@ class AnonTunnel(object):
         self.crawl_data = defaultdict(lambda: [])
         self.crawl_message = {}
         self.current_stats = defaultdict(int)
+        self.history_stats = deque(maxlen=100)
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages).start(1800)
+        self.build_history_lc = LoopingCall(self.build_history).start(60, now=True)
 
     def clean_messages(self):
         now = int(time.time())
         for k in self.crawl_message.keys():
             if now - 3600 > self.crawl_message[k]['time']:
                 self.crawl_message.pop(k)
+
+    def build_history(self):
+        self.history_stats.append(self.current_stats.copy())
 
     def start_tribler(self):
         config = SessionStartupConfig()
@@ -144,13 +149,21 @@ class AnonTunnel(object):
             result[key_to] = sum([stats.get(k, 0) for k in key_from])
         return result
 
+    @cherrypy.expose
     def index(self, *args, **kwargs):
         # Return average statistics estimate.
         if 'callback' in kwargs:
             return kwargs['callback'] + '(' + json.dumps(self.current_stats) + ');'
         else:
             return json.dumps(self.current_stats)
-    index.exposed = True
+
+    @cherrypy.expose
+    def history(self, *args, **kwargs):
+        # Return history of average statistics estimate.
+        if 'callback' in kwargs:
+            return kwargs['callback'] + '(' + json.dumps(list(self.history_stats)) + ');'
+        else:
+            return json.dumps(list(self.history_stats))
 
 
 class LineHandler(LineReceiver):
