@@ -205,6 +205,7 @@ class TunnelCommunity(Community):
         self.crawler_mids = ['5e02620cfabea2d2d3bfdc2032f6307136a35e69'.decode('hex'),
                              '43e8807e6f86ef2f0a784fbc8fa21f8bc49a82ae'.decode('hex'),
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
+        self.bittorrent_peers = {}
 
     def initialize(self, session=None, settings=None):
         super(TunnelCommunity, self).initialize()
@@ -391,6 +392,14 @@ class TunnelCommunity(Community):
         self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc)))
         return circuit
 
+    def readd_bittorrent_peers(self):
+        for torrent, peers in self.bittorrent_peers.items():
+            infohash = torrent.tdef.get_infohash().encode("hex")
+            for peer in peers:
+                self._logger.error("Re-adding peer %s to torrent %s", peer, infohash)
+                torrent.add_peer(peer)
+            del self.bittorrent_peers[torrent]
+
     def remove_circuit(self, circuit_id, additional_info=''):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
@@ -402,16 +411,22 @@ class TunnelCommunity(Community):
 
             affected_peers = self.socks_server.circuit_dead(circuit)
 
-#         affected_torrents = dict((download, affected_destinations.intersection(peer.ip for peer in download.handle.get_peer_info()))
-#                                  for (download, session) in mgr.torrents.values() if session == anon_session)
-#
-#         for download, peers in affected_torrents:
-#             if download not in self.torrents:
-#                 self.torrents[download] = peers
-#             elif peers - self.torrents[download]:
-#                 self.torrents[download] = peers | self.torrents[download]
-#
-#         self._logger.warning("Waiting for new circuits before re-adding peers")
+            if self.tribler_session and self.tribler_session.get_libtorrent():
+                ltmgr = self.tribler_session.lm.ltmgr
+
+                affected_torrents = {d: affected_peers.intersection(peer.ip for peer in d.handle.get_peer_info())
+                                     for d, s in ltmgr.torrents.values() if s == ltmgr.ltsession_anon}
+
+                for download, peers in affected_torrents.iteritems():
+                    if peers:
+                        if download not in self.bittorrent_peers:
+                            self.bittorrent_peers[download] = peers
+                        else:
+                            self.bittorrent_peers[download] = peers | self.bittorrent_peers[download]
+
+                # If there are active circuits, add peers immediately. Otherwise postpone. 
+                if self.active_circuits:
+                    self.readd_bittorrent_peers()
 
             return True
         return False
@@ -574,6 +589,8 @@ class TunnelCommunity(Community):
 
         elif circuit.state == CIRCUIT_STATE_READY:
             self.request_cache.pop(u"anon-circuit", circuit.circuit_id)
+            # Re-add BitTorrent peers, if needed.
+            self.readd_bittorrent_peers()
         else:
             return
 
