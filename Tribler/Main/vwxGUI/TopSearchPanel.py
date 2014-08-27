@@ -237,11 +237,11 @@ class TopSearchPanel(FancyPanel):
         self.Thaw()
 
     def complete(self, term):
-        ignore_list = ["http://", "https://","magnet:", SWIFT_URL_SCHEME, "ppsp://"]
+        ignore_list = ["http://", "https://", "magnet:", SWIFT_URL_SCHEME, "ppsp://"]
         for ignore in ignore_list:
             if term.startswith(ignore):
                 return []
-        
+
         """autocompletes term."""
         if len(term) > 1:
             if self.tdb == None:
@@ -458,9 +458,11 @@ class TopSearchPanel(FancyPanel):
         else:
             buttonId = wx.ID_DELETE if delete else wx.ID_DEFAULT
 
+        refresh_library = False
         if buttonId in [wx.ID_DEFAULT, wx.ID_DELETE]:
             for torrent in torrents:
                 self.guiutility.library_manager.deleteTorrent(torrent, buttonId == wx.ID_DELETE)
+                refresh_library = True
 
         if not silent:
             if dlg.newName:
@@ -470,3 +472,6 @@ class TopSearchPanel(FancyPanel):
                         self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':dlg.newName.GetValue()})
                     dlg2.Destroy()
             dlg.Destroy()
+
+        if refresh_library:
+            wx.CallLater(1000, self.guiutility.frame.librarylist.do_or_schedule_refresh, True)
