@@ -31,7 +31,7 @@ class SaveAs(wx.Dialog):
 
         self.defaultdir = defaultdir
         self.listCtrl = None
-        self.collected = None
+        self.collected = tdef
 
         lastUsed = self.filehistory[0] if self.filehistory else defaultdir
 
@@ -222,11 +222,11 @@ class SaveAs(wx.Dialog):
                 return
 
         path = self.GetPath()
-        if not os.path.exists(path) or os.path.isfile(path):
-            path, _ = os.path.split(path)
-        if path in self.filehistory:
-            self.filehistory.remove(path)
-        self.filehistory.insert(0, path)
+        history_path = os.path.split(path)[0] if (self.collected and self.collected.is_multifile_torrent()) or \
+                                                 not os.path.exists(path) or os.path.isfile(path) else path
+        if history_path in self.filehistory:
+            self.filehistory.remove(history_path)
+        self.filehistory.insert(0, history_path)
         self.filehistory = self.filehistory[:25]
 
         self.utility.write_config("recent_download_history", json.dumps(self.filehistory))
