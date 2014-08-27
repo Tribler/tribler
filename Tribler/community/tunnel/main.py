@@ -43,8 +43,8 @@ class AnonTunnel(object):
         self.crawl_keypair_filename = crawl_keypair_filename
         self.crawl_data = defaultdict(lambda: [])
         self.crawl_message = {}
-        self.current_stats = defaultdict(int)
-        self.history_stats = deque(maxlen=100)
+        self.current_stats = [0, 0, 0]
+        self.history_stats = deque(maxlen=180)
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
@@ -58,7 +58,7 @@ class AnonTunnel(object):
                 self.crawl_message.pop(k)
 
     def build_history(self):
-        self.history_stats.append(self.current_stats.copy())
+        self.history_stats.append(self.get_stats())
 
     def start_tribler(self):
         config = SessionStartupConfig()
@@ -111,8 +111,8 @@ class AnonTunnel(object):
 
                             time_dif = float(stats['uptime'] - stats_old['uptime'])
                             if time_dif > 0:
-                                for key in ['bytes_orig', 'bytes_relay', 'bytes_exit']:
-                                    self.current_stats[key] = self.current_stats[key] * 0.875 + \
+                                for index, key in enumerate(['bytes_orig', 'bytes_exit', 'bytes_relay']):
+                                    self.current_stats[index] = self.current_stats[index] * 0.875 + \
                                                               (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
 
                         self.community.do_stats(message.candidate, stats_handler)
@@ -149,13 +149,16 @@ class AnonTunnel(object):
             result[key_to] = sum([stats.get(k, 0) for k in key_from])
         return result
 
+    def get_stats(self):
+        return [round(f, 2) for f in self.current_stats]
+
     @cherrypy.expose
     def index(self, *args, **kwargs):
         # Return average statistics estimate.
         if 'callback' in kwargs:
-            return kwargs['callback'] + '(' + json.dumps(self.current_stats) + ');'
+            return kwargs['callback'] + '(' + json.dumps(self.get_stats()) + ');'
         else:
-            return json.dumps(self.current_stats)
+            return json.dumps(self.get_stats())
 
     @cherrypy.expose
     def history(self, *args, **kwargs):
