@@ -573,8 +573,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         for torrent in torrents:
             path = None
             if torrent.ds:
-                destdirs = torrent.ds.get_download().get_dest_files()
-                path = os.path.commonprefix([os.path.split(path)[0] for _, path in destdirs])
+                path = torrent.ds.get_download().get_save_path()
                 if path and os.path.exists(path):
                     startfile(path)
                 else:
