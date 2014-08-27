@@ -28,17 +28,27 @@ except ImportError:
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
 
-class AnonTunnel(object):
-    """
-    The standalone AnonTunnel application. Does not depend on Tribler Session
-    or LaunchManyCore but creates all dependencies by itself.
+class TunnelCommunityCrawler(TunnelCommunity):
 
-    @param int socks5_port: the SOCKS5 port to listen on, or None to disable
-    the SOCKS5 server
-    @param TunnelSettings settings: the settings to pass to the ProxyCommunity
-    """
+    def on_introduction_response(self, messages):
+        super(TunnelCommunityCrawler, self).on_introduction_response(messages)
+        handler = Tunnel.get_instance().stats_handler
+        for message in messages:
+            self.do_stats(message.candidate, lambda c, s, m=message: handler(c, s, m))
+
+    def start_walking(self):
+        self.register_task("take step", LoopingCall(self.take_step)).start(1.0, now=True)
+
+
+class Tunnel(object):
+
+    __single = None
 
     def __init__(self, settings, crawl_keypair_filename=None):
+        if Tunnel.__single:
+            raise RuntimeError("Tunnel is singleton")
+        Tunnel.__single = self
+
         self.settings = settings
         self.crawl_keypair_filename = crawl_keypair_filename
         self.crawl_data = defaultdict(lambda: [])
@@ -51,6 +61,12 @@ class AnonTunnel(object):
         self.clean_messages_lc = LoopingCall(self.clean_messages).start(1800)
         self.build_history_lc = LoopingCall(self.build_history).start(60, now=True)
 
+    def get_instance(*args, **kw):
+        if Tunnel.__single is None:
+            Tunnel(*args, **kw)
+        return Tunnel.__single
+    get_instance = staticmethod(get_instance)
+
     def clean_messages(self):
         now = int(time.time())
         for k in self.crawl_message.keys():
@@ -59,6 +75,25 @@ class AnonTunnel(object):
 
     def build_history(self):
         self.history_stats.append(self.get_stats())
+
+    def stats_handler(self, candidate, stats, message):
+        now = int(time.time())
+        print '@%d' % now, message.candidate.get_member().mid.encode('hex'), json.dumps(stats)
+
+        candidate_mid = candidate.get_member().mid
+        stats = self.preprocess_stats(stats)
+        stats['time'] = now
+        stats_old = self.crawl_message.get(candidate_mid, None)
+        self.crawl_message[candidate_mid] = stats
+
+        if stats_old == None:
+            return
+
+        time_dif = float(stats['uptime'] - stats_old['uptime'])
+        if time_dif > 0:
+            for index, key in enumerate(['bytes_orig', 'bytes_exit', 'bytes_relay']):
+                self.current_stats[index] = self.current_stats[index] * 0.875 + \
+                                          (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
 
     def start_tribler(self):
         config = SessionStartupConfig()
@@ -86,39 +121,11 @@ class AnonTunnel(object):
             if self.crawl_keypair_filename:
                 keypair = read_keypair(self.crawl_keypair_filename)
                 member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
+                cls = TunnelCommunityCrawler
             else:
                 member = self.dispersy.get_new_member(u"NID_secp160k1")
-            self.community = self.dispersy.define_auto_load(TunnelCommunity, member, (None, self.settings),
-                                                            load=True)[0]
-
-            if self.crawl_keypair_filename:
-                def on_introduction_response(messages):
-                    self.community.on_introduction_response(messages)
-                    for message in messages:
-                        def stats_handler(candidate, stats):
-
-                            now = int(time.time())
-                            print '@%d' % now, message.candidate.get_member().mid.encode('hex'), json.dumps(stats)
-
-                            candidate_mid = candidate.get_member().mid
-                            stats = self.preprocess_stats(stats)
-                            stats['time'] = now
-                            stats_old = self.crawl_message.get(candidate_mid, None)
-                            self.crawl_message[candidate_mid] = stats
-
-                            if stats_old == None:
-                                return
-
-                            time_dif = float(stats['uptime'] - stats_old['uptime'])
-                            if time_dif > 0:
-                                for index, key in enumerate(['bytes_orig', 'bytes_exit', 'bytes_relay']):
-                                    self.current_stats[index] = self.current_stats[index] * 0.875 + \
-                                                              (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
-
-                        self.community.do_stats(message.candidate, stats_handler)
-
-                meta_message = self.community.get_meta_message(u"dispersy-introduction-response")
-                meta_message._handle_callback = on_introduction_response
+                cls = TunnelCommunity
+            self.community = self.dispersy.define_auto_load(cls, member, (None, self.settings), load=True)[0]
 
         blockingCallFromThread(reactor, start_community)
 
@@ -257,13 +264,13 @@ def main(argv):
 
     settings = TunnelSettings()
     settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
-    anon_tunnel = AnonTunnel(settings, crawl_keypair_filename)
-    StandardIO(LineHandler(anon_tunnel, profile))
-    anon_tunnel.run()
+    tunnel = Tunnel(settings, crawl_keypair_filename)
+    StandardIO(LineHandler(tunnel, profile))
+    tunnel.run()
 
     if crawl_keypair_filename and args.json > 0:
         cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': args.json})
-        cherrypy.quickstart(anon_tunnel)
+        cherrypy.quickstart(tunnel)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
