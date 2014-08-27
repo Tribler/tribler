@@ -436,16 +436,23 @@ class TunnelCommunity(Community):
             # Only remove one side of the relay, this isn't as pretty but both sides have separate incoming timer,
             # hence after removing one side the other will follow.
             del self.relay_from_to[circuit_id]
+            # Remove old session key
+            if circuit_id in self.relay_session_keys:
+                del self.relay_session_keys[circuit_id]
             return
 
         self._logger.error(("TunnelCommunity: could not break relay %d " + additional_info) % circuit_id)
 
     def remove_exit_socket(self, circuit_id, additional_info=''):
         if circuit_id in self.exit_sockets:
+            # Close socket
             exit_socket = self.exit_sockets.pop(circuit_id)
             if exit_socket.enabled:
                 self._logger.error(("TunnelCommunity: closing exit socket %d " + additional_info) % circuit_id)
                 exit_socket.close()
+                # Remove old session key
+                if circuit_id in self.relay_session_keys:
+                    del self.relay_session_keys[circuit_id]
             return
         self._logger.error(("TunnelCommunity: could not remove exit socket %d " + additional_info) % circuit_id)
 
