@@ -132,6 +132,9 @@ class TunnelExitSocket(DatagramProtocol):
             self.port = None
 
     def check_num_packets(self, ip, incoming):
+        if self.ips[ip] < 0:
+            return True
+
         max_packets_without_reply = self.community.settings.max_packets_without_reply
         if self.ips[ip] >= (max_packets_without_reply + 1 if incoming else max_packets_without_reply):
             self.community.remove_exit_socket(self.circuit_id)
@@ -140,7 +143,7 @@ class TunnelExitSocket(DatagramProtocol):
             return False
 
         if incoming:
-            del self.ips[ip]
+            self.ips[ip] = -1
         else:
             self.ips[ip] += 1
 
