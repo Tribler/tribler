@@ -161,12 +161,12 @@ class SaveAs(wx.Dialog):
 
         self.listCtrl.SetFocus()
 
-        def OnKeyUp(event):
+        def OnChar(event):
             if event.GetKeyCode() == wx.WXK_RETURN:
                 self.OnOk()
             else:
                 event.Skip()
-        self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
+        self.listCtrl.Bind(wx.EVT_CHAR, OnChar)
 
     def SetCollected(self, tdef):
         self.collected = tdef
