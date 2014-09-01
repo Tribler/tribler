@@ -223,20 +223,23 @@ class TorrentDetails(AbstractDetails):
         self.state = -1
         self.torrent = torrent
 
+        self.canEdit = False
+        self.canComment = False
+        self.canMark = False
+
         isChannelTorrent = isinstance(self.torrent, ChannelTorrent) or (isinstance(self.torrent, CollectedTorrent) and isinstance(self.torrent.torrent, ChannelTorrent))
         if isChannelTorrent and self.torrent.hasChannel():
             # This is a db call
-            state, iamModerator = self.torrent.channel.getState()
+            channel_state = self.torrent.channel.getState()
 
-            if isinstance(self, LibraryDetails):
-                self.canMark = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
-            else:
-                self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
-                self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
-        else:
-            self.canEdit = False
-            self.canComment = False
-            self.canMark = False
+            if channel_state:
+                state, _ = channel_state
+
+                if isinstance(self, LibraryDetails):
+                    self.canMark = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
+                else:
+                    self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
+                    self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
 
         self.updateAllTabs()
 
@@ -1426,10 +1429,15 @@ class LibraryDetails(TorrentDetails):
         if ds:
             new_tracker_status = ds.get_tracker_status()
             if self.old_tracker_status != new_tracker_status:
-                items = [self.trackersList.GetItem(i, 0).GetText() for i in range(self.trackersList.GetItemCount())]
                 self.trackersList.Freeze()
 
+                # Remove items that aren't in the tracker_status dict
+                for i in range(self.trackersList.GetItemCount() - 1, -1, -1):
+                    if self.trackersList.GetItem(i, 0).GetText() not in new_tracker_status:
+                        self.trackersList.DeleteItem(i)
+
                 # Update list
+                items = [self.trackersList.GetItem(i, 0).GetText() for i in range(self.trackersList.GetItemCount())]
                 for url, info in sorted(ds.get_tracker_status().items()):
                     num_peers, status = info
                     if url in items:
@@ -1437,11 +1445,6 @@ class LibraryDetails(TorrentDetails):
                         self.trackersList.SetStringItem(items.index(url), 2, str(num_peers))
                     else:
                         self.trackersList.Append([url, status, num_peers])
-
-                # Remove items that aren't in the tracker_status dict
-                for index, item in enumerate(items):
-                    if item not in new_tracker_status:
-                        self.trackersList.DeleteItem(index)
 
                 self.trackersList.Thaw()
                 self.old_tracker_status = new_tracker_status

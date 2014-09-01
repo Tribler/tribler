@@ -31,7 +31,7 @@ class SaveAs(wx.Dialog):
 
         self.defaultdir = defaultdir
         self.listCtrl = None
-        self.collected = None
+        self.collected = tdef
 
         lastUsed = self.filehistory[0] if self.filehistory else defaultdir
 
@@ -161,12 +161,12 @@ class SaveAs(wx.Dialog):
 
         self.listCtrl.SetFocus()
 
-        def OnKeyUp(event):
+        def OnChar(event):
             if event.GetKeyCode() == wx.WXK_RETURN:
                 self.OnOk()
             else:
                 event.Skip()
-        self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
+        self.listCtrl.Bind(wx.EVT_CHAR, OnChar)
 
     def SetCollected(self, tdef):
         self.collected = tdef
@@ -177,6 +177,16 @@ class SaveAs(wx.Dialog):
         hsizer.Clear(deleteWindows=True)
         vSizer.Remove(hsizer)
         self.AddFileList(tdef, None, vSizer, len(vSizer.GetChildren()) - 1)
+
+        if tdef.is_multifile_torrent():
+            items = self.dirTextCtrl.GetItems()
+            lastUsed = self.filehistory[0] if self.filehistory else self.defaultdir
+            path = os.path.join(lastUsed, tdef.get_name_as_unicode())
+            if path not in items:
+                items.insert(0, path)
+                self.dirTextCtrl.SetItems(items)
+            self.dirTextCtrl.SetStringSelection(path)
+
         self.Layout()
         self.Refresh()
         self.Thaw()
@@ -200,7 +210,7 @@ class SaveAs(wx.Dialog):
         return None
 
     def GetAnonMode(self):
-        return False # self.anon_check.GetValue()
+        return False  # self.anon_check.GetValue()
 
     def OnOk(self, event=None):
         if self.listCtrl:
@@ -212,11 +222,11 @@ class SaveAs(wx.Dialog):
                 return
 
         path = self.GetPath()
-        if not os.path.exists(path) or os.path.isfile(path):
-            path, _ = os.path.split(path)
-        if path in self.filehistory:
-            self.filehistory.remove(path)
-        self.filehistory.insert(0, path)
+        history_path = os.path.split(path)[0] if (self.collected and self.collected.is_multifile_torrent()) or \
+                                                 not os.path.exists(path) or os.path.isfile(path) else path
+        if history_path in self.filehistory:
+            self.filehistory.remove(history_path)
+        self.filehistory.insert(0, history_path)
         self.filehistory = self.filehistory[:25]
 
         self.utility.write_config("recent_download_history", json.dumps(self.filehistory))

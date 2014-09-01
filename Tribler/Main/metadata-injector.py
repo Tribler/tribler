@@ -56,14 +56,16 @@ class MetadataInjector(object):
         sscfg.set_megacache(True)
         sscfg.set_torrent_collecting(True)
 
-        self._logger.info("Starting session ...")
+        self._logger.info(u"Starting session...")
         self._session = Session(sscfg)
         # add dispersy start callbacks
+        #self._session.add_observer(self.init_managers, NTFY_DISPERSY, [NTFY_STARTED])
         self._session.add_observer(self.define_communities, NTFY_DISPERSY, [NTFY_STARTED])
         self._session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
         self._session.start()
 
-        self._logger.info("Initializing managers ...")
+    def init_managers(self):
+        self._logger.info(u"Initializing managers...")
         torrent_manager = TorrentManager(None)
         library_manager = LibraryManager(None)
         channel_manager = ChannelManager()
@@ -80,6 +82,7 @@ class MetadataInjector(object):
         self._torrent_state_manager = torrent_state_manager
 
     def shutdown(self):
+        self._logger.info(u"Shutting down metadata-injector...")
         torrentfeed = RssParser.getInstance()
         torrentfeed.shutdown()
 
@@ -118,6 +121,8 @@ class MetadataInjector(object):
         self._logger.info(u"Dispersy communities are ready")
 
     def dispersy_started(self, *args):
+        self.init_managers()
+
         channelname = self._opt.channelname if hasattr(self._opt, 'chanelname') else ''
         nickname = self._opt.nickname if hasattr(self._opt, 'nickname') else ''
         my_channel_name = channelname or nickname or 'MetadataInjector-Channel'
@@ -224,7 +229,7 @@ def main():
     metadata_injector = MetadataInjector(opt)
     metadata_injector.initialize()
 
-    print >> sys.stderr, "Type CTRL-C to stop the metadata-injector"
+    print >> sys.stderr, "Type Q followed by <ENTER> to stop the metadata-injector"
 
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt

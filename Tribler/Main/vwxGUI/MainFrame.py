@@ -431,11 +431,15 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self.startDownload, sdef=sdef, destdir=destdir)
         return True
 
-    def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=[], vodmode=False, anon_mode=False):
+    def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, anon_mode=False):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
-                wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, anon_mode=anon_mode)
+                kwargs = {'tdef':tdef, 'cmdline':cmdline, 'destdir':destdir, 'selectedFiles':selectedFiles, 'vodmode':vodmode, 'anon_mode':anon_mode}
+                if wx.Thread_IsMain():
+                    self.startDownload(**kwargs)
+                else:
+                    wx.CallAfter(self.startDownload, *kwargs)
                 return True
         except:
             print_exc()

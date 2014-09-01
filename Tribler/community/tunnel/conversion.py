@@ -1,9 +1,11 @@
 from struct import pack, unpack_from
-from socket import inet_ntoa, inet_aton
+from socket import inet_ntoa, inet_aton, error as socket_error
 
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
-from Tribler.Core.Utilities.encoding import encode, decode
+
+ADDRESS_TYPE_IPV4 = 0x01
+ADDRESS_TYPE_DOMAIN_NAME = 0x02
 
 
 class TunnelConversion(BinaryConversion):
@@ -198,20 +200,49 @@ class TunnelConversion(BinaryConversion):
     def encode_data(circuit_id, dest_address, org_address, data):
         assert org_address
 
-        return pack("!I4sH4sH", circuit_id, inet_aton(dest_address[0]), dest_address[1],
-                                            inet_aton(org_address[0]), org_address[1]) + data
+        def encode_address(host, port):
+            try:
+                ip = inet_aton(host)
+                is_ip = True
+            except socket_error:
+                is_ip = False
+
+            if is_ip:
+                return pack("!B4sH", ADDRESS_TYPE_IPV4, ip, port)
+            else:
+                return pack("!BH", ADDRESS_TYPE_DOMAIN_NAME, len(host)) + host + pack("!H", port)
+
+        return pack("!I", circuit_id) + encode_address(*dest_address) + encode_address(*org_address) + data
 
     @staticmethod
     def decode_data(packet):
         circuit_id, = unpack_from("!I", packet)
+        offset = 4
 
-        dest_ip, dest_port = unpack_from('!4sH', packet, 4)
-        dest_address = (inet_ntoa(dest_ip), dest_port)
+        def decode_address(packet, offset):
+            addr_type, = unpack_from("!B", packet, offset)
+            offset += 1
 
-        org_ip, org_port = unpack_from('!4sH', packet, 10)
-        org_address = (inet_ntoa(org_ip), org_port)
+            if addr_type == ADDRESS_TYPE_IPV4:
+                host, port = unpack_from('!4sH', packet, offset)
+                offset += 6
+                return (inet_ntoa(host), port), offset
 
-        data = packet[16:]
+            elif addr_type == ADDRESS_TYPE_DOMAIN_NAME:
+                length, = unpack_from('!H', packet, offset)
+                offset += 2
+                host = packet[offset:offset + length]
+                offset += length
+                port, = unpack_from('!H', packet, offset)
+                offset += 2
+                return (host, port), offset
+
+            return None, offset
+
+        dest_address, offset = decode_address(packet, offset)
+        org_address, offset = decode_address(packet, offset)
+
+        data = packet[offset:]
 
         return circuit_id, dest_address, org_address, data
 

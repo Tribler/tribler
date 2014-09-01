@@ -180,7 +180,7 @@ class ABCApp():
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
             self.splash = GaugeSplash(bm)
-            self.splash.setTicks(12)
+            self.splash.setTicks(13)
             self.splash.Show()
 
             self._logger.info('Client Starting Up.')
@@ -191,13 +191,15 @@ class ABCApp():
 
             self._logger.info("Tribler is expecting swift in %s", self.sconfig.get_swift_path())
 
-            self.dispersy = s.lm.dispersy
-
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
+
+            self.splash.tick('Starting session and upgrading database (it may take a while)')
+            s.start()
+            self.dispersy = s.lm.dispersy
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
@@ -207,6 +209,13 @@ class ABCApp():
                 version_info['first_run'] = int(time())
                 version_info['version_id'] = version_id
                 self.utility.write_config('version_info', version_info)
+                # Ensure that we redo the anonymous download test
+                anon_file = os.path.join(s.get_state_dir(), 'anon_test.txt')
+                if os.path.exists(anon_file):
+                    try:
+                        os.remove(anon_file)
+                    except:
+                        self._logger.error('Failed to remove %s', anon_file)
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -502,7 +511,6 @@ class ABCApp():
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
 
         session.add_observer(define_communities, NTFY_DISPERSY, [NTFY_STARTED])
-        session.start()
 
         return session
 

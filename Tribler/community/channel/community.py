@@ -137,7 +137,7 @@ class ChannelCommunity(Community):
                     CommunityDestination(node_count=10),
                     ModificationPayload(),
                     self._disp_check_modification,
-                    self._disp_on_moderation,
+                    self._disp_on_modification,
                     self._disp_undo_modification,
                     batch=BatchConfiguration(max_window=batch_delay)),
             Message(self, u"playlist_torrent",
@@ -352,7 +352,7 @@ class ChannelCommunity(Community):
 
     def remove_torrents(self, dispersy_ids):
         for dispersy_id in dispersy_ids:
-            message = self._dispersy.load_message_by_packetid(dispersy_id)
+            message = self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
                 if not message.undone:
                     self._dispersy.create_undo(self, message)
@@ -362,7 +362,7 @@ class ChannelCommunity(Community):
 
     def remove_playlists(self, dispersy_ids):
         for dispersy_id in dispersy_ids:
-            message = self._dispersy.load_message_by_packetid(dispersy_id)
+            message = self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
                 if not message.undone:
                     self._dispersy.create_undo(self, message)
@@ -427,9 +427,9 @@ class ChannelCommunity(Community):
         playlist_message = playlist_id
 
         if reply_to:
-            reply_to_message = self._dispersy.load_message_by_packetid(reply_to)
+            reply_to_message = self._dispersy.load_message_by_packetid(self, reply_to)
         if reply_after:
-            reply_after_message = self._dispersy.load_message_by_packetid(reply_after)
+            reply_after_message = self._dispersy.load_message_by_packetid(self, reply_after)
         if playlist_id:
             playlist_message = self._get_message_from_playlist_id(playlist_id)
         self._disp_create_comment(text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store, update, forward)
@@ -1062,7 +1062,7 @@ class ChannelCommunity(Community):
             for dispersy_id, prev_global_time in list:
                 if prev_global_time >= max_global_time:
                     try:
-                        message = self._dispersy.load_message_by_packetid(dispersy_id)
+                        message = self._dispersy.load_message_by_packetid(self, dispersy_id)
                         if message:
                             message = message.load_message()
                             conflicting_messages.append(message)

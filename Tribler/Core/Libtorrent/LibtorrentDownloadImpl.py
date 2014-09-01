@@ -837,7 +837,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
         result = self.tracker_status.copy()
         result['[DHT]'] = [dht_peers, 'Working' if session.is_dht_running() and public else 'Disabled']
-        result['[PeX]'] = [pex_peers, 'Working']
+        result['[PeX]'] = [pex_peers, 'Working' if not self.get_anon_mode() else 'Disabled']
         return result
 
     def set_state_callback(self, usercallback, getpeerlist=False, delay=0.0):
