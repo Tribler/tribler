@@ -44,13 +44,14 @@ class Tunnel(object):
 
     __single = None
 
-    def __init__(self, settings, crawl_keypair_filename=None):
+    def __init__(self, settings, crawl_keypair_filename=None, swift_port= -1):
         if Tunnel.__single:
             raise RuntimeError("Tunnel is singleton")
         Tunnel.__single = self
 
         self.settings = settings
         self.crawl_keypair_filename = crawl_keypair_filename
+        self.swift_port = swift_port
         self.crawl_data = defaultdict(lambda: [])
         self.crawl_message = {}
         self.current_stats = [0, 0, 0]
@@ -109,12 +110,10 @@ class Tunnel(object):
         config.set_dht_torrent_collecting(False)
         config.set_videoplayer(False)
         config.set_dispersy_tunnel_over_swift(True)
-        config.set_dispersy_port(-1)  # select random port
-        config.set_swift_tunnel_listen_port(-1)
+        config.set_swift_tunnel_listen_port(self.swift_port)
         self.session = Session(config)
         self.session.start()
-        print >> sys.stderr, "Using ports %d for dispersy and %d for swift tunnel" % \
-                             (self.session.get_dispersy_port(), self.session.get_swift_tunnel_listen_port())
+        print >> sys.stderr, "Using port %d for swift tunnel" % self.session.get_swift_tunnel_listen_port()
 
     def run(self):
         def start_community():
@@ -238,6 +237,7 @@ def main(argv):
 
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
+        parser.add_argument('-s', '--swift', help='Swift port')
         parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
         parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number ' +
                                                  '(only available if the crawler is enabled)', type=int)
@@ -250,6 +250,7 @@ def main(argv):
         sys.exit(2)
 
     socks5_port = int(args.socks5) if args.socks5 else None
+    swift_port = int(args.swift) if args.swift else -1
     crawl_keypair_filename = args.crawl
     profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
 
@@ -264,7 +265,7 @@ def main(argv):
 
     settings = TunnelSettings()
     settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
-    tunnel = Tunnel(settings, crawl_keypair_filename)
+    tunnel = Tunnel(settings, crawl_keypair_filename, swift_port)
     StandardIO(LineHandler(tunnel, profile))
     tunnel.run()
 
