@@ -26,7 +26,7 @@ Depends: libav-tools,
          python-pyasn1,
          python-twisted,
          python-wxgtk2.8,
-         tribler-swift,
+         tribler-swift (>= ${source:Version}),
          vlc (>= 1.1.0),
          ${misc:Depends},
          ${python:Depends}
