@@ -1161,7 +1161,7 @@ def run(params=None, is_unit_testing=False):
             logger.info("Client shutting down. Detected another instance.")
         else:
 
-            if sys.platform == 'linux2':
+            if sys.platform == 'linux2' and os.environ.get("TRIBLER_INITTHREADS", "true").lower() == "true":
                 try:
                     import ctypes
                     x11 = ctypes.cdll.LoadLibrary('libX11.so')
