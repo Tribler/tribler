@@ -15,14 +15,13 @@ from traceback import print_exc
 
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, \
-    NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, \
-    NTFY_EXTENDED_FOR
+    NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
     TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
-from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE
+from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE, THUMBNAIL_FILETYPES
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.list_header import DetailHeader
@@ -33,6 +32,7 @@ from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, LinkStaticText
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.Video.VideoUtility import considered_xxx
 
 
 class Home(wx.Panel):
@@ -890,6 +890,7 @@ class ArtworkPanel(wx.Panel):
         self.OnCollapse = lambda *args: None
         self.update_interval = 120
         self.max_torrents = 20
+        self.is_xxx = {}
 
         self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=self.max_torrents, horizontal_scroll=True)
         self.list.SetBackgroundColour(self.GetBackgroundColour())
@@ -913,7 +914,8 @@ class ArtworkPanel(wx.Panel):
         for torrent in torrents:
             thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
             if os.path.isdir(thumb_path):
-                data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
+                if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):
+                    data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
 
         if len(torrents) == 0:
             non_torrents = self.guiutility.torrentsearch_manager.getNotCollectedThumbnailTorrents(limit=self.max_torrents)
@@ -935,3 +937,18 @@ class ArtworkPanel(wx.Panel):
             interval = self.update_interval
 
         startWorker(self.SetData, self.GetData, delay=interval, uId=u"ArtworkPanel_refresh")
+
+    def IsXXX(self, torrent, thumb_dir):
+        infohash = torrent.infohash
+
+        if infohash in self.is_xxx:
+            return self.is_xxx[infohash]
+
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
+
+        if thumb_files:
+            bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
+            result = considered_xxx(bmp.ConvertToImage()) if bmp.IsOk() else False
+
+        self.is_xxx[infohash] = result
+        return result
