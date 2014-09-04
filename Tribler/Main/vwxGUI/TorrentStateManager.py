@@ -162,10 +162,9 @@ class TorrentStateManager(object):
         self._logger.debug('create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s', duration, bitrate, resolution)
 
         # Generate thumbnails.
-        videoname = os.path.basename(videofile)
         tempdir = tempfile.mkdtemp()
 
-        thumb_filenames = [os.path.join(tempdir, "ag_" + videoname + postfix) for postfix in ["-thumb%d.jpg" % i for i in range(1, 5)]]
+        thumb_filenames = [os.path.join(tempdir, "ag_" + postfix) for postfix in ["thumb%d.jpg" % i for i in range(1, 5)]]
         thumb_resolutions = [(1280, 720), (320, 240), (320, 240), (320, 240)]
         thumb_timecodes = preferred_timecodes(videofile, duration, limit_resolution(resolution, (100, 100)), videoanalyser, k=4)
 
