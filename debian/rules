@@ -25,7 +25,7 @@ override_dh_auto_build:
 	dh_auto_build
 
 override_dh_install:
-	dh_install
+	dh_install --exclude=.git
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Core/DecentralizedTracking/pymdht/LICENSE.txt
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/LICENSE.txt
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/vwxGUI/images/license
