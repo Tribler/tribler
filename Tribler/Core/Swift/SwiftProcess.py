@@ -60,6 +60,7 @@ class SwiftProcess(object):
 
         self.popen = None
         self.popen_outputthreads = None
+        self.pid = None
 
         # callbacks for when swift detect a channel close
         self._channel_close_callbacks = defaultdict(list)
@@ -122,6 +123,7 @@ class SwiftProcess(object):
             # A proper solution would be to switch to twisted for the communication with the swift binary
             self.popen = subprocess.Popen(args, cwd=self.workdir, creationflags=creationflags,
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.pid = self.popen.pid
 
             class ReadAndPrintThread(Thread):
                 def __init__(self, sp, name, socket):
@@ -142,7 +144,10 @@ class SwiftProcess(object):
                 def get_last_line(self):
                     return self.last_line
 
-            self.popen_outputthreads = [ReadAndPrintThread(self, "SwiftProcess_%d_stdout" % self.listenport, self.popen.stdout), ReadAndPrintThread(self, "SwiftProcess_%d_stderr" % self.listenport, self.popen.stderr)]
+            self.popen_outputthreads = [ReadAndPrintThread(self, "[%d]SwiftProc[%d]stdout" %
+                                                           (self.pid, self.listenport), self.popen.stdout),
+                                        ReadAndPrintThread(self, "[%d]SwiftProc[%d]stderr" %
+                                                           (self.pid, self.listenport), self.popen.stderr)]
             [thread.start() for thread in self.popen_outputthreads]
 
     #
