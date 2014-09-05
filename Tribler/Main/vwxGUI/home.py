@@ -905,28 +905,28 @@ class ArtworkPanel(wx.Panel):
         self.refreshNow()
 
     def refreshNow(self):
-        startWorker(self.SetData, self.GetData)
+        startWorker(self.SetData, self.GetTorrents)
 
-    def GetData(self):
-        data = []
+    def GetTorrents(self):
         torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(limit=self.max_torrents)
-
-        for torrent in torrents:
-            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
-            if os.path.isdir(thumb_path):
-                if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):
-                    data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
 
         if len(torrents) == 0:
             non_torrents = self.guiutility.torrentsearch_manager.getNotCollectedThumbnailTorrents(limit=self.max_torrents)
             for torrent in non_torrents:
                 self.guiutility.torrentsearch_manager.getTorrent(torrent, lambda _: self.refreshNow(), prio=2)
 
-        return data
+        return torrents
 
     @forceWxThread
     def SetData(self, delayedResult):
-        data = delayedResult.get()
+        data = []
+        torrents = delayedResult.get()
+
+        for torrent in torrents:
+            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
+            if os.path.isdir(thumb_path):
+                if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):
+                    data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
 
         self.list.SetData(data)
         self.list.SetupScrolling()
@@ -936,7 +936,7 @@ class ArtworkPanel(wx.Panel):
         else:
             interval = self.update_interval
 
-        startWorker(self.SetData, self.GetData, delay=interval, uId=u"ArtworkPanel_refresh")
+        startWorker(self.SetData, self.GetTorrents, delay=interval, uId=u"ArtworkPanel_refresh")
 
     def IsXXX(self, torrent, thumb_dir):
         infohash = torrent.infohash

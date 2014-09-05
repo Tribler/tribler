@@ -151,7 +151,7 @@ def meanstdv(x):
     return mean, std
 
 
-def considered_xxx(image, filter=0.50):
+def considered_xxx(image, filter=0.30):
     return skinratio(image) > filter
 
 
