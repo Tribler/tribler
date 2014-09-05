@@ -255,8 +255,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             if not self.cew_scheduled:
                 self.ltmgr = self.session.lm.ltmgr
-                if not self.ltmgr or (isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready()) or \
-                   (self.get_anon_mode() and not self.ltmgr.is_anon_ready()):
+                if not self.ltmgr or (isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready()):
                     self._logger.info("LibtorrentDownloadImpl: LTMGR or DHT not ready, rescheduling create_engine_wrapper")
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus)
                     self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
@@ -276,7 +275,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         atp["paused"] = True
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
-        atp["anon_mode"] = self.get_anon_mode()
+        atp["hops"] = self.get_hops()
 
         resume_data = pstate.get('state', 'engineresumedata') if pstate else None
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
@@ -336,6 +335,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
         if lm_network_engine_wrapper_created_callback is not None:
             lm_network_engine_wrapper_created_callback(self, pstate)
+
+    def get_anon_mode(self):
+        return self.get_hops() > 0
 
     def set_vod_mode(self, enable=True):
         self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.handle.name(), enable)
@@ -837,11 +839,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             if peer_info.source & peer_info.pex:
                 pex_peers += 1
 
-        session = self.ltmgr.ltsession if not self.get_anon_mode() else self.ltmgr.ltsession_anon
+        ltsession = self.ltmgr.get_session(self.get_hops())
         public = self.tdef and not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.tdef.is_private()
 
         result = self.tracker_status.copy()
-        result['[DHT]'] = [dht_peers, 'Working' if session.is_dht_running() and public else 'Disabled']
+        result['[DHT]'] = [dht_peers, 'Working' if ltsession.is_dht_running() and public else 'Disabled']
         result['[PeX]'] = [pex_peers, 'Working' if not self.get_anon_mode() else 'Disabled']
         return result
 

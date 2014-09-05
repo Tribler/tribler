@@ -14,12 +14,13 @@ from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.utility import size_format
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 
 class SaveAs(wx.Dialog):
 
     def __init__(self, parent, tdef, defaultdir, defaultname, selectedFiles=None):
         self._logger = logging.getLogger(self.__class__.__name__)
-        wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 450), name="SaveAsDialog")
+        wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 550), name="SaveAsDialog")
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
@@ -73,9 +74,28 @@ class SaveAs(wx.Dialog):
 
         vSizer.Add(hSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
 
-        # self.anon_check = wx.CheckBox(self, -1, 'Use anonymous downloading mode')
-        # vSizer.Add(self.anon_check, 0, wx.TOP | wx.BOTTOM, 5)
+        # Add slider
+        labels = wx.BoxSizer(wx.HORIZONTAL)
+        labels.Add(wx.StaticText(self, -1, 'High speed\nLow anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
+        labels.AddStretchSpacer()
+        labels.Add(wx.StaticText(self, -1, 'Low speed\nHigh anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
 
+        self.slider = wx.Slider(self, -1, 0, 0, 5, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
+        labels_and_slider = wx.BoxSizer(wx.VERTICAL)
+        labels_and_slider.Add(labels, 0, wx.EXPAND)
+        labels_and_slider.Add(self.slider, 0, wx.EXPAND)
+
+        slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
+        slider_sizer.Add(wx.StaticBitmap(self, -1, GuiImageManager.getInstance().getImage(u"scale_2.png")))
+
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
+        st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
+        _set_font(st, fontweight=wx.FONTWEIGHT_BOLD)
+        vSizer.Add(st, 0, wx.EXPAND | wx.BOTTOM, 10)
+        vSizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+
+        # Add file list
         if tdef and tdef.get_files():
             self.AddFileList(tdef, selectedFiles, vSizer, len(vSizer.GetChildren()))
 
@@ -90,7 +110,7 @@ class SaveAs(wx.Dialog):
             sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
             vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
-            self.SetSize((600, 185))
+            self.SetSize((600, 285))
 
             # convert tdef into guidbtuple, and collect it using torrentsearch_manager.getTorrent
             torrent = Torrent.fromTorrentDef(tdef)
@@ -118,15 +138,7 @@ class SaveAs(wx.Dialog):
         sizer.Add(vSizer, 1, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(sizer)
 
-    def AddFileList(self, tdef, selectedFiles, vSizer, index=None):
-        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
-
-        firstLine = wx.StaticText(self, -1, "Content:")
-        _set_font(firstLine, fontweight=wx.FONTWEIGHT_BOLD)
-        vSizer.Add(firstLine, 0, wx.BOTTOM, 3)
-
-        vSizer.Add(wx.StaticText(self, -1, 'Use the checkboxes to choose which files to download.\nUse ctrl+a to select all/deselect all.'), 0, wx.BOTTOM, 3)
-
+    def AddFileList(self, tdef, selectedFiles, vSizer, index):
         self.listCtrl = CheckSelectableListCtrl(self)
         self.listCtrl.InsertColumn(0, 'Name')
         self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
@@ -157,7 +169,7 @@ class SaveAs(wx.Dialog):
 
         self.listCtrl.setResizeColumn(0)
         self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE)  # autosize only works after adding rows
-        vSizer.Add(self.listCtrl, 1, wx.EXPAND | wx.BOTTOM, 3)
+        vSizer.Insert(index, self.listCtrl, 1, wx.EXPAND | wx.BOTTOM, 3)
 
         self.listCtrl.SetFocus()
 
@@ -168,9 +180,17 @@ class SaveAs(wx.Dialog):
                 event.Skip()
         self.listCtrl.Bind(wx.EVT_CHAR, OnChar)
 
+        vSizer.Insert(index, wx.StaticText(self, -1, 'Use the checkboxes to choose which files to download.\nUse ctrl+a to select all/deselect all.'), 0, wx.BOTTOM, 3)
+
+        firstLine = wx.StaticText(self, -1, "Content:")
+        _set_font(firstLine, fontweight=wx.FONTWEIGHT_BOLD)
+        vSizer.Insert(index, firstLine, 0, wx.BOTTOM, 3)
+
+        vSizer.Insert(index, wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
+
     def SetCollected(self, tdef):
         self.collected = tdef
-        self.SetSize((600, 475))
+        self.SetSize((600, 575))
         vSizer = self.GetSizer().GetItem(0).GetSizer()
         hsizer = vSizer.GetItem(len(vSizer.GetChildren()) - 2).GetSizer()
         self.Freeze()
@@ -209,8 +229,8 @@ class SaveAs(wx.Dialog):
                 return files
         return None
 
-    def GetAnonMode(self):
-        return False  # self.anon_check.GetValue()
+    def GetHops(self):
+        return self.slider.GetValue()
 
     def OnOk(self, event=None):
         if self.listCtrl:

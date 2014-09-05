@@ -92,11 +92,11 @@ class DownloadConfigInterface(object):
         @return DLMODE_NORMAL/DLMODE_VOD """
         return self.dlconfig.get('downloadconfig', 'mode')
 
-    def set_anon_mode(self, anon_mode):
-        self.dlconfig.set('downloadconfig', 'anon_mode', anon_mode)
+    def set_hops(self, hops):
+        self.dlconfig.set('downloadconfig', 'hops', hops)
 
-    def get_anon_mode(self):
-        return self.dlconfig.get('downloadconfig', 'anon_mode')
+    def get_hops(self):
+        return self.dlconfig.get('downloadconfig', 'hops')
 
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must

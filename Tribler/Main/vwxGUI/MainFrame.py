@@ -418,10 +418,10 @@ class MainFrame(wx.Frame):
             else:
                 self.startDownload(url_filename, cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
 
-    def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, anon_mode=False):
+    def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
         name, infohash, _ = parse_magnetlink(url)
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
-        wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, anon_mode=anon_mode)
+        wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, hops=0)
         return True
 
     def startDownloadFromSwift(self, url, destdir=None):
@@ -431,7 +431,7 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self.startDownload, sdef=sdef, destdir=destdir)
         return True
 
-    def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, anon_mode=False):
+    def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
@@ -440,7 +440,7 @@ class MainFrame(wx.Frame):
                           'destdir': destdir,
                           'selectedFiles': selectedFiles,
                           'vodmode': vodmode,
-                          'anon_mode': anon_mode}
+                          'hops':hops}
                 if wx.Thread_IsMain():
                     self.startDownload(**kwargs)
                 else:
@@ -452,7 +452,7 @@ class MainFrame(wx.Frame):
         return False
 
     def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None,
-                      name=None, vodmode=False, anon_mode=False, fixtorrent=False, selectedFiles=None,
+                      name=None, vodmode=False, hops=0, fixtorrent=False, selectedFiles=None,
                       correctedFilename=None, hidden=False):
         self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
 
@@ -524,14 +524,14 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
-                        anon_mode = dlg.GetAnonMode()
+                        hops = dlg.GetHops()
                     else:
                         cancelDownload = True
                     dlg.Destroy()
                 else:
                     raise Exception("cannot create dialog, not on wx thread")
 
-            if anon_mode:
+            if hops > 0:
                 if not tdef:
                     raise Exception('Currently only torrents can be downloaded in anonymous mode')
                 elif sdef:
@@ -539,7 +539,7 @@ class MainFrame(wx.Frame):
                     cdef = tdef
                     monitorSwiftProgress = False
 
-            dscfg.set_anon_mode(anon_mode)
+            dscfg.set_hops(hops)
 
             if not cancelDownload:
                 if destdir is not None:

@@ -349,13 +349,13 @@ class TunnelCommunity(Community):
                 except:
                     self._logger.exception("Error creating circuit while running __discover")
 
-        if self.tribler_session and not self.made_anon_session and len(self.active_circuits) >= self.settings.min_circuits_for_session:
-            try:
-                ltmgr = self.tribler_session.get_libtorrent_process()
-                ltmgr.create_anonymous_session()
-            except OperationNotEnabledByConfigurationException:
-                pass
-            self.made_anon_session = True
+#        if self.tribler_session and not self.made_anon_session and len(self.active_circuits) >= self.settings.min_circuits_for_session:
+#            try:
+#                ltmgr = self.tribler_session.get_libtorrent_process()
+#                ltmgr.create_anonymous_session()
+#            except OperationNotEnabledByConfigurationException:
+#                pass
+#            self.made_anon_session = True
 
         self.do_remove()
 
@@ -431,7 +431,7 @@ class TunnelCommunity(Community):
                 ltmgr = self.tribler_session.lm.ltmgr
 
                 affected_torrents = {d: affected_peers.intersection(peer.ip for peer in d.handle.get_peer_info())
-                                     for d, s in ltmgr.torrents.values() if s == ltmgr.ltsession_anon}
+                                     for d, s in ltmgr.torrents.values() if s == ltmgr.get_session(d.get_hops())}
 
                 for download, peers in affected_torrents.iteritems():
                     if peers:

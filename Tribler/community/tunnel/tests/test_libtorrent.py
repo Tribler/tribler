@@ -100,9 +100,8 @@ class LibtorrentTest(object):
         tdef.set_private()  # disable dht
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
-        ''' :type : DefaultDownloadStartupConfig '''
 
-        dscfg.set_anon_mode(True)
+        dscfg.set_hops(3)
         dscfg.set_dest_dir(destination_dir)
 
         self.download = self.tribler_session.start_download(tdef, dscfg)
