@@ -123,9 +123,15 @@ class LibtorrentMgr(object):
                                       lt.alert.category_t.performance_warning |
                                       lt.alert.category_t.tracker_notification)
 
+
         # Load proxy settings
-        self.set_proxy_settings(ltsession, *(self.trsession.get_libtorrent_proxy_settings() if hops == 0 else \
-                                             self.trsession.get_anon_proxy_settings()))
+        if hops == 0:
+            proxy_settings = self.trsession.get_libtorrent_proxy_settings()
+        else:
+            proxy_settings = list(self.trsession.get_anon_proxy_settings())
+            proxy_host, proxy_port = proxy_settings[1]
+            proxy_settings[1] = (proxy_host, proxy_port + hops - 1)
+        self.set_proxy_settings(ltsession, *(proxy_settings))
 
         if hops == 0:
             listen_port = self.trsession.get_listen_port()
