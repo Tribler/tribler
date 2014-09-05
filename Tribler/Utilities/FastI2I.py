@@ -59,7 +59,10 @@ class FastI2IConnection(Thread):
                 data = self.sock.recv(10240)
                 if len(data) == 0:
                     break
-                self.data_came_in(data)
+                try:
+                    self.data_came_in(data)
+                except:
+                    print_exc()
 
         except:
             print_exc()
