@@ -12,8 +12,8 @@ from traceback import print_exc
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA,
                                      DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
-                                     UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR,
-                                     DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings)
+                                     DLSTATUS_CIRCUITS, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR,
+                                     UPLOAD, DOWNLOAD, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings)
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
 from Tribler.Core.APIImplementation import maketorrent
@@ -240,6 +240,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     self.set_corrected_infoname()
                     self.set_filepieceranges()
 
+                self.dlstate = DLSTATUS_CIRCUITS if self.get_hops() > 0 else self.dlstate
+
                 self._logger.debug("LibtorrentDownloadImpl: setup: initialdlstatus %s %s", self.tdef.get_infohash(), initialdlstatus)
 
                 self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus, wrapperDelay=wrapperDelay)
@@ -255,11 +257,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             if not self.cew_scheduled:
                 self.ltmgr = self.session.lm.ltmgr
-                if not self.ltmgr or (isinstance(self.tdef, TorrentDefNoMetainfo) and not self.ltmgr.is_dht_ready()) or not self.ltmgr.is_session_ready(self.get_hops()):
-                    self._logger.info("LibtorrentDownloadImpl: LTMGR or DHT not ready, rescheduling create_engine_wrapper")
+                dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
+                session_ok = self.ltmgr.is_session_ready(self.get_hops())
+
+                if not self.ltmgr or not dht_ok or not session_ok:
+                    self._logger.info("LibtorrentDownloadImpl: LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus)
                     self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
-                    self.dlstate = DLSTATUS_METADATA
+                    self.dlstate = DLSTATUS_CIRCUITS if not session_ok else DLSTATUS_METADATA
                 else:
                     network_create_engine_wrapper_lambda = lambda: self.network_create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus)
                     self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda, wrapperDelay)
@@ -858,7 +863,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             if self.handle is None:
                 self._logger.debug("LibtorrentDownloadImpl: network_get_state: Download not running")
-                ds = DownloadState(self, DLSTATUS_WAITING4HASHCHECK, self.error, self.progressbeforestop)
+                ds = DownloadState(self, self.dlstate, self.error, self.progressbeforestop)
             else:
                 (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
                 ds = DownloadState(self, status, self.error, self.get_progress(), stats=stats, seeding_stats=seeding_stats, filepieceranges=self.filepieceranges, logmsgs=logmsgs)
