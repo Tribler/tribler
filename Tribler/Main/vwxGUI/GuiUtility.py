@@ -322,7 +322,7 @@ class GUIUtility:
             pl.Show(pt == panel_type.__name__)
             if pt == panel_type.__name__:
                 result = pl
-        if self.guiPage != 'mychannel':
+        if self.guiPage not in ['mychannel', 'home']:
             self.frame.splitter.Show(True)
         self.frame.splitter_bottom.Layout()
         self.frame.splitter_bottom_window.Thaw()
@@ -587,6 +587,8 @@ class GUIUtility:
 
         if setCheck:
             self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
+
+        self.frame.home.aw_panel.refreshNow()
 
         if newState:
             self.utility.write_config('family_filter', 1)
