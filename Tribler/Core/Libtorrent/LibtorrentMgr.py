@@ -117,12 +117,11 @@ class LibtorrentMgr(object):
 
         ltsession.set_settings(settings)
         ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
-                                      lt.alert.category_t.error_notification |
-                                      lt.alert.category_t.status_notification |
-                                      lt.alert.category_t.storage_notification |
-                                      lt.alert.category_t.performance_warning |
-                                      lt.alert.category_t.tracker_notification)
-
+                                 lt.alert.category_t.error_notification |
+                                 lt.alert.category_t.status_notification |
+                                 lt.alert.category_t.storage_notification |
+                                 lt.alert.category_t.performance_warning |
+                                 lt.alert.category_t.tracker_notification)
 
         # Load proxy settings
         if hops == 0:
@@ -150,6 +149,12 @@ class LibtorrentMgr(object):
             self.ltsessions[hops] = self.create_session(hops)
 
         return self.ltsessions[hops]
+
+    def is_session_ready(self, hops=0):
+        if hops > 0:
+            self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
+            return len(self.tunnel_community.active_circuits(hops)) >= self.tunnel_community.settings.min_circuits
+        return True
 
     def shutdown(self):
         # Save DHT state

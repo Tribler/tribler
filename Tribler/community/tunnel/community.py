@@ -36,6 +36,7 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 
 class CircuitRequestCache(NumberCache):
@@ -155,11 +156,10 @@ class TunnelExitSocket(DatagramProtocol):
 class TunnelSettings(object):
 
     def __init__(self):
-        self.circuit_length = 3
         self.crypto = TunnelCrypto()
         self.socks_listen_port = 1080
-        self.min_circuits_for_session = 4
 
+        self.min_circuits = 4
         self.max_circuits = 8
         self.max_relays_or_exits = 100
 
@@ -176,18 +176,19 @@ class RoundRobin(object):
         self.community = community
         self.index = -1
 
-    def has_options(self):
-        return len(self.community.active_circuits) > 0
+    def has_options(self, hops):
+        return len(self.community.active_circuits(hops)) > 0
 
-    def select(self):
-        circuit_ids = sorted(self.community.active_circuits.keys())
+    def select(self, hops):
+        active_circuits = self.community.active_circuits(hops)
+        circuit_ids = sorted(active_circuits.keys())
 
         if not circuit_ids:
             return None
 
         self.index = (self.index + 1) % len(circuit_ids)
         circuit_id = circuit_ids[self.index]
-        return self.community.active_circuits[circuit_id]
+        return active_circuits[circuit_id]
 
 
 class TunnelCommunity(Community):
@@ -202,6 +203,7 @@ class TunnelCommunity(Community):
         self.relay_session_keys = {}
         self.waiting_for = set()
         self.exit_sockets = {}
+        self.circuits_needed = {}
         self.notifier = None
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
@@ -219,7 +221,6 @@ class TunnelCommunity(Community):
         self.settings = settings if settings else TunnelSettings()
 
         assert isinstance(self.settings.crypto, TunnelCrypto)
-        assert self.settings.circuit_length > 0
 
         self.crypto.initialize(self)
 
@@ -234,6 +235,8 @@ class TunnelCommunity(Community):
                                          if session else self.settings.socks_listen_port)
         self.socks_server.start()
 
+        LibtorrentMgr.getInstance().tunnel_community = self
+
     def start_download_test(self):
         if self.tribler_session:
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -245,8 +248,6 @@ class TunnelCommunity(Community):
                     self._logger.debug("Scheduling Anonymous LibTorrent download")
                     self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
                     return True
-
-        self.settings.max_circuits = 0
         return False
 
     @classmethod
@@ -332,30 +333,23 @@ class TunnelCommunity(Community):
         return circuit_id
 
     def do_circuits(self):
-        circuit_needed = self.settings.max_circuits - len(self.circuits)
-        self._logger.debug("TunnelCommunity: want %d circuits", circuit_needed)
+        for circuit_length, num_circuits in self.circuits_needed.iteritems():
+            num_to_build = num_circuits - sum([1 for c in self.circuits.itervalues() if c.goal_hops == circuit_length])
+            self._logger.error("TunnelCommunity: want %d circuits of length %d", num_to_build, circuit_length)
 
-        for _ in range(circuit_needed):
-            candidate = None
-            hops = set([c.first_hop for c in self.circuits.values()])
-            for c in self.dispersy_yield_verified_candidates():
-                if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec):
-                    candidate = c
-                    break
+            for _ in range(num_to_build):
+                candidate = None
+                hops = set([c.first_hop for c in self.circuits.values()])
+                for c in self.dispersy_yield_verified_candidates():
+                    if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec):
+                        candidate = c
+                        break
 
-            if candidate is not None:
-                try:
-                    self.create_circuit(candidate, self.settings.circuit_length)
-                except:
-                    self._logger.exception("Error creating circuit while running __discover")
-
-#        if self.tribler_session and not self.made_anon_session and len(self.active_circuits) >= self.settings.min_circuits_for_session:
-#            try:
-#                ltmgr = self.tribler_session.get_libtorrent_process()
-#                ltmgr.create_anonymous_session()
-#            except OperationNotEnabledByConfigurationException:
-#                pass
-#            self.made_anon_session = True
+                if candidate:
+                    try:
+                        self.create_circuit(candidate, circuit_length)
+                    except:
+                        self._logger.exception("Error creating circuit while running __discover")
 
         self.do_remove()
 
@@ -513,9 +507,9 @@ class TunnelCommunity(Community):
             self.send_destroy(Candidate(sock_addr, False), circuit_id, reason)
             self._logger.error("TunnelCommunity: destroy_exit_socket %s %s", circuit_id, sock_addr)
 
-    @property
-    def active_circuits(self):
-        return {cid: c for cid, c in self.circuits.iteritems() if c.state == CIRCUIT_STATE_READY}
+    def active_circuits(self, hops=None):
+        return {cid: c for cid, c in self.circuits.iteritems()
+                if c.state == CIRCUIT_STATE_READY and (hops == None or hops == len(c.hops))}
 
     def is_relay(self, circuit_id):
         return circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for
@@ -851,7 +845,7 @@ class TunnelCommunity(Community):
 
     def do_ping(self):
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
-        for circuit in self.active_circuits.values():
+        for circuit in self.active_circuits().values():
             if circuit.goal_hops > 0:
                 cache = self.request_cache.add(PingRequestCache(self, circuit))
                 self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
