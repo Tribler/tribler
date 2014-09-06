@@ -150,11 +150,11 @@ class LibtorrentMgr(object):
 
         return self.ltsessions[hops]
 
-    def is_session_ready(self, hops=0):
+    def session_startup_progress(self, hops=0):
         if hops > 0:
             self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
-            return len(self.tunnel_community.active_circuits(hops)) >= self.tunnel_community.settings.min_circuits
-        return True
+            return min(1, len(self.tunnel_community.active_circuits(hops)) / float(self.tunnel_community.settings.min_circuits))
+        return 1
 
     def shutdown(self):
         # Save DHT state

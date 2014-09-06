@@ -1787,14 +1787,12 @@ class TorrentStatus(wx.Panel):
             self.fill_colour = SEEDING_COLOUR
         if status == 'Completed':
             self.fill_colour = COMPLETED_COLOUR
-        if status in ['Waiting', 'Checking', 'Building circuits']:
+        if status in ['Fetching torrent', 'Waiting', 'Checking']:
             self.fill_colour = self.back_colour
-        if status in ['Downloading', 'Streaming']:
+        if status in ['Building circuits', 'Downloading', 'Streaming']:
             self.fill_colour = DOWNLOADING_COLOUR
         if status == 'Stopped':
             self.fill_colour = STOPPED_COLOUR
-        if status == 'Fetching torrent':
-            self.fill_colour = self.back_colour
 
         self.SetMinSize((-1, -1))
 
