@@ -571,7 +571,9 @@ class NetworkGraphPanel(wx.Panel):
         self.dispersy = self.utility.session.lm.dispersy
 
         self.swarm = GuiImageManager.getInstance().getImage(u"cloud.png")
-        self.font = self.GetFont()
+        self.font_small = self.GetFont()
+        self.font_large = self.GetFont()
+        self.font_large.SetPointSize(self.font_large.GetPointSize() + 2)
 
         self.circuits = {}
         self.circuits_old = None
@@ -758,6 +760,7 @@ class NetworkGraphPanel(wx.Panel):
     def OnPaint(self, event):
         eo = event.GetEventObject()
         dc = wx.BufferedPaintDC(eo)
+        dc.SetFont(self.font_large)
         dc.Clear()
         gc = wx.GraphicsContext.Create(dc)
 
@@ -813,9 +816,9 @@ class NetworkGraphPanel(wx.Panel):
         dc.SetTextForeground(wx.BLACK)
         dc.DrawLabel("Bittorrent swarm", wx.Rect(*(swarm_pos + swarm_size.Get())), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
-        self.DrawHoverAndInfo(gc, circuit_points)
+        self.DrawHoverAndInfo(gc, dc, circuit_points)
 
-    def DrawHoverAndInfo(self, gc, circuit_points):
+    def DrawHoverAndInfo(self, gc, dc, circuit_points):
         gc.SetBrush(wx.TRANSPARENT_BRUSH)
 
         if self.hop_hover_evt:
@@ -847,7 +850,7 @@ class NetworkGraphPanel(wx.Panel):
             gc.DrawEllipse(x - self.radius, y - self.radius, self.radius * 2, self.radius * 2)
 
             # Determine text
-            gc.SetFont(self.GetFont())
+            dc.SetFont(self.font_small)
             if not hop:
                 text = 'You\nPERMID ' + bin2str(self.tunnel_community.my_member.public_key)[:10]
             else:
@@ -856,15 +859,27 @@ class NetworkGraphPanel(wx.Panel):
                     text = 'IP %s:%s\n' % (hop.host, hop.port) + text
 
             # Draw info box + text
-            box_width, box_height = gc.GetTextExtent(text)
-            box_width += 9
-            box_height += 9 + text.count('\n') * box_height
+            box_width, box_height = self.GetTextExtent(dc, text)
+            box_width += 10
+            box_height += 10
             x = x - box_width - 1.1 * self.radius if x > self.graph_panel.GetSize()[0] / 2 else x + 1.1 * self.radius
             y = y - box_height - 1.1 * self.radius if y > self.graph_panel.GetSize()[1] / 2 else y + 1.1 * self.radius
             gc.SetBrush(wx.Brush(wx.Colour(216, 237, 255, 50)))
             gc.SetPen(wx.Pen(LIST_BLUE))
             gc.DrawRectangle(x, y, box_width, box_height)
-            gc.DrawText(text, x + 5, y + 5)
+            self.DrawText(dc, text, x + 5, y + 5)
+
+    def GetTextExtent(self, dc, text):
+        w_list, h_list = zip(*[dc.GetTextExtent(line) for line in text.split('\n')])
+        return max(w_list), sum(h_list)
+
+    def DrawText(self, dc, text, x, y):
+        # For wxPython 2.8, newline separated text does not always work with gc.DrawText
+        y_cur = y
+        for line in text.split('\n'):
+            dc.DrawText(line, x, y_cur)
+            _, h = dc.GetTextExtent(line)
+            y_cur += h
 
     def PositionToCircuit(self, position, circuit_points):
         for circuit, points in circuit_points.iteritems():
