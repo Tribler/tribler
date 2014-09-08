@@ -926,6 +926,7 @@ class ABCApp():
         target = FileDropTarget(self.frame)
         target.OnDropFiles(None, None, [filename])
 
+    @forceWxThread
     def OnExit(self):
         self._logger.info("main: ONEXIT")
         self.ready = False
