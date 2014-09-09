@@ -197,10 +197,6 @@ class ABCApp():
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
 
-            self.splash.tick('Starting session and upgrading database (it may take a while)')
-            s.start()
-            self.dispersy = s.lm.dispersy
-
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
             version_info = self.utility.read_config('version_info')
@@ -216,6 +212,10 @@ class ABCApp():
                         os.remove(anon_file)
                     except:
                         self._logger.error('Failed to remove %s', anon_file)
+
+            self.splash.tick('Starting session and upgrading database (it may take a while)')
+            s.start()
+            self.dispersy = s.lm.dispersy
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
