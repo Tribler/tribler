@@ -349,6 +349,9 @@ class ABCApp():
 
             self.onError(e)
 
+    def _frame_and_ready(self):
+        return self.ready and self.frame and self.frame.ready
+
     def PostInit2(self):
         self.frame.Raise()
         self.startWithRightView()
@@ -542,7 +545,7 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             if changeType in [NTFY_INSERT, NTFY_UPDATE]:
                 if changeType == NTFY_INSERT:
                     if self.frame.searchlist:
@@ -596,7 +599,7 @@ class ABCApp():
             self.frame.SRstatusbar.SetConnections(percentage, nr_connections, nr_channel_connections)
 
         """ set the reputation in the GUI"""
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
@@ -773,7 +776,7 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_activities(self, events):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             for args in events:
                 objectID = args[2]
                 args = args[3:]
@@ -782,12 +785,12 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_reachable(self, subject, changeType, objectID, msg):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             self.frame.SRstatusbar.onReachable()
 
     @forceWxThread
     def sesscb_ntfy_channelupdates(self, events):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             for args in events:
                 subject = args[0]
                 changeType = args[1]
@@ -817,7 +820,7 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_torrentupdates(self, events):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             infohashes = [args[2] for args in events]
 
             if self.frame.searchlist:
@@ -849,7 +852,7 @@ class ABCApp():
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading. Now seeding." % args[0], icon='seed')
 
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             self.guiUtility.torrentstate_manager.torrentFinished(objectID)
 
     def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
@@ -864,7 +867,7 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_playlistupdates(self, subject, changeType, objectID, *args):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             if changeType == NTFY_INSERT:
                 self.frame.managechannel.playlistCreated(objectID)
 
@@ -886,25 +889,25 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_commentupdates(self, subject, changeType, objectID, *args):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             self.frame.selectedchannellist.OnCommentCreated(objectID)
             self.frame.playlist.OnCommentCreated(objectID)
 
     @forceWxThread
     def sesscb_ntfy_modificationupdates(self, subject, changeType, objectID, *args):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             self.frame.selectedchannellist.OnModificationCreated(objectID)
             self.frame.playlist.OnModificationCreated(objectID)
 
     @forceWxThread
     def sesscb_ntfy_moderationupdats(self, subject, changeType, objectID, *args):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             self.frame.selectedchannellist.OnModerationCreated(objectID)
             self.frame.playlist.OnModerationCreated(objectID)
 
     @forceWxThread
     def sesscb_ntfy_markingupdates(self, subject, changeType, objectID, *args):
-        if self.ready and self.frame.ready:
+        if self._frame_and_ready():
             self.frame.selectedchannellist.OnMarkingCreated(objectID)
             self.frame.playlist.OnModerationCreated(objectID)
 
