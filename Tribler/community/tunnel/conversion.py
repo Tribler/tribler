@@ -268,3 +268,11 @@ class TunnelConversion(BinaryConversion):
         if not (0 <= byte2 <= 2):
             return False
         return True
+
+    @staticmethod
+    def could_be_udp_trackers(data):
+        # For the UDP tracker protocol the action field is either at position 0 or 8, and should be 0..3
+        if len(data) >= 8 and (0 <= unpack_from('!I', data, 0)[0] <= 3) or \
+           len(data) >= 12 and (0 <= unpack_from('!I', data, 8)[0] <= 3):
+            return True
+        return False
