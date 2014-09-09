@@ -72,6 +72,8 @@ class LibtorrentMgr(object):
 
         self.upnp_mappings = {}
 
+        self.tunnel_community = None
+
         # make tmp-dir to be used for dht collection
         self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
         if not os.path.exists(self.metadata_tmpdir):
@@ -152,8 +154,10 @@ class LibtorrentMgr(object):
 
     def session_startup_progress(self, hops=0):
         if hops > 0:
-            self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
-            return min(1, len(self.tunnel_community.active_circuits(hops)) / float(self.tunnel_community.settings.min_circuits))
+            if self.tunnel_community:
+                self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
+                return min(1, len(self.tunnel_community.active_circuits(hops)) / float(self.tunnel_community.settings.min_circuits))
+            return 0
         return 1
 
     def shutdown(self):
