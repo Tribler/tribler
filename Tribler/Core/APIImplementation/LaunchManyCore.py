@@ -673,14 +673,6 @@ class TriblerLaunchMany(Thread):
             diff = timemod.time() - now
             if success:
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
-                delayed_calls = reactor.getDelayedCalls()
-                if delayed_calls:
-                    self._logger.warning("lmc: The reactor was not clean after stopping dispersy:")
-                    for dc in delayed_calls:
-                        self._logger.warning("lmc:     %s", dc)
-                else:
-                    self._logger.info("lmc: The reactor was clean after stopping dispersy. ")
-
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 

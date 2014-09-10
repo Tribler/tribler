@@ -165,6 +165,8 @@ class TestAsServer(AbstractServer):
 
         AbstractServer.tearDown(self, annotate=False)
 
+        self.assertFalse(reactor.getDelayedCalls(), "The reactor was dirty when tearing down the test")
+
     def _shutdown_session(self, session):
         session_shutdown_start = time.time()
         waittime = 60
