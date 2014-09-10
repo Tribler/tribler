@@ -80,14 +80,18 @@ class SaveAs(wx.Dialog):
         labels.AddStretchSpacer()
         labels.Add(wx.StaticText(self, -1, 'Low speed\nHigh anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
 
+        self.slider_images = [GuiImageManager.getInstance().getImage(u"scale_%d.png" % i) for i in range(6)]
+        self.slider_bitmap = wx.StaticBitmap(self, -1, self.slider_images[0])
+
         self.slider = wx.Slider(self, -1, 0, 0, 5, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
+        self.slider.Bind(wx.EVT_SLIDER, self.OnSlider)
         labels_and_slider = wx.BoxSizer(wx.VERTICAL)
         labels_and_slider.Add(labels, 0, wx.EXPAND)
         labels_and_slider.Add(self.slider, 0, wx.EXPAND)
 
         slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
         slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
-        slider_sizer.Add(wx.StaticBitmap(self, -1, GuiImageManager.getInstance().getImage(u"scale_2.png")))
+        slider_sizer.Add(self.slider_bitmap)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
         st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
@@ -256,6 +260,9 @@ class SaveAs(wx.Dialog):
 
     def OnCancel(self, event=None):
         self.EndModal(wx.ID_CANCEL)
+
+    def OnSlider(self, event):
+        self.slider_bitmap.SetBitmap(self.slider_images[self.slider.GetValue()])
 
     def OnBrowseDir(self, event):
         dlg = wx.DirDialog(None, "Please select a directory to save this torrent", style=wx.wx.DD_NEW_DIR_BUTTON)
