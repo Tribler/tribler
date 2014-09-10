@@ -550,7 +550,7 @@ class TriblerLaunchMany(Thread):
                     save_name = sdef.get_roothash_as_hex()
                     torrentfile = os.path.join(torrent_dir, save_name)
 
-                if torrentfile and os.path.isfile(torrentfile):
+                if torrentfile and not os.path.isfile(torrentfile):
                     # normal torrentfile is not present, see if readable torrent is there
                     save_name = get_readable_torrent_name(infohash, torrent['name'])
                     torrentfile = os.path.join(torrent_dir, save_name)
