@@ -139,6 +139,14 @@ class MetadataCommunity(Community):
                             @call_on_reactor_thread
                             def callback(_, msg=message):
                                 self.on_messages([msg])
+                                msg_metadata = {'infohash': msg.payload.infohash,
+                                                'roothash': msg.payload.roothash,
+                                                'data_list': msg.payload.data_list[:]
+                                                }
+                                if self._integrate_with_tribler:
+                                    from Tribler.Core.Session import Session
+                                    Session.get_instance().uch.perform_usercallback(
+                                        lambda metadata=msg_metadata: self._check_metadata_thumbs(metadata))
 
                             th_handler.download_metadata(data_type, message.candidate,
                                                          roothash, infohash, contenthash,
@@ -155,8 +163,55 @@ class MetadataCommunity(Community):
 
             yield message
 
+    def _check_metadata_thumbs(self, metadata):
+        if not self._integrate_with_tribler:
+            return
+
+        from Tribler.Category.Category import Category
+        if not Category.getInstance().family_filter_enabled():
+            return
+
+        import os
+        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+        th_handler = RemoteTorrentHandler.getInstance()
+        from Tribler.Core.Video.VideoUtility import considered_xxx
+
+        # check the thumbnails if they are good
+        infohash = metadata['infohash']
+        roothash = metadata['roothash']
+        for key, value in metadata['data_list']:
+            if not key.startswith("swift-"):
+                continue
+            data_type = key.split('-', 1)[1]
+            if data_type != 'thumbs':
+                continue
+
+            _, __, contenthash = json.loads(value)
+            contenthash = binascii.unhexlify(contenthash)
+
+            # check if there is xxx thumbnail
+            has_xxx = False
+            metadata_dir = th_handler.get_metadata_dir(data_type, infohash, contenthash)
+            if not os.path.isdir(metadata_dir):
+                continue
+
+            for thumb in os.listdir(metadata_dir):
+                if thumb.startswith("."):
+                    continue
+                try:
+                    thumb_path = os.path.join(metadata_dir, thumb)
+                    if considered_xxx(thumb_path, library="pil"):
+                        has_xxx = True
+                        break
+                except:
+                    pass
+
+            # delete the thumbnails if the family filter is enabled
+            if has_xxx:
+                th_handler.delete_metadata(data_type, infohash, roothash, contenthash)
+                break
+
     def on_metadata(self, messages):
-        # DO NOTHING
         pass
 
     def __log(self, count, message, info_str=None):
