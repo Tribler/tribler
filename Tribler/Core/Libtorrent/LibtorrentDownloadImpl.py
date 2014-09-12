@@ -299,9 +299,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     self.orig_files[i] = filename_new
 
             atp["ti"] = torrentinfo
-            if resume_data:
+            has_resume_data = resume_data and isinstance(resume_data, dict)
+            if has_resume_data:
                 atp["resume_data"] = lt.bencode(resume_data)
-            self._logger.info("%s %s", self.tdef.get_name_as_unicode(), dict((k, v) for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if resume_data else None)
+            self._logger.info("%s %s", self.tdef.get_name_as_unicode(), dict((k, v) for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if has_resume_data else None)
         else:
             if self.tdef.get_url():
                 # We prefer to use an url, since it may contain trackers

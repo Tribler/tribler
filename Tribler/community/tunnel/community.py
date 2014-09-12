@@ -112,19 +112,19 @@ class TunnelExitSocket(DatagramProtocol):
 
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
-            if TunnelConversion.could_be_utp(data):
+            if TunnelConversion.could_be_utp(data) or TunnelConversion.could_be_udp_trackers(data):
                 self.transport.write(data, destination)
                 self.community.increase_bytes_sent(self, len(data))
             else:
-                self._logger.error("TunnelCommunity: dropping non-utp packets from exit socket with circuit_id %d", self.circuit_id)
+                self._logger.error("TunnelCommunity: dropping forbidden packets from exit socket with circuit_id %d", self.circuit_id)
 
     def datagramReceived(self, data, source):
         self.community.increase_bytes_received(self, len(data))
         if self.check_num_packets(source, True):
-            if TunnelConversion.could_be_utp(data):
+            if TunnelConversion.could_be_utp(data) or TunnelConversion.could_be_udp_trackers(data):
                 self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
             else:
-                self._logger.error("TunnelCommunity: dropping non-utp packets to exit socket with circuit_id %d", self.circuit_id)
+                self._logger.error("TunnelCommunity: dropping forbidden packets to exit socket with circuit_id %d", self.circuit_id)
 
     def close(self):
         if self.enabled:
@@ -426,7 +426,7 @@ class TunnelCommunity(Community):
                         else:
                             self.bittorrent_peers[download] = peers | self.bittorrent_peers[download]
 
-                # If there are active circuits, add peers immediately. Otherwise postpone. 
+                # If there are active circuits, add peers immediately. Otherwise postpone.
                 if self.active_circuits:
                     self.readd_bittorrent_peers()
 

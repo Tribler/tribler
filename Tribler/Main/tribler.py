@@ -1,5 +1,5 @@
 import logging.config
-
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -26,4 +26,10 @@ def run():
 
 if __name__ == '__main__':
     run()
+    delayed_calls = reactor.getDelayedCalls()
+    if delayed_calls:
+        print >> sys.stderr, "The reactor was not clean after stopping:"
+        for dc in delayed_calls:
+            print >> sys.stderr, ">     %s" % dc
+
     stop_reactor()

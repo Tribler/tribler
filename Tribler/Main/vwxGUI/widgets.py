@@ -2156,7 +2156,7 @@ class Graph(wx.Panel):
         gc = wx.GraphicsContext.Create(dc)
         gc.SetBrush(wx.TRANSPARENT_BRUSH)
         self.DrawGraphs(gc, width, height)
-        self.DrawLegend(gc, width, height)
+        self.DrawLegend(gc, dc, width, height)
 
     def DrawAxis(self, dc, width, height):
         dc.SetPen(wx.Pen((175, 175, 175), 1, wx.SOLID))
@@ -2203,7 +2203,7 @@ class Graph(wx.Panel):
                 y_coords = [min(height - self.y_margins[1] - 1, y_coord) for y_coord in y_coords]
                 gc.DrawLines(zip(x_coords, y_coords))
 
-    def DrawLegend(self, gc, width, height):
+    def DrawLegend(self, gc, dc, width, height):
         gc.SetFont(self.font)
         gc.SetPen(wx.Pen(wx.Colour(240, 240, 240, 200)))
         gc.SetBrush(wx.Brush(wx.Colour(245, 245, 245, 150)))
@@ -2217,8 +2217,9 @@ class Graph(wx.Panel):
             label_width, label_height = self.GetTextExtent(label)
             gc.SetPen(wx.Pen(colour, 1, wx.SOLID))
             gc.DrawLines([(self.x_margins[0] + 10, next_y + label_height / 2), (self.x_margins[0] + 25, next_y + label_height / 2)])
-            gc.SetPen(wx.BLACK_PEN)
-            gc.DrawText(label, self.x_margins[0] + 30, next_y)
+            # Drawing text with a gc looks a bit weird on Ubuntu, using dc instead.
+            dc.SetTextForeground(wx.Colour(100, 100, 100))
+            dc.DrawText(label, self.x_margins[0] + 30, next_y)
             next_y += label_height
 
     def OnSize(self, event):

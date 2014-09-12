@@ -539,7 +539,7 @@ class TriblerLaunchMany(Thread):
             # pstate is invalid or non-existing
             _, file = os.path.split(filename)
 
-            infohash = binascii.unhexlify(file[:-7])
+            infohash = binascii.unhexlify(file[:-6])
             torrent = self.torrent_db.getTorrent(infohash, keys=['name', 'torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
             torrentfile = None
             if torrent:
@@ -550,7 +550,7 @@ class TriblerLaunchMany(Thread):
                     save_name = sdef.get_roothash_as_hex()
                     torrentfile = os.path.join(torrent_dir, save_name)
 
-                if torrentfile and os.path.isfile(torrentfile):
+                if torrentfile and not os.path.isfile(torrentfile):
                     # normal torrentfile is not present, see if readable torrent is there
                     save_name = get_readable_torrent_name(infohash, torrent['name'])
                     torrentfile = os.path.join(torrent_dir, save_name)
@@ -673,14 +673,6 @@ class TriblerLaunchMany(Thread):
             diff = timemod.time() - now
             if success:
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
-                delayed_calls = reactor.getDelayedCalls()
-                if delayed_calls:
-                    self._logger.warning("lmc: The reactor was not clean after stopping dispersy:")
-                    for dc in delayed_calls:
-                        self._logger.warning("lmc:     %s", dc)
-                else:
-                    self._logger.info("lmc: The reactor was clean after stopping dispersy. ")
-
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
