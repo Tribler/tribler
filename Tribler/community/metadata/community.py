@@ -144,8 +144,7 @@ class MetadataCommunity(Community):
                                                 'data_list': msg.payload.data_list[:]
                                                 }
                                 if self._integrate_with_tribler:
-                                    from Tribler.Core.Session import Session
-                                    Session.get_instance().uch.perform_usercallback(
+                                    th_handler.session.uch.perform_usercallback(
                                         lambda metadata=msg_metadata: self._check_metadata_thumbs(metadata))
 
                             th_handler.download_metadata(data_type, message.candidate,
