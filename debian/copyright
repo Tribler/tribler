@@ -40,7 +40,7 @@ License: LGPL-2.1+
 
 Files: Tribler/Core/BitTornado/* Tribler/Core/defaults.py Tribler/Core/APIImplementation/maketorrent.py Tribler/Core/DecentralizedTracking/ut_pex.py Tribler/Core/Overlay/SecureOverlay.py Tribler/Core/NATFirewall/ReturnConnHandler.py Tribler/Main/Dialogs/TorrentMaker.py Tribler/Test/test_permid.py
 Copyright: 2001-2002 Bram Cohen
-License:
+License: Expat
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation files
  (the "Software"), to deal in the Software without restriction,
@@ -67,7 +67,7 @@ License: LGPL-2.1+
 
 Files: Tribler/SwiftEngines/getopt_long.c Tribler/SwiftEngines/getopt_win.h
 Copyright: 2000 The NetBSD Foundation, Inc.
-License:
+License: BSD-4-clause
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
  are met:
