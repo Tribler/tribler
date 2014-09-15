@@ -328,7 +328,7 @@ class MetadataCommunity(Community):
         """
         # STEP 1: insert everything
         to_clear_set = set()
-        value_list = list()
+        value_list = []
         for message in messages:
             to_clear_set.add((message.payload.infohash, message.payload.roothash))
 
@@ -349,7 +349,7 @@ class MetadataCommunity(Community):
         self._metadata_db.addMetadataDataInBatch(value_list)
 
         # STEP 2: cleanup and update metadataData
-        sync_id_list = list()
+        sync_id_list = []
         for to_clear_infohash, to_clear_roothash in to_clear_set:
             message_list = self._metadata_db.getMetadataMessageList(
                 to_clear_infohash, to_clear_roothash,
@@ -375,19 +375,19 @@ class MetadataDBStub(object):
 
         # the dirty way: simulate the database with lists
         self._auto_message_id = 1
-        self._metadata_message_db_list = list()
-        self._metadata_data_db_list = list()
+        self._metadata_message_db_list = []
+        self._metadata_data_db_list = []
 
     def getAllMetadataMessage(self):
         return self._metadata_message_db_list
 
     def getMetadataMessageList(self, infohash, roothash, columns):
-        message_list = list()
+        message_list = []
         for data in self._metadata_message_db_list:
             if data["infohash"] != infohash or data["roothash"] != roothash:
                 continue
 
-            message = list()
+            message = []
             for column in columns:
                 message.append(data[column])
 
@@ -427,7 +427,7 @@ class MetadataDBStub(object):
         self._metadata_message_db_list = new_metadata_message_db_list
 
     def getMetadataData(self, message_id):
-        data_list = list()
+        data_list = []
         for msg_id, key, value in self._metadata_data_db_list:
             if msg_id != message_id:
                 continue

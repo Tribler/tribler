@@ -178,8 +178,7 @@ class TorrentStateManager(object):
             self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
 
         # Create modification
-        modifications = list()
-        modifications.append(('video-info', json.dumps(video_info)))
+        modifications = [('video-info', json.dumps(video_info))]
 
         result = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
         if result:
