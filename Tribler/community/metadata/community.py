@@ -164,9 +164,6 @@ class MetadataCommunity(Community):
             yield message
 
     def _check_metadata_thumbs(self, metadata):
-        if not self._integrate_with_tribler:
-            return
-
         from Tribler.Category.Category import Category
         if not Category.getInstance().family_filter_enabled():
             return
@@ -200,7 +197,7 @@ class MetadataCommunity(Community):
                     continue
                 try:
                     thumb_path = os.path.join(metadata_dir, thumb)
-                    if considered_xxx(thumb_path, library="pil"):
+                    if considered_xxx(thumb_path):
                         has_xxx = True
                         break
                 except:

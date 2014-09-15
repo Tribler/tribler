@@ -153,29 +153,11 @@ def meanstdv(x):
     return mean, std
 
 
-def considered_xxx(image, filter=0.30, library="wx"):
-    if library == "wx":
-        return skinratio(image) > filter
-    else:
-        return skinratio_imgfile(image) > filter
+def considered_xxx(image_file, filter_ratio=0.30):
+    return skinratio(image_file) > filter_ratio
 
 
-def skinratio(image):
-    image = image.Scale(image.GetSize().x * 0.20, image.GetSize().y * 0.20)
-    image_data = image.GetData()
-    skin_pixels = total_pixels = 0
-
-    for index in range(0, len(image_data), 3):
-        r, g, b = map(ord, image_data[index:index + 3])
-        if r > 60 and g < (r * 0.85) and b < (r * 0.7) and g > (r * 0.4) and b > (r * 0.2):
-            skin_pixels += 1
-        total_pixels += 1
-    if total_pixels == 0:
-        return 0
-    return skin_pixels / float(total_pixels)
-
-
-def skinratio_imgfile(image_fie):
+def skinratio(image_fie):
     try:
         image = Image.open(image_fie).convert('RGB')
 
