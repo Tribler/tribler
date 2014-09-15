@@ -16,6 +16,7 @@ Architecture: all
 Depends: libav-tools,
          libjs-excanvas,
          libjs-mootools,
+         libx11-6,
          python-apsw,
          python-cherrypy3,
          python-feedparser,
