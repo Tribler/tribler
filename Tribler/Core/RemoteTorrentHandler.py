@@ -164,6 +164,26 @@ class RemoteTorrentHandler(TaskManager):
             metadata_dir = os.path.join(metadata_dir, binascii.hexlify(contenthash))
         return os.path.isdir(metadata_dir) and os.listdir(metadata_dir)
 
+    def get_metadata_dir(self, metadata_type, infohash, contenthash=None):
+        folder_prefix = '%s-' % metadata_type
+        metadata_dir = os.path.join(self.tor_col_dir, folder_prefix + binascii.hexlify(infohash))
+        if contenthash:
+            metadata_dir = os.path.join(metadata_dir, binascii.hexlify(contenthash))
+        return metadata_dir
+
+    def delete_metadata(self, metadata_type, infohash, roothash, contenthash):
+        # stop swift from seeding
+        self.session.remove_download_by_id(infohash, removecontent=True, removestate=True)
+
+        # delete the folder and the swift files
+        folder_prefix = '%s-' % metadata_type
+        metadata_dir = os.path.join(self.tor_col_dir, folder_prefix + binascii.hexlify(infohash))
+        try:
+            import shutil
+            shutil.rmtree(metadata_dir)
+        except:
+            pass
+
     def download_metadata(self, metadata_type, candidate, roothash, infohash, contenthash=None, usercallback=None, timeout=None):
         if self.registered and not self.has_metadata(metadata_type, infohash, contenthash):
             raw_lambda = lambda metadata_type = metadata_type, candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_metadata(metadata_type, candidate, roothash, infohash, contenthash, usercallback, timeout)

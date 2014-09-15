@@ -75,8 +75,7 @@ class MetadataCommunity(Community):
 
     def create_metadata_message(self, infohash, roothash, data_list):
         columns = ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "message_id")
-        result_list = self._metadata_db.getMetadataMessageList(
-            infohash, roothash, columns)
+        result_list = self._metadata_db.getMetadataMessageList(infohash, roothash, columns)
 
         prev_mid = None
         prev_global_time = None
@@ -107,8 +106,7 @@ class MetadataCommunity(Community):
         meta = self.get_meta_message(u"metadata")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
-                            payload=(infohash, roothash, merged_data_list,
-                                prev_mid, prev_global_time))
+                            payload=(infohash, roothash, merged_data_list, prev_mid, prev_global_time))
         self.__log(-1, message)
         self._dispersy.store_update_forward([message], True, True, True)
 
@@ -136,28 +134,84 @@ class MetadataCommunity(Community):
                         th_handler = RemoteTorrentHandler.getInstance()
                         if not th_handler.has_metadata(data_type, infohash, contenthash):
                             self._logger.debug("Will try to download %s with roothash %s from %s",
-                                key, roothash.encode("HEX"), message.candidate.sock_addr[0])
+                                               key, roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                             @call_on_reactor_thread
-                            def callback(_, message=message):
-                                self.on_messages([message])
+                            def callback(_, msg=message):
+                                self.on_messages([msg])
+                                msg_metadata = {'infohash': msg.payload.infohash,
+                                                'roothash': msg.payload.roothash,
+                                                'data_list': msg.payload.data_list[:]
+                                                }
+                                if self._integrate_with_tribler:
+                                    from Tribler.Core.Session import Session
+                                    Session.get_instance().uch.perform_usercallback(
+                                        lambda metadata=msg_metadata: self._check_metadata_thumbs(metadata))
 
                             th_handler.download_metadata(data_type, message.candidate,
-                                roothash, infohash, contenthash,
-                                timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                                                         roothash, infohash, contenthash,
+                                                         timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             do_continue = True
                             break
 
                         else:
-                            self._logger.debug("Don't need to download swift-thumbs with roothash %s from %s, already on disk", roothash.encode("HEX"), message.candidate.sock_addr[0])
+                            self._logger.debug("No need to download thumbs with roothash %s from %s, already on disk",
+                                               roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                 if do_continue:
                     continue
 
             yield message
 
+    def _check_metadata_thumbs(self, metadata):
+        if not self._integrate_with_tribler:
+            return
+
+        from Tribler.Category.Category import Category
+        if not Category.getInstance().family_filter_enabled():
+            return
+
+        import os
+        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+        th_handler = RemoteTorrentHandler.getInstance()
+        from Tribler.Core.Video.VideoUtility import considered_xxx
+
+        # check the thumbnails if they are good
+        infohash = metadata['infohash']
+        roothash = metadata['roothash']
+        for key, value in metadata['data_list']:
+            if not key.startswith("swift-"):
+                continue
+            data_type = key.split('-', 1)[1]
+            if data_type != 'thumbs':
+                continue
+
+            _, __, contenthash = json.loads(value)
+            contenthash = binascii.unhexlify(contenthash)
+
+            # check if there is xxx thumbnail
+            has_xxx = False
+            metadata_dir = th_handler.get_metadata_dir(data_type, infohash, contenthash)
+            if not os.path.isdir(metadata_dir):
+                continue
+
+            for thumb in os.listdir(metadata_dir):
+                if thumb.startswith("."):
+                    continue
+                try:
+                    thumb_path = os.path.join(metadata_dir, thumb)
+                    if considered_xxx(thumb_path, library="pil"):
+                        has_xxx = True
+                        break
+                except:
+                    pass
+
+            # delete the thumbnails if the family filter is enabled
+            if has_xxx:
+                th_handler.delete_metadata(data_type, infohash, roothash, contenthash)
+                break
+
     def on_metadata(self, messages):
-        # DO NOTHING
         pass
 
     def __log(self, count, message, info_str=None):
@@ -168,34 +222,28 @@ class MetadataCommunity(Community):
             prev_mid = binascii.hexlify(message.payload.prev_mid)[:7]
         global_time = message.distribution.global_time
         mid = binascii.hexlify(message.authentication.member.mid)[:7]
-        if message.payload.infohash:
-            infohash = binascii.hexlify(message.payload.infohash)[:7]
-        else:
-            infohash = None
-        if message.payload.roothash:
-            roothash = binascii.hexlify(message.payload.roothash)[:7]
-        else:
-            roothash = None
+        infohash = binascii.hexlify(message.payload.infohash)[:7] if message.payload.infohash else None
+        roothash = binascii.hexlify(message.payload.roothash)[:7] if message.payload.roothash else None
 
         if count == 0:
             self._logger.debug("ACCEPT ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
-                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+                               message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                               global_time, mid, prev_global_time, prev_mid, infohash, roothash)
         elif count == -1:
             self._logger.debug("CREATE member[%s %s] msg[(%s %s)->(%s %s)]",
-                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+                               global_time, mid, prev_global_time, prev_mid, infohash, roothash)
         elif count == -2:
             self._logger.debug("IGNORE ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
-                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+                               message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                               global_time, mid, prev_global_time, prev_mid, infohash, roothash)
         elif count >= 100:
             self._logger.debug("CUSTOM ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s] | %s",
-                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, prev_global_time, prev_mid, infohash, roothash, info_str)
+                               message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                               global_time, mid, prev_global_time, prev_mid, infohash, roothash, info_str)
         else:
             self._logger.debug("DROP[%d] ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
-                count, message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+                               count, message.candidate.sock_addr[0], message.candidate.sock_addr[1],
+                               global_time, mid, prev_global_time, prev_mid, infohash, roothash)
 
     def custom_callback_check(self, unique, times, message):
         """
@@ -220,7 +268,11 @@ class MetadataCommunity(Community):
             unique.add(key)
 
             if not message.authentication.member.database_id in times:
-                times[message.authentication.member.database_id] = [global_time for global_time, in self._dispersy._database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (message.community.database_id, message.authentication.member.database_id, message.database_id))]
+                times[message.authentication.member.database_id] =\
+                    [global_time for global_time, in self._dispersy._database.execute(
+                        u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
+                        (message.community.database_id,
+                         message.authentication.member.database_id, message.database_id))]
                 # assert len(times[message.authentication.member.database_id]) <= message.distribution.history_size, [message.packet_id, message.distribution.history_size, times[message.authentication.member.database_id]]
 
             tim = times[message.authentication.member.database_id]
@@ -233,18 +285,15 @@ class MetadataCommunity(Community):
             # select the metadata messages from DB
             message_list = self._metadata_db.getMetadataMessageList(
                 message.payload.infohash, message.payload.roothash,
-                ("previous_global_time", "previous_mid",
-                 "this_global_time", "this_mid", "dispersy_id"))
+                ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "dispersy_id"))
 
             if message.payload.prev_mid:
                 prev_mid = message.payload.prev_mid
                 prev_global_time = message.payload.prev_global_time
                 this_message = (prev_global_time, prev_mid,
-                    message.distribution.global_time,
-                    message.authentication.member.mid, None)
+                                message.distribution.global_time, message.authentication.member.mid, None)
             else:
-                this_message = (None, None, message.distribution.global_time,
-                    message.authentication.member.mid, None)
+                this_message = (None, None, message.distribution.global_time, message.authentication.member.mid, None)
 
             # compare previous pointers
             if message_list:
@@ -261,13 +310,12 @@ class MetadataCommunity(Community):
                         # send the latest message to the sender
                         try:
                             packet, = self._dispersy._database.execute(
-                                u"SELECT packet FROM sync WHERE id = ?",
-                                    (message_list[-1][-1],)).next()
+                                u"SELECT packet FROM sync WHERE id = ?", (message_list[-1][-1],)).next()
                         except StopIteration:
                             pass
                         else:
                             self._dispersy._send_packets([message.candidate], [str(packet)],
-                                self, "-caused by custom-check-lastdist-")
+                                                         self, "-caused by custom-check-lastdist-")
 
                     self.__log(3, message)
                     return DropMessage(message, u"This metadata message is old.")
@@ -284,7 +332,7 @@ class MetadataCommunity(Community):
         """
         # STEP 1: insert everything
         to_clear_set = set()
-        value_list = []
+        value_list = list()
         for message in messages:
             to_clear_set.add((message.payload.infohash, message.payload.roothash))
 
@@ -305,7 +353,7 @@ class MetadataCommunity(Community):
         self._metadata_db.addMetadataDataInBatch(value_list)
 
         # STEP 2: cleanup and update metadataData
-        sync_id_list = []
+        sync_id_list = list()
         for to_clear_infohash, to_clear_roothash in to_clear_set:
             message_list = self._metadata_db.getMetadataMessageList(
                 to_clear_infohash, to_clear_roothash,
@@ -331,19 +379,19 @@ class MetadataDBStub(object):
 
         # the dirty way: simulate the database with lists
         self._auto_message_id = 1
-        self._metadata_message_db_list = []
-        self._metadata_data_db_list = []
+        self._metadata_message_db_list = list()
+        self._metadata_data_db_list = list()
 
     def getAllMetadataMessage(self):
         return self._metadata_message_db_list
 
     def getMetadataMessageList(self, infohash, roothash, columns):
-        message_list = []
+        message_list = list()
         for data in self._metadata_message_db_list:
             if data["infohash"] != infohash or data["roothash"] != roothash:
                 continue
 
-            message = []
+            message = list()
             for column in columns:
                 message.append(data[column])
 
@@ -372,8 +420,7 @@ class MetadataDBStub(object):
         for value_tuple in value_tuple_list:
             data = {"message_id": value_tuple[0],
                     "data_key": value_tuple[1],
-                    "data_value": value_tuple[2]
-            }
+                    "data_value": value_tuple[2]}
             self._metadata_data_db_list.append(data)
 
     def deleteMetadataMessage(self, dispersy_id):
@@ -384,7 +431,7 @@ class MetadataDBStub(object):
         self._metadata_message_db_list = new_metadata_message_db_list
 
     def getMetadataData(self, message_id):
-        data_list = []
+        data_list = list()
         for msg_id, key, value in self._metadata_data_db_list:
             if msg_id != message_id:
                 continue
