@@ -8,19 +8,20 @@ Build-Depends: debhelper (>= 9),
                libssl-dev,
                python (>= 2.6.6-3~),
                scons
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Homepage: http://www.tribler.org/
 
 Package: tribler
 Architecture: all
 Depends: libav-tools,
+         libjs-excanvas,
          libjs-mootools,
          libx11-6,
          python-apsw,
          python-cherrypy3,
          python-feedparser,
          python-gmpy,
-         python-libtorrent (>=0.16.4),
+         python-libtorrent (>= 0.16.4),
          python-m2crypto,
          python-netifaces,
          python-pyasn1,
