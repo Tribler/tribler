@@ -163,9 +163,9 @@ class MetadataCommunity(Community):
             yield message
 
     def _check_metadata_thumbs(self, metadata):
-        from Tribler.Category.Category import Category
-        if not Category.getInstance().family_filter_enabled():
-            return
+        #from Tribler.Category.Category import Category
+        #if not Category.getInstance().family_filter_enabled():
+        #    return
 
         import os
         from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
@@ -192,7 +192,7 @@ class MetadataCommunity(Community):
                 continue
 
             for thumb in os.listdir(metadata_dir):
-                if thumb.startswith("."):
+                if thumb == ".mfplaceholder":
                     continue
                 try:
                     thumb_path = os.path.join(metadata_dir, thumb)
