@@ -164,6 +164,26 @@ class RemoteTorrentHandler(TaskManager):
             metadata_dir = os.path.join(metadata_dir, binascii.hexlify(contenthash))
         return os.path.isdir(metadata_dir) and os.listdir(metadata_dir)
 
+    def get_metadata_dir(self, metadata_type, infohash, contenthash=None):
+        folder_prefix = '%s-' % metadata_type
+        metadata_dir = os.path.join(self.tor_col_dir, folder_prefix + binascii.hexlify(infohash))
+        if contenthash:
+            metadata_dir = os.path.join(metadata_dir, binascii.hexlify(contenthash))
+        return metadata_dir
+
+    def delete_metadata(self, metadata_type, infohash, roothash, contenthash):
+        # stop swift from seeding
+        self.session.remove_download_by_id(infohash, removecontent=True, removestate=True)
+
+        # delete the folder and the swift files
+        folder_prefix = '%s-' % metadata_type
+        metadata_dir = os.path.join(self.tor_col_dir, folder_prefix + binascii.hexlify(infohash))
+        try:
+            import shutil
+            shutil.rmtree(metadata_dir)
+        except:
+            pass
+
     def download_metadata(self, metadata_type, candidate, roothash, infohash, contenthash=None, usercallback=None, timeout=None):
         if self.registered and not self.has_metadata(metadata_type, infohash, contenthash):
             raw_lambda = lambda metadata_type = metadata_type, candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_metadata(metadata_type, candidate, roothash, infohash, contenthash, usercallback, timeout)
@@ -880,11 +900,11 @@ class MetadataRequester(Requester):
     def check_progress(self, ds, roothash):
         d = ds.get_download()
         # do not download metadata larger than 5MB
-        if d.get_dynasize() > 5 * 1024 * 1024:
+        if d.get_dynasize() > 512 * 1024:
             remove_lambda = lambda d = d: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
             self.blacklist_set.add(roothash)
-            return (0, False)
+            return 0, False
 
         cdef = d.get_def()
         if ds.get_progress() == 1:
@@ -895,14 +915,14 @@ class MetadataRequester(Requester):
 
             self.remote_th.notify_possible_metadata_roothash(roothash)
             self.requests_success += 1
-            return (0, False)
+            return 0, False
         else:
             diff = time() - getattr(d, 'started_downloading', time()) > 45
             if (diff > self.SWIFT_CANCEL and ds.get_progress() == 0) or diff > 45 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                 remove_lambda = lambda d = d: self._remove_download(d)
                 self.scheduletask(remove_lambda)
                 self.requests_fail += 1
-                return (0, False)
+                return 0, False
 
         return (self.REQUEST_INTERVAL * (self.prio + 1), True)
 
