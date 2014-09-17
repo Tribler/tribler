@@ -401,7 +401,7 @@ class MainFrame(wx.Frame):
         if self.params[0] != "" and not self.params[0].startswith("--"):
             vod = False
             url_filename = self.params[0]
-            selectedFiles = [self.params[1]] if len(self.params) == 2 else []
+            selectedFiles = [self.params[1]] if len(self.params) == 2 else None
             if selectedFiles:
                 _, ext = os.path.splitext(selectedFiles[0])
                 if ext != '' and ext[0] == '.':
