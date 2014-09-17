@@ -18,8 +18,8 @@ from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDI
                                       PING_INTERVAL, ENDPOINT)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
-                                              ExtendedPayload, PongPayload, PingPayload, StatsRequestPayload,
-                                              StatsResponsePayload)
+                                              ExtendedPayload, PongPayload, PingPayload, DestroyPayload,
+                                              StatsRequestPayload, StatsResponsePayload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -77,7 +77,7 @@ class PingRequestCache(RandomNumberCache):
     def on_timeout(self):
         if self.circuit.last_incoming < time.time() - self.timeout_delay:
             self._logger.debug("ForwardCommunity: no response on ping, circuit %d timed out", self.circuit.circuit_id)
-            self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout')
+            self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout', destroy=True)
 
 
 class StatsRequestCache(RandomNumberCache):
@@ -93,21 +93,20 @@ class StatsRequestCache(RandomNumberCache):
 
 class TunnelExitSocket(DatagramProtocol):
 
-    def __init__(self, circuit_id, community):
+    def __init__(self, circuit_id, community, sock_addr):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.port = None
-        self.destination = None
+        self.sock_addr = sock_addr
         self.circuit_id = circuit_id
         self.community = community
         self.ips = defaultdict(int)
         self.bytes_up = self.bytes_down = 0
         self.creation_time = time.time()
 
-    def enable(self, destination):
+    def enable(self):
         if not self.enabled:
             self.port = reactor.listenUDP(0, self)
-            self.destination = destination
 
     @property
     def enabled(self):
@@ -125,7 +124,7 @@ class TunnelExitSocket(DatagramProtocol):
         self.community.increase_bytes_received(self, len(data))
         if self.check_num_packets(source, True):
             if TunnelConversion.is_allowed(data):
-                self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
+                self.community.tunnel_data_to_origin(self.circuit_id, self.sock_addr, source, data)
             else:
                 self._logger.error("TunnelCommunity: dropping forbidden packets to exit socket with circuit_id %d", self.circuit_id)
 
@@ -140,7 +139,7 @@ class TunnelExitSocket(DatagramProtocol):
 
         max_packets_without_reply = self.community.settings.max_packets_without_reply
         if self.ips[ip] >= (max_packets_without_reply + 1 if incoming else max_packets_without_reply):
-            self.community.remove_exit_socket(self.circuit_id)
+            self.community.remove_exit_socket(self.circuit_id, destroy=True)
             self._logger.error("TunnelCommunity: too many packets to a destination without a reply, " \
                                "removing exit socket with circuit_id %d", self.circuit_id)
             return False
@@ -285,6 +284,9 @@ class TunnelCommunity(Community):
                         CandidateDestination(), PingPayload(), self._generic_timeline_check, self.on_ping),
                 Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), PongPayload(), self.check_pong, self.on_pong),
+                Message(self, u"destroy", MemberAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), DestroyPayload(), self._generic_timeline_check,
+                        self.on_destroy),
                 Message(self, u"stats-request", MemberAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), StatsRequestPayload(), self._generic_timeline_check,
                         self.on_stats_request),
@@ -349,17 +351,17 @@ class TunnelCommunity(Community):
                 pass
             self.made_anon_session = True
 
-        self.do_break()
+        self.do_remove()
 
-    def do_break(self):
+    def do_remove(self):
         # Remove circuits that are inactive / are too old / have transferred too many bytes.
         for key, circuit in self.circuits.items():
             if circuit.last_incoming < time.time() - self.settings.max_time_inactive:
-                self.remove_circuit(key, 'no activity')
+                self.remove_circuit(key, 'no activity', destroy=True)
             elif circuit.creation_time < time.time() - self.settings.max_time:
-                self.remove_circuit(key, 'too old')
+                self.remove_circuit(key, 'too old', destroy=True)
             elif circuit.bytes_up + circuit.bytes_down > self.settings.max_traffic:
-                self.remove_circuit(key, 'traffic limit exceeded')
+                self.remove_circuit(key, 'traffic limit exceeded', destroy=True)
 
         # Remove relays that are inactive / are too old / have transferred too many bytes.
         for key, relay in self.relay_from_to.items():
@@ -373,9 +375,9 @@ class TunnelCommunity(Community):
         # Remove exit sockets that are too old / have transferred too many bytes.
         for circuit_id, exit_socket in self.exit_sockets.items():
             if exit_socket.creation_time < time.time() - self.settings.max_time:
-                self.remove_exit_socket(circuit_id, 'too old')
+                self.remove_exit_socket(circuit_id, 'too old', destroy=True)
             elif exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
-                self.remove_exit_socket(circuit_id, 'traffic limit exceeded')
+                self.remove_exit_socket(circuit_id, 'traffic limit exceeded', destroy=True)
 
     def create_circuit(self, first_hop, goal_hops):
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
@@ -405,11 +407,14 @@ class TunnelCommunity(Community):
                 torrent.add_peer(peer)
             del self.bittorrent_peers[torrent]
 
-    def remove_circuit(self, circuit_id, additional_info=''):
+    def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
         if circuit_id in self.circuits:
-            self._logger.error("TunnelCommunity: breaking circuit %d " + additional_info, circuit_id)
+            self._logger.error("TunnelCommunity: removing circuit %d " + additional_info, circuit_id)
+
+            if destroy:
+                self.destroy_circuit(circuit_id)
 
             circuit = self.circuits.pop(circuit_id)
             circuit.destroy()
@@ -436,9 +441,11 @@ class TunnelCommunity(Community):
             return True
         return False
 
-    def remove_relay(self, circuit_id, additional_info=''):
+    def remove_relay(self, circuit_id, additional_info='', got_destroy_from=None):
         if circuit_id in self.relay_from_to:
-            self._logger.error(("TunnelCommunity: breaking relay %d " + additional_info) % circuit_id)
+            self._logger.error(("TunnelCommunity: removing relay %d " + additional_info) % circuit_id)
+            # Send destroy
+            self.destroy_relay(circuit_id, got_destroy_from=got_destroy_from)
             # Only remove one side of the relay, this isn't as pretty but both sides have separate incoming timer,
             # hence after removing one side the other will follow.
             del self.relay_from_to[circuit_id]
@@ -447,20 +454,54 @@ class TunnelCommunity(Community):
                 del self.relay_session_keys[circuit_id]
             return
 
-        self._logger.error(("TunnelCommunity: could not break relay %d " + additional_info) % circuit_id)
+        self._logger.error(("TunnelCommunity: could not remove relay %d " + additional_info) % circuit_id)
 
-    def remove_exit_socket(self, circuit_id, additional_info=''):
+    def remove_exit_socket(self, circuit_id, additional_info='', destroy=False):
         if circuit_id in self.exit_sockets:
+            if destroy:
+                self.destroy_exit_socket(circuit_id)
             # Close socket
             exit_socket = self.exit_sockets.pop(circuit_id)
             if exit_socket.enabled:
-                self._logger.error(("TunnelCommunity: closing exit socket %d " + additional_info) % circuit_id)
+                self._logger.error(("TunnelCommunity: removing exit socket %d " + additional_info) % circuit_id)
                 exit_socket.close()
                 # Remove old session key
                 if circuit_id in self.relay_session_keys:
                     del self.relay_session_keys[circuit_id]
             return
         self._logger.error(("TunnelCommunity: could not remove exit socket %d " + additional_info) % circuit_id)
+
+    def destroy_circuit(self, circuit_id, reason=0):
+        if circuit_id in self.circuits:
+            sock_addr = self.circuits[circuit_id].first_hop
+            self.send_destroy(Candidate(sock_addr, False), circuit_id, reason)
+            self._logger.error("TunnelCommunity: destroy_circuit %s %s", circuit_id, sock_addr)
+
+    def destroy_relay(self, circuit_id, reason=0, got_destroy_from=None):
+        if circuit_id in self.relay_from_to:
+            relays = {}
+            relays[circuit_id] = (self.relay_from_to[circuit_id].circuit_id, self.relay_from_to[circuit_id].sock_addr)
+
+            for k, v in self.relay_from_to.iteritems():
+                if circuit_id == v.circuit_id:
+                    relays[k] = (v.circuit_id, v.sock_addr)
+
+            if got_destroy_from and got_destroy_from not in relays.values():
+                self._logger.error("TunnelCommunity: %s not allowed send destroy for circuit %s",
+                                   *reversed(got_destroy_from))
+                return
+
+            for cid_from, (cid_to, sock_addr) in relays.iteritems():
+                self._logger.error("TunnelCommunity: found relay %s -> %s (%s)", cid_from, cid_to, sock_addr)
+                if (cid_to, sock_addr) != got_destroy_from:
+                    self.send_destroy(Candidate(sock_addr, False), cid_to, reason)
+                    self._logger.error("TunnelCommunity: fw destroy to %s %s", cid_to, sock_addr)
+
+    def destroy_exit_socket(self, circuit_id, reason=0):
+        if circuit_id in self.exit_sockets:
+            sock_addr = self.exit_sockets[circuit_id].sock_addr
+            self.send_destroy(Candidate(sock_addr, False), circuit_id, reason)
+            self._logger.error("TunnelCommunity: destroy_exit_socket %s %s", circuit_id, sock_addr)
 
     @property
     def active_circuits(self):
@@ -503,6 +544,11 @@ class TunnelCommunity(Community):
         self.statistics.increase_msg_count(u"outgoing", message_type, len(candidates))
         self._logger.debug("TunnelCommunity: send %s to %s candidates: %s", message_type, len(candidates), map(str, candidates))
         return len(packet)
+
+    def send_destroy(self, candidate, circuit_id, reason):
+        meta = self.get_meta_message(u"destroy")
+        destroy = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(circuit_id, reason))
+        self.send_packet([candidate], meta.name, destroy.packet)
 
     def relay_cell(self, circuit_id, message_type, message):
         return self.relay_packet(circuit_id, message_type, message.packet)
@@ -668,7 +714,7 @@ class TunnelCommunity(Community):
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
 
-            self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self)
+            self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self, candidate.sock_addr)
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
@@ -800,6 +846,32 @@ class TunnelCommunity(Community):
                 cache = self.request_cache.add(PingRequestCache(self, circuit))
                 self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
 
+    def on_destroy(self, messages):
+        for message in messages:
+            circuit_id = message.payload.circuit_id
+            cand_sock_addr = message.candidate.sock_addr
+            self._logger.error("TunnelCommunity: got destroy from %s for circuit %s", message.candidate, circuit_id)
+
+            if circuit_id in self.relay_from_to:
+                self.remove_relay(circuit_id, "got destroy", (circuit_id, cand_sock_addr))
+
+            elif circuit_id in self.exit_sockets:
+                self._logger.error("TunnelCommunity: got an exit socket %s %s", circuit_id, cand_sock_addr)
+                if cand_sock_addr != self.exit_sockets[circuit_id].sock_addr:
+                    self._logger.error("TunnelCommunity: %s not allowed send destroy", cand_sock_addr)
+                    continue
+                self.remove_exit_socket(circuit_id, "got destroy")
+
+            elif circuit_id in self.circuits:
+                self._logger.error("TunnelCommunity: got a circuit %s %s", circuit_id, cand_sock_addr)
+                if cand_sock_addr != self.circuits[circuit_id].first_hop:
+                    self._logger.error("TunnelCommunity: %s not allowed send destroy", cand_sock_addr)
+                    continue
+                self.remove_circuit(circuit_id, "got destroy")
+
+            else:
+                self._logger.error("TunnelCommunity: circuit is already removed? %s %s", circuit_id, cand_sock_addr)
+
     def on_stats_request(self, messages):
         for request in messages:
             if request.candidate.get_member().mid in self.crawler_mids:
@@ -838,7 +910,9 @@ class TunnelCommunity(Community):
     def exit_data(self, circuit_id, sock_addr, destination, data):
         if circuit_id in self.exit_sockets:
             if not self.exit_sockets[circuit_id].enabled:
-                self.exit_sockets[circuit_id].enable(sock_addr)
+                # We got the correct circuit_id, but from a wrong IP.
+                assert sock_addr == self.exit_sockets[circuit_id].sock_addr
+                self.exit_sockets[circuit_id].enable()
             try:
                 self.exit_sockets[circuit_id].sendto(data, destination)
             except:
