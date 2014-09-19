@@ -208,25 +208,26 @@ class EcpkParameters(univ.Choice):
 
 class OpenSSLCurves():
 
-    def __init__(self):
+    def __init__(self, curves_fn=None):
         self.curve_dict = defaultdict(lambda: ["", "", ""])
 
         implicit = True
-        from Tribler.Core.Session import Session
-        f = open(os.path.join(Session.get_instance().get_install_dir() if Session.has_instance() else '.',
-                              LIBRARYNAME, 'community', 'privatesemantic', 'crypto', 'curves.ec'), 'r')
-        for line in f:
-            line = line.strip()
 
-            if not (line.startswith('#') or line.startswith('-----BEGIN')):
-                if line.startswith('===') and line.endswith('==='):
-                    curname = line[3:-3]
-                elif line.startswith('-----END'):
-                    self.curve_dict[curname][1 if implicit else 2] = self.curve_dict[curname][1 if implicit else 2].decode("BASE64")
-                    implicit = not implicit
-                else:
-                    self.curve_dict[curname][1 if implicit else 2] += line
-        f.close()
+        if curves_fn is None:
+            curves_fn = os.path.join(os.path.dirname(__file__), 'curves.ec')
+
+        with open(curves_fn, 'r') as f:
+            for line in f:
+                line = line.strip()
+
+                if not (line.startswith('#') or line.startswith('-----BEGIN')):
+                    if line.startswith('===') and line.endswith('==='):
+                        curname = line[3:-3]
+                    elif line.startswith('-----END'):
+                        self.curve_dict[curname][1 if implicit else 2] = self.curve_dict[curname][1 if implicit else 2].decode("BASE64")
+                        implicit = not implicit
+                    else:
+                        self.curve_dict[curname][1 if implicit else 2] += line
 
         for curve in self.curve_dict.itervalues():
             try:

@@ -470,7 +470,7 @@ class ABCApp(object):
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
-            from Tribler.community.tunnel.community import TunnelCommunity
+            from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -495,9 +495,13 @@ class ABCApp(object):
             if not self.is_unit_testing:
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
+                curves_fn = os.path.join(session.get_install_dir(), 'Tribler', 'community',
+                                         'privatesemantic', 'crypto', 'curves.ec')
+                settings = TunnelSettings(curves_fn)
+                tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
                 self.tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
-                                                                  kargs=default_kwargs)[0]
+                                                                  kargs=tunnel_kwargs)[0]
 
                 session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
 
