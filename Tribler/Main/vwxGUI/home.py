@@ -588,7 +588,7 @@ class NetworkGraphPanel(wx.Panel):
         self.hop_active_evt = None
         self.hop_active = None
 
-        self.tunnels = True
+        self.hops = -1
         self.fullscreen = fullscreen
         self.radius = 20 if self.fullscreen else 12
         self.line_width = 2 if self.fullscreen else 1
@@ -658,10 +658,10 @@ class NetworkGraphPanel(wx.Panel):
         self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(self.main_sizer)
 
-    def ShowTunnels(self, enable):
-        self.circuit_list.Show(enable)
-        self.tunnels = enable
-        self.graph_panel.Refresh()
+    def ShowTunnels(self, hops):
+        self.circuit_list.Show(hops != 0)
+        self.hops = hops
+        self.OnUpdateCircuits(None)
 
     def OnItemSelected(self, event):
         selected = []
@@ -685,7 +685,7 @@ class NetworkGraphPanel(wx.Panel):
                                               len(self.tunnel_community.exit_sockets)))
 
         new_circuits = dict(self.tunnel_community.circuits)
-        self.circuits = new_circuits
+        self.circuits = {k:v for k, v in new_circuits.iteritems() if v.goal_hops == self.hops or self.hops < 0}
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -776,7 +776,7 @@ class NetworkGraphPanel(wx.Panel):
 
         circuit_points = {}
 
-        if self.tunnels:
+        if self.hops != 0:
             num_circuits = len(self.circuits)
             for c_index, circuit in enumerate(sorted(self.circuits.values(), key=lambda c: c.circuit_id)):
                 circuit_points[circuit] = [(self.margin_x, h / 2 + self.margin_y)]
