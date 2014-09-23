@@ -59,8 +59,10 @@ class Tunnel(object):
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
-        self.clean_messages_lc = LoopingCall(self.clean_messages).start(1800)
-        self.build_history_lc = LoopingCall(self.build_history).start(60, now=True)
+        self.clean_messages_lc = LoopingCall(self.clean_messages)
+        self.clean_messages_lc.start(1800)
+        self.build_history_lc = LoopingCall(self.build_history)
+        self.build_history_lc.start(60, now=True)
 
     def get_instance(*args, **kw):
         if Tunnel.__single is None:
@@ -129,9 +131,16 @@ class Tunnel(object):
         blockingCallFromThread(reactor, start_community)
 
     def stop(self):
+        self.session.uch.perform_usercallback(self._stop)
+
+    def _stop(self):
         if self.clean_messages_lc:
             self.clean_messages_lc.stop()
             self.clean_messages_lc = None
+
+        if self.build_history_lc:
+            self.build_history_lc.stop()
+            self.build_history_lc = None
 
         if self.session:
             session_shutdown_start = time.time()
@@ -216,10 +225,11 @@ class LineHandler(LineReceiver):
                                                              len(circuit.hops),
                                                              circuit.bytes_down / 1024.0 / 1024.0,
                                                              circuit.bytes_up / 1024.0 / 1024.0)
+
         elif line == 'q':
             anon_tunnel.stop()
-            os._exit(0)
             return
+
         elif line == 'r':
             print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
 
