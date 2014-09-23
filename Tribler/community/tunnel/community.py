@@ -299,8 +299,14 @@ class TunnelCommunity(Community):
 
     def unload_community(self):
         self.socks_server.stop()
-        for exit_socket in self.exit_sockets.itervalues():
-            exit_socket.close()
+
+        # Remove all circuits/relays/exitsockets
+        for circuit_id in self.circuits.keys():
+            self.remove_circuit(circuit_id, destroy=True)
+        for circuit_id in self.relay_from_to.keys():
+            self.remove_relay(circuit_id)
+        for circuit_id in self.exit_sockets.keys():
+            self.remove_exit_socket(circuit_id, destroy=True)
 
         super(TunnelCommunity, self).unload_community()
 
@@ -442,19 +448,18 @@ class TunnelCommunity(Community):
         return False
 
     def remove_relay(self, circuit_id, additional_info='', got_destroy_from=None):
-        if circuit_id in self.relay_from_to:
-            self._logger.error(("TunnelCommunity: removing relay %d " + additional_info) % circuit_id)
-            # Send destroy
-            self.destroy_relay(circuit_id, got_destroy_from=got_destroy_from)
-            # Only remove one side of the relay, this isn't as pretty but both sides have separate incoming timer,
-            # hence after removing one side the other will follow.
-            del self.relay_from_to[circuit_id]
-            # Remove old session key
-            if circuit_id in self.relay_session_keys:
-                del self.relay_session_keys[circuit_id]
-            return
+        # Send destroy
+        to_remove = self.destroy_relay(circuit_id, got_destroy_from=got_destroy_from)
 
-        self._logger.error(("TunnelCommunity: could not remove relay %d " + additional_info) % circuit_id)
+        for cid in to_remove:
+            self._logger.error(("TunnelCommunity: removing relay %d " + additional_info) % cid)
+            # Remove the relay
+            del self.relay_from_to[cid]
+            # Remove old session key
+            if cid in self.relay_session_keys:
+                del self.relay_session_keys[cid]
+            else:
+                self._logger.error(("TunnelCommunity: could not remove relay %d " + additional_info) % circuit_id)
 
     def remove_exit_socket(self, circuit_id, additional_info='', destroy=False):
         if circuit_id in self.exit_sockets:
@@ -469,6 +474,7 @@ class TunnelCommunity(Community):
                 if circuit_id in self.relay_session_keys:
                     del self.relay_session_keys[circuit_id]
             return
+
         self._logger.error(("TunnelCommunity: could not remove exit socket %d " + additional_info) % circuit_id)
 
     def destroy_circuit(self, circuit_id, reason=0):
@@ -478,6 +484,7 @@ class TunnelCommunity(Community):
             self._logger.error("TunnelCommunity: destroy_circuit %s %s", circuit_id, sock_addr)
 
     def destroy_relay(self, circuit_id, reason=0, got_destroy_from=None):
+        to_remove = []
         if circuit_id in self.relay_from_to:
             relays = {}
             relays[circuit_id] = (self.relay_from_to[circuit_id].circuit_id, self.relay_from_to[circuit_id].sock_addr)
@@ -496,6 +503,8 @@ class TunnelCommunity(Community):
                 if (cid_to, sock_addr) != got_destroy_from:
                     self.send_destroy(Candidate(sock_addr, False), cid_to, reason)
                     self._logger.error("TunnelCommunity: fw destroy to %s %s", cid_to, sock_addr)
+                to_remove.append(cid_from)
+        return to_remove
 
     def destroy_exit_socket(self, circuit_id, reason=0):
         if circuit_id in self.exit_sockets:
