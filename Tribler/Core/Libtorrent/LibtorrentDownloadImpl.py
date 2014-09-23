@@ -489,7 +489,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
     def on_tracker_warning_alert(self, alert):
         peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
-        status = 'Warning: ' + alert.message
+        status = 'Warning: ' + str(alert.message())
 
         self.tracker_status[alert.url] = [peers, status]
 
