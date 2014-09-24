@@ -84,7 +84,7 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
         def start_test(tunnel_communities):
             # assuming that the last tunnel community is that loaded by the tribler gui
             tunnel_community = tunnel_communities[-1]
-            first_circuit = tunnel_community.active_circuits.values()[0]
+            first_circuit = tunnel_community.active_circuits().values()[0]
             first_circuit.tunnel_data(("127.0.0.1", 12345), "42")
 
             self.CallConditional(30, lambda: got_data.is_set(), self.quit)
