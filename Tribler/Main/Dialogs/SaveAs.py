@@ -85,9 +85,20 @@ class SaveAs(wx.Dialog):
 
         self.slider = wx.Slider(self, -1, 0, 0, 5, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
         self.slider.Bind(wx.EVT_SLIDER, self.OnSlider)
+
+        hop_count = wx.BoxSizer(wx.HORIZONTAL)
+        hop_count.AddSpacer((10, -1))
+        for count in range(6):
+            hop_count.Add(wx.StaticText(self, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL))
+            if count != 5:
+                hop_count.AddStretchSpacer()
+            else:
+                hop_count.AddSpacer((10, -1))
+
         labels_and_slider = wx.BoxSizer(wx.VERTICAL)
         labels_and_slider.Add(labels, 0, wx.EXPAND)
         labels_and_slider.Add(self.slider, 0, wx.EXPAND)
+        labels_and_slider.Add(hop_count, 0, wx.EXPAND)
 
         slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
         slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
