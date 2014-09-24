@@ -336,7 +336,7 @@ class TunnelCommunity(Community):
     def do_circuits(self):
         for circuit_length, num_circuits in self.circuits_needed.items():
             num_to_build = num_circuits - sum([1 for c in self.circuits.itervalues() if c.goal_hops == circuit_length])
-            self._logger.error("TunnelCommunity: want %d circuits of length %d", num_to_build, circuit_length)
+            self._logger.debug("TunnelCommunity: want %d circuits of length %d", num_to_build, circuit_length)
 
             for _ in range(num_to_build):
                 candidate = None
