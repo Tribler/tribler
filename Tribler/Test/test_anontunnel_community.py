@@ -12,7 +12,7 @@ from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 
 
-from Tribler.community.tunnel.community import TunnelCommunity
+from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from threading import Event
 
@@ -94,6 +94,8 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 tunnel_community.socks_server = fakesocks
                 tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
 
+            self.CallConditional(30, lambda: bool(tunnel_communities[-1].active_circuits().values()),
+                                     lambda: start_test(tunnel_communities))
             start_test(tunnel_communities)
 
         self.startTest(replace_socks)
@@ -149,7 +151,9 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
-                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session, None), load=True)[0]
+                tunnel_settings = TunnelSettings()
+                tunnel_settings.socks_listen_port = 0
+                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session, tunnel_settings), load=True)[0]
 
                 return tunnel_community
 
