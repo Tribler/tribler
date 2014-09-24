@@ -459,12 +459,13 @@ class TunnelCommunity(Community):
             self.destroy_relay(to_remove, got_destroy_from=got_destroy_from)
 
         for cid in to_remove:
-            self._logger.error(("TunnelCommunity: removing relay %d " + additional_info) % cid)
-            # Remove the relay
-            del self.relay_from_to[cid]
-            # Remove old session key
-            if cid in self.relay_session_keys:
-                del self.relay_session_keys[cid]
+            if cid in self.relay_from_to:
+                self._logger.error(("TunnelCommunity: removing relay %d " + additional_info) % cid)
+                # Remove the relay
+                del self.relay_from_to[cid]
+                # Remove old session key
+                if cid in self.relay_session_keys:
+                    del self.relay_session_keys[cid]
             else:
                 self._logger.error(("TunnelCommunity: could not remove relay %d " + additional_info) % circuit_id)
 
@@ -492,7 +493,8 @@ class TunnelCommunity(Community):
 
     def destroy_relay(self, circuit_ids, reason=0, got_destroy_from=None):
         relays = {cid_from:(self.relay_from_to[cid_from].circuit_id,
-                            self.relay_from_to[cid_from].sock_addr) for cid_from in circuit_ids}
+                            self.relay_from_to[cid_from].sock_addr) for cid_from in circuit_ids
+                  if cid_from in self.relay_from_to}
 
         if got_destroy_from and got_destroy_from not in relays.values():
             self._logger.error("TunnelCommunity: %s not allowed send destroy for circuit %s",
