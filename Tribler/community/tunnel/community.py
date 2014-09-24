@@ -77,7 +77,7 @@ class PingRequestCache(RandomNumberCache):
     def on_timeout(self):
         if self.circuit.last_incoming < time.time() - self.timeout_delay:
             self._logger.debug("ForwardCommunity: no response on ping, circuit %d timed out", self.circuit.circuit_id)
-            self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout', destroy=True)
+            self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout')
 
 
 class StatsRequestCache(RandomNumberCache):
@@ -304,7 +304,7 @@ class TunnelCommunity(Community):
         for circuit_id in self.circuits.keys():
             self.remove_circuit(circuit_id, destroy=True)
         for circuit_id in self.relay_from_to.keys():
-            self.remove_relay(circuit_id)
+            self.remove_relay(circuit_id, destroy=True)
         for circuit_id in self.exit_sockets.keys():
             self.remove_exit_socket(circuit_id, destroy=True)
 
@@ -363,11 +363,11 @@ class TunnelCommunity(Community):
         # Remove circuits that are inactive / are too old / have transferred too many bytes.
         for key, circuit in self.circuits.items():
             if circuit.last_incoming < time.time() - self.settings.max_time_inactive:
-                self.remove_circuit(key, 'no activity', destroy=True)
+                self.remove_circuit(key, 'no activity')
             elif circuit.creation_time < time.time() - self.settings.max_time:
-                self.remove_circuit(key, 'too old', destroy=True)
+                self.remove_circuit(key, 'too old')
             elif circuit.bytes_up + circuit.bytes_down > self.settings.max_traffic:
-                self.remove_circuit(key, 'traffic limit exceeded', destroy=True)
+                self.remove_circuit(key, 'traffic limit exceeded')
 
         # Remove relays that are inactive / are too old / have transferred too many bytes.
         for key, relay in self.relay_from_to.items():
@@ -447,9 +447,16 @@ class TunnelCommunity(Community):
             return True
         return False
 
-    def remove_relay(self, circuit_id, additional_info='', got_destroy_from=None):
+    def remove_relay(self, circuit_id, additional_info='', destroy=False, got_destroy_from=None):
+        # Find other side of relay
+        to_remove = [circuit_id]
+        for k, v in self.relay_from_to.iteritems():
+            if circuit_id == v.circuit_id:
+                to_remove.append(k)
+
         # Send destroy
-        to_remove = self.destroy_relay(circuit_id, got_destroy_from=got_destroy_from)
+        if destroy:
+            self.destroy_relay(to_remove, got_destroy_from=got_destroy_from)
 
         for cid in to_remove:
             self._logger.error(("TunnelCommunity: removing relay %d " + additional_info) % cid)
@@ -483,28 +490,20 @@ class TunnelCommunity(Community):
             self.send_destroy(Candidate(sock_addr, False), circuit_id, reason)
             self._logger.error("TunnelCommunity: destroy_circuit %s %s", circuit_id, sock_addr)
 
-    def destroy_relay(self, circuit_id, reason=0, got_destroy_from=None):
-        to_remove = []
-        if circuit_id in self.relay_from_to:
-            relays = {}
-            relays[circuit_id] = (self.relay_from_to[circuit_id].circuit_id, self.relay_from_to[circuit_id].sock_addr)
+    def destroy_relay(self, circuit_ids, reason=0, got_destroy_from=None):
+        relays = {cid_from:(self.relay_from_to[cid_from].circuit_id,
+                            self.relay_from_to[cid_from].sock_addr) for cid_from in circuit_ids}
 
-            for k, v in self.relay_from_to.iteritems():
-                if circuit_id == v.circuit_id:
-                    relays[k] = (v.circuit_id, v.sock_addr)
+        if got_destroy_from and got_destroy_from not in relays.values():
+            self._logger.error("TunnelCommunity: %s not allowed send destroy for circuit %s",
+                               *reversed(got_destroy_from))
+            return
 
-            if got_destroy_from and got_destroy_from not in relays.values():
-                self._logger.error("TunnelCommunity: %s not allowed send destroy for circuit %s",
-                                   *reversed(got_destroy_from))
-                return
-
-            for cid_from, (cid_to, sock_addr) in relays.iteritems():
-                self._logger.error("TunnelCommunity: found relay %s -> %s (%s)", cid_from, cid_to, sock_addr)
-                if (cid_to, sock_addr) != got_destroy_from:
-                    self.send_destroy(Candidate(sock_addr, False), cid_to, reason)
-                    self._logger.error("TunnelCommunity: fw destroy to %s %s", cid_to, sock_addr)
-                to_remove.append(cid_from)
-        return to_remove
+        for cid_from, (cid_to, sock_addr) in relays.iteritems():
+            self._logger.error("TunnelCommunity: found relay %s -> %s (%s)", cid_from, cid_to, sock_addr)
+            if (cid_to, sock_addr) != got_destroy_from:
+                self.send_destroy(Candidate(sock_addr, False), cid_to, reason)
+                self._logger.error("TunnelCommunity: fw destroy to %s %s", cid_to, sock_addr)
 
     def destroy_exit_socket(self, circuit_id, reason=0):
         if circuit_id in self.exit_sockets:
@@ -862,7 +861,7 @@ class TunnelCommunity(Community):
             self._logger.error("TunnelCommunity: got destroy from %s for circuit %s", message.candidate, circuit_id)
 
             if circuit_id in self.relay_from_to:
-                self.remove_relay(circuit_id, "got destroy", (circuit_id, cand_sock_addr))
+                self.remove_relay(circuit_id, "got destroy", True, (circuit_id, cand_sock_addr))
 
             elif circuit_id in self.exit_sockets:
                 self._logger.error("TunnelCommunity: got an exit socket %s %s", circuit_id, cand_sock_addr)
