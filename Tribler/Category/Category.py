@@ -6,19 +6,19 @@ import re
 import logging
 
 from Tribler import LIBRARYNAME
-from Tribler.Category.init_category import getCategoryInfo
+from Tribler.Category.init_category import get_category_info
 from Tribler.Category.FamilyFilter import XXXFilter
 
 CATEGORY_CONFIG_FILE = "category.conf"
 
 
-class Category:
+class Category(object):
 
     # Code to make this a singleton
     __single = None
-    __size_change = 1024 * 1024
+    SIZE_CHANGE = 1024 * 1024
 
-    def __init__(self, install_dir='.', ffEnabled=False):
+    def __init__(self, install_dir='.', ff_enabled=False):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         if Category.__single:
@@ -26,7 +26,7 @@ class Category:
         filename = os.path.join(install_dir, LIBRARYNAME, 'Category', CATEGORY_CONFIG_FILE)
         Category.__single = self
         try:
-            self.category_info = getCategoryInfo(filename)
+            self.category_info = get_category_info(filename)
             self.category_info.sort(cmp_rank)
         except:
             self.category_info = []
@@ -34,9 +34,9 @@ class Category:
 
         self.xxx_filter = XXXFilter(install_dir)
 
-        self._logger.debug("category: Categories defined by user: %s", self.getCategoryNames())
+        self._logger.debug("category: Categories defined by user: %s", self.get_category_names())
 
-        self.ffEnabled = ffEnabled
+        self.ff_enabled = ff_enabled
         self.set_family_filter(None)
 
     # return Category instance
@@ -50,20 +50,20 @@ class Category:
         Category.__single = None
     delInstance = staticmethod(delInstance)
 
-    def getCategoryNames(self, filter=True):
+    def get_category_names(self, to_filter=True):
         if self.category_info is None:
             return []
         keys = []
         for category in self.category_info:
             rank = category['rank']
-            if rank == -1 and filter:
+            if rank == -1 and to_filter:
                 break
             keys.append((category['name'], category['displayname']))
         return keys
 
     # calculate the category for a given torrent_dict of a torrent file
     # return list
-    def calculateCategory(self, torrent_dict, display_name):
+    def calculate_category(self, torrent_dict, display_name):
         # torrent_dict is the  dict of
         # a torrent file
         # return value: list of category the torrent belongs to
@@ -72,26 +72,28 @@ class Category:
         try:
             # the multi-files mode
             for ifiles in torrent_dict['info']["files"]:
-                files_list.append((ifiles['path'][-1], ifiles['length'] / float(self.__size_change)))
+                files_list.append((ifiles['path'][-1], ifiles['length'] / float(Category.SIZE_CHANGE)))
         except KeyError:
             # single mode
-            files_list.append((torrent_dict['info']["name"], torrent_dict['info']['length'] / float(self.__size_change)))
+            files_list.append((torrent_dict['info']["name"],
+                               torrent_dict['info']['length'] / float(Category.SIZE_CHANGE)))
 
         tracker = torrent_dict.get('announce')
         if not tracker:
             tracker = torrent_dict.get('announce-list', [['']])[0][0]
 
         comment = torrent_dict.get('comment')
-        return self.calculateCategoryNonDict(files_list, display_name, tracker, comment)
+        return self.calculate_category_nondict(files_list, display_name, tracker, comment)
 
-    def calculateCategoryNonDict(self, files_list, display_name, tracker, comment):
+    def calculate_category_nondict(self, files_list, display_name, tracker, comment):
         # Check xxx
         try:
 
             if self.xxx_filter.is_xxx_torrent(files_list, display_name, tracker, comment):
                 return ['xxx']
         except:
-            self._logger.critical('Category: Exception in explicit terms filter in torrent: %s', display_name, exc_info=True)
+            self._logger.critical('Category: Exception in explicit terms filter in torrent: %s',
+                                  display_name, exc_info=True)
 
         torrent_category = None
         # filename_list ready
@@ -102,7 +104,7 @@ class Category:
                 torrent_category = [category['name']]
                 strongest_cat = strength
 
-        if torrent_category == None:
+        if torrent_category is None:
             torrent_category = ['other']
 
         return torrent_category
@@ -110,77 +112,75 @@ class Category:
     # judge whether a torrent file belongs to a certain category
     # return bool
     def judge(self, category, files_list, display_name=''):
-
         # judge file keywords
         display_name = display_name.lower()
         factor = 1.0
-        fileKeywords = self._getWords(display_name)
+        file_keywords = self._get_words(display_name)
 
         for ikeywords in category['keywords'].keys():
             try:
-                fileKeywords.index(ikeywords)
+                file_keywords.index(ikeywords)
                 factor *= 1 - category['keywords'][ikeywords]
             except:
                 pass
         if (1 - factor) > 0.5:
             if 'strength' in category:
-                return (True, category['strength'])
+                return True, category['strength']
             else:
-                return (True, (1 - factor))
+                return True, (1 - factor)
 
         # judge each file
-        matchSize = 0
-        totalSize = 1e-19
+        match_size = 0
+        total_size = 1e-19
         for name, length in files_list:
-            totalSize += length
+            total_size += length
             # judge file size
-            if (length < category['minfilesize']) or \
-                    (category['maxfilesize'] > 0 and length > category['maxfilesize']):
+            if length < category['minfilesize'] or 0 < category['maxfilesize'] < length:
                 continue
 
             # judge file suffix
-            OK = False
+            is_ok = False
             for isuffix in category['suffix']:
                 if name.lower().endswith(isuffix):
-                    OK = True
+                    is_ok = True
                     break
-            if OK:
-                matchSize += length
+            if is_ok:
+                match_size += length
                 continue
 
             # judge file keywords
             factor = 1.0
-            fileKeywords = self._getWords(name.lower())
+            file_keywords = self._get_words(name.lower())
 
             for ikeywords in category['keywords'].keys():
                 try:
-                    fileKeywords.index(ikeywords)
+                    file_keywords.index(ikeywords)
                     # print ikeywords
                     factor *= 1 - category['keywords'][ikeywords]
                 except:
                     pass
             if factor < 0.5:
-                matchSize += length
+                match_size += length
 
         # match file
-        if (matchSize / totalSize) >= category['matchpercentage']:
+        if (match_size / total_size) >= category['matchpercentage']:
             if 'strength' in category:
-                return (True, category['strength'])
+                return True, category['strength']
             else:
-                return (True, (matchSize / totalSize))
+                return True, (match_size / total_size)
 
-        return (False, 0)
+        return False, 0
 
     WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 
-    def _getWords(self, string):
+    def _get_words(self, string):
         return self.WORDS_REGEXP.findall(string)
 
     def family_filter_enabled(self):
         """
         Return is xxx filtering is enabled in this client
         """
-        return self.ffEnabled
+        return self.ff_enabled
 
     def set_family_filter(self, b=None):
         assert b in (True, False, None)
@@ -189,7 +189,7 @@ class Category:
             if b is None:
                 b = old
 
-            self.ffEnabled = b
+            self.ff_enabled = b
 
             # change category data
             for category in self.category_info:
@@ -201,13 +201,15 @@ class Category:
                         category['rank'] = category['old-rank']
                     break
 
-    def get_family_filter_sql(self, _getCategoryID, table_name=''):
+    def get_family_filter_sql(self, get_category_id_func, table_name=''):
         if self.family_filter_enabled():
             forbiddencats = [cat['name'] for cat in self.category_info if cat['rank'] == -1]
             if table_name:
                 table_name += '.'
             if forbiddencats:
-                return " and %scategory_id not in (%s)" % (table_name, ','.join([str(_getCategoryID([cat])) for cat in forbiddencats]))
+                return " and %scategory_id not in (%s)" % (table_name,
+                                                           ','.join([str(get_category_id_func([cat]))
+                                                                     for cat in forbiddencats]))
         return ''
 
 

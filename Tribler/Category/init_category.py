@@ -16,7 +16,7 @@ def __split_list(string):
 INIT_FUNC_DICT = {
     "minfilenumber": int,
     "maxfilenumber": int,
-    "minfilesize":int,
+    "minfilesize": int,
     "maxfilesize": int,
     "suffix": __split_list,
     "matchpercentage": float,
@@ -28,16 +28,15 @@ INIT_FUNC_DICT = {
 
 
 def __get_default():
-    category = {}
-    category["name"] = ""
-    category["keywords"] = {}
-    category["suffix"] = []
-    category["minfilesize"] = 0
-    category["maxfilesize"] = -1
+    category = {"name": "",
+                "keywords": {},
+                "suffix": [],
+                "minfilesize": 0,
+                "maxfilesize": -1}
     return category
 
 
-def getCategoryInfo(filename):
+def get_category_info(filename):
     config = ConfigParser.ConfigParser()
     config.readfp(open(filename))
 

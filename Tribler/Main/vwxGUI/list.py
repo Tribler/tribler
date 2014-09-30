@@ -805,7 +805,7 @@ class List(wx.BoxSizer):
 
     def LoadEnabledCategoryIDs(self):
         misc_db = self.guiutility.utility.session.open_dbhandler(NTFY_MISC)
-        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
+        enabled_category_keys = [key.lower() for key, _ in self.category.get_category_names()]
         self.enabled_category_ids = set([0, 8])
         for key, id in misc_db._category_name2id_dict.iteritems():
             if key.lower() in enabled_category_keys:
@@ -1392,7 +1392,7 @@ class SearchList(GenericSearchList):
 
         misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
-        for key, name in self.category.getCategoryNames(filter=False):
+        for key, name in self.category.get_category_names(to_filter=False):
             if key in misc_db._category_name2id_dict:
                 self.category_names[misc_db._category_name2id_dict[key]] = name
         self.category_names[8] = 'Other'

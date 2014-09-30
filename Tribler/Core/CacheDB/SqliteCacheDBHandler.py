@@ -686,7 +686,7 @@ class TorrentDBHandler(BasicDBHandler):
                 # todo: the category_id is calculated directly from
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
-                "category_id": self.misc_db.categoryName2Id(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
+                "category_id": self.misc_db.categoryName2Id(self.category.calculate_category(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
                 "status_id": self.misc_db.torrentStatusName2Id(extra_info.get("status", "unknown")),
                 "comment": torrentdef.get_comment_as_unicode()
                 }

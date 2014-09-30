@@ -257,7 +257,7 @@ class SelectedChannelList(GenericSearchList):
 
         misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
-        for key, name in Category.getInstance().getCategoryNames(filter=False):
+        for key, name in Category.getInstance().get_category_names(to_filter=False):
             if key in misc_db._category_name2id_dict:
                 self.category_names[misc_db._category_name2id_dict[key]] = name
         self.category_names[8] = 'Other'
