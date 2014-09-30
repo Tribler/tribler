@@ -2167,8 +2167,9 @@ CREATE TABLE MetadataData (
                         insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
                         self.executemany(insert, list(newly_found_tracker_set))
 
-                        from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
-                        notifier = Notifier.getInstance()
+                        from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT
+                        from Tribler.Core.Session import Session
+                        notifier = Session.get_instance().uch.notifier
                         notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, list(newly_found_tracker_set))
 
                     # load tracker dictionary

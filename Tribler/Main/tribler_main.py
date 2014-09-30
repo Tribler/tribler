@@ -44,7 +44,6 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
 from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
-from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
 from threading import currentThread, Thread
@@ -187,6 +186,7 @@ class ABCApp():
 
             self.splash.tick('Starting API')
             s = self.startAPI(self.splash.tick)
+            self.session = s
 
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
@@ -658,7 +658,7 @@ class ABCApp():
                         if destdir != coldir:
                             hash = cdef.get_id()
 
-                            notifier = Notifier.getInstance()
+                            notifier = self.session.uch.notifier
                             notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
 
                             # Arno, 2012-05-04: Swift reseeding

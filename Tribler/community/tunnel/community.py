@@ -234,8 +234,7 @@ class TunnelCommunity(Community):
 
     def start_download_test(self):
         if self.tribler_session:
-            from Tribler.Core.CacheDB.Notifier import Notifier
-            self.notifier = Notifier.getInstance()
+            self.notifier = self.tribler_session.uch.notifier
 
             if self.tribler_session.get_libtorrent():
                 self.libtorrent_test = LibtorrentTest(self, self.tribler_session)

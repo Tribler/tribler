@@ -20,7 +20,6 @@ from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.Utilities.Crypto import sha
-from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
 
 if sys.platform == "win32":
@@ -173,7 +172,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.handle = None
         self.vod_index = None
 
-        self.notifier = Notifier.getInstance()
+        self.notifier = session.uch.notifier
 
         # Just enough so error saving and get_state() works
         self.error = None

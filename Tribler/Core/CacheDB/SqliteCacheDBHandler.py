@@ -21,7 +21,6 @@ from twisted.internet.base import DelayedCall
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
 
-from Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords, filter_keywords
@@ -76,14 +75,15 @@ class BasicDBHandler(TaskManager):
     _singleton_lock = RLock()
     _single = None
 
-    def __init__(self, db, table_name):  # # self, table_name
+    def __init__(self, session, db, table_name):  # # self, table_name
         super(BasicDBHandler, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self.session = session
         self._db = db  # # SQLiteCacheDB.getInstance()
         self.table_name = table_name
-        self.notifier = Notifier.getInstance()
+        self.notifier = session.uch.notifier
 
     @classmethod
     def getInstance(cls, *args, **kargs):
@@ -125,11 +125,10 @@ class BasicDBHandler(TaskManager):
 
 class MiscDBHandler(BasicDBHandler):
 
-    def __init__(self):
+    def __init__(self, session, db):
         if MiscDBHandler._single:
             raise RuntimeError("MiscDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, None)
+        BasicDBHandler.__init__(self, session, db, None)
 
         self.initialize()
 
@@ -204,11 +203,10 @@ class MiscDBHandler(BasicDBHandler):
 
 class MetadataDBHandler(BasicDBHandler):
 
-    def __init__(self, session):
+    def __init__(self, session, db):
         if MetadataDBHandler._single:
             raise RuntimeError("MetadataDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, None)
+        BasicDBHandler.__init__(self, session, db, None)
         self.category = session.module_manager.get_category()
         self.misc_db = MiscDBHandler.getInstance()
         self.torrent_db = TorrentDBHandler.getInstance()
@@ -319,11 +317,10 @@ class MetadataDBHandler(BasicDBHandler):
 
 class PeerDBHandler(BasicDBHandler):
 
-    def __init__(self):
+    def __init__(self, session, db):
         if PeerDBHandler._single:
             raise RuntimeError("PeerDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Peer')
+        BasicDBHandler.__init__(self, session, db, 'Peer')
 
         self.permid_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
 
@@ -457,12 +454,11 @@ class PeerDBHandler(BasicDBHandler):
 
 class TorrentDBHandler(BasicDBHandler):
 
-    def __init__(self, session):
+    def __init__(self, session, db):
         if TorrentDBHandler._single is not None:
             raise RuntimeError("TorrentDBHandler is singleton")
 
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Torrent')  # # self,db,torrent
+        BasicDBHandler.__init__(self, session, db, 'Torrent')  # # self,db,torrent
 
         self.torrent_dir = None
 
@@ -1710,11 +1706,10 @@ class TorrentDBHandler(BasicDBHandler):
 
 class MyPreferenceDBHandler(BasicDBHandler):
 
-    def __init__(self):
+    def __init__(self, session, db):
         if MyPreferenceDBHandler._single is not None:
             raise RuntimeError("MyPreferenceDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'MyPreference')  # # self,db,'MyPreference'
+        BasicDBHandler.__init__(self, session, db, 'MyPreference')  # # self,db,'MyPreference'
 
         self.status_good = MiscDBHandler.getInstance().torrentStatusName2Id(u'good')
         self.rlock = threading.RLock()
@@ -1869,10 +1864,9 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
 class VoteCastDBHandler(BasicDBHandler):
 
-    def __init__(self):
+    def __init__(self, session, db):
         try:
-            db = SQLiteCacheDB.getInstance()
-            BasicDBHandler.__init__(self, db, 'VoteCast')
+            BasicDBHandler.__init__(self, session, db, 'VoteCast')
             self._logger.debug("votecast: DB made")
         except:
             self._logger.error("votecast: couldn't make the table")
@@ -1991,10 +1985,9 @@ class VoteCastDBHandler(BasicDBHandler):
 
 class ChannelCastDBHandler(BasicDBHandler):
 
-    def __init__(self):
+    def __init__(self, session, db):
         try:
-            db = SQLiteCacheDB.getInstance()
-            BasicDBHandler.__init__(self, db, '_Channels')
+            BasicDBHandler.__init__(self, session, db, '_Channels')
             self._logger.debug("Channels: DB made")
         except:
             self._logger.error("Channels: couldn't make the table")
@@ -2970,11 +2963,10 @@ class UserEventLogDBHandler(BasicDBHandler):
     # when this maximum is reached, approx. 50% of the entries are deleted.
     MAX_EVENTS = 2 * 10000
 
-    def __init__(self):
+    def __init__(self, session, db):
         if UserEventLogDBHandler._single is not None:
             raise RuntimeError("UserEventLogDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'UserEventLog')
+        BasicDBHandler.__init__(self, session, db, 'UserEventLog')
 
         self.count = -1
 
@@ -3018,11 +3010,10 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
     storing a chosen bundle method for a particular query.
     """
 
-    def __init__(self):
+    def __init__(self, session, db):
         if BundlerPreferenceDBHandler._single is not None:
             raise RuntimeError("BundlerPreferenceDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'BundlerPreference')
+        BasicDBHandler.__init__(self, session, db, 'BundlerPreference')
 
     def storePreference(self, keywords, bundle_mode):
         query = ' '.join(sorted(set(keywords)))

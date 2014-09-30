@@ -14,7 +14,6 @@ from traceback import print_exc
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, \
     DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING, \
     DLMODE_VOD
-from Tribler.Core.CacheDB.Notifier import Notifier
 
 from Tribler.Main.vwxGUI import forceWxThread, warnWxThread, \
     SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
@@ -143,7 +142,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             vSizer.Add(self.ctrlpanel, 0, wx.ALIGN_BOTTOM | wx.EXPAND)
 
-            self.notifier = Notifier.getInstance()
+            self.notifier = utility.session.uch.notifier
 
         self.SetSizer(vSizer)
 

@@ -21,9 +21,6 @@ class Notifier(object):
     __single = None
 
     def __init__(self, pool=None):
-        if Notifier.__single:
-            raise RuntimeError("Notifier is singleton")
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.pool = pool
@@ -32,20 +29,6 @@ class Notifier(object):
         self.observer_cache = {}
         self.observer_timers = {}
         self._lock = threading.Lock()
-
-        Notifier.__single = self
-
-    def getInstance(*args, **kw):
-        if Notifier.__single is None:
-            Notifier(*args, **kw)
-        return Notifier.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        if Notifier.__single:
-            Notifier.__single.remove_observers()
-        Notifier.__single = None
-    delInstance = staticmethod(delInstance)
 
     def add_observer(self, func, subject, change_types=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], sub_id=None, cache=0):
         """

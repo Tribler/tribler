@@ -26,11 +26,13 @@ class UserCallbackHandler(object):
 
     def shutdown(self):
         # stop threadpool
-        self.notifier.remove_observers()
-        self.notifier = None
+        if self.notifier is not None:
+            self.notifier.remove_observers()
+            self.notifier = None
 
-        self.threadpool.joinAll()
-        self.threadpool = None
+        if self.threadpool is not None:
+            self.threadpool.joinAll()
+            self.threadpool = None
 
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
         """ Called by network thread """
@@ -58,7 +60,8 @@ class UserCallbackHandler(object):
 
     def perform_usercallback(self, target):
         # TODO: thread pool, etc.
-        self.threadpool.queueTask(target)
+        if self.threadpool is not None:
+            self.threadpool.queueTask(target)
 
     def sesscb_removestate(self, infohash, contentdests):
         """  See DownloadImpl.setup().

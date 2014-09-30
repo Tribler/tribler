@@ -93,7 +93,11 @@ class TriblerLaunchMany(Thread):
             # TODO(emilon): move this to a megacache component or smth
             if self.session.get_megacache():
                 import Tribler.Core.CacheDB.sqlitecachedb as cachedb
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, UserEventLogDBHandler, MiscDBHandler, MetadataDBHandler
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import (PeerDBHandler, TorrentDBHandler,
+                                                                       MyPreferenceDBHandler, VoteCastDBHandler,
+                                                                       ChannelCastDBHandler, UserEventLogDBHandler,
+                                                                       MiscDBHandler, MetadataDBHandler,
+                                                                       BundlerPreferenceDBHandler)
                 from Tribler.Core.Tag.Extraction import TermExtraction
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
@@ -104,19 +108,22 @@ class TriblerLaunchMany(Thread):
 
                 self.term = TermExtraction.getInstance(self.session.get_install_dir())
 
-                self.misc_db = MiscDBHandler.getInstance()
-                self.peer_db = PeerDBHandler.getInstance()
+                self.misc_db = MiscDBHandler.getInstance(self.session, nocachedb)
+                self.peer_db = PeerDBHandler.getInstance(self.session, nocachedb)
+                self.bundle_db = BundlerPreferenceDBHandler.getInstance(self.session, nocachedb)
 
-                self.torrent_db = TorrentDBHandler.getInstance(self.session)
-                self.metadata_db = MetadataDBHandler.getInstance(self.session)
+                self.torrent_db = TorrentDBHandler.getInstance(self.session, nocachedb)
+                self.metadata_db = MetadataDBHandler.getInstance(self.session, nocachedb)
 
-                self.torrent_db.register(os.path.abspath(self.session.get_torrent_collecting_dir()))
-                self.mypref_db = MyPreferenceDBHandler.getInstance()
-                self.votecast_db = VoteCastDBHandler.getInstance()
+                self.mypref_db = MyPreferenceDBHandler.getInstance(self.session, nocachedb)
+                self.votecast_db = VoteCastDBHandler.getInstance(self.session, nocachedb)
+                self.channelcast_db = ChannelCastDBHandler.getInstance(self.session, nocachedb)
+
                 self.votecast_db.registerSession(self.session)
-                self.channelcast_db = ChannelCastDBHandler.getInstance()
                 self.channelcast_db.registerSession(self.session)
-                self.ue_db = UserEventLogDBHandler.getInstance()
+                self.torrent_db.register(os.path.abspath(self.session.get_torrent_collecting_dir()))
+
+                self.ue_db = UserEventLogDBHandler.getInstance(self.session, nocachedb)
 
             self.rtorrent_handler = None
             if self.session.get_torrent_collecting():
@@ -683,7 +690,6 @@ class TriblerLaunchMany(Thread):
             self.votecast_db.delInstance()
             self.channelcast_db.delInstance()
             self.ue_db.delInstance()
-            self.cat.delInstance()
             self.term.delInstance()
 
         # SWIFTPROC

@@ -14,7 +14,6 @@ from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.Utilities.utilities import parse_magnetlink
-from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
 
 DEBUG = False
@@ -36,7 +35,7 @@ class LibtorrentMgr:
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.trsession = trsession
-        self.notifier = Notifier.getInstance()
+        self.notifier = trsession.uch.notifier
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
