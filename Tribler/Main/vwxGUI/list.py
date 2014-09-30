@@ -821,7 +821,7 @@ class List(wx.BoxSizer):
                 result = category in self.enabled_category_ids
 
             elif isinstance(item[2], Channel):
-                result = not self.category.xxx_filter.isXXX(item[2].name, False)
+                result = not self.category.xxx_filter.is_xxx(item[2].name, False)
 
         if not result:
             self.cur_nr_filtered += 1
@@ -1492,8 +1492,8 @@ class SearchList(GenericSearchList):
         # We need to filter here, as otherwise our top-3 associated channels could only consist of
         # xxx channels, which will be filtered afterwards. Resulting in no channels being shown.
         def channelFilter(channel):
-            isXXX = self.category.xxx_filter.isXXX(channel.name, False)
-            return not isXXX
+            is_xxx = self.category.xxx_filter.is_xxx(channel.name, False)
+            return not is_xxx
 
         if self.guiutility.getFamilyFilter():
             associated = filter(channelFilter, associated)
@@ -1534,7 +1534,7 @@ class SearchList(GenericSearchList):
 
     def CalcXXXKeywords(self):
         if self.keywords and self.guiutility.getFamilyFilter():
-            self.xxx_keywords = any(self.category.xxx_filter.isXXX(keyword, False) for keyword in self.keywords)
+            self.xxx_keywords = any(self.category.xxx_filter.is_xxx(keyword, False) for keyword in self.keywords)
         else:
             self.xxx_keywords = False
 

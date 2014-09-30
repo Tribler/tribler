@@ -88,7 +88,7 @@ class Category:
         # Check xxx
         try:
 
-            if self.xxx_filter.isXXXTorrent(files_list, display_name, tracker, comment):
+            if self.xxx_filter.is_xxx_torrent(files_list, display_name, tracker, comment):
                 return ['xxx']
         except:
             self._logger.critical('Category: Exception in explicit terms filter in torrent: %s', display_name, exc_info=True)
