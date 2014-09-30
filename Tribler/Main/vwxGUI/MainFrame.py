@@ -25,8 +25,6 @@ import time
 from traceback import print_exc, print_stack
 import urllib
 
-from Tribler.Category.Category import Category
-
 from Tribler.Core.version import version_id
 from Tribler.Core.simpledefs import dlstatus_strings, NTFY_MYPREFERENCES, \
     DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_SEEDING, \
@@ -135,7 +133,6 @@ class MainFrame(wx.Frame):
         self.params = self.guiUtility.params
         self.utility.frame = self
         self.torrentfeed = None
-        self.category = Category.getInstance()
         self.shutdown_and_upgrade_notes = None
 
         self.guiserver = GUITaskQueue.getInstance()

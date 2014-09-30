@@ -94,7 +94,6 @@ class TriblerLaunchMany(Thread):
             if self.session.get_megacache():
                 import Tribler.Core.CacheDB.sqlitecachedb as cachedb
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, UserEventLogDBHandler, MiscDBHandler, MetadataDBHandler
-                from Tribler.Category.Category import Category
                 from Tribler.Core.Tag.Extraction import TermExtraction
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
@@ -103,15 +102,14 @@ class TriblerLaunchMany(Thread):
 
                 nocachedb.initialBegin()
 
-                self.cat = Category.getInstance(self.session.get_install_dir())
                 self.term = TermExtraction.getInstance(self.session.get_install_dir())
 
                 self.misc_db = MiscDBHandler.getInstance()
-                self.metadata_db = MetadataDBHandler.getInstance()
-
                 self.peer_db = PeerDBHandler.getInstance()
 
-                self.torrent_db = TorrentDBHandler.getInstance()
+                self.torrent_db = TorrentDBHandler.getInstance(self.session)
+                self.metadata_db = MetadataDBHandler.getInstance(self.session)
+
                 self.torrent_db.register(os.path.abspath(self.session.get_torrent_collecting_dir()))
                 self.mypref_db = MyPreferenceDBHandler.getInstance()
                 self.votecast_db = VoteCastDBHandler.getInstance()

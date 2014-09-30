@@ -9,6 +9,7 @@ import socket
 import sys
 
 from Tribler.Core import NoDispersyRLock
+from Tribler.Core.ModuleManager import ModuleManager
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
@@ -157,6 +158,8 @@ class Session(SessionConfigInterface):
         # Create handler for calling back the user via separate threads
         self.uch = UserCallbackHandler(self)
         self.lm = None
+
+        self.module_manager = ModuleManager(self)
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()

@@ -10,8 +10,6 @@ from wx.lib.wordwrap import wordwrap
 from time import time
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Category.Category import Category
-
 from Tribler.Core.simpledefs import NTFY_MISC, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
     DLSTATUS_HASHCHECKING
@@ -482,7 +480,7 @@ class List(wx.BoxSizer):
 
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
-        self.category = Category.getInstance()
+        self.category = self.guiutility.utility.session.module_manager.get_category()
 
         self.leftLine = self.rightLine = None
         self.parent = parent
@@ -1370,7 +1368,7 @@ class SearchList(GenericSearchList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.session = self.guiutility.utility.session
-        self.category = Category.getInstance()
+        self.category = self.session.module_manager.get_category()
 
         self.total_channels = None
         self.keywords = None

@@ -13,7 +13,6 @@ import binascii
 from time import strftime, time
 from traceback import print_exc
 
-from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, \
     NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
 from Tribler.Core.Session import Session
@@ -513,6 +512,8 @@ class PopularTorrentPanel(NewTorrentPanel):
         HomePanel.__init__(self, parent, 'Popular Torrents', SEPARATOR_GREY, (1, 0))
         self.Layout()
 
+        self.category = self.guiutility.utility.session.module_manager.get_category()
+
         self.misc_db = MiscDBHandler.getInstance()
         self.torrentdb = TorrentDBHandler.getInstance()
 
@@ -527,7 +528,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
     def RefreshList(self):
         def db_callback():
-            familyfilter_sql = Category.getInstance().get_family_filter_sql(self.misc_db.categoryName2Id)
+            familyfilter_sql = self.category.get_family_filter_sql(self.misc_db.categoryName2Id)
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 

@@ -10,7 +10,6 @@ from traceback import print_exc
 
 import wx
 
-from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Search.Bundler import Bundler
@@ -89,7 +88,7 @@ class TorrentManager:
         self.bundle_mode = None
         self.bundle_mode_changed = True
 
-        self.category = Category.getInstance()
+        self.category = guiUtility.utility.session.module_manager.get_category()
         self.xxx_category = 0
 
     def getInstance(*args, **kw):
@@ -1292,7 +1291,7 @@ class ChannelManager:
     # Code to make this a singleton
     __single = None
 
-    def __init__(self):
+    def __init__(self, gui_utility):
         if ChannelManager.__single:
             raise RuntimeError("ChannelManager is singleton")
         self.connected = False
@@ -1316,7 +1315,7 @@ class ChannelManager:
         self.searchkeywords = []
         self.oldsearchkeywords = []
 
-        self.category = Category.getInstance()
+        self.category = gui_utility.utility.session.module_manager.get_category()
 
     def getInstance(*args, **kw):
         if ChannelManager.__single is None:

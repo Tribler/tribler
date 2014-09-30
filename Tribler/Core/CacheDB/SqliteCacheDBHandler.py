@@ -22,7 +22,6 @@ from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
 
 from Notifier import Notifier
-from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords, filter_keywords
@@ -205,12 +204,12 @@ class MiscDBHandler(BasicDBHandler):
 
 class MetadataDBHandler(BasicDBHandler):
 
-    def __init__(self):
+    def __init__(self, session):
         if MetadataDBHandler._single:
             raise RuntimeError("MetadataDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, None)
-        self.category = Category.getInstance()
+        self.category = session.module_manager.get_category()
         self.misc_db = MiscDBHandler.getInstance()
         self.torrent_db = TorrentDBHandler.getInstance()
 
@@ -458,7 +457,7 @@ class PeerDBHandler(BasicDBHandler):
 
 class TorrentDBHandler(BasicDBHandler):
 
-    def __init__(self):
+    def __init__(self, session):
         if TorrentDBHandler._single is not None:
             raise RuntimeError("TorrentDBHandler is singleton")
 
@@ -484,7 +483,7 @@ class TorrentDBHandler(BasicDBHandler):
                 'torrent_file_name', 'length', 'creation_date', 'num_files',
                 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id',
                 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
-        self.category = Category.getInstance()
+        self.category = session.module_manager.get_category()
 
         self.misc_db = MiscDBHandler.getInstance()
         self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None

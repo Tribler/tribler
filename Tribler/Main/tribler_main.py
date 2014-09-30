@@ -80,7 +80,6 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
-from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, \
@@ -189,11 +188,15 @@ class ABCApp():
             self.splash.tick('Starting API')
             s = self.startAPI(self.splash.tick)
 
-            self._logger.info("Tribler is expecting swift in %s", self.sconfig.get_swift_path())
-
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
+
+            self.splash.tick('Initializing Family Filter')
+            s.module_manager.initialise(self.utility)
+
+            self._logger.info("Tribler is expecting swift in %s", self.sconfig.get_swift_path())
+
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
 
@@ -220,18 +223,6 @@ class ABCApp():
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
             UserDownloadChoice.get_singleton().set_utility(self.utility)
-
-            self.splash.tick('Initializing Family Filter')
-            cat = Category.getInstance()
-
-            state = self.utility.read_config('family_filter')
-            if state in (1, 0):
-                cat.set_family_filter(state == 1)
-            else:
-                self.utility.write_config('family_filter', 1)
-                self.utility.flush_config()
-
-                cat.set_family_filter(True)
 
             # Create global rate limiter
             self.splash.tick('Setting up ratelimiters')
