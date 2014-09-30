@@ -1350,8 +1350,8 @@ CREATE TABLE MetadataData (
             termcount = {}
             phrases = []  # torrent_id, term1, term2
             for torrent_id, name in records:
-                terms = set(extractor.extractTerms(name))
-                phrase = extractor.extractBiTermPhrase(name)
+                terms = set(extractor.extract_terms(name))
+                phrase = extractor.extract_biterm_phrase(name)
 
                 # count terms
                 for term in terms:

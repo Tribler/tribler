@@ -27,7 +27,7 @@ class StopwordsFilter(object):
         return word in self._stopwords
 
 
-class TermExtraction:
+class TermExtraction(object):
     __single = None
     lock = threading.Lock()
 
@@ -65,7 +65,7 @@ class TermExtraction:
 
         self.domain_terms = set('www net com org'.split())
 
-    def extractTerms(self, name_or_keywords):
+    def extract_terms(self, name_or_keywords):
         """
         Extracts the terms from a torrent name.
 
@@ -79,9 +79,9 @@ class TermExtraction:
         else:
             keywords = name_or_keywords
 
-        return [term for term in keywords if self.isSuitableTerm(term)]
+        return [term for term in keywords if self.is_suitable_term(term)]
 
-    def extractBiTermPhrase(self, name_or_keywords):
+    def extract_biterm_phrase(self, name_or_keywords):
         """
         Extracts a bi-term phrase from a torrent name. Currently, this phrase consists
         of the first two terms extracted from it.
@@ -91,14 +91,14 @@ class TermExtraction:
         @return A tuple containing the two terms of the bi-term phrase. If there is no bi-term,
         i.e. less than two terms were extracted, None is returned.
         """
-        terms = [term for term in self.extractTerms(name_or_keywords)
+        terms = [term for term in self.extract_terms(name_or_keywords)
                  if self.containsdigits_filter.search(term) is None]
         if len(terms) > 1:
             return tuple(terms[:2])
         else:
             return None
 
-    def isSuitableTerm(self, term):
+    def is_suitable_term(self, term):
         """
         Determines if a term is "suitable". Current rules are:
             1. Length of term is at least 3 characters.
