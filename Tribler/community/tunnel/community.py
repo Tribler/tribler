@@ -1,3 +1,6 @@
+# Written by Egbert Bouman
+# Based on ProxyCommunity by Chris Tanaskoski and Rutger Plak (crypto)
+
 import time
 import random
 import logging
@@ -112,7 +115,7 @@ class TunnelExitSocket(DatagramProtocol):
 
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
-            if TunnelConversion.could_be_utp(data) or TunnelConversion.could_be_udp_trackers(data):
+            if TunnelConversion.is_allowed(data):
                 self.transport.write(data, destination)
                 self.community.increase_bytes_sent(self, len(data))
             else:
@@ -121,7 +124,7 @@ class TunnelExitSocket(DatagramProtocol):
     def datagramReceived(self, data, source):
         self.community.increase_bytes_received(self, len(data))
         if self.check_num_packets(source, True):
-            if TunnelConversion.could_be_utp(data) or TunnelConversion.could_be_udp_trackers(data):
+            if TunnelConversion.is_allowed(data):
                 self.community.tunnel_data_to_origin(self.circuit_id, self.destination, source, data)
             else:
                 self._logger.error("TunnelCommunity: dropping forbidden packets to exit socket with circuit_id %d", self.circuit_id)
