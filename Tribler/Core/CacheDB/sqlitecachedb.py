@@ -1692,7 +1692,7 @@ CREATE TABLE MetadataData (
                             fileextensions = set()
                             for filename in torrentdef.get_files_as_unicode():
                                 filename, extension = os.path.splitext(filename)
-                                for keyword in split_into_keywords(filename, filterStopwords=True):
+                                for keyword in split_into_keywords(filename, filter_stopwords=True):
                                     filedict[keyword] = filedict.get(keyword, 0) + 1
 
                                 fileextensions.add(extension[1:])
@@ -1713,7 +1713,7 @@ CREATE TABLE MetadataData (
                                 swarmname, extension = os.path.splitext(swarmname)
                                 fileextensions.add(extension[1:])
 
-                                filenames.extend(split_into_keywords(swarmname, filterStopwords=True))
+                                filenames.extend(split_into_keywords(swarmname, filter_stopwords=True))
 
                         values.append((torrent_id, swarmname, " ".join(filenames), " ".join(fileextensions)))
 

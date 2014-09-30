@@ -7,11 +7,11 @@ import re
 
 # from Tribler.Core.Search.KeywordSearch import KeywordSearch
 
-re_keywordsplit = re.compile(r"[\W_]", re.UNICODE)
-dialog_stopwords = set(['an', 'and', 'by', 'for', 'from', 'of', 'the', 'to', 'with'])
+RE_KEYWORDSPLIT = re.compile(r"[\W_]", re.UNICODE)
+DIALOG_STOPWORDS = set(['an', 'and', 'by', 'for', 'from', 'of', 'the', 'to', 'with'])
 
 
-def split_into_keywords(string, filterStopwords=False):
+def split_into_keywords(string, filter_stopwords=False):
     """
     Takes a (unicode) string and returns a list of (unicode) lowercase
     strings.  No empty strings are returned.
@@ -19,13 +19,14 @@ def split_into_keywords(string, filterStopwords=False):
     We currently split on non-alphanumeric characters and the
     underscore.
 
-    If filterStopwords is True a small stopword filter is using to reduce the number of keywords
+    If filter_stopwords is True a small stopword filter is using to reduce the number of keywords
     """
-    if filterStopwords:
-        return [keyword for keyword in re_keywordsplit.split(string.lower()) if len(keyword) > 0 and keyword not in dialog_stopwords]
+    if filter_stopwords:
+        return [keyword for keyword in RE_KEYWORDSPLIT.split(string.lower())
+                if len(keyword) > 0 and keyword not in DIALOG_STOPWORDS]
 
-    return [keyword for keyword in re_keywordsplit.split(string.lower()) if len(keyword) > 0]
+    return [keyword for keyword in RE_KEYWORDSPLIT.split(string.lower()) if len(keyword) > 0]
 
 
 def filter_keywords(keywords):
-    return [keyword for keyword in keywords if len(keyword) > 0 and keyword not in dialog_stopwords]
+    return [keyword for keyword in keywords if len(keyword) > 0 and keyword not in DIALOG_STOPWORDS]

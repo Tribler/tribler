@@ -741,13 +741,13 @@ class TorrentDBHandler(BasicDBHandler):
 
         # Niels: new method for indexing, replaces invertedindex
         # Making sure that swarmname does not include extension for single file torrents
-        swarm_keywords = " ".join(split_into_keywords(swarmname, filterStopwords=False))
+        swarm_keywords = " ".join(split_into_keywords(swarmname, filter_stopwords=False))
 
         filedict = {}
         fileextensions = set()
         for filename in files:
             filename, extension = os.path.splitext(filename)
-            for keyword in split_into_keywords(filename, filterStopwords=True):
+            for keyword in split_into_keywords(filename, filter_stopwords=True):
                 filedict[keyword] = filedict.get(keyword, 0) + 1
 
             fileextensions.add(extension[1:])
