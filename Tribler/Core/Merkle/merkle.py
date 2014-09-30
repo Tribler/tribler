@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 # External classes
 
 
-class MerkleTree:
+class MerkleTree(object):
 
-    def __init__(self, piece_size, total_length, root_hash=None,hashes=None):
+    def __init__(self, piece_size, total_length, root_hash=None, hashes=None):
         """
         Create a Merkle hash tree
 
@@ -109,7 +109,7 @@ def get_tree_height(npieces):
 
 def create_tree(height):
     # Create tree that has enough leaves to hold all hashes
-    treesize = int(pow(2, height + 1) -1) # subtract unused tail
+    treesize = int(pow(2, height + 1) - 1)  # subtract unused tail
     logger.debug("merkle: treesize %s", treesize)
     tree = ['\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'] * treesize
     return tree
@@ -135,11 +135,11 @@ def fill_tree(tree, height, npieces, hashes):
     # 3. Calculate higher level hashes from leaves
     for level in range(height, 0, -1):
         logger.debug("merkle: calculating level %s", level)
-        for offset in range(int(pow(2, level) - 1), int(pow(2, level +1)-2), 2):
+        for offset in range(int(pow(2, level) - 1), int(pow(2, level + 1) - 2), 2):
             # print >> sys.stderr,"merkle: data offset",offset
             [parentstartoffset, parentoffset] = get_parent_offset(offset, level)
             # print >> sys.stderr,"merkle: parent offset",parentoffset
-            data = tree[offset] + tree[offset +1]
+            data = tree[offset] + tree[offset + 1]
             digester = sha()
             digester.update(data)
             digest = digester.digest()
@@ -179,7 +179,7 @@ def check_tree_path(root_hash, height, hashlist):
     of the right type, and contain values of the right type as well.
     The exact values should be checked for validity here.
     """
-    maxoffset = int(pow(2, height + 1) -2)
+    maxoffset = int(pow(2, height + 1) - 2)
     mystartoffset = int(pow(2, height) - 1)
     i = 0
     a = hashlist[i]
@@ -240,7 +240,7 @@ def check_fork(a, b, level):
 def get_parent_offset(myoffset, level):
     parentstartoffset = int(pow(2, level) - 1)
     mystartoffset = int(pow(2, level + 1) -1)
-    parentoffset = parentstartoffset + (myoffset - mystartoffset) /2
+    parentoffset = parentstartoffset + (myoffset - mystartoffset) / 2
     return [parentstartoffset, parentoffset]
 
 
