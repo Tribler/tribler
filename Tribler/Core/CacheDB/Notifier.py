@@ -96,7 +96,7 @@ class Notifier(object):
 
                                 if events:
                                     if self.pool:
-                                        self.pool.queueTask(func, (events,))
+                                        self.pool.queue_task(func, (events,))
                                     else:
                                         func(events)
 
@@ -114,6 +114,6 @@ class Notifier(object):
         self._lock.release()
         for task in tasks:
             if self.pool:
-                self.pool.queueTask(task, args)
+                self.pool.queue_task(task, args)
             else:
                 task(*args)  # call observer function in this thread

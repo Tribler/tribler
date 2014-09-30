@@ -31,7 +31,7 @@ class UserCallbackHandler(object):
             self.notifier = None
 
         if self.threadpool is not None:
-            self.threadpool.joinAll()
+            self.threadpool.join_all()
             self.threadpool = None
 
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
@@ -61,7 +61,7 @@ class UserCallbackHandler(object):
     def perform_usercallback(self, target):
         # TODO: thread pool, etc.
         if self.threadpool is not None:
-            self.threadpool.queueTask(target)
+            self.threadpool.queue_task(target)
 
     def sesscb_removestate(self, infohash, contentdests):
         """  See DownloadImpl.setup().
