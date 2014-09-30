@@ -2,13 +2,29 @@
 # see LICENSE.txt for license information
 
 import os
+import re
+import threading
 
 from Tribler import LIBRARYNAME
 from Tribler.Core.Search.SearchManager import split_into_keywords
-from Tribler.Core.Tag.StopwordsFilter import StopwordsFilter
 
-import re
-import threading
+
+DEFAULT_STOPWORDS_FILE = os.path.join(LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
+
+
+class StopwordsFilter(object):
+
+    def __init__(self, stopwordsfilename=DEFAULT_STOPWORDS_FILE):
+        file_stream = open(stopwordsfilename, 'r')
+        self._stopwords = set()
+        for line in file_stream:
+            word = line.split('|')[0].rstrip()
+            if word and not word[0].isspace():
+                self._stopwords.add(word)
+        file_stream.close()
+
+    def is_stop_word(self, word):
+        return word in self._stopwords
 
 
 class TermExtraction:
@@ -96,7 +112,7 @@ class TermExtraction:
         """
         if len(term) < 3:
             return False
-        elif self.stopwords_filter.isStopWord(term):
+        elif self.stopwords_filter.is_stop_word(term):
             return False
         elif self.alldigits_filter.match(term) is not None:
             if len(term) == 4:
