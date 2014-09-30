@@ -25,7 +25,7 @@ from Tribler.Core.Video.VLCWrapper import VLCWrapper
 logger = logging.getLogger(__name__)
 
 
-class VideoPlayer:
+class VideoPlayer(object):
 
     __single = None
 
@@ -43,6 +43,9 @@ class VideoPlayer:
         self.vod_fileindex = None
         self.vod_playing = None
         self.vod_info = defaultdict(dict)
+
+        self.player_out = None
+        self.player_in = None
 
         feasible = return_feasible_playback_modes()
         preferredplaybackmode = self.session.get_preferred_playback_mode()
@@ -84,7 +87,8 @@ class VideoPlayer:
         self.internalplayer_callback = callback
 
     def play(self, download, fileindex):
-        url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/' + hexlify(download.get_def().get_id()) + '/' + str(fileindex)
+        url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/' + hexlify(download.get_def().get_id())\
+              + '/' + str(fileindex)
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             self.launch_video_player(url, download)
         else:
@@ -100,21 +104,21 @@ class VideoPlayer:
         dl = ds.get_download() if ds else None
 
         if dl != self.vod_download or not VideoPlayer.hasInstance():
-            return (0, False)
+            return 0, False
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
         dl_def = dl.get_def()
         dl_hash = dl_def.get_id()
 
-        if (bufferprogress >= 1.0 and not self.vod_playing) or (bufferprogress >= 1.0 and self.vod_playing == None):
+        if (bufferprogress >= 1.0 and not self.vod_playing) or (bufferprogress >= 1.0 and self.vod_playing is None):
             self.vod_playing = True
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
-        elif (bufferprogress <= 0.1 and self.vod_playing) or (bufferprogress < 1.0 and self.vod_playing == None):
+        elif (bufferprogress <= 0.1 and self.vod_playing) or (bufferprogress < 1.0 and self.vod_playing is None):
             self.vod_playing = False
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, True))
 
-        if bufferprogress >= 1 and not self.vod_info[dl_hash].has_key('bitrate'):
+        if bufferprogress >= 1 and 'bitrate' not in self.vod_info[dl_hash]:
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_STARTED, (dl_hash, self.vod_fileindex))
 
             # Attempt to estimate the bitrate and duration of the videofile with ffmpeg.
@@ -124,19 +128,19 @@ class VideoPlayer:
             self.vod_info[dl_hash]['bitrate'] = bitrate
             self.vod_info[dl_hash]['duration'] = duration
 
-        return (1, False)
+        return 1, False
 
     def get_vod_stream(self, dl_hash, wait=False):
-        if not self.vod_info[dl_hash].has_key('stream') and self.session.get_download(dl_hash):
+        if 'stream' not in self.vod_info[dl_hash] and self.session.get_download(dl_hash):
             download = self.session.get_download(dl_hash)
             vod_filename = self.get_vod_filename(download)
             while wait and not os.path.exists(vod_filename):
                 time.sleep(1)
             self.vod_info[dl_hash]['stream'] = (VODFile(open(vod_filename, 'rb'), download), RLock())
 
-        if self.vod_info[dl_hash].has_key('stream'):
+        if 'stream' in self.vod_info[dl_hash]:
             return self.vod_info[dl_hash]['stream']
-        return (None, None)
+        return None, None
 
     def get_vod_duration(self, dl_hash):
         return self.vod_info.get(dl_hash, {}).get('duration', 0)
@@ -148,7 +152,7 @@ class VideoPlayer:
         if self.vod_download:
             self.vod_download.set_mode(DLMODE_NORMAL)
             vi_dict = self.vod_info.pop(self.vod_download.get_def().get_id(), None)
-            if vi_dict and vi_dict.has_key('stream'):
+            if vi_dict and 'stream' in vi_dict:
                 vi_dict['stream'][0].close()
 
         self.vod_download = download
