@@ -1331,8 +1331,7 @@ CREATE TABLE MetadataData (
             self.database_update.acquire()
 
             # for now, fetch all existing torrents and extract terms
-            from Tribler.Core.Tag.Extraction import TermExtraction
-            extractor = TermExtraction.getInstance()
+            extractor = session.module_manager.get_term_extractor()
 
             sql = """
                 SELECT torrent_id, name

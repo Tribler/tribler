@@ -3,7 +3,6 @@
 
 import os
 import re
-import threading
 
 from Tribler import LIBRARYNAME
 from Tribler.Core.Search.SearchManager import split_into_keywords
@@ -27,35 +26,9 @@ class StopwordsFilter(object):
         return word in self._stopwords
 
 
-class TermExtraction(object):
-    __single = None
-    lock = threading.Lock()
-
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if TermExtraction.__single is None:
-            TermExtraction.lock.acquire()
-            try:
-                if TermExtraction.__single is None:
-                    TermExtraction(*args, **kw)
-            finally:
-                TermExtraction.lock.release()
-        return TermExtraction.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if TermExtraction.__single:
-            TermExtraction.lock.acquire()
-            TermExtraction.__single = None
-            TermExtraction.lock.release()
-    delInstance = staticmethod(delInstance)
+class TermExtractor(object):
 
     def __init__(self, install_dir='.'):
-        if TermExtraction.__single is not None:
-            raise RuntimeError("TermExtraction is singleton")
-        TermExtraction.__single = self
-
         filterfn = os.path.join(install_dir, LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
         self.stopwords_filter = StopwordsFilter(stopwordsfilename=filterfn)
 

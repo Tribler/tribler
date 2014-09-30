@@ -98,15 +98,12 @@ class TriblerLaunchMany(Thread):
                                                                        ChannelCastDBHandler, UserEventLogDBHandler,
                                                                        MiscDBHandler, MetadataDBHandler,
                                                                        BundlerPreferenceDBHandler)
-                from Tribler.Core.Tag.Extraction import TermExtraction
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
 
                 nocachedb = cachedb.init(self.session.get_state_dir(), self.session.get_install_dir(), self.rawserver_fatalerrorfunc)
 
                 nocachedb.initialBegin()
-
-                self.term = TermExtraction.getInstance(self.session.get_install_dir())
 
                 self.misc_db = MiscDBHandler.getInstance(self.session, nocachedb)
                 self.peer_db = PeerDBHandler.getInstance(self.session, nocachedb)
@@ -690,7 +687,6 @@ class TriblerLaunchMany(Thread):
             self.votecast_db.delInstance()
             self.channelcast_db.delInstance()
             self.ue_db.delInstance()
-            self.term.delInstance()
 
         # SWIFTPROC
         if self.spm is not None:
