@@ -16,7 +16,7 @@ from Crypto.Util.number import bytes_to_long, long_to_bytes
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
-                                      PING_INTERVAL, EXIT_NODE)
+                                      PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, PongPayload, PingPayload, DestroyPayload,
@@ -377,9 +377,9 @@ class TunnelCommunity(Community):
             elif exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
                 self.remove_exit_socket(circuit_id, 'traffic limit exceeded', destroy=True)
 
-    def create_circuit(self, first_hop, goal_hops):
+    def create_circuit(self, first_hop, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None):
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
-        circuit = Circuit(circuit_id=circuit_id, goal_hops=goal_hops, first_hop=first_hop.sock_addr, proxy=self)
+        circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback)
 
         self.request_cache.add(CircuitRequestCache(self, circuit))
 
@@ -507,7 +507,8 @@ class TunnelCommunity(Community):
 
     def active_circuits(self, hops=None):
         return {cid: c for cid, c in self.circuits.items()
-                if c.state == CIRCUIT_STATE_READY and (hops is None or hops == len(c.hops))}
+                if c.state == CIRCUIT_STATE_READY and c.ctype == CIRCUIT_TYPE_DATA and
+                   (hops is None or hops == len(c.hops))}
 
     def is_relay(self, circuit_id):
         return circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for
@@ -651,6 +652,9 @@ class TunnelCommunity(Community):
             self.request_cache.pop(u"anon-circuit", circuit.circuit_id)
             # Re-add BitTorrent peers, if needed.
             self.readd_bittorrent_peers()
+            # Execute callback
+            if circuit.callback:
+                circuit.callback(circuit)
         else:
             return
 

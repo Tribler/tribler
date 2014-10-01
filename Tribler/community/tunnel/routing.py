@@ -2,7 +2,8 @@ import time
 
 from M2Crypto.EC import EC_pub
 
-from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
+from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
+                                     CIRCUIT_TYPE_DATA
 
 __author__ = 'chris'
 
@@ -10,7 +11,7 @@ __author__ = 'chris'
 class Circuit(object):
     """ Circuit data structure storing the id, state and hops """
 
-    def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None):
+    def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None, ctype=CIRCUIT_TYPE_DATA, callback=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: TunnelCommunity
@@ -37,6 +38,8 @@ class Circuit(object):
         self.bytes_up = self.bytes_down = 0
 
         self.proxy = proxy
+        self.ctype = ctype
+        self.callback = callback
 
     @property
     def hops(self):

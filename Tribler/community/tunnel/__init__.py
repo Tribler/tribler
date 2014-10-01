@@ -12,6 +12,8 @@ from Tribler.community.privatesemantic.crypto.optional_crypto import mpz
 ORIGINATOR = 0
 EXIT_NODE = 1
 
+CIRCUIT_TYPE_DATA = 'DATA'
+
 CIRCUIT_STATE_READY = 'READY'
 CIRCUIT_STATE_EXTENDING = 'EXTENDING'
 CIRCUIT_STATE_TO_BE_EXTENDED = 'TO_BE_EXTENDED'
