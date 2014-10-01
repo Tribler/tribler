@@ -24,12 +24,14 @@ class VideoServer(ThreadingMixIn, HTTPServer):
             raise RuntimeError("VideoServer is Singleton")
         VideoServer.__single = self
 
-        self._logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
         self.port = port
         self.session = session
 
-        self.videoplayer = video_player
+        self.server_thread = None
+
+        self.video_player = video_player
 
         HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
 
@@ -64,9 +66,10 @@ class VideoServer(ThreadingMixIn, HTTPServer):
 class VideoRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
-        self._logger = server._logger
-        self.videoplayer = server.videoplayer
-        BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+        super(VideoRequestHandler, self).__init__(request, client_address, server)
+        self._logger = server.logger
+        self.video_player = server.video_player
+        self.event = None
 
     def log_message(self, f, *args):
         pass
@@ -93,15 +96,16 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         filename, length = download.get_def().get_files_as_unicode_with_length()[fileindex]
 
         requested_range = get_ranges(self.headers.getheader('range'), length)
-        if requested_range != None and len(requested_range) != 1:
+        if requested_range is not None and len(requested_range) != 1:
             self.send_error(416, "Requested Range Not Satisfiable")
             return
 
-        has_changed = self.videoplayer.get_vod_fileindex() != fileindex or self.videoplayer.get_vod_download() != download
+        has_changed = self.video_player.get_vod_fileindex() != fileindex or \
+            self.video_player.get_vod_download() != download
         if has_changed:
             # Notify the videoplayer (which will put the old VOD download back in normal mode).
-            self.videoplayer.set_vod_fileindex(fileindex)
-            self.videoplayer.set_vod_download(download)
+            self.video_player.set_vod_fileindex(fileindex)
+            self.video_player.set_vod_download(download)
 
             # Put download in sequential mode + trigger initial buffering.
             if download.get_def().get_def_type() != "torrent" or download.get_def().is_multifile_torrent():
@@ -112,7 +116,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         piecelen = 2 ** 16 if download.get_def().get_def_type() == "swift" else download.get_def().get_piece_length()
         blocksize = piecelen
 
-        if requested_range != None:
+        if requested_range is not None:
             firstbyte, lastbyte = requested_range[0]
             nbytes2send = lastbyte - firstbyte
             self.send_response(206)
@@ -143,7 +147,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         if has_changed:
             self.wait_for_buffer(download)
 
-        stream, lock = self.videoplayer.get_vod_stream(downloadhash, wait=True)
+        stream, lock = self.video_player.get_vod_stream(downloadhash, wait=True)
 
         with lock:
             if stream.closed:
@@ -174,11 +178,14 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
 
     def wait_for_buffer(self, download):
         self.event = Event()
+
         def wait_for_buffer(ds):
-            if download.vod_seekpos == None or download != self.videoplayer.get_vod_download() or ds.get_vod_prebuffering_progress() == 1.0:
+            if download.vod_seekpos is None or download != self.video_player.get_vod_download() or \
+                    ds.get_vod_prebuffering_progress() == 1.0:
                 self.event.set()
-                return (0, False)
-            return (1.0, False)
+                return 0, False
+            return 1.0, False
+
         download.set_state_callback(wait_for_buffer)
         self.event.wait()
         self.event.clear()
