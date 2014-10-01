@@ -3,7 +3,6 @@ import wx
 import sys
 import logging
 
-from Tribler.Category.Category import Category
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler, UserEventLogDBHandler
@@ -525,6 +524,7 @@ class TorrentFilter(BaseFilter):
 
     def __init__(self, parent, parent_list, spacers=[10, 3], show_bundle=False):
         self.guiutility = GUIUtility.getInstance()
+        self.category = self.guiutility.utility.session.module_manager.get_category()
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
 
         self.bundlestates = [Bundler.ALG_MAGIC, Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_OFF]
@@ -657,7 +657,7 @@ class TorrentFilter(BaseFilter):
         menu.AppendRadioItem(itemid, "All")
         menu.Bind(wx.EVT_MENU, lambda x: self.CategoryFilter(''), id=itemid)
         menu.Check(itemid, not self.parent_list.categoryfilter)
-        for _, filetype in Category.getInstance().getCategoryNames():
+        for _, filetype in self.category.get_category_names():
             if filetype != 'XXX':
                 itemid = wx.NewId()
                 menu.AppendRadioItem(itemid, filetype)

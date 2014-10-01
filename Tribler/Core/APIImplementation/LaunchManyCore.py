@@ -19,7 +19,6 @@ from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException, OperationNotEnabledByConfigurationException
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
@@ -93,9 +92,11 @@ class TriblerLaunchMany(Thread):
             # TODO(emilon): move this to a megacache component or smth
             if self.session.get_megacache():
                 import Tribler.Core.CacheDB.sqlitecachedb as cachedb
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, UserEventLogDBHandler, MiscDBHandler, MetadataDBHandler
-                from Tribler.Category.Category import Category
-                from Tribler.Core.Tag.Extraction import TermExtraction
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import (PeerDBHandler, TorrentDBHandler,
+                                                                       MyPreferenceDBHandler, VoteCastDBHandler,
+                                                                       ChannelCastDBHandler, UserEventLogDBHandler,
+                                                                       MiscDBHandler, MetadataDBHandler,
+                                                                       BundlerPreferenceDBHandler)
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
 
@@ -103,31 +104,27 @@ class TriblerLaunchMany(Thread):
 
                 nocachedb.initialBegin()
 
-                self.cat = Category.getInstance(self.session.get_install_dir())
-                self.term = TermExtraction.getInstance(self.session.get_install_dir())
+                self.misc_db = MiscDBHandler.getInstance(self.session, nocachedb)
+                self.peer_db = PeerDBHandler.getInstance(self.session, nocachedb)
+                self.bundle_db = BundlerPreferenceDBHandler.getInstance(self.session, nocachedb)
 
-                self.misc_db = MiscDBHandler.getInstance()
-                self.metadata_db = MetadataDBHandler.getInstance()
+                self.torrent_db = TorrentDBHandler.getInstance(self.session, nocachedb)
+                self.metadata_db = MetadataDBHandler.getInstance(self.session, nocachedb)
 
-                self.peer_db = PeerDBHandler.getInstance()
+                self.mypref_db = MyPreferenceDBHandler.getInstance(self.session, nocachedb)
+                self.votecast_db = VoteCastDBHandler.getInstance(self.session, nocachedb)
+                self.channelcast_db = ChannelCastDBHandler.getInstance(self.session, nocachedb)
 
-                self.torrent_db = TorrentDBHandler.getInstance()
-                self.torrent_db.register(os.path.abspath(self.session.get_torrent_collecting_dir()))
-                self.mypref_db = MyPreferenceDBHandler.getInstance()
-                self.votecast_db = VoteCastDBHandler.getInstance()
                 self.votecast_db.registerSession(self.session)
-                self.channelcast_db = ChannelCastDBHandler.getInstance()
                 self.channelcast_db.registerSession(self.session)
-                self.ue_db = UserEventLogDBHandler.getInstance()
+                self.torrent_db.register(os.path.abspath(self.session.get_torrent_collecting_dir()))
+
+                self.ue_db = UserEventLogDBHandler.getInstance(self.session, nocachedb)
 
             self.rtorrent_handler = None
             if self.session.get_torrent_collecting():
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                 self.rtorrent_handler = RemoteTorrentHandler()
-
-            self.videoplayer = None
-            if self.session.get_videoplayer():
-                self.videoplayer = VideoPlayer(self.session)
 
             # SWIFTPROC
             swift_exists = self.session.get_swift_proc() and (os.path.exists(self.session.get_swift_path()) or os.path.exists(self.session.get_swift_path() + '.exe'))
@@ -657,9 +654,8 @@ class TriblerLaunchMany(Thread):
         if self.torrent_checking:
             self.torrent_checking.shutdown()
             self.torrent_checking.delInstance()
-        if self.videoplayer:
-            self.videoplayer.shutdown()
-            self.videoplayer.delInstance()
+
+        self.session.module_manager.finalise()
 
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
@@ -685,8 +681,6 @@ class TriblerLaunchMany(Thread):
             self.votecast_db.delInstance()
             self.channelcast_db.delInstance()
             self.ue_db.delInstance()
-            self.cat.delInstance()
-            self.term.delInstance()
 
         # SWIFTPROC
         if self.spm is not None:

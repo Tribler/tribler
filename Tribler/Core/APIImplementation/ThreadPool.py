@@ -13,14 +13,14 @@ except ImportError as e:
     prctlimported = False
 
 
-class ThreadPool:
+class ThreadPool(object):
 
     """Flexible thread pool class.  Creates a pool of threads, then
     accepts tasks that will be dispatched to the next available
     thread."""
 
-    def __init__(self, numThreads):
-        """Initialize the thread pool with numThreads workers."""
+    def __init__(self, num_threads):
+        """Initialize the thread pool with num_threads workers."""
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -30,9 +30,9 @@ class ThreadPool:
         self.__tasks = []
         self.__isJoiningStopQueuing = False
         self.__isJoining = False
-        self.setThreadCount(numThreads)
+        self.set_thread_count(num_threads)
 
-    def setThreadCount(self, newNumThreads):
+    def set_thread_count(self, new_num_threads):
         """ External method to set the current pool size.  Acquires
         the resizing lock, then calls the internal version to do real
         work."""
@@ -41,73 +41,61 @@ class ThreadPool:
         if self.__isJoining:
             return False
 
-        self.__resizeLock.acquire()
-        try:
-            self.__setThreadCountNolock(newNumThreads)
-        finally:
-            self.__resizeLock.release()
+        with self.__resizeLock:
+            self.__set_thread_count_nolock(new_num_threads)
         return True
 
-    def __setThreadCountNolock(self, newNumThreads):
+    def __set_thread_count_nolock(self, new_num_threads):
         """Set the current pool size, spawning or terminating threads
         if necessary.  Internal use only; assumes the resizing lock is
         held."""
 
         # If we need to grow the pool, do so
-        while newNumThreads > len(self.__threads):
-            newThread = ThreadPoolThread(self)
-            self.__threads.append(newThread)
-            newThread.start()
+        while new_num_threads > len(self.__threads):
+            new_thread = ThreadPoolThread(self)
+            self.__threads.append(new_thread)
+            new_thread.start()
 
         # If we need to shrink the pool, do so
-        while newNumThreads < len(self.__threads):
-            self.__threads[0].goAway()
+        while new_num_threads < len(self.__threads):
+            self.__threads[0].go_away()
             del self.__threads[0]
 
-    def getThreadCount(self):
+    def get_thread_count(self):
         """Return the number of threads in the pool."""
 
-        self.__resizeLock.acquire()
-        try:
+        with self.__resizeLock:
             return len(self.__threads)
-        finally:
-            self.__resizeLock.release()
 
-    def queueTask(self, task, args=(), taskCallback=None):
+    def queue_task(self, task, args=(), task_callback=None):
         """Insert a task into the queue.  task must be callable;
         args and taskCallback can be None."""
 
-        if self.__isJoining == True or self.__isJoiningStopQueuing:
+        if self.__isJoining or self.__isJoiningStopQueuing:
             return False
         if not callable(task):
             return False
 
-        self.__taskCond.acquire()
-        try:
-            self.__tasks.append((task, args, taskCallback))
+        with self.__taskCond:
+            self.__tasks.append((task, args, task_callback))
             # Arno, 2010-04-07: Use proper notify()+wait()
             self.__taskCond.notifyAll()
             return True
-        finally:
-            self.__taskCond.release()
 
-    def getNextTask(self):
+    def get_next_task(self):
         """ Retrieve the next task from the task queue.  For use
         only by ThreadPoolThread objects contained in the pool."""
         self._logger.debug('%d', len(self.__tasks))
 
-        self.__taskCond.acquire()
-        try:
+        with self.__taskCond:
             while self.__tasks == [] and not self.__isJoining:
                 self.__taskCond.wait()
             if self.__isJoining:
-                return (None, None, None)
+                return None, None, None
             else:
                 return self.__tasks.pop(0)
-        finally:
-            self.__taskCond.release()
 
-    def joinAll(self, waitForTasks=True, waitForThreads=True):
+    def join_all(self, wait_for_tasks=True, wait_for_threads=True):
         """ Clear the task queue and terminate all pooled threads,
         optionally allowing the tasks and threads to finish."""
 
@@ -115,18 +103,17 @@ class ThreadPool:
         self.__isJoiningStopQueuing = True
 
         # Wait for tasks to finish
-        if waitForTasks:
-            while self.__tasks != []:
+        if wait_for_tasks:
+            while len(self.__tasks) > 0:
                 time.sleep(.1)
 
         # Mark the pool as joining to make all threads stop executing tasks
         self.__isJoining = True
 
         # Tell all the threads to quit
-        self.__resizeLock.acquire()
-        try:
-            currentThreads = self.__threads[:]
-            self.__setThreadCountNolock(0)
+        with self.__resizeLock:
+            current_threads = self.__threads[:]
+            self.__set_thread_count_nolock(0)
 
             # notify all waiting threads that we are quitting
             self.__taskCond.acquire()
@@ -134,18 +121,16 @@ class ThreadPool:
             self.__taskCond.release()
 
             # Wait until all threads have exited
-            if waitForThreads:
-                for t in currentThreads:
+            if wait_for_threads:
+                for t in current_threads:
                     t.join()
                     del t
 
             # Reset the pool for potential reuse
             self.__isJoining = False
-        finally:
-            self.__resizeLock.release()
 
 
-class ThreadNoPool:
+class ThreadNoPool(object):
 
     def __init__(self):
         self.prevTask = False
@@ -155,23 +140,23 @@ class ThreadNoPool:
         self.thread = ThreadPoolThread(self)
         self.thread.start()
 
-    def getThreadCount(self):
+    def get_thread_count(self):
         return 1
 
-    def queueTask(self, task, args=(), taskCallback=None):
+    def queue_task(self, task, args=(), task_callback=None):
         if not self.__isJoiningStopQueuing:
-            self.queue.put((task, args, taskCallback))
+            self.queue.put((task, args, task_callback))
 
-    def getNextTask(self):
+    def get_next_task(self):
         if self.prevTask:
             self.queue.task_done()
         return self.queue.get()
 
-    def joinAll(self, waitForTasks=False, waitForThreads=True):
+    def join_all(self, wait_for_tasks=False, wait_for_threads=True):
         self.__isJoiningStopQueuing = True
         self.queue.put((None, (), None))
 
-        if waitForTasks:
+        if wait_for_tasks:
             self.thread.join()
 
 
@@ -196,11 +181,11 @@ class ThreadPoolThread(threading.Thread):
             prctl.set_name("Tribler" + threading.currentThread().getName())
 
         # Arno, 2010-04-07: Dying only used when shrinking pool now.
-        while self.__isDying == False:
+        while not self.__isDying:
             # Arno, 2010-01-28: add try catch block. Sometimes tasks lists grow,
             # could be because all Threads are dying.
             try:
-                cmd, args, callback = self.__pool.getNextTask()
+                cmd, args, callback = self.__pool.get_next_task()
                 if cmd is None:
                     break
                 elif callback is None:
@@ -210,7 +195,7 @@ class ThreadPoolThread(threading.Thread):
             except:
                 print_exc()
 
-    def goAway(self):
+    def go_away(self):
         """ Exit the run loop next time through."""
 
         self.__isDying = True

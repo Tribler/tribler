@@ -13,7 +13,6 @@ import binascii
 from time import strftime, time
 from traceback import print_exc
 
-from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, \
     NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
 from Tribler.Core.Session import Session
@@ -441,10 +440,10 @@ class NetworkPanel(HomePanel):
         else:
             self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
-        self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
-        self.queueBW.SetLabel(self.remotetorrenthandler.getBandwidthSpent())
+        self.queueSize.SetLabel(self.remotetorrenthandler.get_queue_size())
+        self.queueBW.SetLabel(self.remotetorrenthandler.get_bandwidth_spent())
 
-        qsuccess = self.remotetorrenthandler.getQueueSuccess()
+        qsuccess = self.remotetorrenthandler.get_queue_success()
         qlabel = ", ".join(label for label, tooltip in qsuccess)
         qtooltip = ", ".join(tooltip for label, tooltip in qsuccess)
         self.queueSuccess.SetLabel(qlabel)
@@ -513,6 +512,8 @@ class PopularTorrentPanel(NewTorrentPanel):
         HomePanel.__init__(self, parent, 'Popular Torrents', SEPARATOR_GREY, (1, 0))
         self.Layout()
 
+        self.category = self.guiutility.utility.session.module_manager.get_category()
+
         self.misc_db = MiscDBHandler.getInstance()
         self.torrentdb = TorrentDBHandler.getInstance()
 
@@ -527,7 +528,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
     def RefreshList(self):
         def db_callback():
-            familyfilter_sql = Category.getInstance().get_family_filter_sql(self.misc_db.categoryName2Id)
+            familyfilter_sql = self.category.get_family_filter_sql(self.misc_db.categoryName2Id)
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 

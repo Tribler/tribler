@@ -10,8 +10,6 @@ from wx.lib.wordwrap import wordwrap
 from time import time
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Category.Category import Category
-
 from Tribler.Core.simpledefs import NTFY_MISC, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
     DLSTATUS_HASHCHECKING
@@ -482,7 +480,7 @@ class List(wx.BoxSizer):
 
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
-        self.category = Category.getInstance()
+        self.category = self.guiutility.utility.session.module_manager.get_category()
 
         self.leftLine = self.rightLine = None
         self.parent = parent
@@ -805,7 +803,7 @@ class List(wx.BoxSizer):
 
     def LoadEnabledCategoryIDs(self):
         misc_db = self.guiutility.utility.session.open_dbhandler(NTFY_MISC)
-        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
+        enabled_category_keys = [key.lower() for key, _ in self.category.get_category_names()]
         self.enabled_category_ids = set([0, 8])
         for key, id in misc_db._category_name2id_dict.iteritems():
             if key.lower() in enabled_category_keys:
@@ -821,7 +819,7 @@ class List(wx.BoxSizer):
                 result = category in self.enabled_category_ids
 
             elif isinstance(item[2], Channel):
-                result = not self.category.xxx_filter.isXXX(item[2].name, False)
+                result = not self.category.xxx_filter.is_xxx(item[2].name, False)
 
         if not result:
             self.cur_nr_filtered += 1
@@ -1370,7 +1368,7 @@ class SearchList(GenericSearchList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.session = self.guiutility.utility.session
-        self.category = Category.getInstance()
+        self.category = self.session.module_manager.get_category()
 
         self.total_channels = None
         self.keywords = None
@@ -1392,7 +1390,7 @@ class SearchList(GenericSearchList):
 
         misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
-        for key, name in self.category.getCategoryNames(filter=False):
+        for key, name in self.category.get_category_names(to_filter=False):
             if key in misc_db._category_name2id_dict:
                 self.category_names[misc_db._category_name2id_dict[key]] = name
         self.category_names[8] = 'Other'
@@ -1492,8 +1490,8 @@ class SearchList(GenericSearchList):
         # We need to filter here, as otherwise our top-3 associated channels could only consist of
         # xxx channels, which will be filtered afterwards. Resulting in no channels being shown.
         def channelFilter(channel):
-            isXXX = self.category.xxx_filter.isXXX(channel.name, False)
-            return not isXXX
+            is_xxx = self.category.xxx_filter.is_xxx(channel.name, False)
+            return not is_xxx
 
         if self.guiutility.getFamilyFilter():
             associated = filter(channelFilter, associated)
@@ -1534,7 +1532,7 @@ class SearchList(GenericSearchList):
 
     def CalcXXXKeywords(self):
         if self.keywords and self.guiutility.getFamilyFilter():
-            self.xxx_keywords = any(self.category.xxx_filter.isXXX(keyword, False) for keyword in self.keywords)
+            self.xxx_keywords = any(self.category.xxx_filter.is_xxx(keyword, False) for keyword in self.keywords)
         else:
             self.xxx_keywords = False
 

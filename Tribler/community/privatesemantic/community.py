@@ -194,11 +194,11 @@ class ForwardCommunity():
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyPreferenceDBHandler
-            from Tribler.Core.CacheDB.Notifier import Notifier
+            from Tribler.Core.Session import Session
 
             # tribler channelcast database
             self._mypref_db = MyPreferenceDBHandler.getInstance()
-            self._notifier = Notifier.getInstance()
+            self._notifier = Session.get_instance().uch.notifier
         else:
             self._mypref_db = Das4DBStub(self._dispersy)
             self._notifier = None

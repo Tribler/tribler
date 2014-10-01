@@ -14,21 +14,25 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 class UserCallbackHandler(object):
 
     def __init__(self, session):
-        super(UserCallbackHandler, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
-        self.sesslock = session.sesslock
+        self.session_lock = session.sesslock
 
         # Notifier for callbacks to API user
         self.threadpool = ThreadNoPool()
 
-        self.notifier = Notifier.getInstance(self.threadpool)
+        self.notifier = Notifier(self.threadpool)
 
     def shutdown(self):
         # stop threadpool
-        Notifier.delInstance()
-        self.threadpool.joinAll()
+        if self.notifier is not None:
+            self.notifier.remove_observers()
+            self.notifier = None
+
+        if self.threadpool is not None:
+            self.threadpool.join_all()
+            self.threadpool = None
 
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
         """ Called by network thread """
@@ -56,21 +60,23 @@ class UserCallbackHandler(object):
 
     def perform_usercallback(self, target):
         # TODO: thread pool, etc.
-        self.threadpool.queueTask(target)
+        if self.threadpool is not None:
+            self.threadpool.queue_task(target)
 
     def sesscb_removestate(self, infohash, contentdests):
         """  See DownloadImpl.setup().
         Called by SessionCallbackThread """
         self._logger.debug("Session: sesscb_removestate called %s %s", repr(infohash), contentdests)
-        self.sesslock.acquire()
+        self.session_lock.acquire()
         try:
             if self.session.lm.download_exists(infohash):
-                self._logger.info("Session: sesscb_removestate: Download is back, restarted? Canceling removal! %s", repr(infohash))
+                self._logger.info("Session: sesscb_removestate: Download is back, restarted? Canceling removal! %s",
+                                  repr(infohash))
                 return
 
             dlpstatedir = os.path.join(self.session.get_state_dir(), STATEDIR_DLPSTATE_DIR)
         finally:
-            self.sesslock.release()
+            self.session_lock.release()
 
         # Remove checkpoint
         hexinfohash = binascii.hexlify(infohash)
@@ -84,9 +90,9 @@ class UserCallbackHandler(object):
             # Show must go on
             self._logger.exception("Could not remove state")
 
-    def notify(self, subject, changeType, obj_id, *args):
+    def notify(self, subject, change_type, obj_id, *args):
         """
         Notify all interested observers about an event with threads from the pool
         """
-        self._logger.debug("ucb: notify called: %s %s %s %s", subject, changeType, repr(obj_id), args)
-        self.notifier.notify(subject, changeType, obj_id, *args)
+        self._logger.debug("ucb: notify called: %s %s %s %s", subject, change_type, repr(obj_id), args)
+        self.notifier.notify(subject, change_type, obj_id, *args)

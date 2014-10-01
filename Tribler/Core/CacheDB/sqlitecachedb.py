@@ -1331,8 +1331,7 @@ CREATE TABLE MetadataData (
             self.database_update.acquire()
 
             # for now, fetch all existing torrents and extract terms
-            from Tribler.Core.Tag.Extraction import TermExtraction
-            extractor = TermExtraction.getInstance()
+            extractor = session.module_manager.get_term_extractor()
 
             sql = """
                 SELECT torrent_id, name
@@ -1350,8 +1349,8 @@ CREATE TABLE MetadataData (
             termcount = {}
             phrases = []  # torrent_id, term1, term2
             for torrent_id, name in records:
-                terms = set(extractor.extractTerms(name))
-                phrase = extractor.extractBiTermPhrase(name)
+                terms = set(extractor.extract_terms(name))
+                phrase = extractor.extract_biterm_phrase(name)
 
                 # count terms
                 for term in terms:
@@ -1693,7 +1692,7 @@ CREATE TABLE MetadataData (
                             fileextensions = set()
                             for filename in torrentdef.get_files_as_unicode():
                                 filename, extension = os.path.splitext(filename)
-                                for keyword in split_into_keywords(filename, filterStopwords=True):
+                                for keyword in split_into_keywords(filename, filter_stopwords=True):
                                     filedict[keyword] = filedict.get(keyword, 0) + 1
 
                                 fileextensions.add(extension[1:])
@@ -1714,7 +1713,7 @@ CREATE TABLE MetadataData (
                                 swarmname, extension = os.path.splitext(swarmname)
                                 fileextensions.add(extension[1:])
 
-                                filenames.extend(split_into_keywords(swarmname, filterStopwords=True))
+                                filenames.extend(split_into_keywords(swarmname, filter_stopwords=True))
 
                         values.append((torrent_id, swarmname, " ".join(filenames), " ".join(fileextensions)))
 
@@ -2167,8 +2166,9 @@ CREATE TABLE MetadataData (
                         insert = 'INSERT OR IGNORE INTO TrackerInfo(tracker) VALUES(?)'
                         self.executemany(insert, list(newly_found_tracker_set))
 
-                        from Tribler.Core.CacheDB.Notifier import Notifier, NTFY_TRACKERINFO, NTFY_INSERT
-                        notifier = Notifier.getInstance()
+                        from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT
+                        from Tribler.Core.Session import Session
+                        notifier = Session.get_instance().uch.notifier
                         notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, list(newly_found_tracker_set))
 
                     # load tracker dictionary

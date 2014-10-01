@@ -30,7 +30,7 @@ class TestThreadPool(AbstractServer):
 
     def tearDown(self):
         """ unittest test tear down code """
-        self.tp.joinAll()
+        self.tp.join_all()
 
         time.sleep(2)
         self.got.sort()
@@ -47,7 +47,7 @@ class TestThreadPool(AbstractServer):
         if DEBUG:
             print >> sys.stderr, "test_queueTask1:"
         self.exp = [1]
-        self.tp.queueTask(lambda: self.do_task(1))
+        self.tp.queue_task(lambda: self.do_task(1))
 
     def do_task(self, val):
         self.gotlock.acquire()
@@ -62,7 +62,7 @@ class TestThreadPool(AbstractServer):
         self.exp = range(1, 11)
 
         def wrapper(x):
-            self.tp.queueTask(lambda: self.do_task(x))
+            self.tp.queue_task(lambda: self.do_task(x))
 
         for i in range(1, 11):
             if DEBUG:
@@ -76,16 +76,16 @@ class TestThreadPool(AbstractServer):
         if DEBUG:
             print >> sys.stderr, "test_queueTask10explicit:"
         self.exp = range(1, 11)
-        self.tp.queueTask(self.do_task1)
-        self.tp.queueTask(self.do_task2)
-        self.tp.queueTask(self.do_task3)
-        self.tp.queueTask(self.do_task4)
-        self.tp.queueTask(self.do_task5)
-        self.tp.queueTask(self.do_task6)
-        self.tp.queueTask(self.do_task7)
-        self.tp.queueTask(self.do_task8)
-        self.tp.queueTask(self.do_task9)
-        self.tp.queueTask(self.do_task10)
+        self.tp.queue_task(self.do_task1)
+        self.tp.queue_task(self.do_task2)
+        self.tp.queue_task(self.do_task3)
+        self.tp.queue_task(self.do_task4)
+        self.tp.queue_task(self.do_task5)
+        self.tp.queue_task(self.do_task6)
+        self.tp.queue_task(self.do_task7)
+        self.tp.queue_task(self.do_task8)
+        self.tp.queue_task(self.do_task9)
+        self.tp.queue_task(self.do_task10)
 
     def test_joinAll(self):
         if DEBUG:
@@ -93,39 +93,39 @@ class TestThreadPool(AbstractServer):
         self.exp = range(1, 6)
         if DEBUG:
             print >> sys.stderr, "test: adding tasks"
-        self.tp.queueTask(self.do_task1)
-        self.tp.queueTask(self.do_task2)
-        self.tp.queueTask(self.do_task3)
-        self.tp.queueTask(self.do_task4)
-        self.tp.queueTask(self.do_task5)
+        self.tp.queue_task(self.do_task1)
+        self.tp.queue_task(self.do_task2)
+        self.tp.queue_task(self.do_task3)
+        self.tp.queue_task(self.do_task4)
+        self.tp.queue_task(self.do_task5)
         if DEBUG:
             print >> sys.stderr, "test: join all"
-        self.tp.joinAll()
+        self.tp.join_all()
         if DEBUG:
             print >> sys.stderr, "test: adding post tasks, shouldn't get run"
-        self.tp.queueTask(self.do_task6)
-        self.tp.queueTask(self.do_task7)
-        self.tp.queueTask(self.do_task8)
-        self.tp.queueTask(self.do_task9)
-        self.tp.queueTask(self.do_task10)
+        self.tp.queue_task(self.do_task6)
+        self.tp.queue_task(self.do_task7)
+        self.tp.queue_task(self.do_task8)
+        self.tp.queue_task(self.do_task9)
+        self.tp.queue_task(self.do_task10)
 
     def test_setThreadCountPlus10(self):
         if DEBUG:
             print >> sys.stderr, "test_setThreadCountPlus10:"
-            print >> sys.stderr, "test: pre threads", self.tp.getThreadCount()
-        self.tp.setThreadCount(20)
+            print >> sys.stderr, "test: pre threads", self.tp.get_thread_count()
+        self.tp.set_thread_count(20)
         if DEBUG:
-            print >> sys.stderr, "test: post threads", self.tp.getThreadCount()
+            print >> sys.stderr, "test: post threads", self.tp.get_thread_count()
         time.sleep(1)
         self.test_joinAll()
 
     def test_setThreadCountMinus8(self):
         if DEBUG:
             print >> sys.stderr, "test_setThreadCountMinus8:"
-            print >> sys.stderr, "test: pre threads", self.tp.getThreadCount()
-        self.tp.setThreadCount(2)
+            print >> sys.stderr, "test: pre threads", self.tp.get_thread_count()
+        self.tp.set_thread_count(2)
         if DEBUG:
-            print >> sys.stderr, "test: post threads", self.tp.getThreadCount()
+            print >> sys.stderr, "test: post threads", self.tp.get_thread_count()
         time.sleep(1)
         self.test_joinAll()
 

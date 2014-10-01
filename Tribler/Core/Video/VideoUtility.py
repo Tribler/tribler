@@ -25,6 +25,7 @@ def get_videoinfo(videofile, ffmpeg):
     if sys.platform == "win32":
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    print >> sys.stderr, "!!! %s" % ffmpeg
     ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'), "-i", videofile.encode('utf-8')), stderr=subprocess.PIPE, startupinfo=startupinfo)
     out, err = ffmpeg.communicate()
     info = out or err

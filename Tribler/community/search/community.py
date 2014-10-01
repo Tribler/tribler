@@ -67,14 +67,14 @@ class SearchCommunity(Community):
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler, MiscDBHandler
-            from Tribler.Core.CacheDB.Notifier import Notifier
+            from Tribler.Core.Session import Session
 
             # tribler channelcast database
             self._channelcast_db = ChannelCastDBHandler.getInstance()
             self._misc_db = MiscDBHandler.getInstance()
             self._torrent_db = TorrentDBHandler.getInstance()
             self._mypref_db = MyPreferenceDBHandler.getInstance()
-            self._notifier = Notifier.getInstance()
+            self._notifier = Session.get_instance().uch.notifier
 
             # torrent collecting
             self._rtorrent_handler = RemoteTorrentHandler.getInstance()

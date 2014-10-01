@@ -14,7 +14,6 @@ from traceback import print_exc
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, \
     DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING, \
     DLMODE_VOD
-from Tribler.Core.CacheDB.Notifier import Notifier
 
 from Tribler.Main.vwxGUI import forceWxThread, warnWxThread, \
     SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
@@ -24,7 +23,6 @@ from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, \
 
 from Tribler.Core.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
     MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 
 class DelayTimer(wx.Timer):
@@ -65,7 +63,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         self.utility = utility
         self.guiutility = utility.guiUtility
-        self.videoplayer = VideoPlayer.getInstance()
+        self.videoplayer = utility.session.module_manager.get_video_player()
         self.parent = parent
         self.SetBackgroundColour(bg_color)
 
@@ -143,7 +141,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             vSizer.Add(self.ctrlpanel, 0, wx.ALIGN_BOTTOM | wx.EXPAND)
 
-            self.notifier = Notifier.getInstance()
+            self.notifier = utility.session.uch.notifier
 
         self.SetSizer(vSizer)
 
@@ -450,7 +448,6 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap and self.update:
             if self.GetState() not in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED]:
-
                 length = self.vlcwrap.get_stream_information_length()
                 length = length / 1000 if length > 0 else self.videoplayer.get_vod_duration(self.download_hash)
                 cur = self.vlcwrap.get_media_position() / 1000
@@ -464,9 +461,9 @@ class EmbeddedPlayerPanel(wx.Panel):
                 length_str = self.FormatTime(length) if length else '--:--'
                 self.timeposition.SetLabel('%s / %s' % (cur_str, length_str))
                 self.ctrlsizer.Layout()
+
             elif self.GetState() == MEDIASTATE_ENDED:
-                vp = VideoPlayer.getInstance()
-                download, fileindex = (vp.get_vod_download(), vp.get_vod_fileindex())
+                download, fileindex = (self.videoplayer.get_vod_download(), self.videoplayer.get_vod_fileindex())
                 self.OnStop(None)
                 if download and download.get_def().get_def_type() == 'torrent':
                     self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (download.get_def().get_id(), fileindex))

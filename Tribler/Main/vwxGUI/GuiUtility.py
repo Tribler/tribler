@@ -11,13 +11,10 @@ from time import time
 
 from Tribler import LIBRARYNAME
 
-from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords
-
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
@@ -98,7 +95,7 @@ class GUIUtility:
             self.registered = True
 
             self.torrentsearch_manager = TorrentManager.getInstance(self)
-            self.channelsearch_manager = ChannelManager.getInstance()
+            self.channelsearch_manager = ChannelManager.getInstance(self)
             self.library_manager = LibraryManager.getInstance(self)
             self.torrentstate_manager = TorrentStateManager.getInstance()
 
@@ -107,7 +104,7 @@ class GUIUtility:
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
             self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
 
-            self.videoplayer = VideoPlayer.getInstance()
+            self.videoplayer = self.utility.session.module_manager.get_video_player()
         else:
             raise RuntimeError('GuiUtility is already registered')
 
@@ -580,7 +577,7 @@ class GUIUtility:
         if newState == None:
             newState = not self.getFamilyFilter()
 
-        Category.getInstance().set_family_filter(newState)
+        self.utility.session.module_manager.get_category().set_family_filter(newState)
         for l in self.lists:
             if getattr(l, 'GotFilter', False):
                 l.GotFilter(None)
@@ -597,7 +594,7 @@ class GUIUtility:
         self.utility.flush_config()
 
     def getFamilyFilter(self):
-        catobj = Category.getInstance()
+        catobj = self.utility.session.module_manager.get_category()
         return catobj.family_filter_enabled()
 
     def set_firewall_restart(self, b):

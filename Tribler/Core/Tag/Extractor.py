@@ -2,44 +2,33 @@
 # see LICENSE.txt for license information
 
 import os
+import re
 
 from Tribler import LIBRARYNAME
 from Tribler.Core.Search.SearchManager import split_into_keywords
-from Tribler.Core.Tag.StopwordsFilter import StopwordsFilter
-
-import re
-import threading
 
 
-class TermExtraction:
-    __single = None
-    lock = threading.Lock()
+DEFAULT_STOPWORDS_FILE = os.path.join(LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
 
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if TermExtraction.__single is None:
-            TermExtraction.lock.acquire()
-            try:
-                if TermExtraction.__single is None:
-                    TermExtraction(*args, **kw)
-            finally:
-                TermExtraction.lock.release()
-        return TermExtraction.__single
-    getInstance = staticmethod(getInstance)
 
-    def delInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if TermExtraction.__single:
-            TermExtraction.lock.acquire()
-            TermExtraction.__single = None
-            TermExtraction.lock.release()
-    delInstance = staticmethod(delInstance)
+class StopwordsFilter(object):
+
+    def __init__(self, stopwordsfilename=DEFAULT_STOPWORDS_FILE):
+        file_stream = open(stopwordsfilename, 'r')
+        self._stopwords = set()
+        for line in file_stream:
+            word = line.split('|')[0].rstrip()
+            if word and not word[0].isspace():
+                self._stopwords.add(word)
+        file_stream.close()
+
+    def is_stop_word(self, word):
+        return word in self._stopwords
+
+
+class TermExtractor(object):
 
     def __init__(self, install_dir='.'):
-        if TermExtraction.__single is not None:
-            raise RuntimeError("TermExtraction is singleton")
-        TermExtraction.__single = self
-
         filterfn = os.path.join(install_dir, LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
         self.stopwords_filter = StopwordsFilter(stopwordsfilename=filterfn)
 
@@ -49,7 +38,7 @@ class TermExtraction:
 
         self.domain_terms = set('www net com org'.split())
 
-    def extractTerms(self, name_or_keywords):
+    def extract_terms(self, name_or_keywords):
         """
         Extracts the terms from a torrent name.
 
@@ -63,9 +52,9 @@ class TermExtraction:
         else:
             keywords = name_or_keywords
 
-        return [term for term in keywords if self.isSuitableTerm(term)]
+        return [term for term in keywords if self.is_suitable_term(term)]
 
-    def extractBiTermPhrase(self, name_or_keywords):
+    def extract_biterm_phrase(self, name_or_keywords):
         """
         Extracts a bi-term phrase from a torrent name. Currently, this phrase consists
         of the first two terms extracted from it.
@@ -75,14 +64,14 @@ class TermExtraction:
         @return A tuple containing the two terms of the bi-term phrase. If there is no bi-term,
         i.e. less than two terms were extracted, None is returned.
         """
-        terms = [term for term in self.extractTerms(name_or_keywords)
+        terms = [term for term in self.extract_terms(name_or_keywords)
                  if self.containsdigits_filter.search(term) is None]
         if len(terms) > 1:
             return tuple(terms[:2])
         else:
             return None
 
-    def isSuitableTerm(self, term):
+    def is_suitable_term(self, term):
         """
         Determines if a term is "suitable". Current rules are:
             1. Length of term is at least 3 characters.
@@ -96,7 +85,7 @@ class TermExtraction:
         """
         if len(term) < 3:
             return False
-        elif self.stopwords_filter.isStopWord(term):
+        elif self.stopwords_filter.is_stop_word(term):
             return False
         elif self.alldigits_filter.match(term) is not None:
             if len(term) == 4:
