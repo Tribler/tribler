@@ -1017,7 +1017,7 @@ class TunnelCommunity(Community):
             self.stats['bytes_enter'] += num_bytes
 
     def _generate_service_key(self):
-        return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))
+        return ''.join(chr(random.randint(0, 255)) for _ in range(20))
 
     def create_introduction_point(self):
         # TODO: deal with the event in which create_circuit fails after the first_hop has been selected
@@ -1069,15 +1069,15 @@ class TunnelCommunity(Community):
                 self.send_cell([message.candidate], u"intro-established", (message.payload.circuit_id,
                                                                            message.payload.identifier))
                 self.intro_circuits.append(message.payload.circuit_id)
-                self._logger.error("TunnelCommunity: got intro-established from %s", message.candidate)
+                self._logger.error("TunnelCommunity: got establish-intro from %s", message.candidate)
             else:
-                self._logger.error("TunnelCommunity: got intro-established from %s but no exit socket found",
+                self._logger.error("TunnelCommunity: got establish-intro from %s but no exit socket found",
                                    message.candidate)
 
     def on_intro_established(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"establish-intro", message.payload.identifier)
-            self._logger.error("TunnelCommunity: got intro_established from %s", message.candidate)
+            self._logger.error("TunnelCommunity: got intro-established from %s", message.candidate)
 
     def on_establish_rendezvous(self, messages):
         for message in messages:
