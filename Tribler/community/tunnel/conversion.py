@@ -187,76 +187,76 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(identifier, stats_dict)
 
     def _encode_establish_intro(self, message):
-        return pack('!H20s20s', message.payload.identifier, message.payload.service_key, message.payload.infohash),
+        return pack('!IH20s20s', message.payload.circuit_id, message.payload.identifier, message.payload.service_key, message.payload.infohash),
 
     def _decode_establish_intro(self, placeholder, offset, data):
-        identifier, service_key, infohash = unpack_from('!H20s20s', data, offset)
-        offset += 42
+        circuit_id, identifier, service_key, infohash = unpack_from('!IH20s20s', data, offset)
+        offset += 46
 
-        return offset, placeholder.meta.payload.implement(identifier, service_key, infohash)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key, infohash)
 
     def _encode_intro_established(self, message):
-        return pack('!H', message.payload.identifier),
+        return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
     def _decode_intro_established(self, placeholder, offset, data):
-        identifier, = unpack_from('!H', data, offset)
-        offset += 2
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
-        return offset, placeholder.meta.payload.implement(identifier)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     def _encode_establish_rendezvous(self, message):
-        return pack('!H20s', message.payload.identifier, message.payload.cookie),
+        return pack('!IH20s', message.payload.circuit_id, message.payload.identifier, message.payload.cookie),
 
     def _decode_establish_rendezvous(self, placeholder, offset, data):
-        identifier, cookie = unpack_from('!H20s', data, offset)
-        offset += 22
+        circuit_id, identifier, cookie = unpack_from('!IH20s', data, offset)
+        offset += 26
 
-        return offset, placeholder.meta.payload.implement(identifier, cookie)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, cookie)
 
     def _encode_rendezvous_established(self, message):
-        return pack('!H', message.payload.identifier),
+        return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
     def _decode_rendezvous_established(self, placeholder, offset, data):
-        identifier, = unpack_from('!H', data, offset)
-        offset += 2
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
-        return offset, placeholder.meta.payload.implement(identifier)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     def _encode_intro1(self, message):
-        return pack('!H', message.payload.identifier),
+        return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
     def _decode_intro1(self, placeholder, offset, data):
-        identifier, = unpack_from('!H', data, offset)
-        offset += 2
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
-        return offset, placeholder.meta.payload.implement(identifier)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     def _encode_intro2(self, message):
-        return pack('!H', message.payload.identifier),
+        return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
     def _decode_intro2(self, placeholder, offset, data):
-        identifier, = unpack_from('!H', data, offset)
-        offset += 2
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
-        return offset, placeholder.meta.payload.implement(identifier)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     def _encode_rendezvous1(self, message):
-        return pack('!H', message.payload.identifier),
+        return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
     def _decode_rendezvous1(self, placeholder, offset, data):
-        identifier, = unpack_from('!H', data, offset)
-        offset += 2
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
-        return offset, placeholder.meta.payload.implement(identifier)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     def _encode_rendezvous2(self, message):
-        return pack('!H', message.payload.identifier),
+        return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
     def _decode_rendezvous2(self, placeholder, offset, data):
-        identifier, = unpack_from('!H', data, offset)
-        offset += 2
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
-        return offset, placeholder.meta.payload.implement(identifier)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)

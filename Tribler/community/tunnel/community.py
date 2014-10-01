@@ -233,8 +233,8 @@ class TunnelCommunity(Community):
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
         self.bittorrent_peers = {}
 
-        self.intro_circuits = {}
-        self.rendezvous_circuits = {}
+        self.intro_circuits = []
+        self.rendezvous_circuits = []
 
         self.tribler_session = self.settings = self.socks_server = self.libtorrent_test = None
 
@@ -1016,11 +1016,11 @@ class TunnelCommunity(Community):
             obj.bytes_down += num_bytes
             self.stats['bytes_enter'] += num_bytes
 
-
     def _generate_service_key(self):
         return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))
 
     def create_introduction_point(self):
+        # TODO: deal with the event in which create_circuit fails after the first_hop has been selected
         self.create_circuit(2, CIRCUIT_TYPE_INTRO, self._create_introduction_point)
 
     def _create_introduction_point(self, circuit):
@@ -1032,35 +1032,35 @@ class TunnelCommunity(Community):
 
     def check_establish_intro(self, messages):
         for message in messages:
-            pass
+            yield message
 
     def check_intro_established(self, messages):
         for message in messages:
-            pass
+            yield message
 
     def check_establish_rendezvous(self, messages):
         for message in messages:
-            pass
+            yield message
 
     def check_rendezvous_established(self, messages):
         for message in messages:
-            pass
+            yield message
 
     def check_intro1(self, messages):
         for message in messages:
-            pass
+            yield message
 
     def check_intro2(self, messages):
         for message in messages:
-            pass
+            yield message
 
     def check_rendezvous1(self, messages):
         for message in messages:
-            pass
+            yield message
 
     def check_rendezvous2(self, messages):
         for message in messages:
-            pass
+            yield message
 
     def on_establish_intro(self, messages):
         for message in messages:
