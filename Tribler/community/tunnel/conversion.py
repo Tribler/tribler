@@ -190,9 +190,6 @@ class TunnelConversion(BinaryConversion):
         return pack('!H20s20s', message.payload.identifier, message.payload.service_key, message.payload.infohash),
 
     def _decode_establish_intro(self, placeholder, offset, data):
-        if len(data) == offset + 42:
-            raise DropPacket("Insufficient packet size")
-
         identifier, service_key, infohash = unpack_from('!H20s20s', data, offset)
         offset += 42
 
@@ -234,6 +231,32 @@ class TunnelConversion(BinaryConversion):
 
         return offset, placeholder.meta.payload.implement(identifier)
 
+    def _encode_intro2(self, message):
+        return pack('!H', message.payload.identifier),
+
+    def _decode_intro2(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(identifier)
+
+    def _encode_rendezvous1(self, message):
+        return pack('!H', message.payload.identifier),
+
+    def _decode_rendezvous1(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(identifier)
+
+    def _encode_rendezvous2(self, message):
+        return pack('!H', message.payload.identifier),
+
+    def _decode_rendezvous2(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(identifier)
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)

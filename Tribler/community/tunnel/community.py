@@ -3,7 +3,9 @@
 
 import time
 import random
+import string
 import logging
+
 from traceback import print_exc
 from collections import defaultdict
 
@@ -16,11 +18,13 @@ from Crypto.Util.number import bytes_to_long, long_to_bytes
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
-                                      PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA)
+                                      PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_INTRO)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
-                                              ExtendedPayload, PongPayload, PingPayload, DestroyPayload,
-                                              StatsRequestPayload, StatsResponsePayload)
+                                              ExtendedPayload, PongPayload, PingPayload, StatsRequestPayload,
+                                              StatsResponsePayload, EstablishIntroPayload, IntroEstablishedPayload,
+                                              EstablishRendezvousPayload, RendezvousEstablishedPayload, Intro1Payload,
+                                              Intro2Payload, Rendezvous1Payload, Rendezvous2Payload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -78,6 +82,22 @@ class PingRequestCache(RandomNumberCache):
         if self.circuit.last_incoming < time.time() - self.timeout_delay:
             self._logger.debug("ForwardCommunity: no response on ping, circuit %d timed out", self.circuit.circuit_id)
             self.community.remove_circuit(self.circuit.circuit_id, 'ping timeout')
+
+
+class IntroRequestCache(RandomNumberCache):
+
+    def __init__(self, community, circuit):
+        super(IntroRequestCache, self).__init__(community.request_cache, u"establish-intro")
+        self.circuit = circuit
+        self.community = community
+
+    @property
+    def timeout_delay(self):
+        return 5.0
+
+    def on_timeout(self):
+        self._logger.debug("IntroRequestCache: no response on establish-intro (circuit %d)", self.circuit.circuit_id)
+        self.community.remove_circuit(self.circuit.circuit_id, 'establish-intro timeout')
 
 
 class StatsRequestCache(RandomNumberCache):
@@ -212,6 +232,10 @@ class TunnelCommunity(Community):
                              '43e8807e6f86ef2f0a784fbc8fa21f8bc49a82ae'.decode('hex'),
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
         self.bittorrent_peers = {}
+
+        self.intro_circuits = {}
+        self.rendezvous_circuits = {}
+
         self.tribler_session = self.settings = self.socks_server = self.libtorrent_test = None
 
     def initialize(self, session=None, settings=None):
@@ -279,7 +303,31 @@ class TunnelCommunity(Community):
                         self.on_stats_request),
                 Message(self, u"stats-response", MemberAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), StatsResponsePayload(), self._generic_timeline_check,
-                        self.on_stats_response)]
+                        self.on_stats_response),
+                Message(self, u"establish-intro", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), EstablishIntroPayload(), self.check_establish_intro,
+                        self.on_establish_intro),
+                Message(self, u"intro-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), IntroEstablishedPayload(), self.check_intro_established,
+                        self.on_intro_established),
+                Message(self, u"establish-rendezvous", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), EstablishRendezvousPayload(), self.check_establish_rendezvous,
+                        self.on_establish_rendezvous),
+                Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
+                        self.on_rendezvous_established),
+                Message(self, u"intro1", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), Intro1Payload(), self.check_intro1,
+                        self.on_intro1),
+                Message(self, u"intro2", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), Intro2Payload(), self.check_intro2,
+                        self.on_intro2),
+                Message(self, u"rendezvous1", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), Rendezvous1Payload(), self.check_rendezvous1,
+                        self.on_rendezvous1),
+                Message(self, u"rendezvous2", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), Rendezvous2Payload(), self.check_rendezvous2,
+                        self.on_rendezvous2)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), TunnelConversion(self)]
@@ -324,18 +372,10 @@ class TunnelCommunity(Community):
             self._logger.debug("TunnelCommunity: want %d circuits of length %d", num_to_build, circuit_length)
 
             for _ in range(num_to_build):
-                candidate = None
-                hops = set([c.first_hop for c in self.circuits.values()])
-                for c in self.dispersy_yield_verified_candidates():
-                    if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec):
-                        candidate = c
-                        break
-
-                if candidate:
-                    try:
-                        self.create_circuit(candidate, circuit_length)
-                    except:
-                        self._logger.exception("Error creating circuit while running __discover")
+                try:
+                    self.create_circuit(self.settings.circuit_length)
+                except:
+                    self._logger.exception("Error creating circuit while running do_circuits")
 
         self.do_remove()
 
@@ -365,7 +405,18 @@ class TunnelCommunity(Community):
             elif exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
                 self.remove_exit_socket(circuit_id, 'traffic limit exceeded', destroy=True)
 
-    def create_circuit(self, first_hop, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None):
+    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None):
+        first_hop = None
+        hops = set([c.first_hop for c in self.circuits.values()])
+        for c in self.dispersy_yield_verified_candidates():
+            if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec):
+                first_hop = c
+                break
+
+        if not first_hop:
+            reactor.callLater(5, lambda g=goal_hops, t=ctype, c=callback: self.create_circuit(g, t, c))
+            return
+
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
         circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback)
 
@@ -383,7 +434,6 @@ class TunnelCommunity(Community):
 
         dh_first_part_enc = self.crypto.hybrid_encrypt_str(first_hop.get_member()._ec, long_to_bytes(circuit.unverified_hop.dh_first_part))
         self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc)))
-        return circuit
 
     def readd_bittorrent_peers(self):
         for torrent, peers in self.bittorrent_peers.items():
@@ -965,3 +1015,92 @@ class TunnelCommunity(Community):
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_down += num_bytes
             self.stats['bytes_enter'] += num_bytes
+
+
+    def _generate_service_key(self):
+        return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))
+
+    def create_introduction_point(self):
+        self.create_circuit(2, CIRCUIT_TYPE_INTRO, self._create_introduction_point)
+
+    def _create_introduction_point(self, circuit):
+        cache = self.request_cache.add(IntroRequestCache(self, circuit))
+        # For testing
+        infohash = 'F4C2CB261DC36719F0B41DEA9957DA529D5AA383'
+        self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', (circuit.circuit_id, cache.number, self._generate_service_key(), infohash))
+        self._logger.error("TunnelCommunity: establish introduction tunnel %s", circuit.circuit_id)
+
+    def check_establish_intro(self, messages):
+        for message in messages:
+            pass
+
+    def check_intro_established(self, messages):
+        for message in messages:
+            pass
+
+    def check_establish_rendezvous(self, messages):
+        for message in messages:
+            pass
+
+    def check_rendezvous_established(self, messages):
+        for message in messages:
+            pass
+
+    def check_intro1(self, messages):
+        for message in messages:
+            pass
+
+    def check_intro2(self, messages):
+        for message in messages:
+            pass
+
+    def check_rendezvous1(self, messages):
+        for message in messages:
+            pass
+
+    def check_rendezvous2(self, messages):
+        for message in messages:
+            pass
+
+    def on_establish_intro(self, messages):
+        for message in messages:
+            if message.payload.circuit_id in self.exit_sockets:
+                self.remove_exit_socket(message.payload.circuit_id, 'exit socket becomes introduction point')
+                self.send_cell([message.candidate], u"intro-established", (message.payload.circuit_id,
+                                                                           message.payload.identifier))
+                self.intro_circuits.append(message.payload.circuit_id)
+                self._logger.error("TunnelCommunity: got intro-established from %s", message.candidate)
+            else:
+                self._logger.error("TunnelCommunity: got intro-established from %s but no exit socket found",
+                                   message.candidate)
+
+    def on_intro_established(self, messages):
+        for message in messages:
+            cache = self.request_cache.pop(u"establish-intro", message.payload.identifier)
+            self._logger.error("TunnelCommunity: got intro_established from %s", message.candidate)
+
+    def on_establish_rendezvous(self, messages):
+        for message in messages:
+            pass
+
+    def on_rendezvous_established(self, messages):
+        for message in messages:
+            pass
+
+    def on_intro1(self, messages):
+        for message in messages:
+            pass
+
+    def on_intro2(self, messages):
+        for message in messages:
+            pass
+
+    def on_rendezvous1(self, messages):
+        for message in messages:
+            pass
+
+    def on_rendezvous2(self, messages):
+        for message in messages:
+            pass
+
+
