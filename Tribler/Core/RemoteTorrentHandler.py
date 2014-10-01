@@ -46,6 +46,16 @@ class RemoteTorrentHandler(TaskManager):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self.session = None
+        self.dispersy = None
+        self.max_num_torrents = None
+        self.tor_col_dir = None
+
+        self.tqueue = None
+        self.scheduletask = None
+
+        self.torrent_db = None
+
         self.registered = False
         self._searchcommunity = None
 
@@ -104,6 +114,7 @@ class RemoteTorrentHandler(TaskManager):
     @call_on_reactor_thread
     def __check_overflow(self):
         global LOW_PRIO_COLLECTING
+
         def clean_until_done(num_delete, deletions_per_step):
             """
             Delete torrents in steps to avoid too much IO at once.
@@ -115,6 +126,7 @@ class RemoteTorrentHandler(TaskManager):
                 reactor.callLater(5, clean_until_done, num_delete, deletions_per_step)
 
         def torrent_overflow_check():
+            global LOW_PRIO_COLLECTING
             """
             Check if we have reached the collected torrent limit and throttle its collection if so.
             """
@@ -125,7 +137,8 @@ class RemoteTorrentHandler(TaskManager):
                 num_delete = int(self.num_torrents - self.max_num_torrents * 0.95)
                 deletions_per_step = max(25, num_delete / 180)
                 clean_until_done(num_delete, deletions_per_step)
-                self._logger.info("rtorrent: ** limit space:: %d %d %d", self.num_torrents, self.max_num_torrents, num_delete)
+                self._logger.info("rtorrent: ** limit space:: %d %d %d",
+                                  self.num_torrents, self.max_num_torrents, num_delete)
 
                 LOW_PRIO_COLLECTING = 20
 
@@ -138,7 +151,8 @@ class RemoteTorrentHandler(TaskManager):
             else:
                 LOW_PRIO_COLLECTING = 2
 
-            self._logger.debug("rtorrent: setting low_prio_collection to one .torrent every %.1f seconds", LOW_PRIO_COLLECTING * .5)
+            self._logger.debug("setting low_prio_collection to one .torrent every %.1f seconds",
+                               LOW_PRIO_COLLECTING * .5)
 
         self.register_task("torrent overflow check",
                            LoopingCall(torrent_overflow_check)).start(TORRENT_OVERFLOW_CHECKING_INTERVAL, now=True)
@@ -166,7 +180,9 @@ class RemoteTorrentHandler(TaskManager):
 
     def download_metadata(self, metadata_type, candidate, roothash, infohash, contenthash=None, usercallback=None, timeout=None):
         if self.registered and not self.has_metadata(metadata_type, infohash, contenthash):
-            raw_lambda = lambda metadata_type = metadata_type, candidate = candidate, roothash = roothash, infohash = infohash, contenthash = contenthash, usercallback = usercallback, timeout = timeout: self._download_metadata(metadata_type, candidate, roothash, infohash, contenthash, usercallback, timeout)
+            raw_lambda = lambda md_type = metadata_type, cand = candidate, rh = roothash, ih = infohash,\
+                ch = contenthash, uc = usercallback, to = timeout:\
+                self._download_metadata(md_type, cand, rh, ih, ch, uc, to)
             self.scheduletask(raw_lambda)
 
     def _download_metadata(self, metadata_type, candidate, roothash, infohash, contenthash, usercallback, timeout):
@@ -180,7 +196,9 @@ class RemoteTorrentHandler(TaskManager):
 
     def download_torrent(self, candidate, infohash=None, roothash=None, usercallback=None, prio=1, timeout=None):
         if self.registered:
-            raw_lambda = lambda candidate = candidate, infohash = infohash, roothash = roothash, usercallback = usercallback, prio = prio, timeout = timeout: self._download_torrent(candidate, infohash, roothash, usercallback, prio, timeout)
+            raw_lambda = lambda cand = candidate, ih = infohash, rh = roothash,\
+                uc = usercallback, p = prio, to = timeout:\
+                self._download_torrent(cand, ih, rh, uc, p, to)
             self.scheduletask(raw_lambda)
 
     def _download_torrent(self, candidate, infohash, roothash, usercallback, prio, timeout):
@@ -190,8 +208,8 @@ class RemoteTorrentHandler(TaskManager):
         assert infohash or roothash, "We need either the infohash or roothash"
         hashes = (infohash, roothash)
 
-        doSwiftCollect = candidate and roothash
-        if doSwiftCollect:
+        do_swift_collect = candidate and roothash
+        if do_swift_collect:
             requesters = self.trequesters
 
         elif infohash:
@@ -212,7 +230,7 @@ class RemoteTorrentHandler(TaskManager):
         # if not found, then used/create this requester
         if not requester:
             if prio not in requesters:
-                if doSwiftCollect:
+                if do_swift_collect:
                     requesters[prio] = TorrentRequester(self, self.drequesters.get(1, None), self.session, prio)
                 elif self.session.get_dht_torrent_collecting():
                     requesters[prio] = MagnetRequester(self, prio)
@@ -225,11 +243,13 @@ class RemoteTorrentHandler(TaskManager):
                 self.callbacks.setdefault(hashes, set()).add(usercallback)
 
             requester.add_request(hashes, candidate, timeout)
-            self._logger.info('rtorrent: adding torrent request: %s %s %s %s', bin2str(infohash or ''), bin2str(roothash or ''), candidate, prio)
+            self._logger.info('Adding torrent request: %s %s %s %s',
+                              bin2str(infohash or ''), bin2str(roothash or ''), candidate, prio)
 
     def download_torrentmessage(self, candidate, infohash, usercallback=None, prio=1):
         if self.registered:
-            raw_lambda = lambda candidate = candidate, infohash = infohash, usercallback = usercallback, prio = prio: self._download_torrentmessages(candidate, infohash, usercallback, prio)
+            raw_lambda = lambda cand = candidate, ih = infohash, uc = usercallback, p = prio:\
+                self._download_torrentmessages(cand, ih, uc, p)
             self.scheduletask(raw_lambda)
 
     def _download_torrentmessages(self, candidate, infohash, usercallback, prio):
@@ -240,7 +260,7 @@ class RemoteTorrentHandler(TaskManager):
             hashes = (infohash, None)
 
             if usercallback:
-                callback = lambda infohash = infohash: usercallback(infohash)
+                callback = lambda ih = infohash: usercallback(ih)
                 self.callbacks.setdefault(hashes, set()).add(callback)
 
             if prio not in self.mrequesters:
@@ -250,7 +270,7 @@ class RemoteTorrentHandler(TaskManager):
 
             # make request
             requester.add_request(hashes, candidate)
-            self._logger.debug('rtorrent: adding torrent messages request: %s %s %s', bin2str(infohash), candidate, prio)
+            self._logger.debug('Adding torrent messages request: %s %s %s', bin2str(infohash), candidate, prio)
 
     def has_torrent(self, hashes, callback):
         infohash, roothash = hashes
@@ -270,7 +290,8 @@ class RemoteTorrentHandler(TaskManager):
 
         torrent_filename = None
         if not roothash:
-            torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
+            torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'],
+                                                 include_mypref=False)
             if torrent:
                 if torrent.get('torrent_file_name', False) and os.path.isfile(torrent['torrent_file_name']):
                     torrent_filename = torrent['torrent_file_name']
@@ -304,11 +325,13 @@ class RemoteTorrentHandler(TaskManager):
             self.has_torrent((infohash, None), do_schedule)
 
     def _save_torrent(self, tdef, callback=None):
-        tmp_filename = os.path.join(self.session.get_torrent_collecting_dir(), "tmp_" + get_collected_torrent_filename(tdef.get_infohash()))
+        tmp_filename = os.path.join(self.session.get_torrent_collecting_dir(),
+                                    "tmp_" + get_collected_torrent_filename(tdef.get_infohash()))
         filename_index = 0
         while os.path.exists(tmp_filename):
             filename_index += 1
-            tmp_filename = os.path.join(self.session.get_torrent_collecting_dir(), ("tmp_%d_" % filename_index) + get_collected_torrent_filename(tdef.get_infohash()))
+            tmp_filename = os.path.join(self.session.get_torrent_collecting_dir(),
+                                        ("tmp_%d_" % filename_index) + get_collected_torrent_filename(tdef.get_infohash()))
 
         tdef.save(tmp_filename)
         sdef, swiftpath = self._move_to_collected(tmp_filename)
@@ -316,7 +339,7 @@ class RemoteTorrentHandler(TaskManager):
             try:
                 os.remove(tmp_filename)
             except:
-                atexit.register(lambda tmp_filename=tmp_filename: os.remove(tmp_filename))
+                atexit.register(lambda tmp=tmp_filename: os.remove(tmp))
 
         @forceDBThread
         def do_db(callback):
@@ -324,12 +347,15 @@ class RemoteTorrentHandler(TaskManager):
             infohash = tdef.get_infohash()
             if self.torrent_db.hasTorrent(infohash):
                 if sdef:
-                    self.torrent_db.updateTorrent(infohash, swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
+                    self.torrent_db.updateTorrent(infohash, swift_torrent_hash=sdef.get_roothash(),
+                                                  torrent_file_name=swiftpath)
                 else:
                     self.torrent_db.updateTorrent(infohash, torrent_file_name=swiftpath)
             else:
                 if sdef:
-                    self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'swift_torrent_hash': sdef.get_roothash(), 'status': 'good'})
+                    self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath,
+                                                                         'swift_torrent_hash': sdef.get_roothash(),
+                                                                         'status': 'good'})
                 else:
                     self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'status': 'good'})
 
@@ -370,7 +396,8 @@ class RemoteTorrentHandler(TaskManager):
                 return sdef, mfpath
 
         tdef = TorrentDef.load(filename)
-        mfpath = os.path.join(self.session.get_torrent_collecting_dir(), get_collected_torrent_filename(tdef.get_infohash()))
+        mfpath = os.path.join(self.session.get_torrent_collecting_dir(),
+                              get_collected_torrent_filename(tdef.get_infohash()))
         shutil.copyfile(filename, mfpath)
         return None, mfpath
 
@@ -378,21 +405,25 @@ class RemoteTorrentHandler(TaskManager):
         keys = self.callbacks.keys()
         for key in keys:
             if key[1] == roothash:
-                handle_lambda = lambda key = key: self._handleCallback(key, True)
+                handle_lambda = lambda k = key: self._handle_callback(k, True)
                 self.scheduletask(handle_lambda)
+
         @forceDBThread
         def do_db(tdef):
             if self.torrent_db.hasTorrent(tdef.get_infohash()):
-                self.torrent_db.updateTorrent(tdef.get_infohash(), swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
+                self.torrent_db.updateTorrent(tdef.get_infohash(), swift_torrent_hash=sdef.get_roothash(),
+                                              torrent_file_name=swiftpath)
             else:
-                self.torrent_db._addTorrentToDB(tdef, source="SWIFT", extra_info={'filename': swiftpath, 'swift_torrent_hash': roothash, 'status': 'good'})
+                self.torrent_db._addTorrentToDB(tdef, source="SWIFT", extra_info={'filename': swiftpath,
+                                                                                  'swift_torrent_hash': roothash,
+                                                                                  'status': 'good'})
 
         sdef = SwiftDef(roothash)
         swiftpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
         if os.path.exists(swiftpath) and self.torrent_db:
             try:
-                tdef = TorrentDef.load(swiftpath)
-                do_db(tdef)
+                torrent_def = TorrentDef.load(swiftpath)
+                do_db(torrent_def)
 
             except:
                 # ignore if tdef loading fails
@@ -402,27 +433,27 @@ class RemoteTorrentHandler(TaskManager):
         keys = self.callbacks.keys()
         for key in keys:
             if key == roothash:
-                handle_lambda = lambda key = key: self._handleCallback(key, True)
+                handle_lambda = lambda k = key: self._handle_callback(k, True)
                 self.scheduletask(handle_lambda)
-                self._logger.info('rtorrent: finished downloading metadata: %s', binascii.hexlify(roothash))
+                self._logger.info('Finished downloading metadata: %s', binascii.hexlify(roothash))
 
-    def notify_possible_torrent_infohash(self, infohash, actualTorrentFileName=None):
+    def notify_possible_torrent_infohash(self, infohash, actual_torrent_filename=None):
         keys = self.callbacks.keys()
         for key in keys:
             if key[0] == infohash or key == infohash:
-                handle_lambda = lambda key = key: self._handleCallback(key, actualTorrentFileName)
+                handle_lambda = lambda k = key: self._handle_callback(k, actual_torrent_filename)
                 self.scheduletask(handle_lambda)
 
-    def _handleCallback(self, key, actualTorrentFileName=None):
-        self._logger.debug('rtorrent: got torrent for: %s', (hexlify(key) if isinstance(key, basestring) else key))
+    def _handle_callback(self, key, actual_torrent_filename=None):
+        self._logger.debug('Got torrent for: %s', (hexlify(key) if isinstance(key, basestring) else key))
 
         if key in self.callbacks:
             for usercallback in self.callbacks[key]:
-                self.session.uch.perform_usercallback(lambda usercallback=usercallback: usercallback(actualTorrentFileName))
+                self.session.uch.perform_usercallback(lambda uc=usercallback: uc(actual_torrent_filename))
 
             del self.callbacks[key]
 
-            if actualTorrentFileName:
+            if actual_torrent_filename:
                 for requester in self.trequesters.values():
                     if requester.is_being_requested(key):
                         requester.remove_request(key)
@@ -435,8 +466,8 @@ class RemoteTorrentHandler(TaskManager):
                     if requester.is_being_requested(key):
                         requester.remove_request(key)
 
-    def getQueueSize(self):
-        def getQueueSize(qname, requesters):
+    def get_queue_size(self):
+        def _get_queue_size(qname, requesters):
             qsize = {}
             for requester in requesters.itervalues():
                 if len(requester.sources):
@@ -446,10 +477,12 @@ class RemoteTorrentHandler(TaskManager):
                 items.sort()
                 return "%s: " % qname + ",".join(map(lambda a: "%d/%d" % a, items))
             return ''
-        return ", ".join([qstring for qstring in [getQueueSize("TQueue", self.trequesters), getQueueSize("DQueue", self.drequesters), getQueueSize("MQueue", self.mrequesters)] if qstring])
+        return ", ".join([qstring for qstring in [_get_queue_size("TQueue", self.trequesters),
+                                                  _get_queue_size("DQueue", self.drequesters),
+                                                  _get_queue_size("MQueue", self.mrequesters)] if qstring])
 
-    def getQueueSuccess(self):
-        def getQueueSuccess(qname, requesters):
+    def get_queue_success(self):
+        def _get_queue_success(qname, requesters):
             sum_requests = sum_success = sum_fail = sum_on_disk = 0
             print_value = False
             for requester in requesters.itervalues():
@@ -461,26 +494,31 @@ class RemoteTorrentHandler(TaskManager):
                     sum_on_disk += requester.requests_on_disk
 
             if print_value:
-                return "%s: %d/%d" % (qname, sum_success, sum_requests), "%s: success %d, pending %d, on disk %d, failed %d" % (qname, sum_success, sum_requests - sum_success - sum_fail, sum_on_disk, sum_fail)
+                return "%s: %d/%d" % (qname, sum_success, sum_requests),\
+                       "%s: success %d, pending %d, on disk %d, failed %d" %\
+                       (qname, sum_success, sum_requests - sum_success - sum_fail, sum_on_disk, sum_fail)
             return '', ''
-        return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TQueue", self.trequesters), getQueueSuccess("DQueue", self.drequesters), getQueueSuccess("MQueue", self.mrequesters)] if qstring]
+        return [(qstring, qtooltip) for qstring, qtooltip in
+                [_get_queue_success("TQueue", self.trequesters),
+                 _get_queue_success("DQueue", self.drequesters),
+                 _get_queue_success("MQueue", self.mrequesters)] if qstring]
 
-    def getBandwidthSpent(self):
-        def getQueueBW(qname, requesters):
+    def get_bandwidth_spent(self):
+        def _get_queue_bandwidth(qname, requesters):
             bw = 0
             for requester in requesters.itervalues():
                 bw += requester.bandwidth
             if bw:
                 return "%s: " % qname + "%.1f KB" % (bw / 1024.0)
             return ''
-        return ", ".join([qstring for qstring in [getQueueBW("TQueue", self.trequesters), getQueueBW("DQueue", self.drequesters)] if qstring])
+        return ", ".join([qstring for qstring in [_get_queue_bandwidth("TQueue", self.trequesters),
+                                                  _get_queue_bandwidth("DQueue", self.drequesters)] if qstring])
 
 
 class Requester(object):
     REQUEST_INTERVAL = 0.5
 
     def __init__(self, scheduletask, prio):
-        super(Requester, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.scheduletask = scheduletask
@@ -515,7 +553,7 @@ class Requester(object):
         self.queue.put((hashes, timeout))
 
         if was_empty:
-            self.scheduletask(self.doRequest, t=self.REQUEST_INTERVAL * self.prio)
+            self.scheduletask(self.do_request, t=self.REQUEST_INTERVAL * self.prio)
 
     def is_being_requested(self, hashes):
         return hashes in self.sources
@@ -523,22 +561,22 @@ class Requester(object):
     def remove_request(self, hashes):
         del self.sources[hashes]
 
-    def doRequest(self):
+    def do_request(self):
         try:
-            madeRequest = False
+            made_request = False
             if isinstance(self.canrequest, bool):
-                canRequest = self.canrequest
+                can_request = self.canrequest
             else:
-                canRequest = self.canrequest()
+                can_request = self.canrequest()
 
-            if canRequest:
+            if can_request:
                 # request new infohash from queue
                 while True:
                     hashes, timeout = self.queue.get_nowait()
 
                     # check if still needed
                     if time() > timeout:
-                        self._logger.debug("rtorrent: timeout for hash %s", hash)
+                        self._logger.debug("Timeout for hash %s", hash)
 
                         if hashes in self.sources:
                             del self.sources[hashes]
@@ -552,8 +590,8 @@ class Requester(object):
                     candidates = list(self.sources[hashes])
                     del self.sources[hashes]
 
-                    madeRequest = self.doFetch(hashes, candidates)
-                    if madeRequest:
+                    made_request = self.do_fetch(hashes, candidates)
+                    if made_request:
                         self.requests_made += 1
 
                 # Make sure exceptions wont crash this requesting loop
@@ -562,14 +600,14 @@ class Requester(object):
 
                 self.queue.task_done()
 
-            if madeRequest or not canRequest:
-                self.scheduletask(self.doRequest, t=self.REQUEST_INTERVAL * self.prio)
+            if made_request or not can_request:
+                self.scheduletask(self.do_request, t=self.REQUEST_INTERVAL * self.prio)
             else:
-                self.scheduletask(self.doRequest)
+                self.scheduletask(self.do_request)
         except Queue.Empty:
             pass
 
-    def doFetch(self, hashes, candidates):
+    def do_fetch(self, hashes, candidates):
         raise NotImplementedError()
 
 
@@ -584,8 +622,8 @@ class TorrentRequester(Requester):
         self.magnet_requester = magnet_requester
         self.session = session
 
-        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-        self.dscfg = defaultDLConfig.copy()
+        default_download_config = DefaultDownloadStartupConfig.getInstance()
+        self.dscfg = default_download_config.copy()
         self.dscfg.set_dest_dir(session.get_torrent_collecting_dir())
         self.dscfg.set_swift_meta_dir(session.get_torrent_collecting_dir())
 
@@ -597,12 +635,12 @@ class TorrentRequester(Requester):
 
         Requester.add_request(self, hashes, candidate, timeout)
 
-    def doFetch(self, hashes, candidates):
-        raw_lambda = lambda filename, hashes = hashes, candidates = candidates: self._doFetch(filename, hashes, candidates)
+    def do_fetch(self, hashes, candidates):
+        raw_lambda = lambda filename, hs = hashes, cands = candidates: self._do_fetch(filename, hs, cands)
         self.remote_th.has_torrent(hashes, raw_lambda)
         return True
 
-    def _doFetch(self, filename, hashes, candidates):
+    def _do_fetch(self, filename, hashes, candidates):
         infohash, roothash = hashes
         attempting_download = False
 
@@ -620,9 +658,9 @@ class TorrentRequester(Requester):
             if not candidate.tunnel:
                 port = 7758
 
-            self._logger.debug("rtorrent: requesting torrent %s %s %s", hash, ip, port)
+            self._logger.debug("Requesting torrent %s %s %s", hash, ip, port)
 
-            doMagnet = self.prio <= 1
+            do_magnet = self.prio <= 1
             download = None
 
             sdef = SwiftDef(roothash, tracker="%s:%d" % (ip, port))
@@ -631,7 +669,8 @@ class TorrentRequester(Requester):
                 # hide download from gui
                 download = self.session.start_download(sdef, dcfg, hidden=True)
 
-                state_lambda = lambda ds, infohash = infohash, roothash = roothash, doMagnet = doMagnet: self.check_progress(ds, infohash, roothash, doMagnet)
+                state_lambda = lambda ds, ih = infohash, rh = roothash, do_mag = do_magnet:\
+                    self.check_progress(ds, ih, rh, do_mag)
                 download.set_state_callback(state_lambda, delay=self.REQUEST_INTERVAL * (self.prio + 1))
                 download.started_downloading = time()
 
@@ -640,10 +679,10 @@ class TorrentRequester(Requester):
                 download.add_peer((ip, port))
 
             except OperationNotEnabledByConfigurationException:
-                doMagnet = True
+                do_magnet = True
 
             else:
-                self._logger.debug("rtorrent: start swift download for %s %s %s", bin2str(roothash), ip, port)
+                self._logger.debug("Start swift download for %s %s %s", bin2str(roothash), ip, port)
                 attempting_download = True
 
             if download and candidates:
@@ -658,41 +697,42 @@ class TorrentRequester(Requester):
                     print_exc()
 
             # schedule a magnet lookup after X seconds
-            if doMagnet and self.magnet_requester:
-                magnet_lambda = lambda hashes = hashes: self.magnet_requester.add_request(hashes, None)
-                self.scheduletask(magnet_lambda, t=self.MAGNET_TIMEOUT * (self.prio))
+            if do_magnet and self.magnet_requester:
+                magnet_lambda = lambda hs = hashes: self.magnet_requester.add_request(hs, None)
+                self.scheduletask(magnet_lambda, t=self.MAGNET_TIMEOUT * self.prio)
 
         return attempting_download
 
-    def check_progress(self, ds, infohash, roothash, didMagnet):
-        d = ds.get_download()
-        cdef = d.get_def()
+    def check_progress(self, ds, infohash, roothash, did_magnet):
+        download = ds.get_download()
+        cdef = download.get_def()
 
         if ds.get_progress() == 1:
-            remove_lambda = lambda d = d: self._remove_download(d, False)
+            remove_lambda = lambda d = download: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
 
-            self._logger.debug("rtorrent: swift finished for %s %s", cdef.get_name(), bin2str(infohash or ''))
+            self._logger.debug("swift finished for %s %s", cdef.get_name(), bin2str(infohash or ''))
 
             self.remote_th.notify_possible_torrent_roothash(roothash)
             self.requests_success += 1
-            self.bandwidth += d.get_total_down()
-            return (0, False)
+            self.bandwidth += download.get_total_down()
+            return 0, False
         else:
-            diff = time() - getattr(d, 'started_downloading', time())
-            if (diff > self.SWIFT_CANCEL and ds.get_progress() == 0) or diff > 45 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                remove_lambda = lambda d = d: self._remove_download(d)
+            diff = time() - getattr(download, 'started_downloading', time())
+            if (diff > self.SWIFT_CANCEL and ds.get_progress() == 0) or diff > 45\
+                    or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                remove_lambda = lambda d = download: self._remove_download(d)
                 self.scheduletask(remove_lambda)
 
-                self._logger.debug("rtorrent: swift failed download for %s %s", cdef.get_name(), bin2str(infohash or ''))
+                self._logger.debug("swift failed download for %s %s", cdef.get_name(), bin2str(infohash or ''))
 
-                if not didMagnet and self.magnet_requester:
-                    self._logger.debug("rtorrent: switching to magnet for %s %s", cdef.get_name(), bin2str(infohash or ''))
+                if not did_magnet and self.magnet_requester:
+                    self._logger.debug("switching to magnet for %s %s", cdef.get_name(), bin2str(infohash or ''))
                     self.magnet_requester.add_request((infohash, roothash), None, timeout=SWIFTFAILED_TIMEOUT)
 
                 self.requests_fail += 1
-                return (0, False)
-        return (self.REQUEST_INTERVAL * (self.prio + 1), True)
+                return 0, False
+        return self.REQUEST_INTERVAL * (self.prio + 1), True
 
     def _remove_download(self, d, removestate=True):
         # Arno, 2012-05-30: Make sure .mbinmap is written
@@ -713,7 +753,7 @@ class TorrentMessageRequester(Requester):
         self.searchcommunity = searchcommunity
         self.requests_success = -1
 
-    def doFetch(self, hashes, candidates):
+    def do_fetch(self, hashes, candidates):
         infohash, roothash = hashes
 
         attempting_download = False
@@ -744,17 +784,17 @@ class MagnetRequester(Requester):
             self.MAX_CONCURRENT = 3
         self.canrequest = lambda: len(self.requestedInfohashes) < self.MAX_CONCURRENT
 
-    def doFetch(self, hashes, candidates):
+    def do_fetch(self, hashes, candidates):
         infohash, roothash = hashes
 
         if infohash not in self.requestedInfohashes:
             self.requestedInfohashes.add(infohash)
 
-            raw_lambda = lambda filename, infohash = infohash, candidates = candidates: self._doFetch(filename, infohash, candidates)
+            raw_lambda = lambda filename, ih = infohash, cands = candidates: self._do_fetch(filename, ih, cands)
             self.remote_th.has_torrent(hashes, raw_lambda)
             return True
 
-    def _doFetch(self, filename, infohash, candidates):
+    def _do_fetch(self, filename, infohash, candidates):
         if filename:
             if infohash in self.requestedInfohashes:
                 self.requestedInfohashes.remove(infohash)
@@ -775,18 +815,20 @@ class MagnetRequester(Requester):
                         if tracker != 'no-DHT' and tracker != 'DHT':
                             magnetlink += "&tr=" + urllib.quote_plus(tracker)
 
-                self._logger.debug('%d rtorrent: requesting magnet %s %s %s %d', long(time()), bin2str(infohash), self.prio, magnetlink, len(self.requestedInfohashes))
+                self._logger.debug('%d: requesting magnet %s %s %s %d', long(time()), bin2str(infohash),
+                                   self.prio, magnetlink, len(self.requestedInfohashes))
 
-                TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections=30 if self.prio == 0 else 10, silent=True)
+                TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT,
+                                                max_connections=30 if self.prio == 0 else 10, silent=True)
             construct_magnet()
 
-            failed_lambda = lambda infohash = infohash: self.__torrentdef_failed(infohash)
+            failed_lambda = lambda ih = infohash: self.__torrentdef_failed(ih)
             self.scheduletask(failed_lambda, t=self.MAGNET_RETRIEVE_TIMEOUT)
             return True
 
     def __torrentdef_retrieved(self, tdef):
         infohash = tdef.get_infohash()
-        self._logger.debug('rtorrent: received torrent using magnet %s', bin2str(infohash))
+        self._logger.debug('received torrent using magnet %s', bin2str(infohash))
 
         self.remote_th.save_torrent(tdef)
         if infohash in self.requestedInfohashes:
@@ -813,15 +855,15 @@ class MetadataRequester(Requester):
 
         self.blacklist_set = set()
 
-        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-        self.dscfg = defaultDLConfig.copy()
+        default_download_config = DefaultDownloadStartupConfig.getInstance()
+        self.dscfg = default_download_config.copy()
         self.dscfg.set_dest_dir(session.get_torrent_collecting_dir())
         self.dscfg.set_swift_meta_dir(session.get_torrent_collecting_dir())
 
     def check_blacklist(self, roothash):
         return roothash in self.blacklist_set
 
-    def doFetch(self, hashes, candidates):
+    def do_fetch(self, hashes, candidates):
         metadata_type, roothash, infohash, contenthash = hashes
         attempting_download = False
 
@@ -840,7 +882,7 @@ class MetadataRequester(Requester):
                 port = 7758
 
             self._logger.debug("rtorrent: requesting metadata %s %s %s %s",
-                metadata_type, binascii.hexlify(roothash), ip, port)
+                               metadata_type, binascii.hexlify(roothash), ip, port)
 
             download = None
 
@@ -850,7 +892,7 @@ class MetadataRequester(Requester):
                 # hide download from gui
                 download = self.session.start_download(sdef, dcfg, hidden=True)
 
-                state_lambda = lambda ds, roothash = roothash: self.check_progress(ds, roothash)
+                state_lambda = lambda ds, rh = roothash: self.check_progress(ds, rh)
                 download.set_state_callback(state_lambda, delay=self.REQUEST_INTERVAL * (self.prio + 1))
                 download.started_downloading = time()
 
@@ -878,33 +920,34 @@ class MetadataRequester(Requester):
         return attempting_download
 
     def check_progress(self, ds, roothash):
-        d = ds.get_download()
+        download = ds.get_download()
         # do not download metadata larger than 5MB
-        if d.get_dynasize() > 5 * 1024 * 1024:
-            remove_lambda = lambda d = d: self._remove_download(d, False)
+        if download.get_dynasize() > 5 * 1024 * 1024:
+            remove_lambda = lambda d = download: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
             self.blacklist_set.add(roothash)
-            return (0, False)
+            return 0, False
 
-        cdef = d.get_def()
+        cdef = download.get_def()
         if ds.get_progress() == 1:
-            remove_lambda = lambda d = d: self._remove_download(d, False)
+            remove_lambda = lambda d = download: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
 
-            self._logger.debug("rtorrent: swift finished for %s", cdef.get_name())
+            self._logger.debug("swift finished for %s", cdef.get_name())
 
             self.remote_th.notify_possible_metadata_roothash(roothash)
             self.requests_success += 1
-            return (0, False)
+            return 0, False
         else:
-            diff = time() - getattr(d, 'started_downloading', time()) > 45
-            if (diff > self.SWIFT_CANCEL and ds.get_progress() == 0) or diff > 45 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                remove_lambda = lambda d = d: self._remove_download(d)
+            diff = time() - getattr(download, 'started_downloading', time()) > 45
+            if (diff > self.SWIFT_CANCEL and ds.get_progress() == 0) or diff > 45\
+                    or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                remove_lambda = lambda d = download: self._remove_download(d)
                 self.scheduletask(remove_lambda)
                 self.requests_fail += 1
-                return (0, False)
+                return 0, False
 
-        return (self.REQUEST_INTERVAL * (self.prio + 1), True)
+        return self.REQUEST_INTERVAL * (self.prio + 1), True
 
     def _remove_download(self, d, removestate=True):
         if not removestate and d.get_def().get_def_type() == 'swift':

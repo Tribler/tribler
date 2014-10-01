@@ -440,10 +440,10 @@ class NetworkPanel(HomePanel):
         else:
             self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
-        self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
-        self.queueBW.SetLabel(self.remotetorrenthandler.getBandwidthSpent())
+        self.queueSize.SetLabel(self.remotetorrenthandler.get_queue_size())
+        self.queueBW.SetLabel(self.remotetorrenthandler.get_bandwidth_spent())
 
-        qsuccess = self.remotetorrenthandler.getQueueSuccess()
+        qsuccess = self.remotetorrenthandler.get_queue_success()
         qlabel = ", ".join(label for label, tooltip in qsuccess)
         qtooltip = ", ".join(tooltip for label, tooltip in qsuccess)
         self.queueSuccess.SetLabel(qlabel)
