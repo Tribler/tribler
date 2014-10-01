@@ -250,20 +250,8 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Wed Aug 27 11:21:20 2014
-        # curve: NID_sect571r1
-        # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004043e75eb891f8c901e27585bef9100f426b857718dc4ef36b38b2a1b1b0
-        # 9edfe440205160cbe1db1f9ca54e9774b9a0c94914e47b44749baae9525391b7889b360356935b294b04e023d572c87a9e2019c20d27c87e44a55c65
-        # 328e5193bcdb23d1c0fa44b56465520640bc9e3d6e4a2611a7f90fb2aabb14373120c0f6619f415c5ee5116bbee0a2cdabe84fea0b43c
-        # pub - sha1 f30e52cb93be061237f40add8e255203961756bc
-        # - - - - -BEGIN PUBLIC KEY - - - - -
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQEPnXriR+MkB4nWFvvkQD0JrhXcY3E
-        # 7zaziyobGwnt/kQCBRYMvh2x+cpU6XdLmgyUkU5HtEdJuq6VJTkbeImzYDVpNbKU
-        # sE4CPVcsh6niAZwg0nyH5EpVxlMo5Rk7zbI9HA+kS1ZGVSBkC8nj1uSiYRp/kPsq
-        # q7FDcxIMD2YZ9BXF7lEWu+4KLNq+hP6gtDw =
-        # - - - - -END PUBLIC KEY - - - - -
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004043e75eb891f8c901e27585bef9100f426b857718dc4ef36b38b2a1b1b09edfe440205160cbe1db1f9ca54e9774b9a0c94914e47b44749baae9525391b7889b360356935b294b04e023d572c87a9e2019c20d27c87e44a55c65328e5193bcdb23d1c0fa44b56465520640bc9e3d6e4a2611a7f90fb2aabb14373120c0f6619f415c5ee5116bbee0a2cdabe84fea0b43c".decode("HEX")
+        # Community id for testing.
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004070f1ae7cc17921a3ccb8ed65c144a8a63a1af30aa473253f0233314d8865ea6368090f541262c2a6d9ca1b11fa26b6c056957014a04fdc25f1d30b3644aaeeae972c6f872abe0f703d9e627f863c25ec8f4090e6bdfb93b7f6614abed0e5600a56321a4fb1372727fffba4a26cc4e4be701dd99f888c1e941cb6c00d5229a56bb5ec8688b98ae62a7d400df298e2e08".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
