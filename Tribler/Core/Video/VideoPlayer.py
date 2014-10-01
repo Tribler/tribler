@@ -18,7 +18,6 @@ from Tribler.Core.Video.utils import (win32_retrieve_video_play_command, quote_p
                                       return_feasible_playback_modes)
 from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL, PLAYBACKMODE_EXTERNAL_MIME
 from Tribler.Core.Video.VideoUtility import get_videoinfo
-from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.Video.VLCWrapper import VLCWrapper
 
 
@@ -27,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class VideoPlayer(object):
 
-    def __init__(self, session, httpport=None):
+    def __init__(self, session, http_port):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
@@ -46,16 +45,11 @@ class VideoPlayer(object):
         self.playbackmode = preferredplaybackmode if preferredplaybackmode in feasible else feasible[0]
         self.vlcwrap = VLCWrapper() if self.playbackmode == PLAYBACKMODE_INTERNAL else None
 
-        # Start HTTP server for serving video
-        self.videoserver = VideoServer.getInstance(httpport or self.session.get_videoplayer_port(), self.session, self)
-        self.videoserver.start()
+        self.http_port = http_port
 
         self.notifier = session.uch.notifier
 
     def shutdown(self):
-        if self.videoserver:
-            self.videoserver.shutdown()
-            self.videoserver.server_close()
         self.set_vod_download(None)
 
     def get_vlcwrap(self):
@@ -65,7 +59,7 @@ class VideoPlayer(object):
         self.internalplayer_callback = callback
 
     def play(self, download, fileindex):
-        url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/' + hexlify(download.get_def().get_id())\
+        url = 'http://127.0.0.1:' + str(self.http_port) + '/' + hexlify(download.get_def().get_id())\
               + '/' + str(fileindex)
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             self.launch_video_player(url, download)

@@ -17,13 +17,8 @@ from Tribler.Core.Video.utils import get_ranges
 
 
 class VideoServer(ThreadingMixIn, HTTPServer):
-    __single = None
 
     def __init__(self, port, session, video_player):
-        if VideoServer.__single:
-            raise RuntimeError("VideoServer is Singleton")
-        VideoServer.__single = self
-
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.port = port
@@ -37,16 +32,6 @@ class VideoServer(ThreadingMixIn, HTTPServer):
 
         self.daemon_threads = True
         self.allow_reuse_address = True
-
-    def getInstance(*args, **kw):
-        if VideoServer.__single is None:
-            VideoServer(*args, **kw)
-        return VideoServer.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        VideoServer.__single = None
-    delInstance = staticmethod(delInstance)
 
     def start(self):
         self.server_thread = Thread(target=self.serve_forever, name="VideoHTTPServerThread-1")
@@ -66,10 +51,10 @@ class VideoServer(ThreadingMixIn, HTTPServer):
 class VideoRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
-        super(VideoRequestHandler, self).__init__(request, client_address, server)
         self._logger = server.logger
         self.video_player = server.video_player
         self.event = None
+        BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def log_message(self, f, *args):
         pass
