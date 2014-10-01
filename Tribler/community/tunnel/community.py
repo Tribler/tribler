@@ -18,7 +18,8 @@ from Crypto.Util.number import bytes_to_long, long_to_bytes
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
-                                      PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_INTRO)
+                                      PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_INTRO,
+                                      CIRCUIT_TYPE_RENDEZVOUS)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, PongPayload, PingPayload, StatsRequestPayload,
@@ -98,6 +99,22 @@ class IntroRequestCache(RandomNumberCache):
     def on_timeout(self):
         self._logger.debug("IntroRequestCache: no response on establish-intro (circuit %d)", self.circuit.circuit_id)
         self.community.remove_circuit(self.circuit.circuit_id, 'establish-intro timeout')
+
+
+class RendezvousRequestCache(RandomNumberCache):
+
+    def __init__(self, community, circuit):
+        super(RendezvousRequestCache, self).__init__(community.request_cache, u"establish-rendezvous")
+        self.circuit = circuit
+        self.community = community
+
+    @property
+    def timeout_delay(self):
+        return 5.0
+
+    def on_timeout(self):
+        self._logger.debug("RendezvousRequestCache: no response on establish-rendezvous (circuit %d)", self.circuit.circuit_id)
+        self.community.remove_circuit(self.circuit.circuit_id, 'establish-rendezvous timeout')
 
 
 class StatsRequestCache(RandomNumberCache):
@@ -1017,7 +1034,10 @@ class TunnelCommunity(Community):
             self.stats['bytes_enter'] += num_bytes
 
     def _generate_service_key(self):
-        return ''.join(chr(random.randint(0, 255)) for _ in range(20))
+        return 'sk-'.join(chr(random.randint(0, 255)) for _ in range(17))
+
+    def _generate_rendezvous_cookie(self):
+        return 'rc-'.join(chr(random.randint(0, 255)) for _ in range(17))
 
     def create_introduction_point(self):
         # TODO: deal with the event in which create_circuit fails after the first_hop has been selected
@@ -1027,8 +1047,19 @@ class TunnelCommunity(Community):
         cache = self.request_cache.add(IntroRequestCache(self, circuit))
         # For testing
         infohash = 'F4C2CB261DC36719F0B41DEA9957DA529D5AA383'
-        self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', (circuit.circuit_id, cache.number, self._generate_service_key(), infohash))
-        self._logger.error("TunnelCommunity: establish introduction tunnel %s", circuit.circuit_id)
+        servicekey = self._generate_service_key()
+        self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', (circuit.circuit_id, cache.number, servicekey, infohash))
+        self._logger.error("TunnelCommunity: establish introduction tunnel %s for service %s", circuit.circuit_id, servicekey)
+
+    def create_rendezvous_point(self):
+        # TODO: deal with the event in which create_circuit fails after the first_hop has been selected
+        self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS, self._create_rendezvous_point)
+
+    def _create_rendezvous_point(self, circuit):
+        cache = self.request_cache.add(RendezvousRequestCache(self, circuit))
+        cookie = self._generate_rendezvous_cookie()
+        self.send_cell([Candidate(circuit.first_hop, False)], u'establish-rendezvous', (circuit.circuit_id, cache.number, cookie))
+        self._logger.error("TunnelCommunity: establish rendezvous tunnel %s with cookie %s", circuit.circuit_id, cookie)
 
     def check_establish_intro(self, messages):
         for message in messages:
@@ -1086,11 +1117,26 @@ class TunnelCommunity(Community):
 
     def on_establish_rendezvous(self, messages):
         for message in messages:
-            pass
+            circuit_id = message.payload.circuit_id
+            if circuit_id in self.exit_sockets:
+                if self.exit_sockets[circuit_id].enabled:
+                    self._logger.error("TunnelCommunity: got establish-rendezvous from %s but exit socket is enabled, " +
+                                       "aborting.", message.candidate)
+                    continue
+                self.remove_exit_socket(circuit_id, 'exit socket becomes rendezvous point')
+                self.send_cell([message.candidate], u"rendezvous-established", (circuit_id,
+                                                                           message.payload.identifier))
+                self.rendezvous_circuits.append(circuit_id)
+                self._logger.error("TunnelCommunity: got establish-rendezvous from %s", message.candidate)
+            else:
+                self._logger.error("TunnelCommunity: got establish-rendezvous from %s but no exit socket found",
+                                   message.candidate)
 
     def on_rendezvous_established(self, messages):
         for message in messages:
-            pass
+            cache = self.request_cache.pop(u"establish-rendezvous", message.payload.identifier)
+            self._logger.error("TunnelCommunity: got rendezvous-established from %s", message.candidate)
+
 
     def on_intro1(self, messages):
         for message in messages:

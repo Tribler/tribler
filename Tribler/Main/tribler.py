@@ -16,7 +16,7 @@ from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
 # set wxpython version
 try:
     import wxversion
-    wxversion.select("2.8-unicode")
+    wxversion.select("2.9")
 except:
     logger.exception("Unable to use wxversion, Error: %s.")
 
