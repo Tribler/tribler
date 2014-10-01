@@ -23,6 +23,14 @@ class TunnelConversion(BinaryConversion):
         self.define_meta_message(chr(8), community.get_meta_message(u"stats-request"), lambda message: self._encode_decode(self._encode_stats_request, self._decode_stats_request, message), self._decode_stats_request)
         self.define_meta_message(chr(9), community.get_meta_message(u"stats-response"), lambda message: self._encode_decode(self._encode_stats_response, self._decode_stats_response, message), self._decode_stats_response)
         self.define_meta_message(chr(10), community.get_meta_message(u"destroy"), lambda message: self._encode_decode(self._encode_destroy, self._decode_destroy, message), self._decode_destroy)
+        self.define_meta_message(chr(11), community.get_meta_message(u"establish-intro"), lambda message: self._encode_decode(self._encode_establish_intro, self._decode_establish_intro, message), self._decode_establish_intro)
+        self.define_meta_message(chr(12), community.get_meta_message(u"intro-established"), lambda message: self._encode_decode(self._encode_intro_established, self._decode_intro_established, message), self._decode_intro_established)
+        self.define_meta_message(chr(13), community.get_meta_message(u"establish-rendezvous"), lambda message: self._encode_decode(self._encode_establish_rendezvous, self._decode_establish_rendezvous, message), self._decode_establish_rendezvous)
+        self.define_meta_message(chr(14), community.get_meta_message(u"rendezvous-established"), lambda message: self._encode_decode(self._encode_rendezvous_established, self._decode_rendezvous_established, message), self._decode_rendezvous_established)
+        self.define_meta_message(chr(15), community.get_meta_message(u"intro1"), lambda message: self._encode_decode(self._encode_intro1, self._decode_intro1, message), self._decode_intro1)
+        self.define_meta_message(chr(16), community.get_meta_message(u"intro2"), lambda message: self._encode_decode(self._encode_intro2, self._decode_intro2, message), self._decode_intro2)
+        self.define_meta_message(chr(17), community.get_meta_message(u"rendezvous1"), lambda message: self._encode_decode(self._encode_rendezvous1, self._decode_rendezvous1, message), self._decode_rendezvous1)
+        self.define_meta_message(chr(18), community.get_meta_message(u"rendezvous2"), lambda message: self._encode_decode(self._encode_rendezvous2, self._decode_rendezvous2, message), self._decode_rendezvous2)
 
     def _encode_cell(self, message):
         payload = message.payload
@@ -177,6 +185,55 @@ class TunnelConversion(BinaryConversion):
         offset += len(data[offset:])
 
         return offset, placeholder.meta.payload.implement(identifier, stats_dict)
+
+    def _encode_establish_intro(self, message):
+        return pack('!H20s20s', message.payload.identifier, message.payload.service_key, message.payload.infohash),
+
+    def _decode_establish_intro(self, placeholder, offset, data):
+        if len(data) == offset + 42:
+            raise DropPacket("Insufficient packet size")
+
+        identifier, service_key, infohash = unpack_from('!H20s20s', data, offset)
+        offset += 42
+
+        return offset, placeholder.meta.payload.implement(identifier, service_key, infohash)
+
+    def _encode_intro_established(self, message):
+        return pack('!H', message.payload.identifier),
+
+    def _decode_intro_established(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(identifier)
+
+    def _encode_establish_rendezvous(self, message):
+        return pack('!H20s', message.payload.identifier, message.payload.cookie),
+
+    def _decode_establish_rendezvous(self, placeholder, offset, data):
+        identifier, cookie = unpack_from('!H20s', data, offset)
+        offset += 22
+
+        return offset, placeholder.meta.payload.implement(identifier, cookie)
+
+    def _encode_rendezvous_established(self, message):
+        return pack('!H', message.payload.identifier),
+
+    def _decode_rendezvous_established(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(identifier)
+
+    def _encode_intro1(self, message):
+        return pack('!H', message.payload.identifier),
+
+    def _decode_intro1(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+
+        return offset, placeholder.meta.payload.implement(identifier)
+
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)

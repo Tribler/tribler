@@ -192,3 +192,155 @@ class StatsResponsePayload(Payload):
         @property
         def stats(self):
             return self._stats
+
+
+class EstablishIntroPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, service_key, infohash):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(service_key, basestring), type(service_key)
+            assert isinstance(infohash, basestring), type(infohash)
+
+            super(EstablishIntroPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._service_key = service_key
+            self._infohash = infohash
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def service_key(self):
+            return self._service_key
+
+        @property
+        def infohash(self):
+            return self._infohash
+
+
+class IntroEstablishedPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier):
+            assert isinstance(identifier, int), type(identifier)
+
+            super(IntroEstablishedPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+
+class EstablishRendezvousPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, cookie):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(cookie, basestring), type(cookie)
+
+            super(EstablishRendezvousPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._cookie = cookie
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def cookie(self):
+            return self._cookie
+
+
+class RendezvousEstablishedPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier):
+            assert isinstance(identifier, int), type(identifier)
+
+            super(RendezvousEstablishedPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+
+class Intro1Payload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, key):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(key, basestring), type(key)
+
+            super(Intro1Payload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._key = key
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def key(self):
+            return self._key
+
+
+class Intro2Payload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, key):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(key, basestring), type(key)
+
+            super(Intro2Payload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._key = key
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def key(self):
+            return self._key
+
+
+class Rendezvous1Payload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, key, cookie):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(key, basestring), type(key)
+            assert isinstance(cookie, basestring), type(cookie)
+
+            super(Rendezvous1Payload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._key = key
+            self._cookie = cookie
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def key(self):
+            return self._key
+
+        @property
+        def cookie(self):
+            return self._cookie
+
+
+class Rendezvous2Payload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, key):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(key, basestring), type(key)
+
+            super(Rendezvous2Payload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._key = key
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def key(self):
+            return self._key
