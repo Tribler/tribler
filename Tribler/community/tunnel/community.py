@@ -876,7 +876,7 @@ class TunnelCommunity(Community):
 
     def on_ping(self, messages):
         for message in messages:
-            if message.payload.circuit_id in self.exit_sockets:
+            if message.payload.circuit_id in self.exit_sockets or message.payload.circuit_id in self.intro_circuits:
                 self.send_cell([message.candidate], u"pong", (message.payload.circuit_id, message.payload.identifier))
                 self._logger.debug("TunnelCommunity: got ping from %s", message.candidate)
             else:
