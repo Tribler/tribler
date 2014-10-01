@@ -1064,11 +1064,16 @@ class TunnelCommunity(Community):
 
     def on_establish_intro(self, messages):
         for message in messages:
-            if message.payload.circuit_id in self.exit_sockets:
-                self.remove_exit_socket(message.payload.circuit_id, 'exit socket becomes introduction point')
-                self.send_cell([message.candidate], u"intro-established", (message.payload.circuit_id,
+            circuit_id = message.payload.circuit_id
+            if circuit_id in self.exit_sockets:
+                if self.exit_sockets[circuit_id].enabled:
+                    self._logger.error("TunnelCommunity: got establish-intro from %s but exit socket is enabled, " +
+                                       "aborting.", message.candidate)
+                    continue
+                self.remove_exit_socket(circuit_id, 'exit socket becomes introduction point')
+                self.send_cell([message.candidate], u"intro-established", (circuit_id,
                                                                            message.payload.identifier))
-                self.intro_circuits.append(message.payload.circuit_id)
+                self.intro_circuits.append(circuit_id)
                 self._logger.error("TunnelCommunity: got establish-intro from %s", message.candidate)
             else:
                 self._logger.error("TunnelCommunity: got establish-intro from %s but no exit socket found",
