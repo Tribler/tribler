@@ -124,12 +124,12 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def check_playlist():
-            from Tribler.Core.Video.VideoPlayer import VideoPlayer
             from Tribler.Core.Video.utils import videoextdefaults
 
             buffer_complete = time()
+            video_player = self.session.module_manager.get_video_player()
 
-            d = VideoPlayer.getInstance().get_vod_download()
+            d = video_player.get_vod_download()
             videofiles = []
             for filename in d.get_def().get_files():
                 _, ext = os.path.splitext(filename)
@@ -141,23 +141,26 @@ class TestLibtorrentDownload(TestGuiAsServer):
             playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
 
             do_check = lambda: len(playlist.links) == len(videofiles) and \
-                               playlist.tdef.get_id() == VideoPlayer.getInstance().get_vod_download().get_def().get_id() and \
-                               playlist.fileindex == VideoPlayer.getInstance().get_vod_fileindex()
+                               playlist.tdef.get_id() == video_player.get_vod_download().get_def().get_id() and \
+                               playlist.fileindex == video_player.get_vod_fileindex()
 
-            self.CallConditional(10, do_check, lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "playlist set incorrectly")
+            self.CallConditional(10, do_check, lambda: self.Call(5, lambda: take_screenshot(buffer_complete)),
+                                 "playlist set incorrectly")
 
         def do_monitor():
-            from Tribler.Core.Video.VideoPlayer import VideoPlayer
-
             self.screenshot('After starting a VOD download')
-            self.CallConditional(60, lambda: VideoPlayer.getInstance().vod_playing, check_playlist, "streaming did not start")
+            self.CallConditional(60, lambda: self.session.module_manager.get_video_player().vod_playing,
+                                 check_playlist, "streaming did not start")
 
         def do_vod():
-            from Tribler.Core.Video.VideoPlayer import VideoPlayer
-
-            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir(), selectedFiles=[os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')], vodmode=True)
+            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
+                                     self.getDestDir(),
+                                     selectedFiles=[os.path.join('Sample',
+                                                                 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')],
+                                     vodmode=True)
             self.guiUtility.ShowPlayer()
-            self.CallConditional(30, lambda: VideoPlayer.getInstance().get_vod_download(), do_monitor, "VOD download not found")
+            self.CallConditional(30, lambda: self.session.module_manager.get_video_player().get_vod_download(),
+                                 do_monitor, "VOD download not found")
 
         self.startTest(do_vod)
 

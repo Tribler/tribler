@@ -19,7 +19,6 @@ from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException, OperationNotEnabledByConfigurationException
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
@@ -126,10 +125,6 @@ class TriblerLaunchMany(Thread):
             if self.session.get_torrent_collecting():
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                 self.rtorrent_handler = RemoteTorrentHandler()
-
-            self.videoplayer = None
-            if self.session.get_videoplayer():
-                self.videoplayer = VideoPlayer(self.session)
 
             # SWIFTPROC
             swift_exists = self.session.get_swift_proc() and (os.path.exists(self.session.get_swift_path()) or os.path.exists(self.session.get_swift_path() + '.exe'))
@@ -659,9 +654,8 @@ class TriblerLaunchMany(Thread):
         if self.torrent_checking:
             self.torrent_checking.shutdown()
             self.torrent_checking.delInstance()
-        if self.videoplayer:
-            self.videoplayer.shutdown()
-            self.videoplayer.delInstance()
+
+        self.session.module_manager.finalise()
 
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")

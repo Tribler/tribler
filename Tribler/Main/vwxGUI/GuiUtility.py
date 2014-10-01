@@ -16,8 +16,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
-
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 
@@ -106,7 +104,7 @@ class GUIUtility:
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
             self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
 
-            self.videoplayer = VideoPlayer.getInstance()
+            self.videoplayer = self.utility.session.module_manager.get_video_player()
         else:
             raise RuntimeError('GuiUtility is already registered')
 

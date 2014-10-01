@@ -18,7 +18,6 @@ from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK)
@@ -28,7 +27,7 @@ from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, Collected
                                               RemoteChannel, Playlist, Moderation, RemoteChannelTorrent, Marking,
                                               MetadataModification)
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS,
+from Tribler.Main.vwxGUI import (forceWxThread, TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS,
                                  CHANNEL_REQ_COLUMNS, PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS,
                                  MODERATION_REQ_COLUMNS, MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS,
                                  TUMBNAILTORRENT_REQ_COLUMNS)
@@ -861,6 +860,7 @@ class LibraryManager:
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.guiUtility = guiUtility
+        self.video_player = self.guiUtility.utility.session.module_manager.get_video_player()
         self.connected = False
 
         # Contains all matches for keywords in DB, not filtered by category
@@ -892,13 +892,6 @@ class LibraryManager:
     def delInstance(*args, **kw):
         LibraryManager.__single = None
     delInstance = staticmethod(delInstance)
-
-    @warnWxThread
-    def _get_videoplayer(self):
-        """
-        Returns the VideoPlayer instance.
-        """
-        return VideoPlayer.getInstance()
 
     def download_state_callback(self, dslist):
         """
@@ -1071,8 +1064,7 @@ class LibraryManager:
                 return
 
         fileindex = tdef.get_files_as_unicode().index(selectedinfilename)
-        videoplayer = self._get_videoplayer()
-        videoplayer.play(download, fileindex)
+        self.video_player.play(download, fileindex)
 
         # Notify playlist panel
         if self.guiUtility.frame.videoparentpanel:
@@ -1084,8 +1076,7 @@ class LibraryManager:
             self.guiUtility.frame.videoframe.recreate_vlc_window()
             self.guiUtility.frame.videoframe.get_videopanel().Reset()
 
-        videoplayer = self._get_videoplayer()
-        videoplayer.set_vod_download(None)
+        self.video_player.set_vod_download(None)
 
     def startDownloadFromUrl(self, url, useDefault=False):
         if useDefault:
@@ -1180,8 +1171,7 @@ class LibraryManager:
             self.user_download_choice.remove_download_state(id)
 
     def stopVideoIfEqual(self, download, reset_playlist=False):
-        videoplayer = self._get_videoplayer()
-        playd = videoplayer.get_vod_download()
+        playd = self.video_player.get_vod_download()
 
         if playd == download:
             self.stopPlayback()

@@ -272,7 +272,7 @@ class ABCApp():
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
-                vlcwrap = s.lm.videoplayer.get_vlcwrap()
+                vlcwrap = s.module_manager.get_video_player().get_vlcwrap()
                 wx.CallLater(3000, vlcwrap._init_vlc)
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
 

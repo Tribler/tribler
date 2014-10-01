@@ -19,7 +19,7 @@ from Tribler.Core.Video.utils import get_ranges
 class VideoServer(ThreadingMixIn, HTTPServer):
     __single = None
 
-    def __init__(self, port, session):
+    def __init__(self, port, session, video_player):
         if VideoServer.__single:
             raise RuntimeError("VideoServer is Singleton")
         VideoServer.__single = self
@@ -29,8 +29,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         self.port = port
         self.session = session
 
-        from Tribler.Core.Video.VideoPlayer import VideoPlayer
-        self.videoplayer = VideoPlayer.getInstance()
+        self.videoplayer = video_player
 
         HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
 

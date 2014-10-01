@@ -3,6 +3,7 @@ from threading import RLock
 
 from Tribler.Category.Category import Category
 from Tribler.Core.Tag.Extractor import TermExtractor
+from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 
 class ModuleManager(object):
@@ -15,6 +16,7 @@ class ModuleManager(object):
         self.session = session
         self.category = None
         self.term_extractor = None
+        self.video_player = None
 
     def initialise(self, utility):
         with self._lock:
@@ -34,6 +36,10 @@ class ModuleManager(object):
             self._logger.info(u"Initialising TermExtractor...")
             self.term_extractor = TermExtractor(self.session.get_install_dir())
 
+            self._logger.info(u"Initialising VideoPlayer...")
+            if self.session.get_videoplayer():
+                self.video_player = VideoPlayer(self.session)
+
     def finalise(self):
         with self._lock:
             self._logger.info(u"Finalising modules...")
@@ -41,8 +47,17 @@ class ModuleManager(object):
             self.category = None
             self.term_extractor = None
 
+            self.video_player.shutdown()
+            self.video_player = None
+
     def get_category(self):
-        return self.category
+        with self._lock:
+            return self.category
 
     def get_term_extractor(self):
-        return self.term_extractor
+        with self._lock:
+            return self.term_extractor
+
+    def get_video_player(self):
+        with self._lock:
+            return self.video_player
