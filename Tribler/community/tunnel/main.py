@@ -227,7 +227,7 @@ class LineHandler(LineReceiver):
                                                              circuit.bytes_up / 1024.0 / 1024.0)
         elif line == 'ip':
             print "Create introduction point"
-            anon_tunnel.community.create_introduction_point()
+            anon_tunnel.community.create_introduction_points(3)
 
         elif 'introduce' in line:
             command, introduction_point = line.split(' ')

@@ -196,17 +196,15 @@ class StatsResponsePayload(Payload):
 
 class EstablishIntroPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, service_key, infohash):
+        def __init__(self, meta, circuit_id, identifier, service_key):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(service_key, basestring), type(service_key)
-            assert isinstance(infohash, basestring), type(infohash)
 
             super(EstablishIntroPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._identifier = identifier
             self._service_key = service_key
-            self._infohash = infohash
 
         @property
         def circuit_id(self):
@@ -219,10 +217,6 @@ class EstablishIntroPayload(Payload):
         @property
         def service_key(self):
             return self._service_key
-
-        @property
-        def infohash(self):
-            return self._infohash
 
 
 class IntroEstablishedPayload(Payload):
