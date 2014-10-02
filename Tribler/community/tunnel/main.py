@@ -229,9 +229,14 @@ class LineHandler(LineReceiver):
             print "Create introduction point"
             anon_tunnel.community.create_introduction_point()
 
-        elif line == 'rp':
+        elif 'introduce' in line:
+            command, introduction_point = line.split(' ')
+            
             print "Create rendezvous point"
             anon_tunnel.community.create_rendezvous_point()
+            
+            print "Introduce rendezvouz"
+            anon_tunnel.community.request_introduction(introduction_point)
 
         elif line == 'q':
             anon_tunnel.stop()
