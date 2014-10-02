@@ -3,7 +3,6 @@
 
 import time
 import random
-import string
 import logging
 
 from traceback import print_exc
@@ -230,6 +229,8 @@ class RoundRobin(object):
 class TunnelCommunity(Community):
 
     def __init__(self, *args, **kwargs):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         super(TunnelCommunity, self).__init__(*args, **kwargs)
 
         self.data_prefix = "fffffffe".decode("HEX")
@@ -250,8 +251,8 @@ class TunnelCommunity(Community):
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
         self.bittorrent_peers = {}
 
-        self.intro_circuits = []
-        self.rendezvous_circuits = []
+        self.intro_circuits = {}
+        self.rendezvous_circuits = {}
 
         self.tribler_session = self.settings = self.socks_server = self.libtorrent_test = None
 
@@ -1102,10 +1103,14 @@ class TunnelCommunity(Community):
                                        "aborting.", message.candidate)
                     continue
                 self.remove_exit_socket(circuit_id, 'exit socket becomes introduction point')
+                self.intro_circuits[circuit_id] = message.payload.service_key
+                self._logger.error("TunnelCommunity: establish-intro received from %s. Circuit %s associated with servicekey %s",
+                                   message.candidate,
+                                   circuit_id,
+                                   message.payload.service_key)
                 self.send_cell([message.candidate], u"intro-established", (circuit_id,
                                                                            message.payload.identifier))
-                self.intro_circuits.append(circuit_id)
-                self._logger.error("TunnelCommunity: got establish-intro from %s", message.candidate)
+
             else:
                 self._logger.error("TunnelCommunity: got establish-intro from %s but no exit socket found",
                                    message.candidate)
@@ -1124,10 +1129,12 @@ class TunnelCommunity(Community):
                                        "aborting.", message.candidate)
                     continue
                 self.remove_exit_socket(circuit_id, 'exit socket becomes rendezvous point')
-                self.send_cell([message.candidate], u"rendezvous-established", (circuit_id,
-                                                                           message.payload.identifier))
-                self.rendezvous_circuits.append(circuit_id)
-                self._logger.error("TunnelCommunity: got establish-rendezvous from %s", message.candidate)
+                self.rendezvous_circuits[circuit_id] = message.payload.cookie
+                self._logger.error("TunnelCommunity: establish-rendezvous received from %s. Circuit %s associated with rendezvouscookie %s",
+                                   message.candidate,
+                                   circuit_id,
+                                   message.payload.cookie)
+                self.send_cell([message.candidate], u"rendezvous-established", (circuit_id, message.payload.identifier))
             else:
                 self._logger.error("TunnelCommunity: got establish-rendezvous from %s but no exit socket found",
                                    message.candidate)
