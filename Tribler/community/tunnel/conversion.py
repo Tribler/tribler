@@ -187,13 +187,13 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(identifier, stats_dict)
 
     def _encode_establish_intro(self, message):
-        return pack('!IH20s20s', message.payload.circuit_id, message.payload.identifier, message.payload.service_key, message.payload.infohash),
+        return pack('!IH20s', message.payload.circuit_id, message.payload.identifier, message.payload.service_key),
 
     def _decode_establish_intro(self, placeholder, offset, data):
-        circuit_id, identifier, service_key, infohash = unpack_from('!IH20s20s', data, offset)
-        offset += 46
+        circuit_id, identifier, service_key = unpack_from('!IH20s', data, offset)
+        offset += 26
 
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key, infohash)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key)
 
     def _encode_intro_established(self, message):
         return pack('!IH', message.payload.circuit_id, message.payload.identifier),
