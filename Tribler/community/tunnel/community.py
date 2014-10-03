@@ -21,10 +21,11 @@ from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDI
                                       CIRCUIT_TYPE_RP, CIRCUIT_TYPE_INTRODUCE, CIRCUIT_TYPE_RENDEZVOUS)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
-                                              ExtendedPayload, PongPayload, PingPayload, StatsRequestPayload,
-                                              StatsResponsePayload, EstablishIntroPayload, IntroEstablishedPayload,
-                                              EstablishRendezvousPayload, RendezvousEstablishedPayload, Intro1Payload,
-                                              Intro2Payload, Rendezvous1Payload, Rendezvous2Payload)
+                                              ExtendedPayload, DestroyPayload, PongPayload, PingPayload,
+                                              StatsRequestPayload, StatsResponsePayload, EstablishIntroPayload,
+                                              IntroEstablishedPayload, EstablishRendezvousPayload,
+                                              RendezvousEstablishedPayload, Intro1Payload, Intro2Payload,
+                                              Rendezvous1Payload, Rendezvous2Payload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -46,7 +47,6 @@ import string
 class CircuitRequestCache(NumberCache):
 
     def __init__(self, community, circuit):
-        self._logger = logging.getLogger(self.__class__.__name__)
         super(CircuitRequestCache, self).__init__(community.request_cache, u"anon-circuit", circuit.circuit_id)
         self.community = community
         self.circuit = circuit
@@ -60,7 +60,6 @@ class CircuitRequestCache(NumberCache):
 class CreatedRequestCache(NumberCache):
 
     def __init__(self, community, circuit_id, candidate, candidates):
-        self._logger = logging.getLogger(self.__class__.__name__)
         super(CreatedRequestCache, self).__init__(community.request_cache, u"anon-created", circuit_id)
         self.circuit_id = circuit_id
         self.candidate = candidate
@@ -73,7 +72,6 @@ class CreatedRequestCache(NumberCache):
 class PingRequestCache(RandomNumberCache):
 
     def __init__(self, community, circuit):
-        self._logger = logging.getLogger(self.__class__.__name__)
         super(PingRequestCache, self).__init__(community.request_cache, u"ping")
         self.circuit = circuit
         self.community = community
@@ -91,7 +89,6 @@ class PingRequestCache(RandomNumberCache):
 class IPRequestCache(RandomNumberCache):
 
     def __init__(self, community, circuit):
-        self._logger = logging.getLogger(self.__class__.__name__)
         super(IPRequestCache, self).__init__(community.request_cache, u"establish-intro")
         self.circuit = circuit
         self.community = community
@@ -108,7 +105,6 @@ class IPRequestCache(RandomNumberCache):
 class RPRequestCache(RandomNumberCache):
 
     def __init__(self, community, circuit):
-        self._logger = logging.getLogger(self.__class__.__name__)
         super(RPRequestCache, self).__init__(community.request_cache, u"establish-rendezvous")
         self.circuit = circuit
         self.community = community
@@ -125,7 +121,6 @@ class RPRequestCache(RandomNumberCache):
 class Introduce1RequestCache(RandomNumberCache):
 
     def __init__(self, community, circuit):
-        self._logger = logging.getLogger(self.__class__.__name__)
         super(Introduce1RequestCache, self).__init__(community.request_cache, u"intro1")
         self.circuit = circuit
         self.community = community
@@ -142,7 +137,6 @@ class Introduce1RequestCache(RandomNumberCache):
 class Rendezvous1RequestCache(RandomNumberCache):
 
     def __init__(self, community, circuit):
-        self._logger = logging.getLogger(self.__class__.__name__)
         super(Rendezvous1RequestCache, self).__init__(community.request_cache, u"rendezvous1")
         self.circuit = circuit
         self.community = community
@@ -154,8 +148,6 @@ class Rendezvous1RequestCache(RandomNumberCache):
     def on_timeout(self):
         self._logger.debug("Rendezvous1RequestCache: no response on rendezvous1 (circuit %d)", self.circuit.circuit_id)
         self.community.remove_circuit(self.circuit.circuit_id, 'rendezvous1 timeout')
-
-
 
 
 class StatsRequestCache(RandomNumberCache):
@@ -233,7 +225,6 @@ class TunnelExitSocket(DatagramProtocol):
 class TunnelSettings(object):
 
     def __init__(self):
-        self._logger = logging.getLogger(self.__class__.__name__)
         self.circuit_length = 3
         self.crypto = TunnelCrypto()
         self.socks_listen_ports = range(1080, 1085)
@@ -252,7 +243,6 @@ class TunnelSettings(object):
 class RoundRobin(object):
 
     def __init__(self, community):
-        self._logger = logging.getLogger(self.__class__.__name__)
         self.community = community
         self.index = -1
 
@@ -274,8 +264,6 @@ class RoundRobin(object):
 class TunnelCommunity(Community):
 
     def __init__(self, *args, **kwargs):
-        self._logger = logging.getLogger(self.__class__.__name__)
-
         super(TunnelCommunity, self).__init__(*args, **kwargs)
 
         self.data_prefix = "fffffffe".decode("HEX")
@@ -368,17 +356,23 @@ class TunnelCommunity(Community):
                         CandidateDestination(), StatsResponsePayload(), self._generic_timeline_check,
                         self.on_stats_response),
                 Message(self, u"establish-intro", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), EstablishIntroPayload(), self.check_establish_intro,
+                        CandidateDestination(), EstablishIntroPayload(), self._generic_timeline_check,
                         self.on_establish_intro),
                 Message(self, u"intro-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), IntroEstablishedPayload(), self.check_intro_established,
                         self.on_intro_established),
                 Message(self, u"establish-rendezvous", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), EstablishRendezvousPayload(), self.check_establish_rendezvous,
+                        CandidateDestination(), EstablishRendezvousPayload(), self._generic_timeline_check,
                         self.on_establish_rendezvous),
                 Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
                         self.on_rendezvous_established),
+                Message(self, u"keys-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), KeysRequestPayload(), self.check_keys_request,
+                        self.on_keys_request),
+                Message(self, u"keys-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), KeysResponsePayload(), self.check_keys_response,
+                        self.on_keys_response),
                 Message(self, u"intro1", NoAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), Intro1Payload(), self.check_intro1,
                         self.on_intro1),
@@ -1080,34 +1074,26 @@ class TunnelCommunity(Community):
             self.stats['bytes_enter'] += num_bytes
 
 
-
     # # Create Introduction-points
 
     def create_introduction_points(self, amount):
         # allow creating multiple introduction points with the same service_key
-        service_key = self._generate_service_key()
-        for i in range(0, amount):
+        sk = self._generate_service_key()
+        for _ in range(0, amount):
             # TODO: deal with the event in which create_circuit fails after the first_hop has been selected
-            self.create_circuit(2, CIRCUIT_TYPE_IP, self._create_introduction_point)
+            self.create_circuit(2, CIRCUIT_TYPE_IP,
+                                lambda c, sk=sk: self._create_introduction_point(c, sk))
 
-    def _create_introduction_point(self, circuit):
+    def _create_introduction_point(self, circuit, service_key):
+        circuit.service_key = service_key
         cache = self.request_cache.add(IPRequestCache(self, circuit))
-        service_key = self._generate_service_key()  # # TODO: should be the service key defined in create_introduction_points(self, amount)
-        self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', (circuit.circuit_id, cache.number, service_key))
-        self._logger.error("TunnelCommunity: establish introduction tunnel %s for service %s", circuit.circuit_id, service_key)
+        self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', (circuit.circuit_id, cache.number,
+                                                                                   service_key))
+        self._logger.error("TunnelCommunity: establish introduction tunnel %s for service %s",
+                           circuit.circuit_id, service_key)
 
     def _generate_service_key(self):
-        return 'sk-' + ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(17)])
-
-    def check_establish_intro(self, messages):
-        for message in messages:
-            # if not self.is_relay(message.payload.circuit_id):
-            #    request = self.request_cache.get(u"anon-circuit", message.payload.circuit_id)
-            #    if not request:
-            #        yield DropMessage(message, "invalid establish-intro request, circuit_id %s not in request cache" %
-            #                          message.payload.circuit_id)
-            #        continue
-            yield message
+        return ''.join(chr(random.randint(0, 255)) for _ in range(20))
 
     def on_establish_intro(self, messages):
         for message in messages:
@@ -1119,12 +1105,9 @@ class TunnelCommunity(Community):
                     continue
                 self.remove_exit_socket(circuit_id, 'exit socket becomes introduction point')
                 self.intro_circuits[circuit_id] = message.payload.service_key
-                self._logger.error("TunnelCommunity: establish-intro received from %s. Circuit %s associated with service_key %s",
-                                   message.candidate,
-                                   circuit_id,
-                                   message.payload.service_key)
-                self.send_cell([message.candidate], u"intro-established", (circuit_id,
-                                                                           message.payload.identifier))
+                self._logger.error("TunnelCommunity: establish-intro received from %s. Circuit %s associated with " +
+                                   "service_key %s", message.candidate, circuit_id, message.payload.service_key)
+                self.send_cell([message.candidate], u"intro-established", (circuit_id, message.payload.identifier))
 
             else:
                 self._logger.error("TunnelCommunity: got establish-intro from %s but no exit socket found",
@@ -1132,18 +1115,16 @@ class TunnelCommunity(Community):
 
     def check_intro_established(self, messages):
         for message in messages:
-            # if not self.is_relay(message.payload.circuit_id):
-            #    request = self.request_cache.get(u"anon-circuit", message.payload.circuit_id)
-            #    if not request:
-            #        yield DropMessage(message, "invalid intro-established request circuit_id")
-            #        continue
+            request = self.request_cache.get(u"establish-intro", message.payload.identifier)
+            if not request:
+                yield DropMessage(message, "invalid intro-established request identifier")
+                continue
             yield message
 
     def on_intro_established(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"establish-intro", message.payload.identifier)
             self._logger.error("TunnelCommunity: got intro-established from %s", message.candidate)
-
 
 
     # # Create rendezvous-point
@@ -1155,36 +1136,26 @@ class TunnelCommunity(Community):
     def _create_rendezvous_point(self, circuit):
         cache = self.request_cache.add(RPRequestCache(self, circuit))
         cookie = self._generate_rendezvous_cookie()
-        self.send_cell([Candidate(circuit.first_hop, False)], u'establish-rendezvous', (circuit.circuit_id, cache.number, cookie))
+        circuit.cookie = cookie
+        self.send_cell([Candidate(circuit.first_hop, False)], u'establish-rendezvous', (circuit.circuit_id,
+                                                                                        cache.number, cookie))
         self._logger.error("TunnelCommunity: establish rendezvous tunnel %s with cookie %s", circuit.circuit_id, cookie)
 
     def _generate_rendezvous_cookie(self):
-        return 'rc-' + ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(17)])
-
-
-    def check_establish_rendezvous(self, messages):
-        for message in messages:
-            # if not self.is_relay(message.payload.circuit_id):
-            #    request = self.request_cache.get(u"establish-rendezvous", message.payload.circuit_id)
-            #    if not request:
-            #        yield DropMessage(message, "invalid establish-rendezvous request circuit_id")
-            #        continue
-            yield message
+        return ''.join(chr(random.randint(0, 255)) for _ in range(20))
 
     def on_establish_rendezvous(self, messages):
         for message in messages:
             circuit_id = message.payload.circuit_id
             if circuit_id in self.exit_sockets:
                 if self.exit_sockets[circuit_id].enabled:
-                    self._logger.error("TunnelCommunity: got establish-rendezvous from %s but exit socket is enabled, " +
-                                       "aborting.", message.candidate)
+                    self._logger.error("TunnelCommunity: got establish-rendezvous from %s but exit socket is " +
+                                       "enabled, aborting.", message.candidate)
                     continue
                 self.remove_exit_socket(circuit_id, 'exit socket becomes rendezvous point')
                 self.rendezvous_circuits[circuit_id] = message.payload.cookie
-                self._logger.error("TunnelCommunity: establish-rendezvous received from %s. Circuit %s associated with rendezvous cookie %s",
-                                   message.candidate,
-                                   circuit_id,
-                                   message.payload.cookie)
+                self._logger.error("TunnelCommunity: establish-rendezvous received from %s. Circuit %s associated " +
+                                   "with rendezvous cookie %s", message.candidate, circuit_id, message.payload.cookie)
                 self.send_cell([message.candidate], u"rendezvous-established", (circuit_id, message.payload.identifier))
             else:
                 self._logger.error("TunnelCommunity: got establish-rendezvous from %s but no exit socket found",
@@ -1192,40 +1163,66 @@ class TunnelCommunity(Community):
 
     def check_rendezvous_established(self, messages):
         for message in messages:
-            # if not self.is_relay(message.payload.circuit_id):
-            #    request = self.request_cache.get(u"rendezvous-established", message.payload.circuit_id)
-            #    if not request:
-            #        yield DropMessage(message, "invalid rendezvous-established request circuit_id")
-            #        continue
+            request = self.request_cache.get(u"rendezvous-established", message.payload.identifier)
+            if not request:
+                yield DropMessage(message, "invalid rendezvous-established request identifier")
+                continue
             yield message
 
     def on_rendezvous_established(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"establish-rendezvous", message.payload.identifier)
             self._logger.error("TunnelCommunity: got rendezvous-established from %s", message.candidate)
+            self.request_introduction(ip, cache.circuit.cookie)
 
+    # #  Get public keys
+
+    def check_keys_request(self, messages):
+        for message in messages:
+            yield message
+
+    def on_keys_request(self, messages):
+        for message in messages:
+            circuit_id = message.payload.circuit_id
+            if circuit_id in self.circuits:
+                circuit = self.circuits[circuit_id]
+                self._logger.error("TunnelCommunity: keys-request received from %s", message.candidate)
+                self.send_cell([message.candidate], u"keys-response", (circuit_id, message.payload.identifier,
+                                                                       encode(self.my_member.public_key),
+                                                                       circuit.service_key))
+            else:
+                self._logger.error("TunnelCommunity: got keys-request from %s but no circuit found", message.candidate)
+
+    def check_keys_response(self, messages):
+        for message in messages:
+            yield message
+
+    def on_keys_response(self, messages):
+        for message in messages:
+            circuit_id = message.payload.circuit_id
+            if circuit_id in self.circuits:
+                self.request_introduction(ip, message.payload.service_key)
+                self._logger.error("TunnelCommunity: keys-response received from %s", message.candidate)
+            else:
+                self._logger.error("TunnelCommunity: got keys-request from %s but no circuit found", message.candidate)
 
     # # Introduce
 
-    def request_introduction(self, introduction_point):
+    def request_introduction(self, ip, rc, sk):
         # TODO: the circuit needs to end at the introduction point
-        self.create_circuit(2, CIRCUIT_TYPE_INTRODUCE, self._introduce_to_introduction_point)
+        self.create_circuit(2, CIRCUIT_TYPE_INTRODUCE,
+                            lambda c, ip=ip, rc=rc, sk=sk: self._introduce_to_introduction_point)
 
-    def _introduce_to_introduction_point(self, circuit):
+    def _introduce_to_introduction_point(self, circuit, rendezvous_point, cookie, service_key):
         cache = self.request_cache.add(Introduce1RequestCache(self, circuit))
         cookie = ""  # TODO: use earlier created rendezvouz-cookie
-        self._logger.error("TunnelCommunity: send introduce1 over tunnel %s with cookie %s",
-                           circuit.circuit_id,
-                           cookie)
-        self.send_cell([Candidate(circuit.first_hop, False)], u'intro1', (circuit.circuit_id, cache.number, cookie))
+        self._logger.error("TunnelCommunity: send introduce1 over tunnel %s with cookie %s", circuit.circuit_id, cookie)
+        self.send_cell([Candidate(circuit.first_hop, False)], u'intro1', (circuit.circuit_id, cache.number, cookie,
+                                                                          rendezvous_point, service_key))
 
     def check_intro1(self, messages):
         for message in messages:
-            # if not self.is_relay(message.payload.circuit_id):
-            #    request = self.request_cache.get(u"intro1", message.payload.circuit_id)
-            #    if not request:
-            #        yield DropMessage(message, "invalid intro1 request circuit_id")
-            #        continue
+            # TODO: check if we know this infohash?
             yield message
 
     def on_intro1(self, messages):
@@ -1248,51 +1245,38 @@ class TunnelCommunity(Community):
                                    relay_circuit_id)
 
             else:
-                self._logger.error("TunnelCommunity: got intro1 from %s with service_key %s but no associated socket found",
-                                   message.candidate,
-                                   service_key)
+                self._logger.error("TunnelCommunity: got intro1 from %s with service_key %s but no associated " +
+                                   "socket found", message.candidate, service_key)
 
     def check_intro2(self, messages):
         for message in messages:
-            # if not self.is_relay(message.payload.circuit_id):
-            #    request = self.request_cache.get(u"intro2", message.payload.circuit_id)
-            #    if not request:
-            #        yield DropMessage(message, "invalid intro2 request circuit_id")
-            #        continue
+            # TODO: check if we got the message from a circuit with type CIRCUIT_TYPE_IP
             yield message
 
     def on_intro2(self, messages):
         for message in messages:
             # TODO: check for replay attack
-
             # TODO: the circuit needs to end at the rendezvous point
-            rendezvous_point = message.payload.rendezvous_point
-            self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS, self._rendezvous_to_rendezvous_point)
+            rp = message.payload.rendezvous_point
+            rc = message.payload.cookie
+            k = message.payload.key
+            self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS,
+                                lambda c, rp=rp, rc=rc, k=k: self._rendezvous_to_rendezvous_point)
 
 
     # # Rendezvous
 
-    def _rendezvous_to_rendezvous_point(self, circuit):
-
+    def _rendezvous_to_rendezvous_point(self, circuit, rendezvous_point, cookie, key):
         # For which types of messages do we need this request cache?
         cache = self.request_cache.add(Rendezvous1RequestCache(self, circuit))
-
-        # TODO: get these values from the intro2 message payload
-        cookie = ""  # message.payload.cookie
-        key = ""  # message.payload.key
-
         self._logger.error("TunnelCommunity: send rendezvous1 over tunnel %s with cookie %s",
-                           circuit.circuit_id,
-                           cookie)
-        self.send_cell([Candidate(circuit.first_hop, False)], u'rendezvous1', (circuit.circuit_id, cache.number, key, cookie))
+                           circuit.circuit_id, cookie)
+        self.send_cell([Candidate(circuit.first_hop, False)], u'rendezvous1', (circuit.circuit_id, cache.number,
+                                                                               key, cookie))
 
     def check_rendezvous1(self, messages):
         for message in messages:
-            if not self.is_relay(message.payload.circuit_id):
-                request = self.request_cache.get(u"rendezvous1", message.payload.circuit_id)
-                if not request:
-                    yield DropMessage(message, "invalid rendezvous1 request circuit_id")
-                    continue
+            # TODO: check if we know this rendezvous cookie
             yield message
 
     def on_rendezvous1(self, messages):
@@ -1301,10 +1285,8 @@ class TunnelCommunity(Community):
             cookie = message.payload.cookie
             if cookie in self.rendezvous_circuits.values():
                 relay_circuit_id = dict.keys()[dict.values().index(cookie)]
-                self._logger.error("TunnelCommunity: got rendezvous1 with valid rendezvous cookie %s via tunnel %s from %s",
-                                   cookie,
-                                   circuit_id,
-                                   message.candidate)
+                self._logger.error("TunnelCommunity: got rendezvous1 with valid rendezvous cookie %s via tunnel %s " +
+                                   "from %s", cookie, circuit_id, message.candidate)
 
                 self.send_cell([message.candidate], u"intro2", (relay_circuit_id,
                                                                 message.payload.identifier,
@@ -1313,17 +1295,12 @@ class TunnelCommunity(Community):
                                    relay_circuit_id)
 
             else:
-                self._logger.error("TunnelCommunity: got rendezvous1 from %s with rendezvous cookie %s but no associated socket found",
-                                   message.candidate,
-                                   cookie)
+                self._logger.error("TunnelCommunity: got rendezvous1 from %s with rendezvous cookie %s but no " +
+                                   "associated socket found", message.candidate, cookie)
 
     def check_rendezvous2(self, messages):
         for message in messages:
-            # if not self.is_relay(message.payload.circuit_id):
-            #    request = self.request_cache.get(u"rendezvous2", message.payload.circuit_id)
-            #    if not request:
-            #        yield DropMessage(message, "invalid rendezvous2 request circuit_id")
-            #        continue
+            # TODO: check if we got the message from a circuit with type CIRCUIT_TYPE_RP
             yield message
 
     def on_rendezvous2(self, messages):
