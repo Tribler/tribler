@@ -227,17 +227,12 @@ class LineHandler(LineReceiver):
                                                              circuit.bytes_up / 1024.0 / 1024.0)
         elif line == 'ip':
             print "Create introduction point"
-            anon_tunnel.community.create_introduction_points(3)
-            
-        elif line == 'rp':
+            anon_tunnel.community.create_introduction_points('TEST SERVICE KEY')
+
+        elif line.startswith('rp'):
             print "Create rendezvous point"
-            anon_tunnel.community.create_rendezvous_point()
-            
-        elif 'introduce' in line:
-            command, introduction_point = line.split(' ')
-            
-            print "Introduce rendezvouz to hidden service %s" % introduction_point
-            anon_tunnel.community.request_introduction(introduction_point)
+            _, port = line.split(' ')
+            anon_tunnel.community.create_rendezvous_point(int(port), 'TEST SERVICE KEY')
 
         elif line == 'q':
             anon_tunnel.stop()
