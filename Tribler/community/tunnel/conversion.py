@@ -222,30 +222,9 @@ class TunnelConversion(BinaryConversion):
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
-    def _encode_keys_request(self, message):
-        return pack('!IH20s', message.payload.circuit_id, 
-                    message.payload.identifier,
-                    message.payload.service_key),
-
-    def _decode_keys_request(self, placeholder, offset, data):
-        circuit_id, identifier, service_key = unpack_from('!IH20s', data, offset)
-        offset += 26
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key)
-
-    def _encode_keys_response(self, message):
-        return pack('!IH20s20s', message.payload.circuit_id, 
-                    message.payload.identifier, 
-                    message.payload.ip_key, 
-                    message.payload.seeder_key),
-
-    def _decode_keys_response(self, placeholder, offset, data):
-        circuit_id, identifier, ip_key, seeder_key = unpack_from('!IH20s20s', data, offset)
-        offset += 46
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, ip_key, seeder_key)
-
     def _encode_intro1(self, message):
-        return pack('!IH20s20s20s20s', 
-                    message.payload.circuit_id, 
+        return pack('!IH20s20s20s20s',
+                    message.payload.circuit_id,
                     message.payload.identifier,
                     message.payload.key,
                     message.payload.cookie,
@@ -255,12 +234,12 @@ class TunnelConversion(BinaryConversion):
     def _decode_intro1(self, placeholder, offset, data):
         circuit_id, identifier, key, cookie, rp, service_key = unpack_from('!IH20s20s20s20s', data, offset)
         offset += 86
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, key, 
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, key,
                                                           cookie, rp, service_key)
 
     def _encode_intro2(self, message):
-        return pack('!IH20s20s20s', 
-                    message.payload.circuit_id, 
+        return pack('!IH20s20s20s',
+                    message.payload.circuit_id,
                     message.payload.identifier,
                     message.payload.key,
                     message.payload.cookie,
@@ -273,8 +252,8 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, key, cookie, rendezvous_point)
 
     def _encode_rendezvous1(self, message):
-        return pack('!IH20s20s', 
-                    message.payload.circuit_id, 
+        return pack('!IH20s20s',
+                    message.payload.circuit_id,
                     message.payload.identifier,
                     message.payload.key,
                     message.payload.cookie),

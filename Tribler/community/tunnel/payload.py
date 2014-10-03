@@ -282,62 +282,6 @@ class RendezvousEstablishedPayload(Payload):
             return self._identifier
 
 
-class KeysRequestPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, service_key):
-            assert isinstance(circuit_id, (int, long)), type(circuit_id)
-            assert isinstance(identifier, int), type(identifier)
-            assert isinstance(service_key, basestring), type(service_key)
-
-            super(KeysRequestPayload.Implementation, self).__init__(meta)
-            self._circuit_id = circuit_id
-            self._identifier = identifier
-            self._service_key = service_key
-
-        @property
-        def circuit_id(self):
-            return self._circuit_id
-
-        @property
-        def identifier(self):
-            return self._identifier
-
-        @property
-        def service_key(self):
-            return self._service_key
-
-
-class KeysResponsePayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, ip_key, seeder_key):
-            assert isinstance(circuit_id, (int, long)), type(circuit_id)
-            assert isinstance(identifier, int), type(identifier)
-            assert isinstance(ip_key, basestring), type(ip_key)
-            assert isinstance(seeder_key, basestring), type(seeder_key)
-
-            super(KeysResponsePayload.Implementation, self).__init__(meta)
-            self._circuit_id = circuit_id
-            self._identifier = identifier
-            self._ip_key = ip_key
-            self._seeder_key = seeder_key
-
-        @property
-        def circuit_id(self):
-            return self._circuit_id
-
-        @property
-        def identifier(self):
-            return self._identifier
-
-        @property
-        def ip_key(self):
-            return self._ip_key
-
-        @property
-        def seeder_key(self):
-            return self._seeder_key
-
-
 class Intro1Payload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, circuit_id, identifier, key, cookie, rendezvous_point, service_key):
