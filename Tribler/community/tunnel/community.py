@@ -471,7 +471,7 @@ class TunnelCommunity(Community):
             elif exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
                 self.remove_exit_socket(circuit_id, 'traffic limit exceeded', destroy=True)
 
-    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None):
+    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None):
         first_hop = None
         hops = set([c.first_hop for c in self.circuits.values()])
         for c in self.dispersy_yield_verified_candidates():
@@ -485,6 +485,8 @@ class TunnelCommunity(Community):
 
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
         circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback)
+        if required_exit:
+            circuit.required_exit = required_exit
 
         self.request_cache.add(CircuitRequestCache(self, circuit))
 
@@ -727,19 +729,28 @@ class TunnelCommunity(Community):
         circuit.unverified_hop = None
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
-            candidate_list_enc = message.payload.candidate_list
-            _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[EXIT_NODE], candidate_list_enc))
 
-            for ignore_candidate in [self.my_member.public_key] + [hop.public_key for hop in circuit.hops]:
-                if ignore_candidate in candidate_list:
-                    candidate_list.remove(ignore_candidate)
+            if circuit.goal_hops - 1 == len(self.hops):
+                # TODO: lookup public_key
+                extend_hop_public_bin = None
+                extend_hop_addr = circuit.required_exit
 
-            for i in range(len(candidate_list) - 1, -1, -1):
-                public_key = self.crypto.key_from_public_bin(candidate_list[i])
-                if not self.crypto.is_key_compatible(public_key):
-                    candidate_list.pop(i)
+            else:
+                candidate_list_enc = message.payload.candidate_list
+                _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[EXIT_NODE], candidate_list_enc))
 
-            extend_hop_public_bin = next(iter(candidate_list), None)
+                for ignore_candidate in [self.my_member.public_key] + [hop.public_key for hop in circuit.hops]:
+                    if ignore_candidate in candidate_list:
+                        candidate_list.remove(ignore_candidate)
+
+                for i in range(len(candidate_list) - 1, -1, -1):
+                    public_key = self.crypto.key_from_public_bin(candidate_list[i])
+                    if not self.crypto.is_key_compatible(public_key):
+                        candidate_list.pop(i)
+
+                extend_hop_public_bin = next(iter(candidate_list), None)
+                extend_hop_addr = None
+
             if extend_hop_public_bin:
                 extend_hop_public_key = self.dispersy.crypto.key_from_public_bin(extend_hop_public_bin)
                 circuit.unverified_hop = Hop(extend_hop_public_key)
@@ -748,7 +759,8 @@ class TunnelCommunity(Community):
                 self._logger.info("TunnelCommunity: extending circuit %d with %s", circuit.circuit_id, extend_hop_public_bin[:20].encode('hex'))
                 dh_first_part_enc = self.crypto.hybrid_encrypt_str(extend_hop_public_key, long_to_bytes(circuit.unverified_hop.dh_first_part))
                 self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
-                                                                 (circuit.circuit_id, dh_first_part_enc, extend_hop_public_bin)))
+                                                                 (circuit.circuit_id, dh_first_part_enc,
+                                                                  extend_hop_public_bin, extend_hop_addr)))
             else:
                 self.remove_circuit(circuit.circuit_id, "no candidates to extend, bailing out.")
 
@@ -1198,7 +1210,8 @@ class TunnelCommunity(Community):
     def request_introduction(self, rd_circuit):
         # TODO: the circuit needs to end at the introduction point
         self.create_circuit(2, CIRCUIT_TYPE_INTRODUCE,
-                            lambda c1, c2=rd_circuit: self._introduce_to_introduction_point(c1, c2))
+                            lambda c1, c2=rd_circuit: self._introduce_to_introduction_point(c1, c2),
+                            required_exit=rd_circuit.rendezvous_point)
 
     def _introduce_to_introduction_point(self, intro_circuit, rd_circuit):
         cache = self.request_cache.add(Introduce1RequestCache(self, rd_circuit))

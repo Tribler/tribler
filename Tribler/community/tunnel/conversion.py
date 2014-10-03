@@ -90,7 +90,12 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_extend(self, message):
         payload = message.payload
-        packet = pack("!IHH", payload.circuit_id, len(payload.extend_with), len(payload.key)) + payload.extend_with + payload.key
+        packet = pack("!IHH", payload.circuit_id, len(payload.extend_with), len(payload.key)) + \
+                 payload.extend_with + payload.key
+
+        if message.payload.extend_with_addr:
+            host, port = message.payload.extend_with_addr
+            packet += pack("!H", len(host)) + host + pack("!H", port)
         return packet,
 
     def _decode_extend(self, placeholder, offset, data):
@@ -106,7 +111,13 @@ class TunnelConversion(BinaryConversion):
         key = data[offset:offset + len_key]
         offset += len_key
 
-        return offset, placeholder.meta.payload.implement(circuit_id, key, extend_with)
+        extend_with_addr = None
+        if len(data) > offset:
+            host, port = unpack_from('!4sH', data, offset)
+            offset += 6
+            extend_with_addr = (inet_ntoa(host), port), offset
+
+        return offset, placeholder.meta.payload.implement(circuit_id, key, extend_with, extend_with_addr)
 
     def _encode_extended(self, message):
         payload = message.payload

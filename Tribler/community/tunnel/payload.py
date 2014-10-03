@@ -72,15 +72,17 @@ class CreatedPayload(Payload):
 
 class ExtendPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, key, extend_with):
+        def __init__(self, meta, circuit_id, key, extend_with, extend_with_addr=None):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(key, basestring), type(key)
             assert extend_with is None or isinstance(extend_with, basestring), type(extend_with)
+            assert extend_with_addr is None or isinstance(extend_with_addr, tuple), type(extend_with_addr)
 
             super(ExtendPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._key = key
             self._extend_with = extend_with
+            self._extend_with_addr = extend_with_addr
 
         @property
         def circuit_id(self):
@@ -93,6 +95,10 @@ class ExtendPayload(Payload):
         @property
         def extend_with(self):
             return self._extend_with
+
+        @property
+        def extend_with_addr(self):
+            return self._extend_with_addr
 
 
 class ExtendedPayload(Payload):
