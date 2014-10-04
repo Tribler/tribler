@@ -227,13 +227,15 @@ class EstablishIntroPayload(Payload):
 
 class IntroEstablishedPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier):
+        def __init__(self, meta, circuit_id, identifier, intro_point_addr):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
+            assert isinstance(intro_point_addr, tuple), type(intro_point_addr)
 
             super(IntroEstablishedPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._identifier = identifier
+            self._intro_point_addr = intro_point_addr
 
         @property
         def circuit_id(self):
@@ -242,6 +244,10 @@ class IntroEstablishedPayload(Payload):
         @property
         def identifier(self):
             return self._identifier
+
+        @property
+        def intro_point_addr(self):
+            return self._intro_point_addr
 
 
 class EstablishRendezvousPayload(Payload):
@@ -271,13 +277,15 @@ class EstablishRendezvousPayload(Payload):
 
 class RendezvousEstablishedPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier):
+        def __init__(self, meta, circuit_id, identifier, rendezvous_point_addr):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
+            assert isinstance(rendezvous_point_addr, tuple), type(rendezvous_point_addr)
 
             super(RendezvousEstablishedPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._identifier = identifier
+            self._rendezvous_point_addr = rendezvous_point_addr
 
         @property
         def circuit_id(self):
@@ -287,6 +295,10 @@ class RendezvousEstablishedPayload(Payload):
         def identifier(self):
             return self._identifier
 
+        @property
+        def rendezvous_point_addr(self):
+            return self._rendezvous_point_addr
+
 
 class Intro1Payload(Payload):
     class Implementation(Payload.Implementation):
@@ -295,7 +307,7 @@ class Intro1Payload(Payload):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(key, basestring), type(key)
             assert isinstance(cookie, basestring), type(cookie)
-            assert isinstance(rendezvous_point, basestring), type(rendezvous_point)
+            assert isinstance(rendezvous_point, (list, tuple)), type(rendezvous_point)
             assert isinstance(service_key, basestring), type(service_key)
 
             super(Intro1Payload.Implementation, self).__init__(meta)
@@ -338,7 +350,7 @@ class Intro2Payload(Payload):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(key, basestring), type(key)
             assert isinstance(cookie, basestring), type(cookie)
-            assert isinstance(rendezvous_point, basestring), type(rendezvous_point)
+            assert isinstance(rendezvous_point, (list, tuple)), type(rendezvous_point)
 
             super(Intro2Payload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
