@@ -1238,7 +1238,7 @@ class TunnelCommunity(Community):
     def _introduce_to_introduction_point(self, intro_circuit, rp_circuit):
         if not intro_circuit:
             # TODO: fix this + add sleep
-            self.create_circuit(2, CIRCUIT_TYPE_RP,
+            self.create_circuit(2, CIRCUIT_TYPE_INTRODUCE,
                                 lambda c, rpc=rp_circuit: self._introduce_to_introduction_point(c, rpc),
                                 required_exit=rp_circuit.intro_point)
             return
@@ -1287,7 +1287,6 @@ class TunnelCommunity(Community):
     def on_intro2(self, messages):
         for message in messages:
             # TODO: check for replay attack
-            # TODO: the circuit needs to end at the rendezvous point
             self._rendezvous_to_rendezvous_point(None, message.payload.rendezvous_point, message.payload.cookie,
                                                  message.payload.key)
 
@@ -1296,9 +1295,9 @@ class TunnelCommunity(Community):
     def _rendezvous_to_rendezvous_point(self, circuit, rendezvous_point, cookie, key):
         if not circuit:
             # TODO: fix this + add sleep
-            self.create_circuit(2, CIRCUIT_TYPE_RP, lambda c, rp=rendezvous_point, rc=cookie, k=key:
-                                                    self._rendezvous_to_rendezvous_point(c, rp, rc, k),
-                                                    required_exit=rendezvous_point)
+            self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS, lambda c, rp=rendezvous_point, rc=cookie, k=key:
+                                                            self._rendezvous_to_rendezvous_point(c, rp, rc, k),
+                                                            required_exit=rendezvous_point)
             return
 
         # For which types of messages do we need this request cache?

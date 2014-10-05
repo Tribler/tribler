@@ -247,15 +247,15 @@ class TunnelConversion(BinaryConversion):
         host, port, pub_key = message.payload.rendezvous_point
         return (pack('!IH20s20s', message.payload.circuit_id, message.payload.identifier,
                      message.payload.key, message.payload.cookie) +
-                pack('!4sH20s20s', inet_aton(host), port, pub_key, message.payload.service_key)),
+                pack('!4sH64s20s', inet_aton(host), port, pub_key, message.payload.service_key)),
 
     def _decode_intro1(self, placeholder, offset, data):
         circuit_id, identifier, key, cookie = unpack_from('!IH20s20s', data, offset)
         offset += 46
 
-        host, port, pub_key, service_key = unpack_from('!4sH20s20s', data, offset)
+        host, port, pub_key, service_key = unpack_from('!4sH64s20s', data, offset)
         rendezvous_point = (inet_ntoa(host), port, pub_key)
-        offset += 46
+        offset += 90
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, key,
                                                           cookie, rendezvous_point, service_key)
@@ -264,16 +264,16 @@ class TunnelConversion(BinaryConversion):
         host, port, pub_key = message.payload.rendezvous_point
         return (pack('!IH20s20s', message.payload.circuit_id, message.payload.identifier,
                      message.payload.key, message.payload.cookie) +
-                pack('!4sH20s', inet_aton(host), port, pub_key)),
+                pack('!4sH64s', inet_aton(host), port, pub_key)),
 
 
     def _decode_intro2(self, placeholder, offset, data):
         circuit_id, identifier, key, cookie = unpack_from('!IH20s20s', data, offset)
         offset += 46
 
-        host, port, pub_key = unpack_from('!4sH20s', data, offset)
+        host, port, pub_key = unpack_from('!4sH64s', data, offset)
         rendezvous_point = (inet_ntoa(host), port, pub_key)
-        offset += 26
+        offset += 70
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, key, cookie, rendezvous_point)
 
