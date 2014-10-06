@@ -1246,8 +1246,10 @@ class TunnelCommunity(Community):
         cache = self.request_cache.add(Introduce1RequestCache(self, intro_circuit))
         self._logger.error("TunnelCommunity: send introduce1 over tunnel %s with cookie %s (%s)", intro_circuit.circuit_id,
                            self._readable_binary_string(rp_circuit.cookie), intro_circuit.first_hop)
+
+        rp_circuit.dh_secret, rp_circuit.dh_first_part = self.crypto.generate_diffie_secret()
         self.send_cell([Candidate(intro_circuit.first_hop, False)], u'intro1', (intro_circuit.circuit_id, cache.number,
-                                                                                '\0' * 20,
+                                                                                long_to_bytes(rp_circuit.dh_first_part),
                                                                                 rp_circuit.cookie,
                                                                                 rp_circuit.rendezvous_point,
                                                                                 rp_circuit.service_key))
@@ -1292,10 +1294,10 @@ class TunnelCommunity(Community):
 
     # # Rendezvous
 
-    def _rendezvous_to_rendezvous_point(self, circuit, rendezvous_point, cookie, key):
+    def _rendezvous_to_rendezvous_point(self, circuit, rendezvous_point, cookie, dh_first_part):
         if not circuit:
             # TODO: fix this + add sleep
-            self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS, lambda c, rp=rendezvous_point, rc=cookie, k=key:
+            self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS, lambda c, rp=rendezvous_point, rc=cookie, k=dh_first_part:
                                                             self._rendezvous_to_rendezvous_point(c, rp, rc, k),
                                                             required_exit=rendezvous_point)
             return
@@ -1304,9 +1306,14 @@ class TunnelCommunity(Community):
         cache = self.request_cache.add(Rendezvous1RequestCache(self, circuit))
         self._logger.error("TunnelCommunity: send rendezvous1 over tunnel %s with cookie %s",
                            circuit.circuit_id, self._readable_binary_string(cookie))
-        # TODO: generate dh2 + calc session key
+
+        circuit.dh_secret, circuit.dh_second_part = self.crypto.generate_diffie_secret()
+        session_keys = self.crypto.generate_session_keys(circuit.dh_secret, bytes_to_long(dh_first_part))
+        self._logger.error("TunnelCommunity: session keys %s %s", self._readable_binary_string(session_keys[0]),
+                                                                  self._readable_binary_string(session_keys[1]))
         self.send_cell([Candidate(circuit.first_hop, False)], u'rendezvous1', (circuit.circuit_id, cache.number,
-                                                                               key, cookie))
+                                                                               long_to_bytes(circuit.dh_second_part),
+                                                                               cookie))
 
     def check_rendezvous1(self, messages):
         for message in messages:
@@ -1339,9 +1346,11 @@ class TunnelCommunity(Community):
 
     def on_rendezvous2(self, messages):
         for message in messages:
-            # TODO: calc session key
-            key = message.payload.key
-            self._logger.error("TunnelCommunity: handshake completed! ")
+            rd_circuit = self.circuits[message.payload.circuit_id]
+            session_keys = self.crypto.generate_session_keys(rd_circuit.dh_secret, bytes_to_long(message.payload.key))
+            self._logger.error("TunnelCommunity: handshake completed!")
+            self._logger.error("TunnelCommunity: session keys %s %s", self._readable_binary_string(session_keys[0]),
+                                                                      self._readable_binary_string(session_keys[1]))
 
 
     # # For testing..

@@ -245,13 +245,21 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_intro1(self, message):
         host, port, pub_key = message.payload.rendezvous_point
-        return (pack('!IH20s20s4sHH', message.payload.circuit_id, message.payload.identifier,
-                     message.payload.key, message.payload.cookie, inet_aton(host), port, len(pub_key)) + pub_key +
+        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.key)) +
+                message.payload.key +
+                pack('!20s4sHH', message.payload.cookie, inet_aton(host), port, len(pub_key)) +
+                pub_key +
                 pack('!20s', message.payload.service_key)),
 
     def _decode_intro1(self, placeholder, offset, data):
-        circuit_id, identifier, key, cookie, host, port, len_pub_key = unpack_from('!IH20s20s4sHH', data, offset)
-        offset += 54
+        circuit_id, identifier, len_key = unpack_from('!IHH', data, offset)
+        offset += 8
+
+        key = data[offset: offset + len_key]
+        offset += len_key
+
+        cookie, host, port, len_pub_key = unpack_from('!20s4sHH', data, offset)
+        offset += 28
 
         pub_key = data[offset: offset + len_pub_key]
         offset += len_pub_key
@@ -266,12 +274,20 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_intro2(self, message):
         host, port, pub_key = message.payload.rendezvous_point
-        return (pack('!IH20s20s4sHH', message.payload.circuit_id, message.payload.identifier,
-                     message.payload.key, message.payload.cookie, inet_aton(host), port, len(pub_key)) + pub_key),
+        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.key)) +
+                message.payload.key +
+                pack('!20s4sHH', message.payload.cookie, inet_aton(host), port, len(pub_key)) +
+                pub_key),
 
     def _decode_intro2(self, placeholder, offset, data):
-        circuit_id, identifier, key, cookie, host, port, len_pub_key = unpack_from('!IH20s20s4sHH', data, offset)
-        offset += 54
+        circuit_id, identifier, len_key = unpack_from('!IHH', data, offset)
+        offset += 8
+
+        key = data[offset: offset + len_key]
+        offset += len_key
+
+        cookie, host, port, len_pub_key = unpack_from('!20s4sHH', data, offset)
+        offset += 28
 
         pub_key = data[offset: offset + len_pub_key]
         offset += len_pub_key
@@ -281,24 +297,32 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, key, cookie, rendezvous_point)
 
     def _encode_rendezvous1(self, message):
-        return pack('!IH20s20s',
-                    message.payload.circuit_id,
-                    message.payload.identifier,
-                    message.payload.key,
-                    message.payload.cookie),
+        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.key)) +
+                message.payload.key +
+                pack('!20s', message.payload.cookie)),
 
     def _decode_rendezvous1(self, placeholder, offset, data):
-        circuit_id, identifier, key, cookie = unpack_from('!IH20s20s', data, offset)
-        offset += 46
+        circuit_id, identifier, len_key = unpack_from('!IHH', data, offset)
+        offset += 8
+
+        key = data[offset: offset + len_key]
+        offset += len_key
+
+        cookie, = unpack_from('!20s', data, offset)
+        offset += 20
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, key, cookie)
 
     def _encode_rendezvous2(self, message):
-        return pack('!IH20s', message.payload.circuit_id, message.payload.identifier, message.payload.key),
+        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.key)) +
+                message.payload.key),
 
     def _decode_rendezvous2(self, placeholder, offset, data):
-        circuit_id, identifier, key = unpack_from('!IH20s', data, offset)
-        offset += 26
+        circuit_id, identifier, len_key = unpack_from('!IHH', data, offset)
+        offset += 8
+
+        key = data[offset: offset + len_key]
+        offset += len_key
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, key)
 
