@@ -475,7 +475,8 @@ class TunnelCommunity(Community):
         first_hop = None
         hops = set([c.first_hop for c in self.circuits.values()])
         for c in self.dispersy_yield_verified_candidates():
-            if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec):
+            if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
+               (not required_exit or c.sock_addr != required_exit[:2]):
                 first_hop = c
                 break
 
@@ -745,7 +746,10 @@ class TunnelCommunity(Community):
                 candidate_list_enc = message.payload.candidate_list
                 _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[EXIT_NODE], candidate_list_enc))
 
-                for ignore_candidate in [self.my_member.public_key] + [hop.public_key for hop in circuit.hops]:
+                ignore_candidates = [self.my_member.public_key] + [hop.public_key for hop in circuit.hops]
+                if hasattr(circuit, 'required_exit'):
+                    ignore_candidates.append(circuit.required_exit[2])
+                for ignore_candidate in ignore_candidates:
                     if ignore_candidate in candidate_list:
                         candidate_list.remove(ignore_candidate)
 
