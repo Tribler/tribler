@@ -108,7 +108,7 @@ class Tunnel(object):
         config.set_swift_proc(True)
         config.set_mainline_dht(False)
         config.set_torrent_collecting(False)
-        config.set_libtorrent(False)
+        config.set_libtorrent(True)
         config.set_dht_torrent_collecting(False)
         config.set_videoplayer(False)
         config.set_dispersy_tunnel_over_swift(True)
@@ -126,7 +126,9 @@ class Tunnel(object):
             else:
                 member = self.dispersy.get_new_member(u"NID_secp160k1")
                 cls = TunnelCommunity
-            self.community = self.dispersy.define_auto_load(cls, member, (None, self.settings), load=True)[0]
+            self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
+
+            self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
 
         blockingCallFromThread(reactor, start_community)
 
@@ -225,13 +227,70 @@ class LineHandler(LineReceiver):
                                                              len(circuit.hops),
                                                              circuit.bytes_down / 1024.0 / 1024.0,
                                                              circuit.bytes_up / 1024.0 / 1024.0)
-        elif line == 'ip':
-            print "Create introduction point"
-            anon_tunnel.community.create_introduction_points('TEST_INFOHASH')
 
-        elif line == 'rp':
-            print "Create rendezvous point"
-            anon_tunnel.community.create_rendezvous_point('TEST_INFOHASH')
+        elif line == 's':
+            from Tribler.Main.globals import DefaultDownloadStartupConfig
+            from Tribler.Core.TorrentDef import TorrentDef
+
+            print "Creating torrent..",
+            cur_path = os.getcwd()
+            filename = 'test_file'
+            if not os.path.exists(filename):
+                with open(filename, 'wb') as fp:
+                    fp.write(os.urandom(10 * 1024 * 1024))
+
+            tdef = TorrentDef()
+            tdef.add_content(os.path.join(cur_path, filename))
+            tdef.set_tracker("udp://fake.net/announce")
+            tdef.set_private()
+            tdef.input['is_anonymous'] = 1
+            tdef.finalize()
+            tdef.save(os.path.join(cur_path, filename + '.torrent'))
+
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
+            dscfg.set_anon_mode(True)
+            dscfg.set_dest_dir(cur_path)
+
+            def start_download():
+                def cb(ds):
+                    from Tribler.Core.simpledefs import DLSTATUS_SEEDING
+                    if ds.get_status() == DLSTATUS_SEEDING:
+                        print 'now seeding'
+
+                        print "Creating introduction point"
+                        anon_tunnel.community.create_introduction_points(tdef.get_id())
+
+                        return 0, False
+                    else:
+                        return 1.0, False
+                download = anon_tunnel.session.start_download(tdef, dscfg)
+                download.set_state_callback(cb, delay=1)
+
+            anon_tunnel.session.uch.perform_usercallback(start_download)
+
+        elif line == 'd':
+            from Tribler.Main.globals import DefaultDownloadStartupConfig
+            from Tribler.Core.TorrentDef import TorrentDef
+
+            print "Loading torrent..",
+            tdef = TorrentDef.load('test_file.torrent')
+            print "done"
+
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
+            dscfg.set_anon_mode(True)
+            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader'))
+
+            def start_download():
+                def cb(ds):
+                    print 'Download', tdef.get_id().encode('hex')[:10], '@', ds.get_progress(), ds.get_status(), sum(ds.get_num_seeds_peers())
+                    return 1.0, False
+                download = anon_tunnel.session.start_download(tdef, dscfg)
+                download.set_state_callback(cb, delay=1)
+
+            print "Creating rendezvous point"
+            anon_tunnel.community.create_rendezvous_point(tdef.get_id(), lambda f=start_download: anon_tunnel.session.uch.perform_usercallback(f))
 
         elif line == 'q':
             anon_tunnel.stop()
