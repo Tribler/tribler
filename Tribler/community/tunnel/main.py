@@ -344,7 +344,7 @@ def main(argv):
         settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
     else:
         settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
-
+    settings.do_test = False
     tunnel = Tunnel(settings, crawl_keypair_filename, swift_port)
     StandardIO(LineHandler(tunnel, profile))
     tunnel.run()

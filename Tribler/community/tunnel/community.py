@@ -227,6 +227,7 @@ class TunnelSettings(object):
         self.circuit_length = 3
         self.crypto = TunnelCrypto()
         self.socks_listen_ports = range(1080, 1085)
+        self.do_test = True
 
         self.min_circuits = 4
         self.max_circuits = 8
