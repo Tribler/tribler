@@ -174,7 +174,7 @@ class LibtorrentMgr(object):
         if hops > 0:
             if self.tunnel_community:
                 self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
-                return min(1, len(self.tunnel_community.active_circuits(hops)) / float(self.tunnel_community.settings.min_circuits))
+                return min(1, len(self.tunnel_community.active_data_circuits(hops)) / float(self.tunnel_community.settings.min_circuits))
             return 0
         return 1
 

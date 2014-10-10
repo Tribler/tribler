@@ -4,6 +4,8 @@
 import time
 import random
 import logging
+import struct
+import socket
 
 from traceback import print_exc
 from collections import defaultdict
@@ -142,7 +144,7 @@ class Introduce1RequestCache(RandomNumberCache):
 
     @property
     def timeout_delay(self):
-        return 10.0
+        return 15.0
 
     def on_timeout(self):
         self._logger.debug("Introduce1RequestCache: no response on intro1 (circuit %d)", self.circuit.circuit_id)
@@ -247,18 +249,25 @@ class RoundRobin(object):
         self.index = -1
 
     def has_options(self, hops):
-        return len(self.community.active_circuits(hops)) > 0
+        return len(self.community.active_data_circuits(hops)) > 0
 
-    def select(self, hops):
-        active_circuits = self.community.active_circuits(hops)
-        circuit_ids = sorted(active_circuits.keys())
+    def select(self, destination, hops):
+        if destination[1] == 1024:
+            circuit_id = self.community.ip_to_circuit_id(destination[0])
+            circuit_ids = {cid: c for cid, c in self.community.circuits.items()
+                           if c.state == CIRCUIT_STATE_READY and c.ctype == CIRCUIT_TYPE_RP}
+
+            if circuit_id in circuit_ids:
+                return circuit_ids[circuit_id]
+
+        circuit_ids = sorted(self.community.active_data_circuits(hops).keys())
 
         if not circuit_ids:
             return None
 
         self.index = (self.index + 1) % len(circuit_ids)
         circuit_id = circuit_ids[self.index]
-        return active_circuits[circuit_id]
+        return self.community.active_data_circuits()[circuit_id]
 
 
 class TunnelCommunity(Community):
@@ -271,6 +280,7 @@ class TunnelCommunity(Community):
         self.directions = {}
         self.relay_from_to = {}
         self.relay_session_keys = {}
+        self.forward_from_to = {}
         self.waiting_for = set()
         self.exit_sockets = {}
         self.circuits_needed = {}
@@ -326,7 +336,8 @@ class TunnelCommunity(Community):
     @classmethod
     def get_master_members(cls, dispersy):
         # Community id for testing.
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004070f1ae7cc17921a3ccb8ed65c144a8a63a1af30aa473253f0233314d8865ea6368090f541262c2a6d9ca1b11fa26b6c056957014a04fdc25f1d30b3644aaeeae972c6f872abe0f703d9e627f863c25ec8f4090e6bdfb93b7f6614abed0e5600a56321a4fb1372727fffba4a26cc4e4be701dd99f888c1e941cb6c00d5229a56bb5ec8688b98ae62a7d400df298e2e08".decode("HEX")
+        # master_key = "3081a7301006072a8648ce3d020106052b810400270381920004070f1ae7cc17921a3ccb8ed65c144a8a63a1af30aa473253f0233314d8865ea6368090f541262c2a6d9ca1b11fa26b6c056957014a04fdc25f1d30b3644aaeeae972c6f872abe0f703d9e627f863c25ec8f4090e6bdfb93b7f6614abed0e5600a56321a4fb1372727fffba4a26cc4e4be701dd99f888c1e941cb6c00d5229a56bb5ec8688b98ae62a7d400df298e2e08".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004054f67aa778fe1986981a2b23a267029fc5e6ccf70126d375219dc9652bc5496cc4beb961e0857c7929a9923411d018bfaea247a2ad472a5346648bbd2d70d0f718c4c1c86f519bc003cefd2e1ad449e7cf103c777d15576e71966a51f9c6d37afabd91795af155db85d9ebe4de0fe4ba16ad1baae204b21906353a8818d2baf5a3f8340b1859d01b7997acd95fba092".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -531,7 +542,7 @@ class TunnelCommunity(Community):
                             self.bittorrent_peers[download] = peers | self.bittorrent_peers[download]
 
                 # If there are active circuits, add peers immediately. Otherwise postpone.
-                if self.active_circuits:
+                if self.active_data_circuits():
                     self.readd_bittorrent_peers()
 
             return True
@@ -572,7 +583,6 @@ class TunnelCommunity(Community):
                 if circuit_id in self.relay_session_keys:
                     del self.relay_session_keys[circuit_id]
             return
-
         self._logger.error("TunnelCommunity: could not remove exit socket %d %s", circuit_id, additional_info)
 
     def destroy_circuit(self, circuit_id, reason=0):
@@ -603,7 +613,7 @@ class TunnelCommunity(Community):
             self.send_destroy(Candidate(sock_addr, False), circuit_id, reason)
             self._logger.error("TunnelCommunity: destroy_exit_socket %s %s", circuit_id, sock_addr)
 
-    def active_circuits(self, hops=None):
+    def active_data_circuits(self, hops=None):
         return {cid: c for cid, c in self.circuits.items()
                 if c.state == CIRCUIT_STATE_READY and c.ctype == CIRCUIT_TYPE_DATA and
                    (hops is None or hops == len(c.hops))}
@@ -673,6 +683,32 @@ class TunnelCommunity(Community):
 
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
             self.increase_bytes_sent(next_relay, self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet))
+
+            return True
+        return False
+
+    def forward_packet(self, circuit_id, message_type, packet):
+        if circuit_id > 0 and circuit_id in self.forward_from_to:
+            next_relay = self.forward_from_to[circuit_id]
+            this_relay = self.forward_from_to.get(next_relay.circuit_id, None)
+
+            if this_relay:
+                this_relay.last_incoming = time.time()
+                self.increase_bytes_received(this_relay, len(packet))
+
+            plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
+            try:
+                decrypted = self.crypto_in(circuit_id, encrypted)
+                encrypted = self.crypto_out(next_relay.circuit_id, decrypted)
+            except CryptoException, e:
+                self._logger.error(str(e))
+                return False
+            packet = plaintext + encrypted
+
+            packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
+            self.increase_bytes_sent(next_relay, self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet))
+
+            self._logger.error("TunnelCommunity: forwarded packet: %s -> %s", circuit_id, next_relay.circuit_id)
 
             return True
         return False
@@ -926,7 +962,8 @@ class TunnelCommunity(Community):
 
         self._logger.debug("TunnelCommunity: got data (%d) from %s", circuit_id, sock_addr)
 
-        if not self.relay_packet(circuit_id, message_type, packet):
+        if not self.relay_packet(circuit_id, message_type, packet) and \
+           not self.forward_packet(circuit_id, message_type, packet):
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
 
             try:
@@ -942,7 +979,8 @@ class TunnelCommunity(Community):
                 self.circuits[circuit_id].beat_heart()
                 self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
-                self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data)
+                seed_tunnel = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RENDEZVOUS
+                self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, seed_tunnel)
 
             # It is not our circuit so we got it from a relay, we need to EXIT it!
             else:
@@ -968,9 +1006,10 @@ class TunnelCommunity(Community):
 
     def do_ping(self):
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
-        for circuit in self.active_circuits().values():
-            cache = self.request_cache.add(PingRequestCache(self, circuit))
-            self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
+        for circuit in self.circuits.values():
+            if circuit.state == CIRCUIT_STATE_READY:
+                cache = self.request_cache.add(PingRequestCache(self, circuit))
+                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
 
     def on_destroy(self, messages):
         for message in messages:
@@ -1101,9 +1140,15 @@ class TunnelCommunity(Community):
     def _readable_binary_string(self, value):
         return value.encode('hex')[:20]
 
+    def ip_to_circuit_id(self, ip_str):
+        return struct.unpack("!I", socket.inet_aton(ip_str))[0]
+
+    def circuit_id_to_ip(self, circuit_id):
+        return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
     # # Create Introduction-points
 
+    @call_on_reactor_thread
     def create_introduction_points(self, info_hash, amount=1):
         for _ in range(0, amount):
             self._create_introduction_point(None, info_hash)
@@ -1155,28 +1200,29 @@ class TunnelCommunity(Community):
             cache = self.request_cache.pop(u"establish-intro", message.payload.identifier)
             self._logger.error("TunnelCommunity: got intro-established from %s", message.candidate)
             circuit = cache.circuit
-            self.dht_store(circuit.info_hash, list(message.payload.intro_point_addr) +
-                                              [self.crypto.key_to_bin(circuit.hops[-1].public_key).encode('hex'),
-                                               circuit.service_key.encode('hex')])
+            self.dht_store(circuit.info_hash.encode('hex'), list(message.payload.intro_point_addr) +
+                                                            [self.crypto.key_to_bin(circuit.hops[-1].public_key).encode('hex'),
+                                                            circuit.service_key.encode('hex')])
 
 
     # # Create rendezvous-point
 
-    def create_rendezvous_point(self, info_hash):
-        self._create_rendezvous_point(None, info_hash)
+    def create_rendezvous_point(self, info_hash, callback):
+        self._create_rendezvous_point(None, info_hash, callback)
 
-    def _create_rendezvous_point(self, rp_circuit, info_hash):
+    def _create_rendezvous_point(self, rp_circuit, info_hash, callback):
         if not rp_circuit:
             # TODO: fix this + add sleep
-            self.create_circuit(2, CIRCUIT_TYPE_RP, lambda c, ih=info_hash: self._create_rendezvous_point(c, ih))
+            self.create_circuit(2, CIRCUIT_TYPE_RP, lambda c, ih=info_hash, cb=callback: self._create_rendezvous_point(c, ih, cb))
             return
 
         cache = self.request_cache.add(RPRequestCache(self, rp_circuit))
-        ip_host, ip_port, ip_pub_key, service_key = self.dht_fetch(info_hash)
+        ip_host, ip_port, ip_pub_key, service_key = self.dht_fetch(info_hash.encode('hex'))
         cookie = self._generate_binary_string(20)
         rp_circuit.cookie = cookie
         rp_circuit.service_key = service_key.decode('hex')
         rp_circuit.intro_point = (ip_host, int(ip_port), ip_pub_key.decode('hex'))
+        rp_circuit.rp_callback = callback
         self.send_cell([Candidate(rp_circuit.first_hop, False)], u'establish-rendezvous', (rp_circuit.circuit_id,
                                                                                            cache.number, cookie))
         self._logger.error("TunnelCommunity: establish rendezvous tunnel %s with cookie %s", rp_circuit.circuit_id,
@@ -1258,6 +1304,7 @@ class TunnelCommunity(Community):
                                    self._readable_binary_string(message.payload.cookie),
                                    circuit_id,
                                    message.candidate)
+                self.remove_exit_socket(circuit_id, 'intro1 received')
 
                 self.send_cell([relay_candidate], u"intro2", (relay_circuit_id,
                                                                 message.payload.identifier,
@@ -1317,11 +1364,17 @@ class TunnelCommunity(Community):
                 self._logger.error("TunnelCommunity: got rendezvous1 with valid rendezvous cookie %s via tunnel %s " +
                                    "from %s", self._readable_binary_string(cookie), circuit_id, message.candidate)
 
+                self.remove_exit_socket(circuit_id, 'rendezvous1 received')
+
                 self.send_cell([relay_candidate], u"rendezvous2", (relay_circuit_id,
                                                                    message.payload.identifier,
                                                                    message.payload.key))
                 self._logger.error("TunnelCommunity: relayed rendezvous1 as an rendezvous2 message into tunnel %s",
                                    relay_circuit_id)
+
+                self.forward_from_to[circuit_id] = RelayRoute(relay_circuit_id, relay_candidate.sock_addr)
+                self.forward_from_to[relay_circuit_id] = RelayRoute(circuit_id, message.candidate.sock_addr)
+                self._logger.error("TunnelCommunity: connected circuits %s and %s", circuit_id, relay_circuit_id)
 
             else:
                 self._logger.error("TunnelCommunity: got rendezvous1 from %s with rendezvous cookie %s but no " +
@@ -1335,11 +1388,12 @@ class TunnelCommunity(Community):
     def on_rendezvous2(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u'intro1', message.payload.identifier)
-            rd_circuit = self.circuits[message.payload.circuit_id]
-            session_keys = self.crypto.generate_session_keys(rd_circuit.dh_secret, bytes_to_long(message.payload.key))
+            rp_circuit = self.circuits[message.payload.circuit_id]
+            session_keys = self.crypto.generate_session_keys(rp_circuit.dh_secret, bytes_to_long(message.payload.key))
             self._logger.error("TunnelCommunity: handshake completed!")
             self._logger.error("TunnelCommunity: session keys %s %s", self._readable_binary_string(session_keys[0]),
                                                                       self._readable_binary_string(session_keys[1]))
+            rp_circuit.rp_callback()
 
 
     # # For testing..

@@ -265,6 +265,7 @@ class LineHandler(LineReceiver):
                     else:
                         return 1.0, False
                 download = anon_tunnel.session.start_download(tdef, dscfg)
+                download.add_peer(('1.1.1.1' , 1024))
                 download.set_state_callback(cb, delay=1)
 
             anon_tunnel.session.uch.perform_usercallback(start_download)
@@ -288,6 +289,10 @@ class LineHandler(LineReceiver):
                     return 1.0, False
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
+
+                from Tribler.community.tunnel import CIRCUIT_TYPE_RP
+                circuit_id = [cid for cid, c in anon_tunnel.community.circuits.items() if c.ctype == CIRCUIT_TYPE_RP][0]
+                download.add_peer((anon_tunnel.community.circuit_id_to_ip(circuit_id) , 1024))
 
             print "Creating rendezvous point"
             anon_tunnel.community.create_rendezvous_point(tdef.get_id(), lambda f=start_download: anon_tunnel.session.uch.perform_usercallback(f))
