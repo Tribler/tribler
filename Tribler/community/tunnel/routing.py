@@ -155,3 +155,22 @@ class RelayRoute(object):
         self.creation_time = time.time()
         self.last_incoming = time.time()
         self.bytes_up = self.bytes_down = 0
+
+
+class IntroductionPoint(object):
+
+    def __init__(self, circuit, info_hash, service_key):
+        self.circuit = circuit
+        self.info_hash = info_hash
+        self.service_key = service_key
+
+
+class RendezvousPoint(object):
+
+    def __init__(self, circuit, cookie, service_key, intro_point, finished_callback):
+        self.circuit = circuit
+        self.cookie = cookie
+        self.service_key = service_key
+        self.intro_point = intro_point
+        self.rendezvous_point = None
+        self.finished_callback = finished_callback
