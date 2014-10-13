@@ -652,7 +652,7 @@ class TunnelCommunity(Community):
 
         plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
         try:
-            encrypted = self.crypto_out(circuit_id, encrypted)
+            encrypted = self.crypto_out(circuit_id, encrypted, is_data=True)
         except CryptoException, e:
             self._logger.error(str(e))
             return 0
@@ -977,7 +977,7 @@ class TunnelCommunity(Community):
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
 
             try:
-                encrypted = self.crypto_in(circuit_id, encrypted)
+                encrypted = self.crypto_in(circuit_id, encrypted, is_data=True)
             except CryptoException, e:
                 self._logger.error(str(e))
                 return
@@ -1096,19 +1096,27 @@ class TunnelCommunity(Community):
         else:
             self._logger.error("TunnelCommunity: dropping data packets with unknown circuit_id")
 
-    def crypto_out(self, circuit_id, content):
-        if circuit_id in self.circuits:
-            for hop in reversed(self.circuits[circuit_id].hops):
+    def crypto_out(self, circuit_id, content, is_data=False):
+        circuit = self.circuits.get(circuit_id, None)
+        if circuit:
+            if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+                direction = int(circuit.ctype == CIRCUIT_TYPE_RP)
+                content = self.crypto.encrypt_str(circuit.hs_session_keys[direction], content)
+            for hop in reversed(circuit.hops):
                 content = self.crypto.encrypt_str(hop.session_keys[EXIT_NODE], content)
             return content
         elif circuit_id in self.relay_session_keys:
             return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
         raise CryptoException("Don't know how to encrypt outgoing message for circuit_id %d" % circuit_id)
 
-    def crypto_in(self, circuit_id, content):
-        if circuit_id in self.circuits and len(self.circuits[circuit_id].hops) > 0:
+    def crypto_in(self, circuit_id, content, is_data=False):
+        circuit = self.circuits.get(circuit_id, None)
+        if circuit and len(circuit.hops) > 0:
             for hop in self.circuits[circuit_id].hops:
                 content = self.crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
+            if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+                direction = int(circuit.ctype != CIRCUIT_TYPE_RP)
+                content = self.crypto.decrypt_str(circuit.hs_session_keys[direction], content)
             return content
         elif circuit_id in self.relay_session_keys:
             return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][EXIT_NODE], content)
@@ -1355,6 +1363,7 @@ class TunnelCommunity(Community):
             self.request_cache.pop(u'intro1', message.payload.identifier)
             rp = self.my_rendezvous_points[message.payload.circuit_id]
             session_keys = self.crypto.generate_session_keys(rp.circuit.dh_secret, bytes_to_long(message.payload.key))
+            rp.circuit.hs_session_keys = session_keys
             self._logger.error("TunnelCommunity: handshake completed!")
             self._logger.error("TunnelCommunity: session keys %s %s", self._readable_binary_string(session_keys[0]),
                                                                       self._readable_binary_string(session_keys[1]))
@@ -1393,6 +1402,7 @@ class TunnelCommunity(Community):
 
             circuit.dh_secret, circuit.dh_second_part = self.crypto.generate_diffie_secret()
             session_keys = self.crypto.generate_session_keys(circuit.dh_secret, bytes_to_long(dh_first_part))
+            circuit.hs_session_keys = session_keys
             self._logger.error("TunnelCommunity: session keys %s %s", self._readable_binary_string(session_keys[0]),
                                                                       self._readable_binary_string(session_keys[1]))
             payload = (circuit.circuit_id, identifier, long_to_bytes(circuit.dh_second_part), cookie)
