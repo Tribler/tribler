@@ -308,8 +308,9 @@ class CommunityPanel(wx.Panel):
             if community.dispersy_enable_candidate_walker or \
                     community.dispersy_enable_candidate_walker_responses:
                 candidate_count = "%d " % len(community.candidates)
-                candidate_list = [("%s" % global_time, "%s:%s" % lan, "%s:%s" % wan)
-                    for lan, wan, global_time in community.candidates]
+                candidate_list = [("%s" % global_time, "%s:%s" % lan, "%s:%s" % wan,
+                                   "%s" % binascii.hexlify(mid) if mid else DATA_NONE)
+                                  for lan, wan, global_time, mid in community.candidates]
                 candidate_list.sort()
             elif community.candidates:
                 candidate_count = "%d*" % len(community.candidates)
@@ -429,7 +430,8 @@ class CommunityDetailPanel(wx.Panel):
             style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
         self.__candidate_list.InsertColumn(0, "Global time", width=100)
         self.__candidate_list.InsertColumn(1, "LAN", width=170)
-        self.__candidate_list.InsertColumn(2, "WAN")
+        self.__candidate_list.InsertColumn(2, "WAN", width=170)
+        self.__candidate_list.InsertColumn(3, "MID")
 
         self.__rawinfo_panel = RawInfoPanel(self.__detail_notebook, -1)
 
