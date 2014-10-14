@@ -17,6 +17,7 @@ import json
 from hashlib import sha1
 import logging
 import logging.config
+from traceback import print_exc
 
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor, reactor_thread
 from Tribler.dispersy.util import call_on_reactor_thread
@@ -121,9 +122,10 @@ class MetadataInjector(object):
         self._logger.info(u"Dispersy communities are ready")
 
     def dispersy_started(self, *args):
+        self._logger.info(u"Dispersy started, initializing bot...")
         self.init_managers()
 
-        channelname = self._opt.channelname if hasattr(self._opt, 'chanelname') else ''
+        channelname = self._opt.channelname if hasattr(self._opt, 'channelname') else ''
         nickname = self._opt.nickname if hasattr(self._opt, 'nickname') else ''
         my_channel_name = channelname or nickname or 'MetadataInjector-Channel'
         my_channel_name = unicode(my_channel_name)
@@ -230,17 +232,19 @@ def main():
     metadata_injector.initialize()
 
     print >> sys.stderr, "Type Q followed by <ENTER> to stop the metadata-injector"
-
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
-    import signal
-    signal.signal(signal.SIGTERM, stop_reactor)
-    signal.signal(signal.SIGQUIT, stop_reactor)
-    reactor.addSystemEventTrigger('before', 'shutdown', metadata_injector.shutdown)
+    try:
+        while True:
+            x = sys.stdin.readline()
+            if x.strip() == 'Q':
+                break
+    except:
+        print_exc()
+    metadata_injector.shutdown()
+    stop_reactor()
 
-    reactor_thread.join()
-
-    print >> sys.stderr, "Shutting down..."
+    print >> sys.stderr, "Shutting down (wait for 5 seconds)..."
     time.sleep(5)
 
 
