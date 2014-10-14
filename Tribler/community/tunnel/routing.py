@@ -159,10 +159,11 @@ class RelayRoute(object):
 
 class IntroductionPoint(object):
 
-    def __init__(self, circuit, info_hash, service_key):
+    def __init__(self, circuit, info_hash, service_key, serivce_key_public_bin):
         self.circuit = circuit
         self.info_hash = info_hash
         self.service_key = service_key
+        self.service_key_public_bin = serivce_key_public_bin
 
 
 class RendezvousPoint(object):

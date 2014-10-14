@@ -307,7 +307,7 @@ class Intro1Payload(Payload):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(key, basestring), type(key)
             assert isinstance(cookie, basestring), type(cookie)
-            assert isinstance(rendezvous_point, (list, tuple)), type(rendezvous_point)
+            assert isinstance(rendezvous_point, basestring), type(rendezvous_point)
             assert isinstance(service_key, basestring), type(service_key)
 
             super(Intro1Payload.Implementation, self).__init__(meta)
@@ -350,7 +350,7 @@ class Intro2Payload(Payload):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(key, basestring), type(key)
             assert isinstance(cookie, basestring), type(cookie)
-            assert isinstance(rendezvous_point, (list, tuple)), type(rendezvous_point)
+            assert isinstance(rendezvous_point, basestring), type(rendezvous_point)
 
             super(Intro2Payload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
@@ -378,7 +378,6 @@ class Intro2Payload(Payload):
         @property
         def rendezvous_point(self):
             return self._rendezvous_point
-
 
 
 class Rendezvous1Payload(Payload):
@@ -435,3 +434,4 @@ class Rendezvous2Payload(Payload):
         @property
         def key(self):
             return self._key
+

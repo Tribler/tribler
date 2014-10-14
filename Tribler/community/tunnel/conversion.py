@@ -198,11 +198,14 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(identifier, stats_dict)
 
     def _encode_establish_intro(self, message):
-        return pack('!IH20s', message.payload.circuit_id, message.payload.identifier, message.payload.service_key),
+        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.service_key)) +
+                message.payload.service_key),
 
     def _decode_establish_intro(self, placeholder, offset, data):
-        circuit_id, identifier, service_key = unpack_from('!IH20s', data, offset)
-        offset += 26
+        circuit_id, identifier, len_service_key = unpack_from('!IHH', data, offset)
+        offset += 8
+        service_key = data[offset: offset + len_service_key]
+        offset += len_service_key
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key)
 
@@ -244,55 +247,63 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, rendezvous_point_addr)
 
     def _encode_intro1(self, message):
-        host, port, pub_key = message.payload.rendezvous_point
-        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.key)) +
-                message.payload.key +
-                pack('!20s4sHH', message.payload.cookie, inet_aton(host), port, len(pub_key)) +
-                pub_key +
-                pack('!20s', message.payload.service_key)),
+        return (pack('!IH', message.payload.circuit_id, message.payload.identifier) +
+                pack('!H', len(message.payload.key)) + message.payload.key +
+                pack('!H', len(message.payload.cookie)) + message.payload.cookie +
+                pack('!H', len(message.payload.rendezvous_point)) + message.payload.rendezvous_point +
+                pack('!H', len(message.payload.service_key)) + message.payload.service_key),
 
     def _decode_intro1(self, placeholder, offset, data):
-        circuit_id, identifier, len_key = unpack_from('!IHH', data, offset)
-        offset += 8
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
+        len_key, = unpack_from('!H', data, offset)
+        offset += 2
         key = data[offset: offset + len_key]
         offset += len_key
 
-        cookie, host, port, len_pub_key = unpack_from('!20s4sHH', data, offset)
-        offset += 28
+        len_cookie, = unpack_from('!H', data, offset)
+        offset += 2
+        cookie = data[offset: offset + len_cookie]
+        offset += len_cookie
 
-        pub_key = data[offset: offset + len_pub_key]
-        offset += len_pub_key
+        len_rendezvous_point, = unpack_from('!H', data, offset)
+        offset += 2
+        rendezvous_point = data[offset: offset + len_rendezvous_point]
+        offset += len_rendezvous_point
 
-        rendezvous_point = (inet_ntoa(host), port, pub_key)
-
-        service_key, = unpack_from('!20s', data, offset)
-        offset += 20
+        len_service_key, = unpack_from('!H', data, offset)
+        offset += 2
+        service_key = data[offset: offset + len_service_key]
+        offset += len_service_key
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, key,
                                                           cookie, rendezvous_point, service_key)
 
     def _encode_intro2(self, message):
-        host, port, pub_key = message.payload.rendezvous_point
-        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.key)) +
-                message.payload.key +
-                pack('!20s4sHH', message.payload.cookie, inet_aton(host), port, len(pub_key)) +
-                pub_key),
+        return (pack('!IH', message.payload.circuit_id, message.payload.identifier) +
+                pack('!H', len(message.payload.key)) + message.payload.key +
+                pack('!H', len(message.payload.cookie)) + message.payload.cookie +
+                pack('!H', len(message.payload.rendezvous_point)) + message.payload.rendezvous_point),
 
     def _decode_intro2(self, placeholder, offset, data):
-        circuit_id, identifier, len_key = unpack_from('!IHH', data, offset)
-        offset += 8
+        circuit_id, identifier = unpack_from('!IH', data, offset)
+        offset += 6
 
+        len_key, = unpack_from('!H', data, offset)
+        offset += 2
         key = data[offset: offset + len_key]
         offset += len_key
 
-        cookie, host, port, len_pub_key = unpack_from('!20s4sHH', data, offset)
-        offset += 28
+        len_cookie, = unpack_from('!H', data, offset)
+        offset += 2
+        cookie = data[offset: offset + len_cookie]
+        offset += len_cookie
 
-        pub_key = data[offset: offset + len_pub_key]
-        offset += len_pub_key
-
-        rendezvous_point = (inet_ntoa(host), port, pub_key)
+        len_rendezvous_point, = unpack_from('!H', data, offset)
+        offset += 2
+        rendezvous_point = data[offset: offset + len_rendezvous_point]
+        offset += len_rendezvous_point
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, key, cookie, rendezvous_point)
 

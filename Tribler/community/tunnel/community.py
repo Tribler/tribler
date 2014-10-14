@@ -339,8 +339,7 @@ class TunnelCommunity(Community):
     @classmethod
     def get_master_members(cls, dispersy):
         # Community id for testing.
-        # master_key = "3081a7301006072a8648ce3d020106052b810400270381920004070f1ae7cc17921a3ccb8ed65c144a8a63a1af30aa473253f0233314d8865ea6368090f541262c2a6d9ca1b11fa26b6c056957014a04fdc25f1d30b3644aaeeae972c6f872abe0f703d9e627f863c25ec8f4090e6bdfb93b7f6614abed0e5600a56321a4fb1372727fffba4a26cc4e4be701dd99f888c1e941cb6c00d5229a56bb5ec8688b98ae62a7d400df298e2e08".decode("HEX")
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004054f67aa778fe1986981a2b23a267029fc5e6ccf70126d375219dc9652bc5496cc4beb961e0857c7929a9923411d018bfaea247a2ad472a5346648bbd2d70d0f718c4c1c86f519bc003cefd2e1ad449e7cf103c777d15576e71966a51f9c6d37afabd91795af155db85d9ebe4de0fe4ba16ad1baae204b21906353a8818d2baf5a3f8340b1859d01b7997acd95fba092".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004070f1ae7cc17921a3ccb8ed65c144a8a63a1af30aa473253f0233314d8865ea6368090f541262c2a6d9ca1b11fa26b6c056957014a04fdc25f1d30b3644aaeeae972c6f872abe0f703d9e627f863c25ec8f4090e6bdfb93b7f6614abed0e5600a56321a4fb1372727fffba4a26cc4e4be701dd99f888c1e941cb6c00d5229a56bb5ec8688b98ae62a7d400df298e2e08".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -1180,12 +1179,14 @@ class TunnelCommunity(Community):
 
             # We got a circuit, now let's create a introduction point
             circuit_id = circuit.circuit_id
-            ip = self.my_intro_points[circuit_id] = IntroductionPoint(circuit, info_hash, self._generate_binary_string(20))
+            service_key = self.crypto.generate_key(u"NID_secp160k1")
+            ip = self.my_intro_points[circuit_id] = IntroductionPoint(circuit, info_hash, service_key,
+                                                                      self.crypto.key_to_bin(service_key.pub()))
             cache = self.request_cache.add(IPRequestCache(self, circuit))
-            payload = (circuit_id, cache.number, ip.service_key)
+            payload = (circuit_id, cache.number, ip.service_key_public_bin)
             self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', payload)
             self._logger.error("TunnelCommunity: establish introduction tunnel %s for service %s",
-                               circuit_id, self._readable_binary_string(ip.service_key))
+                               circuit_id, self._readable_binary_string(ip.service_key_public_bin))
 
         # Create circuits for introduction points
         for _ in range(0, amount):
@@ -1280,7 +1281,7 @@ class TunnelCommunity(Community):
             self._logger.error("TunnelCommunity: got intro-established from %s", message.candidate)
             ip = self.my_intro_points[cache.circuit.circuit_id]
             self.dht_store(ip.info_hash, list(message.payload.intro_point_addr) +
-                                         [self.crypto.key_to_bin(ip.circuit.hops[-1].public_key), ip.service_key])
+                                         [self.crypto.key_to_bin(ip.circuit.hops[-1].public_key), ip.service_key_public_bin])
 
     def on_establish_rendezvous(self, messages):
         for message in messages:
@@ -1332,8 +1333,13 @@ class TunnelCommunity(Community):
     def on_intro2(self, messages):
         for message in messages:
             # TODO: check for replay attack
-            self.send_rendezvous1_over_new_tunnel(message.payload.identifier, message.payload.rendezvous_point,
-                                                  message.payload.cookie, message.payload.key)
+
+            # Decrypt using hybrid crypto
+            sk = self.my_intro_points[message.payload.circuit_id].service_key
+            decrypt = lambda item, sk = sk: self.crypto.hybrid_decrypt_str(sk, item)
+            self.send_rendezvous1_over_new_tunnel(message.payload.identifier,
+                                                  decode(decrypt(message.payload.rendezvous_point))[1],
+                                                  decrypt(message.payload.cookie), decrypt(message.payload.key))
 
     def on_rendezvous1(self, messages):
         for message in messages:
@@ -1382,9 +1388,14 @@ class TunnelCommunity(Community):
                                circuit.circuit_id, self._readable_binary_string(rp.cookie))
 
             rp.circuit.dh_secret, rp.circuit.dh_first_part = self.crypto.generate_diffie_secret()
-            payload = (circuit.circuit_id, cache.number, long_to_bytes(rp.circuit.dh_first_part),
-                       rp.cookie, rp.rendezvous_point, rp.service_key)
-            self.send_cell([Candidate(circuit.first_hop, False)], u'intro1', payload)
+
+            # Partially encrypt payload using hybrid crypto
+            sk = self.dispersy.crypto.key_from_public_bin(rp.service_key)
+            encrypt = lambda item, sk = sk: self.crypto.hybrid_encrypt_str(sk, str(item))
+            payload = (circuit.circuit_id, cache.number, encrypt(long_to_bytes(rp.circuit.dh_first_part)),
+                       encrypt(rp.cookie), encrypt(encode(rp.rendezvous_point)), rp.service_key)
+
+            self.send_cell([Candidate(circuit.first_hop, False)], u'intro1', tuple(payload))
 
         # Create circuit for intro1
         self.create_circuit(2, CIRCUIT_TYPE_INTRODUCE, callback, required_exit=rp.intro_point)
