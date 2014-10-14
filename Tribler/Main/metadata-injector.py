@@ -38,7 +38,7 @@ class MetadataInjector(object):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._opt = opt
-        self._session = None
+        self.session = None
 
         self._torrent_manager = None
         self._library_manager = None
@@ -58,21 +58,21 @@ class MetadataInjector(object):
         sscfg.set_torrent_collecting(True)
 
         self._logger.info(u"Starting session...")
-        self._session = Session(sscfg)
+        self.session = Session(sscfg)
         # add dispersy start callbacks
-        #self._session.add_observer(self.init_managers, NTFY_DISPERSY, [NTFY_STARTED])
-        self._session.add_observer(self.define_communities, NTFY_DISPERSY, [NTFY_STARTED])
-        self._session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
-        self._session.start()
+        #self.session.add_observer(self.init_managers, NTFY_DISPERSY, [NTFY_STARTED])
+        self.session.add_observer(self.define_communities, NTFY_DISPERSY, [NTFY_STARTED])
+        self.session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
+        self.session.start()
 
     def init_managers(self):
         self._logger.info(u"Initializing managers...")
         torrent_manager = TorrentManager(None)
         library_manager = LibraryManager(None)
         channel_manager = ChannelManager()
-        torrent_manager.connect(self._session, library_manager, channel_manager)
-        library_manager.connect(self._session, torrent_manager, channel_manager)
-        channel_manager.connect(self._session, library_manager, torrent_manager)
+        torrent_manager.connect(self.session, library_manager, channel_manager)
+        library_manager.connect(self.session, torrent_manager, channel_manager)
+        channel_manager.connect(self.session, library_manager, torrent_manager)
 
         torrent_state_manager = TorrentStateManager()
         torrent_state_manager.connect(torrent_manager, library_manager, channel_manager)
@@ -95,13 +95,13 @@ class MetadataInjector(object):
         self._library_manager.delInstance()
         self._torrent_manager.delInstance()
 
-        self._session.shutdown()
+        self.session.shutdown()
 
         self._torrent_state_manager = None
         self._channel_manager = None
         self._library_manager = None
         self._torrent_manager = None
-        self._session = None
+        self.session = None
 
     @call_on_reactor_thread
     def define_communities(self, *args):
@@ -109,15 +109,15 @@ class MetadataInjector(object):
         from Tribler.community.channel.community import ChannelCommunity
         from Tribler.community.metadata.community import MetadataCommunity
 
-        dispersy = self._session.get_dispersy_instance()
+        dispersy = self.session.get_dispersy_instance()
         dispersy.define_auto_load(AllChannelCommunity,
-                                  self._session.dispersy_member,
+                                  self.session.dispersy_member,
                                   load=True)
         dispersy.define_auto_load(ChannelCommunity,
-                                  self._session.dispersy_member,
+                                  self.session.dispersy_member,
                                   load=True)
         dispersy.define_auto_load(MetadataCommunity,
-                                  self._session.dispersy_member,
+                                  self.session.dispersy_member,
                                   load=True)
         self._logger.info(u"Dispersy communities are ready")
 
@@ -149,7 +149,7 @@ class MetadataInjector(object):
             self._logger.info(u"Creating RSS Feed...")
 
             torrentfeed = RssParser.getInstance()
-            torrentfeed.register(self._session, my_channel_id)
+            torrentfeed.register(self.session, my_channel_id)
             torrentfeed.addCallback(my_channel_id, self._torrent_manager.createMetadataModificationFromDef)
 
             for rss in self._opt.rss.split(";"):
@@ -225,13 +225,13 @@ def main():
 
     if not (opt.rss or opt.dir or opt.file):
         command_line_parser.print_help()
-        print >> sys.stderr, "\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies"
+        print >> sys.stderr, u"\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies"
         sys.exit()
 
     metadata_injector = MetadataInjector(opt)
     metadata_injector.initialize()
 
-    print >> sys.stderr, "Type Q followed by <ENTER> to stop the metadata-injector"
+    print >> sys.stderr, u"Type Q followed by <ENTER> to stop the metadata-injector"
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
     try:
@@ -239,15 +239,163 @@ def main():
             x = sys.stdin.readline()
             if x.strip() == 'Q':
                 break
+
+            tokens = x.strip().split(" ")
+            if len(tokens) == 0:
+                continue
+
+            metadata_injector.session.lm.dispersy.statistics.update()
+            if tokens[0] == 'print':
+                if len(tokens) < 2:
+                    continue
+
+                if tokens[1] == 'info':
+                    print_info(metadata_injector.session.lm.dispersy)
     except:
         print_exc()
     metadata_injector.shutdown()
     stop_reactor()
 
-    print >> sys.stderr, "Shutting down (wait for 5 seconds)..."
+    print >> sys.stderr, u"Shutting down (wait for 5 seconds)..."
     time.sleep(5)
 
 
+def compute_ratio(i, j):
+    return u"%d / %d ~%.1f%%" % (i, j, (100.0 * i / j) if j else 0.0)
+
+
+def eta_value(n, truncate=3):
+    if n == -1:
+        return u'<unknown>'
+    if not n:
+        return u''
+    n = int(n)
+    week, r1 = divmod(n, 60 * 60 * 24 * 7)
+    day, r2 = divmod(r1, 60 * 60 * 24)
+    hour, r3 = divmod(r2, 60 * 60)
+    minute, sec = divmod(r3, 60)
+
+    if week > 1000:
+        return u'<unknown>'
+
+    weekstr = u'%d' % week + u'w'
+    daystr = u'%d' % day + u'd'
+    hourstr = u'%d' % hour + u'h'
+    minutestr = u'%d' % minute + u'm'
+    secstr = u'%02d' % sec + u's'
+
+    if week > 0:
+        text = weekstr
+        if truncate > 1:
+            text += u":" + daystr
+        if truncate > 2:
+            text += u"-" + hourstr
+    elif day > 0:
+        text = daystr
+        if truncate > 1:
+            text += u"-" + hourstr
+        if truncate > 2:
+            text += u":" + minutestr
+    elif hour > 0:
+        text = hourstr
+        if truncate > 1:
+            text += u":" + minutestr
+        if truncate > 2:
+            text += u":" + secstr
+    else:
+        text = minutestr
+        if truncate > 1:
+            text += u":" + secstr
+
+    return text
+
+
+def size_format(s, truncate=None, stopearly=None, applylabel=True, rawsize=False, showbytes=False, labelonly=False, textonly=False):
+    if truncate is None:
+        truncate = 2
+
+    if ((s < 1024) and showbytes and stopearly is None) or stopearly == "Byte":
+        truncate = 0
+        size = s
+        text = u"Byte"
+    elif ((s < 1048576) and stopearly is None) or stopearly == "KB":
+        size = (s / 1024.0)
+        text = u"KB"
+    elif ((s < 1073741824) and stopearly is None) or stopearly == "MB":
+        size = (s / 1048576.0)
+        text = u"MB"
+    elif ((s < 1099511627776) and stopearly is None) or stopearly == "GB":
+        size = (s / 1073741824.0)
+        text = u"GB"
+    else:
+        size = (s / 1099511627776.0)
+        text = u"TB"
+
+    if textonly:
+        return text
+
+    label = u"B" if text == u"Byte" else text
+    if labelonly:
+        return label
+
+    if rawsize:
+        return size
+
+    # At this point, only accepting 0, 1, or 2
+    if truncate == 0:
+        text = (u'%.0f' % size)
+    elif truncate == 1:
+        text = (u'%.1f' % size)
+    else:
+        text = (u'%.2f' % size)
+
+    if applylabel:
+        text += u' ' + label
+
+    return text
+
+
+def print_info(dispersy):
+    stats = dispersy.statistics
+    print >> sys.stderr, u"\n\n===== Dispersy Info ====="
+    print >> sys.stderr, u"- WAN Address %s:%d" % stats.wan_address
+    print >> sys.stderr, u"- LAN Address %s:%d" % stats.lan_address
+    print >> sys.stderr, u"- Connection: %s" % unicode(stats.connection_type)
+    print >> sys.stderr, u"- Runtime: %s" % eta_value(stats.timestamp - stats.start)
+    print >> sys.stderr, u"- Download: %s or %s/s" % (size_format(stats.total_down),
+                                                      size_format(int(stats.total_down / (stats.timestamp - stats.start))))
+    print >> sys.stderr, u"- Upload: %s or %s/s" % (size_format(stats.total_up),
+                                                    size_format(int(stats.total_up / (stats.timestamp - stats.start))))
+    print >> sys.stderr, u"- Packets Sent: %s" % compute_ratio(stats.total_send,
+                                                               stats.total_received + stats.total_send)
+    print >> sys.stderr, u"- Packets Received: %s" % compute_ratio(stats.total_received,
+                                                                   stats.total_received + stats.total_send)
+    print >> sys.stderr, u"- Packets Success: %s" % compute_ratio(stats.msg_statistics.success_count,
+                                                                  stats.total_received)
+    print >> sys.stderr, u"- Packets Dropped: %s" % compute_ratio(stats.msg_statistics.drop_count, stats.total_received)
+    print >> sys.stderr, u"- Packets Delayed: %s" % compute_ratio(stats.msg_statistics.delay_received_count,
+                                                                  stats.total_received)
+    print >> sys.stderr, u"- Packets Delayed send: %s" % compute_ratio(stats.msg_statistics.delay_send_count,
+                                                                       stats.msg_statistics.delay_received_count)
+    print >> sys.stderr, u"- Packets Delayed success: %s" % compute_ratio(stats.msg_statistics.delay_success_count,
+                                                                          stats.msg_statistics.delay_received_count)
+    print >> sys.stderr, u"- Packets Delayed timeout: %s" % compute_ratio(stats.msg_statistics.delay_timeout_count,
+                                                                          stats.msg_statistics.delay_received_count)
+    print >> sys.stderr, u"- Walker Success: %s" % compute_ratio(stats.walk_success_count, stats.walk_attempt_count)
+    print >> sys.stderr, u"- Sync-Messages Created: %s" % stats.msg_statistics.created_count
+    print >> sys.stderr, u"- Bloom New: %s" % compute_ratio(sum(c.sync_bloom_new for c in stats.communities),
+                                                            sum(c.sync_bloom_send + c.sync_bloom_skip
+                                                                for c in stats.communities))
+    print >> sys.stderr, u"- Bloom Reused: %s" % compute_ratio(sum(c.sync_bloom_reuse for c in stats.communities),
+                                                               sum(c.sync_bloom_send + c.sync_bloom_skip
+                                                                   for c in stats.communities))
+    print >> sys.stderr, u"- Bloom Skipped: %s" % compute_ratio(sum(c.sync_bloom_skip for c in stats.communities),
+                                                                sum(c.sync_bloom_send + c.sync_bloom_skip
+                                                                    for c in stats.communities))
+    print >> sys.stderr, u"- Debug Mode: %s" % u"yes" if __debug__ else u"no"
+    print >> sys.stderr, u"====================\n\n"
+
+
 if __name__ == "__main__":
-    logging.config.fileConfig("logger.conf")
+    logging.config.fileConfig(u"logger.conf")
     main()
