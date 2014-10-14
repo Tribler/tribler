@@ -18,6 +18,7 @@ from hashlib import sha1
 import logging
 import logging.config
 from traceback import print_exc
+import binascii
 
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor, reactor_thread
 from Tribler.dispersy.util import call_on_reactor_thread
@@ -251,6 +252,11 @@ def main():
 
                 if tokens[1] == 'info':
                     print_info(metadata_injector.session.lm.dispersy)
+                elif tokens[1] == 'community':
+                    if len(tokens) == 2:
+                        print_communities(metadata_injector.session.lm.dispersy)
+                    elif len(tokens) == 3:
+                        print_community(metadata_injector.session.lm.dispersy, tokens[2])
     except:
         print_exc()
     metadata_injector.shutdown()
@@ -393,6 +399,72 @@ def print_info(dispersy):
                                                                 sum(c.sync_bloom_send + c.sync_bloom_skip
                                                                     for c in stats.communities))
     print >> sys.stderr, u"- Debug Mode: %s" % u"yes" if __debug__ else u"no"
+    print >> sys.stderr, u"====================\n\n"
+
+
+def print_communities(dispersy):
+    stats = dispersy.statistics
+    community_list = sorted(stats.communities,
+            key=lambda community:
+                (not community.dispersy_enable_candidate_walker,
+                community.classification, community.cid)
+        )
+
+    print >> sys.stderr, u"\n\n===== Dispersy Communities ====="
+    print >> sys.stderr, u"- %15s | %7s | %7s | %5s | %7s | %5s | %5s | %14s | %14s | %14s | %14s" %\
+                         (u"Class", u"ID", u"Member", u"DB ID", u"GTime", u"Cands",
+                          u"PK_cr", u"PK_sent", u"PK_recv", u"PK_succ", u"PK_drop")
+
+    for community in community_list:
+        print >> sys.stderr, u"- %15s | %7s | %7s | %5s | %7s | %5s | %5s | %14s | %14s | %14s | %14s" %\
+                             (community.classification.replace('Community', ''),
+                              community.hex_cid[:7],
+                              community.hex_mid[:7],
+                              community.database_id,
+                              str(community.global_time)[:7], len(community.candidates),
+                              community.msg_statistics.created_count,
+                              compute_ratio(community.msg_statistics.outgoing_count,
+                                            community.msg_statistics.outgoing_count
+                                            + community.msg_statistics.total_received_count),
+                              compute_ratio(community.msg_statistics.total_received_count,
+                                            community.msg_statistics.outgoing_count
+                                            + community.msg_statistics.total_received_count),
+                              compute_ratio(community.msg_statistics.success_count,
+                                            community.msg_statistics.total_received_count),
+                              compute_ratio(community.msg_statistics.drop_count,
+                                            community.msg_statistics.total_received_count),)
+    print >> sys.stderr, u"====================\n\n"
+
+
+def print_community(dispersy, cid):
+    stats = dispersy.statistics
+    community = None
+    for comm in stats.communities:
+        if comm.hex_cid.startswith(cid):
+            community = comm
+            break
+
+    if not community:
+        print >> sys.stderr, u"Community not found"
+        return
+
+    print >> sys.stderr, u"\n\n===== Dispersy Community ====="
+
+    FORMAT = u"- %20s: %20s"
+    print >> sys.stderr, FORMAT % (u"Classification", community.classification.replace('Community', ''))
+    print >> sys.stderr, FORMAT % (u"ID", community.hex_cid)
+    print >> sys.stderr, FORMAT % (u"Member", community.hex_mid)
+    print >> sys.stderr, FORMAT % (u"Database ID", community.database_id)
+    print >> sys.stderr, FORMAT % (u"Global Time", community.global_time)
+
+    print >> sys.stderr, FORMAT % (u"Candidates", len(community.candidates))
+    print >> sys.stderr, u"--- %20s | %21s | %21s | %20s" % (u"GTime", u"LAN", u"WAN", u"MID")
+    for candidate in community.candidates:
+        lan, wan, global_time, mid = candidate
+        lan = u"%s:%s" % lan
+        wan = u"%s:%s" % wan
+        print >> sys.stderr, u"--- %20s | %21s | %21s | %20s" % (global_time, lan, wan,
+                                                                 binascii.hexlify(mid) if mid else None)
     print >> sys.stderr, u"====================\n\n"
 
 
