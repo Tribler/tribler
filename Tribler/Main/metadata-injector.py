@@ -151,6 +151,7 @@ class MetadataInjector(object):
 
             torrentfeed = RssParser.getInstance()
             torrentfeed.register(self.session, my_channel_id)
+            torrentfeed.addCallback(my_channel_id, self._channel_manager.createTorrentFromDef)
             torrentfeed.addCallback(my_channel_id, self._torrent_manager.createMetadataModificationFromDef)
 
             for rss in self._opt.rss.split(";"):
