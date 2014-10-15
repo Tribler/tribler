@@ -199,7 +199,7 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_establish_intro(self, message):
         return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.service_key)) +
-                message.payload.service_key),
+                message.payload.service_key + message.payload.info_hash),
 
     def _decode_establish_intro(self, placeholder, offset, data):
         circuit_id, identifier, len_service_key = unpack_from('!IHH', data, offset)
@@ -207,7 +207,10 @@ class TunnelConversion(BinaryConversion):
         service_key = data[offset: offset + len_service_key]
         offset += len_service_key
 
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key)
+        info_hash = data[offset: offset + 20]
+        offset += 20
+
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key, info_hash)
 
     def _encode_intro_established(self, message):
         host, port = message.payload.intro_point_addr

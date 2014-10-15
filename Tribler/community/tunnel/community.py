@@ -1183,7 +1183,7 @@ class TunnelCommunity(Community):
             ip = self.my_intro_points[circuit_id] = IntroductionPoint(circuit, info_hash, service_key,
                                                                       self.crypto.key_to_bin(service_key.pub()))
             cache = self.request_cache.add(IPRequestCache(self, circuit))
-            payload = (circuit_id, cache.number, ip.service_key_public_bin)
+            payload = (circuit_id, cache.number, ip.service_key_public_bin, info_hash)
             self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', payload)
             self._logger.error("TunnelCommunity: establish introduction tunnel %s for service %s",
                                circuit_id, self._readable_binary_string(ip.service_key_public_bin))
@@ -1264,16 +1264,27 @@ class TunnelCommunity(Community):
                                        "aborting.", message.candidate)
                     continue
                 self.remove_exit_socket(circuit_id, 'exit socket becomes introduction point')
-                self.intro_point_for[message.payload.service_key] = (circuit_id, message.candidate)
+                self.intro_point_for[message.payload.service_key] = (circuit_id, message.payload.info_hash, message.candidate)
                 self._logger.error("TunnelCommunity: establish-intro received from %s. Circuit %s associated with " +
                                    "service_key %s", message.candidate, circuit_id,
                                    self._readable_binary_string(message.payload.service_key))
                 payload = (circuit_id, message.payload.identifier, self.dispersy.lan_address)
                 self.send_cell([message.candidate], u"intro-established", payload)
 
+                # DHT announce
+                if self.tribler_session:
+                    def cb(info_hash, peers, source):
+                        self._logger.error("TunnelCommunity: announced %s to the DHT", info_hash.encode('hex'))
+
+                    from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
+                    session = self.tribler_session
+                    session.lm.mainline_dht.get_peers(message.payload.info_hash, Id(message.payload.info_hash),
+                                                      cb, bt_port=session.get_swift_tunnel_listen_port())
+                else:
+                    self._logger.error("TunnelCommunity: need a Tribler session to announce to the DHT")
+
             else:
-                self._logger.error("TunnelCommunity: got establish-intro from %s but no exit socket found",
-                                   message.candidate)
+                self._logger.error("TunnelCommunity: got establish-intro but no exit socket found")
 
     def on_intro_established(self, messages):
         for message in messages:
@@ -1316,7 +1327,7 @@ class TunnelCommunity(Community):
             circuit_id = message.payload.circuit_id
             service_key = message.payload.service_key
             if service_key in self.intro_point_for:
-                relay_circuit_id, relay_candidate = self.intro_point_for[service_key]
+                relay_circuit_id, _, relay_candidate = self.intro_point_for[service_key]
                 self._logger.error("TunnelCommunity: got intro1 with rendezvous cookie %s via tunnel %s from %s",
                                    self._readable_binary_string(message.payload.cookie), circuit_id, message.candidate)
                 self.remove_exit_socket(circuit_id, 'intro1 received')
@@ -1448,3 +1459,4 @@ class TunnelCommunity(Community):
 
         with open(f, 'w') as fp:
             pickle.dump(d, fp)
+
