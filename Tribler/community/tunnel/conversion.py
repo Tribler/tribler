@@ -27,10 +27,12 @@ class TunnelConversion(BinaryConversion):
         self.define_meta_message(chr(12), community.get_meta_message(u"intro-established"), lambda message: self._encode_decode(self._encode_intro_established, self._decode_intro_established, message), self._decode_intro_established)
         self.define_meta_message(chr(13), community.get_meta_message(u"establish-rendezvous"), lambda message: self._encode_decode(self._encode_establish_rendezvous, self._decode_establish_rendezvous, message), self._decode_establish_rendezvous)
         self.define_meta_message(chr(14), community.get_meta_message(u"rendezvous-established"), lambda message: self._encode_decode(self._encode_rendezvous_established, self._decode_rendezvous_established, message), self._decode_rendezvous_established)
-        self.define_meta_message(chr(15), community.get_meta_message(u"intro1"), lambda message: self._encode_decode(self._encode_intro1, self._decode_intro1, message), self._decode_intro1)
-        self.define_meta_message(chr(16), community.get_meta_message(u"intro2"), lambda message: self._encode_decode(self._encode_intro2, self._decode_intro2, message), self._decode_intro2)
-        self.define_meta_message(chr(17), community.get_meta_message(u"rendezvous1"), lambda message: self._encode_decode(self._encode_rendezvous1, self._decode_rendezvous1, message), self._decode_rendezvous1)
-        self.define_meta_message(chr(18), community.get_meta_message(u"rendezvous2"), lambda message: self._encode_decode(self._encode_rendezvous2, self._decode_rendezvous2, message), self._decode_rendezvous2)
+        self.define_meta_message(chr(15), community.get_meta_message(u"keys-request"), lambda message: self._encode_decode(self._encode_keys_request, self._decode_keys_request, message), self._decode_keys_request)
+        self.define_meta_message(chr(16), community.get_meta_message(u"keys-response"), lambda message: self._encode_decode(self._encode_keys_response, self._decode_keys_response, message), self._decode_keys_response)
+        self.define_meta_message(chr(17), community.get_meta_message(u"intro1"), lambda message: self._encode_decode(self._encode_intro1, self._decode_intro1, message), self._decode_intro1)
+        self.define_meta_message(chr(18), community.get_meta_message(u"intro2"), lambda message: self._encode_decode(self._encode_intro2, self._decode_intro2, message), self._decode_intro2)
+        self.define_meta_message(chr(19), community.get_meta_message(u"rendezvous1"), lambda message: self._encode_decode(self._encode_rendezvous1, self._decode_rendezvous1, message), self._decode_rendezvous1)
+        self.define_meta_message(chr(20), community.get_meta_message(u"rendezvous2"), lambda message: self._encode_decode(self._encode_rendezvous2, self._decode_rendezvous2, message), self._decode_rendezvous2)
 
     def _encode_cell(self, message):
         payload = message.payload
@@ -249,6 +251,31 @@ class TunnelConversion(BinaryConversion):
 
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, rendezvous_point_addr)
 
+    def _encode_keys_request(self, message):
+        return pack('!H20s', message.payload.identifier, message.payload.info_hash),
+
+    def _decode_keys_request(self, placeholder, offset, data):
+        identifier, info_hash = unpack_from('!H20s', data, offset)
+        offset += 22
+        return offset, placeholder.meta.payload.implement(identifier, info_hash)
+
+    def _encode_keys_response(self, message):
+        return (pack('!HH', message.payload.identifier, len(message.payload.ip_key)) + message.payload.ip_key +
+                pack('!H', len(message.payload.service_key)) + message.payload.service_key),
+
+    def _decode_keys_response(self, placeholder, offset, data):
+        identifier, len_ip_key = unpack_from('!HH', data, offset)
+        offset += 4
+        ip_key = data[offset: offset + len_ip_key]
+        offset += len_ip_key
+
+        len_service_key, = unpack_from('!H', data, offset)
+        offset += 2
+        service_key = data[offset: offset + len_service_key]
+        offset += len_service_key
+
+        return offset, placeholder.meta.payload.implement(identifier, ip_key, service_key)
+
     def _encode_intro1(self, message):
         return (pack('!IH', message.payload.circuit_id, message.payload.identifier) +
                 pack('!H', len(message.payload.key)) + message.payload.key +
@@ -434,6 +461,8 @@ class TunnelConversion(BinaryConversion):
 
     @staticmethod
     def could_be_utp(data):
+        return True
+
         if len(data) < 20:
             return False
         byte1, byte2 = unpack_from('!BB', data)

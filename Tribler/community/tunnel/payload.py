@@ -306,6 +306,50 @@ class RendezvousEstablishedPayload(Payload):
             return self._rendezvous_point_addr
 
 
+class KeysRequestPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, info_hash):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(info_hash, basestring), type(info_hash)
+
+            super(KeysRequestPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._info_hash = info_hash
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def info_hash(self):
+            return self._info_hash
+
+
+class KeysResponsePayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, ip_key, service_key):
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(ip_key, basestring), type(ip_key)
+            assert isinstance(service_key, basestring), type(service_key)
+
+            super(KeysResponsePayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._ip_key = ip_key
+            self._service_key = service_key
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def ip_key(self):
+            return self._ip_key
+
+        @property
+        def service_key(self):
+            return self._service_key
+
+
 class Intro1Payload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, circuit_id, identifier, key, cookie, rendezvous_point, service_key):

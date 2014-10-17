@@ -27,7 +27,8 @@ from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, Create
                                               StatsRequestPayload, StatsResponsePayload, EstablishIntroPayload,
                                               IntroEstablishedPayload, EstablishRendezvousPayload,
                                               RendezvousEstablishedPayload, Intro1Payload, Intro2Payload,
-                                              Rendezvous1Payload, Rendezvous2Payload)
+                                              Rendezvous1Payload, Rendezvous2Payload, KeysRequestPayload,
+                                              KeysResponsePayload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute, IntroductionPoint, RendezvousPoint
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -119,20 +120,22 @@ class RPRequestCache(RandomNumberCache):
         self.community.remove_circuit(self.circuit.circuit_id, 'establish-rendezvous timeout')
 
 
-class RequestKeysRequestCache(RandomNumberCache):
+class KeysRequestCache(RandomNumberCache):
 
-    def __init__(self, community, circuit):
-        super(RequestKeysRequestCache, self).__init__(community.request_cache, u"request-keys")
-        self.circuit = circuit
+    def __init__(self, community, callback):
+        super(KeysRequestCache, self).__init__(community.request_cache, u"keys-request")
+        self.callback = callback
         self.community = community
+
+    def on_success(self, ip_key, service_key):
+        self.callback(ip_key, service_key)
 
     @property
     def timeout_delay(self):
         return 5.0
 
     def on_timeout(self):
-        self._logger.debug("RequestKeysRequestCache: no response on request-keys (circuit %d)", self.circuit.circuit_id)
-        self.community.remove_circuit(self.circuit.circuit_id, 'request-keys timeout')
+        pass
 
 
 class Introduce1RequestCache(RandomNumberCache):
@@ -380,6 +383,12 @@ class TunnelCommunity(Community):
                 Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
                         self.on_rendezvous_established),
+                Message(self, u"keys-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), KeysRequestPayload(), self._generic_timeline_check,
+                        self.on_keys_request),
+                Message(self, u"keys-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), KeysResponsePayload(), self._generic_timeline_check,
+                        self.on_keys_response),
                 Message(self, u"intro1", NoAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), Intro1Payload(), self.check_intro1,
                         self.on_intro1),
@@ -989,7 +998,9 @@ class TunnelCommunity(Community):
                 self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
                 seed_tunnel = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RENDEZVOUS
-                self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, seed_tunnel)
+                if not self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, seed_tunnel):
+                    self._logger.error("Giving incoming data packet to dispersy")
+                    self._dispersy.on_incoming_packets([(Candidate(origin, False), data[4:])], cache=False)
 
             # It is not our circuit so we got it from a relay, we need to EXIT it!
             else:
@@ -1195,29 +1206,48 @@ class TunnelCommunity(Community):
     @call_on_reactor_thread
     def create_rendezvous_point(self, info_hash, finished_callback):
 
-        def callback(circuit):
-            if not circuit:
-                # Failed to make circuit, reschedule
-                reactor.callLater(5, self.create_rendezvous_point, info_hash, finished_callback)
-                return
+        def keys_callback(ip_key, service_key, sock_addr):
+            def circuit_callback(circuit):
+                if not circuit:
+                    # Failed to make circuit, reschedule
+                    reactor.callLater(5, keys_callback, ip_key, service_key, sock_addr)
+                    return
 
-            # Get keys
-            ip_host, ip_port, ip_pub_key, service_key = self.dht_fetch(info_hash)
+                # Now that we have a circuit + the required info, let's create a rendezvous point
+                circuit_id = circuit.circuit_id
+                rp = self.my_rendezvous_points[circuit_id] = RendezvousPoint(circuit, self._generate_binary_string(20),
+                                                                             service_key,
+                                                                             (sock_addr[0], sock_addr[1], ip_key),
+                                                                             finished_callback)
+                cache = self.request_cache.add(RPRequestCache(self, circuit))
+                payload = (circuit_id, cache.number, rp.cookie)
+                self.send_cell([Candidate(circuit.first_hop, False)], u'establish-rendezvous', payload)
+                self._logger.error("TunnelCommunity: establish rendezvous tunnel %s with cookie %s", circuit_id,
+                                   self._readable_binary_string(rp.cookie))
 
-            # We got a circuit, now let's create a rendezvous point
-            circuit_id = circuit.circuit_id
-            rp = self.my_rendezvous_points[circuit_id] = RendezvousPoint(circuit, self._generate_binary_string(20),
-                                                                         service_key,
-                                                                         (ip_host, int(ip_port), ip_pub_key),
-                                                                         finished_callback)
-            cache = self.request_cache.add(RPRequestCache(self, circuit))
-            payload = (circuit_id, cache.number, rp.cookie)
-            self.send_cell([Candidate(circuit.first_hop, False)], u'establish-rendezvous', payload)
-            self._logger.error("TunnelCommunity: establish rendezvous tunnel %s with cookie %s", circuit_id,
-                               self._readable_binary_string(rp.cookie))
+            # Create a circuit for the rendezvous points
+            self.create_circuit(2, CIRCUIT_TYPE_RP, circuit_callback)
 
-        # Create a circuit for the rendezvous points
-        self.create_circuit(2, CIRCUIT_TYPE_RP, callback)
+        @call_on_reactor_thread
+        def dht_callback(ih, peers, source):
+            # Get keys for each peer we found in the DHT. Assumes that there is at least 1 data circuit available.
+            for peer in (peers or []):
+                if peer not in peers_processed:
+                    self._logger.error("TunnelCommunity: sending keys-request to %s", peer)
+                    circuit = self.selection_strategy.select(peer)
+                    cache = self.request_cache.add(KeysRequestCache(self, lambda i, s, a=peer: keys_callback(i, s, a)))
+                    meta = self.get_meta_message(u'keys-request')
+                    message = meta.impl(distribution=(self.global_time,), payload=(cache.number, ih))
+                    circuit.tunnel_data(peer, "ffffffff".decode("HEX") + message.packet)
+                    peers_processed.append(peer)
+
+        # DHT get_peers
+        if self.tribler_session:
+            from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
+            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
+            peers_processed = []
+        else:
+            self._logger.error("TunnelCommunity: need a Tribler session to get peers from the DHT.")
 
     def check_intro_established(self, messages):
         for message in messages:
@@ -1288,11 +1318,8 @@ class TunnelCommunity(Community):
 
     def on_intro_established(self, messages):
         for message in messages:
-            cache = self.request_cache.pop(u"establish-intro", message.payload.identifier)
+            self.request_cache.pop(u"establish-intro", message.payload.identifier)
             self._logger.error("TunnelCommunity: got intro-established from %s", message.candidate)
-            ip = self.my_intro_points[cache.circuit.circuit_id]
-            self.dht_store(ip.info_hash, list(message.payload.intro_point_addr) +
-                                         [self.crypto.key_to_bin(ip.circuit.hops[-1].public_key), ip.service_key_public_bin])
 
     def on_establish_rendezvous(self, messages):
         for message in messages:
@@ -1321,6 +1348,28 @@ class TunnelCommunity(Community):
             rp.rendezvous_point = list(message.payload.rendezvous_point_addr) + \
                                   [self.crypto.key_to_bin(rp.circuit.hops[-1].public_key)]
             self.send_intro1_over_new_tunnel(rp)
+
+    def on_keys_request(self, messages):
+        for message in messages:
+            info_hash = message.payload.info_hash
+            service_keys = [sk for sk, (_, ih, _) in self.intro_point_for.iteritems() if ih == info_hash]
+            if service_keys:
+                meta = self.get_meta_message(u'keys-response')
+                payload = (message.payload.identifier, self.my_member.public_key, service_keys[0])
+                response = meta.impl(distribution=(self.global_time,), payload=payload)
+                self.send_packet([message.candidate], u'keys-response', response.packet)
+                self._logger.error("TunnelCommunity: keys-request received from %s, response sent", message.candidate)
+            else:
+                self._logger.error("TunnelCommunity: got keys-request from %s but no circuit found", message.candidate)
+
+    def on_keys_response(self, messages):
+        for message in messages:
+            cache = self.request_cache.get(u"keys-request", message.payload.identifier)
+            if cache:
+                cache.on_success(message.payload.ip_key, message.payload.service_key)
+                self._logger.error("TunnelCommunity: keys-response received from %s", message.candidate)
+            else:
+                self._logger.error("TunnelCommunity: unknown keys-response received from %s", message.candidate)
 
     def on_intro1(self, messages):
         for message in messages:
@@ -1432,31 +1481,3 @@ class TunnelCommunity(Community):
 
         # Create circuit for intro1
         self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS, callback, required_exit=rendezvous_point)
-
-
-    # # For testing..
-    # # TODO: add DHT stuff
-
-    def dht_store(self, key, value_list):
-        dht_dict = self._read_dict_from_file('seeders.txt')
-        dht_dict[key] = value_list
-        self._write_dict_to_file('seeders.txt', dht_dict)
-
-    def dht_fetch(self, key):
-        dht_dict = self._read_dict_from_file('seeders.txt')
-        return dht_dict.get(key, None)
-
-    def _read_dict_from_file(self, f):
-        import os, pickle
-
-        if os.path.exists(f):
-            with open(f, 'r') as fp:
-                return pickle.load(fp)
-        return {}
-
-    def _write_dict_to_file(self, f, d):
-        import pickle
-
-        with open(f, 'w') as fp:
-            pickle.dump(d, fp)
-

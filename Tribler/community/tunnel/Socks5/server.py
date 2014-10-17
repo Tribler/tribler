@@ -327,3 +327,6 @@ class Socks5Server(object):
 
         if not any([session.on_incoming_from_tunnel(community, circuit, origin, data, force) for session in self.sessions]):
             self._logger.error("No session accepted this data from %s:%d", *origin)
+            return False
+
+        return True
