@@ -237,13 +237,13 @@ class LineHandler(LineReceiver):
             filename = 'test_file'
             if not os.path.exists(filename):
                 with open(filename, 'wb') as fp:
-                    fp.write(os.urandom(10 * 1024 * 1024))
+                    fp.write(os.urandom(50 * 1024 * 1024))
 
             tdef = TorrentDef()
             tdef.add_content(os.path.join(cur_path, filename))
             tdef.set_tracker("udp://fake.net/announce")
             tdef.set_private()
-            tdef.input['is_anonymous'] = 1
+            tdef.set_anonymous()
             tdef.finalize()
             tdef.save(os.path.join(cur_path, filename + '.torrent'))
 
