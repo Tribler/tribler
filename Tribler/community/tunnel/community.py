@@ -16,6 +16,7 @@ from twisted.internet.task import LoopingCall
 
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
@@ -40,6 +41,7 @@ from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
+from Tribler.dispersy.endpoint import TUNNEL_PREFIX, TUNNEL_PREFIX_LENGHT
 from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
@@ -726,7 +728,7 @@ class TunnelCommunity(Community):
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
             self.increase_bytes_sent(next_relay, self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet))
 
-            self._logger.error("TunnelCommunity: forwarded packet: %s -> %s", circuit_id, next_relay.circuit_id)
+            self._logger.debug("TunnelCommunity: forwarded packet: %s -> %s", circuit_id, next_relay.circuit_id)
 
             return True
         return False
@@ -997,10 +999,12 @@ class TunnelCommunity(Community):
                 self.circuits[circuit_id].beat_heart()
                 self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
-                seed_tunnel = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RENDEZVOUS
-                if not self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, seed_tunnel):
+                if data[:TUNNEL_PREFIX_LENGHT] == TUNNEL_PREFIX:
                     self._logger.error("Giving incoming data packet to dispersy")
-                    self._dispersy.on_incoming_packets([(Candidate(origin, False), data[4:])], cache=False)
+                    self._dispersy.on_incoming_packets([(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False)
+                else:
+                    anon_seed = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RENDEZVOUS
+                    self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, anon_seed)
 
             # It is not our circuit so we got it from a relay, we need to EXIT it!
             else:
@@ -1238,7 +1242,7 @@ class TunnelCommunity(Community):
                     cache = self.request_cache.add(KeysRequestCache(self, lambda i, s, a=peer: keys_callback(i, s, a)))
                     meta = self.get_meta_message(u'keys-request')
                     message = meta.impl(distribution=(self.global_time,), payload=(cache.number, ih))
-                    circuit.tunnel_data(peer, "ffffffff".decode("HEX") + message.packet)
+                    circuit.tunnel_data(peer, TUNNEL_PREFIX + message.packet)
                     peers_processed.append(peer)
 
         # DHT get_peers
@@ -1298,7 +1302,7 @@ class TunnelCommunity(Community):
                 self._logger.error("TunnelCommunity: establish-intro received from %s. Circuit %s associated with " +
                                    "service_key %s", message.candidate, circuit_id,
                                    self._readable_binary_string(message.payload.service_key))
-                payload = (circuit_id, message.payload.identifier, self.dispersy.lan_address)
+                payload = (circuit_id, message.payload.identifier, self.dispersy.wan_address)
                 self.send_cell([message.candidate], u"intro-established", payload)
 
                 # DHT announce
@@ -1334,7 +1338,7 @@ class TunnelCommunity(Community):
                 self._logger.error("TunnelCommunity: establish-rendezvous received from %s. Circuit %s associated " +
                                    "with rendezvous cookie %s", message.candidate, circuit_id,
                                    self._readable_binary_string(message.payload.cookie))
-                payload = (circuit_id, message.payload.identifier, self.dispersy.lan_address)
+                payload = (circuit_id, message.payload.identifier, self.dispersy.wan_address)
                 self.send_cell([message.candidate], u"rendezvous-established", payload)
             else:
                 self._logger.error("TunnelCommunity: got establish-rendezvous from %s but no exit socket found",
@@ -1360,7 +1364,7 @@ class TunnelCommunity(Community):
                 self.send_packet([message.candidate], u'keys-response', response.packet)
                 self._logger.error("TunnelCommunity: keys-request received from %s, response sent", message.candidate)
             else:
-                self._logger.error("TunnelCommunity: got keys-request from %s but no circuit found", message.candidate)
+                self._logger.error("TunnelCommunity: got keys-request but no service_key found")
 
     def on_keys_response(self, messages):
         for message in messages:
