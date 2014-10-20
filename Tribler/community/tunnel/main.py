@@ -19,6 +19,8 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.permid import read_keypair
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 try:
     import yappi
@@ -229,9 +231,6 @@ class LineHandler(LineReceiver):
                                                              circuit.bytes_up / 1024.0 / 1024.0)
 
         elif line == 's':
-            from Tribler.Main.globals import DefaultDownloadStartupConfig
-            from Tribler.Core.TorrentDef import TorrentDef
-
             print "Creating torrent..",
             cur_path = os.getcwd()
             filename = 'test_file'
@@ -247,33 +246,16 @@ class LineHandler(LineReceiver):
             tdef.finalize()
             tdef.save(os.path.join(cur_path, filename + '.torrent'))
 
+            print "done"
+
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
             dscfg.set_anon_mode(True)
             dscfg.set_dest_dir(cur_path)
 
-            def start_download():
-                def cb(ds):
-                    from Tribler.Core.simpledefs import DLSTATUS_SEEDING
-                    if ds.get_status() == DLSTATUS_SEEDING:
-                        print 'now seeding'
-
-                        print "Creating introduction point"
-                        anon_tunnel.community.create_introduction_points(tdef.get_id())
-
-                        return 0, False
-                    else:
-                        return 1.0, False
-                download = anon_tunnel.session.start_download(tdef, dscfg)
-                download.add_peer(('1.1.1.1' , 1024))
-                download.set_state_callback(cb, delay=1)
-
-            anon_tunnel.session.uch.perform_usercallback(start_download)
+            anon_tunnel.session.uch.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
 
         elif line == 'd':
-            from Tribler.Main.globals import DefaultDownloadStartupConfig
-            from Tribler.Core.TorrentDef import TorrentDef
-
             print "Loading torrent..",
             tdef = TorrentDef.load('test_file.torrent')
             print "done"
@@ -290,12 +272,7 @@ class LineHandler(LineReceiver):
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
 
-                from Tribler.community.tunnel import CIRCUIT_TYPE_RP
-                circuit_id = [cid for cid, c in anon_tunnel.community.circuits.items() if c.ctype == CIRCUIT_TYPE_RP][0]
-                download.add_peer((anon_tunnel.community.circuit_id_to_ip(circuit_id) , 1024))
-
-            print "Creating rendezvous point"
-            anon_tunnel.community.create_rendezvous_point(tdef.get_id(), lambda f=start_download: anon_tunnel.session.uch.perform_usercallback(f))
+            anon_tunnel.session.uch.perform_usercallback(start_download)
 
         elif line == 'q':
             anon_tunnel.stop()

@@ -999,7 +999,7 @@ class TunnelCommunity(Community):
                 self.circuits[circuit_id].beat_heart()
                 self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
-                if data[:TUNNEL_PREFIX_LENGHT] == TUNNEL_PREFIX:
+                if data[:TUNNEL_PREFIX_LENGHT] == TUNNEL_PREFIX and len(data) > 22:
                     self._logger.error("Giving incoming data packet to dispersy")
                     self._dispersy.on_incoming_packets([(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False)
                 else:
@@ -1208,7 +1208,7 @@ class TunnelCommunity(Community):
             self.create_circuit(2, CIRCUIT_TYPE_IP, callback)
 
     @call_on_reactor_thread
-    def create_rendezvous_point(self, info_hash, finished_callback):
+    def create_rendezvous_point(self, info_hash, sock_addr, finished_callback):
 
         def keys_callback(ip_key, service_key, sock_addr):
             def circuit_callback(circuit):
@@ -1232,26 +1232,12 @@ class TunnelCommunity(Community):
             # Create a circuit for the rendezvous points
             self.create_circuit(2, CIRCUIT_TYPE_RP, circuit_callback)
 
-        @call_on_reactor_thread
-        def dht_callback(ih, peers, source):
-            # Get keys for each peer we found in the DHT. Assumes that there is at least 1 data circuit available.
-            for peer in (peers or []):
-                if peer not in peers_processed:
-                    self._logger.error("TunnelCommunity: sending keys-request to %s", peer)
-                    circuit = self.selection_strategy.select(peer)
-                    cache = self.request_cache.add(KeysRequestCache(self, lambda i, s, a=peer: keys_callback(i, s, a)))
-                    meta = self.get_meta_message(u'keys-request')
-                    message = meta.impl(distribution=(self.global_time,), payload=(cache.number, ih))
-                    circuit.tunnel_data(peer, TUNNEL_PREFIX + message.packet)
-                    peers_processed.append(peer)
-
-        # DHT get_peers
-        if self.tribler_session:
-            from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
-            peers_processed = []
-        else:
-            self._logger.error("TunnelCommunity: need a Tribler session to get peers from the DHT.")
+        self._logger.error("TunnelCommunity: sending keys-request to %s", sock_addr)
+        circuit = self.selection_strategy.select(sock_addr)
+        cache = self.request_cache.add(KeysRequestCache(self, lambda i, s, a=sock_addr: keys_callback(i, s, a)))
+        meta = self.get_meta_message(u'keys-request')
+        message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
+        circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
 
     def check_intro_established(self, messages):
         for message in messages:
@@ -1437,7 +1423,7 @@ class TunnelCommunity(Community):
             self._logger.error("TunnelCommunity: handshake completed!")
             self._logger.error("TunnelCommunity: session keys %s %s", self._readable_binary_string(session_keys[0]),
                                                                       self._readable_binary_string(session_keys[1]))
-            rp.finished_callback()
+            rp.finished_callback(message.payload.circuit_id)
 
     def send_intro1_over_new_tunnel(self, rp):
 

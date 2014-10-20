@@ -22,6 +22,9 @@ from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
+from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
+
+from Tribler.community.tunnel.community import TunnelCommunity
 
 if sys.platform == "win32":
     try:
@@ -188,6 +191,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         # Libtorrent status
         self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
         self.dlstate = DLSTATUS_WAITING4HASHCHECK
+        self.dlstate_prev = self.dlstate
         self.length = 0
         self.progress = 0.0
         self.bufferprogress = 0.0
@@ -199,6 +203,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
+        self.anon_seeders = []
 
         self.prebuffsize = 5 * 1024 * 1024
         self.endbuffsize = 0
@@ -332,6 +337,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
             self.handle.resolve_countries(True)
 
+            # If the torrent is anonymous, monitor the state so that we can create intro/rendezvous points when needed.
+            if self.tdef.is_anonymous():
+                self.set_state_callback(self.monitor_anonymous_download, delay=5.0)
+
         else:
             self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
 
@@ -343,6 +352,49 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
     def get_anon_mode(self):
         return self.get_hops() > 0
+
+    def monitor_anonymous_download(self, ds):
+        state_changed = self.dlstate_prev != self.dlstate
+        force = False  # TODO: every ~300 seconds of downloading set force to True and force a DHT query
+
+        if (state_changed or force) and self.dlstate == DLSTATUS_DOWNLOADING:
+
+            tc = (c for c in self.session.lm.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
+
+            if tc:
+                def add_peer(circuit_id):
+                    self.add_peer((tc.circuit_id_to_ip(circuit_id), 1024))
+
+                def dht_callback(ih, peers, source):
+                    for peer in (peers or []):
+                        if peer not in self.anon_seeders:
+                            self._logger.error("Creating rendezvous point for introduction point %s", peer)
+                            tc.create_rendezvous_point(ih, peer, add_peer)
+                            self.anon_seeders.append(peer)
+
+                # Get introduction points from the DHT, create rendezvous the points, and add the resulting
+                # circuit_ids to the libtorrent download
+                info_hash = self.tdef.get_id()
+                self.session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
+
+            self.dlstate_prev = self.dlstate
+
+        elif state_changed and self.dlstate == DLSTATUS_SEEDING:
+
+            tc = (c for c in self.session.lm.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
+
+            if tc:
+                # Create an introduction point
+                self._logger.error("Creating introduction point")
+                tc.create_introduction_points(self.tdef.get_id())
+
+                # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
+                # knows on which UDP port libtorrent is listening.
+                self.add_peer(('1.1.1.1' , 1024))
+
+            self.dlstate_prev = self.dlstate
+
+        return (5.0, False)
 
     def set_vod_mode(self, enable=True):
         self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.handle.name(), enable)
