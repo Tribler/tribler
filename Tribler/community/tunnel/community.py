@@ -259,11 +259,11 @@ class RoundRobin(object):
     def select(self, destination, hops):
         if destination[1] == 1024:
             circuit_id = self.community.ip_to_circuit_id(destination[0])
-            circuit_ids = {cid: c for cid, c in self.community.circuits.items()
-                           if c.state == CIRCUIT_STATE_READY and c.ctype == CIRCUIT_TYPE_RP}
+            circuit = self.community.circuits.get(circuit_id, None)
 
-            if circuit_id in circuit_ids:
-                return circuit_ids[circuit_id]
+            if circuit and circuit.state == CIRCUIT_STATE_READY and \
+               circuit.ctype == CIRCUIT_TYPE_RP:
+                return circuit
 
         circuit_ids = sorted(self.community.active_data_circuits(hops).keys())
 

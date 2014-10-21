@@ -1,10 +1,10 @@
 import logging
-from Tribler.community.tunnel.Socks5 import conversion
 
 from twisted.internet import reactor
-from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, \
-    Factory
-from Tribler.community.tunnel import CIRCUIT_STATE_READY
+from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, Factory
+
+from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP
+from Tribler.community.tunnel.Socks5 import conversion
 
 
 class ConnectionState(object):
@@ -320,10 +320,8 @@ class Socks5Server(object):
         return affected_destinations
 
     def on_incoming_from_tunnel(self, community, circuit, origin, data, force=False):
-        from Tribler.community.tunnel import CIRCUIT_TYPE_RP
-
-        if circuit.ctype == CIRCUIT_TYPE_RP:
-            origin = (community.circuit_id_to_ip(circuit.circuit_id) , 1024)
+        if circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+            origin = (community.circuit_id_to_ip(circuit.circuit_id), 1024)
 
         if not any([session.on_incoming_from_tunnel(community, circuit, origin, data, force) for session in self.sessions]):
             self._logger.error("No session accepted this data from %s:%d", *origin)
