@@ -1288,8 +1288,7 @@ class TunnelCommunity(Community):
                 self._logger.error("TunnelCommunity: establish-intro received from %s. Circuit %s associated with " +
                                    "service_key %s", message.candidate, circuit_id,
                                    self._readable_binary_string(message.payload.service_key))
-                payload = (circuit_id, message.payload.identifier, self.dispersy.wan_address)
-                self.send_cell([message.candidate], u"intro-established", payload)
+                self.send_cell([message.candidate], u"intro-established", (circuit_id, message.payload.identifier))
 
                 # DHT announce
                 if self.tribler_session:

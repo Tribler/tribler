@@ -233,15 +233,13 @@ class EstablishIntroPayload(Payload):
 
 class IntroEstablishedPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, intro_point_addr):
+        def __init__(self, meta, circuit_id, identifier):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
-            assert isinstance(intro_point_addr, tuple), type(intro_point_addr)
 
             super(IntroEstablishedPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._identifier = identifier
-            self._intro_point_addr = intro_point_addr
 
         @property
         def circuit_id(self):
@@ -250,10 +248,6 @@ class IntroEstablishedPayload(Payload):
         @property
         def identifier(self):
             return self._identifier
-
-        @property
-        def intro_point_addr(self):
-            return self._intro_point_addr
 
 
 class EstablishRendezvousPayload(Payload):

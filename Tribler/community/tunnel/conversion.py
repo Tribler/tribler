@@ -215,18 +215,13 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key, info_hash)
 
     def _encode_intro_established(self, message):
-        host, port = message.payload.intro_point_addr
-        return pack('!IH4sH', message.payload.circuit_id, message.payload.identifier, inet_aton(host), port),
+        return pack('!IH', message.payload.circuit_id, message.payload.identifier),
 
     def _decode_intro_established(self, placeholder, offset, data):
         circuit_id, identifier = unpack_from('!IH', data, offset)
         offset += 6
 
-        host, port = unpack_from('!4sH', data, offset)
-        intro_point_addr = (inet_ntoa(host), port)
-        offset += 6
-
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, intro_point_addr)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     def _encode_establish_rendezvous(self, message):
         return pack('!IH20s', message.payload.circuit_id, message.payload.identifier, message.payload.cookie),
