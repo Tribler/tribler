@@ -230,22 +230,25 @@ class LineHandler(LineReceiver):
                                                              circuit.bytes_down / 1024.0 / 1024.0,
                                                              circuit.bytes_up / 1024.0 / 1024.0)
 
-        elif line == 's':
-            print "Creating torrent..",
+        elif line.startswith('s'):
             cur_path = os.getcwd()
-            filename = 'test_file'
+            line_split = line.split(' ')
+            filename = 'test_file' if len(line_split) == 1 else line_split[1]
+
             if not os.path.exists(filename):
+                print "Creating torrent..",
                 with open(filename, 'wb') as fp:
                     fp.write(os.urandom(50 * 1024 * 1024))
-
-            tdef = TorrentDef()
-            tdef.add_content(os.path.join(cur_path, filename))
-            tdef.set_tracker("udp://fake.net/announce")
-            tdef.set_private()
-            tdef.set_anonymous()
-            tdef.finalize()
-            tdef.save(os.path.join(cur_path, filename + '.torrent'))
-
+                tdef = TorrentDef()
+                tdef.add_content(os.path.join(cur_path, filename))
+                tdef.set_tracker("udp://fake.net/announce")
+                tdef.set_private()
+                tdef.set_anonymous()
+                tdef.finalize()
+                tdef.save(os.path.join(cur_path, filename + '.torrent'))
+            else:
+                print "Loading torrent..",
+                tdef = TorrentDef.load(filename + '.torrent')
             print "done"
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
@@ -255,19 +258,22 @@ class LineHandler(LineReceiver):
 
             anon_tunnel.session.uch.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
 
-        elif line == 'd':
+        elif line.startswith('d'):
+            line_split = line.split(' ')
+            filename = 'test_file' if len(line_split) == 1 else line_split[1]
+
             print "Loading torrent..",
-            tdef = TorrentDef.load('test_file.torrent')
+            tdef = TorrentDef.load(filename + '.torrent')
             print "done"
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
             dscfg.set_anon_mode(True)
-            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader'))
+            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_swift_tunnel_listen_port()))
 
             def start_download():
                 def cb(ds):
-                    print 'Download', tdef.get_id().encode('hex')[:10], '@', ds.get_progress(), ds.get_status(), sum(ds.get_num_seeds_peers())
+                    print 'Download', tdef.get_id().encode('hex')[:10], '@', ds.get_current_speed('down'), ds.get_progress(), ds.get_status(), sum(ds.get_num_seeds_peers())
                     return 1.0, False
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
