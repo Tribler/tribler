@@ -354,47 +354,46 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         return self.get_hops() > 0
 
     def monitor_anonymous_download(self, ds):
-        state_changed = self.dlstate_prev != self.dlstate
-        force = False  # TODO: every ~300 seconds of downloading set force to True and force a DHT query
-
-        if (state_changed or force) and self.dlstate == DLSTATUS_DOWNLOADING:
-
-            tc = (c for c in self.session.lm.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
-
-            if tc:
-                def add_peer(circuit_id):
-                    self.add_peer((tc.circuit_id_to_ip(circuit_id), 1024))
-
-                def dht_callback(ih, peers, source):
-                    for peer in (peers or []):
-                        if peer not in self.anon_seeders:
-                            self._logger.error("Creating rendezvous point for introduction point %s", peer)
-                            tc.create_rendezvous_point(ih, peer, add_peer)
-                            self.anon_seeders.append(peer)
-
-                # Get introduction points from the DHT, create rendezvous the points, and add the resulting
-                # circuit_ids to the libtorrent download
-                info_hash = self.tdef.get_id()
-                self.session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
-
-            self.dlstate_prev = self.dlstate
-
-        elif state_changed and self.dlstate == DLSTATUS_SEEDING:
-
-            tc = (c for c in self.session.lm.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
-
-            if tc:
-                # Create an introduction point
-                self._logger.error("Creating introduction point")
-                tc.create_introduction_points(self.tdef.get_id())
-
-                # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
-                # knows on which UDP port libtorrent is listening.
-                self.add_peer(('1.1.1.1' , 1024))
-
-            self.dlstate_prev = self.dlstate
+        if self.dlstate_prev != self.dlstate:
+            if self.dlstate == DLSTATUS_DOWNLOADING:
+                self.build_rendezvous_points()
+                self.dlstate_prev = self.dlstate
+            elif self.dlstate == DLSTATUS_SEEDING:
+                self.build_introduction_points()
+                self.dlstate_prev = self.dlstate
 
         return (5.0, False)
+
+    def build_rendezvous_points(self):
+        tc = (c for c in self.session.lm.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
+
+        if tc:
+            def add_peer(circuit_id):
+                self.add_peer((tc.circuit_id_to_ip(circuit_id), 1024))
+
+            def dht_callback(ih, peers, source):
+                for peer in (peers or []):
+                    if peer not in self.anon_seeders:
+                        self._logger.error("Creating rendezvous point for introduction point %s", peer)
+                        tc.create_rendezvous_point(ih, peer, add_peer)
+                        self.anon_seeders.append(peer)
+
+            # Get introduction points from the DHT, create rendezvous the points, and add the resulting
+            # circuit_ids to the libtorrent download
+            info_hash = self.tdef.get_id()
+            self.session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
+
+    def build_introduction_points(self):
+        tc = (c for c in self.session.lm.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
+
+        if tc:
+            # Create an introduction point
+            self._logger.error("Creating introduction point")
+            tc.create_introduction_points(self.tdef.get_id())
+
+            # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
+            # knows on which UDP port libtorrent is listening.
+            self.add_peer(('1.1.1.1' , 1024))
 
     def set_vod_mode(self, enable=True):
         self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.handle.name(), enable)
