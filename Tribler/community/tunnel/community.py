@@ -1232,12 +1232,18 @@ class TunnelCommunity(Community):
             # Create a circuit for the rendezvous points
             self.create_circuit(2, CIRCUIT_TYPE_RP, circuit_callback)
 
-        self._logger.error("TunnelCommunity: sending keys-request to %s", sock_addr)
+        def request_keys(circuit):
+            self._logger.error("TunnelCommunity: sending keys-request to %s", sock_addr)
+            cache = self.request_cache.add(KeysRequestCache(self, lambda i, s, a=sock_addr: keys_callback(i, s, a)))
+            meta = self.get_meta_message(u'keys-request')
+            message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
+            circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
+
         circuit = self.selection_strategy.select(sock_addr)
-        cache = self.request_cache.add(KeysRequestCache(self, lambda i, s, a=sock_addr: keys_callback(i, s, a)))
-        meta = self.get_meta_message(u'keys-request')
-        message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
-        circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
+        if circuit:
+            request_keys(circuit)
+        else:
+            self.create_circuit(2, request_keys)
 
     def check_intro_established(self, messages):
         for message in messages:
