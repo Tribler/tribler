@@ -31,6 +31,7 @@ from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, ChannelManager
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
+from Tribler.Main.Utility.utility import compute_ratio, eta_value, size_format
 
 
 class MetadataInjector(object):
@@ -265,101 +266,6 @@ def main():
 
     print >> sys.stderr, u"Shutting down (wait for 5 seconds)..."
     time.sleep(5)
-
-
-def compute_ratio(i, j):
-    return u"%d / %d ~%.1f%%" % (i, j, (100.0 * i / j) if j else 0.0)
-
-
-def eta_value(n, truncate=3):
-    if n == -1:
-        return u'<unknown>'
-    if not n:
-        return u''
-    n = int(n)
-    week, r1 = divmod(n, 60 * 60 * 24 * 7)
-    day, r2 = divmod(r1, 60 * 60 * 24)
-    hour, r3 = divmod(r2, 60 * 60)
-    minute, sec = divmod(r3, 60)
-
-    if week > 1000:
-        return u'<unknown>'
-
-    weekstr = u'%d' % week + u'w'
-    daystr = u'%d' % day + u'd'
-    hourstr = u'%d' % hour + u'h'
-    minutestr = u'%d' % minute + u'm'
-    secstr = u'%02d' % sec + u's'
-
-    if week > 0:
-        text = weekstr
-        if truncate > 1:
-            text += u":" + daystr
-        if truncate > 2:
-            text += u"-" + hourstr
-    elif day > 0:
-        text = daystr
-        if truncate > 1:
-            text += u"-" + hourstr
-        if truncate > 2:
-            text += u":" + minutestr
-    elif hour > 0:
-        text = hourstr
-        if truncate > 1:
-            text += u":" + minutestr
-        if truncate > 2:
-            text += u":" + secstr
-    else:
-        text = minutestr
-        if truncate > 1:
-            text += u":" + secstr
-
-    return text
-
-
-def size_format(s, truncate=None, stopearly=None, applylabel=True, rawsize=False, showbytes=False, labelonly=False, textonly=False):
-    if truncate is None:
-        truncate = 2
-
-    if ((s < 1024) and showbytes and stopearly is None) or stopearly == "Byte":
-        truncate = 0
-        size = s
-        text = u"Byte"
-    elif ((s < 1048576) and stopearly is None) or stopearly == "KB":
-        size = (s / 1024.0)
-        text = u"KB"
-    elif ((s < 1073741824) and stopearly is None) or stopearly == "MB":
-        size = (s / 1048576.0)
-        text = u"MB"
-    elif ((s < 1099511627776) and stopearly is None) or stopearly == "GB":
-        size = (s / 1073741824.0)
-        text = u"GB"
-    else:
-        size = (s / 1099511627776.0)
-        text = u"TB"
-
-    if textonly:
-        return text
-
-    label = u"B" if text == u"Byte" else text
-    if labelonly:
-        return label
-
-    if rawsize:
-        return size
-
-    # At this point, only accepting 0, 1, or 2
-    if truncate == 0:
-        text = (u'%.0f' % size)
-    elif truncate == 1:
-        text = (u'%.1f' % size)
-    else:
-        text = (u'%.2f' % size)
-
-    if applylabel:
-        text += u' ' + label
-
-    return text
 
 
 def print_info(dispersy):

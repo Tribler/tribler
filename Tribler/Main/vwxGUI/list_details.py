@@ -19,7 +19,6 @@ from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
     NTFY_VIDEO_ENDED, DLMODE_VOD
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -40,6 +39,8 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
     MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, \
     FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
+
+from Tribler.Main.Utility.utility import eta_value, size_format
 
 
 class AbstractDetails(FancyPanel):
@@ -504,7 +505,7 @@ class TorrentDetails(AbstractDetails):
         todo.append((self.description, ''))
         todo.append((self.type, ', '.join(self.torrent.categories).capitalize() if isinstance(self.torrent.categories, list) else 'Unknown'))
         todo.append((self.uploaded, self.torrent.formatCreationDate() if hasattr(self.torrent, 'formatCreationDate') else ''))
-        todo.append((self.filesize, '%s in %d file(s)' % (self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files)) if hasattr(self.torrent, 'files') else '%s' % self.guiutility.utility.size_format(self.torrent.length)))
+        todo.append((self.filesize, '%s in %d file(s)' % (size_format(self.torrent.length), len(self.torrent.files)) if hasattr(self.torrent, 'files') else '%s' % size_format(self.torrent.length)))
 
         for control, new_value in todo:
             if control.GetLabel() != new_value:
@@ -934,7 +935,7 @@ class TorrentDetails(AbstractDetails):
                 if diff < 5:
                     self.health.SetLabel("%s seeders, %s leechers (current)" % (num_seeders, num_leechers))
                 else:
-                    updated = self.guiutility.utility.eta_value(diff, 2)
+                    updated = eta_value(diff, 2)
                     if updated == '<unknown>':
                         self.health.SetLabel("%s seeders, %s leechers" % (num_seeders, num_leechers) + updating)
                     else:
@@ -1961,11 +1962,11 @@ class ProgressPanel(wx.BoxSizer):
 
                     def format_size(bytes):
                         if bytes > 1073741824:
-                            return self.utility.size_format(bytes, 1)
-                        return self.utility.size_format(bytes, 0)
+                            return size_format(bytes, 1)
+                        return size_format(bytes, 0)
                     sizestr = '%s/%s (%0.1f%%)' % (format_size(size_progress), format_size(size), progress * 100)
 
-                eta = self.utility.eta_value(eta, truncate=2)
+                eta = eta_value(eta, truncate=2)
                 if eta == '' or eta.find('unknown') != -1:
                     eta = sizestr
 
