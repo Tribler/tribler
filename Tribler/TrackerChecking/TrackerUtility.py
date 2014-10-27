@@ -1,21 +1,16 @@
-# ============================================================
-# Written by Lipu Fei
-#
-# Utility functions for tracker checking.
-# ============================================================
-
 import re
 import logging
 
 logger = logging.getLogger(__name__)
 
 url_regex = re.compile(
-    r'^(?:http|udp)://' # http:// or udp
-    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
-    r'localhost|' #localhost...
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
-    r'(?::\d+)?' # optional port
+    r'^(?:http|udp)://'  # http:// or udp
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
+    r'localhost|'  # localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+    r'(?::\d+)?'  # optional port
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
 
 # ------------------------------------------------------------
 # Convert a given tracker's URL into a uniformed version:
