@@ -31,6 +31,8 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.TorrentDef import TorrentDef
 
+from Tribler.Main.Utility.utility import round_range
+
 
 class ColumnsManager:
     __single = None
@@ -444,7 +446,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
         limit = download.get_max_speed(direction)
 
-        values = self.guiutility.utility.round_range(limit) if limit > 0 else range(0, 1000, 100)
+        values = round_range(limit) if limit > 0 else range(0, 1000, 100)
         if limit > 0 and limit not in values:
             values.append(limit)
             values.sort(cmp=lambda x, y: cmp(int(x), int(y)))

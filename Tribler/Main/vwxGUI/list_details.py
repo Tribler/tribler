@@ -40,7 +40,7 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
     FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
 
-from Tribler.Main.Utility.utility import eta_value, size_format
+from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
 
 
 class AbstractDetails(FancyPanel):
@@ -986,7 +986,7 @@ class TorrentDetails(AbstractDetails):
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
             uls = ds.get_current_speed('up')
-            status = 'Seeding @ %s' % self.utility.speed_format(uls)
+            status = 'Seeding @ %s' % speed_format(uls)
         elif finished:
             status = 'Completed'
         elif statusflag in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK]:
@@ -996,7 +996,7 @@ class TorrentDetails(AbstractDetails):
         elif statusflag == DLSTATUS_DOWNLOADING:
             dls = ds.get_current_speed('down')
             status = 'Streaming' if is_vod else 'Downloading'
-            status += ' @ %s' % self.utility.speed_format(dls)
+            status += ' @ %s' % speed_format(dls)
         elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
 
@@ -1326,8 +1326,8 @@ class LibraryDetails(TorrentDetails):
                 self.peerList.SetStringItem(index, 1, '%d%%' % (peer_dict.get('completed', 0) * 100.0))
 
                 traffic = ""
-                traffic += self.guiutility.utility.speed_format(peer_dict.get('downrate', 0)) + u"\u2193 "
-                traffic += self.guiutility.utility.speed_format(peer_dict.get('uprate', 0)) + u"\u2191"
+                traffic += speed_format(peer_dict.get('downrate', 0)) + u"\u2193 "
+                traffic += speed_format(peer_dict.get('uprate', 0)) + u"\u2191"
                 self.peerList.SetStringItem(index, 2, traffic.strip())
 
                 state = ""
@@ -1986,10 +1986,10 @@ class ProgressPanel(wx.BoxSizer):
 
         if self.style == ProgressPanel.ETA_EXTENDED:
             if status == DLSTATUS_SEEDING:
-                upSpeed = " @ " + self.utility.speed_format(uls)
+                upSpeed = " @ " + speed_format(uls)
                 eta += upSpeed
             elif status == DLSTATUS_DOWNLOADING:
-                dlSpeed = " @ " + self.utility.speed_format(dls)
+                dlSpeed = " @ " + speed_format(dls)
                 eta += dlSpeed
 
         # Update eta

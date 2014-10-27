@@ -43,7 +43,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI
 from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, \
     ChannelTorrent, Channel
 
-from Tribler.Main.Utility.utility import eta_value, size_format
+from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
 
 
 DEBUG_RELEVANCE = False
@@ -1643,8 +1643,8 @@ class LibraryList(SizeList):
                    {'name': 'Progress', 'type': 'method', 'width': '20em', 'method': self.CreateProgress, 'showColumname': False, 'autoRefresh': False},
                    {'name': 'Size', 'width': '16em', 'fmt': size_format},
                    {'name': 'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True, 'autoRefresh': False},
-                   {'name': 'Down speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
-                   {'name': 'Up speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
+                   {'name': 'Down speed', 'width': '20em', 'fmt': speed_format, 'autoRefresh': False},
+                   {'name': 'Up speed', 'width': '20em', 'fmt': speed_format, 'autoRefresh': False},
                    {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
