@@ -1,6 +1,7 @@
 from struct import pack, unpack_from
 from socket import inet_ntoa, inet_aton, error as socket_error
 
+from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 
@@ -270,9 +271,25 @@ class TunnelConversion(BinaryConversion):
         return True
 
     @staticmethod
-    def could_be_udp_trackers(data):
+    def could_be_udp_tracker(data):
         # For the UDP tracker protocol the action field is either at position 0 or 8, and should be 0..3
         if len(data) >= 8 and (0 <= unpack_from('!I', data, 0)[0] <= 3) or \
            len(data) >= 12 and (0 <= unpack_from('!I', data, 8)[0] <= 3):
             return True
         return False
+
+    @staticmethod
+    def could_be_dht(data):
+        try:
+            decoded = bdecode(data)
+            if isinstance(decoded, dict) and decoded.has_key('y') and decoded['y'] in ['q', 'r', 'e']:
+                return True
+        except:
+            pass
+        return False
+
+    @staticmethod
+    def is_allowed(data):
+        return (TunnelConversion.could_be_utp(data) or
+                TunnelConversion.could_be_udp_tracker(data) or
+                TunnelConversion.could_be_dht(data))
