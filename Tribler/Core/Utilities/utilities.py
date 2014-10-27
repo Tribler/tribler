@@ -236,11 +236,11 @@ def show_permid_short(permid):
 
 
 def find_prog_in_PATH(prog):
-    envpath = os.path.expandvars('${PATH}')
+    envpath = unicode(os.path.expandvars('${PATH}').decode(sys.getfilesystemencoding()))
     if sys.platform == 'win32':
-        splitchar = ';'
+        splitchar = u';'
     else:
-        splitchar = ':'
+        splitchar = u':'
     paths = envpath.split(splitchar)
     foundat = None
     for path in paths:
