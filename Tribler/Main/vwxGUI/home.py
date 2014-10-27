@@ -597,6 +597,7 @@ class NetworkGraphPanel(wx.Panel):
 
         self.AddComponents()
 
+        self.tunnel_community = None
         self.try_community()
 
     def try_community(self):
@@ -678,6 +679,9 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Refresh()
 
     def OnUpdateCircuits(self, event):
+        if not self.tunnel_community:
+            return
+
         if self.fullscreen:
             self.num_circuits_label.SetLabel("You have %d circuit(s); %d relay(s); %d exit socket(s)" %
                                              (len(self.tunnel_community.circuits),
