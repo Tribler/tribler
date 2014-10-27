@@ -168,8 +168,9 @@ class IntroductionPoint(object):
 
 class RendezvousPoint(object):
 
-    def __init__(self, circuit, cookie, service_key, intro_point, finished_callback):
+    def __init__(self, circuit, info_hash, cookie, service_key, intro_point, finished_callback):
         self.circuit = circuit
+        self.info_hash = info_hash
         self.cookie = cookie
         self.service_key = service_key
         self.intro_point = intro_point

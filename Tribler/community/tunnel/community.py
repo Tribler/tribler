@@ -305,12 +305,12 @@ class TunnelCommunity(Community):
         self.intro_point_for = {}
         self.rendezvous_point_for = {}
 
-        self.tribler_session = self.settings = self.socks_server = self.libtorrent_test = None
+        self.trsession = self.settings = self.socks_server = self.libtorrent_test = None
 
     def initialize(self, session=None, settings=None):
         super(TunnelCommunity, self).initialize()
 
-        self.tribler_session = session
+        self.trsession = session
         self.settings = settings if settings else TunnelSettings()
 
         assert isinstance(self.settings.crypto, TunnelCrypto)
@@ -328,13 +328,13 @@ class TunnelCommunity(Community):
                                          if session else self.settings.socks_listen_ports)
         self.socks_server.start()
 
-        if self.tribler_session:
+        if self.trsession:
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.notifier = Notifier.getInstance()
 
     def start_download_test(self):
-        if self.tribler_session and self.tribler_session.get_libtorrent():
-            self.libtorrent_test = LibtorrentTest(self, self.tribler_session)
+        if self.trsession and self.trsession.get_libtorrent() and self.settings.do_test:
+            self.libtorrent_test = LibtorrentTest(self, self.trsession)
             if not self.libtorrent_test.has_completed_before():
                 self._logger.debug("Scheduling Anonymous LibTorrent download")
                 self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
@@ -538,19 +538,27 @@ class TunnelCommunity(Community):
                 circuit.callback(None)
                 circuit.callback = None
 
-            # Remove introduction/rendezvous points
+            ltmgr = self.trsession.lm.ltmgr if self.trsession and self.trsession.get_libtorrent() else None
+
+            # Remove & rebuild introduction/rendezvous points
             if circuit_id in self.my_intro_points:
-                self.my_intro_points.pop(circuit_id)
+                self._logger.error("TunnelCommunity: removed introduction point")
+                ip = self.my_intro_points.pop(circuit_id)
+                if ltmgr:
+                    ltmgr.build_introduction_point(ip.info_hash)
+                    self._logger.error("TunnelCommunity: rebuilding introduction point")
             if circuit_id in self.my_rendezvous_points:
-                self.my_rendezvous_points.pop(circuit_id)
+                self._logger.error("TunnelCommunity: removed rendezvous point")
+                rp = self.my_rendezvous_points.pop(circuit_id)
+                if ltmgr:
+                    ltmgr.build_rendezvous_points(rp.info_hash, [rp.intro_point[:2]])
+                    self._logger.error("TunnelCommunity: rebuilding rendezvous point")
 
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
 
-            if self.tribler_session and self.tribler_session.get_libtorrent():
-                ltmgr = self.tribler_session.lm.ltmgr
-
+            if ltmgr:
                 affected_torrents = {d: affected_peers.intersection(peer.ip for peer in d.handle.get_peer_info())
                                      for d, s in ltmgr.torrents.values() if s == ltmgr.get_session(d.get_hops())}
 
@@ -1219,7 +1227,8 @@ class TunnelCommunity(Community):
 
                 # Now that we have a circuit + the required info, let's create a rendezvous point
                 circuit_id = circuit.circuit_id
-                rp = self.my_rendezvous_points[circuit_id] = RendezvousPoint(circuit, self._generate_binary_string(20),
+                rp = self.my_rendezvous_points[circuit_id] = RendezvousPoint(circuit, info_hash,
+                                                                             self._generate_binary_string(20),
                                                                              service_key,
                                                                              (sock_addr[0], sock_addr[1], ip_key),
                                                                              finished_callback)
@@ -1297,14 +1306,13 @@ class TunnelCommunity(Community):
                 self.send_cell([message.candidate], u"intro-established", (circuit_id, message.payload.identifier))
 
                 # DHT announce
-                if self.tribler_session:
+                if self.trsession:
                     def cb(info_hash, peers, source):
                         self._logger.error("TunnelCommunity: announced %s to the DHT", info_hash.encode('hex'))
 
                     from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-                    session = self.tribler_session
-                    session.lm.mainline_dht.get_peers(message.payload.info_hash, Id(message.payload.info_hash),
-                                                      cb, bt_port=session.get_swift_tunnel_listen_port())
+                    self.trsession.lm.mainline_dht.get_peers(message.payload.info_hash, Id(message.payload.info_hash),
+                                                           cb, bt_port=self.trsession.get_swift_tunnel_listen_port())
                 else:
                     self._logger.error("TunnelCommunity: need a Tribler session to announce to the DHT")
 
