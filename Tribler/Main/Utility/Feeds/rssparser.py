@@ -12,6 +12,7 @@ import imghdr
 import tempfile
 from traceback import print_exc
 from threading import Thread, RLock, Event
+import requests
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
@@ -221,9 +222,10 @@ class RssParser(Thread):
                         urls_already_seen.read()
 
                         for title, description, url_list in self.rss_parser.parse(url):
+                            if not self.isRegistered:
+                                return
+
                             tempdir = tempfile.mkdtemp()
-                            self._logger.debug(u"-------------------")
-                            self._logger.debug(u"TEMPDIR %s for [%s]", tempdir, title)
                             try:
                                 torrent_list, image_list, useless_url_list = \
                                     self.url_resourceretriever.retrieve(url_list, tempdir, urls_already_seen)
@@ -263,6 +265,7 @@ class RssParser(Thread):
                                 if not self.isRegistered:
                                     return
 
+
 class URLResourceRetriever(object):
 
     def __init__(self):
@@ -288,10 +291,10 @@ class URLResourceRetriever(object):
             stream = None
             self._logger.debug(u"Trying to download [%s]", url)
             try:
-                referer = urlparse(url)
-                referer = referer.scheme + "://" + referer.netloc + "/"
-                stream = urlOpenTimeout(url, referer=referer)
-                data = stream.read()
+                stream = requests.get(url, timeout=30)
+                if not stream.ok:
+                    continue
+                data = stream.content
             except:
                 self._logger.exception(u"Could not download %s", url)
                 useless_url_list.append(url)

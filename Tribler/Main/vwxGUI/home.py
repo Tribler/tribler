@@ -34,6 +34,8 @@ from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Video.VideoUtility import considered_xxx
 
+from Tribler.Main.Utility.utility import size_format
+
 
 class Home(wx.Panel):
 
@@ -439,7 +441,7 @@ class NetworkPanel(HomePanel):
         if stats[1] is None:
             self.totalSize.SetLabel(str(stats[1]))
         else:
-            self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
+            self.totalSize.SetLabel(size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
         self.queueBW.SetLabel(self.remotetorrenthandler.getBandwidthSpent())
@@ -452,7 +454,7 @@ class NetworkPanel(HomePanel):
         self.nrChannels.SetLabel(str(nr_channels))
 
         if self.freeMem:
-            self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
+            self.freeMem.SetLabel(size_format(wx.GetFreeMemory()))
 
         if self.timer:
             self.timer.Restart(10000)
@@ -698,8 +700,8 @@ class NetworkGraphPanel(wx.Panel):
             bytes_uploaded = circuit.bytes_up
             bytes_downloaded = circuit.bytes_down
 
-            self.circuit_list.SetStringItem(pos, 3, self.utility.size_format(bytes_uploaded))
-            self.circuit_list.SetStringItem(pos, 4, self.utility.size_format(bytes_downloaded))
+            self.circuit_list.SetStringItem(pos, 3, size_format(bytes_uploaded))
+            self.circuit_list.SetStringItem(pos, 4, size_format(bytes_downloaded))
             self.circuit_list.SetStringItem(pos, 5, "%d" % (time() - circuit.creation_time))
 
         # Remove old circuits

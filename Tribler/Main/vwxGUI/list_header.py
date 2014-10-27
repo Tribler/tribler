@@ -22,6 +22,8 @@ from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, LinkText, \
     BetterText as StaticText, _set_font
 
+from Tribler.Main.Utility.utility import size_format
+
 
 class ListHeaderIcon:
     __single = None
@@ -569,7 +571,7 @@ class TorrentFilter(BaseFilter):
 
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
-        self.filesize.SetFormatter(self.guiutility.utility.size_format)
+        self.filesize.SetFormatter(size_format)
 
         self.search = wx.SearchCtrl(panel)
         self.search.SetDescriptiveText('Filter results')
@@ -1023,7 +1025,7 @@ class DownloadFilter(BaseFilter):
 
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
-        self.filesize.SetFormatter(self.guiutility.utility.size_format)
+        self.filesize.SetFormatter(size_format)
 
         self.state_icon = wx.StaticBitmap(panel, -1, self.icon_right)
         self.state = LinkStaticText(panel, 'Download state', None, font_colour=wx.BLACK)

@@ -13,7 +13,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Main.Utility.GuiDBTuples import Torrent
-
+from Tribler.Main.Utility.utility import size_format
 
 class SaveAs(wx.Dialog):
 
@@ -147,7 +147,7 @@ class SaveAs(wx.Dialog):
                 except:
                     self._logger.error("Could not format filename %s", self.torrent.name)
             self.listCtrl.SetItemData(pos, pos)
-            self.listCtrl.SetStringItem(pos, 1, self.guiutility.utility.size_format(size))
+            self.listCtrl.SetStringItem(pos, 1, size_format(size))
 
             if selectedFiles:
                 self.listCtrl.CheckItem(pos, filename in selectedFiles)

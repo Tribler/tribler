@@ -43,6 +43,8 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI
 from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, \
     ChannelTorrent, Channel
 
+from Tribler.Main.Utility.utility import eta_value, size_format
+
 
 DEBUG_RELEVANCE = False
 MAX_REFRESH_PARTIAL = 5
@@ -1379,7 +1381,7 @@ class SearchList(GenericSearchList):
         self.xxx_keywords = False
 
         columns = [{'name': 'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not self.guiutility.ReadGuiSetting('hide_buttons', False)},
-                   {'name': 'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format},
+                   {'name': 'Size', 'width': '16em', 'fmt': size_format},
                    {'name': 'File type', 'width': '24em', 'sortAsc': True},
                    {'name': 'Seeders', 'width': '14em', 'fmt': lambda x: '?' if x < 0 else str(x)},
                    {'name': 'Leechers', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)},
@@ -1639,7 +1641,7 @@ class LibraryList(SizeList):
 
         columns = [{'name': 'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'fontSize': 2, 'showColumname': False},
                    {'name': 'Progress', 'type': 'method', 'width': '20em', 'method': self.CreateProgress, 'showColumname': False, 'autoRefresh': False},
-                   {'name': 'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format},
+                   {'name': 'Size', 'width': '16em', 'fmt': size_format},
                    {'name': 'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True, 'autoRefresh': False},
                    {'name': 'Down speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
                    {'name': 'Up speed', 'width': '20em', 'fmt': self.utility.speed_format, 'autoRefresh': False},
@@ -1671,11 +1673,11 @@ class LibraryList(SizeList):
         return self.manager
 
     def _format_eta(self, value):
-        eta = self.utility.eta_value(value, truncate=2)
+        eta = eta_value(value, truncate=2)
         return eta or '-'
 
     def _format_seedingtime(self, value):
-        eta = self.utility.eta_value(value)
+        eta = eta_value(value)
         return eta or '0s'
 
     def _format_ratio(self, value):
@@ -1862,7 +1864,7 @@ class LibraryList(SizeList):
                         else:
                             ratio = 1.0 * ul / dl
 
-                        tooltip = "Total transferred: %s down, %s up." % (self.utility.size_format(dl), self.utility.size_format(ul))
+                        tooltip = "Total transferred: %s down, %s up." % (size_format(dl), size_format(ul))
 
                         item.RefreshColumn(7, ratio)
                         item.RefreshColumn(8, seeding_stats['time_seeding'])

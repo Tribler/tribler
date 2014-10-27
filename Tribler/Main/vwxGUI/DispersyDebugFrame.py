@@ -1,12 +1,12 @@
 import wx
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 import binascii
-from collections import defaultdict
 
 from Tribler.Main.vwxGUI import LIST_GREY
 from Tribler.Main.vwxGUI.widgets import _set_font, SimpleNotebook
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
+from Tribler.Main.Utility.utility import compute_ratio, eta_value, size_format
 
 DATA_NONE = ""
 
@@ -48,8 +48,6 @@ def set_small_modern_font(control):
     font.SetWeight(wx.FONTWEIGHT_NORMAL)
     control.SetFont(font)
 
-def compute_ratio(i, j):
-    return "%d / %d ~%.1f%%" % (i, j, (100.0 * i / j) if j else 0.0)
 
 def str2unicode(string):
     if isinstance(string, unicode):
@@ -61,15 +59,15 @@ def str2unicode(string):
         converted_str = binascii.hexlify(string).encode('utf-8')
     return converted_str
 
+
 # ==================================================
 # Frame
 # ==================================================
-
 class DispersyDebugFrame(wx.Frame):
 
     def __init__(self, parent, id, dispersy):
-        super(DispersyDebugFrame, self).__init__(parent, id,
-            "Dispersy Debug Frame", size=(1280, 720), name="DispersyDebugFrame")
+        super(DispersyDebugFrame, self).__init__(parent, id, "Dispersy Debug Frame", size=(1280, 720),
+                                                 name="DispersyDebugFrame")
         self.__dispersy = dispersy
         self.SetBackgroundColour(LIST_GREY)
 
@@ -136,6 +134,7 @@ class DispersyDebugFrame(wx.Frame):
             self.Layout()
 
         startWorker(do_gui, do_db, uId=u"DispersyDebugFrame_UpdateInfo", priority=GUI_PRI_DISPERSY)
+
 
 # --------------------------------------------------
 # Summary Panel
@@ -216,33 +215,37 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
             self.__info_list[1][1] = "%s:%d" % stats.lan_address
             self.__info_list[2][1] = unicode(stats.connection_type)
 
-            self.__info_list[3][1] = "%s" % self.__utility.eta_value(stats.timestamp - stats.start)
+            self.__info_list[3][1] = "%s" % eta_value(stats.timestamp - stats.start)
             self.__info_list[4][1] = "%s or %s/s" % (
-                self.__utility.size_format(stats.total_down),
-                self.__utility.size_format(int(stats.total_down / (stats.timestamp - stats.start)))
+                size_format(stats.total_down),
+                size_format(int(stats.total_down / (stats.timestamp - stats.start)))
             )
             self.__info_list[5][1] = "%s or %s/s" % (
-                self.__utility.size_format(stats.total_up),
-                self.__utility.size_format(int(stats.total_up / (stats.timestamp - stats.start)))
+                size_format(stats.total_up),
+                size_format(int(stats.total_up / (stats.timestamp - stats.start)))
             )
-            self.__info_list[6][1] = compute_ratio(stats.total_send,
-                stats.total_received + stats.total_send)
-            self.__info_list[7][1] = compute_ratio(stats.total_received,
-                stats.total_received + stats.total_send)
+            self.__info_list[6][1] = compute_ratio(stats.total_send, stats.total_received + stats.total_send)
+            self.__info_list[7][1] = compute_ratio(stats.total_received, stats.total_received + stats.total_send)
             self.__info_list[8][1] = compute_ratio(stats.msg_statistics.success_count, stats.total_received)
             self.__info_list[9][1] = compute_ratio(stats.msg_statistics.drop_count, stats.total_received)
             self.__info_list[10][1] = compute_ratio(stats.msg_statistics.delay_received_count, stats.total_received)
-            self.__info_list[11][1] = compute_ratio(stats.msg_statistics.delay_send_count, stats.msg_statistics.delay_received_count)
-            self.__info_list[12][1] = compute_ratio(stats.msg_statistics.delay_success_count, stats.msg_statistics.delay_received_count)
-            self.__info_list[13][1] = compute_ratio(stats.msg_statistics.delay_timeout_count, stats.msg_statistics.delay_received_count)
+            self.__info_list[11][1] = compute_ratio(stats.msg_statistics.delay_send_count,
+                                                    stats.msg_statistics.delay_received_count)
+            self.__info_list[12][1] = compute_ratio(stats.msg_statistics.delay_success_count,
+                                                    stats.msg_statistics.delay_received_count)
+            self.__info_list[13][1] = compute_ratio(stats.msg_statistics.delay_timeout_count,
+                                                    stats.msg_statistics.delay_received_count)
             self.__info_list[14][1] = compute_ratio(stats.walk_success_count, stats.walk_attempt_count)
             self.__info_list[15][1] = "%s" % stats.msg_statistics.created_count
             self.__info_list[16][1] = compute_ratio(sum(c.sync_bloom_new for c in stats.communities),
-                sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
+                                                    sum(c.sync_bloom_send + c.sync_bloom_skip
+                                                        for c in stats.communities))
             self.__info_list[17][1] = compute_ratio(sum(c.sync_bloom_reuse for c in stats.communities),
-                sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
+                                                    sum(c.sync_bloom_send + c.sync_bloom_skip
+                                                        for c in stats.communities))
             self.__info_list[18][1] = compute_ratio(sum(c.sync_bloom_skip for c in stats.communities),
-                sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))
+                                                    sum(c.sync_bloom_send + c.sync_bloom_skip
+                                                        for c in stats.communities))
             self.__info_list[19][1] = "yes" if __debug__ else "no"
 
         for key, value, _ in self.__info_list:
@@ -250,10 +253,10 @@ class DispersySummaryPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.SetupScrolling()
 
+
 # --------------------------------------------------
 # Community Panel and Widgets
 # --------------------------------------------------
-
 class CommunityPanel(wx.Panel):
 
     def __init__(self, parent, id):
@@ -263,8 +266,7 @@ class CommunityPanel(wx.Panel):
         splitter = wx.SplitterWindow(self, -1, style=wx.SP_BORDER)
         splitter.SetSashGravity(0.5)
 
-        self.__listctrl = AutoWidthListCtrl(splitter, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL)
+        self.__listctrl = AutoWidthListCtrl(splitter, -1, style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL)
         self.__listctrl.SetMinSize((600, 200))
         self.__listctrl.InsertColumn(0, "Classification", width=200)
         self.__listctrl.InsertColumn(1, "Identifier", width=100)
@@ -294,11 +296,9 @@ class CommunityPanel(wx.Panel):
         self.__detail_panel.UpdateInfo(community_data)
 
     def UpdateInfo(self, stats):
-        community_list = sorted(stats.communities,
-            key=lambda community:
-                (not community.dispersy_enable_candidate_walker,
-                community.classification, community.cid)
-        )
+        community_list = sorted(stats.communities,  key=lambda community:
+                                (not community.dispersy_enable_candidate_walker,
+                                 community.classification, community.cid))
         self.__community_data_list = []
         reselect_community_idx = None
         idx = 0
@@ -308,8 +308,9 @@ class CommunityPanel(wx.Panel):
             if community.dispersy_enable_candidate_walker or \
                     community.dispersy_enable_candidate_walker_responses:
                 candidate_count = "%d " % len(community.candidates)
-                candidate_list = [("%s" % global_time, "%s:%s" % lan, "%s:%s" % wan)
-                    for lan, wan, global_time in community.candidates]
+                candidate_list = [("%s" % global_time, "%s:%s" % lan, "%s:%s" % wan,
+                                   "%s" % binascii.hexlify(mid) if mid else DATA_NONE)
+                                  for lan, wan, global_time, mid in community.candidates]
                 candidate_list.sort()
             elif community.candidates:
                 candidate_count = "%d*" % len(community.candidates)
@@ -370,9 +371,11 @@ class CommunityPanel(wx.Panel):
             self.__community_data_list.append(community_data)
 
             community_list_for_update.append((community_data["Classification"],
-                community_data["Identifier"][:7], community_data["Database id"],
-                community_data["Member"][:7], community_data["Candidates"])
-            )
+                                              community_data["Identifier"][:7],
+                                              community_data["Database id"],
+                                              community_data["Member"][:7],
+                                              community_data["Candidates"])
+                                             )
 
             if self.__selected_community_identifier == community_data["Identifier"]:
                 reselect_community_idx = idx
@@ -395,12 +398,12 @@ class CommunityDetailPanel(wx.Panel):
         self.SetBackgroundColour(LIST_GREY)
 
         self.__FIELDS = ("Identifier", "Member", "Classification", "Global time",
-            "Median global time", "Acceptable range", "Sync bloom created",
-            "Sync bloom reused", "Sync bloom skipped",
-            "Packets Created", "Packets Sent", "Packets Received", "Packets Success", "Packets Dropped",
-            "Packets Delayed Sent", "Packets Delayed Received",
-            "Packets Delayed Success", "Packets Delayed Timeout",
-            "Candidates", "Database")
+                         "Median global time", "Acceptable range", "Sync bloom created",
+                         "Sync bloom reused", "Sync bloom skipped",
+                         "Packets Created", "Packets Sent", "Packets Received", "Packets Success", "Packets Dropped",
+                         "Packets Delayed Sent", "Packets Delayed Received",
+                         "Packets Delayed Success", "Packets Delayed Timeout",
+                         "Candidates", "Database")
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -426,15 +429,16 @@ class CommunityDetailPanel(wx.Panel):
         self.__detail_notebook = SimpleNotebook(self, show_single_tab=True, style=wx.NB_NOPAGETHEME)
 
         self.__candidate_list = AutoWidthListCtrl(self.__detail_notebook, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
+                                                  style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
         self.__candidate_list.InsertColumn(0, "Global time", width=100)
         self.__candidate_list.InsertColumn(1, "LAN", width=170)
-        self.__candidate_list.InsertColumn(2, "WAN")
+        self.__candidate_list.InsertColumn(2, "WAN", width=170)
+        self.__candidate_list.InsertColumn(3, "MID")
 
         self.__rawinfo_panel = RawInfoPanel(self.__detail_notebook, -1)
 
         self.__database_list = AutoWidthListCtrl(self.__detail_notebook, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
+                                                 style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.BORDER_SUNKEN)
         self.__database_list.InsertColumn(0, "Count")
         self.__database_list.InsertColumn(1, "Info")
 
@@ -447,7 +451,7 @@ class CommunityDetailPanel(wx.Panel):
         self.SetSizer(hsizer)
 
     def UpdateInfo(self, community_data):
-        if community_data == None:
+        if community_data is None:
             for field_name in self.__FIELDS:
                 self.__text[field_name][1].SetLabel(DATA_NONE)
             self.__database_list.DeleteAllItems()
@@ -462,10 +466,10 @@ class CommunityDetailPanel(wx.Panel):
 
         self.Layout()
 
+
 # --------------------------------------------------
 # RawInfo Panel
 # --------------------------------------------------
-
 class RawInfoPanel(wx.Panel):
 
     def __init__(self, parent, id):
@@ -476,12 +480,12 @@ class RawInfoPanel(wx.Panel):
         self.__selected_category = None
 
         self.__CATEGORIES = ("attachment", "endpoint_recv", "endpoint_send",
-            "walk_failure_dict", "incoming_intro_dict", "outgoing_intro_dict")
+                             "walk_failure_dict", "incoming_intro_dict", "outgoing_intro_dict")
         self.__MSG_CATEGORIES = ("success", "drop", "created", "delay", "outgoing")
         self.__IP_CATEGORIES = ("walk_failure_dict", "incoming_intro_dict", "outgoing_intro_dict")
 
-        self.__category_list = AutoWidthListCtrl(self, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
+        self.__category_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.LC_ALIGN_LEFT |
+                                                 wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
         self.__category_list.InsertColumn(0, "Category", width=150)
         self.__category_list.InsertColumn(1, "Total Count")
         self.__category_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnCategorySelected)
@@ -568,10 +572,10 @@ class RawInfoPanel(wx.Panel):
             category_data_for_update = self.__info[reselect_category_idx][1]
         self.__detail_list.UpdateData(category_data_for_update)
 
+
 # --------------------------------------------------
 # Runtime Profiling Panel
 # --------------------------------------------------
-
 class RuntimeProfilingPanel(wx.Panel):
 
     def __init__(self, parent, id):
@@ -583,8 +587,8 @@ class RuntimeProfilingPanel(wx.Panel):
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.__list1 = AutoWidthListCtrl(self, -1,
-            style=wx.LC_REPORT | wx.LC_ALIGN_LEFT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
+        self.__list1 = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.LC_ALIGN_LEFT |
+                                         wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
         self.__list1.InsertColumn(0, "Duration", width=70)
         self.__list1.InsertColumn(1, "Entry", width=250)
         self.__list1.InsertColumn(2, "Average", width=70)
@@ -636,8 +640,7 @@ class RuntimeProfilingPanel(wx.Panel):
             name = processed_data["entry"].split("\n")[0]
             combined_name = name.split()[0]
 
-            data = (processed_data["duration"], name,
-                processed_data["average"], processed_data["count"])
+            data = (processed_data["duration"], name, processed_data["average"], processed_data["count"])
 
             if combined_name not in combined_dict:
                 # total-duration, average, count, and data-list
@@ -662,8 +665,7 @@ class RuntimeProfilingPanel(wx.Panel):
             if entry == prev_selection_name:
                 prev_selection_idx = idx
             idx += 1
-            self.__list1.Append([u"%7.2f" % duration, u"%s" % entry,
-                u"%7.2f" % average, u"%s" % count])
+            self.__list1.Append([u"%7.2f" % duration, u"%s" % entry, u"%7.2f" % average, u"%s" % count])
 
         if prev_selection_idx is not None:
             self.__list1.Select(prev_selection_idx)
