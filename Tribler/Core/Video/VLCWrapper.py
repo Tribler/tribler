@@ -38,6 +38,7 @@ class VLCWrapper(object):
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self.player = None
         self.window = None
         self.windowpassedtovlc = -1
         self.initialized = False

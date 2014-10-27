@@ -56,6 +56,9 @@ class VideoPlayer(object):
 
         self.notifier = Notifier.getInstance()
 
+        self.player_out = None
+        self.player_in = None
+
     def getInstance(*args, **kw):
         if VideoPlayer.__single is None:
             VideoPlayer(*args, **kw)
@@ -85,7 +88,8 @@ class VideoPlayer(object):
         self.internalplayer_callback = callback
 
     def play(self, download, fileindex):
-        url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/' + hexlify(download.get_def().get_id()) + '/' + str(fileindex)
+        url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/'\
+              + hexlify(download.get_def().get_id()) + '/' + str(fileindex)
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             self.launch_video_player(url, download)
         else:
@@ -101,17 +105,17 @@ class VideoPlayer(object):
         dl = ds.get_download() if ds else None
 
         if dl != self.vod_download or not VideoPlayer.hasInstance():
-            return (0, False)
+            return 0, False
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
         dl_def = dl.get_def()
         dl_hash = dl_def.get_id()
 
-        if (bufferprogress >= 1.0 and not self.vod_playing) or (bufferprogress >= 1.0 and self.vod_playing == None):
+        if (bufferprogress >= 1.0 and not self.vod_playing) or (bufferprogress >= 1.0 and self.vod_playing is None):
             self.vod_playing = True
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, False))
-        elif (bufferprogress <= 0.1 and self.vod_playing) or (bufferprogress < 1.0 and self.vod_playing == None):
+        elif (bufferprogress <= 0.1 and self.vod_playing) or (bufferprogress < 1.0 and self.vod_playing is None):
             self.vod_playing = False
             self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_BUFFERING, (dl_hash, self.vod_fileindex, True))
 
@@ -125,7 +129,7 @@ class VideoPlayer(object):
             self.vod_info[dl_hash]['bitrate'] = bitrate
             self.vod_info[dl_hash]['duration'] = duration
 
-        return (1, False)
+        return 1, False
 
     def get_vod_stream(self, dl_hash, wait=False):
         if not self.vod_info[dl_hash].has_key('stream') and self.session.get_download(dl_hash):
@@ -137,7 +141,7 @@ class VideoPlayer(object):
 
         if self.vod_info[dl_hash].has_key('stream'):
             return self.vod_info[dl_hash]['stream']
-        return (None, None)
+        return None, None
 
     def get_vod_duration(self, dl_hash):
         return self.vod_info.get(dl_hash, {}).get('duration', 0)
