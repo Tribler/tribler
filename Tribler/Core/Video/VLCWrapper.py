@@ -25,7 +25,7 @@ def check_threading(func):
     return invoke_func
 
 
-class VLCWrapper:
+class VLCWrapper(object):
 
     """ Wrapper around the MediaControl API, to hide some of its quirks,
     like the Position() objects.

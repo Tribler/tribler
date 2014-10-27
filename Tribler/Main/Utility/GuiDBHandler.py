@@ -196,7 +196,7 @@ class GUIDBProducer(TaskManager):
 # Wrapping Senders for new delayedResult impl
 
 
-class MySender():
+class MySender(object):
 
     def __init__(self, delayedResult):
         self.delayedResult = delayedResult
@@ -235,7 +235,7 @@ class MySenderNoWx(MySender, SenderNoWx):
 # This call is blocking, but allows you to specify a timeout
 
 
-class ASyncDelayedResult():
+class ASyncDelayedResult(object):
 
     def __init__(self, jobID=None):
         self._logger = logging.getLogger(self.__class__.__name__)

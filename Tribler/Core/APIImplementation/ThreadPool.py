@@ -13,7 +13,7 @@ except ImportError as e:
     prctlimported = False
 
 
-class ThreadPool:
+class ThreadPool(object):
 
     """Flexible thread pool class.  Creates a pool of threads, then
     accepts tasks that will be dispatched to the next available

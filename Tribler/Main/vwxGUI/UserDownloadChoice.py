@@ -3,7 +3,7 @@ import thread
 import logging
 
 
-class UserDownloadChoice:
+class UserDownloadChoice(object):
     _singleton = None
     _singleton_lock = thread.allocate_lock()
 

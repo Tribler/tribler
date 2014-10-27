@@ -11,16 +11,11 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 logger = logging.getLogger(__name__)
 
-#
-#
-# Class: Utility
+
 #
 # Generic "glue" class that contains commonly used helper functions
 #
-#
-
-
-class Utility:
+class Utility(object):
 
     def __init__(self, abcpath, configpath):
 

@@ -23,7 +23,7 @@ METAINFO_CACHE_PERIOD = 5 * 60
 METAINFO_TMPDIR = 'metadata_tmpdir'
 
 
-class LibtorrentMgr:
+class LibtorrentMgr(object):
     # Code to make this a singleton
     __single = None
 

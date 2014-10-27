@@ -12,7 +12,7 @@ from Tribler.Category.FamilyFilter import XXXFilter
 CATEGORY_CONFIG_FILE = "category.conf"
 
 
-class Category:
+class Category(object):
 
     # Code to make this a singleton
     __single = None

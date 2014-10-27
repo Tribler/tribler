@@ -9,7 +9,7 @@ from Tribler.Core.exceptions import NotYetImplementedException
 #
 
 
-class Serializable:
+class Serializable(object):
 
     """
     Interface to signal that the object is pickleable.
@@ -18,7 +18,7 @@ class Serializable:
         pass
 
 
-class Copyable:
+class Copyable(object):
 
     """
     Interface for copying an instance (or rather signaling that it can be
@@ -33,7 +33,7 @@ class Copyable:
         raise NotYetImplementedException()
 
 
-class ContentDefinition:
+class ContentDefinition(object):
 
     """ Interface for content definition such as torrents and swift swarms """
 

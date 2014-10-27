@@ -26,7 +26,7 @@ from Tribler.Core.Video.VLCWrapper import VLCWrapper
 logger = logging.getLogger(__name__)
 
 
-class VideoPlayer:
+class VideoPlayer(object):
 
     __single = None
 
