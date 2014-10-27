@@ -4,19 +4,17 @@ import os
 import sys
 import time
 
+from threading import Event
+
 from twisted.internet import reactor
 
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
-
-
 from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-from threading import Event
 
-class TestAnonTunnelCommunity(TestGuiAsServer):
+class TestTunnelCommunity(TestGuiAsServer):
 
     def test_anon_download(self):
         def take_second_screenshot():
@@ -93,17 +91,16 @@ class TestAnonTunnelCommunity(TestGuiAsServer):
             for tunnel_community in tunnel_communities:
                 tunnel_community.socks_server = fakesocks
                 tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
+                tunnel_community.circuits_needed[3] = 4
 
             self.CallConditional(30, lambda: bool(tunnel_communities[-1].active_circuits().values()),
                                      lambda: start_test(tunnel_communities))
-            start_test(tunnel_communities)
 
         self.startTest(replace_socks)
 
     def startTest(self, callback, min_timeout=5):
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
 
-        from Tribler.community.tunnel.community import TunnelCommunity
         def setup_proxies():
             tunnel_communities = []
             for i in range(3, 7):
