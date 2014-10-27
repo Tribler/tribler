@@ -1,11 +1,3 @@
-# ============================================================
-# Written by Lipu Fei,
-# optimizing the TrackerChecking module written by Niels Zeilemaker.
-#
-# see LICENSE.txt for license information
-#
-# TODO: add comments
-# ============================================================
 import os
 import binascii
 import time
@@ -51,21 +43,15 @@ DEFAULT_TORRENT_CHECK_INTERVAL = 900  # a torrent will only be checked every 15 
 DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8
 DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30
 
-# ============================================================
-# This is the single-threaded tracker checking class.
-# ============================================================
+
 class TorrentChecking(Thread):
 
     __single = None
 
-    # ------------------------------------------------------------
-    # Intialization.
-    # ------------------------------------------------------------
-    def __init__(self, \
-            torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL,
-            torrent_check_interval=DEFAULT_TORRENT_CHECK_INTERVAL,
-            max_torrrent_check_retries=DEFAULT_MAX_TORRENT_CHECK_RETRIES,
-            torrrent_check_retry_interval=DEFAULT_TORRENT_CHECK_RETRY_INTERVAL):
+    def __init__(self, torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL,
+                 torrent_check_interval=DEFAULT_TORRENT_CHECK_INTERVAL,
+                 max_torrrent_check_retries=DEFAULT_MAX_TORRENT_CHECK_RETRIES,
+                 torrrent_check_retry_interval=DEFAULT_TORRENT_CHECK_RETRY_INTERVAL):
         if TorrentChecking.__single:
             raise RuntimeError("Torrent Checking is singleton")
         TorrentChecking.__single = self
@@ -105,49 +91,25 @@ class TorrentChecking(Thread):
 
         self._tor_col_dir = Session.get_instance().get_torrent_collecting_dir()
 
-    # ------------------------------------------------------------
-    # (Public API)
-    # The public interface to initialize and get the single instance.
-    # ------------------------------------------------------------
     @staticmethod
     def getInstance(*args, **kw):
         if TorrentChecking.__single is None:
             TorrentChecking(*args, **kw)
         return TorrentChecking.__single
 
-    # ------------------------------------------------------------
-    # (Public API)
-    # The public interface to delete the single instance.
-    # ------------------------------------------------------------
     @staticmethod
     def delInstance():
         TorrentChecking.__single.shutdown()
         TorrentChecking.__single = None
 
-    # ------------------------------------------------------------
-    # (Public API)
-    # Sets the automatic torrent selection interval.
-    # ------------------------------------------------------------
     def setTorrentSelectionInterval(self, interval):
         self._torrent_select_interval = interval
 
-    # ------------------------------------------------------------
-    # (Public API)
-    # The public interface to shutdown the thread.
-    # ------------------------------------------------------------
     def shutdown(self):
         if not self._should_stop:
             self._should_stop = True
             self._interrupt_socket.interrupt()
 
-    # ------------------------------------------------------------
-    # (Public API)
-    # The public API interface to add a torrent check request. Returns true
-    # if successful, false otherwise.
-    # Note that, the input argument "gui_torrent" is of class
-    # "Tribler.Main.Utility.GuiDBTuples.Torrent", NOT "Core.TorrentDef"!
-    # So you need to get the TorrentDef to access more information
-    # ------------------------------------------------------------
     def addGuiRequest(self, gui_torrent):
         # enqueue a new GUI request
         successful = True
@@ -174,9 +136,6 @@ class TorrentChecking(Thread):
 
         return successful
 
-    # ------------------------------------------------------------
-    # Processes a GUI request.
-    # ------------------------------------------------------------
     @forceDBThread
     def _processGuiRequests(self, gui_requests):
         for gui_request in gui_requests:
@@ -224,10 +183,6 @@ class TorrentChecking(Thread):
                 self._updateTorrentTrackerMapping(torrent_id, tracker_url)
                 self._createSessionForRequest(infohash, tracker_url)
 
-    # ------------------------------------------------------------
-    # Gets a list of all known trackers of a given torrent.
-    # It checks the TorrentTrackerMapping table and magnet links.
-    # ------------------------------------------------------------
     def _getTrackerList(self, torrent_id, infohash):
         tracker_set = set()
 
@@ -250,7 +205,9 @@ class TorrentChecking(Thread):
 
         # get trackers from its .torrent file
         result = None
-        torrent = self._torrentdb.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'], include_mypref=False)
+        torrent = self._torrentdb.getTorrent(infohash,
+                                             ['torrent_file_name', 'swift_torrent_hash'],
+                                             include_mypref=False)
         if torrent:
             if torrent.get('torrent_file_name', False) and os.path.isfile(torrent['torrent_file_name']):
                 result = torrent['torrent_file_name']
@@ -287,17 +244,10 @@ class TorrentChecking(Thread):
 
         return list(checked_tracker_set)
 
-    # ------------------------------------------------------------
-    # Updates the TorrentTrackerMapping table.
-    # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentTrackerMapping(self, torrent_id, tracker):
         self._torrentdb.addTorrentTrackerMapping(torrent_id, tracker)
 
-    # ------------------------------------------------------------
-    # Creates a new session for a request, or append the request to an
-    # existings tracker session.
-    # ------------------------------------------------------------
     def _createSessionForRequest(self, infohash, tracker_url):
         # skip DHT, for now
         if tracker_url == 'no-DHT' or tracker_url == 'DHT':
@@ -357,21 +307,18 @@ class TorrentChecking(Thread):
 
             self._tracker_info_cache.updateTrackerInfo(tracker_url, False)
 
-    # ------------------------------------------------------------
-    # Updates the pending response dictionary.
-    # ------------------------------------------------------------
     def _updatePendingResponseDict(self, infohash):
 
         if infohash in self._pending_response_dict:
             self._pending_response_dict[infohash]['remainingResponses'] += 1
             self._pending_response_dict[infohash]['updated'] = False
         else:
-            self._pending_response_dict[infohash] = {'infohash': infohash, 'remainingResponses': 1, 'seeders':-2, 'leechers':-2, 'updated': False}
+            self._pending_response_dict[infohash] = {'infohash': infohash,
+                                                     'remainingResponses': 1,
+                                                     'seeders': -2,
+                                                     'leechers': -2,
+                                                     'updated': False}
 
-    # ------------------------------------------------------------
-    # Updates the result of a pending request.
-    # This method is only used by TrackerSession to update a retrieved result.
-    # ------------------------------------------------------------
     def updateResultFromSession(self, infohash, seeders, leechers):
         response = self._pending_response_dict[infohash]
         response['last_check'] = int(time.time())
@@ -381,9 +328,6 @@ class TorrentChecking(Thread):
             response['leechers'] = leechers
             response['updated'] = True
 
-    # ------------------------------------------------------------
-    # Updates result into the database.
-    # ------------------------------------------------------------
     @forceDBThread
     def _updateTorrentResult(self, response):
         infohash = response['infohash']
@@ -422,11 +366,6 @@ class TorrentChecking(Thread):
                 infohash, seeders, leechers, last_check, next_check,
                 status, retries)
 
-    # ------------------------------------------------------------
-    # Updates the check result into the database
-    # This is for the torrents whose checks have failed and the results
-    # will be -2/-2 at last.
-    # ------------------------------------------------------------
     @forceDBThread
     def _checkResponseFinal(self, response):
         seeders = response['seeders']
@@ -446,10 +385,6 @@ class TorrentChecking(Thread):
 
         self._updateTorrentResult(response)
 
-    # ------------------------------------------------------------
-    # Selects torrents to check.
-    # This method selects trackers in Round-Robin fashion.
-    # ------------------------------------------------------------
     @forceDBThread
     def _selectTorrentsToCheck(self):
         current_time = int(time.time())
@@ -487,7 +422,8 @@ class TorrentChecking(Thread):
 
             if scheduled_torrents:
                 self._interrupt_socket.interrupt()
-                self._logger.debug('TorrentChecking: Selected %d torrents to check on tracker[%s].', scheduled_torrents, tracker)
+                self._logger.debug('TorrentChecking: Selected %d torrents to check on tracker[%s].',
+                                   scheduled_torrents, tracker)
                 break
 
             else:
@@ -571,10 +507,10 @@ class TorrentChecking(Thread):
 
             # select
             try:
-                read_socket_list, write_socket_list, error_socket_list = \
-                    select.select(\
-                    check_read_socket_list, check_write_socket_list, [], \
-                    time_remaining)
+                read_socket_list, write_socket_list, error_socket_list = select.select(check_read_socket_list,
+                                                                                       check_write_socket_list,
+                                                                                       [],
+                                                                                       time_remaining)
 
             except Exception as e:
                 self._logger.debug('TorrentChecking: Error while selecting: %s', e)
@@ -604,11 +540,13 @@ class TorrentChecking(Thread):
 
                             if session.getRetries() > session.getMaxRetries():
                                 session.setFailed()
-                                self._logger.debug('TorrentChecking: UDP Tracker[%s] retried out.', session.getTracker())
+                                self._logger.debug('TorrentChecking: UDP Tracker[%s] retried out.',
+                                                   session.getTracker())
                             else:
                                 # re-establish the connection
                                 session.reestablishConnection()
-                                self._logger.debug('TorrentChecking: UDP Tracker[%s] retry, %d.', session.getTracker(), session.getRetries())
+                                self._logger.debug('TorrentChecking: UDP Tracker[%s] retry, %d.',
+                                                   session.getTracker(), session.getRetries())
 
                     # >> Step 3: Remove completed sessions
                     with self._lock:
@@ -616,7 +554,9 @@ class TorrentChecking(Thread):
                             session = self._session_list[i]
 
                             if session.hasFailed() or session.hasFinished():
-                                self._logger.debug('TorrentChecking: session[%s] is %s', session.getTracker(), 'failed' if session.hasFailed() else 'finished')
+                                self._logger.debug('TorrentChecking: session[%s] is %s',
+                                                   session.getTracker(),
+                                                   'failed' if session.hasFailed() else 'finished')
 
                                 self._tracker_info_cache.updateTrackerInfo(session.getTracker(), session.hasFailed())
 
@@ -647,7 +587,8 @@ class TorrentChecking(Thread):
 
                 self._logger.debug('TorrentChecking: sessions: %d', len(self._session_list))
                 for session in self._session_list:
-                    self._logger.debug('TorrentChecking: session[%s], finished=%d, failed=%d', session.getTracker(), session.hasFinished(), session.hasFailed())
+                    self._logger.debug('TorrentChecking: session[%s], finished=%d, failed=%d',
+                                       session.getTracker(), session.hasFinished(), session.hasFailed())
 
         # the thread is shutting down, kill all the tracker sessions
         for session in self._session_list:
@@ -656,7 +597,8 @@ class TorrentChecking(Thread):
         self._interrupt_socket.close()
         self._logger.info('TorrentChecking: shutdown')
 
-class InterruptSocket:
+
+class InterruptSocket(object):
 
     """
     When we need the poll to return before the timeout expires, we

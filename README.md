@@ -5,7 +5,7 @@ We make use of submodules, so remember using the --recursive argument when cloni
 ## Dependencies
 
 ### Debian/Ubuntu/Mint
-sudo apt-get install scons build-essential libevent-dev python-libtorrent python-apsw python-wxgtk2.8 python-netifaces python-m2crypto vlc python-pyasn1 python-gmpy libssl-dev
+sudo apt-get install scons build-essential libevent-dev python-libtorrent python-twisted python-apsw python-wxgtk2.8 python-netifaces python-m2crypto vlc python-pyasn1 python-gmpy libssl-dev
 
 ### Windows
 TODO

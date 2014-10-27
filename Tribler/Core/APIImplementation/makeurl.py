@@ -29,8 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def metainfo2p2purl(metainfo):
-    """ metainfo must be a Merkle torrent or a live torrent with an
-    'encoding' field set.
+    """ metainfo must be a Merkle torrent or a live torrent with an 'encoding' field set.
     @return URL
     """
     info = metainfo['info']
@@ -48,11 +47,10 @@ def metainfo2p2purl(metainfo):
     else:
         encoding = metainfo['encoding']
 
-    urldict = {}
-
-    urldict['s'] = p2purl_encode_piecelength(info['piece length'])
-    # Warning: mbcs encodings sometimes don't work well under python!
-    urldict['n'] = p2purl_encode_name2url(info['name'], encoding)
+    urldict = {'s': p2purl_encode_piecelength(info['piece length']),
+               # Warning: mbcs encodings sometimes don't work well under python!
+               'n': p2purl_encode_name2url(info['name'], encoding)
+               }
 
     if 'length' in info:
         urldict['l'] = p2purl_encode_nnumber(info['length'])
@@ -85,18 +83,19 @@ def metainfo2p2purl(metainfo):
             if k == 'n':
                 s = v
             else:
-                s = k + "=" +v
+                s = k + "=" + v
             query += s
 
     sidx = metainfo['announce'].find(":")
     hierpart = metainfo['announce'][sidx + 1:]
-    url = P2PURL_SCHEME + ':' +hierpart+"?"+query
+    url = P2PURL_SCHEME + ':' + hierpart + "?" + query
     return url
 
 
 def p2purl2metainfo(url):
-    """ Returns (metainfo,swarmid) """
-
+    """ Converts a P2P URL to metainfo.
+        Returns a (metainfo, swarmid) tuple.
+    """
     logger.debug("p2purl2metainfo: URL %s", url)
 
     # Python's urlparse only supports a defined set of schemes, if not
@@ -106,7 +105,7 @@ def p2purl2metainfo(url):
     qidx = url.find("?")
 
     if scheme != P2PURL_SCHEME:
-        raise ValueError("Unknown scheme " + P2PURL_SCHEME)
+        raise ValueError("Unknown scheme: %s, url = %s" % (scheme, url))
 
     if qidx == -1:
         if url[2:].find('/') > -1:
@@ -150,7 +149,7 @@ def p2purl2metainfo(url):
 
     metainfo = {}
     if authority and path:
-        metainfo['announce'] = 'http://' + authority +path
+        metainfo['announce'] = 'http://' + authority + path
         # Check for malformedness
         result = urlparse.urlparse(metainfo['announce'])
         if result[0] != "http":
@@ -163,7 +162,7 @@ def p2purl2metainfo(url):
 
     logger.debug("p2purl2metainfo: parsed %s", repr(metainfo))
 
-    return (metainfo, swarmid)
+    return metainfo, swarmid
 
 
 def metainfo2swarmid(metainfo):
@@ -185,8 +184,7 @@ def p2purl_parse_query(query):
     gotam = False
     gotbps = False
 
-    reqinfo = {}
-    reqinfo['info'] = {}
+    reqinfo = {'info': {}}
 
     # Hmmm... could have used urlparse.parse_qs
     kvs = query.split('&')
@@ -275,7 +273,6 @@ def p2purl_decode_name2utf8(v):
 
 def p2purl_encode_name2url(name, encoding):
     """ Encode name in specified encoding to URL escaped UTF-8 """
-
     if encoding.lower() == 'utf-8':
         utf8name = name
     else:
@@ -296,25 +293,27 @@ def p2purl_decode_base64url(v):
 def p2purl_decode_nnumber(s):
     b = b64urldecode(s)
     if len(b) == 2:
-        format = "H"
+        fmt = "H"
     elif len(b) == 4:
-        format = "l"
+        fmt = "l"
     else:
-        format = "Q"
-    format = "!" + format  # network-byte order
-    return unpack(format, b)[0]
+        fmt = "Q"
+    fmt = "!" + fmt  # network-byte order
+    return unpack(fmt, b)[0]
 
 
 def p2purl_encode_nnumber(s):
     if isinstance(s, IntType):
         if s < 2 ** 16:
-            format = "H"
+            fmt = "H"
         elif s < 2 ** 32:
-            format = "l"
+            fmt = "l"
+        else:
+            assert False, "number is too big %s >= 2**32" % s
     else:
-        format = "Q"
-    format = "!" + format  # network-byte order
-    return b64urlencode(pack(format, s))
+        fmt = "Q"
+    fmt = "!" + fmt  # network-byte order
+    return b64urlencode(pack(fmt, s))
 
 
 #
@@ -333,16 +332,16 @@ def p2purl_encode_piecelength(s):
 #
 
 
-def b64urlencode(input):
-    output = b64encode(input)
+def b64urlencode(data_in):
+    output = b64encode(data_in)
     output = output.rstrip('=')
     output = output.replace('+', '-')
     output = output.replace('/', '_')
     return output
 
 
-def b64urldecode(input):
-    inter = input[:]
+def b64urldecode(data_in):
+    inter = data_in[:]
     # readd padding.
     padlen = 4 - (len(inter) - ((len(inter) / 4) * 4))
     padstr = '=' * padlen

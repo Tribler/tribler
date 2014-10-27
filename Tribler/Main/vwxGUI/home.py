@@ -962,8 +962,7 @@ class ArtworkPanel(wx.Panel):
         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
 
         if thumb_files:
-            bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
-            result = considered_xxx(bmp.ConvertToImage()) if bmp.IsOk() else False
+            result = considered_xxx(thumb_files[0])
 
         self.is_xxx[infohash] = result
         return result

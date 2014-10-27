@@ -489,7 +489,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
     def on_tracker_warning_alert(self, alert):
         peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
-        status = 'Warning: ' + alert.message
+        status = 'Warning: ' + str(alert.message())
 
         self.tracker_status[alert.url] = [peers, status]
 
@@ -823,7 +823,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         # Make sure all trackers are in the tracker_status dict
         for announce_entry in self.handle.trackers():
             if announce_entry['url'] not in self.tracker_status:
-                self.tracker_status[announce_entry['url']] = [0, 'Not contacted yet']
+                try:
+                    url = unicode(announce_entry['url'])
+                    self.tracker_status[url] = [0, 'Not contacted yet']
+                except UnicodeDecodeError:
+                    pass
 
         # Count DHT and PeX peers
         dht_peers = pex_peers = 0

@@ -22,21 +22,6 @@ CREATE TABLE MetadataData (
 
 ----------------------------------------
 
-CREATE TABLE BarterCast (
-  peer_id_from  integer,
-  peer_id_to    integer,
-  downloaded    numeric,
-  uploaded      numeric,
-  last_seen     numeric,
-  value         numeric
-);
-
-CREATE UNIQUE INDEX bartercast_idx
-  ON BarterCast
-  (peer_id_from, peer_id_to);
-
-----------------------------------------
-
 CREATE TABLE Category (
   category_id    integer PRIMARY KEY NOT NULL,
   name           text NOT NULL,

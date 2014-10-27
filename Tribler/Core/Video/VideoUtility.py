@@ -7,6 +7,8 @@ import subprocess
 from re import search
 from math import sqrt
 
+import Image
+
 from Tribler.Core.osutils import is_android
 
 
@@ -151,19 +153,25 @@ def meanstdv(x):
     return mean, std
 
 
-def considered_xxx(image, filter=0.30):
-    return skinratio(image) > filter
+def considered_xxx(image_file, filter_ratio=0.30):
+    return skinratio(image_file) > filter_ratio
 
 
-def skinratio(image):
-    image = image.Scale(image.GetSize().x * 0.20, image.GetSize().y * 0.20)
-    image_data = image.GetData()
-    skin_pixels = total_pixels = 0
+def skinratio(image_fie):
+    try:
+        image = Image.open(image_fie).convert('RGB')
 
-    for index in range(0, len(image_data), 3):
-        r, g, b = map(ord, image_data[index:index + 3])
-        if r > 60 and g < (r * 0.85) and b < (r * 0.7) and g > (r * 0.4) and b > (r * 0.2):
-            skin_pixels += 1
-        total_pixels += 1
+        image = image.resize((int(image.size[0] * 0.20), int(image.size[1] * 0.20)))
+        image_data = list(image.getdata())
+        skin_pixels = total_pixels = 0
 
-    return skin_pixels / float(total_pixels)
+        for index in range(0, len(image_data)):
+            r, g, b = image_data[index]
+            if r > 60 and g < (r * 0.85) and b < (r * 0.7) and g > (r * 0.4) and b > (r * 0.2):
+                skin_pixels += 1
+            total_pixels += 1
+        if total_pixels == 0:
+            return 0
+        return skin_pixels / float(total_pixels)
+    except:
+        return 0
