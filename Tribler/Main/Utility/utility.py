@@ -11,16 +11,11 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 logger = logging.getLogger(__name__)
 
-#
-#
-# Class: Utility
+
 #
 # Generic "glue" class that contains commonly used helper functions
 #
-#
-
-
-class Utility:
+class Utility(object):
 
     def __init__(self, abcpath, configpath):
 
@@ -112,48 +107,49 @@ class Utility:
     def flush_config(self):
         self.config.write_file(self.configfilepath)
 
-    def speed_format(self, s):
-        if s != None:
-            if s < 102400:
-                text = '%2.1f KB/s' % (s / 1024.0)
-            elif s < 1022797:
-                text = '%d KB/s' % (s // 1024)
-            elif s < 104857600:
-                text = '%2.1f MB/s' % (s / 1048576.0)
-            elif s < 1047527425:
-                text = '%d MB/s' % (s // 1048576)
-            elif s < 107374182400:
-                text = '%2.1f GB/s' % (s / 1073741824.0)
-            elif s < 1072668082177:
-                text = '%d GB/s' % (s // 1073741824)
-            else:
-                text = '%2.1f TB/s' % (s // 1099511627776)
 
-            return text
-        return ''
+def speed_format(s):
+    text = ''
+    if s is not None:
+        if s < 102400:
+            text = '%2.1f KB/s' % (s / 1024.0)
+        elif s < 1022797:
+            text = '%d KB/s' % (s // 1024)
+        elif s < 104857600:
+            text = '%2.1f MB/s' % (s / 1048576.0)
+        elif s < 1047527425:
+            text = '%d MB/s' % (s // 1048576)
+        elif s < 107374182400:
+            text = '%2.1f GB/s' % (s / 1073741824.0)
+        elif s < 1072668082177:
+            text = '%d GB/s' % (s // 1073741824)
+        else:
+            text = '%2.1f TB/s' % (s // 1099511627776)
+    return text
 
-    def round_range(self, x):
-        returnar = set()
-        for _ in range(2500):
-            value = int(gauss(x, 100))
-            if value < 0:
-                continue
 
-            diff = abs(value - x)
-            if diff < 2:
-                pass
-            elif diff < 10 and x < 50:
-                value = int(round(value / 3.0) * 3)
-            elif diff < 75:
-                value = int(round(value / 25.0) * 25)
-            elif diff < 450:
-                value = int(round(value / 75.0) * 75)
-            else:
-                value = int(round(value / 150.0) * 150)
+def round_range(x):
+    returnar = set()
+    for _ in range(2500):
+        value = int(gauss(x, 100))
+        if value < 0:
+            continue
 
-            returnar.add(value)
-        returnar = sorted(returnar)
-        return returnar
+        diff = abs(value - x)
+        if diff < 2:
+            pass
+        elif diff < 10 and x < 50:
+            value = int(round(value / 3.0) * 3)
+        elif diff < 75:
+            value = int(round(value / 25.0) * 25)
+        elif diff < 450:
+            value = int(round(value / 75.0) * 75)
+        else:
+            value = int(round(value / 150.0) * 150)
+
+        returnar.add(value)
+    returnar = sorted(returnar)
+    return returnar
 
 
 def compute_ratio(i, j):

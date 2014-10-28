@@ -15,7 +15,7 @@ def parse_playtime_to_secs(hhmmss):
     if len(occ) > 0:
         if len(occ) == 3:
             # hours as well
-            t = int(occ[0]) * 3600 + int(occ[1]) *60 + float(occ[2])
+            t = int(occ[0]) * 3600 + int(occ[1]) * 60 + float(occ[2])
         elif len(occ) == 2:
             # minutes and seconds
             t = int(occ[0]) * 60 + float(occ[1])

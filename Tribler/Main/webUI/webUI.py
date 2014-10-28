@@ -27,7 +27,7 @@ def jsonify(func):
     return wrapper
 
 
-class WebUI():
+class WebUI(object):
     __single = None
 
     def __init__(self, library_manager, torrentsearch_manager, port):

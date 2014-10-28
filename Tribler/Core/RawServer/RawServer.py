@@ -47,7 +47,7 @@ def autodetect_socket_style():
 READSIZE = 100000
 
 
-class RawServer:
+class RawServer(object):
 
     def __init__(self, doneflag, timeout_check_interval, timeout, noisy=True,
                  ipv6_enable=True, failfunc= lambda x: None, errorfunc = None,

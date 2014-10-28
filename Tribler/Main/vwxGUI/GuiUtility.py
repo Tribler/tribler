@@ -29,7 +29,7 @@ from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from threading import Lock
 
 
-class GUIUtility:
+class GUIUtility(object):
     __single = None
     __single_lock = Lock()
 

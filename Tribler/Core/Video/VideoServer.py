@@ -34,6 +34,8 @@ class VideoServer(ThreadingMixIn, HTTPServer):
 
         HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
 
+        self.server_thread = None
+
         self.daemon_threads = True
         self.allow_reuse_address = True
 
@@ -67,6 +69,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
         self._logger = server._logger
         self.videoplayer = server.videoplayer
+        self.event = None
         BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def log_message(self, f, *args):
@@ -94,11 +97,12 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         filename, length = download.get_def().get_files_as_unicode_with_length()[fileindex]
 
         requested_range = get_ranges(self.headers.getheader('range'), length)
-        if requested_range != None and len(requested_range) != 1:
+        if requested_range is not None and len(requested_range) != 1:
             self.send_error(416, "Requested Range Not Satisfiable")
             return
 
-        has_changed = self.videoplayer.get_vod_fileindex() != fileindex or self.videoplayer.get_vod_download() != download
+        has_changed = self.videoplayer.get_vod_fileindex() != fileindex or\
+            self.videoplayer.get_vod_download() != download
         if has_changed:
             # Notify the videoplayer (which will put the old VOD download back in normal mode).
             self.videoplayer.set_vod_fileindex(fileindex)
@@ -113,7 +117,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         piecelen = 2 ** 16 if download.get_def().get_def_type() == "swift" else download.get_def().get_piece_length()
         blocksize = piecelen
 
-        if requested_range != None:
+        if requested_range is not None:
             firstbyte, lastbyte = requested_range[0]
             nbytes2send = lastbyte - firstbyte
             self.send_response(206)
@@ -175,11 +179,13 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
 
     def wait_for_buffer(self, download):
         self.event = Event()
+
         def wait_for_buffer(ds):
-            if download.vod_seekpos == None or download != self.videoplayer.get_vod_download() or ds.get_vod_prebuffering_progress() == 1.0:
+            if download.vod_seekpos is None or download != self.videoplayer.get_vod_download()\
+                    or ds.get_vod_prebuffering_progress() == 1.0:
                 self.event.set()
-                return (0, False)
-            return (1.0, False)
+                return 0, False
+            return 1.0, False
         download.set_state_callback(wait_for_buffer)
         self.event.wait()
         self.event.clear()

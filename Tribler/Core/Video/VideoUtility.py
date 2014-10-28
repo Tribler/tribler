@@ -17,7 +17,12 @@ def get_thumbnail(videofile, thumbfile, resolution, ffmpeg, timecode):
     if sys.platform == "win32":
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'), "-ss", str(int(timecode)), "-i", videofile.encode('utf-8'), "-s", "%dx%d" % resolution, thumbfile.encode('utf-8')), stderr=subprocess.PIPE, startupinfo=startupinfo)
+    ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'),
+                               "-ss", str(int(timecode)),
+                               "-i", videofile.encode('utf-8'),
+                               "-s", "%dx%d" % resolution,
+                               thumbfile.encode('utf-8')),
+                              stderr=subprocess.PIPE, startupinfo=startupinfo)
     ffmpeg.communicate()
     ffmpeg.stderr.close()
 
@@ -27,7 +32,8 @@ def get_videoinfo(videofile, ffmpeg):
     if sys.platform == "win32":
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'), "-i", videofile.encode('utf-8')), stderr=subprocess.PIPE, startupinfo=startupinfo)
+    ffmpeg = subprocess.Popen((ffmpeg.encode('utf-8'), "-i", videofile.encode('utf-8')),
+                              stderr=subprocess.PIPE, startupinfo=startupinfo)
     out, err = ffmpeg.communicate()
     info = out or err
     ffmpeg.stderr.close()
@@ -36,13 +42,13 @@ def get_videoinfo(videofile, ffmpeg):
     bitrate = find_bitrate(info)
     resolution = find_resolution(info)
 
-    return (duration, bitrate, resolution)
+    return duration, bitrate, resolution
 
 
 def find_duration(info):
     match = search("Duration: (\\d+):(\\d+):(\\d+)\\.\\d+", info)
 
-    if match == None:
+    if match is None:
         return 0
     h, m, s = map(int, match.groups()[:3])
     return (h * 60 + m) * 60 + s
@@ -51,7 +57,7 @@ def find_duration(info):
 def find_bitrate(info):
     match = search("bitrate: (\\d+) kb/s", info)
 
-    if match == None:
+    if match is None:
         return 0
     bitrate = match.groups()
     return int(bitrate[0])
@@ -60,10 +66,10 @@ def find_bitrate(info):
 def find_resolution(info):
     match = search(", (\\d+)x(\\d+)", info)
 
-    if match == None:
+    if match is None:
         return 0
     w, h = map(int, match.groups()[:2])
-    return (w, h)
+    return w, h
 
 
 def limit_resolution(cur_res, max_res):
@@ -91,7 +97,7 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
         if os.path.exists(outputfile):
             # Android doesn't have wx, use PIL instead
             if is_android():
-                def GetImageData():
+                def get_image_data():
                     import Image  # PIL
 
                     im = Image.open(outputfile)
@@ -101,15 +107,15 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
                 from Tribler.Main.vwxGUI import forceAndReturnWxThread
 
                 @forceAndReturnWxThread
-                def GetImageData():
+                def get_image_data():
                     pxls = []
                     wxstr = wx.Bitmap(outputfile, wx.BITMAP_TYPE_ANY).ConvertToImage().GetData()
                     for index in range(0, len(wxstr), 3):
                         pxls.append(tuple(map(ord, wxstr[index:index + 3])))
                     return pxls
 
-            this_colour = colourfulness(GetImageData())
-            if this_colour != None:
+            this_colour = colourfulness(get_image_data())
+            if this_colour is not None:
                 results.append((this_colour, timecode))
                 if os.path.exists(outputfile):
                     os.remove(outputfile)
@@ -145,10 +151,10 @@ def colourfulness(image_data):
 def meanstdv(x):
     n, mean, std = len(x), 0, 0
     for a in x:
-        mean = mean + a
-        mean = mean / float(n)
+        mean += a
+        mean /= float(n)
     for a in x:
-        std = std + (a - mean) ** 2
+        std += (a - mean) ** 2
     std = sqrt(std / float(n - 1))
     return mean, std
 

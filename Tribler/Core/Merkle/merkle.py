@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # External classes
 
 
-class MerkleTree:
+class MerkleTree(object):
 
     def __init__(self, piece_size, total_length, root_hash=None,hashes=None):
         """

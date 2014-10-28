@@ -1,9 +1,7 @@
-# Niels: getValidArgs based on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
 import binascii
 import logging
 import os.path
 import sys
-from inspect import getargspec
 from time import time
 
 from datetime import date
@@ -20,22 +18,6 @@ from Tribler.Core.osutils import is_android
 
 logger = logging.getLogger(__name__)
 
-
-def getValidArgs(func, argsDict):
-    args, _, _, defaults = getargspec(func)
-    try:
-        args.remove('self')
-    except:
-        pass
-
-    argsDict = dict((key, value) for key, value in argsDict.iteritems() if key in args)
-    if defaults:
-        args = args[:-len(defaults)]
-
-    notOk = set(args).difference(argsDict)
-    if notOk:
-        logger.info("Missing %s arguments for %s", notOk, func)
-    return argsDict
 
 # Niels: from http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 
@@ -113,7 +95,7 @@ class Helper(object):
             setattr(self, key, value)
 
 
-class MergedDs:
+class MergedDs(object):
 
     def __init__(self, dslist):
         self.dslist = dslist

@@ -22,7 +22,7 @@ from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 
 
-class TopSearchPanelStub():
+class TopSearchPanelStub(object):
 
     def NextPage(self):
         pass

@@ -31,14 +31,14 @@ else:
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
 
-class InterruptSocketHandler:
+class InterruptSocketHandler(object):
 
     @staticmethod
     def data_came_in(interrupt_socket, data):
         pass
 
 
-class InterruptSocket:
+class InterruptSocket(object):
 
     """
     When we need the poll to return before the timeout expires, we
@@ -73,7 +73,7 @@ class InterruptSocket:
         return self.port
 
 
-class UdpSocket:
+class UdpSocket(object):
 
     """ Class to hold socket and handler for a UDP socket. """
     def __init__(self, socket, handler):
@@ -81,7 +81,7 @@ class UdpSocket:
         self.handler = handler
 
 
-class SingleSocket:
+class SingleSocket(object):
 
     """
     There are two places to create SingleSocket:
@@ -233,7 +233,7 @@ class SingleSocket:
         self.handler = handler
 
 
-class SocketHandler:
+class SocketHandler(object):
 
     def __init__(self, timeout, ipv6_enable, readsize=100000):
         self._logger = logging.getLogger(self.__class__.__name__)
