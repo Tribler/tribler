@@ -6,14 +6,15 @@
 Use the garbage collector to monitor memory usage
 """
 
-from types import IntType, FloatType, StringType, UnicodeType, \
-    TupleType, ListType, DictType, FunctionType, ModuleType, FrameType
+from types import (IntType, FloatType, StringType, UnicodeType, TupleType, ListType, DictType, FunctionType,
+                   ModuleType, FrameType)
 import gc
 import thread
 import time
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 def _get_default_footprint(obj, depth):
     return 4
@@ -39,7 +40,7 @@ def _get_tuple_footprint(obj, depth):
     if depth == 0:
         return 4 + 4 * len(obj)
     else:
-        return 4 + 4 * len(obj) + sum(map(lambda obj: get_memory_footprint(obj, depth), obj))
+        return 4 + 4 * len(obj) + sum(map(lambda o: get_memory_footprint(o, depth), obj))
 
 
 def _get_list_footprint(obj, depth):
@@ -51,14 +52,16 @@ def _get_list_footprint(obj, depth):
             logger.info(repr(obj))
             return 42
         logger.info("Len: %d", len(obj))
-        return 8 + 4 * len(obj) + sum(map(lambda obj: get_memory_footprint(obj, depth), obj))
+        return 8 + 4 * len(obj) + sum(map(lambda o: get_memory_footprint(o, depth), obj))
 
 
 def _get_dict_footprint(obj, depth):
     if depth == 0:
         return 32 + 8 * len(obj)
     else:
-        return 32 + 8 * len(obj) + sum(map(lambda obj: get_memory_footprint(obj, depth), obj.iterkeys())) + sum(map(lambda obj: get_memory_footprint(obj, depth), obj.itervalues()))
+        return 32 + 8 * len(obj) \
+            + sum(map(lambda o: get_memory_footprint(o, depth), obj.iterkeys())) \
+            + sum(map(lambda o: get_memory_footprint(o, depth), obj.itervalues()))
 
 memory_footprint_map = {IntType: _get_int_footprint,
                         FloatType: _get_float_footprint,
@@ -101,7 +104,7 @@ def get_datetime():
     return time.strftime("%Y/%m/%d %H:%M:%S")
 
 
-def byte_uint_to_human(i, format="%(value).1f%(unit)s"):
+def byte_uint_to_human(i, fmt="%(value).1f%(unit)s"):
     """Convert a number into a formatted string.
 
     format: %(value)d%(unit)s
@@ -121,7 +124,7 @@ def byte_uint_to_human(i, format="%(value).1f%(unit)s"):
     """
     assert type(i) in (int, long)
     assert i >= 0
-    assert isinstance(format, str)
+    assert isinstance(fmt, str)
     dic = {}
     if i < 1024:
         dic["value"] = i
@@ -140,7 +143,7 @@ def byte_uint_to_human(i, format="%(value).1f%(unit)s"):
         dic["unit"] = "GB"
         dic["unit-long"] = (i == 1073741824 and "gigabyte" or "gigabytes")
 
-    return format % dic
+    return fmt % dic
 
 
 def monitor(delay=10.0, interval=60.0, min_footprint=100000):
@@ -166,7 +169,8 @@ def monitor(delay=10.0, interval=60.0, min_footprint=100000):
                         if footprint > high_foot:
                             high_foot = footprint
                         if footprint >= low_foot:
-                            logger.info("Memory: %s, %s footprint: %s", datetime, get_description(obj), byte_uint_to_human(footprint))
+                            logger.info("Memory: %s, %s footprint: %s", datetime, get_description(obj),
+                                        byte_uint_to_human(footprint))
                             for referrer in gc.get_referrers(obj):
                                 logger.info("Memory: %s REF %s", datetime, get_description(referrer))
                             logger.info("Memory")

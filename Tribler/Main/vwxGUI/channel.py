@@ -3,7 +3,6 @@ import wx
 
 import os
 import sys
-import logging
 from time import time
 import pickle
 from shutil import copyfile
@@ -12,8 +11,7 @@ from traceback import print_exc
 import re
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, \
-    EditText, BetterText
+from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, EditText, BetterText
 
 from Tribler.Category.Category import Category
 
@@ -23,21 +21,20 @@ from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
-from Tribler.Main.vwxGUI import CHANNEL_MAX_NON_FAVORITE, warnWxThread, \
-    LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED, DEFAULT_BACKGROUND, \
-    format_time, showError
+from Tribler.Main.vwxGUI import (CHANNEL_MAX_NON_FAVORITE, warnWxThread, LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED,
+                                 DEFAULT_BACKGROUND, format_time, showError)
 from Tribler.Main.vwxGUI.list import BaseManager, GenericSearchList, SizeList, List
 from Tribler.Main.vwxGUI.list_body import ListBody
-from Tribler.Main.vwxGUI.list_footer import CommentFooter, PlaylistFooter, \
-    ManageChannelFilesFooter, ManageChannelPlaylistFooter
-from Tribler.Main.vwxGUI.list_header import ChannelHeader, SelectedChannelFilter, \
-    SelectedPlaylistFilter, PlaylistHeader, ManageChannelHeader, TitleHeader
-from Tribler.Main.vwxGUI.list_item import PlaylistItem, ColumnsManager, DragItem, \
-    TorrentListItem, CommentItem, CommentActivityItem, NewTorrentActivityItem, \
-    TorrentActivityItem, ModificationActivityItem, ModerationActivityItem, \
-    MarkingActivityItem, ModificationItem, ModerationItem, ThumbnailListItem
-from Tribler.Main.vwxGUI.list_details import AbstractDetails, SelectedchannelInfoPanel, \
-    PlaylistDetails, PlaylistInfoPanel, TorrentDetails, MyChannelPlaylist
+from Tribler.Main.vwxGUI.list_footer import (CommentFooter, PlaylistFooter, ManageChannelFilesFooter,
+                                             ManageChannelPlaylistFooter)
+from Tribler.Main.vwxGUI.list_header import (ChannelHeader, SelectedChannelFilter, SelectedPlaylistFilter,
+                                             PlaylistHeader, ManageChannelHeader, TitleHeader)
+from Tribler.Main.vwxGUI.list_item import (PlaylistItem, ColumnsManager, DragItem, TorrentListItem, CommentItem,
+                                           CommentActivityItem, NewTorrentActivityItem, TorrentActivityItem,
+                                           ModificationActivityItem, ModerationActivityItem, MarkingActivityItem,
+                                           ModificationItem, ModerationItem, ThumbnailListItem)
+from Tribler.Main.vwxGUI.list_details import (AbstractDetails, SelectedchannelInfoPanel, PlaylistDetails,
+                                              PlaylistInfoPanel, TorrentDetails, MyChannelPlaylist)
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.community.channel.community import ChannelCommunity
@@ -129,7 +126,7 @@ class ChannelManager(BaseManager):
             result = delayedResult.get()
             if result:
                 total_items, nrfiltered, torrentList, playlists, state, iamModerator = result
-                if state != None:
+                if state is not None:
                     self.list.SetChannelState(state, iamModerator)
 
                 self._on_data(total_items, nrfiltered, torrentList, playlists)
@@ -426,7 +423,7 @@ class SelectedChannelList(GenericSearchList):
         self.Layout()
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = ChannelManager(self)
         return self.manager
 
@@ -847,7 +844,7 @@ class Playlist(SelectedChannelList):
             pass
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = PlaylistManager(self)
         return self.manager
 
@@ -1632,7 +1629,7 @@ class ManageChannelFilesList(List):
         return ManageChannelFilesFooter(parent, self.OnRemoveAll, self.OnRemoveSelected, self.OnAdd, self.OnExport)
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = ManageChannelFilesManager(self)
         return self.manager
 
@@ -1701,7 +1698,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         return ManageChannelPlaylistFooter(parent, self.OnNew)
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = ManageChannelPlaylistsManager(self)
         return self.manager
 
@@ -2106,7 +2103,7 @@ class CommentList(List):
         return CommentFooter(parent, self.OnNew, self.quickPost, self.horizontal)
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = CommentManager(self)
         return self.manager
 
@@ -2255,7 +2252,7 @@ class ActivityList(List):
         return None
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = ActivityManager(self)
         return self.manager
 
@@ -2352,7 +2349,7 @@ class ModificationList(List):
         return None
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = ModificationManager(self)
         return self.manager
 
@@ -2483,7 +2480,7 @@ class ModerationList(List):
         return None
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = ModerationManager(self)
         return self.manager
 

@@ -290,7 +290,7 @@ class Torrent(Helper):
 
     def addDs(self, ds):
         if ds and not isinstance(ds, MergedDs):
-            if self.dslist == None:
+            if self.dslist is None:
                 self.dslist = [None, None]
 
             cdef = ds.get_download().get_def()
@@ -684,14 +684,14 @@ class Comment(Helper):
 
     @cacheProperty
     def name(self):
-        if self.peer_id == None:
+        if self.peer_id is None:
             return self.get_nickname()
         if not self._name:
             return 'Peer %d' % self.peer_id
         return self._name
 
     def isMyComment(self):
-        return self.peer_id == None
+        return self.peer_id is None
 
     @cacheProperty
     def avantar(self):
@@ -701,7 +701,7 @@ class Comment(Helper):
         from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM, data2wxBitmap
         gui_image_manager = GuiImageManager.getInstance()
 
-        if self.peer_id == None:
+        if self.peer_id is None:
             mime, data = self.get_mugshot()
             if data:
                 data = data2wxBitmap(mime, data, SMALL_ICON_MAX_DIM)
@@ -814,7 +814,7 @@ class Modification(Helper):
 
     @cacheProperty
     def peer_name(self):
-        if self.peer_id == None:
+        if self.peer_id is None:
             return self.get_nickname()
         return 'Peer %d' % self.peer_id
 
@@ -847,13 +847,13 @@ class Moderation(Helper):
 
     @cacheProperty
     def peer_name(self):
-        if self.peer_id == None:
+        if self.peer_id is None:
             return self.get_nickname()
         return 'Peer %d' % self.peer_id
 
     @cacheProperty
     def by_peer_name(self):
-        if self.by_peer_id == None:
+        if self.by_peer_id is None:
             return self.get_nickname()
         return 'Peer %d' % self.by_peer_id
 
@@ -872,7 +872,7 @@ class Marking(Helper):
 
     @cacheProperty
     def peer_name(self):
-        if self.peer_id == None:
+        if self.peer_id is None:
             return self.get_nickname()
         return 'Peer %d' % self.peer_id
 

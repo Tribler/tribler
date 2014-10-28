@@ -58,6 +58,14 @@ class RemoteTorrentHandler(TaskManager):
 
         self.num_torrents = 0
 
+        self.session = None
+        self.dispersy = None
+        self.max_num_torrents = 0
+        self.tor_col_dir = None
+        self.tqueue = None
+        self.scheduletask = None
+        self.torrent_db = None
+
     def getInstance(*args, **kw):
         if RemoteTorrentHandler.__single is None:
             RemoteTorrentHandler(*args, **kw)

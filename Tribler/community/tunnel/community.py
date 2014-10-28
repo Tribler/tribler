@@ -335,7 +335,7 @@ class TunnelCommunity(Community):
                     candidate = c
                     break
 
-            if candidate != None:
+            if candidate is not None:
                 try:
                     self.create_circuit(candidate, self.settings.circuit_length)
                 except:

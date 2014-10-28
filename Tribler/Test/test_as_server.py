@@ -376,7 +376,7 @@ class TestGuiAsServer(TestAsServer):
             self._logger.error("Could not load PIL: not making screenshots")
             return
 
-        if window == None:
+        if window is None:
             app = wx.GetApp()
             window = app.GetTopWindow()
             if not window:

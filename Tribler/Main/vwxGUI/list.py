@@ -776,13 +776,13 @@ class List(wx.BoxSizer):
 
     def GotFilter(self, keyword=None):
         oldrawfilter = self.rawfilter
-        if keyword != None:
+        if keyword is not None:
             self.rawfilter = keyword.lower().strip()
         else:
             self.LoadEnabledCategoryIDs()
 
         if self.rawfilter == '' and not self.guiutility.getFamilyFilter():
-            wx.CallAfter(self.list.SetFilter, None, None, keyword == None)
+            wx.CallAfter(self.list.SetFilter, None, None, keyword is None)
 
         else:
             highlight = True
@@ -1443,7 +1443,7 @@ class SearchList(GenericSearchList):
             return self.normal, self.favorite, "This torrent is not part of one of your favorite channels"
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = RemoteSearchManager(self)
         return self.manager
 
@@ -1668,7 +1668,7 @@ class LibraryList(SizeList):
             self.guiutility.frame.top_bg.OnDelete()
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = LocalSearchManager(self)
         return self.manager
 
@@ -1812,7 +1812,7 @@ class LibraryList(SizeList):
             self.GetManager().refresh_if_exists(ids, force=True)  # new torrent?
 
         if didStateChange:
-            if self.statefilter != None:
+            if self.statefilter is not None:
                 self.list.SetData()  # basically this means execute filter again
 
         for infohash, item in self.list.items.iteritems():
@@ -2127,7 +2127,7 @@ class ChannelList(List):
         dlg.Destroy()
 
     def GetManager(self):
-        if getattr(self, 'manager', None) == None:
+        if getattr(self, 'manager', None) is None:
             self.manager = ChannelSearchManager(self)
         return self.manager
 

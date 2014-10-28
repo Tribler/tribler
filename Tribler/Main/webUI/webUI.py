@@ -14,7 +14,7 @@ from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
 
 def jsonify(func):
-    '''JSON decorator for CherryPy'''
+    """JSON decorator for CherryPy"""
     @wraps(func)
     def wrapper(*args, **kw):
         try:
@@ -63,8 +63,7 @@ class WebUI(object):
             self.started = True
 
             current_dir = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'webUI')
-            config = {'/': {
-                            'tools.staticdir.root': current_dir,
+            config = {'/': {'tools.staticdir.root': current_dir,
                             'tools.staticdir.on': True,
                             'tools.staticdir.dir': "static",
                             'response.headers.connection': "close",
@@ -74,7 +73,9 @@ class WebUI(object):
             if self.hasauth:
                 userpassdict = {'hello': 'world'}
                 checkpassword = checkpassword_dict(userpassdict)
-                config['/'] = {'tools.auth_basic.on': True, 'tools.auth_basic.realm': 'Tribler-WebUI', 'tools.auth_basic.checkpassword': checkpassword}
+                config['/'] = {'tools.auth_basic.on': True,
+                               'tools.auth_basic.realm': 'Tribler-WebUI',
+                               'tools.auth_basic.checkpassword': checkpassword}
 
             app = cherrypy.tree.mount(self, '/gui', config)
             app.log.access_log.setLevel(logging.NOTSET)
@@ -103,38 +104,36 @@ class WebUI(object):
         if len(args) == 0:
             raise cherrypy.HTTPRedirect("/gui/index.html")
 
-        returnDict = {}
+        return_dict = {}
         if len(self.currentTokens) == 0:
             self.currentTokens.add(str(args['token']))
 
         if str(args['token']) in self.currentTokens:
             if 'action' in args:
-                returnDict = self.doAction(args)
+                return_dict = self.doAction(args)
 
             if 'list' in args:
-                returnDict = self.doList(args)
+                return_dict = self.doList(args)
 
-        returnDict['build'] = 1
-        self._logger.debug("webUI: result %s", returnDict)
-        return returnDict
+        return_dict['build'] = 1
+        self._logger.debug("webUI: result %s", return_dict)
+        return return_dict
 
     @cherrypy.expose(alias='token.html')
     def token(self, **args):
-        newToken = ''.join(random.choice('0123456789ABCDEF') for i in range(60))
-        self.currentTokens.add(newToken)
-        self._logger.debug("webUI: newToken %s", newToken)
-        return "<html><body><div id='token' style='display:none;'>%s</div></body></html>" % newToken
+        new_token = ''.join(random.choice('0123456789ABCDEF') for i in range(60))
+        self.currentTokens.add(new_token)
+        self._logger.debug("webUI: new_token %s", new_token)
+        return "<html><body><div id='token' style='display:none;'>%s</div></body></html>" % new_token
 
     def doList(self, args):
         _, torrents = self.library_manager.getHitsInCategory()
 
-        returnDict = {}
-        returnDict['label'] = []
+        return_dict = {'label': []}
 
-        newTorrentList = []
+        new_torrent_list = []
         for i, torrent in enumerate(torrents):
-            torrentList = []
-            torrentList.append(hexlify(torrent.infohash))
+            torrent_list = [hexlify(torrent.infohash)]
 
             state = 0
             if 'checking' in torrent.state:
@@ -145,10 +144,10 @@ class WebUI(object):
             if 'active' in torrent.state:
                 state += 1 + 64 + 128
 
-            torrentList.append(state)
+            torrent_list.append(state)
 
-            torrentList.append(torrent.name.encode('utf8'))
-            torrentList.append(torrent.length)
+            torrent_list.append(torrent.name.encode('utf8'))
+            torrent_list.append(torrent.length)
 
             ds = torrent.ds
             if ds:
@@ -163,8 +162,8 @@ class WebUI(object):
                     ul = ds.get_total_transferred(UPLOAD)
 
                 seeds, peers = ds.get_num_seeds_peers()
-                downS = ds.get_current_speed('down')
-                upS = ds.get_current_speed('up')
+                down_speed = ds.get_current_speed('down')
+                up_speed = ds.get_current_speed('up')
                 eta = ds.get_eta() or sys.maxsize
             else:
                 progress = torrent.progress
@@ -172,13 +171,13 @@ class WebUI(object):
                 ul = 0
 
                 seeds = peers = 0
-                downS = upS = 0
+                down_speed = up_speed = 0
                 eta = sys.maxsize
 
-            torrentList.append(int(progress * 1000))
+            torrent_list.append(int(progress * 1000))
             dl = max(0, progress * torrent.length)
-            torrentList.append(dl)
-            torrentList.append(ul)
+            torrent_list.append(dl)
+            torrent_list.append(ul)
 
             if dl == 0:
                 if ul != 0:
@@ -188,59 +187,59 @@ class WebUI(object):
             else:
                 ratio = 1.0 * ul / dl
 
-            torrentList.append(int(ratio * 1000))
-            torrentList.append(upS)
-            torrentList.append(downS)
-            torrentList.append(eta)
-            torrentList.append('')
+            torrent_list.append(int(ratio * 1000))
+            torrent_list.append(up_speed)
+            torrent_list.append(down_speed)
+            torrent_list.append(eta)
+            torrent_list.append('')
 
-            torrentList.append(peers)
-            torrentList.append(peers)
-            torrentList.append(seeds)
-            torrentList.append(seeds)
-            torrentList.append(1)
-            torrentList.append(i + 1)
-            torrentList.append(torrent.length - dl)
+            torrent_list.append(peers)
+            torrent_list.append(peers)
+            torrent_list.append(seeds)
+            torrent_list.append(seeds)
+            torrent_list.append(1)
+            torrent_list.append(i + 1)
+            torrent_list.append(torrent.length - dl)
 
-            newTorrentList.append(torrentList)
+            new_torrent_list.append(torrent_list)
 
         if 'cid' in args:
-            cacheId = int(args['cid'])
-            oldTorrentList = self.currentTorrents.get(cacheId, [])
+            cache_id = int(args['cid'])
+            old_torrent_list = self.currentTorrents.get(cache_id, [])
             # step 1: create dict
-            newTorrentDict = {}
-            for torrent in newTorrentList:
-                newTorrentDict[torrent[0]] = torrent
+            new_torrent_dict = {}
+            for torrent in new_torrent_list:
+                new_torrent_dict[torrent[0]] = torrent
 
             # step 2: create torrentp (changed torrents) and torrentm (removed torrents)
-            returnDict['torrentp'] = []
-            returnDict['torrentm'] = []
-            for torrent in oldTorrentList:
+            return_dict['torrentp'] = []
+            return_dict['torrentm'] = []
+            for torrent in old_torrent_list:
                 key = torrent[0]
-                if key not in newTorrentDict:
-                    returnDict['torrentm'].append(key)
+                if key not in new_torrent_dict:
+                    return_dict['torrentm'].append(key)
                 else:
-                    newtorrent = newTorrentDict[key]
+                    newtorrent = new_torrent_dict[key]
                     if newtorrent != torrent:
-                        returnDict['torrentp'].append(newtorrent)
-                    del newTorrentDict[key]
+                        return_dict['torrentp'].append(newtorrent)
+                    del new_torrent_dict[key]
 
-            for torrent in newTorrentDict.itervalues():
-                returnDict['torrentp'].append(torrent)
+            for torrent in new_torrent_dict.itervalues():
+                return_dict['torrentp'].append(torrent)
 
         else:
-            returnDict['torrents'] = newTorrentList
-            cacheId = 0
+            return_dict['torrents'] = new_torrent_list
+            cache_id = 0
 
-        cacheId += 1
-        self.currentTorrents[cacheId] = newTorrentList
-        returnDict['torrentc'] = cacheId
+        cache_id += 1
+        self.currentTorrents[cache_id] = new_torrent_list
+        return_dict['torrentc'] = cache_id
 
         keys = self.currentTorrents.keys()[:-10]
         for key in keys:
             del self.currentTorrents[key]
 
-        return returnDict
+        return return_dict
 
     def doAction(self, args):
         action = args['action']
@@ -263,8 +262,8 @@ class WebUI(object):
             else:
                 infohashes = args['hash']
 
-            for hash in infohashes:
-                infohash = unhexlify(hash)
+            for h in infohashes:
+                infohash = unhexlify(h)
 
                 torrent = self.library_manager.getTorrentFromInfohash(infohash)
                 if action in ['start', 'forcestart', 'unpause']:
@@ -282,17 +281,16 @@ class WebUI(object):
         infohash = unhexlify(args.get('hash', ''))
         torrent = self.library_manager.getTorrentFromInfohash(infohash)
         coltorrent = self.torrentsearch_manager.loadTorrent(torrent)
-        returnDict = {'props': []}
+        return_dict = {'props': []}
 
-        torrentDict = {}
-        torrentDict['hash'] = hexlify(torrent.infohash)
-        torrentDict['trackers'] = "\r\n".join(coltorrent.trackers)
-        torrentDict['ulrate'] = 0
-        torrentDict['dlrate'] = 0
-        torrentDict['superseed'] = 1
-        torrentDict['dht'] = 1
-        torrentDict['pex'] = 1
-        torrentDict['seed_override'] = 0
+        torrent_dict = {'hash': hexlify(torrent.infohash),
+                        'trackers': "\r\n".join(coltorrent.trackers),
+                        'ulrate': 0,
+                        'dlrate': 0,
+                        'superseed': 1,
+                        'dht': 1,
+                        'pex': 1,
+                        'seed_override': 0}
 
         if torrent.ds:
             stats = torrent.ds.get_seeding_statistics()
@@ -311,23 +309,23 @@ class WebUI(object):
             else:
                 ratio = 1.0 * ul / dl
 
-            torrentDict['seed_ratio'] = ratio
-            torrentDict['seed_time'] = stats['time_seeding']
+            torrent_dict['seed_ratio'] = ratio
+            torrent_dict['seed_time'] = stats['time_seeding']
         else:
-            torrentDict['seed_ratio'] = 0
-            torrentDict['seed_time'] = 0
-        torrentDict['ulslots'] = -1
+            torrent_dict['seed_ratio'] = 0
+            torrent_dict['seed_time'] = 0
+        torrent_dict['ulslots'] = -1
 
-        returnDict['props'].append(torrentDict)
-        return returnDict
+        return_dict['props'].append(torrent_dict)
+        return return_dict
 
     def doFiles(self, args):
         infohash = unhexlify(args.get('hash', ''))
         torrent = self.library_manager.getTorrentFromInfohash(infohash)
         coltorrent = self.torrentsearch_manager.loadTorrent(torrent)
-        returnDict = {'files': []}
+        return_dict = {'files': []}
 
-        returnDict['files'].append(hexlify(torrent.infohash))
+        return_dict['files'].append(hexlify(torrent.infohash))
         if torrent.ds:
             completion = torrent.ds.get_files_completion()
         else:
@@ -335,15 +333,15 @@ class WebUI(object):
 
         files = []
         for filename, size in coltorrent.files:
-            file = [filename, size, 0, 2]
+            f = [filename, size, 0, 2]
             for cfile, cprogress in completion:
                 if cfile == filename:
-                    file[2] = cprogress * size
+                    f[2] = cprogress * size
                     break
 
-            files.append(file)
-        returnDict['files'].append(files)
-        return returnDict
+            files.append(f)
+        return_dict['files'].append(files)
+        return return_dict
 
     def doSettings(self, args):
         return {"settings": []}

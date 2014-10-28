@@ -152,7 +152,7 @@ class SaveAs(wx.Dialog):
             if selectedFiles:
                 self.listCtrl.CheckItem(pos, filename in selectedFiles)
 
-        if selectedFiles == None:
+        if selectedFiles is None:
             self.listCtrl.doSelectAll()
 
         self.listCtrl.setResizeColumn(0)

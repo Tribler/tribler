@@ -85,13 +85,13 @@ class AbstractDetails(FancyPanel):
     @warnWxThread
     def _add_row(self, parent, sizer, name, value, spacer=0, flags=wx.EXPAND):
         nametext = name
-        if name != None:
+        if name is not None:
             nametext = wx.StaticText(parent, -1, name)
             _set_font(nametext, fontweight=wx.FONTWEIGHT_BOLD)
 
             sizer.Add(nametext, 0, wx.LEFT, spacer)
 
-        if value != None:
+        if value is not None:
             if isinstance(value, basestring):
                 try:
                     value = MaxBetterText(parent, unicode(value), maxLines=3, name=name)
@@ -1643,7 +1643,7 @@ class PlaylistDetails(AbstractDetails):
 
         # Set new thumbnails
         if self.playlist and self.playlist.nr_torrents > 0:
-            if self.playlist_torrents == None:
+            if self.playlist_torrents is None:
                 def do_db():
                     from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
                     return ChannelManager.getInstance().getTorrentsFromPlaylist(self.playlist)[2]
@@ -1745,7 +1745,7 @@ class AbstractInfoPanel(FancyPanel):
         self.Layout()
 
     def AddButton(self, label, handler, icon=None):
-        if handler == None or label == None:
+        if handler is None or label is None:
             return
 
         button = ProgressButton(self, -1, label)
@@ -1889,13 +1889,13 @@ class ProgressPanel(wx.BoxSizer):
         # return_val, 0 == inactive, 1 == incomplete, 2 == complete/seeding
         return_val = 0
 
-        if ds == None:
+        if ds is None:
             if torrent:
                 ds = torrent.ds
             else:
                 ds = self.item.original_data.get('ds', None)
 
-        if ds != None:
+        if ds is not None:
             progress = ds.get_progress()
             size = ds.get_length()
 
@@ -1909,7 +1909,7 @@ class ProgressPanel(wx.BoxSizer):
 
         else:
             progress = self.item.original_data.get('progress')
-            if progress == None:
+            if progress is None:
                 progress = 0
             size = self.item.original_data.get('length', False)
 
@@ -1919,9 +1919,9 @@ class ProgressPanel(wx.BoxSizer):
             eta = ''
             status = DLSTATUS_STOPPED
 
-        if seeds == None:
+        if seeds is None:
             seeds = 0
-        if peers == None:
+        if peers is None:
             peers = 0
 
         progress = max(0, min(1, progress))  # progress has to be between 0 and 1
@@ -2318,7 +2318,8 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(text, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
             if show_animation:
-                ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.vwxGUI_path, 'images', 'search_new.gif'))
+                ag = wx.animate.GIFAnimationCtrl(self, -1,
+                                                 os.path.join(self.guiutility.vwxGUI_path, 'images', 'search_new.gif'))
                 ag.Play()
                 sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
@@ -2328,7 +2329,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Thaw()
 
     @forceWxThread
-    def SetTorrentDef(self, tdef, fileindex= -1):
+    def SetTorrentDef(self, tdef, fileindex=-1):
         if self.tdef != tdef and self.fileindex != fileindex:
             self.tdef = tdef
             self.fileindex = fileindex

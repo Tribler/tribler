@@ -435,7 +435,12 @@ class MainFrame(wx.Frame):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
-                kwargs = {'tdef':tdef, 'cmdline':cmdline, 'destdir':destdir, 'selectedFiles':selectedFiles, 'vodmode':vodmode, 'anon_mode':anon_mode}
+                kwargs = {'tdef': tdef,
+                          'cmdline': cmdline,
+                          'destdir': destdir,
+                          'selectedFiles': selectedFiles,
+                          'vodmode': vodmode,
+                          'anon_mode': anon_mode}
                 if wx.Thread_IsMain():
                     self.startDownload(**kwargs)
                 else:
@@ -446,7 +451,9 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
         return False
 
-    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None, name=None, vodmode=False, anon_mode=False, fixtorrent=False, selectedFiles=None, correctedFilename=None, hidden=False):
+    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None,
+                      name=None, vodmode=False, anon_mode=False, fixtorrent=False, selectedFiles=None,
+                      correctedFilename=None, hidden=False):
         self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
@@ -1037,7 +1044,7 @@ class MainFrame(wx.Frame):
 
     def OnCloseWindow(self, event=None, force=False):
         found = False
-        if event != None:
+        if event is not None:
             nr = event.GetEventType()
             lookup = {wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION"}
             if nr in lookup:
@@ -1109,7 +1116,7 @@ class MainFrame(wx.Frame):
                 print_exc()
 
         self._logger.info("mainframe: Calling quit")
-        self.quit(event != None or force)
+        self.quit(event is not None or force)
 
         self._logger.debug("mainframe: OnCloseWindow END")
         ts = threading.enumerate()

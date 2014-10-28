@@ -78,7 +78,7 @@ class GUIUtility(object):
     getInstance = staticmethod(getInstance)
 
     def hasInstance():
-        return GUIUtility.__single != None
+        return GUIUtility.__single is not None
     hasInstance = staticmethod(hasInstance)
 
     def delInstance():
@@ -384,7 +384,7 @@ class GUIUtility(object):
             self.ScrollTo(scrollTo)
 
     def dosearch(self, input=None):
-        if input == None:
+        if input is None:
             sf = self.frame.top_bg.searchField
             if sf is None:
                 return
@@ -577,7 +577,7 @@ class GUIUtility(object):
             self.lists.append(l)
 
     def toggleFamilyFilter(self, newState=None, setCheck=False):
-        if newState == None:
+        if newState is None:
             newState = not self.getFamilyFilter()
 
         Category.getInstance().set_family_filter(newState)

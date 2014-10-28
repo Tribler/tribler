@@ -102,7 +102,7 @@ class Category(object):
                 torrent_category = [category['name']]
                 strongest_cat = strength
 
-        if torrent_category == None:
+        if torrent_category is None:
             torrent_category = ['other']
 
         return torrent_category
@@ -134,8 +134,7 @@ class Category(object):
         for name, length in files_list:
             totalSize += length
             # judge file size
-            if (length < category['minfilesize']) or \
-                    (category['maxfilesize'] > 0 and length > category['maxfilesize']):
+            if length < category['minfilesize'] or 0 < category['maxfilesize'] < length:
                 continue
 
             # judge file suffix
@@ -165,11 +164,11 @@ class Category(object):
         # match file
         if (matchSize / totalSize) >= category['matchpercentage']:
             if 'strength' in category:
-                return (True, category['strength'])
+                return True, category['strength']
             else:
-                return (True, (matchSize / totalSize))
+                return True, (matchSize / totalSize)
 
-        return (False, 0)
+        return False, 0
 
     WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 
@@ -207,7 +206,9 @@ class Category(object):
             if table_name:
                 table_name += '.'
             if forbiddencats:
-                return " and %scategory_id not in (%s)" % (table_name, ','.join([str(_getCategoryID([cat])) for cat in forbiddencats]))
+                return " and %scategory_id not in (%s)" % (table_name,
+                                                           ','.join([str(_getCategoryID([cat]))
+                                                                     for cat in forbiddencats]))
         return ''
 
 

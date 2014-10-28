@@ -5,7 +5,7 @@ Alternate stdout and stderr with much more protection
 import sys
 
 
-class SafePrintStream:
+class SafePrintStream(object):
 
     def __init__(self, stream):
         self._stream = stream
@@ -26,7 +26,7 @@ class SafePrintStream:
         self._stream.flush()
 
 
-class SafeLinePrintStream:
+class SafeLinePrintStream(object):
 
     def __init__(self, stream):
         self._stream = stream

@@ -155,7 +155,7 @@ class SearchManager:
         else:
             # ok, this is for a search we forwarded
             search = self.forwardedSearches.get(msg.getSearchID(), None)
-            if search == None:
+            if search is None:
                 # Search responses after 60 seconds are dropped (not that unusual)
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchManager got response for slow/unknown search:", source, ":", msg.getDescription()

@@ -503,7 +503,6 @@ def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
 
 
 def copy_metainfo_to_input(metainfo, input):
-
     keys = tdefdictdefaults.keys()
     # Arno: For magnet link support
     keys.append("initial peers")
