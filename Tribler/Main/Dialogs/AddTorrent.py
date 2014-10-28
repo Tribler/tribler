@@ -20,7 +20,7 @@ class AddTorrent(wx.Dialog):
 
         self.frame = frame
         self.guiutility = GUIUtility.getInstance()
-        self.toChannel = libraryTorrents != None
+        self.toChannel = libraryTorrents is not None
         self.defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -60,7 +60,7 @@ class AddTorrent(wx.Dialog):
         vSizer.Add(hSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
-        if libraryTorrents != None:
+        if libraryTorrents is not None:
             if len(libraryTorrents) > 0:
                 header = wx.StaticText(self, -1, 'Choose one from you library')
                 _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)

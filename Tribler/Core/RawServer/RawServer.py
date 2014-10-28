@@ -49,9 +49,8 @@ READSIZE = 100000
 
 class RawServer(object):
 
-    def __init__(self, doneflag, timeout_check_interval, timeout, noisy=True,
-                 ipv6_enable=True, failfunc= lambda x: None, errorfunc = None,
-                 sockethandler=None, excflag= Event()):
+    def __init__(self, doneflag, timeout_check_interval, timeout, noisy=True, ipv6_enable=True,
+                 failfunc=lambda x: None, errorfunc=None, sockethandler=None, excflag=Event()):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.timeout_check_interval = timeout_check_interval
@@ -88,15 +87,14 @@ class RawServer(object):
             delay = 0
         insort(self.funcs, (clock() + delay, func, id))
 
-    def add_task(self, func, delay=0, id= None):
+    def add_task(self, func, delay=0, id=None):
         # if DEBUG:
         #    print >>sys.stderr,"rawserver: add_task(",func,delay,")"
         if delay < 0:
             delay = 0
 
-        self.lock.acquire()
-        self.externally_added.append((func, delay, id))
-        self.lock.release()
+        with self.lock:
+            self.externally_added.append((func, delay, id))
 
         if self.thread_ident != get_ident():
             self.interrupt_socket.interrupt()
@@ -105,33 +103,31 @@ class RawServer(object):
         self.add_task(self.scan_for_timeouts, self.timeout_check_interval)
         self.sockethandler.scan_for_timeouts()
 
-    def bind(self, port, bind='', reuse= False,
-            ipv6_socket_style=1, handler=None):
+    def bind(self, port, bind='', reuse=False, ipv6_socket_style=1, handler=None):
         self.sockethandler.bind(port, bind, reuse, ipv6_socket_style, handler)
 
-    def find_and_bind(self, first_try, minport, maxport, bind='', reuse = False,
-                      ipv6_socket_style=1, randomizer= False, handler=None):
+    def find_and_bind(self, first_try, minport, maxport, bind='', reuse=False, ipv6_socket_style=1,
+                      randomizer=False, handler=None):
 # 2fastbt_
         result = self.sockethandler.find_and_bind(first_try, minport, maxport, bind, reuse,
-                                 ipv6_socket_style, randomizer, handler)
+                                                  ipv6_socket_style, randomizer, handler)
 # _2fastbt
         return result
 
-    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler= None):
+    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler=None):
         return self.sockethandler.start_connection_raw(dns, socktype, handler)
 
-    def start_connection(self, dns, handler=None, randomize= False):
+    def start_connection(self, dns, handler=None, randomize=False):
         return self.sockethandler.start_connection(dns, handler, randomize)
 
     def get_stats(self):
         return self.sockethandler.get_stats()
 
     def pop_external(self):
-        self.lock.acquire()
-        while self.externally_added:
-            (a, b, c) = self.externally_added.pop(0)
-            self._add_task(a, b, c)
-        self.lock.release()
+        with self.lock:
+            while self.externally_added:
+                (a, b, c) = self.externally_added.pop(0)
+                self._add_task(a, b, c)
 
     @attach_profiler
     def listen_forever(self, handler):

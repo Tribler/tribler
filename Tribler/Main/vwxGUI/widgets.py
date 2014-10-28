@@ -91,7 +91,7 @@ class MaxBetterText(wx.BoxSizer):
         self.parent.OnChange()
 
     def IsExpanded(self):
-        return self.expand == None or self.expand.GetLabel().startswith('<< See less')
+        return self.expand is None or self.expand.GetLabel().startswith('<< See less')
 
     def OnSize(self, event):
         width = self.label.GetSize()[0]
@@ -316,7 +316,7 @@ class LinkStaticText(wx.BoxSizer):
             return self.icon.ClientToScreen(pt)
         return self.text.ClientToScreen(pt)
 
-    def Bind(self, event, handler, source=None, id= -1, id2= -1):
+    def Bind(self, event, handler, source=None, id=-1, id2=-1):
         def modified_handler(actual_event, handler=handler):
             actual_event.SetEventObject(self)
             handler(actual_event)
@@ -998,7 +998,7 @@ def _set_font(control, size_increment=0, fontweight=wx.FONTWEIGHT_NORMAL, fontco
 
 class ActionButton(wx.Panel):
 
-    def __init__(self, parent, id= -1, bitmap=wx.NullBitmap, hover=True, **kwargs):
+    def __init__(self, parent, id=-1, bitmap=wx.NullBitmap, hover=True, **kwargs):
         wx.Panel.__init__(self, parent, id, size=bitmap.GetSize(), **kwargs)
         self.SetBackgroundColour(parent.GetBackgroundColour())
         self.hover = hover
@@ -1092,7 +1092,7 @@ class ActionButton(wx.Panel):
 
 class ProgressButton(ActionButton):
 
-    def __init__(self, parent, id= -1, label='Search', **kwargs):
+    def __init__(self, parent, id=-1, label='Search', **kwargs):
         ActionButton.__init__(self, parent, id=id, bitmap=wx.EmptyBitmap(1, 1), **kwargs)
         self.icon = None
         self.icon_hl = None
@@ -1279,7 +1279,7 @@ class FancyPanel(wx.Panel):
 
         # Set border colour
         gc.SetPen(wx.Pen(self.border_colour, 1, wx.SOLID) if self.border_colour else wx.TRANSPARENT_PEN)
-        if self.focus != None:
+        if self.focus is not None:
             if self.focus:
                 gc.SetPen(wx.Pen(self.border_highlight, 1, wx.SOLID))
             elif self.GetScreenRect().Contains(wx.GetMousePosition()):
@@ -1701,7 +1701,7 @@ class SimpleNotebook(wx.Panel):
 
 class TagText(wx.Panel):
 
-    def __init__(self, parent, id= -1, label='', fill_colour=wx.Colour(240, 255, 204), edge_colour=wx.Colour(200, 200, 200), text_colour=wx.BLACK, **kwargs):
+    def __init__(self, parent, id=-1, label='', fill_colour=wx.Colour(240, 255, 204), edge_colour=wx.Colour(200, 200, 200), text_colour=wx.BLACK, **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
         self.fill_colour = fill_colour
         self.edge_colour = edge_colour
@@ -1757,7 +1757,7 @@ class TagText(wx.Panel):
 
 class TorrentStatus(wx.Panel):
 
-    def __init__(self, parent, id= -1, status='Initializing', fill_colour=wx.Colour(132, 194, 255), back_colour=wx.Colour(235, 235, 235), **kwargs):
+    def __init__(self, parent, id=-1, status='Initializing', fill_colour=wx.Colour(132, 194, 255), back_colour=wx.Colour(235, 235, 235), **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
         self.status = status
         self.value = None
@@ -1834,7 +1834,7 @@ class TorrentStatus(wx.Panel):
         self.SetValue(progress)
         self.SetStatus(status)
         self.Refresh()
-        if self.value != None:
+        if self.value is not None:
             return int(self.value * self.GetSize().width)
         return 0
 
@@ -1862,7 +1862,7 @@ class TorrentStatus(wx.Panel):
         gc.DrawPath(path)
         self.TextToDC(dc, self.TextColour(self.back_colour))
 
-        if self.value != None:
+        if self.value is not None:
             # Draw a full progress bar and text
             rect = wx.EmptyBitmap(width, height)
             rect_dc = wx.MemoryDC(rect)
@@ -1886,7 +1886,7 @@ class TorrentStatus(wx.Panel):
         font = self.GetFont()
         dc.SetFont(font)
         dc.SetTextForeground(colour)
-        if self.value == None or len(self.status) > 11:
+        if self.value is None or len(self.status) > 11:
             todraw = self.status
         else:
             todraw = "%s %.1f%%" % (self.status, self.value * 100)
@@ -2135,7 +2135,7 @@ class Graph(wx.Panel):
             dropped_value = self.data[graph_id][0]
             self.data[graph_id] = self.data[graph_id][-self.max_points:]
 
-        if dropped_value != None and dropped_value == self.max_range:
+        if dropped_value is not None and dropped_value == self.max_range:
             self.max_range = max([max(column) for column in self.data if column])
         else:
             self.max_range = max(self.max_range, value)
@@ -2229,7 +2229,7 @@ class Graph(wx.Panel):
 
 class VideoProgress(wx.Panel):
 
-    def __init__(self, parent, id= -1, label='Loading\n 0%', value=0.0, fill_colour=wx.Colour(220, 220, 220), edge_colour=wx.Colour(210, 210, 210), text_colour=wx.Colour(210, 210, 210), **kwargs):
+    def __init__(self, parent, id=-1, label='Loading\n 0%', value=0.0, fill_colour=wx.Colour(220, 220, 220), edge_colour=wx.Colour(210, 210, 210), text_colour=wx.Colour(210, 210, 210), **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
         self.fill_colour = fill_colour
         self.edge_colour = edge_colour
@@ -2396,7 +2396,10 @@ class VideoSlider(wx.Panel):
         # Draw background rectangle
         gc.SetPen(wx.TRANSPARENT_PEN)
         gc.SetBrush(wx.Brush(self.colour4))
-        gc.DrawRectangle(self.slider_range[0], height / 2 - rect_height / 2, self.slider_range[1] - self.slider_range[0], rect_height)
+        gc.DrawRectangle(self.slider_range[0],
+                         height / 2 - rect_height / 2,
+                         self.slider_range[1] - self.slider_range[0],
+                         rect_height)
 
         # Draw buffer rectangle
         if self.pieces:
@@ -2407,11 +2410,17 @@ class VideoSlider(wx.Panel):
             from_piece = to_piece = int(self.value * slider_width / piece_width)
             while to_piece < num_pieces and self.pieces[to_piece]:
                 to_piece += 1
-            gc.DrawRectangle(self.slider_range[0] + from_piece * piece_width, height / 2 - rect_height / 2, (to_piece - from_piece) * piece_width, rect_height)
+            gc.DrawRectangle(self.slider_range[0] + from_piece * piece_width,
+                             height / 2 - rect_height / 2,
+                             (to_piece - from_piece) * piece_width,
+                             rect_height)
 
         # Draw position rectangle
         gc.SetBrush(wx.Brush(self.colour1))
-        gc.DrawRectangle(self.slider_range[0], height / 2 - rect_height / 2, self.slider_position[0] - self.slider_range[0], rect_height)
+        gc.DrawRectangle(self.slider_range[0],
+                         height / 2 - rect_height / 2,
+                         self.slider_position[0] - self.slider_range[0],
+                         rect_height)
 
         # Draw slider
         if self.IsEnabled():
@@ -2425,7 +2434,7 @@ class VideoSlider(wx.Panel):
             path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius / 2)
             gc.DrawPath(path)
         else:
-            gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, self.slider_radius * 2 , 0, self.colour3, self.colour4))
+            gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, self.slider_radius * 2, 0, self.colour3, self.colour4))
             path = gc.CreatePath()
             path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius)
             gc.DrawPath(path)
@@ -2444,6 +2453,7 @@ class VideoSlider(wx.Panel):
 
     def IsEnabled(self):
         return self.enabled
+
 
 class VideoVolume(wx.Panel):
 

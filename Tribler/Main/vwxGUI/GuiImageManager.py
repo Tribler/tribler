@@ -88,8 +88,8 @@ class GuiImageManager(object):
             "TORRENT_NEW": {},
             "MODIFICATION": {},
             "REVERTED_MODIFICATION": {},
-            "COMMENT":{},
-            "MARKING":{}
+            "COMMENT": {},
+            "MARKING": {}
         }
         for default_image_info in DEFAULT_IMAGE_INFO_LIST:
             name     = default_image_info[0]

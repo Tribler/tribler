@@ -277,7 +277,7 @@ class DoubleLineListItem(ListItem):
                     submenu.Append(itemid, title)
                 wx.EVT_MENU(self, itemid, handler)
 
-            if updateui != None:
+            if updateui is not None:
                 wx.EVT_UPDATE_UI(self, itemid, updateui)
 
             if type(enable) is bool:
@@ -310,7 +310,7 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
         pass
 
     def AddButton(self, label, handler, right_spacer=10):
-        if handler == None or label == None:
+        if handler is None or label is None:
             return
 
         button = ProgressButton(self, -1, label)
@@ -1033,11 +1033,11 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         dc.SelectObject(wx.NullBitmap)
         del dc
-        
-        # Re-enable wx errors
-        del nolog 
 
-        return (bitmap, bitmap_hover)
+        # Re-enable wx errors
+        del nolog
+
+        return bitmap, bitmap_hover
 
     def OnThumbnailClick(self, event):
         self.guiutility.library_manager.playTorrent(self.original_data.infohash)

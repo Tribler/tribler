@@ -252,6 +252,9 @@ class SocketHandler(object):
         self.interrupt_socket = None
         self.udp_sockets = {}
 
+        self.port = None
+        self.handler = None
+
     def scan_for_timeouts(self):
         t = clock() - self.timeout
         tokill = []
@@ -264,7 +267,7 @@ class SocketHandler(object):
                 self._logger.debug("SocketHandler: scan_timeout closing connection %s", k.get_ip())
                 self._close_socket(k)
 
-    def bind(self, port, bind=[], reuse= False, ipv6_socket_style = 1, handler=None):
+    def bind(self, port, bind=[], reuse=False, ipv6_socket_style=1, handler=None):
         port = int(port)
         addrinfos = []
         # if bind != [] bind to all specified addresses (can be IPs or hostnames)
@@ -278,8 +281,7 @@ class SocketHandler(object):
                 if sys.version_info < (2, 2):
                     addrinfos.append((socket.AF_INET, None, None, None, (addr, port)))
                 else:
-                    addrinfos.extend(socket.getaddrinfo(addr, port,
-                                               socktype, socket.SOCK_STREAM))
+                    addrinfos.extend(socket.getaddrinfo(addr, port, socktype, socket.SOCK_STREAM))
         else:
             if self.ipv6_enable:
                 addrinfos.append([socket.AF_INET6, None, None, None, ('', port)])
@@ -312,8 +314,8 @@ class SocketHandler(object):
             raise socket.error('unable to open server port')
         self.port = port
 
-    def find_and_bind(self, first_try, minport, maxport, bind='', reuse= False,
-                      ipv6_socket_style=1, randomizer= False, handler=None):
+    def find_and_bind(self, first_try, minport, maxport, bind='', reuse= False, ipv6_socket_style=1,
+                      randomizer=False, handler=None):
         e = 'maxport less than minport - no ports to check'
         if maxport - minport < 50 or not randomizer:
             portrange = range(minport, maxport + 1)
@@ -328,16 +330,14 @@ class SocketHandler(object):
                     portrange.append(listen_port)
         if first_try != 0:    # try 22 first, because TU only opens port 22 for SSH...
             try:
-                self.bind(first_try, bind, reuse=reuse,
-                         ipv6_socket_style=ipv6_socket_style, handler=handler)
+                self.bind(first_try, bind, reuse=reuse, ipv6_socket_style=ipv6_socket_style, handler=handler)
                 return first_try
             except socket.error as e:
                 pass
         for listen_port in portrange:
             try:
                 # print >> sys.stderr, listen_port, bind, reuse
-                self.bind(listen_port, bind, reuse=reuse,
-                               ipv6_socket_style=ipv6_socket_style, handler=handler)
+                self.bind(listen_port, bind, reuse=reuse, ipv6_socket_style=ipv6_socket_style, handler=handler)
                 return listen_port
             except socket.error as e:
                 raise
@@ -346,7 +346,7 @@ class SocketHandler(object):
     def set_handler(self, handler):
         self.handler = handler
 
-    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler= None):
+    def start_connection_raw(self, dns, socktype=socket.AF_INET, handler=None):
         # handler = Encoder, self.handler = Multihandler
         if handler is None:
             handler = self.handler
@@ -390,7 +390,7 @@ class SocketHandler(object):
         #    print >> sys.stderr,"SocketHandler: Created Socket"
         return s
 
-    def start_connection(self, dns, handler=None, randomize= False):
+    def start_connection(self, dns, handler=None, randomize=False):
         if handler is None:
             handler = self.handler
         if sys.version_info < (2, 2):
@@ -426,12 +426,10 @@ class SocketHandler(object):
                     try:
                         # Jie: we attempt to use this socktype to connect ipv6 addresses.
                         socktype = socket.AF_UNSPEC
-                        addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
-                                                       socktype, socket.SOCK_STREAM)
+                        addrinfos = socket.getaddrinfo(dns[0], int(dns[1]), socktype, socket.SOCK_STREAM)
                     except:
                         socktype = socket.AF_INET
-                        addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
-                                                       socktype, socket.SOCK_STREAM)
+                        addrinfos = socket.getaddrinfo(dns[0], int(dns[1]), socktype, socket.SOCK_STREAM)
             except socket.error as e:
                 raise
             except Exception as e:
@@ -473,7 +471,8 @@ class SocketHandler(object):
                         # the connection.
                         if len(self.single_sockets) < self.max_connects:
                             newsock.setblocking(0)
-                            nss = SingleSocket(self, newsock, (h or self.handler))    # create socket for incoming peers and tracker
+                            # create socket for incoming peers and tracker
+                            nss = SingleSocket(self, newsock, (h or self.handler))
                             self.single_sockets[newsock.fileno()] = nss
                             self.poll.register(newsock, POLLIN)
                             (h or self.handler).external_connection_made(nss)
@@ -510,17 +509,18 @@ class SocketHandler(object):
 
             s = self.single_sockets.get(sock)
             if s:
-                if (event & (POLLHUP | POLLERR)):
+                if event & (POLLHUP | POLLERR):
                     self._logger.debug("SocketHandler: Got event, connect socket got error %s", sock)
                     self._logger.debug("SocketHandler: Got event, connect socket got error %s %s", s.ip, s.port)
                     self._close_socket(s)
                     continue
-                if (event & POLLIN):
+                if event & POLLIN:
                     try:
                         s.last_hit = clock()
                         data = s.socket.recv(100000)
                         if not data:
-                            self._logger.debug("SocketHandler: no-data closing connection %s %s", s.get_ip(), s.get_port())
+                            self._logger.debug("SocketHandler: no-data closing connection %s %s",
+                                               s.get_ip(), s.get_port())
                             self._close_socket(s)
                         else:
                             # if DEBUG:
@@ -532,7 +532,8 @@ class SocketHandler(object):
                         self._logger.debug("SocketHandler: Socket error %s", e)
                         code, msg = e
                         if code != SOCKET_BLOCK_ERRORCODE:
-                            self._logger.debug("SocketHandler: closing connection because not WOULDBLOCK %s, error %s", s.get_ip(), code)
+                            self._logger.debug("SocketHandler: closing connection because not WOULDBLOCK %s, error %s",
+                                               s.get_ip(), code)
                             self._close_socket(s)
                             continue
                 if (event & POLLOUT) and s.socket and not s.is_flushed():
@@ -566,7 +567,7 @@ class SocketHandler(object):
         r = self.poll.poll(t * timemult)
         if r is None:
             connects = len(self.single_sockets)
-            to_close = int(connects * 0.05) +1 # close 5% of sockets
+            to_close = int(connects * 0.05) + 1  # close 5% of sockets
             self.max_connects = connects - to_close
             closelist = [sock for sock in self.single_sockets.values() if not isinstance(sock, InterruptSocket)]
             shuffle(closelist)
@@ -579,7 +580,7 @@ class SocketHandler(object):
 
     def get_stats(self):
         return {'interfaces': self.interfaces,
-                 'port': self.port}
+                'port': self.port}
 
     def shutdown(self):
         for ss in self.single_sockets.values():

@@ -23,8 +23,7 @@ except ImportError as e:
 class Instance2InstanceServer(Thread):
 
     def __init__(self, i2iport, connhandler, timeout=300.0):
-        Thread.__init__(self)
-
+        super(Thread, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         name = 'Instance2Instance' + self.getName()
@@ -73,7 +72,6 @@ class Instance2InstanceServer(Thread):
         # Could log this somewhere, or phase it out
 
     def run(self):
-
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
 
@@ -115,7 +113,7 @@ class Instance2InstanceServer(Thread):
         return self.rawserver.start_connection_raw(dns, handler=self.connhandler)
 
 
-class InstanceConnectionHandler:
+class InstanceConnectionHandler(object):
 
     def __init__(self, readlinecallback=None):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -174,7 +172,7 @@ class InstanceConnectionHandler:
         return s
 
 
-class InstanceConnection:
+class InstanceConnection(object):
 
     def __init__(self, singsock, connhandler, readlinecallback):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -225,11 +223,11 @@ class InstanceConnection:
             self.singsock = None
 
 
-class Instance2InstanceClient:
+class Instance2InstanceClient(object):
 
     def __init__(self, port, cmd, param):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('127.0.0.1', port))
-        msg = cmd + ' ' +param+'\r\n'
+        msg = cmd + ' ' + param + '\r\n'
         s.send(msg)
         s.close()

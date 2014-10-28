@@ -303,7 +303,7 @@ class SwiftDownloadImpl(DownloadConfigInterface):
             self.dllock.release()
 
     def get_seeding_time(self):
-        return self.time_seeding[0] + (time.time() - self.time_seeding[1] if self.time_seeding[1] != None else 0)
+        return self.time_seeding[0] + (time.time() - self.time_seeding[1] if self.time_seeding[1] is not None else 0)
 
     def get_total_up(self):
         return self.total_up + self.contentbytes[UPLOAD]

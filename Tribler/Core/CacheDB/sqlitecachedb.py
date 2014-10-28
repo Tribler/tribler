@@ -194,7 +194,7 @@ class SQLiteCacheDBBase(TaskManager):
         thread_name = threading.currentThread().getName()
 
         with self.cursor_lock:
-            assert self.cursor_table != None
+            assert self.cursor_table is not None
 
             cur = self.cursor_table.get(thread_name, None)  # return [cur, cur, lib] or None
             # print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
@@ -217,10 +217,10 @@ class SQLiteCacheDBBase(TaskManager):
         thread_name = threading.currentThread().getName()
         # print >>sys.stderr,"sqlcachedb: openDB",dbfile_path,thread_name
         with self.cursor_lock:
-            assert self.cursor_table != None
+            assert self.cursor_table is not None
 
             if thread_name in self.cursor_table:
-                # assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
+                # assert dbfile_path is None or self.class_variables['db_path'] == dbfile_path
                 return self.cursor_table[thread_name]
 
             assert dbfile_path, "You must specify the path of database file"
@@ -361,7 +361,7 @@ class SQLiteCacheDBBase(TaskManager):
             cur = self.openDB(dbfile_path, busytimeout)
             if check_version:
                 sqlite_db_version = self.readDBVersion()
-                if sqlite_db_version == None or int(sqlite_db_version) < 1:
+                if sqlite_db_version is None or int(sqlite_db_version) < 1:
                     raise NotImplementedError
         except Exception as exception:
             if isinstance(exception, Warning):
@@ -530,7 +530,7 @@ class SQLiteCacheDBBase(TaskManager):
                     sql += u'%s=?,' % k
                     arg.append(v)
             sql = sql[:-1]
-            if where != None:
+            if where is not None:
                 sql += u' where %s' % where
             self.execute_write(sql, arg)
 
@@ -572,7 +572,7 @@ class SQLiteCacheDBBase(TaskManager):
 
     def fetchall(self, sql, args=None):
         res = self.execute_read(sql, args)
-        if res != None:
+        if res is not None:
             find = list(res)
             return find
         else:
@@ -665,15 +665,15 @@ class SQLiteCacheDBBase(TaskManager):
         else:
             arg = None
 
-        if group_by != None:
+        if group_by is not None:
             sql += u' group by ' + group_by
-        if having != None:
+        if having is not None:
             sql += u' having ' + having
-        if order_by != None:
+        if order_by is not None:
             sql += u' order by ' + order_by  # you should add desc after order_by to reversely sort, i.e, 'last_seen desc' as order_by
-        if limit != None:
+        if limit is not None:
             sql += u' limit %d' % limit
-        if offset != None:
+        if offset is not None:
             sql += u' offset %d' % offset
 
         try:
@@ -2349,7 +2349,7 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
 
     def __init__(self, *args, **kargs):
         # always use getInstance() to create this object
-        if self.__single != None:
+        if self.__single is not None:
             raise RuntimeError("SQLiteCacheDB is singleton")
         SQLiteNoCacheDB.__init__(self, *args, **kargs)
 
@@ -2373,4 +2373,4 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
 
     @classmethod
     def hasInstance(cls, *args, **kw):
-        return cls.__single != None
+        return cls.__single is not None

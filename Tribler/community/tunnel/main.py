@@ -87,7 +87,7 @@ class Tunnel(object):
         stats_old = self.crawl_message.get(candidate_mid, None)
         self.crawl_message[candidate_mid] = stats
 
-        if stats_old == None:
+        if stats_old is None:
             return
 
         time_dif = float(stats['uptime'] - stats_old['uptime'])

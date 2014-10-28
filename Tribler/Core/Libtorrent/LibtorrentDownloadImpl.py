@@ -50,7 +50,7 @@ class VODFile(object):
 
         self._logger.debug('VODFile: get bytes %s - %s', oldpos, oldpos + args[0])
 
-        while not self._file.closed and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1 and self._download.vod_seekpos != None:
+        while not self._file.closed and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1 and self._download.vod_seekpos is not None:
             time.sleep(1)
 
         if self._file.closed:
@@ -74,7 +74,7 @@ class VODFile(object):
 
         self._logger.debug('VODFile: seek %s %s', newpos, args)
 
-        if self._download.vod_seekpos == None or abs(newpos - self._download.vod_seekpos) < 1024 * 1024:
+        if self._download.vod_seekpos is None or abs(newpos - self._download.vod_seekpos) < 1024 * 1024:
             self._download.vod_seekpos = newpos
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), 0, newpos)], 0)
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), newpos, -1)], 1)
@@ -364,7 +364,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 
     def get_vod_fileindex(self):
-        if self.vod_index != None:
+        if self.vod_index is not None:
             return self.vod_index
         return -1
 
@@ -743,7 +743,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         return bytestogof / dlspeed
 
     def network_calc_prebuf_frac(self):
-        if self.get_mode() == DLMODE_VOD and self.get_vod_fileindex() >= 0 and self.vod_seekpos != None:
+        if self.get_mode() == DLMODE_VOD and self.get_vod_fileindex() >= 0 and self.vod_seekpos is not None:
             if self.endbuffsize:
                 return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize), \
                                                (self.get_vod_fileindex(), -self.endbuffsize - 1, -1)])
@@ -753,7 +753,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return 0.0
 
     def network_calc_prebuf_frac_consec(self):
-        if self.get_mode() == DLMODE_VOD and self.get_vod_fileindex() >= 0 and self.vod_seekpos != None:
+        if self.get_mode() == DLMODE_VOD and self.get_vod_fileindex() >= 0 and self.vod_seekpos is not None:
             if self.endbuffsize:
                 return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize), \
                                                (self.get_vod_fileindex(), -self.endbuffsize - 1, -1)], consecutive=True)
@@ -993,7 +993,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             pstate = self.network_get_persistent_state()
             resdata = None
-            if self.handle == None:
+            if self.handle is None:
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart.get('state', 'engineresumedata')
             elif isinstance(self.tdef, TorrentDef):

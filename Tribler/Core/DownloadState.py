@@ -355,7 +355,7 @@ class DownloadState(Serializable):
             if completed == 1 or have and all(have):
                 nr_seeders_complete += 1
             else:
-                if merged_bitfields == None:
+                if merged_bitfields is None:
                     merged_bitfields = [0] * len(have)
 
                 for i in range(len(have)):

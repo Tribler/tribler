@@ -37,7 +37,7 @@ class ListFooter(wx.Panel):
         hSizer.AddStretchSpacer()
 
     def SetBackgroundColour(self, colour):
-        if self.originalColor == None:
+        if self.originalColor is None:
             self.originalColor = colour
 
         self.background = wx.Brush(colour)

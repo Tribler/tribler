@@ -778,10 +778,10 @@ class NetworkGraphPanel(wx.Panel):
 
         if self.tunnels:
             num_circuits = len(self.circuits)
-            for c_index, circuit in enumerate(sorted(self.circuits.values(), key=lambda c:c.circuit_id)):
+            for c_index, circuit in enumerate(sorted(self.circuits.values(), key=lambda c: c.circuit_id)):
                 circuit_points[circuit] = [(self.margin_x, h / 2 + self.margin_y)]
                 for h_index, hop in enumerate(circuit.hops):
-                    circuit_points[circuit].append((w * (float(h_index + 1) / (circuit.goal_hops + 1)) + self.margin_x, \
+                    circuit_points[circuit].append((w * (float(h_index + 1) / (circuit.goal_hops + 1)) + self.margin_x,
                                                     h * (float(c_index + 0.5) / num_circuits) + self.margin_y))
         else:
             circuit_points[None] = [(self.margin_x, h / 2 + self.margin_y)]

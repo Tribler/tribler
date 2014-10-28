@@ -118,7 +118,7 @@ class XmlPrinter:
 
             # If we have no children, we will write <tag/>
             if not element.hasChildNodes():
-                if ns != None:
+                if ns is not None:
                     if define_ns:
                         if ns_short:
                             buffer += '<%s:%s xmlns:%s="%s"/>%s' %\
@@ -146,7 +146,7 @@ class XmlPrinter:
                 for (url, short) in define_ns_list:
                     ns_string += ' xmlns:%s="%s"' % (short, url)
 
-            if ns != None:
+            if ns is not None:
                 if define_ns:
                     if ns_short:
                         # Define all namespaces of next level children too

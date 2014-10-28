@@ -115,7 +115,7 @@ class LibtorrentMgr(object):
     delInstance = staticmethod(delInstance)
 
     def hasInstance():
-        return LibtorrentMgr.__single != None
+        return LibtorrentMgr.__single is not None
     hasInstance = staticmethod(hasInstance)
 
     def is_anon_ready(self):

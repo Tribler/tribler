@@ -153,7 +153,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                     d.set_max_speed(dir, localmaxspeed)
 
 
-        if self.ltmgr == None and LibtorrentMgr.hasInstance():
+        if self.ltmgr is None and LibtorrentMgr.hasInstance():
             self.ltmgr = LibtorrentMgr.getInstance()
 
         if self.ltmgr:
@@ -289,7 +289,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                         self._logger.info("RateManager: calc_and_set_speed_limits: Normal set to %s", piece)
                         d.set_max_speed(dir, localmaxspeed)
 
-        if self.ltmgr == None and LibtorrentMgr.hasInstance():
+        if self.ltmgr is None and LibtorrentMgr.hasInstance():
             self.ltmgr = LibtorrentMgr.getInstance()
 
         if self.ltmgr:
@@ -402,7 +402,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                 self._logger.debug("RateManager: set_lim: %s InactQ %s", d.get_def().get_name(), setspeed)
                 d.set_max_speed(dir, setspeed)
 
-        if self.ltmgr == None and LibtorrentMgr.hasInstance():
+        if self.ltmgr is None and LibtorrentMgr.hasInstance():
             self.ltmgr = LibtorrentMgr.getInstance()
 
         if self.ltmgr:

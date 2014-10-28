@@ -451,7 +451,7 @@ class SearchCommunity(Community):
                 self.community.taste_buddies.remove(remove)
 
     def create_torrent_collect_requests(self, candidates=None):
-        if candidates == None:
+        if candidates is None:
             refreshIf = time() - CANDIDATE_WALK_LIFETIME
             # determine to which peers we need to send a ping
             candidates = [candidate for _, prev, candidate in self.taste_buddies if prev < refreshIf]

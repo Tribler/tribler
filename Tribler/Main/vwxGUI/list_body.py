@@ -29,7 +29,7 @@ class ListItem(wx.Panel):
 
         self.parent_list = parent_list
         from Tribler.Main.vwxGUI.list_item import ColumnsManager
-        self.columns = columns if columns != None else ColumnsManager.getInstance().getColumns(self.__class__)
+        self.columns = columns if columns is not None else ColumnsManager.getInstance().getColumns(self.__class__)
         self.data = data
         self.original_data = original_data
 
@@ -317,7 +317,7 @@ class ListItem(wx.Panel):
             self.BackgroundColor(colour)
 
             if revert:
-                if self.highlightTimer == None:
+                if self.highlightTimer is None:
                     self.highlightTimer = wx.CallLater(timeout * 1000, self.Revert)
                 else:
                     self.highlightTimer.Restart(timeout * 1000)
@@ -667,7 +667,7 @@ class AbstractListBody():
                 continue
             index += 1
 
-        if self.sortcolumn != None:
+        if self.sortcolumn is not None:
             self.data = sorted(self.data, cmp=sortby, reverse=self.sortreverse)
 
         fixed_positions.sort()
@@ -691,7 +691,7 @@ class AbstractListBody():
         if not self.singleExpanded and wx.GetKeyState(wx.WXK_SHIFT):
             pos_from = self.GetItemPos(self.GetItemKey(self.cur_expanded))
             pos_to = self.GetItemPos(self.GetItemKey(item))
-            if pos_from != None and pos_to != None:
+            if pos_from is not None and pos_to is not None:
                 pos_min = min(pos_from, pos_to)
                 pos_max = max(pos_from, pos_to)
                 self.DeselectAll()
@@ -919,7 +919,7 @@ class AbstractListBody():
 
     @warnWxThread
     def SetData(self, data=None, highlight=None, force=False):
-        if data == None:
+        if data is None:
             data = self.raw_data
         else:
             self.raw_data = data
@@ -948,7 +948,7 @@ class AbstractListBody():
             if call_in <= 0:
                 doSetData()
             else:
-                if self.dataTimer == None:
+                if self.dataTimer is None:
                     self.dataTimer = wx.CallLater(call_in, doSetData)
                 else:
                     self.dataTimer.Restart(call_in)
@@ -1393,7 +1393,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
             self.processingMousewheel = True
             if self.IsShownOnScreen() and self.GetScreenRect().Contains(wx.GetMousePosition()):
                 if sys.platform == 'darwin':
-                    self.Scroll(-1,self.GetViewStart()[1]-event.WheelRotation)
+                    self.Scroll(-1, self.GetViewStart()[1]-event.WheelRotation)
                 else:
                     self.GetEventHandler().ProcessEvent(event)
                 self.processingMousewheel = False
