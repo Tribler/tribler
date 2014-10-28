@@ -14,12 +14,14 @@ logger = logging.getLogger(__name__)
 
 # modules to include into bundle
 includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1", "xml.sax", "email.iterators",
-                  "netifaces", "apsw", "libtorrent", "twisted", "M2Crypto", "pycrypto", "pyasn1"]
+                  "netifaces", "apsw", "libtorrent", "twisted", "M2Crypto", "pycrypto", "pyasn1", "Image"
+                  "urllib3", "requests"]
 
 # gui panels to include
 includePanels = [
     "list", "list_header", "list_body", "list_footer", "list_details",
-     "home", "settingsDialog", "TopSearchPanel", "SearchGridManager", "SRstatusbar"]  # ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
+    "home", "settingsDialog", "TopSearchPanel", "SearchGridManager", "SRstatusbar"]
+    # ,"btn_DetailsHeader","tribler_List","TopSearchPanel","settingsOverviewPanel"] # TextButton
 
 
 includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]

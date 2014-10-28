@@ -46,15 +46,15 @@ includePanels = [
 
 # packages = ["Tribler.Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels] +\
-["Tribler.Core.DecentralizedTracking.pymdht.core", \
- "Tribler.Main.tribler_main", "netifaces", "csv", "cherrypy",
- "twisted", "apsw", "libtorrent", "M2Crypto",
- "zope.interface", "pyasn1", "gmpy"]
+    ["Tribler.Core.DecentralizedTracking.pymdht.core",
+     "Tribler.Main.tribler_main", "netifaces", "csv", "cherrypy",
+     "twisted", "apsw", "libtorrent", "M2Crypto",
+     "zope.interface", "pyasn1", "gmpy", "Image", "requests"]
 
 setup(
-    #    (Disabling bundle_files for now -- apparently causes some issues with Win98)
-#    options = {"py2exe": {"bundle_files": 1}},
-#    zipfile = None,
+    # (Disabling bundle_files for now -- apparently causes some issues with Win98)
+    # options = {"py2exe": {"bundle_files": 1}},
+    # zipfile = None,
     options={"py2exe": {"packages": packages, "optimize": 2}},
     data_files=[("installdir", [])],
     windows=[target],
