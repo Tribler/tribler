@@ -235,8 +235,8 @@ class TunnelCommunity(Community):
                                          if session else self.settings.socks_listen_port)
         self.socks_server.start()
 
-        if LibtorrentMgr.hasInstance():
-            LibtorrentMgr.getInstance().tunnel_community = self
+        if self.tribler_session and self.tribler_session.get_libtorrent():
+            self.tribler_session.get_libtorrent_process().tunnel_community = self
 
     def start_download_test(self):
         if self.tribler_session:
@@ -510,7 +510,7 @@ class TunnelCommunity(Community):
 
     def active_circuits(self, hops=None):
         return {cid: c for cid, c in self.circuits.iteritems()
-                if c.state == CIRCUIT_STATE_READY and (hops == None or hops == len(c.hops))}
+                if c.state == CIRCUIT_STATE_READY and (hops is None or hops == len(c.hops))}
 
     def is_relay(self, circuit_id):
         return circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for

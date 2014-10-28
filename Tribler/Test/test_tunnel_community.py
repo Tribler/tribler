@@ -47,9 +47,9 @@ class TestTunnelCommunity(TestGuiAsServer):
             )
 
         def do_create_local_torrent(_):
-            torrentfilename = self.setupSeeder()
+            tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir(), hops=3)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda : download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
