@@ -195,7 +195,7 @@ class TorrentManager:
         if not duplicate and torrent.infohash in self.requestedTorrents:
             return False
 
-        if torrent.query_candidates == None or len(torrent.query_candidates) == 0:
+        if torrent.query_candidates is None or len(torrent.query_candidates) == 0:
             self.session.download_torrentfile(torrent.infohash, torrent.swift_torrent_hash, callback, prio)
 
         else:
@@ -230,7 +230,7 @@ class TorrentManager:
         if not duplicate and torrent.infohash in self.requestedTorrentsMessages:
             return False
 
-        if torrent.query_candidates == None or len(torrent.query_candidates) == 0:
+        if torrent.query_candidates is None or len(torrent.query_candidates) == 0:
             return False
 
         else:
@@ -599,15 +599,15 @@ class TorrentManager:
 
                 for item in self.hits:
                     if item.infohash == remoteItem.infohash:
-                        if item.query_candidates == None:
+                        if item.query_candidates is None:
                             item.query_candidates = set()
                         item.query_candidates.update(remoteItem.query_candidates)
 
-                        if item.swift_hash == None:
+                        if item.swift_hash is None:
                             item.swift_hash = remoteItem.swift_hash
                             hitsModified.add(item.infohash)
 
-                        if item.swift_torrent_hash == None:
+                        if item.swift_torrent_hash is None:
                             item.swift_torrent_hash = remoteItem.swift_torrent_hash
                             hitsModified.add(item.infohash)
 

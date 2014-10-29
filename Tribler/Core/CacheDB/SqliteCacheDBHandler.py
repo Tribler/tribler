@@ -103,7 +103,7 @@ class BasicDBHandler(TaskManager):
 
     @classmethod
     def hasInstance(cls):
-        return cls._single != None
+        return cls._single is not None
 
     def close(self):
         self.cancel_all_pending_tasks()
@@ -232,7 +232,7 @@ class MetadataDBHandler(BasicDBHandler):
                 this_result = []
 
                 for idx, column in enumerate(columns):
-                    if raw_result[idx] == None:
+                    if raw_result[idx] is None:
                         this_result.append(None)
 
                     elif column == "infohash":
@@ -408,7 +408,7 @@ class PeerDBHandler(BasicDBHandler):
         peer_existed = False
         if 'name' in value:
             value['name'] = dunno2unicode(value['name'])
-        if peer_id != None:
+        if peer_id is not None:
             peer_existed = True
             where = u'peer_id=%d' % peer_id
             self._db.update('Peer', where, **value)
@@ -447,7 +447,7 @@ class PeerDBHandler(BasicDBHandler):
             return
 
         deleted = False
-        if peer_id != None:
+        if peer_id is not None:
             self._db.delete('Peer', peer_id=peer_id)
             deleted = not self.hasPeer(permid, check_db=True)
             if deleted and permid in self.permid_id:
@@ -1895,9 +1895,9 @@ class VoteCastDBHandler(BasicDBHandler):
         self._db.executemany(insert_vote, votes)
 
         for channel_id, voter_id, _, vote, _ in votes:
-            if voter_id == None:
-                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id == None)
-                if self.my_votes != None:
+            if voter_id is None:
+                self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id is None)
+                if self.my_votes is not None:
                     self.my_votes[channel_id] = vote
             self._scheduleUpdateChannelVotes(channel_id)
 
@@ -2207,7 +2207,7 @@ class ChannelCastDBHandler(BasicDBHandler):
         torrent_ids = self.torrent_db.getTorrentIDS(infohashes)
 
         for i in range(len(infohashes)):
-            if torrent_ids[i] == None:
+            if torrent_ids[i] is None:
                 returnAr.append(False)
 
             else:
@@ -2904,7 +2904,7 @@ class ChannelCastDBHandler(BasicDBHandler):
             # finally compare nr_torrents
             return cmp(a[4], b[4])
 
-        if cmpF == None:
+        if cmpF is None:
             cmpF = channel_sort
         channels.sort(cmpF)
         return channels

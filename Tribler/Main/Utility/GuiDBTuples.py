@@ -1,9 +1,7 @@
-# Niels: getValidArgs based on http://stackoverflow.com/questions/196960/can-you-list-the-keyword-arguments-a-python-function-receives
 import binascii
 import logging
 import os.path
 import sys
-from inspect import getargspec
 from time import time
 
 from datetime import date
@@ -20,22 +18,6 @@ from Tribler.Core.osutils import is_android
 
 logger = logging.getLogger(__name__)
 
-
-def getValidArgs(func, argsDict):
-    args, _, _, defaults = getargspec(func)
-    try:
-        args.remove('self')
-    except:
-        pass
-
-    argsDict = dict((key, value) for key, value in argsDict.iteritems() if key in args)
-    if defaults:
-        args = args[:-len(defaults)]
-
-    notOk = set(args).difference(argsDict)
-    if notOk:
-        logger.info("Missing %s arguments for %s", notOk, func)
-    return argsDict
 
 # Niels: from http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 
@@ -113,7 +95,7 @@ class Helper(object):
             setattr(self, key, value)
 
 
-class MergedDs:
+class MergedDs(object):
 
     def __init__(self, dslist):
         self.dslist = dslist
@@ -308,7 +290,7 @@ class Torrent(Helper):
 
     def addDs(self, ds):
         if ds and not isinstance(ds, MergedDs):
-            if self.dslist == None:
+            if self.dslist is None:
                 self.dslist = [None, None]
 
             cdef = ds.get_download().get_def()
@@ -702,14 +684,14 @@ class Comment(Helper):
 
     @cacheProperty
     def name(self):
-        if self.peer_id == None:
+        if self.peer_id is None:
             return self.get_nickname()
         if not self._name:
             return 'Peer %d' % self.peer_id
         return self._name
 
     def isMyComment(self):
-        return self.peer_id == None
+        return self.peer_id is None
 
     @cacheProperty
     def avantar(self):
@@ -719,7 +701,7 @@ class Comment(Helper):
         from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM, data2wxBitmap
         gui_image_manager = GuiImageManager.getInstance()
 
-        if self.peer_id == None:
+        if self.peer_id is None:
             mime, data = self.get_mugshot()
             if data:
                 data = data2wxBitmap(mime, data, SMALL_ICON_MAX_DIM)
@@ -832,7 +814,7 @@ class Modification(Helper):
 
     @cacheProperty
     def peer_name(self):
-        if self.peer_id == None:
+        if self.peer_id is None:
             return self.get_nickname()
         return 'Peer %d' % self.peer_id
 
@@ -865,13 +847,13 @@ class Moderation(Helper):
 
     @cacheProperty
     def peer_name(self):
-        if self.peer_id == None:
+        if self.peer_id is None:
             return self.get_nickname()
         return 'Peer %d' % self.peer_id
 
     @cacheProperty
     def by_peer_name(self):
-        if self.by_peer_id == None:
+        if self.by_peer_id is None:
             return self.get_nickname()
         return 'Peer %d' % self.by_peer_id
 
@@ -890,7 +872,7 @@ class Marking(Helper):
 
     @cacheProperty
     def peer_name(self):
-        if self.peer_id == None:
+        if self.peer_id is None:
             return self.get_nickname()
         return 'Peer %d' % self.peer_id
 

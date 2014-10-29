@@ -10,6 +10,8 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import HorizontalGauge, ActionButton
 
+from Tribler.Main.Utility.utility import size_format, round_range, speed_format
+
 
 class SRstatusbar(wx.StatusBar):
 
@@ -76,7 +78,7 @@ class SRstatusbar(wx.StatusBar):
     @forceWxThread
     def RefreshFreeSpace(self, space):
         if space >= 0:
-            space_str = self.utility.size_format(space, truncate=1)
+            space_str = size_format(space, truncate=1)
             space_label = space_str.replace(' ', '')
             space_tooltip = 'You currently have %s of disk space available on your default download location.' % space_str
             self.free_space.SetLabel(space_label)
@@ -98,8 +100,8 @@ class SRstatusbar(wx.StatusBar):
 
     @warnWxThread
     def SetTransferSpeeds(self, down, up):
-        self.speed_down.SetLabel(self.utility.speed_format(down))
-        self.speed_up.SetLabel(self.utility.speed_format(up))
+        self.speed_down.SetLabel(speed_format(down))
+        self.speed_up.SetLabel(speed_format(up))
         self.Reposition()
 
     def SetGlobalMaxSpeed(self, direction, value):
@@ -111,7 +113,7 @@ class SRstatusbar(wx.StatusBar):
             self.guiutility.app.ratelimiter.set_global_max_speed(direction, value)
 
     def GetSpeedChoices(self, value):
-        values = self.utility.round_range(max(0, value)) if value != 0 else range(0, 1000, 100)
+        values = round_range(max(0, value)) if value != 0 else range(0, 1000, 100)
         values = [value or -1 for value in values]
         if value != 0 and value not in values:
             values.append(value)

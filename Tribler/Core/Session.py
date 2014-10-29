@@ -175,7 +175,7 @@ class Session(SessionConfigInterface):
     get_instance = staticmethod(get_instance)
 
     def has_instance():
-        return Session.__single != None
+        return Session.__single is not None
     has_instance = staticmethod(has_instance)
 
     def del_instance():

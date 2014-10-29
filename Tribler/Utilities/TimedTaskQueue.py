@@ -18,7 +18,7 @@ except ImportError as e:
     prctlimported = False
 
 
-class TimedTaskQueue:
+class TimedTaskQueue(object):
 
     __single = None
 
@@ -30,7 +30,7 @@ class TimedTaskQueue:
         self.count = 0.0  # serves to keep task that were scheduled at the same time in FIFO order
         self.thread = Thread(target=self.run)
         self.thread.setDaemon(isDaemon)
-        self.thread.setName(nameprefix +self.thread.getName())
+        self.thread.setName(nameprefix + self.thread.getName())
         self.thread.start()
 
         if __debug__:
@@ -58,7 +58,7 @@ class TimedTaskQueue:
         if __debug__:
             self.callstack[self.count] = format_stack()
 
-        if id != None:  # remove all redundant tasks
+        if id is not None:  # remove all redundant tasks
             self.queue = filter(lambda item: item[3] != id, self.queue)
         self.queue.append((when, self.count, task, id))
         self.count += 1.0
@@ -79,7 +79,6 @@ class TimedTaskQueue:
 
     def run(self):
         """ Run by server thread """
-
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
 
@@ -128,7 +127,7 @@ class TimedTaskQueue:
                         break
                     else:
                         (when, count, task, id) = self.queue[-1]
-                        t = when - time() +0.001
+                        t = when - time() + 0.001
                         self.add_task('quit', t)
                 else:
                     t1 = time()

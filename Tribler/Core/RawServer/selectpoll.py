@@ -14,7 +14,7 @@ POLLERR = 8
 POLLHUP = 16
 
 
-class poll:
+class poll(object):
 
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)

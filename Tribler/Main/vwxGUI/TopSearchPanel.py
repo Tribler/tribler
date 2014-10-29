@@ -22,7 +22,7 @@ from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 
 
-class TopSearchPanelStub():
+class TopSearchPanelStub(object):
 
     def NextPage(self):
         pass
@@ -244,7 +244,7 @@ class TopSearchPanel(FancyPanel):
 
         """autocompletes term."""
         if len(term) > 1:
-            if self.tdb == None:
+            if self.tdb is None:
                 self.tdb = TorrentDBHandler.getInstance()
             return self.tdb.getAutoCompleteTerms(term, max_terms=7)
         return []
@@ -382,7 +382,7 @@ class TopSearchPanel(FancyPanel):
 
     def OnDownload(self, event=None, torrents=None):
         refresh_library = False
-        torrents = torrents if torrents != None else self.GetSelectedTorrents()
+        torrents = torrents if torrents is not None else self.GetSelectedTorrents()
         for torrent in torrents:
             if 'stopped' in torrent.state:
                 self.guiutility.library_manager.resumeTorrent(torrent)
@@ -454,22 +454,25 @@ class TopSearchPanel(FancyPanel):
         torrents = self.GetSelectedTorrents()
         if not silent:
             dlg = RemoveTorrent(None, torrents)
-            buttonId = dlg.ShowModal()
+            button_id = dlg.ShowModal()
         else:
-            buttonId = wx.ID_DELETE if delete else wx.ID_DEFAULT
+            button_id = wx.ID_DELETE if delete else wx.ID_DEFAULT
 
         refresh_library = False
-        if buttonId in [wx.ID_DEFAULT, wx.ID_DELETE]:
+        if button_id in [wx.ID_DEFAULT, wx.ID_DELETE]:
             for torrent in torrents:
-                self.guiutility.library_manager.deleteTorrent(torrent, buttonId == wx.ID_DELETE)
+                self.guiutility.library_manager.deleteTorrent(torrent, button_id == wx.ID_DELETE)
                 refresh_library = True
 
         if not silent:
             if dlg.newName:
                 if dlg.newName.IsChanged():
-                    dlg2 = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                    dlg2 = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?',
+                                            'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                     if dlg2.ShowModal() == wx.ID_YES:
-                        self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':dlg.newName.GetValue()})
+                        self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id,
+                                                                            torrent.channeltorrent_id,
+                                                                            {'name': dlg.newName.GetValue()})
                     dlg2.Destroy()
             dlg.Destroy()
 

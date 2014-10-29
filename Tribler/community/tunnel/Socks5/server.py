@@ -44,7 +44,7 @@ class SocksUDPConnection(DatagramProtocol):
 
     def datagramReceived(self, data, source):
         # if remote_address was not set before, use first one
-        if self.remote_udp_address == None:
+        if self.remote_udp_address is None:
             self.remote_udp_address = source
 
         if self.remote_udp_address == source:

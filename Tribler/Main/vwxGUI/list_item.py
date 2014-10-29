@@ -31,6 +31,8 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.TorrentDef import TorrentDef
 
+from Tribler.Main.Utility.utility import round_range
+
 
 class ColumnsManager:
     __single = None
@@ -275,7 +277,7 @@ class DoubleLineListItem(ListItem):
                     submenu.Append(itemid, title)
                 wx.EVT_MENU(self, itemid, handler)
 
-            if updateui != None:
+            if updateui is not None:
                 wx.EVT_UPDATE_UI(self, itemid, updateui)
 
             if type(enable) is bool:
@@ -308,7 +310,7 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
         pass
 
     def AddButton(self, label, handler, right_spacer=10):
-        if handler == None or label == None:
+        if handler is None or label is None:
             return
 
         button = ProgressButton(self, -1, label)
@@ -444,7 +446,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
         limit = download.get_max_speed(direction)
 
-        values = self.guiutility.utility.round_range(limit) if limit > 0 else range(0, 1000, 100)
+        values = round_range(limit) if limit > 0 else range(0, 1000, 100)
         if limit > 0 and limit not in values:
             values.append(limit)
             values.sort(cmp=lambda x, y: cmp(int(x), int(y)))
@@ -1031,11 +1033,11 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         dc.SelectObject(wx.NullBitmap)
         del dc
-        
-        # Re-enable wx errors
-        del nolog 
 
-        return (bitmap, bitmap_hover)
+        # Re-enable wx errors
+        del nolog
+
+        return bitmap, bitmap_hover
 
     def OnThumbnailClick(self, event):
         self.guiutility.library_manager.playTorrent(self.original_data.infohash)

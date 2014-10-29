@@ -65,7 +65,8 @@ class UserCallbackHandler(object):
         self.sesslock.acquire()
         try:
             if self.session.lm.download_exists(infohash):
-                self._logger.info("Session: sesscb_removestate: Download is back, restarted? Canceling removal! %s", repr(infohash))
+                self._logger.info("Session: sesscb_removestate: Download is back, restarted? Canceling removal! %s",
+                                  repr(infohash))
                 return
 
             dlpstatedir = os.path.join(self.session.get_state_dir(), STATEDIR_DLPSTATE_DIR)

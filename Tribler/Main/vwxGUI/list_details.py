@@ -19,7 +19,6 @@ from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
     NTFY_VIDEO_ENDED, DLMODE_VOD
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -40,6 +39,8 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
     MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, \
     FancyPanel, TransparentText, LinkText, StaticBitmaps, \
     TransparentStaticBitmap, Graph, ProgressBar
+
+from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
 
 
 class AbstractDetails(FancyPanel):
@@ -84,13 +85,13 @@ class AbstractDetails(FancyPanel):
     @warnWxThread
     def _add_row(self, parent, sizer, name, value, spacer=0, flags=wx.EXPAND):
         nametext = name
-        if name != None:
+        if name is not None:
             nametext = wx.StaticText(parent, -1, name)
             _set_font(nametext, fontweight=wx.FONTWEIGHT_BOLD)
 
             sizer.Add(nametext, 0, wx.LEFT, spacer)
 
-        if value != None:
+        if value is not None:
             if isinstance(value, basestring):
                 try:
                     value = MaxBetterText(parent, unicode(value), maxLines=3, name=name)
@@ -504,7 +505,7 @@ class TorrentDetails(AbstractDetails):
         todo.append((self.description, ''))
         todo.append((self.type, ', '.join(self.torrent.categories).capitalize() if isinstance(self.torrent.categories, list) else 'Unknown'))
         todo.append((self.uploaded, self.torrent.formatCreationDate() if hasattr(self.torrent, 'formatCreationDate') else ''))
-        todo.append((self.filesize, '%s in %d file(s)' % (self.guiutility.utility.size_format(self.torrent.length), len(self.torrent.files)) if hasattr(self.torrent, 'files') else '%s' % self.guiutility.utility.size_format(self.torrent.length)))
+        todo.append((self.filesize, '%s in %d file(s)' % (size_format(self.torrent.length), len(self.torrent.files)) if hasattr(self.torrent, 'files') else '%s' % size_format(self.torrent.length)))
 
         for control, new_value in todo:
             if control.GetLabel() != new_value:
@@ -934,7 +935,7 @@ class TorrentDetails(AbstractDetails):
                 if diff < 5:
                     self.health.SetLabel("%s seeders, %s leechers (current)" % (num_seeders, num_leechers))
                 else:
-                    updated = self.guiutility.utility.eta_value(diff, 2)
+                    updated = eta_value(diff, 2)
                     if updated == '<unknown>':
                         self.health.SetLabel("%s seeders, %s leechers" % (num_seeders, num_leechers) + updating)
                     else:
@@ -985,7 +986,7 @@ class TorrentDetails(AbstractDetails):
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
             uls = ds.get_current_speed('up')
-            status = 'Seeding @ %s' % self.utility.speed_format(uls)
+            status = 'Seeding @ %s' % speed_format(uls)
         elif finished:
             status = 'Completed'
         elif statusflag in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK]:
@@ -995,7 +996,7 @@ class TorrentDetails(AbstractDetails):
         elif statusflag == DLSTATUS_DOWNLOADING:
             dls = ds.get_current_speed('down')
             status = 'Streaming' if is_vod else 'Downloading'
-            status += ' @ %s' % self.utility.speed_format(dls)
+            status += ' @ %s' % speed_format(dls)
         elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
 
@@ -1325,8 +1326,8 @@ class LibraryDetails(TorrentDetails):
                 self.peerList.SetStringItem(index, 1, '%d%%' % (peer_dict.get('completed', 0) * 100.0))
 
                 traffic = ""
-                traffic += self.guiutility.utility.speed_format(peer_dict.get('downrate', 0)) + u"\u2193 "
-                traffic += self.guiutility.utility.speed_format(peer_dict.get('uprate', 0)) + u"\u2191"
+                traffic += speed_format(peer_dict.get('downrate', 0)) + u"\u2193 "
+                traffic += speed_format(peer_dict.get('uprate', 0)) + u"\u2191"
                 self.peerList.SetStringItem(index, 2, traffic.strip())
 
                 state = ""
@@ -1642,7 +1643,7 @@ class PlaylistDetails(AbstractDetails):
 
         # Set new thumbnails
         if self.playlist and self.playlist.nr_torrents > 0:
-            if self.playlist_torrents == None:
+            if self.playlist_torrents is None:
                 def do_db():
                     from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
                     return ChannelManager.getInstance().getTorrentsFromPlaylist(self.playlist)[2]
@@ -1744,7 +1745,7 @@ class AbstractInfoPanel(FancyPanel):
         self.Layout()
 
     def AddButton(self, label, handler, icon=None):
-        if handler == None or label == None:
+        if handler is None or label is None:
             return
 
         button = ProgressButton(self, -1, label)
@@ -1888,13 +1889,13 @@ class ProgressPanel(wx.BoxSizer):
         # return_val, 0 == inactive, 1 == incomplete, 2 == complete/seeding
         return_val = 0
 
-        if ds == None:
+        if ds is None:
             if torrent:
                 ds = torrent.ds
             else:
                 ds = self.item.original_data.get('ds', None)
 
-        if ds != None:
+        if ds is not None:
             progress = ds.get_progress()
             size = ds.get_length()
 
@@ -1908,7 +1909,7 @@ class ProgressPanel(wx.BoxSizer):
 
         else:
             progress = self.item.original_data.get('progress')
-            if progress == None:
+            if progress is None:
                 progress = 0
             size = self.item.original_data.get('length', False)
 
@@ -1918,9 +1919,9 @@ class ProgressPanel(wx.BoxSizer):
             eta = ''
             status = DLSTATUS_STOPPED
 
-        if seeds == None:
+        if seeds is None:
             seeds = 0
-        if peers == None:
+        if peers is None:
             peers = 0
 
         progress = max(0, min(1, progress))  # progress has to be between 0 and 1
@@ -1961,11 +1962,11 @@ class ProgressPanel(wx.BoxSizer):
 
                     def format_size(bytes):
                         if bytes > 1073741824:
-                            return self.utility.size_format(bytes, 1)
-                        return self.utility.size_format(bytes, 0)
+                            return size_format(bytes, 1)
+                        return size_format(bytes, 0)
                     sizestr = '%s/%s (%0.1f%%)' % (format_size(size_progress), format_size(size), progress * 100)
 
-                eta = self.utility.eta_value(eta, truncate=2)
+                eta = eta_value(eta, truncate=2)
                 if eta == '' or eta.find('unknown') != -1:
                     eta = sizestr
 
@@ -1985,10 +1986,10 @@ class ProgressPanel(wx.BoxSizer):
 
         if self.style == ProgressPanel.ETA_EXTENDED:
             if status == DLSTATUS_SEEDING:
-                upSpeed = " @ " + self.utility.speed_format(uls)
+                upSpeed = " @ " + speed_format(uls)
                 eta += upSpeed
             elif status == DLSTATUS_DOWNLOADING:
-                dlSpeed = " @ " + self.utility.speed_format(dls)
+                dlSpeed = " @ " + speed_format(dls)
                 eta += dlSpeed
 
         # Update eta
@@ -2317,7 +2318,8 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(text, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
             if show_animation:
-                ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.vwxGUI_path, 'images', 'search_new.gif'))
+                ag = wx.animate.GIFAnimationCtrl(self, -1,
+                                                 os.path.join(self.guiutility.vwxGUI_path, 'images', 'search_new.gif'))
                 ag.Play()
                 sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
@@ -2327,7 +2329,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.Thaw()
 
     @forceWxThread
-    def SetTorrentDef(self, tdef, fileindex= -1):
+    def SetTorrentDef(self, tdef, fileindex=-1):
         if self.tdef != tdef and self.fileindex != fileindex:
             self.tdef = tdef
             self.fileindex = fileindex

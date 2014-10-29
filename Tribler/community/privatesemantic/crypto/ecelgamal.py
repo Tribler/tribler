@@ -15,7 +15,7 @@ from Tribler.community.privatesemantic.conversion import bytes_to_long, \
     long_to_bytes
 
 def ecelgamal_init(bits=192, curve=None):
-    if curve == None:
+    if curve is None:
         if bits == 192:
             coef_a = -3
             coef_b = 0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1

@@ -247,7 +247,7 @@ class TTLSearchCommunity(Community):
             return self.search_requests[0].created_by_me
 
     def create_search(self, keywords, callback, number=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None, return_member=None):
-        if ttl == None:
+        if ttl is None:
             if isinstance(self.ttl, tuple):
                 _ttl = self.ttl[1]
             elif isinstance(self.ttl, int):
@@ -257,7 +257,7 @@ class TTLSearchCommunity(Community):
         else:
             _ttl = ttl
 
-        if nrcandidates == None:
+        if nrcandidates is None:
             nrcandidates = self.neighbors
 
         if isinstance(nrcandidates, tuple):
@@ -265,11 +265,11 @@ class TTLSearchCommunity(Community):
         elif isinstance(nrcandidates, float):
             nrcandidates = int(ceil(_ttl * nrcandidates))
 
-        if bloomfilter == None:
+        if bloomfilter is None:
             bloomfilter = BloomFilter(0.01, 100)
 
         # put local results in bloomfilter
-        if results == None:
+        if results is None:
             results = self._get_results(keywords, bloomfilter, True)
 
         # fetch requested candidates from previous forward

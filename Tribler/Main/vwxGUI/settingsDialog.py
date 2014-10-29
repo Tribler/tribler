@@ -32,15 +32,16 @@ def create_section(parent, hsizer, label):
 
     title = wx.StaticText(panel, label=label)
     _set_font(title, 1, wx.FONTWEIGHT_BOLD)
-    vsizer.AddSpacer((1,7))
+    vsizer.AddSpacer((1, 7))
     vsizer.Add(title, 0, wx.EXPAND | wx.BOTTOM, -7)
 
     hsizer.Add(panel, 1, wx.EXPAND)
     panel.SetSizer(vsizer)
     return panel, vsizer
 
+
 def create_subsection(parent, parent_sizer, label, num_cols=1, vgap=0, hgap=0):
-    line = wx.StaticLine(parent, size=(-1,1), style=wx.LI_HORIZONTAL)
+    line = wx.StaticLine(parent, size=(-1, 1), style=wx.LI_HORIZONTAL)
     parent_sizer.Add(line, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 7)
 
     title = wx.StaticText(parent, label=label)
@@ -56,16 +57,18 @@ def create_subsection(parent, parent_sizer, label, num_cols=1, vgap=0, hgap=0):
     parent_sizer.Add(sizer, 0, wx.EXPAND)
     return sizer
 
+
 def add_label(parent, sizer, label):
     label = wx.StaticText(parent, label=label)
-    label.SetMinSize((100,-1))
+    label.SetMinSize((100, -1))
     sizer.Add(label)
+
 
 class SettingsDialog(wx.Dialog):
 
     def __init__(self):
         super(SettingsDialog, self).__init__(None, size=(600, 600),
-            title="Settings", name="settingsDialog", style=wx.DEFAULT_DIALOG_STYLE)
+                                             title="Settings", name="settingsDialog", style=wx.DEFAULT_DIALOG_STYLE)
         self.SetExtraStyle(self.GetExtraStyle() | wx.WS_EX_VALIDATE_RECURSIVELY)
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -75,7 +78,7 @@ class SettingsDialog(wx.Dialog):
 
         # create the dialog and widgets
         self._tree_ctrl = wx.TreeCtrl(self,
-            style=wx.TR_DEFAULT_STYLE | wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_SINGLE)
+                                      style=wx.TR_DEFAULT_STYLE | wx.SUNKEN_BORDER | wx.TR_HIDE_ROOT | wx.TR_SINGLE)
         self._tree_ctrl.SetMinSize(wx.Size(150, -1))
         tree_root = self._tree_ctrl.AddRoot('Root')
         self._tree_ctrl.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
@@ -118,12 +121,13 @@ class SettingsDialog(wx.Dialog):
         old_item = event.GetOldItem()
         new_item = event.GetItem()
         try:
-            self.ShowPage(self._tree_ctrl.GetItemData(new_item).GetData(), self._tree_ctrl.GetItemData(old_item).GetData())
+            self.ShowPage(self._tree_ctrl.GetItemData(new_item).GetData(),
+                          self._tree_ctrl.GetItemData(old_item).GetData())
         except:
             pass
 
     def ShowPage(self, page, oldpage):
-        if oldpage == None:
+        if oldpage is None:
             selection = self._tree_ctrl.GetSelection()
             oldpage = self._tree_ctrl.GetItemData(selection).GetData()
 
@@ -169,7 +173,8 @@ class SettingsDialog(wx.Dialog):
         for config_option, value in [('maxdownloadrate', convert(valdown)), ('maxuploadrate', convert(valup))]:
             if self.utility.read_config(config_option) != value:
                 self.utility.write_config(config_option, value)
-                self.guiUtility.app.ratelimiter.set_global_max_speed(UPLOAD if config_option == 'maxuploadrate' else DOWNLOAD, value)
+                self.guiUtility.app.ratelimiter.set_global_max_speed(UPLOAD if config_option == 'maxuploadrate'
+                                                                     else DOWNLOAD, value)
 
         valport = self._firewall_value.GetValue()
         if valport != str(self.utility.session.get_listen_port()):
@@ -389,7 +394,8 @@ class SettingsDialog(wx.Dialog):
             pass
 
         # update db
-        self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(os.path.join(new_dir, 'collected_torrent_files'))
+        self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(os.path.join(new_dir,
+                                                                                       'collected_torrent_files'))
 
         busyDlg.Destroy()
 
@@ -437,7 +443,7 @@ class SettingsDialog(wx.Dialog):
         gp_s1_sizer.Add(self._my_name_field, 1, wx.EXPAND)
 
         add_label(general_panel, gp_s1_sizer, "Profile Image")
-        self._thumb = wx.StaticBitmap(general_panel, size=(80,80))
+        self._thumb = wx.StaticBitmap(general_panel, size=(80, 80))
         self._edit = wx.Button(general_panel, label="Change Image")
         gp_s1_porfile_vsizer = wx.BoxSizer(wx.VERTICAL)
         gp_s1_porfile_vsizer.Add(self._thumb, 0, wx.LEFT, 1)
@@ -450,14 +456,12 @@ class SettingsDialog(wx.Dialog):
         gp_s2_label = wx.StaticText(general_panel, label="Save files to:")
         gp_s2_sizer.Add(gp_s2_label)
         gp_s2_hsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self._disk_location_ctrl = EditText(general_panel,
-            validator=DirectoryValidator())
+        self._disk_location_ctrl = EditText(general_panel, validator=DirectoryValidator())
         gp_s2_hsizer.Add(self._disk_location_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
         self._browse = wx.Button(general_panel, label="Browse")
         gp_s2_hsizer.Add(self._browse)
         gp_s2_sizer.Add(gp_s2_hsizer, 0, wx.EXPAND)
-        self._disk_location_choice = wx.CheckBox(general_panel,
-            label="Let me choose a location for every download")
+        self._disk_location_choice = wx.CheckBox(general_panel, label="Let me choose a location for every download")
         self._disk_location_choice.SetValue(False)
         gp_s2_sizer.Add(self._disk_location_choice)
 
@@ -516,7 +520,7 @@ class SettingsDialog(wx.Dialog):
         add_label(conn_panel, cn_s2_sizer, "Type")
         self._lt_proxytype = wx.Choice(conn_panel)
         self._lt_proxytype.AppendItems(["None", "Socks4", "Socks5",
-            "Socks5 with authentication", "HTTP", "HTTP with authentication"])
+                                        "Socks5 with authentication", "HTTP", "HTTP with authentication"])
         cn_s2_sizer.Add(self._lt_proxytype)
 
         add_label(conn_panel, cn_s2_sizer, "Server")
@@ -541,7 +545,7 @@ class SettingsDialog(wx.Dialog):
 
         # BitTorrent features
         cn_s3_sizer = create_subsection(conn_panel, cn_vsizer, "BitTorrent features", 1)
-        self._enable_utp = wx.CheckBox(conn_panel, size=(200,-1),
+        self._enable_utp = wx.CheckBox(conn_panel, size=(200, -1),
             label="Enable bandwidth management (uTP)")
         cn_s3_sizer.Add(self._enable_utp, 0, wx.EXPAND)
 
@@ -619,23 +623,20 @@ class SettingsDialog(wx.Dialog):
 
         # BitTorrent-peers
         sd_s1_sizer = create_subsection(seeding_panel, sd_vsizer, "BitTorrent-peers", 2)
-        self._t4t0 = wx.RadioButton(seeding_panel,
-            label="Seed until UL/DL ratio >", style=wx.RB_GROUP)
+        self._t4t0 = wx.RadioButton(seeding_panel, label="Seed until UL/DL ratio >", style=wx.RB_GROUP)
         sd_s1_sizer.Add(self._t4t0, 0, wx.ALIGN_CENTER_VERTICAL)
         self._t4t0choice = wx.Choice(seeding_panel)
         self._t4t0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
         sd_s1_sizer.Add(self._t4t0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
-        self._t4t1 = wx.RadioButton(seeding_panel,
-            label="Unlimited seeding")
+        self._t4t1 = wx.RadioButton(seeding_panel, label="Unlimited seeding")
         sd_s1_sizer.Add(self._t4t1, 0, wx.ALIGN_CENTER_VERTICAL)
         sd_s1_sizer.AddStretchSpacer()
 
         self._t4t2 = wx.RadioButton(seeding_panel, label="Seeding for (hours:minutes)")
         sd_s1_sizer.Add(self._t4t2, 0, wx.ALIGN_CENTER_VERTICAL)
         self._t4t2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
-        self._t4t2text.SetCtrlParameters(mask="##:##", defaultValue="00:00",
-            useFixedWidthFont=False)
+        self._t4t2text.SetCtrlParameters(mask="##:##", defaultValue="00:00", useFixedWidthFont=False)
         sd_s1_sizer.Add(self._t4t2text)
 
         self._t4t3 = wx.RadioButton(seeding_panel, label="No seeding")
@@ -643,24 +644,20 @@ class SettingsDialog(wx.Dialog):
 
         # Tribler-peers
         sd_s2_sizer = create_subsection(seeding_panel, sd_vsizer, "Tribler-peers", 2)
-        self._g2g0 = wx.RadioButton(seeding_panel,
-            label="Seed to peers with UL/DL ratio", style=wx.RB_GROUP)
+        self._g2g0 = wx.RadioButton(seeding_panel, label="Seed to peers with UL/DL ratio", style=wx.RB_GROUP)
         sd_s2_sizer.Add(self._g2g0, 0, wx.ALIGN_CENTER_VERTICAL)
         self._g2g0choice = wx.Choice(seeding_panel)
         self._g2g0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
         sd_s2_sizer.Add(self._g2g0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
-        self._g2g1 = wx.RadioButton(seeding_panel,
-            label="Unlimited seeding (Boost your reputation)")
+        self._g2g1 = wx.RadioButton(seeding_panel, label="Unlimited seeding (Boost your reputation)")
         sd_s2_sizer.Add(self._g2g1, 0, wx.ALIGN_CENTER_VERTICAL)
         sd_s2_sizer.AddStretchSpacer(1)
 
-        self._g2g2 = wx.RadioButton(seeding_panel,
-            label="Seeding for (hours:minutes)")
+        self._g2g2 = wx.RadioButton(seeding_panel, label="Seeding for (hours:minutes)")
         sd_s2_sizer.Add(self._g2g2, 0, wx.ALIGN_CENTER_VERTICAL)
         self._g2g2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
-        self._g2g2text.SetCtrlParameters(mask="##:##", defaultValue="00:00",
-            useFixedWidthFont=False)
+        self._g2g2text.SetCtrlParameters(mask="##:##", defaultValue="00:00", useFixedWidthFont=False)
         sd_s2_sizer.Add(self._g2g2text)
 
         self._g2g3 = wx.RadioButton(seeding_panel,

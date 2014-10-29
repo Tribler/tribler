@@ -62,13 +62,12 @@ class FastI2IConnection(Thread):
                 try:
                     self.data_came_in(data)
                 except:
+                    self._logger.error(u"Error while parsing data: %s", repr(data))
                     print_exc()
 
         except:
+            self._logger.error(u"Error while handling connection to %s:%s", "127.0.0.1", self.port)
             print_exc()
-
-            import sys
-            print >> sys.stderr, "Error while parsing, (%s)" % data or ''
 
         finally:
             with self.lock:

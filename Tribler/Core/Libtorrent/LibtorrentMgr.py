@@ -23,7 +23,7 @@ METAINFO_CACHE_PERIOD = 5 * 60
 METAINFO_TMPDIR = 'metadata_tmpdir'
 
 
-class LibtorrentMgr:
+class LibtorrentMgr(object):
     # Code to make this a singleton
     __single = None
 
@@ -115,7 +115,7 @@ class LibtorrentMgr:
     delInstance = staticmethod(delInstance)
 
     def hasInstance():
-        return LibtorrentMgr.__single != None
+        return LibtorrentMgr.__single is not None
     hasInstance = staticmethod(hasInstance)
 
     def is_anon_ready(self):

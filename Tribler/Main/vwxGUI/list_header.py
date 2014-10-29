@@ -22,6 +22,8 @@ from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, LinkText, \
     BetterText as StaticText, _set_font
 
+from Tribler.Main.Utility.utility import size_format
+
 
 class ListHeaderIcon:
     __single = None
@@ -569,7 +571,7 @@ class TorrentFilter(BaseFilter):
 
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
-        self.filesize.SetFormatter(self.guiutility.utility.size_format)
+        self.filesize.SetFormatter(size_format)
 
         self.search = wx.SearchCtrl(panel)
         self.search.SetDescriptiveText('Filter results')
@@ -604,7 +606,7 @@ class TorrentFilter(BaseFilter):
         return panel
 
     def OnPopupSort(self, event):
-        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn != None else -1
+        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn is not None else -1
         sortreverse = getattr(self.parent_list.list, 'sortreverse', False)
 
         menu = wx.Menu()
@@ -906,7 +908,7 @@ class ChannelFilter(BaseFilter):
         return panel
 
     def OnPopupSort(self, event):
-        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn != None else -1
+        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn is not None else -1
         sortreverse = getattr(self.parent_list.list, 'sortreverse', False)
 
         menu = wx.Menu()
@@ -1023,7 +1025,7 @@ class DownloadFilter(BaseFilter):
 
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
-        self.filesize.SetFormatter(self.guiutility.utility.size_format)
+        self.filesize.SetFormatter(size_format)
 
         self.state_icon = wx.StaticBitmap(panel, -1, self.icon_right)
         self.state = LinkStaticText(panel, 'Download state', None, font_colour=wx.BLACK)
@@ -1058,7 +1060,7 @@ class DownloadFilter(BaseFilter):
         return panel
 
     def OnPopupState(self, event):
-        currentState = self.parent_list.statefilter if self.parent_list.statefilter != None else ''
+        currentState = self.parent_list.statefilter if self.parent_list.statefilter is not None else ''
 
         menu = wx.Menu()
         for state in ['All', 'Completed', 'Active', 'Seeding', 'Downloading', 'Stopped', 'Checking']:
@@ -1078,7 +1080,7 @@ class DownloadFilter(BaseFilter):
         self.Layout()
 
     def OnPopupSort(self, event):
-        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn != None else -1
+        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn is not None else -1
         sortreverse = getattr(self.parent_list.list, 'sortreverse', False)
 
         menu = wx.Menu()
