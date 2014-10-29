@@ -23,7 +23,7 @@ except ImportError as e:
 class Instance2InstanceServer(Thread):
 
     def __init__(self, i2iport, connhandler, timeout=300.0):
-        super(Thread, self).__init__()
+        super(Instance2InstanceServer, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         name = 'Instance2Instance' + self.getName()
