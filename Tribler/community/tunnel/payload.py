@@ -143,6 +143,25 @@ class PongPayload(PingPayload):
     pass
 
 
+class DestroyPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, circuit_id, reason):
+            assert isinstance(circuit_id, (int, long)), type(circuit_id)
+            assert isinstance(reason, int), type(reason)
+
+            super(DestroyPayload.Implementation, self).__init__(meta)
+            self._circuit_id = circuit_id
+            self._reason = reason
+
+        @property
+        def circuit_id(self):
+            return self._circuit_id
+
+        @property
+        def reason(self):
+            return self._reason
+
+
 class StatsRequestPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier):
