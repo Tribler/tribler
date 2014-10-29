@@ -85,6 +85,12 @@ class TriblerLaunchMany(Thread):
                                        ipv6_enable=self.session.get_ipv6(),
                                        failfunc=self.rawserver_fatalerrorfunc,
                                        errorfunc=self.rawserver_nonfatalerrorfunc)
+
+            # register TFTP handler
+            from Tribler.Core.Service.TFTP.handler import TftpHandler
+            self.tftp_handler = TftpHandler(self.session, u"/home/lfei/tftp_root", "127.0.0.1", 45673)
+            self.tftp_handler.initialize()
+
             self.listen_port = self.session.get_listen_port()
             self.shutdownstarttime = None
 
@@ -171,6 +177,7 @@ class TriblerLaunchMany(Thread):
                     endpoint = TunnelEndpoint(self.swift_process)
                 else:
                     endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
+                    # register TFTP service
 
                 working_directory = unicode(self.session.get_state_dir())
                 self.dispersy = Dispersy(endpoint, working_directory, crypto=ElgamalCrypto())
@@ -713,6 +720,9 @@ class TriblerLaunchMany(Thread):
             self.ue_db.delInstance()
             self.cat.delInstance()
             self.term.delInstance()
+
+        if self.tftp_handler is not None:
+            self.tftp_handler.shutdown()
 
         # SWIFTPROC
         if self.spm is not None:
