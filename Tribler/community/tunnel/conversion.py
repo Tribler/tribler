@@ -22,6 +22,7 @@ class TunnelConversion(BinaryConversion):
         self.define_meta_message(chr(7), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
         self.define_meta_message(chr(8), community.get_meta_message(u"stats-request"), lambda message: self._encode_decode(self._encode_stats_request, self._decode_stats_request, message), self._decode_stats_request)
         self.define_meta_message(chr(9), community.get_meta_message(u"stats-response"), lambda message: self._encode_decode(self._encode_stats_response, self._decode_stats_response, message), self._decode_stats_response)
+        self.define_meta_message(chr(10), community.get_meta_message(u"destroy"), lambda message: self._encode_decode(self._encode_destroy, self._decode_destroy, message), self._decode_destroy)
 
     def _encode_cell(self, message):
         payload = message.payload
@@ -135,6 +136,18 @@ class TunnelConversion(BinaryConversion):
 
     def _decode_pong(self, placeholder, offset, data):
         return self._decode_ping(placeholder, offset, data)
+
+    def _encode_destroy(self, message):
+        return pack('!IH', message.payload.circuit_id, message.payload.reason),
+
+    def _decode_destroy(self, placeholder, offset, data):
+        if len(data) < offset + 6:
+            raise DropPacket("Insufficient packet size")
+
+        circuit_id, reason = unpack_from('!IB', data, offset)
+        offset += 6
+
+        return offset, placeholder.meta.payload.implement(circuit_id, reason)
 
     def _encode_stats_request(self, message):
         return pack('!H', message.payload.identifier),
